@@ -1,21 +1,31 @@
 # DatabaseBackupsCard
 
-**Fuente:** `apps/operator-console/src/components/DatabaseBackupsCard.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`  
-**Spec de dominio:** `specs/edge-platform-foundations-v1.md`
+**Source:** `apps/operator-console/src/components/DatabaseBackupsCard.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
+**Domain spec:** `specs/edge-platform-foundations-v1.md`
 
-## Propósito
+## Purpose
 
-Presenta el estado de las copias locales de la base de datos y permite que un administrador cree una nueva copia de forma explícita.
+Presents local database backup status and lets an administrator explicitly
+create a new backup.
 
-## Contrato
+## Contract
 
-Recibe una lista de metadatos seguros (`filename`, `sizeBytes`, `createdAt`), los estados de carga y creación, y callbacks separados para actualizar o crear. No realiza solicitudes HTTP ni conoce rutas del filesystem.
+Receives safe metadata (`filename`, `sizeBytes`, `createdAt`), loading and
+creation state, and separate refresh and create callbacks. It makes no HTTP
+request and knows no filesystem path.
 
-## Uso
+## Usage
 
-Usar únicamente en una superficie administrativa que ya haya autorizado el acceso a copias. El consumidor debe obtener los datos desde los endpoints protegidos y no entregar ni persistir paths internos.
+Use only in an administrative surface that has already authorized backup
+access. The consumer obtains data through protected endpoints and neither
+provides nor persists internal paths.
 
-## Estados y aceptación
+## States and Acceptance
 
-Conserva las copias visibles durante una actualización, muestra un estado vacío localizado cuando no existen copias y comunica un error localizado sin eliminar datos previos. Durante la creación bloquea acciones duplicadas y expone `aria-busy` mediante el botón modular. En móvil, tablet y escritorio se ajusta al ancho disponible, truncando solamente el nombre de archivo con título accesible; fecha, tamaño y acciones permanecen legibles.
+Keeps backups visible while refreshing, shows a localized empty state when none
+exist, and communicates a localized error without removing previous data.
+During creation it blocks duplicate actions and exposes `aria-busy` through the
+modular button. On mobile, tablet, and desktop it adapts to available width,
+truncating only the filename with an accessible title; date, size, and actions
+remain readable.

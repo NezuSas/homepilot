@@ -80,22 +80,24 @@ export class SonoffDeviceDriver implements DeviceDriver {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      const url = `http://${targetIp}:8081/zeroconf/switch`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          deviceid: deviceId.replace('eWeLink_', ''),
-          data: { switch: targetState }
-        }),
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error ${response.status}`);
+      try {
+        const url = `http://${targetIp}:8081/zeroconf/switch`;
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            deviceid: deviceId.replace('eWeLink_', ''),
+            data: { switch: targetState }
+          }),
+          signal: controller.signal
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}`);
+        }
+      } finally {
+        clearTimeout(timeoutId);
       }
     } catch (e: unknown) {
       if (retryCount < 1) {
@@ -109,22 +111,24 @@ export class SonoffDeviceDriver implements DeviceDriver {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 3000);
-      
-      const response = await fetch(`http://${targetIp}:8081/zeroconf/info`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          deviceid: deviceId.replace('eWeLink_', ''),
-          data: {}
-        }),
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeout);
 
-      if (response.ok) {
-        const body = await response.json();
-        return body?.data?.switch || optimisticState;
+      try {
+        const response = await fetch(`http://${targetIp}:8081/zeroconf/info`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            deviceid: deviceId.replace('eWeLink_', ''),
+            data: {}
+          }),
+          signal: controller.signal
+        });
+
+        if (response.ok) {
+          const body = await response.json();
+          return body?.data?.switch || optimisticState;
+        }
+      } finally {
+        clearTimeout(timeout);
       }
     } catch (e) {
       // Ignorar errores de verificación, caer en estado optimista

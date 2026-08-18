@@ -70,3 +70,20 @@ describe('AssistantSpeechToTextService', () => {
     );
   });
 });
+
+  it('rejects an unsupported audio content type and oversized payload before contacting the provider', async () => {
+    const fetchMock = jest.fn();
+    global.fetch = fetchMock;
+    const service = new AssistantSpeechToTextService('whisper-local', 'http://stt.local', 1000);
+
+    await expect(service.transcribe({ audioBase64: 'YWJj', audioContentType: 'text/plain', language: 'es' })).rejects.toThrow('audio/*');
+    await expect(service.transcribe({ audioBase64: 'a'.repeat(12_000_001), audioContentType: 'audio/webm', language: 'es' })).rejects.toThrow('too large');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('maps a non-successful Whisper response to the stable unavailable error', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 502 } as unknown as Response);
+    const service = new AssistantSpeechToTextService('whisper-local', 'http://stt.local', 1000);
+
+    await expect(service.transcribe({ audioBase64: 'YWJj', audioContentType: 'audio/webm', language: 'es' })).rejects.toThrow('STT service returned 502');
+  });

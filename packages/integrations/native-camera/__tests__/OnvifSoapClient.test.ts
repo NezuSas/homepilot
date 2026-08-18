@@ -154,6 +154,42 @@ describe('OnvifSoapClient', () => {
 
     expect(await client.getProfiles('http://192.168.1.50:8000/onvif/media_service', CREDENTIALS)).toEqual([]);
   });
+  it('returns the optional PTZ service address and detects continuous movement capability', async () => {
+    const capabilities = '<Envelope><Body><GetCapabilitiesResponse><Capabilities><Media><XAddr>http://media</XAddr></Media><PTZ><XAddr>http://ptz</XAddr></PTZ></Capabilities></GetCapabilitiesResponse></Body></Envelope>';
+    const options = '<Envelope><Body><GetConfigurationOptionsResponse><PTZConfigurationOptions><Spaces><ContinuousPanTiltVelocitySpace/></Spaces></PTZConfigurationOptions></GetConfigurationOptionsResponse></Body></Envelope>';
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce(xmlResponse(capabilities))
+      .mockResolvedValueOnce(xmlResponse(options)) as unknown as typeof fetch;
+    const client = new OnvifSoapClient();
+
+    await expect(client.getCapabilities('http://device', CREDENTIALS)).resolves.toEqual({ mediaXAddr: 'http://media', ptzXAddr: 'http://ptz' });
+    await expect(client.getPtzConfigurationOptions('http://ptz', CREDENTIALS, 'config-1')).resolves.toEqual({ supportsContinuousMove: true });
+  });
+
+  it('handles absent optional ONVIF data and rejects a missing stream URI or generic server failure', async () => {
+    const capabilities = '<Envelope><Body><GetCapabilitiesResponse><Capabilities><Media><XAddr>http://media</XAddr></Media></Capabilities></GetCapabilitiesResponse></Body></Envelope>';
+    const noContinuousMove = '<Envelope><Body><GetConfigurationOptionsResponse><PTZConfigurationOptions><Spaces/></PTZConfigurationOptions></GetConfigurationOptionsResponse></Body></Envelope>';
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce(xmlResponse(capabilities))
+      .mockResolvedValueOnce(xmlResponse(noContinuousMove))
+      .mockResolvedValueOnce(xmlResponse('<Envelope><Body><GetStreamUriResponse><MediaUri/></GetStreamUriResponse></Body></Envelope>'))
+      .mockResolvedValueOnce(xmlResponse('gateway error', 502)) as unknown as typeof fetch;
+    const client = new OnvifSoapClient();
+
+    await expect(client.getCapabilities('http://device', CREDENTIALS)).resolves.toEqual({ mediaXAddr: 'http://media', ptzXAddr: null });
+    await expect(client.getPtzConfigurationOptions('http://ptz', CREDENTIALS, 'config-1')).resolves.toEqual({ supportsContinuousMove: false });
+    await expect(client.getStreamUri('http://media', CREDENTIALS, 'profile-1')).rejects.toThrow('ONVIF device did not report a stream URI');
+    await expect(client.getStreamUri('http://media', CREDENTIALS, 'profile-1')).rejects.toThrow('ONVIF request failed with status 502');
+  });
+
+  it('sends continuous move and stop commands successfully', async () => {
+    global.fetch = jest.fn(() => Promise.resolve(xmlResponse('<Envelope><Body/></Envelope>'))) as unknown as typeof fetch;
+    const client = new OnvifSoapClient();
+
+    await expect(client.continuousMove('http://ptz', CREDENTIALS, 'profile-1', { pan: 0.5, tilt: -0.5, zoom: 0.25 })).resolves.toBeUndefined();
+    await expect(client.stopPtz('http://ptz', CREDENTIALS, 'profile-1')).resolves.toBeUndefined();
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('orderProfilesByPreference', () => {

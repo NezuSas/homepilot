@@ -1,20 +1,34 @@
 # Input
 
-**Fuente:** `apps/operator-console/src/components/ui/Input.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/ui/Input.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Campo de texto reutilizable para datos simples controlados por la vista.
+Reusable text input for simple values controlled by a view.
 
-## Contrato
+## Contract
 
-Extiende atributos nativos de `input`, con variantes visuales comunes. `containerClassName` controla el ancho o el comportamiento del contenedor dentro de formularios en fila; `className` solo personaliza el elemento de entrada; y `endAdornment` integra una acción compacta dentro de la geometría del campo. Cuando se proporciona `label`, genera y asocia un `id` accesible automáticamente. Su valor, validación y mensaje de negocio pertenecen al consumidor.
+Extends native `input` attributes with shared visual variants.
+`containerClassName` controls container width or row behavior; `className`
+customizes only the input element; and `endAdornment` places a compact action
+inside field geometry. When given a `label`, it creates and associates an
+accessible id automatically. Value, validation, and business message belong to
+the consumer.
 
-## Uso
+## Usage
 
-Usar con label accesible, placeholder traducido y estado de error explicado fuera o junto al campo. Se aplica a campos generales de texto, contraseña, identidad, onboarding, nombres de hogar/estancia y escenas. `SearchInput` se usa para búsquedas modulares simples. No reemplaza rangos, archivos, áreas de texto, radios ni entradas especializadas del dominio. Cuando comparte una fila con una acción primaria, usar `Button size="md"` o `IconButton` con `h-10 w-10`, para conservar la altura base de `h-10` del campo.
+Use with an accessible label, translated placeholder, and an error explained at
+or beside the field. It applies to text, password, identity, onboarding, home,
+room, and scene names. Use `SearchInput` for simple modular searches. It does
+not replace ranges, files, text areas, radios, or domain-specific inputs. When
+sharing a row with a primary action, use `Button size="md"` or `IconButton`
+with `h-10 w-10` to preserve the field's base `h-10` height.
 
-## Estados y aceptación
+## States and Acceptance
 
-Vacío, foco, valor, disabled y error mantienen contraste, foco visible y soporte de texto largo. Su contenedor y control pueden reducirse dentro de grids o filas flexibles; etiquetas y ayudas largas se ajustan sin desborde horizontal. `endAdornment` reserva espacio interno y no altera la altura base del campo. Cuando hay ayuda o error, el campo los referencia mediante `aria-describedby`; el error también expone `aria-invalid`.
+Empty, focus, value, disabled, and error states preserve contrast, visible
+focus, and long-text support. Container and control shrink within grids or flex
+rows; long labels and help wrap without horizontal overflow. `endAdornment`
+reserves internal space without changing base height. Help or error is
+referenced through `aria-describedby`; error also exposes `aria-invalid`.

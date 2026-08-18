@@ -120,4 +120,11 @@ describe('NativeCameraDeviceDriver', () => {
     expect(result.success).toBe(false);
     expect(result.error).toBe('cámara no respondió');
   });
+  it('normalizes non-Error PTZ failures into a stable user-facing result', async () => {
+    driver.stopPtz = jest.fn().mockRejectedValue('transport failure');
+
+    const result = await deviceDriver.executeCommand(createTestDevice(), { name: 'ptz_stop' }, CONTEXT);
+
+    expect(result).toEqual({ success: false, error: 'Error PTZ desconocido' });
+  });
 });

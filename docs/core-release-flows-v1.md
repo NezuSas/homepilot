@@ -1,53 +1,49 @@
-# Core Release Flows V1 - HomePilot Edge
+# Core Release Flows V1
 
-Este documento define los flujos críticos que deben ser validados para garantizar la estabilidad y seguridad del release V1.
+This document defines critical release flows for HomePilot Edge.
 
----
+## Initial Administrator
 
-## 1. First Boot Admin Generation
-**Descripción**: El sistema detecta que no hay usuarios y genera un administrador inicial de forma determinista o via bootstrap.
-**Criterio de Éxito**: Al arrancar por primera vez, el sistema permite login con las credenciales de bootstrap y `SqliteUserRepository.count()` devuelve 1.
-**Idempotencia**: Si el admin ya existe, el proceso de bootstrap no debe duplicar el usuario ni fallar.
+On first boot, the appliance exposes the first-administrator flow exactly once.
+Existing users are never duplicated by a restart.
 
-## 2. Onboarding Context
-**Descripción**: El instalador configura la conexión con Home Assistant (URL + Token).
-**Criterio de Éxito**: `POST /api/v1/system/setup-status/complete` solo retorna éxito si la validación viva contra HA es exitosa y persiste `isInitialized = true`.
-**Idempotencia**: Si el sistema ya está inicializado, llamadas subsecuentes a `/complete` deben retornar el estado actual sin repetir validaciones costosas ni alterar el timestamp original de inicialización.
-**UX de Instalación**:
-- El instalador debe mostrar progreso explícito: diagnóstico, bridge HA y activación.
-- El usuario debe ver el estado de acceso administrador, configuración HA y última conexión antes de avanzar.
-- La pantalla de integración debe explicar cómo obtener el token de larga duración y recomendar `http://homeassistant:8123` para despliegues Docker.
-- No se debe permitir guardar la conexión hasta que la prueba viva contra Home Assistant responda correctamente.
-- Al completar, el instalador debe indicar los siguientes pasos operativos: importar dispositivos, asignar espacios y probar escenas.
+## Onboarding and Home Assistant Connection
 
-## 3. Identity Management
-**Descripción**: Ciclo de vida de la sesión del usuario (Login, Logout, Change Password).
-**Criterio de Éxito**: 
-- Login genera una sesión opaca válida por 7 días.
-- `change-password` revoca todas las sesiones previas del usuario.
-- Logout invalida el token actual inmediatamente.
-**Seguridad**: En ningún momento se transfiere el `passwordHash` al cliente.
+The setup flow stores a Home Assistant connection only after a live validation
+succeeds. Repeated completion requests preserve the initialized state without
+repeating expensive validation unnecessarily.
 
-## 4. Administrative Controls
-**Descripción**: Un administrador gestiona otros usuarios desde el directory local.
-**Criterio de Éxito**:
-- Se pueden crear operadores y otros administradores.
-- **Minimum Admin Rule**: El sistema bloquea atómicamente cualquier acción que deje 0 administradores activos.
-- La suspensión de un usuario revoca todas sus sesiones activas instantáneamente.
+## Identity and Sessions
 
-## 5. Real-Time Continuity
-**Descripción**: El puente con Home Assistant mantiene la sincronización de estados via WebSocket.
-**Criterio de Éxito**: Los cambios de estado en HA se reflejan en la Topology local en < 500ms. Al reconectar tras una caída de red, el sistema realiza una reconciliación completa de estados.
+Login creates an opaque local session. Password changes revoke the affected
+user's existing sessions, and logout invalidates the current session. Password
+hashes never leave the server.
 
-## 6. Automation Engine Reliability
-**Descripción**: Ejecución de reglas automáticas basadas en eventos de dispositivos.
-**Criterio de Éxito**: Un cambio en un sensor HA dispara una acción en un actuador según las reglas definidas en `AutomationRepository`. Los fallos de ejecución se registran en el `ActivityLog`.
+## Administrative Controls
 
-## 7. System Visibility
-**Descripción**: Diagnóstico y auditoría para el mantenimiento del Edge.
-**Criterio de Éxito**: 
-- `GET /api/v1/diagnostics` devuelve un snapshot consistente de salud (memory, uptime, connectors).
-- Audit Logs registran acciones administrativas con IDs de autor (`adminActorUserId`) sin filtrar secretos.
+Administrators manage user access. The minimum-admin rule prevents an action
+from leaving the appliance without an active administrator. Suspending a user
+revokes active sessions.
 
----
-**Validación**: Estos flujos son el objetivo principal del script `verify_release_v1.ts`.
+## Realtime Continuity
+
+Home Assistant realtime updates synchronize device state. A reconnect triggers
+state reconciliation so the local Edge state is restored after a connector
+interruption.
+
+## Automation Reliability
+
+Automation rules respond to eligible device events, execute authorized actions,
+and record execution outcomes for diagnostics.
+
+## System Visibility
+
+Diagnostics expose a consistent appliance health snapshot. Audit records retain
+administrative actor identity without exposing secrets.
+
+## Validation
+
+```bash
+npm run verify:release
+npm run verify:quality
+```

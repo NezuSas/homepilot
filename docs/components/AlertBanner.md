@@ -1,20 +1,29 @@
 # AlertBanner
 
-**Fuente:** `apps/operator-console/src/components/ui/AlertBanner.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/ui/AlertBanner.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Comunica información, éxito, advertencia o error sin reemplazar el contenido existente.
+Communicates information, success, warning, or failure without replacing
+existing content.
 
-## Contrato
+## Contract
 
-Recibe variante, mensaje y contenido opcional de acción. Asocia título y mensaje para lectores de pantalla y mantiene la iconografía como decorativa. El consumidor decide cuándo mostrarlo y traduce sus textos.
+Receives a variant, message, and optional action content. It associates title
+and message for screen readers, keeps its icon decorative, and lets the consumer
+decide when to display it and translate its text.
 
-## Uso
+## Usage
 
-Usar para estados relevantes de página o formulario. No usar como toast efímero ni para errores silenciosos de consola.
+Use for meaningful page or form states. Do not use it as a transient toast or
+for silent console errors.
 
-## Estados y aceptación
+## States and Acceptance
 
-Cada variante conserva icono, contraste y etiqueta semántica legible en ambos temas. En móvil el contenido y la acción se ordenan verticalmente, el mensaje puede ocupar varias líneas y la acción directa ocupa el ancho disponible; desde tablet recupera su ancho natural. Advertencias y errores anuncian `role="alert"`; información y éxito usan `role="status"`. El mensaje se expone siempre como descripción del estado y el título se asocia cuando existe.
+Every variant preserves iconography, contrast, and a readable semantic label in
+both themes. On mobile, content and action stack vertically, the message may
+wrap, and the direct action uses the available width; from tablet upward it
+returns to natural width. Warnings and errors announce `role="alert"`;
+information and success use `role="status"`. The message is always exposed as
+the state description and the title is associated when present.

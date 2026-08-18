@@ -1,20 +1,27 @@
 # Drawer
 
-**Fuente:** `apps/operator-console/src/components/ui/Drawer.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/ui/Drawer.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Presentar detalles y formularios laterales sin duplicar portal, capa de fondo, foco, teclado o bloqueo del desplazamiento global.
+Presents lateral details and forms without duplicating portal, backdrop, focus,
+keyboard, or global scroll-lock behavior.
 
-## Contrato
+## Contract
 
-`DrawerProps` recibe `isOpen`, contenido y cierre opcional. Puede asociar título o descripción para accesibilidad y permite ajustar la capa, panel y fondo sin modificar su comportamiento. `hideCloseButton` permite que un flujo use su propia cabecera sin duplicar acciones visibles.
+`DrawerProps` receives `isOpen`, content, and optional close handling. It can
+associate a title or description for accessibility and allows panel and
+backdrop styling without changing behavior. `hideCloseButton` lets a workflow
+provide its own header without duplicating visible actions.
 
-## Uso
+## Usage
 
-Se usa para superficies laterales persistentes, como el inspector de dispositivos. El contenido debe usar una columna flexible con scroll interno cuando supere la altura del viewport.
+Use for persistent side surfaces such as the device inspector. Content uses a
+flexible column with internal scrolling when it exceeds viewport height.
 
-## Estados y aceptación
+## States and Acceptance
 
-Bloquea el scroll del documento mientras está abierto, restaura el foco al cerrar, cierra con Escape, contiene la navegación Tab, retiene cambios de foco que salgan de la capa superior y conserva el panel dentro del viewport en móvil, tablet y escritorio.
+Locks document scrolling while open, restores focus after close, closes with
+Escape, contains Tab navigation, retains focus changes leaving the top layer,
+and keeps the panel inside the viewport on mobile, tablet, and desktop.

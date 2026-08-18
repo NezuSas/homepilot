@@ -133,4 +133,118 @@ describe('Feature: Native camera configuration', () => {
     expect(payload.camera).toEqual(expect.objectContaining({ sourceType: 'rtsp-dvr', maskedPassword: '••••••••' }));
     expect(payload.camera).not.toHaveProperty('password');
   });
+  it('returns false for a path outside the native camera route contract', async () => {
+    const res = response();
+    const request = { url: '/api/v1/not-native-cameras', headers: {} } as HomePilotRequest;
+
+    const handled = await routes.handle(request, res, '/api/v1/not-native-cameras', 'GET', container());
+
+    expect(handled).toBe(false);
+    expect(res.writeHead).not.toHaveBeenCalled();
+  });
+});
+
+describe('Feature: Native camera route error and mutation contracts', () => {
+  const source = {
+    deviceId: 'camera-1', homeId: 'home-1', sourceType: 'rtsp-dvr', name: 'Camera', host: '192.168.1.20',
+    onvifPort: 80, rtspPort: 554, username: 'admin', password: 'secret', rtspPath: '/stream', enabled: true,
+    createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
+  };
+  const response = () => ({ writeHead: jest.fn().mockReturnThis(), end: jest.fn().mockReturnThis() }) as unknown as http.ServerResponse;
+  const container = () => ({ guards: { authGuard: { protect: jest.fn().mockResolvedValue(true) } } }) as unknown as BootstrapContainer;
+  const serviceFor = (overrides: Record<string, unknown>) => new NativeCameraRoutes({
+    discover: jest.fn().mockResolvedValue([]),
+    listByHome: jest.fn().mockReturnValue([]),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    ...overrides,
+  } as unknown as NativeCameraService);
+
+  it('lists discovered cameras and contains discovery failures behind the HTTP error contract', async () => {
+    const success = serviceFor({ discover: jest.fn().mockResolvedValue([{ host: '192.168.1.21' }]) });
+    const successResponse = response();
+    await success.handle({ url: '/api/v1/native-cameras/discover', headers: {} } as HomePilotRequest, successResponse, '/api/v1/native-cameras/discover', 'GET', container());
+    expect(successResponse.writeHead).toHaveBeenCalledWith(200, expect.any(Object));
+    expect(JSON.parse((successResponse.end as jest.Mock).mock.calls[0][0])).toEqual({ devices: [{ host: '192.168.1.21' }] });
+
+    const failure = serviceFor({ discover: jest.fn().mockRejectedValue(new Error('probe failed')) });
+    const failureResponse = response();
+    await failure.handle({ url: '/api/v1/native-cameras/discover', headers: {} } as HomePilotRequest, failureResponse, '/api/v1/native-cameras/discover', 'GET', container());
+    expect(failureResponse.writeHead).toHaveBeenCalledWith(500, expect.any(Object));
+  });
+
+  it('maps native service mutation outcomes to their API status and masks updated credentials', async () => {
+    const route = serviceFor({
+      update: jest.fn().mockResolvedValue({ ok: true, value: source }),
+      delete: jest.fn().mockResolvedValue({ ok: false, error: { kind: 'CAMERA_NOT_FOUND', message: 'Unknown camera' } }),
+    });
+    const updateResponse = response();
+    await route.handle({ url: '/api/v1/native-cameras/camera%201', headers: {}, _fastifyParsedBody: JSON.stringify({ name: 'Updated' }) } as HomePilotRequest, updateResponse, '/api/v1/native-cameras/camera%201', 'PUT', container());
+    expect(updateResponse.writeHead).toHaveBeenCalledWith(200, expect.any(Object));
+    expect(JSON.parse((updateResponse.end as jest.Mock).mock.calls[0][0]).camera).toEqual(expect.objectContaining({ deviceId: 'camera-1', maskedPassword: '••••••••' }));
+
+    const deleteResponse = response();
+    await route.handle({ url: '/api/v1/native-cameras/camera-1', headers: {} } as HomePilotRequest, deleteResponse, '/api/v1/native-cameras/camera-1', 'DELETE', container());
+    expect(deleteResponse.writeHead).toHaveBeenCalledWith(404, expect.any(Object));
+  });
+
+  it('turns unexpected list failures into a stable server error response', async () => {
+    const route = serviceFor({ listByHome: jest.fn(() => { throw new Error('storage offline'); }) });
+    const res = response();
+    await route.handle({ url: '/api/v1/native-cameras?homeId=home-1', headers: {} } as HomePilotRequest, res, '/api/v1/native-cameras', 'GET', container());
+    expect(res.writeHead).toHaveBeenCalledWith(500, expect.any(Object));
+  });
+});
+describe('Feature: native camera mutation completion contracts', () => {
+  const response = () => ({ writeHead: jest.fn().mockReturnThis(), end: jest.fn().mockReturnThis() }) as unknown as http.ServerResponse;
+  const container = () => ({ guards: { authGuard: { protect: jest.fn().mockResolvedValue(true) } } }) as unknown as BootstrapContainer;
+  const request = (body: unknown = {}) => ({ url: '/api/v1/native-cameras/camera-1', headers: {}, _fastifyParsedBody: JSON.stringify(body) }) as HomePilotRequest;
+
+  it('Scenario: Given rejected camera creation input When creating a native camera Then the service validation contract is preserved', async () => {
+    const route = new NativeCameraRoutes({
+      create: jest.fn().mockResolvedValue({ ok: false, error: { kind: 'VALIDATION_ERROR', message: 'Invalid RTSP path' } }),
+    } as unknown as NativeCameraService);
+    const res = response();
+
+    await route.handle(request({ host: 'invalid' }), res, '/api/v1/native-cameras', 'POST', container());
+
+    expect(res.writeHead).toHaveBeenCalledWith(400, expect.any(Object));
+    expect(res.end).toHaveBeenCalledWith(expect.stringContaining('VALIDATION_ERROR'));
+  });
+
+  it('Scenario: Given an unexpected update failure When updating a native camera Then the route returns its stable internal-error contract', async () => {
+    const route = new NativeCameraRoutes({
+      update: jest.fn().mockRejectedValue(new Error('camera source unavailable')),
+    } as unknown as NativeCameraService);
+    const res = response();
+
+    await route.handle(request({ name: 'Updated' }), res, '/api/v1/native-cameras/camera-1', 'PUT', container());
+
+    expect(res.writeHead).toHaveBeenCalledWith(500, expect.any(Object));
+    expect(res.end).toHaveBeenCalledWith(expect.stringContaining('camera source unavailable'));
+  });
+
+  it('Scenario: Given unexpected creation or deletion failures When mutating native cameras Then each operation returns the stable internal-error contract', async () => {
+    const createRoute = new NativeCameraRoutes({ create: jest.fn().mockRejectedValue(new Error('camera creation store unavailable')) } as unknown as NativeCameraService);
+    const createResponse = response();
+    await createRoute.handle(request({ name: 'Camera' }), createResponse, '/api/v1/native-cameras', 'POST', container());
+    expect(createResponse.writeHead).toHaveBeenCalledWith(500, expect.any(Object));
+    expect(createResponse.end).toHaveBeenCalledWith(expect.stringContaining('camera creation store unavailable'));
+
+    const deleteRoute = new NativeCameraRoutes({ delete: jest.fn().mockRejectedValue(new Error('camera deletion store unavailable')) } as unknown as NativeCameraService);
+    const deleteResponse = response();
+    await deleteRoute.handle(request(), deleteResponse, '/api/v1/native-cameras/camera-1', 'DELETE', container());
+    expect(deleteResponse.writeHead).toHaveBeenCalledWith(500, expect.any(Object));
+    expect(deleteResponse.end).toHaveBeenCalledWith(expect.stringContaining('camera deletion store unavailable'));
+  });
+  it('Scenario: Given a deletable native camera When deletion succeeds Then the route returns no content', async () => {
+    const route = new NativeCameraRoutes({ delete: jest.fn().mockResolvedValue({ ok: true, value: undefined }) } as unknown as NativeCameraService);
+    const res = response();
+
+    await route.handle(request(), res, '/api/v1/native-cameras/camera-1', 'DELETE', container());
+
+    expect(res.writeHead).toHaveBeenCalledWith(204);
+    expect(res.end).toHaveBeenCalledWith();
+  });
 });

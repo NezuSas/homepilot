@@ -1,20 +1,27 @@
 # EmptyState
 
-**Fuente:** `apps/operator-console/src/components/ui/EmptyState.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/ui/EmptyState.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Explica por qué una colección o superficie no contiene datos y ofrece una acción cuando corresponde.
+Explains why a collection or surface has no data and offers an action when
+appropriate.
 
-## Contrato
+## Contract
 
-Recibe icono, título, descripción y acción opcional. Asocia semánticamente título y descripción, anuncia el estado mediante `role="status"` y mantiene el icono como decorativo. No decide si una colección está vacía.
+Receives icon, title, description, and optional action. It semantically
+associates title and description, announces through `role="status"`, and keeps
+the icon decorative. It does not decide whether a collection is empty.
 
-## Uso
+## Usage
 
-Usar después de que terminó la carga inicial; no sustituir datos previos durante refresh.
+Use after the initial load has completed; do not replace previous data during a
+refresh.
 
-## Estados y aceptación
+## States and Acceptance
 
-El mensaje es traducible, se anuncia de forma atómica, no bloquea scroll y la acción conserva foco visible. En móvil reduce el espacio vertical, ajusta títulos y descripciones largas sin desborde y fuerza la acción directa al ancho disponible; desde tablet conserva su tamaño natural y centrado.
+The message is translatable, announced atomically, does not block scrolling,
+and its action retains visible focus. On mobile it reduces vertical space,
+wraps long titles and descriptions without overflow, and forces direct action
+to available width; from tablet onward it retains natural centered size.

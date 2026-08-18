@@ -157,6 +157,9 @@ describe('Execution Observability V1', () => {
     });
   });
 
+    it('findById returns null when the execution record does not exist', async () => {
+      await expect(executionRepo.findById('missing-record')).resolves.toBeNull();
+    });
   describe('Failure Insights V1', () => {
     it('mapea HA_SERVICE_CALL_FAILED correctamente', () => {
       const result = FailureInsightService.interpretExecutionError('Error: HA_SERVICE_CALL_FAILED for light.living_room');

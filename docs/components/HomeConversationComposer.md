@@ -1,20 +1,28 @@
 # HomeConversationComposer
 
-**Fuente:** `apps/operator-console/src/components/HomeConversationComposer.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/HomeConversationComposer.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Compone texto, voz, selección de micrófono y síntesis de voz para conversar con el hogar.
+Composes text, voice input, microphone selection, and speech output for talking
+to the home.
 
-## Contrato
+## Contract
 
-Recibe el texto, capacidades del navegador, etiquetas traducidas —incluido el estado operativo— y callbacks de envío, grabación, síntesis y fuente de audio. No interpreta comandos ni conserva estado global propio.
+Receives text, browser capabilities, translated labels including operational
+state, and callbacks for sending, recording, speech output, and audio source.
+It does not interpret commands or retain global state.
 
-## Uso
+## Usage
 
-Usar en la vista de conversación. La vista controla el ciclo de solicitud y evita reemplazar mensajes existentes durante refresh.
+Use in the conversation view. The view owns the request lifecycle and avoids
+replacing existing messages during refresh.
 
-## Estados y aceptación
+## States and Acceptance
 
-Permanece anclado al borde inferior durante el desplazamiento, conserva el área segura móvil y permite que controles de voz se envuelvan dentro del ancho disponible. El campo mantiene el foco, expone ayuda accesible y la acción de envío no se separa del compositor. El indicador visual de estado anuncia la etiqueta localizada de listo o envío en curso, y las etiquetas no se truncan en anchos reducidos.
+Stays anchored to the bottom edge while scrolling, preserves the mobile safe
+area, and lets voice controls wrap inside available width. The field retains
+focus, exposes accessible help, and the send action remains adjacent to the
+composer. The status indicator announces the localized ready or sending label,
+and labels do not truncate at narrow widths.

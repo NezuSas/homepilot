@@ -1,20 +1,25 @@
 # CoverPositionControl
 
-**Fuente:** `apps/operator-console/src/components/CoverPositionControl.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/CoverPositionControl.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Controlar la posición porcentual de una cortina o persiana compatible.
+Controls the percentage position of a compatible curtain or blind.
 
-## Contrato
+## Contract
 
-Recibe `initialPosition`, `onPositionChange`, `disabled` y `ariaLabel` obligatorio. El callback se dispara solo al confirmar una posición distinta mediante mouse, touch, blur o teclado.
+Receives `initialPosition`, `onPositionChange`, `disabled`, and required
+`ariaLabel`. The callback fires only after confirming a changed position by
+mouse, touch, blur, or keyboard.
 
-## Uso
+## Usage
 
-Usar únicamente cuando las capacidades del cover incluyen posición. El consumidor traduce `ariaLabel` y despacha el comando.
+Use only when cover capabilities include position. The consumer translates the
+`ariaLabel` and dispatches the command.
 
-## Estados y aceptación
+## States and Acceptance
 
-Muestra 0–100%, sincroniza cambios externos y no ejecuta comandos repetidos para el mismo valor. No introduce etiquetas por defecto en un idioma fijo: el consumidor siempre entrega la traducción accesible.
+Displays 0–100%, synchronizes external changes, and does not issue repeated
+commands for the same value. It does not introduce fixed-language default
+labels: the consumer always supplies the accessible translation.

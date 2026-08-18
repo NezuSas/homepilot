@@ -1,50 +1,48 @@
-# Catálogo de Componentes Modulares de Operator Console
+# Operator Console Modular Component Catalogue
 
-Este documento operacional complementa la spec `operator-console-modular-components-v1.md`. No define reglas de negocio: documenta qué componente reutilizar y evita duplicar UI.
+This operational catalogue complements
+`specs/operator-console-modular-components-v1.md`. It documents reusable UI
+choices and does not define business rules.
 
-## Primitivos obligatorios
+## Required Primitives
 
-| Necesidad | Componente | No usar para |
+| Need | Component | Do not use it for |
 |---|---|---|
-| Acción textual o destructiva | `ui/Button` | Navegación de icono sin texto |
-| Acción compacta de icono | `ui/IconButton` | Acción principal sin etiqueta accesible |
-| Texto o valor editable de una línea | `ui/Input` | Selectores con opciones o contenido multilínea |
-| Texto editable de varias líneas | `ui/Textarea` | Compositor conversacional con comportamiento operativo propio |
-| Selección de opciones | `ui/SearchableSelectField` | Selects nativos, menús ad hoc y selectores paralelos |
-| Búsqueda | `ui/SearchFilterBar` | Inputs locales duplicados |
-| Confirmación crítica | `ConfirmModal` | `window.confirm` |
-| Modal dentro de la app | `ui/Modal` | Overlay global fuera del shell |
-| Estado pequeño | `ui/StatusPill` | Texto de estado sin semántica visual |
-| Sin resultados | `ui/EmptyState` | Contenedor vacío sin explicación |
-| Navegación lateral | `ui/SidebarItem` | Enlaces estilizados manualmente |
+| Textual or destructive action | `ui/Button` | icon-only navigation |
+| Compact icon action | `ui/IconButton` | primary action without an accessible label |
+| Editable single-line text | `ui/Input` | option selection or multiline content |
+| Editable multiline text | `ui/Textarea` | the operational conversation composer |
+| Option selection | `ui/SearchableSelectField` | native selects or ad hoc parallel menus |
+| Search | `ui/SearchFilterBar` | duplicated local search fields |
+| Critical confirmation | `ConfirmModal` | `window.confirm` |
+| Application dialog | `ui/Modal` | a global overlay outside the shell |
+| Compact semantic status | `ui/StatusPill` | unstructured status text |
+| No results | `ui/EmptyState` | an unexplained empty container |
+| Sidebar navigation | `ui/SidebarItem` | manually styled navigation links |
 
-## Fichas individuales
+## Individual Documentation
 
-Cada componente modular tiene una ficha de propósito, contrato, uso y criterios de
-aceptación en `docs/components/`:
+Each modular component has a purpose, contract, usage, and acceptance record in
+`docs/components/`. The executable SDD coverage check fails if a required
+component document is missing.
 
-`AlertBanner`, `AssistantCard`, `Button`, `Card`, `DeviceTileBase`,
-`DeviceTileShell`, `EmptyState`, `IconButton`, `Input`, `Textarea`, `Modal`, `PageFrame`,
-`SearchFilterBar`, `SectionHeader`, `SegmentedControl`, `SearchableSelectField`,
-`SidebarItem`, `StatusPill`, `ConfirmModal`, `CoverPositionControl`,
-`AudioInputPicker` e `InlineTabCreator`.
+## Composition Rules
 
-La comprobación `npm run check:spec-coverage` falla si cualquiera de estas fichas
-desaparece.
+1. A view owns data and permission orchestration; a visual component does not
+   query an integration directly.
+2. Device entities use `DeviceTileBase` or `DeviceTileShell` and expose only
+   capability-enabled actions.
+3. Camera, media, scene, sensor, room, and dashboard cards also follow their
+   domain specification.
+4. New visible text is added to both English and Spanish locale resources.
+5. Do not create a parallel modal, button, selector, or card when a listed
+   component already covers the need.
 
-## Reglas de composición
+## Review Checklist
 
-1. Una vista reúne datos y permisos; un componente modular no consulta directamente una integración.
-2. Una entidad de dispositivo usa `DeviceTileBase` o `DeviceTileShell` y solo expone acciones habilitadas por capacidades.
-3. Una tarjeta propia de cámara, media, escena, sensor, habitación o dashboard se rige también por la spec de su dominio.
-4. Todo texto nuevo se registra en `locales/es/common.json` y `locales/en/common.json` antes de mostrarse.
-5. No crear un modal, botón, selector ni tarjeta paralela si ya existe un componente de esta tabla.
-
-## Checklist de revisión
-
-- ¿El componente usa tokens visuales?
-- ¿Es usable con teclado y foco visible?
-- ¿Soporta texto largo y ambos idiomas?
-- ¿Sus acciones están visibles dentro del viewport en móvil?
-- ¿Mantiene datos existentes mientras refresca?
-- ¿Su estado depende de props tipadas y no de lógica de dominio oculta?
+- Uses semantic visual tokens.
+- Is keyboard accessible with visible focus.
+- Handles long text and both supported UI locales.
+- Keeps actions inside the mobile viewport.
+- Preserves existing data during refresh.
+- Uses typed props rather than hidden domain logic.

@@ -17,6 +17,7 @@ describe('UserManagementService (Deep Audit & Atomic Security)', () => {
       updateRoleAtomic: jest.fn(),
       updateActiveStateAtomic: jest.fn(),
       updatePassword: jest.fn(),
+      updateProfile: jest.fn(),
       seedInitialAdmin: jest.fn(),
     };
     mockSessionRepo = {
@@ -138,5 +139,54 @@ describe('UserManagementService (Deep Audit & Atomic Security)', () => {
       .rejects.toThrow('SELF_PASSWORD_CHANGE_REQUIRED');
     await expect(service.resetUserPassword('admin-1', 'operator-1', 'short'))
       .rejects.toThrow('INVALID_INPUT');
+  });
+  test('createUser() persists a sanitized active user and writes an audit record', async () => {
+    mockUserRepo.findByUsername.mockResolvedValue(null);
+
+    await expect(service.createUser('admin-1', {
+      username: '  guest-user  ', passwordPlain: 'secure-password', role: 'guest'
+    })).resolves.toEqual(expect.objectContaining({
+      id: 'new_uuid', username: 'guest-user', role: 'guest', isActive: true, hasActiveSessions: false
+    }));
+
+    expect(mockUserRepo.seedInitialAdmin).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'new_uuid', username: 'guest-user', passwordHash: 'hashed_pwd', role: 'guest', isActive: true
+    }));
+    expect(mockActivityRepo.saveActivity).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'USER_CREATED', data: expect.objectContaining({ adminActorUserId: 'admin-1', targetUserId: 'new_uuid' })
+    }));
+  });
+
+  test('updates profiles, roles, and active state while auditing successful changes', async () => {
+    mockUserRepo.findById.mockResolvedValue({ id: 'member-1', role: 'child', isActive: true });
+    mockUserRepo.updateRoleAtomic.mockResolvedValue(true);
+    mockUserRepo.updateActiveStateAtomic.mockResolvedValue(true);
+
+    await expect(service.updateProfile('member-1', 'Gustavo', 'data:image/png;base64,avatar')).resolves.toBeUndefined();
+    await expect(service.updateUserRole('admin-1', 'member-1', 'parent')).resolves.toBeUndefined();
+    await expect(service.setUserActiveState('admin-1', 'member-1', false)).resolves.toBeUndefined();
+    await expect(service.setUserActiveState('admin-1', 'member-1', true)).resolves.toBeUndefined();
+
+    expect(mockUserRepo.updateProfile).toHaveBeenCalledWith('member-1', 'Gustavo', 'data:image/png;base64,avatar');
+    expect(mockSessionRepo.deleteAllUserSessions).toHaveBeenCalledWith('member-1');
+    expect(mockActivityRepo.saveActivity).toHaveBeenCalledWith(expect.objectContaining({ type: 'USER_ROLE_CHANGED' }));
+    expect(mockActivityRepo.saveActivity).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'USER_DEACTIVATED', data: expect.objectContaining({ revokedSessionsCount: 2 })
+    }));
+    expect(mockActivityRepo.saveActivity).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'USER_ACTIVATED', data: expect.objectContaining({ revokedSessionsCount: 0 })
+    }));
+  });
+
+  test('rejects unknown users, invalid roles, and invalid user creation payloads', async () => {
+    mockUserRepo.findById.mockResolvedValue(null);
+
+    await expect(service.updateProfile('missing', null, null)).rejects.toThrow('USER_NOT_FOUND');
+    await expect(service.updateUserRole('admin-1', 'missing', 'guest')).rejects.toThrow('USER_NOT_FOUND');
+    await expect(service.setUserActiveState('admin-1', 'missing', false)).rejects.toThrow('USER_NOT_FOUND');
+    await expect(service.revokeUserSessions('admin-1', 'missing')).rejects.toThrow('USER_NOT_FOUND');
+    await expect(service.resetUserPassword('admin-1', 'missing', 'secure-password')).rejects.toThrow('USER_NOT_FOUND');
+    await expect(service.createUser('admin-1', { username: ' ', passwordPlain: 'secure-password', role: 'guest' })).rejects.toThrow('INVALID_INPUT');
+    await expect(service.createUser('admin-1', { username: 'user', passwordPlain: 'secure-password', role: 'invalid' as UserRole })).rejects.toThrow('INVALID_ROLE');
   });
 });

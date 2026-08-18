@@ -1,20 +1,26 @@
 # StatusPill
 
-**Fuente:** `apps/operator-console/src/components/ui/StatusPill.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/ui/StatusPill.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Representa un estado corto y no interactivo: activo, apagado, disponible, error o pendiente.
+Represents a short non-interactive state: active, off, available, error, or
+pending.
 
-## Contrato
+## Contract
 
-Recibe etiqueta y variante semántica; no traduce ni infiere estado del dispositivo. La variante de solo punto recibe opcionalmente `dotLabel` para anunciar su contexto; sin ella se trata como decoración.
+Receives label and semantic variant; it neither translates nor infers device
+state. The dot-only variant optionally receives `dotLabel` to announce context;
+without it, the dot is decorative.
 
-## Uso
+## Usage
 
-Usar junto al título o detalle, nunca como único indicador de una acción crítica.
+Use alongside a title or detail, never as the only indicator for a critical
+action.
 
-## Estados y aceptación
+## States and Acceptance
 
-Texto corto, contraste suficiente, sin desbordar tarjetas compactas y con color no exclusivo para comunicar estado. Las etiquetas largas se ajustan dentro del ancho disponible sin expandir su contenedor ni interferir con iconos o acciones cercanas.
+Maintains short text, sufficient contrast, no compact-card overflow, and a
+non-color-exclusive state signal. Long labels wrap within available width
+without expanding the container or interfering with nearby icons or actions.

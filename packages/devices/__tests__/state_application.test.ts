@@ -139,4 +139,25 @@ describe('Devices: State Application', () => {
       expect(logs[0].type).toBe('COMMAND_DISPATCHED');
     });
   });
+  describe('getDeviceActivityHistoryUseCase', () => {
+    it('returns only the requested device activity after home ownership validation', async () => {
+      const device = createDiscoveredDevice({ homeId: 'home-1', externalId: 'history-1', name: 'History', type: 'light', vendor: 'Pilot' }, { idGenerator: idGen, clock });
+      await deviceRepo.saveDevice(device);
+      await logRepo.saveActivity({ timestamp: clock.now(), deviceId: device.id, type: 'STATE_CHANGED', description: 'State changed', data: {} });
+
+      const history = await getDeviceActivityHistoryUseCase(device.id, 'user-1', 10, {
+        deviceRepository: deviceRepo,
+        topologyPort: mockTopology,
+        activityLogRepository: logRepo,
+      });
+
+      expect(history).toHaveLength(1);
+      expect(mockTopology.validateHomeOwnership).toHaveBeenCalledWith('home-1', 'user-1');
+    });
+
+    it('rejects state and history reads for an unknown device', async () => {
+      await expect(getDeviceStateUseCase('missing', 'user-1', { deviceRepository: deviceRepo, topologyPort: mockTopology })).rejects.toThrow(DeviceNotFoundError);
+      await expect(getDeviceActivityHistoryUseCase('missing', 'user-1', 10, { deviceRepository: deviceRepo, topologyPort: mockTopology, activityLogRepository: logRepo })).rejects.toThrow(DeviceNotFoundError);
+    });
+  });
 });

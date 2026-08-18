@@ -1,20 +1,23 @@
 # PageFrame
 
-**Fuente:** `apps/operator-console/src/components/ui/PageFrame.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/ui/PageFrame.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Marco responsive de una vista de consola: ancho, espaciado y jerarquía de página.
+Responsive console-view frame for width, spacing, and page hierarchy.
 
-## Contrato
+## Contract
 
-Recibe children, `immersive`, `maxWidth` y clases de composición; no decide navegación, permisos ni fetch.
+Receives children, `immersive`, `maxWidth`, and composition classes. It does
+not decide navigation, permissions, or fetching.
 
-## Uso
+## Usage
 
-Usar como raíz de vistas de sidebar para evitar márgenes y breakpoints paralelos.
+Use as the root of sidebar views to avoid parallel margins and breakpoints.
 
-## Estados y aceptación
+## States and Acceptance
 
-El contenido mantiene scroll vertical, padding adaptativo y ningún overflow horizontal intencional. El marco limita su ancho al viewport disponible y permite que sus hijos flexibles reduzcan su ancho antes de generar desplazamiento lateral.
+Content retains vertical scrolling, adaptive padding, and no intentional
+horizontal overflow. The frame limits width to the available viewport and lets
+flexible children shrink before creating lateral scrolling.

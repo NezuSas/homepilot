@@ -1,20 +1,26 @@
 # IconPicker
 
-**Fuente:** `apps/operator-console/src/views/dashboards/components/IconPicker.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/views/dashboards/components/IconPicker.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Seleccionar iconos Lucide o Material Design Icons compatibles con tableros, secciones y vistas, con búsqueda directa por nombre.
+Selects Lucide or Material Design icons compatible with dashboards, sections,
+and views, with direct name search.
 
-## Contrato
+## Contract
 
-Recibe valor, callback y textos opcionales. Carga el catálogo MDI una sola vez por sesión, normaliza nombres `mdi:`/Lucide y devuelve el identificador elegido sin conocer el dominio del tablero.
+Receives value, callback, and optional text. It loads the MDI catalogue once per
+session, normalizes `mdi:` and Lucide names, and returns the selected identifier
+without knowing dashboard domain behavior.
 
-## Uso
+## Usage
 
-Se usa desde configuraciones de vista, sección y pestaña. Su campo consume `Input` y su menú portal se alinea al trigger, se limita al viewport, declara lista accesible y se cierra con Escape.
+Use from view, section, and tab configuration. Its field uses `Input`, its
+portal menu aligns with the trigger, is constrained to the viewport, declares
+an accessible list, and closes with Escape.
 
-## Estados y aceptación
+## States and Acceptance
 
-La búsqueda filtra hasta 120 resultados, conserva selección, admite catálogo aún en carga y evita que el popup se recorte en móvil, tablet o escritorio.
+Search filters up to 120 results, preserves selection, supports a catalogue
+still loading, and prevents popup clipping on mobile, tablet, and desktop.

@@ -1,4 +1,10 @@
-import { parseProbeMatch } from '../infrastructure/onvif/OnvifWsDiscoveryProbe';
+jest.mock('dgram', () => ({ createSocket: jest.fn() }));
+jest.mock('os', () => ({ networkInterfaces: jest.fn() }));
+
+import { EventEmitter } from 'events';
+import * as dgram from 'dgram';
+import * as os from 'os';
+import { OnvifWsDiscoveryProbe, parseProbeMatch } from '../infrastructure/onvif/OnvifWsDiscoveryProbe';
 
 /**
  * Unit coverage for the WS-Discovery response parser (moved verbatim from the
@@ -79,5 +85,140 @@ describe('OnvifWsDiscoveryProbe - parseProbeMatch', () => {
 
     const result = parseProbeMatch(helloXml, '192.168.1.60');
     expect(result?.name).toBe('Camara Sala');
+  });
+  it('probes every available IPv4 interface and deduplicates discovered cameras by urn', async () => {
+    jest.useFakeTimers();
+    const socket = new EventEmitter() as EventEmitter & {
+      bind: jest.Mock;
+      close: jest.Mock;
+      send: jest.Mock;
+      setBroadcast: jest.Mock;
+      setMulticastTTL: jest.Mock;
+    };
+    socket.bind = jest.fn((_port: number, _address: string, callback: () => void) => callback());
+    socket.close = jest.fn();
+    socket.send = jest.fn();
+    socket.setBroadcast = jest.fn();
+    socket.setMulticastTTL = jest.fn();
+    const createSocket = dgram.createSocket as jest.Mock;
+    createSocket.mockReturnValue(socket as unknown as dgram.Socket);
+    (os.networkInterfaces as jest.Mock).mockReturnValue({
+      ethernet: [{ address: '192.168.1.10', netmask: '255.255.255.0', family: 'IPv4', mac: '00:00:00:00:00:01', internal: false, cidr: '192.168.1.10/24' }],
+    });
+
+    try {
+      const discovery = new OnvifWsDiscoveryProbe();
+      const resultPromise = discovery.probe();
+      socket.emit('message', Buffer.from(onvifProbeMatchXml()), { address: '192.168.1.50' });
+      socket.emit('message', Buffer.from(onvifProbeMatchXml()), { address: '192.168.1.50' });
+      await jest.advanceTimersByTimeAsync(4000);
+
+      await expect(resultPromise).resolves.toEqual([expect.objectContaining({ urn: 'urn:uuid:1234-5678' })]);
+      expect(createSocket).toHaveBeenCalledWith({ type: 'udp4', reuseAddr: true });
+      expect(socket.setBroadcast).toHaveBeenCalledWith(true);
+      expect(socket.setMulticastTTL).toHaveBeenCalledWith(128);
+      expect(socket.send).toHaveBeenCalledTimes(2);
+      expect(socket.close).toHaveBeenCalled();
+    } finally {
+      createSocket.mockReset();
+      (os.networkInterfaces as jest.Mock).mockReset();
+      jest.useRealTimers();
+    }
+  });
+
+  it('returns an empty discovery result when a UDP socket fails before receiving a response', async () => {
+    const socket = new EventEmitter() as EventEmitter & { bind: jest.Mock; close: jest.Mock };
+    socket.bind = jest.fn();
+    socket.close = jest.fn();
+    const createSocket = dgram.createSocket as jest.Mock;
+    createSocket.mockReturnValue(socket as unknown as dgram.Socket);
+    (os.networkInterfaces as jest.Mock).mockReturnValue({
+      ethernet: [{ address: '192.168.1.10', netmask: '255.255.255.0', family: 'IPv4', mac: '00:00:00:00:00:01', internal: false, cidr: '192.168.1.10/24' }],
+    });
+
+    try {
+      const resultPromise = new OnvifWsDiscoveryProbe().probe();
+      socket.emit('error', new Error('network unavailable'));
+      await expect(resultPromise).resolves.toEqual([]);
+      expect(socket.close).toHaveBeenCalled();
+    } finally {
+      createSocket.mockReset();
+      (os.networkInterfaces as jest.Mock).mockReset();
+    }
+  });
+  it('uses HTTPS default port, skips invalid XAddrs, and generates an urn when the device omits one', () => {
+    const httpsResult = parseProbeMatch(onvifProbeMatchXml({ xaddr: 'invalid-url https://camera.local/onvif/device_service' }), '192.168.1.77');
+    expect(httpsResult).toEqual(expect.objectContaining({ host: 'camera.local', onvifPort: 443 }));
+
+    const noAddressXml = onvifProbeMatchXml().replace('<a:EndpointReference><a:Address>urn:uuid:1234-5678</a:Address></a:EndpointReference>', '');
+    const generated = parseProbeMatch(noAddressXml, '192.168.1.77');
+    expect(generated?.urn).toMatch(/^urn:uuid:/);
+  });
+  it('falls back to the wildcard interface when no external IPv4 address is available', async () => {
+    jest.useFakeTimers();
+    const socket = new EventEmitter() as EventEmitter & { bind: jest.Mock; close: jest.Mock; send: jest.Mock; setBroadcast: jest.Mock; setMulticastTTL: jest.Mock };
+    socket.bind = jest.fn((_port: number, _address: string, callback: () => void) => callback());
+    socket.close = jest.fn();
+    socket.send = jest.fn();
+    socket.setBroadcast = jest.fn();
+    socket.setMulticastTTL = jest.fn();
+    const createSocket = dgram.createSocket as jest.Mock;
+    createSocket.mockReturnValue(socket as unknown as dgram.Socket);
+    (os.networkInterfaces as jest.Mock).mockReturnValue({ loopback: [{ address: '127.0.0.1', family: 'IPv4', internal: true }] });
+
+    try {
+      const result = new OnvifWsDiscoveryProbe().probe();
+      await jest.advanceTimersByTimeAsync(4_000);
+      await expect(result).resolves.toEqual([]);
+      expect(socket.bind).toHaveBeenCalledWith(0, '0.0.0.0', expect.any(Function));
+    } finally {
+      createSocket.mockReset();
+      (os.networkInterfaces as jest.Mock).mockReset();
+      jest.useRealTimers();
+    }
+  });
+
+  it('closes and resolves when socket setup fails synchronously', async () => {
+    const socket = new EventEmitter() as EventEmitter & { bind: jest.Mock; close: jest.Mock; send: jest.Mock; setBroadcast: jest.Mock; setMulticastTTL: jest.Mock };
+    socket.bind = jest.fn((_port: number, _address: string, callback: () => void) => callback());
+    socket.close = jest.fn();
+    socket.send = jest.fn();
+    socket.setBroadcast = jest.fn(() => { throw new Error('broadcast unavailable'); });
+    socket.setMulticastTTL = jest.fn();
+    const createSocket = dgram.createSocket as jest.Mock;
+    createSocket.mockReturnValue(socket as unknown as dgram.Socket);
+    (os.networkInterfaces as jest.Mock).mockReturnValue({ ethernet: [{ address: '192.168.1.10', family: 'IPv4', internal: false }] });
+
+    try {
+      await expect(new OnvifWsDiscoveryProbe().probe()).resolves.toEqual([]);
+      expect(socket.close).toHaveBeenCalled();
+    } finally {
+      createSocket.mockReset();
+      (os.networkInterfaces as jest.Mock).mockReset();
+    }
+  });
+
+  it('ignores malformed message payloads and still resolves the probe', async () => {
+    jest.useFakeTimers();
+    const socket = new EventEmitter() as EventEmitter & { bind: jest.Mock; close: jest.Mock; send: jest.Mock; setBroadcast: jest.Mock; setMulticastTTL: jest.Mock };
+    socket.bind = jest.fn((_port: number, _address: string, callback: () => void) => callback());
+    socket.close = jest.fn();
+    socket.send = jest.fn();
+    socket.setBroadcast = jest.fn();
+    socket.setMulticastTTL = jest.fn();
+    const createSocket = dgram.createSocket as jest.Mock;
+    createSocket.mockReturnValue(socket as unknown as dgram.Socket);
+    (os.networkInterfaces as jest.Mock).mockReturnValue({ ethernet: [{ address: '192.168.1.10', family: 'IPv4', internal: false }] });
+
+    try {
+      const result = new OnvifWsDiscoveryProbe().probe();
+      socket.emit('message', { toString: () => { throw new Error('bad datagram'); } }, { address: '192.168.1.50' });
+      await jest.advanceTimersByTimeAsync(4_000);
+      await expect(result).resolves.toEqual([]);
+    } finally {
+      createSocket.mockReset();
+      (os.networkInterfaces as jest.Mock).mockReset();
+      jest.useRealTimers();
+    }
   });
 });

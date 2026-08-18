@@ -215,6 +215,66 @@ describe('DashboardService', () => {
   });
 });
 
+  it('preserves owner tabs, hides unshared dashboards, and validates transfer payloads', async () => {
+    const ownerDashboard = createDashboard('owner-dashboard', 'Owner');
+    const hiddenDashboard = createDashboard('hidden-dashboard', 'Hidden');
+    hiddenDashboard.ownerId = 'other-user';
+    hiddenDashboard.tabs = [{ id: 'private-tab', title: 'Private', widgets: [], visibility: { users: ['other-user'] } }];
+    const dashboardRepository: DashboardRepository = {
+      ...createDashboardRepository(ownerDashboard),
+      findAllVisibleTo: async () => [ownerDashboard, hiddenDashboard],
+    };
+    const homeRepository: HomeRepository = {
+      ...createHomeRepository(),
+      findHomesByUserId: async () => [{ id: 'home-1', name: 'Home', ownerId: 'user-1', entityVersion: 1, createdAt: '', updatedAt: '' }],
+    };
+    const service = new DashboardService(dashboardRepository, homeRepository);
+
+    const dashboards = await service.getDashboardsForUser('user-1', 'admin');
+    expect(dashboards.map((dashboard) => dashboard.id)).toEqual(['owner-dashboard']);
+
+    await expect(service.importDashboard('user-1', null)).rejects.toThrow('DASHBOARD_IMPORT_INVALID');
+    await expect(service.importDashboard('user-1', {
+      format: DASHBOARD_TRANSFER_FORMAT,
+      version: DASHBOARD_TRANSFER_VERSION,
+      dashboard: { title: '   ', tabs: [] },
+    })).rejects.toThrow('DASHBOARD_IMPORT_INVALID');
+  });
+
+  it('enforces ownership and handles absent dashboards consistently', async () => {
+    const otherDashboard = createDashboard('other-dashboard', 'Other');
+    otherDashboard.ownerId = 'other-user';
+    const deleteDashboard = jest.fn().mockResolvedValue(undefined);
+    const repository: DashboardRepository = {
+      ...createDashboardRepository(otherDashboard),
+      deleteDashboard,
+    };
+    const service = new DashboardService(repository, createHomeRepository());
+
+    await expect(service.updateDashboard('user-1', 'admin', otherDashboard.id, {})).rejects.toThrow('FORBIDDEN');
+    await expect(service.getOwnedDashboard('user-1', otherDashboard.id)).rejects.toThrow('FORBIDDEN');
+    await expect(service.deleteDashboard('user-1', 'admin', otherDashboard.id)).rejects.toThrow('FORBIDDEN');
+
+    const missingRepository: DashboardRepository = { ...createDashboardRepository(null), deleteDashboard };
+    const missingService = new DashboardService(missingRepository, createHomeRepository());
+    await expect(missingService.getOwnedDashboard('user-1', 'missing')).rejects.toThrow('DASHBOARD_NOT_FOUND');
+    await expect(missingService.restoreDashboardRevision('user-1', 'missing', 'revision-1')).rejects.toThrow('DASHBOARD_NOT_FOUND');
+    await missingService.deleteDashboard('user-1', 'admin', 'missing');
+    expect(deleteDashboard).not.toHaveBeenCalled();
+  });
+
+  it('rejects unknown revisions without mutating the dashboard', async () => {
+    const stored = createDashboard('dashboard-1', 'Current');
+    const saveRevision = jest.fn().mockResolvedValue(undefined);
+    const service = new DashboardService({
+      ...createDashboardRepository(stored),
+      saveRevision,
+      findRevisionsByDashboardId: async () => [],
+    }, createHomeRepository());
+
+    await expect(service.restoreDashboardRevision('user-1', stored.id, 'unknown')).rejects.toThrow('DASHBOARD_REVISION_NOT_FOUND');
+    expect(saveRevision).not.toHaveBeenCalled();
+  });
 function createDashboardRepository(dashboard: Dashboard | null): DashboardRepository {
   return {
     saveDashboard: async () => undefined,

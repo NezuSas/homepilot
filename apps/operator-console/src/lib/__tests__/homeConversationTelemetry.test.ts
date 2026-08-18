@@ -67,4 +67,14 @@ describe('homeConversationTelemetry', () => {
       consoleSpy.mockRestore();
     }
   });
+  it('is a no-op when rendered outside a browser environment', () => {
+    const originalWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
+    if (originalWindow) Reflect.deleteProperty(globalThis, 'window');
+
+    try {
+      expect(() => recordHomeConversationTelemetry('global_wake_failed', { reason: 'ssr' })).not.toThrow();
+    } finally {
+      if (originalWindow) Object.defineProperty(globalThis, 'window', originalWindow);
+    }
+  });
 });

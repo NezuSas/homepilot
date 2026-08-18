@@ -1,20 +1,25 @@
 # SectionHeader
 
-**Fuente:** `apps/operator-console/src/components/ui/SectionHeader.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/ui/SectionHeader.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Encabezado uniforme para separar una sección y sus acciones contextuales.
+Uniform header for separating a section and its contextual actions.
 
-## Contrato
+## Contract
 
-Recibe título, descripción opcional, icono y acciones. La vista resuelve permisos y contenido.
+Receives title, optional description, icon, and actions. The view resolves
+permissions and content.
 
-## Uso
+## Usage
 
-Usar en páginas y paneles que necesiten jerarquía; no duplicar títulos visuales dentro de la misma superficie.
+Use in pages and panels requiring hierarchy; do not duplicate visual titles in
+the same surface.
 
-## Estados y aceptación
+## States and Acceptance
 
-Soporta texto largo, acciones envolventes y layout vertical en móvil. El bloque de contenido conserva el ancho disponible y cada acción directa ocupa el ancho completo en móvil; desde tablet recupera su ancho natural, se envuelve sin recortes y queda alineada al final del encabezado. Los subtítulos de grupo solo aplican sangría cuando existe icono.
+Supports long text, wrapping actions, and vertical mobile layout. Content keeps
+available width and each direct action takes full width on mobile; from tablet
+it recovers natural width, wraps without clipping, and aligns to the header
+end. Group subtitles indent only when an icon exists.

@@ -116,5 +116,39 @@ describe('AssistantConfirmationPolicy', () => {
     expect(result.requiresConfirmation).toBe(true);
     expect(result.reason).toContain('movimiento');
   });
-});
+  it('uses unknown labels for missing scene or device records while preserving safety decisions', async () => {
+    mockSceneRepo.findSceneById.mockResolvedValue(null);
+    mockDeviceRepo.findDeviceById.mockResolvedValue(null);
 
+    const scene = await policy.evaluate({ type: 'scene', target: 'missing', prompt: 'activa escena' });
+    const command = await policy.evaluate({ type: 'command', deviceId: 'missing', command: 'turn_off', prompt: 'apaga luz' }, 'en');
+
+    expect(scene).toEqual(expect.objectContaining({ targetName: 'Desconocido', estimatedActionCount: 0, requiresConfirmation: true }));
+    expect(command).toEqual(expect.objectContaining({ targetName: 'Unknown', requiresConfirmation: false }));
+  });
+
+  it('requires confirmation for every multi-command and movement command variant', async () => {
+    const multi = await policy.evaluate({
+      type: 'multi_command', prompt: 'apaga sala y cocina', actions: [
+        { deviceId: 'one', command: 'turn_off', targetName: 'Sala' },
+        { deviceId: 'two', command: 'turn_off', targetName: 'Cocina' },
+      ], requiresConfirmation: true,
+    }, 'en');
+    expect(multi).toEqual(expect.objectContaining({ requiresConfirmation: true, estimatedActionCount: 2, summary: 'I will execute 2 actions.' }));
+
+    for (const command of ['close', 'stop', 'set_position']) {
+      const result = await policy.evaluate({ type: 'command', deviceId: 'cover-1', command, prompt: 'cortina' } as Intent);
+      expect(result).toEqual(expect.objectContaining({ requiresConfirmation: true }));
+    }
+  });
+
+  it('keeps informational intents confirmation-free in both supported languages', async () => {
+    const explain = await policy.evaluate({ type: 'explain', prompt: 'por que' });
+    const retry = await policy.evaluate({ type: 'retry', prompt: 'intenta otra vez' }, 'en');
+    const company = await policy.evaluate({ type: 'company_info', topic: 'nezu', prompt: 'quien es nezu' });
+
+    expect(explain).toEqual(expect.objectContaining({ requiresConfirmation: false, intentType: 'unknown' }));
+    expect(retry.summary).toBe('Retrying the last failed action.');
+    expect(company.summary).toContain('NEZU S.A.S.');
+  });
+});

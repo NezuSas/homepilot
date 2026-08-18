@@ -1,20 +1,30 @@
 # ToggleSwitch
 
-**Fuente:** `apps/operator-console/src/components/ui/ToggleSwitch.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/ui/ToggleSwitch.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Control booleano accesible para preferencias y configuración. Representa estados activado/desactivado sin exponer contratos de dominio.
+Accessible boolean control for preferences and configuration. It represents on
+and off state without exposing domain contracts.
 
-## Contrato
+## Contract
 
-Recibe `checked`, `onCheckedChange` y un `label` obligatorio para accesibilidad. Admite tamaños `sm` y `md`, atributos nativos de botón compatibles y `isLoading` para persistencias asíncronas. Un `onClick` adicional puede observar o cancelar el cambio mediante `preventDefault`, sin reemplazar el contrato controlado.
+Receives `checked`, `onCheckedChange`, and a required accessible `label`. It
+supports `sm` and `md` sizes, compatible native button attributes, and
+`isLoading` for asynchronous persistence. An additional `onClick` can observe
+or cancel the change with `preventDefault` without replacing the controlled
+contract.
 
-## Uso
+## Usage
 
-La vista consumidora aporta la etiqueta visible, su traducción y la persistencia del cambio. No se usa para ejecutar acciones de un solo disparo: para ello se usa `Button` o `IconButton`.
+The consuming view supplies visible label, translation, and persistence. Do not
+use for one-shot actions: use `Button` or `IconButton` instead.
 
-## Estados y aceptación
+## States and Acceptance
 
-Expone `role="switch"`, `aria-checked` y `data-state` con `checked` o `unchecked`. Durante `isLoading` se desactiva, comunica `aria-busy` y sustituye el contenido del pulgar por un indicador decorativo de igual escala. Conserva dimensiones táctiles fijas, foco visible y `touch-manipulation`, por lo que no debe encogerse ni provocar desborde en filas responsivas.
+Exposes `role="switch"`, `aria-checked`, and `data-state` as `checked` or
+`unchecked`. During `isLoading`, it disables itself, communicates `aria-busy`,
+and replaces thumb content with an equally-scaled decorative indicator. It
+retains fixed touch dimensions, visible focus, and `touch-manipulation`, so it
+does not shrink or overflow responsive rows.

@@ -1,16 +1,23 @@
 # HomeConversationMessages
 
-**Fuentes:** `apps/operator-console/src/components/HomeConversationMessageBubble.tsx`, `HomeConversationTypingIndicator.tsx`, `HomeConversationEmptyState.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Sources:** `apps/operator-console/src/components/HomeConversationMessageBubble.tsx`, `HomeConversationTypingIndicator.tsx`, `HomeConversationEmptyState.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Representar el estado inicial, los mensajes y la actividad de escritura de la conversación con la casa mediante la misma jerarquía tipográfica, acciones y superficies compartidas.
+Represents initial state, messages, and typing activity for home conversation
+with the same shared typography, actions, and surfaces.
 
-## Contrato
+## Contract
 
-Las burbujas reciben un mensaje tipado y un callback para sus opciones. El estado inicial recibe textos y sugerencias desde su vista consumidora. Los tres componentes resuelven sus etiquetas propias mediante i18n y no conocen el endpoint o la lógica de conversación.
+Bubbles receive a typed message and callback for their options. Initial state
+receives text and suggestions from the consuming view. The three components
+resolve their own labels through i18n and do not know the endpoint or
+conversation logic.
 
-## Estados y aceptación
+## States and Acceptance
 
-Los textos largos se ajustan sin truncar opciones accionables, los mensajes conservan `text-body` en todos los breakpoints y el indicador de escritura anuncia su estado con `role=status`. El avatar de usuario usa una etiqueta localizada cuando no hay perfil disponible.
+Long text wraps without truncating actionable options, messages retain
+`text-body` at every breakpoint, and the typing indicator announces its state
+with `role=status`. The user avatar uses a localized label when no profile is
+available.

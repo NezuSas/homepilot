@@ -75,6 +75,15 @@ describe('HomeAssistantClient.getEntityRegistryEntry', () => {
     await expect(resultPromise).resolves.toBeNull();
   });
 
+  it('treats malformed responses and premature closes as an unavailable registry entry', async () => {
+    const malformed = client.getEntityRegistryEntry('camera.matter_cam');
+    lastSocket?.emit('message', Buffer.from('{not-json'));
+    await expect(malformed).resolves.toBeNull();
+
+    const closed = client.getEntityRegistryEntry('camera.matter_cam');
+    lastSocket?.emit('close');
+    await expect(closed).resolves.toBeNull();
+  });
   it('resolves null when no platform is present in the result', async () => {
     const resultPromise = client.getEntityRegistryEntry('camera.matter_cam');
 

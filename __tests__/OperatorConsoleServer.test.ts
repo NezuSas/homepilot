@@ -79,6 +79,7 @@ describe('OperatorConsoleServer Integration Tests', () => {
 
   afterAll(async () => {
     await server.stop();
+    SqliteDatabaseManager.closeAll();
   });
 
   describe('Routine visibility API', () => {
@@ -450,6 +451,33 @@ describe('OperatorConsoleServer Integration Tests', () => {
       const guestRooms = await guestRoomsRes.json();
       expect(Array.isArray(guestRooms)).toBe(true);
       expect(guestRooms.some((room: { id: string }) => room.id === 'r-01')).toBe(true);
+    });
+  });
+  describe('Api gateway fallback and browser boundary', () => {
+    it('returns a JSON 404 with security headers when no modular handler claims the route', async () => {
+      const res = await fetch(`http://localhost:${PORT}/api/v1/not-a-real-route`, {
+        headers: { 'x-hp-test-bypass': 'true' },
+      });
+
+      expect(res.status).toBe(404);
+      await expect(res.json()).resolves.toMatchObject({ error: { code: 'NOT_FOUND', message: 'Not Found' } });
+      expect(res.headers.get('x-content-type-options')).toBe('nosniff');
+      expect(res.headers.get('x-frame-options')).toBe('DENY');
+      expect(res.headers.get('referrer-policy')).toBe('no-referrer');
+    });
+
+    it('returns CORS credentials and echoes only the configured local development origin', async () => {
+      const allowed = await fetch(`http://localhost:${PORT}/api/v1/not-a-real-route`, {
+        headers: { Origin: 'http://localhost' },
+      });
+      const rejected = await fetch(`http://localhost:${PORT}/api/v1/not-a-real-route`, {
+        headers: { Origin: 'https://untrusted.example' },
+      });
+
+      expect(allowed.headers.get('access-control-allow-origin')).toBe('http://localhost');
+      expect(allowed.headers.get('access-control-allow-credentials')).toBe('true');
+      expect(rejected.headers.get('access-control-allow-origin')).toBeNull();
+      expect(rejected.headers.get('access-control-allow-credentials')).toBe('true');
     });
   });
 });

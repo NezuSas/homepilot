@@ -1,5 +1,5 @@
 import * as crypto from 'crypto';
-import { buildPasswordDigest, buildGetCapabilitiesEnvelope, buildGetProfilesEnvelope, buildGetStreamUriEnvelope } from '../infrastructure/onvif/OnvifSoapEnvelopes';
+import { buildPasswordDigest, buildGetCapabilitiesEnvelope, buildGetProfilesEnvelope, buildGetStreamUriEnvelope, buildGetPtzConfigurationOptionsEnvelope, buildContinuousMoveEnvelope, buildPtzStopEnvelope } from '../infrastructure/onvif/OnvifSoapEnvelopes';
 
 describe('OnvifSoapEnvelopes', () => {
   it('buildPasswordDigest is deterministic against a fixed nonce/timestamp/password (WS-Security PasswordDigest)', () => {
@@ -59,5 +59,22 @@ describe('OnvifSoapEnvelopes', () => {
   it('escapes the profile token in GetStreamUri', () => {
     const envelope = buildGetStreamUriEnvelope({ username: 'admin', password: 'secret' }, '<token>');
     expect(envelope).toContain('<ProfileToken>&lt;token&gt;</ProfileToken>');
+  });
+  it('builds PTZ configuration, movement, and stop envelopes with escaped tokens', () => {
+    const credentials = { username: 'admin', password: 'secret' };
+    const options = buildGetPtzConfigurationOptionsEnvelope(credentials, '<configuration>');
+    const movement = buildContinuousMoveEnvelope(credentials, '<profile>', { pan: 0.5, tilt: -0.25, zoom: 1 });
+    const defaultMovement = buildContinuousMoveEnvelope(credentials, 'profile', {});
+    const stop = buildPtzStopEnvelope(credentials, '<profile>');
+
+    expect(options).toContain('<ConfigurationToken>&lt;configuration&gt;</ConfigurationToken>');
+    expect(movement).toContain('<ProfileToken>&lt;profile&gt;</ProfileToken>');
+    expect(movement).toContain('x="0.5" y="-0.25"');
+    expect(movement).toContain('<Zoom xmlns="http://www.onvif.org/ver10/schema" x="1"/>');
+    expect(defaultMovement).toContain('x="0" y="0"');
+    expect(defaultMovement).toContain('x="0"/>');
+    expect(stop).toContain('<ProfileToken>&lt;profile&gt;</ProfileToken>');
+    expect(stop).toContain('<PanTilt>true</PanTilt>');
+    expect(stop).toContain('<Zoom>true</Zoom>');
   });
 });

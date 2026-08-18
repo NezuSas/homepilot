@@ -1,8 +1,8 @@
 import { AssistantConversationService } from '../application/AssistantConversationService';
-import { 
-  createMockIntentInterpreterPort, 
-  createMockAssistantSmallTalk, 
-  createMockDeviceCommandDispatcher, 
+import {
+  createMockIntentInterpreterPort,
+  createMockAssistantSmallTalk,
+  createMockDeviceCommandDispatcher,
   createMockSmartEntityResolver,
   createMockAssistantMemory,
   createMockAssistantLearningService,
@@ -38,11 +38,11 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     mockDeviceRepo = createMockDeviceRepository();
     mockRoomRepo = createMockRoomRepository();
     mockSceneExecution = createMockSceneExecutionService();
-    mockShadowService = { 
+    mockShadowService = {
       runShadow: jest.fn().mockResolvedValue(undefined),
       attemptHybridExecution: jest.fn().mockResolvedValue(null)
     };
-    
+
     service = new AssistantConversationService(
       mockIntentInterpreter, // 1
       createMockAssistantConfirmationPolicy(), // 2
@@ -80,7 +80,7 @@ describe('Fast Path Integration in AssistantConversationService', () => {
 
     expect(response.type).toBe('execution');
     expect(response.message).toContain('Luz Cocina');
-    
+
     // Check that memory was saved
     expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('u1', expect.objectContaining({
       lastQueryType: 'command',
@@ -94,7 +94,7 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     mockDeviceRepo.findDeviceById.mockResolvedValue(testDevice);
 
     await service.converse({ prompt: 'prende luz cocina', userId: 'u1' }, 'es');
-    
+
     // Fast path should succeed and NOT call shadow
     expect(mockShadowService.runShadow).not.toHaveBeenCalled();
   });
@@ -214,7 +214,7 @@ describe('Fast Path Integration in AssistantConversationService', () => {
   it('calls shadow execution when fast path skips the request', async () => {
     const testDevice = createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'light', roomId: 'r1' });
     mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
-    
+
     mockIntentInterpreter.interpret.mockResolvedValue({
       type: 'unknown',
       prompt: 'enciende luz',
@@ -222,11 +222,11 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     });
 
     const response = await service.converse({ prompt: 'enciende luz', userId: 'u1' }, 'es');
-    
+
     // Safety Gate V2 blocks vague "enciende luz" and asks for room
     expect(response.type).toBe('clarification');
     expect(response.message).toContain('En qué estancia');
-    
+
     // Shadow should NOT run for blocked safety gate cases
     expect(mockShadowService.runShadow).not.toHaveBeenCalled();
   });
@@ -235,18 +235,18 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     it('bypasses shadow for "qué luces están encendidas" (State Query)', async () => {
       const testDevice = createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'light', lastKnownState: { on: true } });
       mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
-      
+
       await service.converse({ prompt: 'qué luces están encendidas', userId: 'u1' }, 'es');
-      
+
       expect(mockShadowService.runShadow).not.toHaveBeenCalled();
     });
 
     it('bypasses shadow for "qué luces están apagadas" (State Query)', async () => {
       const testDevice = createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'switch', lastKnownState: { state: 'off' } });
       mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
-      
+
       const response = await service.converse({ prompt: 'qué luces están apagadas', userId: 'u1' }, 'es');
-      
+
       expect(response.message).toContain('Luz Cocina');
       expect(response.message).not.toContain('No hay luces apagadas');
       expect(mockShadowService.runShadow).not.toHaveBeenCalled();
@@ -255,17 +255,17 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     it('bypasses shadow for "esta encendida la luz de la cocina?" (Point State Query)', async () => {
       const testDevice = createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'light', lastKnownState: { on: true } });
       mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
-      
+
       await service.converse({ prompt: 'esta encendida la luz cocina', userId: 'u1' }, 'es');
-      
+
       expect(mockShadowService.runShadow).not.toHaveBeenCalled();
     });
 
     it('bypasses shadow for "que estancias conoces" (Room Query)', async () => {
       mockDeviceRepo.findAll.mockResolvedValue([]);
-      
+
       await service.converse({ prompt: 'que estancias conoces', userId: 'u1' }, 'es');
-      
+
       expect(mockShadowService.runShadow).not.toHaveBeenCalled();
     });
 
@@ -275,7 +275,7 @@ describe('Fast Path Integration in AssistantConversationService', () => {
       mockIntentInterpreter.interpret.mockResolvedValue({ type: 'unknown', prompt: 'ayúdame con la luz' });
 
       await service.converse({ prompt: 'ayúdame con la luz', userId: 'u1' }, 'es');
-      
+
       expect(mockShadowService.runShadow).toHaveBeenCalled();
     });
 
@@ -289,9 +289,9 @@ describe('Fast Path Integration in AssistantConversationService', () => {
         { id: 'r1', name: 'Cocina' },
         { id: 'r2', name: 'Sala' }
       ]);
-      
+
       const res = await service.converse({ prompt: 'estado de la casa', userId: 'u1' }, 'es');
-      
+
       expect(res.message).toContain('Estado de la casa:');
       expect(res.message).toContain('Encendidas: 1');
       expect(res.message).toContain('Apagadas: 1');
@@ -310,7 +310,7 @@ describe('Fast Path Integration in AssistantConversationService', () => {
         { id: 'r1', name: 'Cocina' },
         { id: 'r2', name: 'Sala' }
       ]);
-      
+
       // Setup memory
       mockMemory.getShortTermMemory.mockResolvedValue({
         lastQueryType: 'state_devices',
@@ -322,7 +322,7 @@ describe('Fast Path Integration in AssistantConversationService', () => {
       });
 
       const res = await service.converse({ prompt: 'dame detalle', userId: 'u1' }, 'es');
-      
+
       expect(res.message).toContain('Detalle de la casa:');
       expect(res.message).toContain('Encendidas:');
       expect(res.message).toContain('• Luz Cocina (Cocina)');
@@ -336,7 +336,7 @@ describe('Fast Path Integration in AssistantConversationService', () => {
       mockIntentInterpreter.interpret.mockResolvedValue({ type: 'unknown', prompt: 'dame detalle' });
 
       await service.converse({ prompt: 'dame detalle', userId: 'u1' }, 'es');
-      
+
       expect(mockShadowService.runShadow).toHaveBeenCalled();
     });
 
@@ -346,7 +346,7 @@ describe('Fast Path Integration in AssistantConversationService', () => {
       ];
       mockDeviceRepo.findAll.mockResolvedValue(devices);
       mockRoomRepo.findRoomsByHomeId.mockResolvedValue([{ id: 'r1', name: 'Kitchen' }]);
-      
+
       mockMemory.getShortTermMemory.mockResolvedValue({
         lastQueryType: 'state_devices',
         entities: [{ id: 'd1', name: 'Kitchen Light', type: 'light', roomId: 'r1', roomName: 'Kitchen' }],
@@ -354,10 +354,24 @@ describe('Fast Path Integration in AssistantConversationService', () => {
       });
 
       const res = await service.converse({ prompt: 'show detail', userId: 'u1' }, 'en');
-      
+
       expect(res.message).toContain('House detail:');
       expect(res.message).toContain('On:');
       expect(res.message).toContain('• Kitchen Light (Kitchen)');
     });
   });
+  it('returns the English unknown-target feedback without invoking the interpreter', async () => {
+    const testDevice = createTestDevice({ id: 'd1', name: 'Living room light', type: 'light', roomId: 'r1' });
+    mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
+    mockDeviceRepo.findDeviceById.mockResolvedValue(testDevice);
+    mockRoomRepo.findAll.mockResolvedValue([{ id: 'r1', name: 'Living room' }]);
+
+    const response = await service.converse({ prompt: 'ok nezu turn off the spaceship', userId: 'u1' }, 'en');
+
+    expect(response.type).toBe('answer');
+    expect(response.message).toContain("I couldn't find a device called 'the spaceship'.");
+    expect(mockIntentInterpreter.interpret).not.toHaveBeenCalled();
+    expect(mockShadowService.runShadow).not.toHaveBeenCalled();
+  });
+
 });

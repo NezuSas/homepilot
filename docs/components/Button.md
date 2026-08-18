@@ -1,20 +1,29 @@
 # Button
 
-**Fuente:** `apps/operator-console/src/components/ui/Button.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/ui/Button.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Acción textual principal, secundaria, neutra o destructiva. Se usa para confirmar una intención; no para navegación puramente icónica.
+Primary, secondary, neutral, or destructive textual action. It confirms an
+intent; it is not for purely icon-based navigation.
 
-## Contrato
+## Contract
 
-`ButtonProps` extiende atributos nativos de botón y añade `variant`, `size` e `isLoading`. `isLoading` deshabilita la acción, expone `aria-busy` y muestra un indicador decorativo sin cambiar su tamaño. `size="md"` comparte la altura base `h-10` de `Input` para acciones textuales en línea.
+`ButtonProps` extends native button attributes and adds `variant`, `size`, and
+`isLoading`. `isLoading` disables the action, exposes `aria-busy`, and shows a
+decorative indicator without changing size. `size="md"` shares `Input`'s `h-10`
+base height for inline textual actions.
 
-## Uso
+## Usage
 
-Usar `primary` para la acción principal, `danger` solo para operación destructiva y `IconButton` cuando no haya texto visible. Los selectores, tabs, tarjetas interactivas y controles de arrastre conservan sus componentes semánticos especializados. El texto proviene de i18n del consumidor.
+Use `primary` for the principal action, `danger` only for destructive work, and
+`IconButton` when no visible text exists. Selectors, tabs, interactive cards,
+and drag controls retain their specialized semantic components. Text comes from
+consumer i18n.
 
-## Estados y aceptación
+## States and Acceptance
 
-Soporta normal, hover/focus, disabled y loading; mantiene foco visible y área táctil definida por tokens. Las etiquetas pueden ajustarse dentro del ancho disponible sin estirar filas, tarjetas o modales.
+Supports normal, hover/focus, disabled, and loading states; preserves visible
+focus and token-defined touch area. Labels may wrap within available width
+without stretching rows, cards, or dialogs.

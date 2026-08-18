@@ -124,6 +124,45 @@ describe('removeDeviceUseCase', () => {
     })).rejects.toBeInstanceOf(DeviceInUseError);
   });
 
+  it('rejects removal when a direct device trigger or command action references the device', async () => {
+    const deviceRepository = new InMemoryDeviceRepository();
+    await deviceRepository.saveDevice(device);
+    const ruleBase = { homeId: device.homeId, userId: 'user-1', enabled: true };
+
+    await expect(removeDeviceUseCase(device.id, {
+      deviceRepository,
+      sceneRepository: createSceneRepository([]),
+      automationRuleRepository: createAutomationRepository([{
+        ...ruleBase,
+        id: 'rule-direct-reference',
+        name: 'Referencia directa',
+        trigger: { type: 'device_state_changed', deviceId: device.id, stateKey: 'state', expectedValue: 'open' },
+        action: { type: 'device_command', targetDeviceId: device.id, command: 'close' },
+      }]),
+    })).rejects.toBeInstanceOf(DeviceInUseError);
+  });
+
+  it('removes a device when time and scene automation rules do not reference it', async () => {
+    const deviceRepository = new InMemoryDeviceRepository();
+    await deviceRepository.saveDevice(device);
+
+    await removeDeviceUseCase(device.id, {
+      deviceRepository,
+      sceneRepository: createSceneRepository([]),
+      automationRuleRepository: createAutomationRepository([{
+        id: 'rule-unrelated',
+        homeId: device.homeId,
+        userId: 'user-1',
+        name: 'Regla sin dispositivo',
+        enabled: true,
+        trigger: { type: 'time', timeLocal: '22:00', timezone: 'America/Guayaquil', timeUTC: '03:00' },
+        action: { type: 'execute_scene', sceneId: 'scene-1' },
+      }]),
+    });
+
+    await expect(deviceRepository.findDeviceById(device.id)).resolves.toBeNull();
+  });
+
   it('rejects an unknown device', async () => {
     await expect(removeDeviceUseCase('missing', {
       deviceRepository: new InMemoryDeviceRepository(),

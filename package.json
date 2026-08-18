@@ -13,6 +13,7 @@
   ],
   "scripts": {
     "test": "jest",
+    "test:coverage": "jest --coverage --coverageReporters=text-summary --coverageReporters=json-summary",
     "typecheck": "tsc --noEmit && npm run typecheck --prefix apps/operator-console",
     "dev:api": "ts-node main.ts",
     "dev:ui": "npm run dev --prefix apps/operator-console",
@@ -22,7 +23,7 @@
     "check:i18n": "node scripts/check-i18n-coverage.mjs",
     "check:ui-primitives": "node scripts/check-ui-primitives.mjs",
     "test:responsive": "npm run test:responsive --prefix apps/operator-console",
-    "verify:quality": "npm run check:i18n && npm run check:ui-primitives && npm run check:spec-coverage && npm run check:no-production-any && npm run check:architecture-boundaries && npm run check:bdd-traceability && npm run check:module-test-coverage && npm run check:tuya-policy && npm run check:docker-profiles && npm run test:responsive && npm run lint --prefix apps/operator-console && npm run test && npm run typecheck && npm run build && npm run build --prefix apps/operator-console",
+    "verify:quality": "npm run check:i18n && npm run check:ui-primitives && npm run check:spec-coverage && npm run check:no-production-any && npm run check:architecture-boundaries && npm run check:bdd-traceability && npm run check:module-test-coverage && npm run check:tuya-policy && npm run check:docker-profiles && npm run test:responsive && npm run lint --prefix apps/operator-console && npm run test:coverage && npm run typecheck && npm run build && npm run build --prefix apps/operator-console",
     "start": "node dist/main.js",
     "check:no-production-any": "node scripts/check-no-production-any.mjs",
     "check:architecture-boundaries": "node scripts/check-architecture-boundaries.mjs",

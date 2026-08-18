@@ -73,7 +73,29 @@ describe('AssistantMemoryService V2', () => {
     expect(tone).toBe('casual');
   });
 
-  it('should handle aliases', async () => {
+
+  it('should return null rather than corrupt conversational context when stored short-term memory is malformed', async () => {
+    mockMemoryRepo.findByKey.mockResolvedValue({
+      userId: 'user-1', key: 'short_term_context', value: '{not-json', valueType: 'json', expiresAt: null, createdAt: '', updatedAt: '',
+    });
+    const warning = jest.spyOn(console, 'warn').mockImplementation();
+
+    await expect(service.getShortTermMemory('user-1')).resolves.toBeNull();
+
+    warning.mockRestore();
+  });
+
+  it('should retrieve and delete a single alias using its namespaced memory key', async () => {
+    mockMemoryRepo.findByKey.mockResolvedValue({
+      userId: 'user-1', key: 'alias:mi cuarto', value: 'room-1', valueType: 'string', expiresAt: null, createdAt: '', updatedAt: '',
+    });
+
+    await expect(service.getAlias('user-1', 'mi cuarto')).resolves.toBe('room-1');
+    await service.deleteAlias('user-1', 'mi cuarto');
+
+    expect(mockMemoryRepo.findByKey).toHaveBeenCalledWith('user-1', 'alias:mi cuarto');
+    expect(mockMemoryRepo.delete).toHaveBeenCalledWith('user-1', 'alias:mi cuarto');
+  });  it('should handle aliases', async () => {
     await service.setAlias('user-1', 'mi cuarto', 'room-1');
     expect(mockMemoryRepo.upsert).toHaveBeenCalledWith(expect.objectContaining({
       key: 'alias:mi cuarto',

@@ -6,8 +6,11 @@ import {
   getDashboardSectionColumns,
   getDashboardSectionColumnsForViewport,
   getDashboardUserDisplayName,
+  getDevicesInRoom,
+  isDeviceActive,
   isPortraitKioskViewport,
   getSectionSpan,
+  sanitizeWidget,
   sanitizeWidgetConfig,
 } from './dashboardUtils';
 
@@ -137,5 +140,53 @@ describe('dashboard section devices', () => {
     ];
 
     expect(getAssignableDevicesForSectionCard('media', devices).map((device) => device.id)).toEqual(['speaker-1']);
+  });
+});
+
+describe('dashboard device state and normalization', () => {
+  it('recognizes active power, security, and analog states while rejecting absent or inactive state', () => {
+    expect(isDeviceActive(createDevice('off', 'Off', 'light'))).toBe(false);
+    expect(isDeviceActive({ ...createDevice('power', 'Power', 'light'), lastKnownState: { state: 'on' } })).toBe(true);
+    expect(isDeviceActive({ ...createDevice('open', 'Open', 'cover'), lastKnownState: { open: true } })).toBe(true);
+    expect(isDeviceActive({ ...createDevice('activity', 'Activity', 'sensor'), lastKnownState: { isActive: true } })).toBe(true);
+    expect(isDeviceActive({ ...createDevice('brightness', 'Brightness', 'light'), lastKnownState: { brightness: 1 } })).toBe(true);
+    expect(isDeviceActive({ ...createDevice('level', 'Level', 'light'), lastKnownState: { level: 50 } })).toBe(true);
+    expect(isDeviceActive({ ...createDevice('zero', 'Zero', 'light'), lastKnownState: { brightness: 0, level: 0 } })).toBe(false);
+  });
+
+  it('filters devices by a selected room and returns none without a room selection', () => {
+    const devices = [
+      { ...createDevice('one', 'One', 'light'), roomId: 'room-1' },
+      { ...createDevice('two', 'Two', 'light'), roomId: 'room-2' },
+    ];
+
+    expect(getDevicesInRoom(devices, 'room-1').map((device) => device.id)).toEqual(['one']);
+    expect(getDevicesInRoom(devices, null)).toEqual([]);
+  });
+
+  it('classifies covers, sensors, switches, generic devices, and sorts assignable names', () => {
+    const devices = [
+      createDevice('switch', 'Zulu Switch', 'switch'),
+      createDevice('outlet', 'Alpha Outlet', 'outlet'),
+      createDevice('cover', 'Curtain', 'cover'),
+      createDevice('sensor', 'Temperature', 'sensor'),
+      createDevice('binary', 'Motion', 'binary_sensor'),
+      createDevice('generic', 'Generic', 'lock'),
+    ];
+
+    expect(getAssignableDevicesForSectionCard('cover', devices).map((device) => device.id)).toEqual(['cover']);
+    expect(getAssignableDevicesForSectionCard('sensor', devices).map((device) => device.id)).toEqual(['binary', 'sensor']);
+    expect(getAssignableDevicesForSectionCard('light', devices).map((device) => device.id)).toEqual(['outlet', 'switch']);
+    expect(getAssignableDevicesForSectionCard('device', devices).map((device) => device.id)).toEqual(['outlet', 'cover', 'generic', 'switch']);
+    expect(getAssignableDevicesForSectionCard('unknown', devices)).toEqual([]);
+  });
+
+  it('creates a complete widget from partial data and preserves explicit identifiers', () => {
+    const generated = sanitizeWidget({});
+    expect(generated).toEqual(expect.objectContaining({ type: 'device_control', config: expect.any(Object) }));
+    expect(generated.config.binding.entityId).toBe('');
+    const explicit = sanitizeWidget({ id: 'widget-1', type: 'section', config: sanitizeWidgetConfig({ appearance: { title: 'Sala' } }) });
+    expect(explicit).toEqual(expect.objectContaining({ id: 'widget-1', type: 'section' }));
+    expect(explicit.config.appearance.title).toBe('Sala');
   });
 });

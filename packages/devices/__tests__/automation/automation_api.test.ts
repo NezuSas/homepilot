@@ -262,4 +262,38 @@ describe('Automation API: AutomationController', () => {
     const res = await controller.updateRule(req);
     expect(res.statusCode).toBe(400);
   });
+  it.each([
+    ['createRule', () => controller.createRule({ userId: 'u1', params: { homeId: ' ' }, body: {} })],
+    ['listRules', () => controller.listRules({ userId: 'u1', params: { homeId: ' ' } })],
+    ['deleteRule', () => controller.deleteRule({ userId: 'u1', params: { ruleId: ' ' } })],
+    ['enableRule', () => controller.enableRule({ userId: 'u1', params: { ruleId: ' ' } })],
+    ['disableRule', () => controller.disableRule({ userId: 'u1', params: { ruleId: ' ' } })],
+    ['updateRule', () => controller.updateRule({ userId: 'u1', params: { ruleId: ' ' }, body: {} })]
+  ])('%s: rejects blank required identifiers', async (_operation, invoke) => {
+    const response = await invoke();
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('createRule: rejects a body that is not an object', async () => {
+    const response = await controller.createRule({
+      userId: 'u1',
+      params: { homeId: 'home-1' },
+      body: null
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(bodyAs<{ message: string }>(response).message).toBe('Invalid request body.');
+  });
+
+  it('updateRule: rejects a body that is not an object', async () => {
+    const response = await controller.updateRule({
+      userId: 'u1',
+      params: { ruleId: 'r1' },
+      body: null
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(bodyAs<{ message: string }>(response).message).toBe('Invalid request body.');
+  });
 });

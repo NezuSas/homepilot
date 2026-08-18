@@ -1,20 +1,34 @@
 # Modal
 
-**Fuente:** `apps/operator-console/src/components/ui/Modal.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/ui/Modal.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Contenedor de diálogo dentro del shell de aplicación para formularios, detalles y confirmaciones no destructivas.
+Application-shell dialog container for forms, details, and non-destructive
+confirmations.
 
-## Contrato
+## Contract
 
-`ModalProps` recibe `isOpen`, `onClose`, título, descripción, children opcionales, variante y control del cierre. `headerAlign`, `headerClassName` y `contentClassName` permiten adaptar una composición de formulario amplia sin duplicar overlay, foco, scroll ni botón de cierre. `footer` y `footerClassName` mantienen acciones críticas fijas fuera del área desplazable. `layerClassName` ajusta la capa del portal cuando un flujo necesita precedencia explícita. `closeLabel` resuelve su etiqueta desde i18n en el consumidor o usa `common.close`. Bloquea el scroll del body mientras está abierto.
+`ModalProps` receives `isOpen`, `onClose`, title, description, optional
+children, variant, and close control. `headerAlign`, `headerClassName`, and
+`contentClassName` adapt broad form composition without duplicating overlay,
+focus, scroll, or close button. `footer` and `footerClassName` keep critical
+actions fixed outside the scrolling area. `layerClassName` adjusts portal layer
+precedence when a flow requires it. `closeLabel` resolves through consumer i18n
+or uses `common.close`. It locks body scroll while open.
 
-## Uso
+## Usage
 
-El contenido debe ser desplazable y sus acciones deben quedar visibles. Usar `ConfirmModal` para confirmación crítica.
+Content must be scrollable and actions remain visible. Use `ConfirmModal` for
+critical confirmation.
 
-## Estados y aceptación
+## States and Acceptance
 
-Respeta variantes default/info/danger/warning/success, backdrop, foco inicial, restauración de foco, Escape y ciclo de Tab dentro del diálogo; además retiene el foco si este intenta salir por una interacción programática y respeta diálogos anidados. Mantiene viewport móvil/tablet/escritorio. Los `children` son opcionales para confirmaciones que solo muestran cabecera y pie compartidos. El título y la descripción reservan espacio para el cierre, ajustan texto largo y el pie puede envolver acciones dentro del viewport.
+Supports default, info, danger, warning, and success variants, backdrop,
+initial focus, focus restoration, Escape, and Tab cycling; it also retains
+focus that leaves due to a programmatic interaction and respects nested
+dialogs. It preserves mobile, tablet, and desktop viewport behavior. Optional
+children support confirmations that show only a shared header and footer. Title
+and description reserve close-control space, wrap long text, and footer actions
+may wrap inside the viewport.

@@ -1,20 +1,28 @@
 # DeviceTileBase
 
-**Fuente:** `apps/operator-console/src/components/ui/DeviceTileBase.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/ui/DeviceTileBase.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Base visual de una tarjeta de dispositivo que unifica icono, título, subtítulo, badge, acción y estados.
+Visual base for a device card that unifies icon, title, subtitle, badge, action,
+and state presentation.
 
-## Contrato
+## Contract
 
-`DeviceTileBaseProps` recibe icono, título, estado `active`, `disabled`, `error`, `syncing`, acciones y children. No consulta drivers ni decide comandos.
+`DeviceTileBaseProps` receives icon, title, `active`, `disabled`, `error`,
+`syncing`, actions, and children. It does not query drivers or decide commands.
 
-## Uso
+## Usage
 
-Las tarjetas especializadas de luz, cortina, sensor o dispositivo reutilizan esta base y pasan únicamente acciones compatibles.
+Specialized light, curtain, sensor, and device cards reuse this base and pass
+only compatible actions.
 
-## Estados y aceptación
+## States and Acceptance
 
-Disponible, activo, offline/disabled, error y syncing tienen señal visual sin depender solo del color. En móvil reduce padding, permite texto largo con ajuste seguro y mantiene las acciones contextuales visibles cuando no existe hover; en escritorio se revelan al interactuar con la tarjeta. Cuando recibe `onClick`, expone semántica de botón y responde a Enter o Espacio sin duplicar la activación de controles internos.
+Available, active, offline/disabled, error, and syncing each have a visual cue
+that does not rely only on color. On mobile it reduces padding, safely wraps
+long text, and keeps contextual actions visible when hover is unavailable; on
+desktop they appear on card interaction. With `onClick`, it exposes button
+semantics and responds to Enter or Space without double-activating internal
+controls.

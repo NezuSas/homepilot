@@ -1,5 +1,5 @@
 /// <reference types="jest" />
-import { converseWithAssistant, transcribeAssistantSpeech } from '../assistantApi';
+import { converseWithAssistant, synthesizeAssistantSpeech, transcribeAssistantSpeech } from '../assistantApi';
 import { apiFetch } from '../apiClient';
 import i18n from '../../i18n';
 
@@ -119,5 +119,52 @@ describe('Feature: consola conversa con el asistente', () => {
 
     await expect(request).resolves.toBeNull();
     jest.useRealTimers();
+  });
+});
+
+describe('Feature: assistant voice API contracts', () => {
+  const mockApiFetch = apiFetch as jest.Mock;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+  });
+
+  it('returns a valid local TTS response and rejects invalid or failed payloads safely', async () => {
+    mockApiFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ provider: 'piper', audioContentType: 'audio/wav', audioBase64: 'UklGRg==' }) });
+    await expect(synthesizeAssistantSpeech('Hola')).resolves.toEqual({ provider: 'piper', audioContentType: 'audio/wav', audioBase64: 'UklGRg==' });
+
+    mockApiFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ provider: 'remote', audioContentType: 'audio/wav', audioBase64: 'audio' }) });
+    await expect(synthesizeAssistantSpeech('Hola')).resolves.toBeNull();
+
+    mockApiFetch.mockResolvedValueOnce({ ok: false, json: async () => ({}) });
+    await expect(synthesizeAssistantSpeech('Hola')).resolves.toBeNull();
+  });
+
+  it('degrades safely when speech payloads are malformed or unavailable', async () => {
+    mockApiFetch.mockResolvedValueOnce({ ok: true, json: async () => { throw new Error('invalid json'); } });
+    await expect(synthesizeAssistantSpeech('Hola')).resolves.toBeNull();
+
+    mockApiFetch.mockResolvedValueOnce({ ok: false, json: async () => ({ error: 'unavailable' }) });
+    await expect(transcribeAssistantSpeech('YWJj', 'audio/webm')).resolves.toBeNull();
+  });
+  it('accepts only valid local speech-to-text payloads and propagates non-timeout transport failures', async () => {
+    mockApiFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ provider: 'whisper-local', transcript: 'Apaga la sala' }) });
+    await expect(transcribeAssistantSpeech('YWJj', 'audio/webm')).resolves.toEqual({ provider: 'whisper-local', transcript: 'Apaga la sala' });
+
+    mockApiFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ provider: 'whisper-local' }) });
+    await expect(transcribeAssistantSpeech('YWJj', 'audio/webm')).resolves.toBeNull();
+
+    mockApiFetch.mockRejectedValueOnce(new Error('network unavailable'));
+    await expect(transcribeAssistantSpeech('YWJj', 'audio/webm')).rejects.toThrow('network unavailable');
+  });
+  it('forwards an already-aborted caller signal to the assistant request without creating a timeout', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    mockApiFetch.mockImplementation((_url: string, init: RequestInit) => {
+      expect(init.signal?.aborted).toBe(true);
+      return Promise.reject(new DOMException('Aborted', 'AbortError'));
+    });
+
+    await expect(converseWithAssistant({ prompt: 'cancelled before send' }, { signal: controller.signal })).rejects.toMatchObject({ name: 'AbortError' });
   });
 });

@@ -1,20 +1,26 @@
 # ConfirmModal
 
-**Fuente:** `apps/operator-console/src/components/ConfirmModal.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/ConfirmModal.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Solicita confirmación explícita antes de una acción sensible o destructiva.
+Requests explicit confirmation before a sensitive or destructive action.
 
-## Contrato
+## Contract
 
-Recibe apertura, título, descripción, etiquetas, callback asíncrono de confirmación y cierre. Reutiliza `Modal` para portal, foco, Escape, contención de Tab, viewport y scroll. Gestiona estado de envío para impedir doble ejecución.
+Receives open state, title, description, labels, asynchronous confirmation
+callback, and close callback. It reuses `Modal` for portal, focus, Escape, Tab
+containment, viewport, and scrolling. It manages submission state to prevent
+double execution.
 
-## Uso
+## Usage
 
-Usar para borrar, desconectar, resetear o acciones con impacto. No usar para toggles simples o comandos de voz confirmados por su política.
+Use for delete, disconnect, reset, or impact-bearing actions. Do not use it for
+simple toggles or voice commands already confirmed by their policy.
 
-## Estados y aceptación
+## States and Acceptance
 
-La acción se bloquea durante envío; cancelar y cerrar no ejecutan la intención; las etiquetas se traducen en el consumidor. Mientras se envía no se puede cerrar mediante Escape, backdrop ni botón de cierre.
+The action is blocked during submission; cancel and close do not execute the
+intent; labels are translated by the consumer. While submitting, Escape,
+backdrop, and the close button cannot close the modal.

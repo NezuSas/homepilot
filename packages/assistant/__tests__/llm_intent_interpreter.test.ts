@@ -20,6 +20,7 @@ describe('LlmIntentInterpreter', () => {
   let interpreter: LlmIntentInterpreter;
 
   beforeEach(() => {
+    jest.spyOn(console, 'warn').mockImplementation(() => undefined);
     mockOllama = createMockOllamaClient();
     mockContextBuilder = createMockAssistantContextBuilder();
     mockContextBuilder.build.mockResolvedValue('{}');
@@ -124,5 +125,61 @@ describe('LlmIntentInterpreter', () => {
       expect(prompt).toContain('{"actions":[{"type":"set_state","target":{"type":"device","name":"Luz"},"command":"turn_off"}]}');
       expect(prompt).toContain('mockHomeMap');
     });
+  });
+  it.each([
+    [null],
+    ['not-an-object'],
+    [{ type: 'scene' }],
+    [{ type: 'command', deviceId: 'device-1' }],
+    [{ type: 'command', command: 'turn_on' }],
+    [{ type: 'unrecognized' }],
+  ])('returns null for malformed or incomplete LLM output %p', async (output) => {
+    mockOllama.generateJson.mockResolvedValue(output);
+
+    await expect(interpreter.interpret('test')).resolves.toBeNull();
+  });
+
+  it('normalizes invalid command params and uses the default unknown reason', async () => {
+    mockOllama.generateJson.mockResolvedValueOnce({ type: 'command', deviceId: 'd1', command: 'turn_off', params: ['invalid'] });
+    mockDeviceRepo.findDeviceById.mockResolvedValue(createTestDevice({ id: 'd1' }));
+    await expect(interpreter.interpret('turn off')).resolves.toEqual(expect.objectContaining({ params: {} }));
+
+    mockOllama.generateJson.mockResolvedValueOnce({ type: 'unknown' });
+    await expect(interpreter.interpret('something')).resolves.toEqual(expect.objectContaining({
+      reason: 'LLM could not interpret the command'
+    }));
+  });
+
+  it('builds full and light Planner V2 maps, returns metadata on invalid LLM output, and contains context errors', async () => {
+    mockContextBuilder.buildLlmHomeMap = jest.fn().mockResolvedValue(JSON.stringify({ devices: [{ id: 'd1' }] }));
+    mockContextBuilder.buildLightLlmHomeMap = jest.fn().mockResolvedValue(JSON.stringify({ devices: [{ id: 'd1' }, { id: 'd2' }] }));
+    mockOllama.generateJson.mockResolvedValueOnce(null).mockResolvedValueOnce({ actions: [] });
+
+    const full = await interpreter.interpretV2('turn on', 'user-1');
+    const light = await interpreter.interpretV2('turn on', 'user-1', { promptMode: 'light', timeoutMs: 200, model: 'tiny' });
+
+    expect(full.plan).toBeNull();
+    expect(full.error?.message).toBe('LLM returned empty or invalid object');
+    expect(full.metadata.devicesCount).toBe(1);
+    expect(light.plan).toEqual({ actions: [] });
+    expect(light.metadata.devicesCount).toBe(2);
+    expect(mockOllama.generateJson).toHaveBeenLastCalledWith(expect.any(String), expect.objectContaining({ timeoutMs: 200, model: 'tiny' }));
+
+    mockContextBuilder.buildLlmHomeMap = jest.fn().mockRejectedValueOnce(new Error('context unavailable'));
+    await expect(interpreter.interpretV2('turn on', 'user-1')).resolves.toEqual(expect.objectContaining({
+      plan: null, metadata: { promptChars: 0, devicesCount: 0 }, error: expect.objectContaining({ message: 'context unavailable' })
+    }));
+  });
+
+  it('preserves Planner V2 metadata when Ollama rejects', async () => {
+    mockContextBuilder.buildLlmHomeMap = jest.fn().mockResolvedValue(JSON.stringify({ devices: [] }));
+    mockOllama.generateJson.mockRejectedValue(new Error('timeout'));
+
+    const result = await interpreter.interpretV2('turn on', 'user-1');
+
+    expect(result.plan).toBeNull();
+    expect(result.metadata.promptChars).toBeGreaterThan(0);
+    expect(result.metadata.devicesCount).toBe(0);
+    expect(result.error?.message).toBe('timeout');
   });
 });

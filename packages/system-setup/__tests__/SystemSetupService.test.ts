@@ -16,7 +16,7 @@ const uninitializedState: SystemSetupState = {
   updatedAt: '2026-08-11T00:00:00.000Z',
 };
 
-function createService(options: { initialized?: boolean; profile?: 'bridge_ha' | 'native_only'; reachable?: boolean } = {}) {
+function createService(options: { initialized?: boolean; profile?: 'bridge_ha' | 'native_only'; reachable?: boolean; authFailure?: boolean; missingSettings?: boolean } = {}) {
   const state: SystemSetupState = { ...uninitializedState, isInitialized: options.initialized ?? false };
   const setupRepository = {
     getSetupState: jest.fn().mockResolvedValue(state),
@@ -25,13 +25,13 @@ function createService(options: { initialized?: boolean; profile?: 'bridge_ha' |
   const userRepository = { count: jest.fn().mockResolvedValue(1) } as jest.Mocked<SystemSetupUserRepository>;
   const homeRepository = { saveHome: jest.fn().mockResolvedValue(undefined) } as unknown as jest.Mocked<HomeRepository>;
   const settingsRepository = {
-    getSettings: jest.fn().mockResolvedValue({ baseUrl: 'http://homeassistant.local', accessToken: 'secret' }),
+    getSettings: jest.fn().mockResolvedValue(options.missingSettings ? null : { baseUrl: 'http://homeassistant.local', accessToken: 'secret' }),
   } as unknown as jest.Mocked<SettingsRepository>;
   const homeAssistantSettingsService = {
     getStatus: jest.fn().mockResolvedValue({
       activeSource: 'database', hasToken: true, connectivityStatus: options.reachable === false ? 'unreachable' : 'reachable',
     }),
-    testConnection: jest.fn().mockResolvedValue({ success: options.reachable !== false, status: options.reachable === false ? 'unreachable' : 'reachable' }),
+    testConnection: jest.fn().mockResolvedValue({ success: options.reachable !== false && !options.authFailure, status: options.authFailure ? 'auth_error' : options.reachable === false ? 'unreachable' : 'reachable' }),
   } as unknown as jest.Mocked<HomeAssistantSettingsService>;
   const activityLogRepository = { saveActivity: jest.fn().mockResolvedValue(undefined) } as unknown as jest.Mocked<ActivityLogRepository>;
   const service = new SystemSetupService(
@@ -74,6 +74,25 @@ describe('Feature: first-run setup', () => {
     expect(activityLogRepository.saveActivity).toHaveBeenLastCalledWith(expect.objectContaining({ type: 'ONBOARDING_COMPLETED' }));
   });
 
+  it('Scenario: Given missing Home Assistant settings When onboarding completes Then it rejects before changing setup state', async () => {
+    const { service, setupRepository, homeRepository, homeAssistantSettingsService } = createService({ missingSettings: true });
+
+    await expect(service.completeOnboarding('admin-1')).rejects.toThrow('NO_CONFIG');
+
+    expect(homeAssistantSettingsService.testConnection).not.toHaveBeenCalled();
+    expect(setupRepository.markAsInitialized).not.toHaveBeenCalled();
+    expect(homeRepository.saveHome).not.toHaveBeenCalled();
+  });
+
+  it('Scenario: Given invalid Home Assistant credentials When onboarding completes Then it reports authentication failure without provisioning a home', async () => {
+    const { service, setupRepository, homeRepository, homeAssistantSettingsService } = createService({ authFailure: true });
+
+    await expect(service.completeOnboarding('admin-1')).rejects.toThrow('AUTH_ERROR');
+
+    expect(homeAssistantSettingsService.testConnection).toHaveBeenCalled();
+    expect(setupRepository.markAsInitialized).not.toHaveBeenCalled();
+    expect(homeRepository.saveHome).not.toHaveBeenCalled();
+  });
   it('Scenario: Given an initialized appliance When onboarding completion is retried Then it is idempotent and skips external validation', async () => {
     const { service, setupRepository, homeRepository, homeAssistantSettingsService, activityLogRepository } = createService({ initialized: true });
 

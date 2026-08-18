@@ -56,4 +56,39 @@ describe('Devices: State Infrastructure (ActivityLog)', () => {
     const history = await repository.findRecentByDeviceId('non-existent', 10);
     expect(history).toEqual([]);
   });
+  it('returns a frozen global history and filters records by type and timestamp', async () => {
+    await repository.saveActivity({ timestamp: '2026-03-29T09:00:00Z', deviceId: 'dev-1', type: 'STATE_CHANGED', description: 'Older state', data: { value: 1 } });
+    await repository.saveActivity({ timestamp: '2026-03-29T10:00:00Z', deviceId: 'dev-2', type: 'COMMAND_DISPATCHED', description: 'Command', data: { value: 2 } });
+    await repository.saveActivity({ timestamp: '2026-03-29T11:00:00Z', deviceId: 'dev-3', type: 'STATE_CHANGED', description: 'Newer state', data: { value: 3 } });
+
+    const all = await repository.findAllRecent(2);
+    const filtered = await repository.findAllByTypes(['STATE_CHANGED'], '2026-03-29T10:00:00Z');
+
+    expect(all.map(record => record.description)).toEqual(['Newer state', 'Command']);
+    expect(Object.isFrozen(all)).toBe(true);
+    expect(filtered.map(record => record.description)).toEqual(['Newer state']);
+    expect(Object.isFrozen(filtered)).toBe(true);
+  });
+
+  it('stores immutable snapshots and can clear all records', async () => {
+    const data = { level: 20 };
+    const record: ActivityRecord = {
+      timestamp: '2026-03-29T12:00:00Z',
+      deviceId: 'dev-immutable',
+      type: 'STATE_CHANGED',
+      description: 'Immutable update',
+      data
+    };
+
+    await repository.saveActivity(record);
+    data.level = 99;
+    const [saved] = await repository.findAllRecent(1);
+
+    expect(saved.data).toEqual({ level: 20 });
+    expect(Object.isFrozen(saved)).toBe(true);
+    expect(Object.isFrozen(saved.data)).toBe(true);
+
+    repository.clear();
+    await expect(repository.findAllRecent(10)).resolves.toEqual([]);
+  });
 });

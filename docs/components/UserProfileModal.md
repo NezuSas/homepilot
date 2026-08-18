@@ -1,20 +1,26 @@
 # UserProfileModal
 
-**Fuente:** `apps/operator-console/src/components/UserProfileModal.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/UserProfileModal.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Permitir que una persona actualice su nombre visible y avatar local sin duplicar la infraestructura visual o accesible de los diálogos de la consola.
+Lets a person update visible name and local avatar without duplicating console
+dialog visual or accessibility infrastructure.
 
-## Contrato
+## Contract
 
-Recibe el usuario autenticado, `onClose` y `onSaved`. Usa `Modal` para portal, foco, Escape, ciclo de Tab, scroll y pie responsive. El componente administra de forma local la carga, recorte, zoom y persistencia del avatar.
+Receives authenticated user, `onClose`, and `onSaved`. It uses `Modal` for
+portal, focus, Escape, Tab cycle, scrolling, and responsive footer. The
+component locally manages avatar loading, crop, zoom, and persistence.
 
-## Uso
+## Usage
 
-Se abre desde el perfil de sesión. No crea stores globales ni modifica permisos. Los textos visibles y etiquetas accesibles proceden de i18n ES/EN.
+Open from the session profile. It creates no global store and modifies no
+permissions. Visible text and accessible labels come from ES/EN i18n.
 
-## Estados y aceptación
+## States and Acceptance
 
-Conserva el perfil cargado mientras se edita, presenta carga localizada y bloquea cierre o doble guardado durante persistencia. El recorte mantiene control táctil, zoom accesible y acciones visibles dentro del viewport.
+Keeps the loaded profile while editing, presents localized loading, and blocks
+close or double save during persistence. Crop retains touch control, accessible
+zoom, and actions visible within the viewport.

@@ -181,6 +181,27 @@ describe('SQLite Devices Persistence Integration', () => {
     });
   });
 
+  describe('DeviceRepository additional query and state contracts', () => {
+    it('filters home and prefix queries, returns missing identifiers, and maps invalid JSON state safely', async () => {
+      db.exec("INSERT INTO homes (id, owner_id, name) VALUES ('home-2', 'user-2', 'Casa Dos')");
+      await deviceRepo.saveDevice({ id: 'dev-prefix', homeId: 'home-2', roomId: null, externalId: 'ha:switch.prefix', name: 'Prefix', type: 'switch', vendor: 'HA', status: 'ASSIGNED', integrationSource: 'ha', invertState: true, lastKnownState: null, entityVersion: 1, createdAt: '2026-04-02T00:00:00Z', updatedAt: '' });
+      db.prepare('UPDATE devices SET last_known_state = ? WHERE id = ?').run('{not-json', 'dev-prefix');
+
+      await expect(deviceRepo.findAllByHomeId('home-2')).resolves.toEqual([expect.objectContaining({ id: 'dev-prefix', invertState: true, lastKnownState: null })]);
+      await expect(deviceRepo.findAllExternalIdsByPrefix('ha:')).resolves.toContain('ha:switch.prefix');
+      await expect(deviceRepo.findByExternalId('ha:switch.prefix')).resolves.toEqual(expect.objectContaining({ id: 'dev-prefix' }));
+      await expect(deviceRepo.findByExternalId('missing')).resolves.toBeNull();
+      await expect(deviceRepo.findByExternalIdAndHomeId('ha:switch.prefix', 'home-1')).resolves.toBeNull();
+    });
+
+    it('deletes existing or missing devices silently and exposes deterministic status ordering', async () => {
+      const ordered = await deviceRepo.findAllOrderedByStatus();
+      expect(ordered.every(device => device.status === 'PENDING' || device.status === 'ASSIGNED')).toBe(true);
+      await deviceRepo.deleteDevice('dev-prefix');
+      await deviceRepo.deleteDevice('missing');
+      await expect(deviceRepo.findDeviceById('dev-prefix')).resolves.toBeNull();
+    });
+  });
   describe('AutomationRuleRepository', () => {
     const rule: AutomationRule = {
       id: 'rule-1',
@@ -210,6 +231,63 @@ describe('SQLite Devices Persistence Integration', () => {
 
       const rulesAfter = await ruleRepo.findByTriggerDevice('dev-1');
       expect(rulesAfter).toHaveLength(0);
+    });
+
+    it('maps legacy and incomplete time payloads while preserving home and global queries', async () => {
+      db.prepare(`
+        INSERT INTO automation_rules (id, home_id, user_id, name, enabled, trigger, action, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        'rule-legacy',
+        'home-1',
+        'user-1',
+        'Legacy',
+        1,
+        JSON.stringify({ deviceId: 'legacy-sensor', stateKey: 'state', expectedValue: 'on' }),
+        JSON.stringify({ targetDeviceId: 'legacy-light', command: 'turn_on' }),
+        '2026-08-17T00:00:00.000Z',
+      );
+      db.prepare(`
+        INSERT INTO automation_rules (id, home_id, user_id, name, enabled, trigger, action, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        'rule-legacy-time',
+        'home-1',
+        'user-1',
+        'Legacy time',
+        0,
+        JSON.stringify({ type: 'time', time: '14:15' }),
+        JSON.stringify({ type: 'execute_scene', sceneId: 'scene-1' }),
+        '2026-08-17T00:01:00.000Z',
+      );
+
+      const legacy = await ruleRepo.findById('rule-legacy');
+      const legacyTime = await ruleRepo.findById('rule-legacy-time');
+      const allForHome = await ruleRepo.findByHomeId('home-1');
+      const all = await ruleRepo.findAll();
+
+      expect(legacy).toEqual(expect.objectContaining({
+        trigger: expect.objectContaining({ type: 'device_state_changed', deviceId: 'legacy-sensor' }),
+        action: expect.objectContaining({ type: 'device_command', targetDeviceId: 'legacy-light' }),
+      }));
+      expect(legacyTime?.trigger).toEqual(expect.objectContaining({ type: 'time', timeLocal: '14:15', timezone: 'UTC', timeUTC: expect.any(String) }));
+      expect(allForHome.map(item => item.id)).toEqual(expect.arrayContaining(['rule-legacy', 'rule-legacy-time']));
+      expect(all.map(item => item.id)).toEqual(expect.arrayContaining(['rule-legacy', 'rule-legacy-time']));
+      await expect(ruleRepo.findById('missing-rule')).resolves.toBeNull();
+    });
+
+    it('rejects malformed persisted trigger or action payloads instead of silently changing the rule', async () => {
+      db.prepare(`
+        INSERT INTO automation_rules (id, home_id, user_id, name, enabled, trigger, action, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run('rule-malformed-trigger', 'home-1', 'user-1', 'Broken trigger', 1, '{bad-json', JSON.stringify({ type: 'execute_scene', sceneId: 'scene-1' }), '2026-08-17T00:02:00.000Z');
+      db.prepare(`
+        INSERT INTO automation_rules (id, home_id, user_id, name, enabled, trigger, action, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run('rule-malformed-action', 'home-1', 'user-1', 'Broken action', 1, JSON.stringify({ type: 'time', timeLocal: '12:00', timeUTC: '12:00', timezone: 'UTC' }), '{bad-json', '2026-08-17T00:03:00.000Z');
+
+      await expect(ruleRepo.findById('rule-malformed-trigger')).rejects.toThrow('deserialización del trigger JSON');
+      await expect(ruleRepo.findById('rule-malformed-action')).rejects.toThrow('deserialización de action JSON');
     });
 
     it('delete elimina la regla silenciosamente del sistema', async () => {
@@ -249,6 +327,18 @@ describe('SQLite Devices Persistence Integration', () => {
       
       // Valida integridad en serialización JSON
       expect(recent[0].data).toEqual({ source: 'auto_sys' });
+    });
+    it('filters by type and time, handles empty filters, preserves correlation IDs, and safely maps malformed data', async () => {
+      await logRepo.saveActivity({ timestamp: '2026-04-01T13:00:00Z', deviceId: 'dev-2', type: 'COMMAND_FAILED', description: 'Failure', data: {}, correlationId: 'corr-1' });
+      db.prepare('INSERT INTO activity_logs (device_id, type, description, data, timestamp, correlation_id) VALUES (?, ?, ?, ?, ?, ?)').run('dev-3', 'STATE_CHANGED', 'Malformed', '{bad-json', '2026-04-01T14:00:00Z', null);
+
+      await expect(logRepo.findAllByTypes([], '2026-04-01T00:00:00Z')).resolves.toEqual([]);
+      await expect(logRepo.findAllByTypes(['COMMAND_FAILED'], '2026-04-01T12:30:00Z')).resolves.toEqual([
+        expect.objectContaining({ description: 'Failure', correlationId: 'corr-1', data: {} })
+      ]);
+      await expect(logRepo.findAllRecent(1)).resolves.toEqual([
+        expect.objectContaining({ description: 'Malformed', data: {} })
+      ]);
     });
   });
 });

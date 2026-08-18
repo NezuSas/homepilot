@@ -101,4 +101,104 @@ describe('Feature: System variables', () => {
     await expect(service.delete(variable.id)).resolves.toBe(true);
     await expect(service.get('global', null, 'temporary')).resolves.toBeNull();
   });
+  it('Scenario: Given service operations When listing, deleting and purging Then repository results are preserved', async () => {
+    const service = createService();
+    const first = await service.set({ scope: 'global', name: 'first', value: 'one', valueType: 'string', description: 'Description', ttlSeconds: 10 });
+    await service.set({ scope: 'home', homeId: 'home-a', name: 'second', value: 'two', valueType: 'string' });
+
+    await expect(service.getById(first.id)).resolves.toEqual(expect.objectContaining({ description: 'Description', ttlSeconds: 10 }));
+    await expect(service.list({ scope: 'global' })).resolves.toHaveLength(1);
+    await expect(service.list({ homeId: 'home-a' })).resolves.toHaveLength(1);
+    await expect(service.delete('missing')).resolves.toBe(false);
+    await expect(service.purgeExpired()).resolves.toBe(0);
+  });
+
+  it('Scenario: Given malformed names or absent values When setting Then no repository mutation is attempted', async () => {
+    const service = createService();
+    await expect(service.set({ scope: 'global', name: '', value: 'value', valueType: 'string' })).rejects.toThrow('INVALID_VARIABLE_NAME');
+    await expect(service.set({ scope: 'global', name: 'x'.repeat(129), value: 'value', valueType: 'string' })).rejects.toThrow('VARIABLE_NAME_TOO_LONG');
+    await expect(service.set({ scope: 'global', name: 'value', value: undefined as never, valueType: 'string' })).rejects.toThrow('INVALID_VARIABLE_VALUE');
+  });
+
+  it('Scenario: Given no stored timezone When runtime TZ is configured Then it is returned before environment detection', async () => {
+    const service = createService();
+    const previousTimezone = process.env.TZ;
+    process.env.TZ = 'America/Lima';
+    try {
+      await expect(service.getSystemTimezone()).resolves.toBe('America/Lima');
+    } finally {
+      if (previousTimezone === undefined) delete process.env.TZ;
+      else process.env.TZ = previousTimezone;
+    }
+  });
+});
+describe('SystemVariableService timezone fallback contract', () => {
+  const clearRuntimeTimezone = () => {
+    const previousTimezone = process.env.TZ;
+    delete process.env.TZ;
+    return () => {
+      if (previousTimezone === undefined) delete process.env.TZ;
+      else process.env.TZ = previousTimezone;
+    };
+  };
+
+  it('uses the detected non-UTC timezone when no persisted or environment timezone is available', async () => {
+    const restoreTimezone = clearRuntimeTimezone();
+    const dateTimeFormatSpy = jest.spyOn(Intl, 'DateTimeFormat').mockImplementation(() => ({
+      resolvedOptions: () => ({ timeZone: 'America/Bogota' }),
+    }) as never);
+
+    try {
+      await expect(new SystemVariableService(createRepository(), { generate: () => 'generated-id' }).getSystemTimezone())
+        .resolves.toBe('America/Bogota');
+    } finally {
+      dateTimeFormatSpy.mockRestore();
+      restoreTimezone();
+    }
+  });
+
+  it('uses the product fallback when timezone detection is unavailable', async () => {
+    const restoreTimezone = clearRuntimeTimezone();
+    const dateTimeFormatSpy = jest.spyOn(Intl, 'DateTimeFormat').mockImplementation(() => {
+      throw new Error('timezone unavailable');
+    });
+
+    try {
+      await expect(new SystemVariableService(createRepository(), { generate: () => 'generated-id' }).getSystemTimezone())
+        .resolves.toBe('America/Guayaquil');
+    } finally {
+      dateTimeFormatSpy.mockRestore();
+      restoreTimezone();
+    }
+  });
+});
+describe('SystemVariableService UTC fallback contract', () => {
+  it('uses the product fallback when runtime detection only yields UTC', async () => {
+    const previousTimezone = process.env.TZ;
+    delete process.env.TZ;
+    const dateTimeFormatSpy = jest.spyOn(Intl, 'DateTimeFormat').mockImplementation(() => ({
+      resolvedOptions: () => ({ timeZone: 'UTC' }),
+    }) as never);
+
+    try {
+      await expect(new SystemVariableService(createRepository(), { generate: () => 'generated-id' }).getSystemTimezone())
+        .resolves.toBe('America/Guayaquil');
+    } finally {
+      dateTimeFormatSpy.mockRestore();
+      if (previousTimezone === undefined) delete process.env.TZ;
+      else process.env.TZ = previousTimezone;
+    }
+  });
+});
+describe('SystemVariableService direct lookup contract', () => {
+  it('Scenario: Given a stored scoped variable When it is requested through the public get facade Then the exact repository value is returned', async () => {
+    const stored = { id: 'variable-1', scope: 'home' as const, homeId: 'home-1', name: 'night_mode', value: 'true', valueType: 'boolean' as const, description: null, ttlSeconds: null, expiresAt: null, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' };
+    const repository = {
+      findByKey: jest.fn().mockResolvedValue(stored),
+    };
+    const service = new SystemVariableService(repository as never, { generate: () => 'generated-id' });
+
+    await expect(service.get('home', 'home-1', 'night_mode')).resolves.toBe(stored);
+    expect(repository.findByKey).toHaveBeenCalledWith('home', 'home-1', 'night_mode');
+  });
 });

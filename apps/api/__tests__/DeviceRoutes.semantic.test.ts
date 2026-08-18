@@ -116,6 +116,14 @@ describe('DeviceRoutes - Semantic Classification', () => {
     );
   };
 
+  it('stops before device access when authentication is rejected', async () => {
+    mockAuthGuard.protect.mockResolvedValueOnce(false);
+
+    await expect(runRoute({ semanticType: 'light' })).resolves.toBe(true);
+
+    expect(mockDeviceRepository.findDeviceById).not.toHaveBeenCalled();
+    expect(mockRes.writeHead).not.toHaveBeenCalled();
+  });
   it('rejects missing semanticType key with 400', async () => {
     await runRoute({});
     expect(mockRes.writeHead).toHaveBeenCalledWith(400, expect.any(Object));
@@ -179,5 +187,79 @@ describe('DeviceRoutes - Semantic Classification', () => {
     await runRoute({ semanticType: 'light' });
     expect(mockRes.writeHead).toHaveBeenCalledWith(404, expect.any(Object));
   });
-});
+  it('preserves a device unchanged when its patch contains no effective change', async () => {
+    const device = {
+      id: 'dev-1', homeId: 'home-1', roomId: null, externalId: 'ha:light.sala', name: 'Sala', type: 'light',
+      vendor: 'Home Assistant', status: 'ASSIGNED', integrationSource: 'ha', invertState: false,
+      lastKnownState: { state: 'off' }, entityVersion: 3, createdAt: '', updatedAt: '',
+    } as Device;
+    mockDeviceRepository.findDeviceById.mockResolvedValue(device);
+    const response = { writeHead: jest.fn().mockReturnThis(), end: jest.fn(), setHeader: jest.fn() };
+    mockReq._fastifyParsedBody = JSON.stringify({});
 
+    await routes.handle(mockReq as HomePilotRequest, response as unknown as http.ServerResponse, '/api/v1/devices/dev-1', 'PATCH', mockContainer as BootstrapContainer);
+
+    expect(mockDeviceRepository.saveDevice).not.toHaveBeenCalled();
+    expect(response.writeHead).toHaveBeenCalledWith(200, expect.any(Object));
+    expect(response.end).toHaveBeenCalledWith(expect.stringContaining('"entityVersion":3'));
+  });
+
+  it('persists an authorized device name and invert-state update atomically', async () => {
+    const device = {
+      id: 'dev-1', homeId: 'home-1', roomId: null, externalId: 'ha:light.sala', name: 'Sala', type: 'light',
+      vendor: 'Home Assistant', status: 'ASSIGNED', integrationSource: 'ha', invertState: false,
+      lastKnownState: { state: 'off' }, entityVersion: 3, createdAt: '', updatedAt: '2026-08-01T00:00:00.000Z',
+    } as Device;
+    mockDeviceRepository.findDeviceById.mockResolvedValue(device);
+    const response = { writeHead: jest.fn().mockReturnThis(), end: jest.fn(), setHeader: jest.fn() };
+    mockReq._fastifyParsedBody = JSON.stringify({ name: ' Luz principal ', invertState: true });
+
+    await routes.handle(mockReq as HomePilotRequest, response as unknown as http.ServerResponse, '/api/v1/devices/dev-1', 'PATCH', mockContainer as BootstrapContainer);
+
+    expect(mockDeviceRepository.saveDevice).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'dev-1', name: 'Luz principal', invertState: true, entityVersion: 4,
+    }));
+    expect(response.writeHead).toHaveBeenCalledWith(200, expect.any(Object));
+  });
+
+  it('does not expose or change a device that belongs to another home', async () => {
+    const device = {
+      id: 'dev-1', homeId: 'foreign-home', roomId: null, externalId: 'ha:light.sala', name: 'Sala', type: 'light',
+      vendor: 'Home Assistant', status: 'ASSIGNED', integrationSource: 'ha', invertState: false,
+      lastKnownState: null, entityVersion: 1, createdAt: '', updatedAt: '',
+    } as Device;
+    mockDeviceRepository.findDeviceById.mockResolvedValue(device);
+    const response = { writeHead: jest.fn().mockReturnThis(), end: jest.fn(), setHeader: jest.fn() };
+    mockReq._fastifyParsedBody = JSON.stringify({ name: 'No permitido' });
+
+    await routes.handle(mockReq as HomePilotRequest, response as unknown as http.ServerResponse, '/api/v1/devices/dev-1', 'PATCH', mockContainer as BootstrapContainer);
+
+    expect(mockDeviceRepository.saveDevice).not.toHaveBeenCalled();
+    expect(response.writeHead).toHaveBeenCalledWith(403, expect.any(Object));
+    expect(response.end).toHaveBeenCalledWith(expect.stringContaining('FORBIDDEN'));
+  });
+  it('lists enriched devices, individual detail and recent activity for an authenticated user', async () => {
+    const device = {
+      id: 'dev-1', homeId: 'home-1', roomId: null, externalId: 'ha:light.sala', name: 'Sala', type: 'light',
+      vendor: 'Home Assistant', status: 'ASSIGNED', integrationSource: 'home-assistant', invertState: false,
+      lastKnownState: { state: 'on' }, entityVersion: 1, createdAt: '', updatedAt: '',
+    } as Device;
+    mockDeviceRepository.findAllOrderedByStatus.mockResolvedValue([device]);
+    mockDeviceRepository.findDeviceById.mockResolvedValue(device);
+    (mockContainer.repositories as any).activityLogRepository = {
+      findRecentByDeviceId: jest.fn().mockResolvedValue([{ id: 'log-1' }]),
+      findAllRecent: jest.fn().mockResolvedValue([{ id: 'log-2' }]),
+    };
+    const listResponse = { writeHead: jest.fn().mockReturnThis(), end: jest.fn(), setHeader: jest.fn() };
+    const detailResponse = { writeHead: jest.fn().mockReturnThis(), end: jest.fn(), setHeader: jest.fn() };
+    const activityResponse = { writeHead: jest.fn().mockReturnThis(), end: jest.fn(), setHeader: jest.fn() };
+
+    await routes.handle(mockReq as HomePilotRequest, listResponse as any, '/api/v1/devices', 'GET', mockContainer as BootstrapContainer);
+    await routes.handle(mockReq as HomePilotRequest, detailResponse as any, '/api/v1/devices/dev-1', 'GET', mockContainer as BootstrapContainer);
+    await routes.handle(mockReq as HomePilotRequest, activityResponse as any, '/api/v1/devices/dev-1/activity-logs', 'GET', mockContainer as BootstrapContainer);
+
+    expect(listResponse.end).toHaveBeenCalledWith(expect.stringContaining('"dev-1"'));
+    expect(detailResponse.end).toHaveBeenCalledWith(expect.stringContaining('"profile"'));
+    expect(activityResponse.end).toHaveBeenCalledWith(expect.stringContaining('"log-1"'));
+  });
+});

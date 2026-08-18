@@ -1,20 +1,26 @@
 # SegmentedControl
 
-**Fuente:** `apps/operator-console/src/components/ui/SegmentedControl.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/ui/SegmentedControl.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Alterna una selección exclusiva entre un conjunto pequeño de opciones relacionadas.
+Toggles an exclusive selection among a small set of related options.
 
-## Contrato
+## Contract
 
-Recibe opciones, valor activo y callback. Las opciones deben ser estables y ya validadas por la vista.
+Receives options, active value, and callback. Options must be stable and
+already validated by the view.
 
-## Uso
+## Usage
 
-Usar para filtros o modos mutuamente excluyentes; usar `Select` si hay muchas opciones o etiquetas largas.
+Use for mutually exclusive filters or modes; use `Select` for many options or
+long labels.
 
-## Estados y aceptación
+## States and Acceptance
 
-Activo, inactivo, disabled y foco conservan tamaño coherente. El grupo usa `radiogroup` y cada opción expone `role="radio"` con `aria-checked`; las flechas, Inicio y Fin recorren únicamente las opciones disponibles. Las etiquetas no se truncan: cada opción puede crecer verticalmente o pasar a una nueva fila cuando el ancho disponible no permite mostrar su texto completo.
+Active, inactive, disabled, and focus retain consistent sizing. The group uses
+`radiogroup` and each option exposes `role="radio"` with `aria-checked`; Arrow,
+Home, and End keys move only across available options. Labels do not truncate:
+each option can grow vertically or flow to a new row when available width cannot
+show complete text.

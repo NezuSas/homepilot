@@ -5,11 +5,13 @@ import { PLANNER_V2_SCHEMA, AssistantPlanV2 } from '../application/ports/Assista
 import { 
   createMockDeviceRepository, 
   createMockRoomRepository, 
-  createMockSceneRepository, 
+  createMockSceneRepository,
+  createMockHomeRepository,
   createMockAssistantMemory,
   createTestDevice,
   createTestRoom,
-  createTestScene
+  createTestScene,
+  createTestHome
 } from './test_helpers';
 
 describe('Assistant Planner V2 Foundation', () => {
@@ -142,6 +144,20 @@ describe('Assistant Planner V2 Foundation', () => {
     });
   });
 
+    it('should reject malformed confidence, targets and action parameters', () => {
+      const validator = new PlannerV2Validator();
+      const invalidPlans = [
+        { type: 'plan', plan_confidence: 2, actions: [], user_feedback_draft: 'x' },
+        { type: 'plan', plan_confidence: 0.5, actions: [{ type: 'set_state', command: 'turn_on', confidence: 0.5 }], user_feedback_draft: 'x' },
+        { type: 'plan', plan_confidence: 0.5, actions: [{ type: 'set_state', target: { type: 'device', name: 'Luz' }, command: 'turn_on', confidence: 0.5, params: { brightness: 101 } }], user_feedback_draft: 'x' },
+        { type: 'plan', plan_confidence: 0.5, actions: [{ type: 'set_state', target: { type: 'device', name: 'Luz' }, command: 'turn_on', confidence: 0.5, params: { position: -1 } }], user_feedback_draft: 'x' },
+      ];
+
+      expect(validator.validate(invalidPlans[0])).toContain('plan_confidence');
+      expect(validator.validate(invalidPlans[1])).toContain('Action target is missing');
+      expect(validator.validate(invalidPlans[2])).toContain('Brightness');
+      expect(validator.validate(invalidPlans[3])).toContain('Position');
+    });
   describe('AssistantContextBuilder - Zero-ID Leakage', () => {
     it('should build a home map without exposing internal IDs', async () => {
       const deviceRepo = createMockDeviceRepository({
@@ -357,5 +373,93 @@ describe('Assistant Planner V2 Foundation', () => {
         expect(result.type).toBe('none');
       });
     });
+  });
+});
+
+
+describe('PlannerV2Resolver home isolation', () => {
+  it('does not resolve devices from global repositories when the user has no authorized homes', async () => {
+    const deviceRepo = createMockDeviceRepository({
+      findAll: jest.fn(),
+      findAllByHomeId: jest.fn(),
+    });
+    const roomRepo = createMockRoomRepository({ findAll: jest.fn(), findRoomsByHomeId: jest.fn() });
+    const sceneRepo = createMockSceneRepository({ findAll: jest.fn(), findScenesByHomeId: jest.fn() });
+    const memory = createMockAssistantMemory();
+    const homeRepo = { findHomesByUserId: jest.fn().mockResolvedValue([]) };
+    const resolver = new PlannerV2Resolver(deviceRepo, roomRepo, sceneRepo, memory, homeRepo as never);
+
+    await expect(resolver.resolve({ type: 'device', name: 'Luz privada' }, 'user-without-home')).resolves.toEqual({ type: 'none' });
+    expect(deviceRepo.findAll).not.toHaveBeenCalled();
+    expect(deviceRepo.findAllByHomeId).not.toHaveBeenCalled();
+  });
+});
+describe('PlannerV2Resolver remaining target contracts', () => {
+  function createResolver() {
+    const deviceRepo = createMockDeviceRepository({
+      findAll: jest.fn().mockResolvedValue([
+        createTestDevice({ id: 'switch-1', name: 'Interruptor Sala', type: 'switch' }),
+        createTestDevice({ id: 'light-1', name: 'Luz Sala', type: 'light' }),
+      ]),
+    });
+    const roomRepo = createMockRoomRepository({ findAll: jest.fn().mockResolvedValue([]) });
+    const sceneRepo = createMockSceneRepository({
+      findAll: jest.fn().mockResolvedValue([
+        createTestScene({ id: 'scene-1', name: 'Cine Sala' }),
+        createTestScene({ id: 'scene-2', name: 'Cine Patio' }),
+      ]),
+    });
+    const memory = createMockAssistantMemory({ getShortTermMemory: jest.fn().mockResolvedValue(null) });
+    return new PlannerV2Resolver(deviceRepo, roomRepo, sceneRepo, memory);
+  }
+
+  it('returns only physical switches for the switch category', async () => {
+    const result = await createResolver().resolve({ type: 'category', name: 'interruptores' }, 'user-1');
+    expect(result).toEqual({ type: 'category', deviceIds: ['switch-1'] });
+  });
+
+  it('does not select an ambiguous scene silently', async () => {
+    const result = await createResolver().resolve({ type: 'scene', name: 'cine' }, 'user-1');
+    expect(result).toEqual({ type: 'multiple', deviceIds: [] });
+  });
+
+  it('keeps unresolved context explicit when no short-term memory exists', async () => {
+    const result = await createResolver().resolve({ type: 'context_reference', name: 'eso', context_hint: 'it' }, 'user-1');
+    expect(result).toEqual({ type: 'none', contextSource: 'none' });
+  });
+});
+
+describe('PlannerV2Resolver authorized-home resolution', () => {
+  it('resolves rooms and scenes only from the caller home membership', async () => {
+    const homeRepo = createMockHomeRepository({
+      findHomesByUserId: jest.fn().mockResolvedValue([
+        createTestHome({ id: 'home-a', ownerId: 'user-a' }),
+        createTestHome({ id: 'home-b', ownerId: 'user-a' }),
+      ]),
+    });
+    const deviceRepo = createMockDeviceRepository({
+      findAllByHomeId: jest.fn((homeId: string) => Promise.resolve(
+        homeId === 'home-a' ? [createTestDevice({ id: 'device-a', name: 'Luz Sala', roomId: 'room-a', homeId })] : []
+      )),
+    });
+    const roomRepo = createMockRoomRepository({
+      findRoomsByHomeId: jest.fn((homeId: string) => Promise.resolve(
+        homeId === 'home-a' ? [createTestRoom({ id: 'room-a', name: 'Sala', homeId })] : []
+      )),
+    });
+    const sceneRepo = createMockSceneRepository({
+      findScenesByHomeId: jest.fn((homeId: string) => Promise.resolve(
+        homeId === 'home-b' ? [createTestScene({ id: 'scene-b', name: 'Cine', homeId })] : []
+      )),
+    });
+    const resolver = new PlannerV2Resolver(deviceRepo, roomRepo, sceneRepo, createMockAssistantMemory(), homeRepo);
+
+    await expect(resolver.resolve({ type: 'room', name: 'sala' }, 'user-a')).resolves.toEqual({ type: 'room', roomIds: ['room-a'], deviceIds: ['device-a'] });
+    await expect(resolver.resolve({ type: 'scene', name: 'cine' }, 'user-a')).resolves.toEqual({ type: 'single', sceneId: 'scene-b' });
+    await expect(resolver.resolve({ type: 'zone', name: 'no implementada' }, 'user-a')).resolves.toEqual({ type: 'none' });
+
+    expect(roomRepo.findRoomsByHomeId).toHaveBeenCalledWith('home-a');
+    expect(sceneRepo.findScenesByHomeId).toHaveBeenCalledWith('home-b');
+    expect(deviceRepo.findAll).not.toHaveBeenCalled();
   });
 });

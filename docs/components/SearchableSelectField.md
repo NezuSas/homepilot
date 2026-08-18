@@ -1,20 +1,32 @@
 # SearchableSelectField
 
-**Fuente:** `apps/operator-console/src/components/ui/SearchableSelectField.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/ui/SearchableSelectField.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Selector modular canónico para toda selección general de opciones. El buscador se presenta siempre, por lo que sustituye tanto los menús cortos como los selectores implementados dentro de vistas y widgets.
+Canonical modular selector for general option selection. Search is always
+present, so it replaces short menus and selectors implemented inside views and
+widgets.
 
-## Contrato
+## Contract
 
-Recibe `value`, opciones tipadas, callback, placeholder traducido y configuración explícita de búsqueda/posicionamiento. No conoce datos de dominio ni realiza llamadas de red.
+Receives `value`, typed options, callback, translated placeholder, and explicit
+search and positioning configuration. It knows no domain data and performs no
+network calls.
 
-## Uso
+## Usage
 
-Usar para dispositivos, escenas, habitaciones, tipos, zonas horarias y tamaños de tarjeta. No crear selectores portal ad hoc ni usar selects nativos para opciones de negocio. Los pickers especializados de iconos y audio permanecen separados porque resuelven catálogos y previsualizaciones propios.
+Use for devices, scenes, rooms, types, time zones, and card sizes. Do not
+create ad hoc portal selectors or native selects for business options.
+Specialized icon and audio pickers remain separate because they resolve their
+own catalogues and previews.
 
-## Estados y aceptación
+## States and Acceptance
 
-Soporta valor vacío, valor seleccionado, búsqueda, opción con descripción, lista vacía, disabled, foco visible, Escape y cierre al hacer clic fuera. Las flechas permiten entrar y recorrer las opciones; Inicio y Fin saltan a los extremos y el foco vuelve al trigger al confirmar o cerrar. El menú se mantiene dentro del viewport en móvil, tablet y escritorio; el trigger, búsqueda, etiqueta y ayuda pueden reducirse dentro de grids o filas flexibles sin desbordar.
+Supports empty value, selected value, search, described option, empty list,
+disabled state, visible focus, Escape, and outside click close. Arrow keys
+enter and navigate options; Home and End move to extremes; focus returns to
+the trigger on confirm or close. The menu stays in the viewport on mobile,
+tablet, and desktop; trigger, search, label, and help can shrink within grids
+or flexible rows without overflow.

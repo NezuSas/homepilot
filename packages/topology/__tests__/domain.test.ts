@@ -1,10 +1,11 @@
-import { 
-  createHome, 
-  createRoom, 
-  InvalidHomeNameError, 
-  InvalidUserIdError, 
-  InvalidRoomNameError, 
-  InvalidHomeIdError 
+import {
+  createHome,
+  createRoom,
+  InvalidHomeNameError,
+  InvalidUserIdError,
+  InvalidRoomNameError,
+  InvalidHomeIdError,
+  renameRoom
 } from '../domain';
 
 const mockDeps = {
@@ -45,6 +46,21 @@ describe('Topology Domain Layer', () => {
 
     it('debe colapsar obligatoriamente sin homeId asignado', () => {
       expect(() => createRoom('Sala', '', mockDeps)).toThrow(InvalidHomeIdError);
+    });
+  });
+  describe('renameRoom', () => {
+    it('normalizes the name, advances the version, and preserves the original room', () => {
+      const original = createRoom('Sala', 'home-abc', mockDeps);
+      const renamed = renameRoom(original, '  Sala principal  ', mockDeps.clock);
+
+      expect(renamed).toEqual(expect.objectContaining({ name: 'Sala principal', entityVersion: 2, updatedAt: mockDeps.clock.now() }));
+      expect(original.name).toBe('Sala');
+      expect(Object.isFrozen(renamed)).toBe(true);
+    });
+
+    it('rejects a whitespace-only room name', () => {
+      const room = createRoom('Sala', 'home-abc', mockDeps);
+      expect(() => renameRoom(room, '   ', mockDeps.clock)).toThrow(InvalidRoomNameError);
     });
   });
 });

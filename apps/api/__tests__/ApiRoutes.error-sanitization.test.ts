@@ -18,6 +18,10 @@ class TestApiRoutes extends ApiRoutes {
   exposeSendError(res: http.ServerResponse, status: number, code: string, internalMessage: string): void {
     this.sendError(res, status, code, internalMessage);
   }
+
+  exposeParseBody<T>(req: HomePilotRequest): Promise<T> { return this.parseBody<T>(req); }
+  exposeSendJson(res: http.ServerResponse, data: unknown, status?: number): void { this.sendJson(res, data, status); }
+  exposeErrorDetails(error: unknown): { name: string; message: string } { return this.getErrorDetails(error); }
 }
 
 const response = () => ({ writeHead: jest.fn().mockReturnThis(), end: jest.fn().mockReturnThis() }) as unknown as http.ServerResponse;
@@ -52,5 +56,32 @@ describe('Feature: Public API error sanitization', () => {
     expect(res.end).toHaveBeenCalledWith(
       expect.stringContaining('Los datos proporcionados no son válidos.')
     );
+  });
+  it('parses buffered Fastify payloads and rejects malformed JSON without reading the stream', async () => {
+    const request = { _fastifyParsedBody: '{"name":"HomePilot"}', on: jest.fn() } as unknown as HomePilotRequest;
+    await expect(routes.exposeParseBody<{ name: string }>(request)).resolves.toEqual({ name: 'HomePilot' });
+    await expect(routes.exposeParseBody({ _fastifyParsedBody: '{bad', on: jest.fn() } as unknown as HomePilotRequest)).rejects.toThrow('INVALID_JSON');
+    expect(request.on).not.toHaveBeenCalled();
+  });
+
+  it('parses stream payloads, serializes JSON responses, and normalizes non-Error failures', async () => {
+    const listeners: Record<string, (value?: Buffer) => void> = {};
+    const request = { on: jest.fn((event: string, callback: (value?: Buffer) => void) => { listeners[event] = callback; return request; }) } as unknown as HomePilotRequest;
+    const parsed = routes.exposeParseBody<{ enabled: boolean }>(request);
+    listeners.data(Buffer.from('{"enabled":true}'));
+    listeners.end();
+    await expect(parsed).resolves.toEqual({ enabled: true });
+    const invalidListeners: Record<string, (value?: Buffer) => void> = {};
+    const invalidRequest = { on: jest.fn((event: string, callback: (value?: Buffer) => void) => { invalidListeners[event] = callback; return invalidRequest; }) } as unknown as HomePilotRequest;
+    const invalid = routes.exposeParseBody(invalidRequest);
+    invalidListeners.data(Buffer.from('{invalid'));
+    invalidListeners.end();
+    await expect(invalid).rejects.toThrow('INVALID_JSON');
+
+    const res = response();
+    routes.exposeSendJson(res, { ok: true }, 201);
+    expect(res.writeHead).toHaveBeenCalledWith(201, { 'Content-Type': 'application/json' });
+    expect(res.end).toHaveBeenCalledWith('{"ok":true}');
+    expect(routes.exposeErrorDetails('unexpected')).toEqual({ name: 'UnknownError', message: 'unexpected' });
   });
 });

@@ -401,6 +401,30 @@ describe('Assistant Planner V2 Shadow Mode', () => {
     spy.mockRestore();
   });
 
+  it('keeps a V2 suggestion diagnostic-only when an individual action is below the confidence gate', async () => {
+    process.env.ASSISTANT_PLANNER_V2_SHADOW = 'true';
+    const lowActionConfidencePlan = makePlan();
+    lowActionConfidencePlan.plan.actions[0].confidence = 0.5;
+    llmInterpreter.interpretV2.mockResolvedValue(lowActionConfidencePlan);
+    shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+
+    const spy = jest.spyOn(console, 'info').mockImplementation();
+    await shadowService.runShadow('enciende la luz', 'u1', 'es', {
+      type: 'clarification',
+      message: '¿Cuál luz?',
+      clarification: { question: '¿Cuál?', options: [] },
+    });
+
+    const shadowLog = spy.mock.calls
+      .map(([arg]) => arg as string)
+      .find((message) => message.includes('[PLANNER_V2_SHADOW_V2]'));
+    const parsed = JSON.parse(shadowLog!.replace('[PLANNER_V2_SHADOW_V2] ', ''));
+    expect(parsed.comparison).toEqual(expect.objectContaining({
+      likely_v2_better_candidate: false,
+      reason: 'v2_low_action_confidence',
+    }));
+    spy.mockRestore();
+  });
   // ─── Metrics and Counters ─────────────────────────────────────────────────
 
   it('should increment total_runs and v2_better counters and compute ratio correctly', async () => {
@@ -564,6 +588,48 @@ describe('Assistant Planner V2 Shadow Mode', () => {
       expect(result).toEqual({ deviceId: 'luz-cocina', command: 'turn_on', confidence: 0.9, contextSource: 'short_term_memory' });
     });
 
+    it('falls closed for language overrides, LLM failures, empty plans, and validation failures', async () => {
+      const consoleSpy = jest.spyOn(console, 'info').mockImplementation();
+      const cases = [
+        {
+          prompt: 'speak in english',
+          response: makePlan(),
+          validation: null,
+          expectedLlmCalls: 0,
+        },
+        {
+          prompt: 'prende la luz',
+          response: { plan: null, error: new Error('Ollama unavailable'), metadata: { promptChars: 1, devicesCount: 0 } },
+          validation: null,
+          expectedLlmCalls: 1,
+        },
+        {
+          prompt: 'prende la luz',
+          response: { plan: null, metadata: { promptChars: 1, devicesCount: 0 } },
+          validation: null,
+          expectedLlmCalls: 1,
+        },
+        {
+          prompt: 'prende la luz',
+          response: makePlan(),
+          validation: 'Invalid target type',
+          expectedLlmCalls: 1,
+        },
+      ];
+
+      for (const scenario of cases) {
+        llmInterpreter.interpretV2.mockReset().mockResolvedValue(scenario.response);
+        validator.validate.mockReset().mockReturnValue(scenario.validation);
+        resolver.resolve.mockClear();
+        shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+
+        await expect(shadowService.attemptHybridExecution(scenario.prompt, 'u1')).resolves.toBeNull();
+        expect(llmInterpreter.interpretV2).toHaveBeenCalledTimes(scenario.expectedLlmCalls);
+        expect(resolver.resolve).not.toHaveBeenCalled();
+      }
+
+      consoleSpy.mockRestore();
+    });
     // ─── Multi-action plans ("prende la sala y la cocina") ────────────────
     // These let the model handle compound phrasing without the deterministic
     // multi-command parser's fixed connector-word list, while still requiring
@@ -672,5 +738,32 @@ describe('Assistant Planner V2 Shadow Mode', () => {
       expect(shadowService.getStatus().circuitBreaker.open).toBe(false);
       expect(shadowService.getStatus().circuitBreaker.consecutiveFailures).toBe(0);
     });
+  });
+  it('classifies non-timeout semantic and resolution failures in shadow diagnostics', async () => {
+    process.env.ASSISTANT_PLANNER_V2_SHADOW = 'true';
+    const cases = [
+      { message: 'JSON parse failed', expected: 'invalid_json' },
+      { message: 'empty or invalid object', expected: 'empty_plan' },
+      { message: 'Unable to build homeMap', expected: 'build_failure' },
+    ];
+
+    for (const scenario of cases) {
+      llmInterpreter.interpretV2.mockResolvedValue({ plan: null, metadata: { promptChars: 1, devicesCount: 0 }, error: new Error(scenario.message) });
+      shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+      const spy = jest.spyOn(console, 'info').mockImplementation();
+      await shadowService.runShadow('prueba', 'u1', 'es', { type: 'answer', message: 'ok' });
+      const log = spy.mock.calls.map(([value]) => value as string).find((value) => value.includes('[PLANNER_V2_SHADOW_V2]'));
+      expect(JSON.parse(log!.replace('[PLANNER_V2_SHADOW_V2] ', '')).error.type).toBe(scenario.expected);
+      spy.mockRestore();
+    }
+
+    llmInterpreter.interpretV2.mockResolvedValue(makePlan());
+    resolver.resolve.mockRejectedValue(new Error('device repository unavailable'));
+    shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+    const spy = jest.spyOn(console, 'info').mockImplementation();
+    await shadowService.runShadow('prueba', 'u1', 'es', { type: 'answer', message: 'ok' });
+    const log = spy.mock.calls.map(([value]) => value as string).find((value) => value.includes('[PLANNER_V2_SHADOW_V2]'));
+    expect(JSON.parse(log!.replace('[PLANNER_V2_SHADOW_V2] ', '')).error.type).toBe('resolution_failure');
+    spy.mockRestore();
   });
 });

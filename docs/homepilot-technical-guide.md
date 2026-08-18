@@ -1,583 +1,570 @@
-# HomePilot — Guia tecnica y operativa
+# HomePilot — Technical and Operations Guide
 
-## Proposito de la aplicacion
+## Application purpose
 
-HomePilot es la consola local de Nezu para operar una casa inteligente desde un miniPC/edge local. La aplicacion integra dispositivos traidos desde Home Assistant, permite organizarlos por hogar y habitacion, controlarlos desde una interfaz web, ejecutar escenas y automatizaciones, y usar un asistente de voz local activado por `Ok Nezu`.
+HomePilot is Nezu's local console for operating a smart home from a local mini PC/Edge appliance. The application integrates devices imported from Home Assistant, organizes them by home and room, controls them from a web interface, executes scenes and automations, and provides a local voice assistant activated by **Ok Nezu**.
 
-El objetivo actual del producto es que el control principal de la casa sea local, modular y mantenible:
+The current product objective is local, modular, and maintainable home control:
 
-- La UI corre como consola web responsive.
-- El backend expone una API local en Fastify.
-- La persistencia usa SQLite local.
-- Home Assistant actua como puente de integracion con dispositivos reales.
-- STT, TTS y LLM pueden correr localmente mediante servicios separados.
-- Docker Compose levanta el stack completo para desarrollo y validacion local.
+- The UI runs as a responsive web console.
+- The backend exposes a local Fastify API.
+- Persistence uses local SQLite.
+- Home Assistant acts as the integration bridge for physical devices.
+- STT, TTS, and the LLM can run locally as separate services.
+- Docker Compose starts the complete stack for development and local validation.
 
-## Resumen del runtime local
+## Local runtime overview
 
-| Servicio | Contenedor | Puerto host | Rol |
+| Service | Container | Host port | Role |
 |---|---:|---:|---|
-| API HomePilot | `homepilot-api` | `3000` | API HTTP, WebSocket, auth, dispositivos, escenas, automatizaciones, asistente |
-| UI HomePilot | `homepilot-ui` | `80` | Consola web de operador |
-| Home Assistant | `homeassistant` | `18123` | Bridge local con dispositivos reales |
-| Ollama | `ollama` | `11434` | Modelo local para razonamiento del asistente |
-| TTS Piper | `homepilot-tts` | `8088` | Sintesis de voz local |
-| STT Whisper | `homepilot-stt` | `8090` | Transcripcion local de audio |
+| HomePilot API | homepilot-api | 3000 | HTTP API, WebSocket, auth, devices, scenes, automations, assistant |
+| HomePilot UI | homepilot-ui | 80 | Operator web console |
+| Home Assistant | homeassistant | 18123 | Local bridge to physical devices |
+| Ollama | ollama | 11434 | Local assistant reasoning model |
+| Piper TTS | homepilot-tts | 8088 | Local voice synthesis |
+| Whisper STT | homepilot-stt | 8090 | Local audio transcription |
 
-URLs utiles en local:
+Useful local URLs:
 
-```bash
+~~~bash
 http://localhost
 http://localhost:3000/health
 http://localhost:18123
 http://localhost:11434
 http://localhost:8088/health
 http://localhost:8090/health
-```
+~~~
 
-## Estructura principal del repositorio
+## Main repository structure
 
-| Ruta | Uso |
+| Path | Use |
 |---|---|
-| `apps/api` | Gateway HTTP, rutas API y handlers Fastify-compatible |
-| `apps/operator-console` | Frontend React/Vite de la consola |
-| `packages/auth` | Usuarios, sesiones, roles, guardias de acceso |
-| `packages/devices` | Dominio de dispositivos, escenas, automatizaciones y ejecuciones |
-| `packages/integrations/home-assistant` | Cliente, configuracion y sync con Home Assistant |
-| `packages/topology` | Hogares, habitaciones y dashboards |
-| `packages/assistant` | Hallazgos, memoria, feedback y aprendizaje del asistente |
-| `packages/system-vars` | Variables persistentes para automatizaciones/contexto |
-| `packages/shared` | Infraestructura comun: DB, migraciones, eventos, errores |
-| `infrastructure/assemblers` | Ensamble de modulos e inyeccion de dependencias |
-| `migrations` | Evolucion de esquema SQLite |
-| `services/stt-whisper` | Servicio STT local |
-| `services/tts-piper` | Servicio TTS local |
-| `docker` | Dockerfiles de API/UI/servicios |
-| `docs` | Documentacion tecnica y operativa |
-| `specs` | Especificaciones funcionales y criterios de aceptacion |
+| apps/api | HTTP gateway, API routes, and Fastify-compatible handlers |
+| apps/operator-console | React/Vite operator-console frontend |
+| packages/auth | Users, sessions, roles, and access guards |
+| packages/devices | Device domain, scenes, automations, and executions |
+| packages/integrations/home-assistant | Home Assistant client, configuration, and sync |
+| packages/topology | Homes, rooms, and dashboards |
+| packages/assistant | Assistant findings, memory, feedback, and learning |
+| packages/system-vars | Persistent automation/context variables |
+| packages/shared | Shared infrastructure: database, migrations, events, and errors |
+| infrastructure/assemblers | Module assembly and dependency injection |
+| migrations | SQLite schema evolution |
+| services/stt-whisper | Local STT service |
+| services/tts-piper | Local TTS service |
+| docker | API/UI/service Dockerfiles |
+| docs | Technical and operational documentation |
+| specs | Functional specifications and acceptance criteria |
 
 ## Backend
 
-El backend corre en Node.js con TypeScript y Fastify v5. El gateway principal monta handlers de rutas en `apps/api/routes` sin registrar logica de dominio directamente en `ApiGateway.ts`.
+The backend runs on Node.js with TypeScript and Fastify v5. The main gateway mounts route handlers in apps/api/routes without registering domain logic directly in ApiGateway.ts.
 
-Flujo general de una solicitud:
+General request flow:
 
-1. La UI llama un endpoint `/api/v1/*`.
-2. El gateway aplica CORS, parseo y dispatch al `RouteHandler` correspondiente.
-3. La ruta valida metodo, path, payload y permisos.
-4. El caso de uso o servicio de aplicacion ejecuta la accion.
-5. Los repositorios persisten o consultan SQLite.
-6. Si aplica, se llama un driver/integracion externa, por ejemplo Home Assistant.
-7. La respuesta vuelve a la UI con estado actualizado o error normalizado.
+1. The UI calls an /api/v1/* endpoint.
+2. The gateway applies CORS, parsing, and dispatches to the matching RouteHandler.
+3. The route validates method, path, payload, and authorization.
+4. The use case or application service executes the action.
+5. Repositories persist or query SQLite.
+6. When needed, an external driver/integration is called, such as Home Assistant.
+7. The response returns updated state or a normalized error to the UI.
 
-Rutas principales:
-
-| Ruta | Archivo | Responsabilidad |
+| Route | File | Responsibility |
 |---|---|---|
-| `/api/v1/auth/*` | `AuthRoutes.ts` | Login, logout, sesion actual y cambio de password |
-| `/api/v1/admin/users/*` | `AdminRoutes.ts` | Gestion de usuarios y roles admin |
-| `/api/v1/devices/*` | `DeviceRoutes.ts` | Inventario, importacion, refresh, control, eliminacion |
-| `/api/v1/devices/:id/camera/*` | `CameraRoutes.ts` | Sesion autenticada y proxy local de snapshot, MJPEG y HLS de camaras HA o camaras nativas |
-| `/api/v1/scenes/*` | `SceneRoutes.ts` | Crear, listar y ejecutar escenas |
-| `/api/v1/automations/*` | `AutomationRoutes.ts` | Reglas de automatizacion |
-| `/api/v1/executions/*` | `ExecutionRoutes.ts` | Historial de ejecuciones |
-| `/api/v1/topology/*` | `TopologyRoutes.ts` | Hogares y habitaciones |
-| `/api/v1/dashboards/*` | `DashboardRoutes.ts` | Dashboards configurables |
-| `/api/v1/settings/*` | `SettingsRoutes.ts` | Configuracion de Home Assistant |
-| `/api/v1/system/*` | `SystemRoutes.ts` | Estado operativo, onboarding y diagnostico |
-| `/api/v1/system-variables/*` | `SystemVariableRoutes.ts` | Variables persistentes globales o por hogar |
-| `/api/v1/assistant/*` | `AssistantRoutes.ts` | Chat, STT, TTS, hallazgos y acciones del asistente |
-| `/api/v1/media/*` | `MediaRoutes.ts` | Recursos multimedia servidos por API |
+| /api/v1/auth/* | AuthRoutes.ts | Login, logout, current session, and password changes |
+| /api/v1/admin/users/* | AdminRoutes.ts | User and administrator-role management |
+| /api/v1/devices/* | DeviceRoutes.ts | Inventory, import, refresh, control, and removal |
+| /api/v1/devices/:id/camera/* | CameraRoutes.ts | Authenticated session and local proxy for HA/native camera snapshots, MJPEG, and HLS |
+| /api/v1/scenes/* | SceneRoutes.ts | Create, list, and execute scenes |
+| /api/v1/automations/* | AutomationRoutes.ts | Automation rules |
+| /api/v1/executions/* | ExecutionRoutes.ts | Execution history |
+| /api/v1/topology/* | TopologyRoutes.ts | Homes and rooms |
+| /api/v1/dashboards/* | DashboardRoutes.ts | Configurable dashboards |
+| /api/v1/settings/* | SettingsRoutes.ts | Home Assistant configuration |
+| /api/v1/system/* | SystemRoutes.ts | Operational state, onboarding, and diagnostics |
+| /api/v1/system-variables/* | SystemVariableRoutes.ts | Global or home-scoped persistent variables |
+| /api/v1/assistant/* | AssistantRoutes.ts | Chat, STT, TTS, findings, and assistant actions |
+| /api/v1/media/* | MediaRoutes.ts | Media resources served by the API |
 
-## Autenticacion y roles
+## Authentication and roles
 
-La autenticacion usa usuarios locales en SQLite y sesiones opacas. Los roles vigentes son:
+Authentication uses local SQLite users and opaque sessions.
 
-| Rol | Uso |
+| Role | Use |
 |---|---|
-| `admin` | Superusuario tecnico con acceso completo |
-| `operator` | Rol legacy/soporte con permisos equivalentes a admin para compatibilidad |
-| `parent` | Dueno del hogar; administra funciones del hogar sin configuracion tecnica completa |
-| `child` | Miembro familiar con control de dispositivos y dashboards |
-| `guest` | Invitado con acceso limitado |
+| admin | Technical superuser with full access |
+| operator | Legacy/support role with administrator-equivalent permissions for compatibility |
+| parent | Home owner who manages home functions without full technical configuration |
+| child | Family member with device and dashboard control |
+| guest | Visitor with limited access |
 
-El backend aplica una regla critica: siempre debe existir al menos un administrador activo. No se permite degradar o desactivar el ultimo admin porque eso podria bloquear el acceso al sistema.
+The backend enforces one critical rule: at least one active administrator must always exist. The last administrator cannot be downgraded or disabled because that could lock access to the system.
 
-### Por que existe `admin/admin`
+### Why admin/admin exists
 
-`admin/admin` existe unicamente como atajo de desarrollo local. No es una estrategia aceptable para entregar el producto a un cliente final.
+admin/admin is only a local development shortcut. It is not an acceptable customer-delivery strategy.
 
-En desarrollo local se puede activar:
+Local development can enable:
 
-```bash
+~~~bash
 HOMEPILOT_DEV_BOOTSTRAP=true
-```
+~~~
 
-Cuando esa variable esta en `true` y la base de datos esta vacia, el bootstrap crea el usuario:
+When that variable is true and the database is empty, bootstrap creates:
 
-```text
-usuario: admin
+~~~text
+username: admin
 password: admin
-```
+~~~
 
-Esto existe para acelerar pruebas locales en Docker/WSL, reiniciar bases de datos, validar pantallas y evitar depender de una clave aleatoria impresa una sola vez en logs. El propio backend emite una advertencia indicando que no es seguro para produccion.
+This speeds up Docker/WSL local testing, database resets, UI validation, and avoids depending on a one-time random password printed to logs. The backend emits a warning that it is unsafe for production.
 
-Cuando `HOMEPILOT_DEV_BOOTSTRAP` no esta en `true` y la DB esta vacia, el sistema no crea un admin oculto ni imprime claves de cliente en logs. La UI detecta que no hay usuarios y muestra el flujo de primer arranque para crear el administrador local.
+When HOMEPILOT_DEV_BOOTSTRAP is not true and the database is empty, the system does not create a hidden administrator or print customer passwords to logs. The UI detects the absence of users and shows the first-run flow to create the local administrator.
 
-Estado actual importante:
+Current operational rule:
 
-- Para desarrollo propio, `HOMEPILOT_DEV_BOOTSTRAP=true` es practico porque permite entrar con `admin/admin`.
-- Para produccion real, `admin/admin` no debe usarse.
-- El flujo de cliente/instalador crea el primer admin desde la UI.
-- El endpoint de bootstrap del primer admin solo funciona cuando `users.count() === 0`; despues queda cerrado.
-- La UI inicia sesion automaticamente tras crear el primer admin y continua al onboarding protegido de Home Assistant.
+- For internal development, HOMEPILOT_DEV_BOOTSTRAP=true is practical because it enables admin/admin.
+- For real production, admin/admin must not be used.
+- The customer/installer flow creates the first administrator in the UI.
+- The first-administrator bootstrap endpoint works only while users.count() === 0; it closes afterward.
+- The UI signs in automatically after first-admin creation and continues to protected Home Assistant onboarding.
 
-En resumen: hoy se usa `admin/admin` porque el entorno de Oscar es desarrollo local y se necesita entrar facil para probar. No se debe vender ni desplegar asi a cliente.
+In short, admin/admin is used only because Oscar's environment is local development and needs easy test access. It must not be sold or deployed to customers.
+## Home Assistant integration
 
-## Integracion con Home Assistant
+Home Assistant is the local bridge used to communicate with physical devices. In Docker Compose, the backend uses:
 
-Home Assistant es el bridge local para hablar con dispositivos reales. En Docker Compose el backend usa:
-
-```bash
+~~~bash
 INTERNAL_HA_URL=http://homeassistant:8123
-```
+~~~
 
-Desde el navegador o Windows se entra a Home Assistant por:
+From a browser or Windows host, access Home Assistant at:
 
-```bash
+~~~bash
 http://localhost:18123
-```
+~~~
 
-### Camaras Home Assistant
+### Home Assistant cameras
 
-Las entidades con dominio `camera.*` se resuelven mediante el perfil modular `camera`, incluso si fueron importadas antes de que existiera ese perfil y su `type` persistido era generico. El dashboard selecciona `CameraDeviceTile` por capability, no por marca ni por un nombre concreto.
+Entities in the camera.* domain resolve through the modular camera profile, including entities imported before that profile existed and stored with a generic type. The dashboard selects CameraDeviceTile by capability, not by brand or a specific name.
 
-Flujo de medios:
+Media flow:
 
-1. La UI solicita `GET /api/v1/devices/:id/camera/session` usando la sesion HomePilot.
-2. `CameraRoutes` valida que el dispositivo corresponda a `ha:camera.*` y consulta su estado actual.
-3. HomePilot emite un token corto firmado para ese dispositivo; el token de larga duracion de Home Assistant permanece en el backend.
-4. HomePilot solicita por WebSocket el stream HLS que Home Assistant usa en su propio frontend. Si existe, la sesion incluye una ruta HLS local.
-5. `CameraRoutes` reescribe manifiestos y registra segmentos HLS con identificadores temporales; la URL HLS interna y el token administrativo de Home Assistant no llegan al navegador.
-6. La UI reproduce HLS con soporte nativo o `hls.js`; si falla, intenta MJPEG y finalmente snapshots periodicos.
-7. El visor ampliado reemplaza temporalmente el stream de la tarjeta para no mantener dos conexiones simultaneas.
-8. Snapshot, MJPEG y HLS usan `Cache-Control: no-store` y se cancelan cuando el navegador cierra la conexion.
+1. The UI requests GET /api/v1/devices/:id/camera/session using the HomePilot session.
+2. CameraRoutes confirms the device is ha:camera.* and reads its current state.
+3. HomePilot issues a short signed token for that device; the Home Assistant long-lived token remains on the backend.
+4. HomePilot requests the HLS stream used by the Home Assistant frontend over WebSocket. When available, the session contains a local HLS route.
+5. CameraRoutes rewrites manifests and records HLS segments with temporary identifiers; the internal HLS URL and the Home Assistant administrative token never reach the browser.
+6. The UI plays HLS natively or with hls.js; on failure it tries MJPEG and finally periodic snapshots.
+7. The expanded viewer temporarily replaces the card stream so two simultaneous connections are not kept.
+8. Snapshot, MJPEG, and HLS use Cache-Control: no-store and are cancelled when the browser closes the connection.
 
-La UI representa carga, error e indisponibilidad sin convertir la camara en un interruptor. Presionar una camara disponible abre el visor responsive de pantalla completa y `Escape` lo cierra.
+The UI represents loading, error, and unavailable states without treating a camera as a switch. Selecting an available camera opens the responsive full-screen viewer; Escape closes it.
 
-### Cliente con Home Assistant existente
+### Customer with an existing Home Assistant instance
 
-En instalaciones reales de cliente, HomePilot no debe crear ni reemplazar el Home Assistant del cliente si ya existe uno operativo. El appliance debe desplegar solamente HomePilot API, UI, STT, TTS y Ollama, y enlazarse al Home Assistant existente mediante URL local y token de larga duracion.
+In real customer deployments, HomePilot must not create or replace the customer's Home Assistant when one already works. The appliance deploys only HomePilot API, UI, STT, TTS, and Ollama, then links to the existing Home Assistant through a local URL and long-lived token.
 
-Patron recomendado cuando Home Assistant corre en el host o en otro contenedor ya existente de la miniPC:
+Recommended pattern when Home Assistant runs on the mini PC host or an existing container:
 
-```bash
+~~~bash
 INTERNAL_HA_URL=http://host.docker.internal:8123
-```
+~~~
 
-El `docker compose` usado para cliente debe incluir `extra_hosts: host.docker.internal:host-gateway` en `homepilot-api`. No debe incluir un servicio `homeassistant` nuevo si el cliente ya tiene el suyo.
+The customer compose file must include extra_hosts: host.docker.internal:host-gateway in homepilot-api. It must not add a new homeassistant service when the customer already has one.
 
-En el onboarding de HomePilot se debe usar:
+Use this in HomePilot onboarding:
 
-```text
-URL local: http://host.docker.internal:8123
-Token: token de acceso de larga duracion creado en el Home Assistant del cliente
-```
+~~~text
+Local URL: http://host.docker.internal:8123
+Token: long-lived access token created in the customer's Home Assistant
+~~~
 
-Si Home Assistant esta en la misma red Docker y su contenedor se llama `homeassistant`, tambien se puede validar:
+When Home Assistant is reachable in the same Docker network and its container is called homeassistant, this can also be validated:
 
-```text
+~~~text
 http://homeassistant:8123
-```
+~~~
 
-La URL publica o de Cloudflare del cliente sirve para que el instalador entre a Home Assistant y cree el token, pero HomePilot debe preferir la ruta local de baja latencia desde la miniPC.
+The customer's public or Cloudflare URL is used by the installer to access Home Assistant and create the token, but HomePilot should prefer the low-latency local route from the mini PC.
+### SSH, Cloudflare, and ports
 
-### Acceso por SSH/Cloudflare y puertos
+When accessing a remote mini PC with Cloudflare SSH, do not assume localhost:3000 or localhost:8123 on the laptop refer to the mini PC. They can be occupied by the installer's local services.
 
-Cuando se accede a una miniPC remota por Cloudflare SSH, no se debe asumir que `localhost:3000` o `localhost:8123` en la laptop pertenecen a la miniPC. Pueden estar ocupados por servicios locales del instalador.
+Recommended tunnel ports:
 
-Puertos recomendados para tunel:
-
-| Servicio remoto | Puerto remoto | Puerto local recomendado | URL local del instalador |
+| Remote service | Remote port | Recommended local port | Installer local URL |
 |---|---:|---:|---|
-| HomePilot UI | `8080` | `8080` | `http://localhost:8080` |
-| HomePilot API directa (solo diagnostico) | `3000` | `13000` | `http://localhost:13000` |
-| Home Assistant existente | `8123` | `18123` | `http://localhost:18123` |
+| HomePilot UI | 8080 | 8080 | http://localhost:8080 |
+| Direct HomePilot API, diagnostics only | 3000 | 13000 | http://localhost:13000 |
+| Existing Home Assistant | 8123 | 18123 | http://localhost:18123 |
 
-Tunel recomendado para HomePilot:
+Recommended HomePilot tunnel:
 
-```bash
+~~~bash
 ssh -i ~/.ssh/codex_nezu_tmp \
   -o ProxyCommand="cloudflared access ssh --hostname %h" \
   -L 8080:127.0.0.1:8080 \
   nezu@ssh.nezuecuador.com
-```
+~~~
 
-Tunel recomendado para Home Assistant del cliente:
+Recommended customer Home Assistant tunnel:
 
-```bash
+~~~bash
 ssh -i ~/.ssh/codex_nezu_tmp \
   -o ProxyCommand="cloudflared access ssh --hostname %h" \
   -L 18123:127.0.0.1:8123 \
   nezu@ssh.nezuecuador.com
-```
+~~~
 
-La UI de produccion usa el mismo origen para UI, API y WebSocket. Nginx envia `/api/*`, `/health` y `/ws` al contenedor `homepilot-api`, por lo que no se necesita un segundo tunel ni recompilar con una URL local. `VITE_API_URL` debe quedar vacia:
+Production UI uses one origin for UI, API, and WebSocket. Nginx forwards /api/*, /health, and /ws to the homepilot-api container, so no second tunnel or local URL rebuild is necessary. VITE_API_URL must remain empty:
 
-```bash
+~~~bash
 VITE_API_URL=
-```
+~~~
 
-#### Publicacion de HomePilot con Cloudflare Tunnel
+#### Publishing HomePilot through Cloudflare Tunnel
 
-En el mismo tunel donde existe `ha-smart.nezuecuador.com`, agrega otra **Published application route** con estos valores:
+In the same tunnel that hosts ha-smart.nezuecuador.com, add a **Published application route** with:
 
-| Campo Cloudflare | Valor recomendado |
+| Cloudflare field | Recommended value |
 |---|---|
-| Subdomain | `homepilot` |
-| Domain | `nezuecuador.com` |
-| Path | vacio |
-| Service type | `HTTP` |
-| URL | `127.0.0.1:8080` |
+| Subdomain | homepilot |
+| Domain | nezuecuador.com |
+| Path | empty |
+| Service type | HTTP |
+| URL | 127.0.0.1:8080 |
 
-El resultado es `https://homepilot.nezuecuador.com`. No se debe publicar el puerto `3000`: el mismo hostname atiende UI, API, camaras HLS y WebSocket mediante Nginx. Para un sistema residencial se recomienda crear una aplicacion de Cloudflare Access para ese hostname y permitir solamente las identidades autorizadas; el login propio de HomePilot se mantiene como segunda capa.
+The resulting address is https://homepilot.nezuecuador.com. Do not publish port 3000: the hostname serves UI, API, HLS cameras, and WebSocket through Nginx. For a residential system, create a Cloudflare Access application for that hostname and permit only authorized identities; HomePilot login remains the second layer.
 
-Para validar la instalacion desde la miniPC:
+Validate the mini PC installation with:
 
-```bash
+~~~bash
 bash scripts/check-edge-install.sh docker-compose.office.yml
-```
+~~~
+### HomePilot installation profiles
 
-### Perfiles de instalación de HomePilot
+HomePilot is installed through an explicit profile. The profile is stored in HOMEPILOT_INSTALLATION_PROFILE and onboarding applies only that profile's requirements.
 
-HomePilot se instala con un perfil explícito. El perfil queda almacenado en `HOMEPILOT_INSTALLATION_PROFILE` y el onboarding aplica solamente los requisitos de dicho perfil.
+On a new installation, the interactive installer asks whether the customer already uses Home Assistant. If yes, it preserves and connects that system. Otherwise, it offers a Home Assistant companion or a native-integration-only installation. Customers do not need to know the internal profile names.
 
-En una instalación nueva, el instalador interactivo pregunta al cliente si ya usa Home Assistant. Si responde que sí, conserva y conecta su sistema actual. Si responde que no, permite elegir entre instalar Home Assistant junto a HomePilot o comenzar solo con integraciones nativas. El cliente no necesita conocer los nombres internos de los perfiles.
-
-| Perfil | Cuándo usarlo | Compose | Home Assistant |
+| Profile | When to use | Compose | Home Assistant |
 |---|---|---|---|
-| `bridge_ha` | El cliente ya tiene Home Assistant. | `docker-compose.office.yml` | Se conserva y se enlaza mediante token. |
-| `native_only` | El cliente empieza desde cero con integraciones nativas. | `docker-compose.office.yml` | No se instala ni se exige. |
-| `ha_companion` | El cliente solicita expresamente Home Assistant junto a HomePilot. | `docker-compose.yml` | Lo administra ese compose. |
+| bridge_ha | Customer already has Home Assistant | docker-compose.office.yml | Preserved and linked by token |
+| native_only | Customer starts with native integrations | docker-compose.office.yml | Not installed or required |
+| ha_companion | Customer explicitly requests Home Assistant with HomePilot | docker-compose.yml | Managed by that compose |
 
-No se debe cambiar de perfil editando un sistema en funcionamiento sin revisar la topología y el `.env`. El instalador falla de forma segura cuando `--profile` no coincide con el perfil ya guardado.
-#### Checklist guiado para técnicos
+Do not change profile by editing a running system without reviewing topology and its environment file. The installer fails safely when --profile does not match the saved profile.
 
-El técnico debe iniciar la instalación con el asistente guiado, no el cliente final. El comando presenta decisiones en lenguaje operativo y evita editar `.env` manualmente:
+#### Guided checklist for technicians
 
-```bash
+A technician starts the guided installer, not the end customer. The command presents operational decisions and avoids manual .env editing:
+
+~~~bash
 bash scripts/install-edge-office.sh --wizard
-```
+~~~
 
-El checklist permite elegir en una instalación nueva:
+For a new installation, the checklist offers:
 
-1. Conectar el Home Assistant existente del cliente.
-2. Incluir Home Assistant junto a HomePilot.
-3. Instalar HomePilot solo con integraciones nativas.
+1. Connect the customer's existing Home Assistant.
+2. Include Home Assistant with HomePilot.
+3. Install HomePilot with native integrations only.
 
-Después permite elegir si se despliega ahora, si se prepara sin iniciar servicios o si solo se ejecuta el diagnóstico. En perfiles con Home Assistant también ofrece un cuarto camino: instalar o reparar HACS y SonoffLAN sin reconstruir HomePilot. Antes de crear archivos, limpiar o iniciar contenedores, muestra un resumen completo y exige una única confirmación.
+It then offers deployment now, preparation without starting services, or diagnostics only. Profiles with Home Assistant offer a fourth path: install or repair HACS and SonoffLAN without rebuilding HomePilot. Before creating files, cleaning, or starting containers, the installer shows a full summary and requires one confirmation.
 
-Si el equipo ya contiene `.env`, el asistente conserva el perfil guardado y lo muestra como información: no ofrece migrar ni reemplazar la topología de un cliente por accidente. Para automatizaciones o soporte remoto se mantienen los flags explícitos `--profile`, `--clean`, `--start` y `--status`.
+When .env already exists, the wizard preserves and displays its saved profile. It does not migrate or replace a customer topology accidentally. Remote support and automation retain explicit --profile, --clean, --start, and --status flags.
 
-#### Cliente con Home Assistant existente (`bridge_ha`)
+#### Existing Home Assistant customer: bridge_ha
 
-El repositorio incluye un compose separado para cliente: `docker-compose.office.yml`. No declara un servicio `homeassistant`; por ello no crea, actualiza ni reemplaza el Home Assistant existente. La preparacion se hace desde la raiz del repositorio en la miniPC:
+The repository contains docker-compose.office.yml for customer appliances. It does not declare a homeassistant service, so it never creates, updates, or replaces the existing Home Assistant. Prepare from the mini PC repository root:
 
-```bash
+~~~bash
 git pull --ff-only
 bash scripts/install-edge-office.sh --profile bridge_ha --clean --start
-```
+~~~
 
-El script muestra espacio libre y consumo de Docker, detecta Home Assistant de forma no destructiva, revisa los puertos de HomePilot, crea `.env` desde `.env.office.example` solo si falta y valida el compose. `--clean` elimina exclusivamente cache de build e imagenes colgantes de Docker; nunca elimina contenedores, volumenes, bases de datos ni el Home Assistant del cliente. `--start` construye e inicia HomePilot despues de pedir confirmacion. Para automatizacion controlada se puede usar `--clean --start --yes`.
+The script shows free space and Docker usage, detects Home Assistant without mutation, checks HomePilot ports, creates .env from .env.office.example only if missing, and validates Compose. --clean removes only build cache and dangling Docker images; it never removes containers, volumes, databases, or the customer's Home Assistant. --start builds and starts HomePilot after confirmation. Controlled automation can use --clean --start --yes.
 
-Las instalaciones antiguas cuyo `.env` no contiene `HOMEPILOT_INSTALLATION_PROFILE` se normalizan automáticamente con el perfil que el instalador resuelve durante una instalación. No hace falta editar el archivo manualmente desde PowerShell, WSL o Linux; `--status` conserva su comportamiento de solo lectura.
+Legacy installations whose .env lacks HOMEPILOT_INSTALLATION_PROFILE are normalized automatically using the installer-resolved profile. No manual PowerShell, WSL, or Linux file edit is required. --status remains read-only.
 
-El diagnóstico también informa si el Home Assistant existente ya tiene HACS y SonoffLAN. No instala nada por defecto. Para autorizar explícitamente el mantenimiento de esas integraciones sin reconstruir HomePilot:
+Diagnostics report whether the existing Home Assistant already has HACS and SonoffLAN but do not install anything by default. To explicitly maintain those integrations without rebuilding HomePilot:
 
-```bash
+~~~bash
 bash scripts/install-edge-office.sh --profile bridge_ha --community-integrations-only
-```
+~~~
 
-El modo detecta si el técnico está en Linux, WSL, Windows con Docker Desktop o macOS, muestra el contenedor objetivo y los comandos equivalentes. Solo instala HACS/SonoffLAN y reinicia Home Assistant; no ejecuta `docker compose`, no reconstruye imágenes y no reinicia HomePilot. También puede iniciarse con `bash scripts/install-edge-office.sh --wizard` y elegir la opción de mantenimiento de integraciones.
+This mode detects Linux, WSL, Windows with Docker Desktop, or macOS, displays the target container and equivalent commands, installs only HACS/SonoffLAN, and restarts Home Assistant. It does not run docker compose, rebuild images, or restart HomePilot. It is also available through the wizard maintenance option.
 
-Después, el técnico configura eWeLink dentro de Home Assistant en **Ajustes → Dispositivos e integraciones → Añadir integración → Sonoff**. HomePilot no almacena credenciales eWeLink.
+Afterward, configure eWeLink in Home Assistant through **Settings → Devices & services → Add integration → Sonoff**. HomePilot does not store eWeLink credentials.
 
-#### Instalación nativa sin Home Assistant (`native_only`)
+#### Native installation without Home Assistant: native_only
 
-Para una miniPC sin Home Assistant, HomePilot queda listo para integrar protocolos locales compatibles desde su propia consola. El onboarding no pedirá URL ni token de Home Assistant:
+For a mini PC without Home Assistant, HomePilot is ready to integrate compatible local protocols through its own console. Onboarding does not request a Home Assistant URL or token:
 
-```bash
+~~~bash
 git pull --ff-only
 bash scripts/install-edge-office.sh --profile native_only --clean --start
-```
+~~~
 
-El script crea `.env` desde `.env.native.example` cuando no existe y usa el mismo compose liviano que no declara un servicio `homeassistant`.
+The script creates .env from .env.native.example when missing and uses the lightweight compose file with no homeassistant service.
 
-#### Home Assistant opcional administrado por HomePilot (`ha_companion`)
+#### Optional Home Assistant managed by HomePilot: ha_companion
 
-Este perfil debe usarse únicamente cuando el cliente solicita expresamente el companion. Inicia el servicio incluido en `docker-compose.yml` y usa `.env.example`:
+Use this profile only when the customer explicitly requests the companion. It starts the service included in docker-compose.yml and uses .env.example:
 
-```bash
+~~~bash
 git pull --ff-only
 bash scripts/install-edge-office.sh --profile ha_companion --clean --start
-```
+~~~
 
-No se debe seleccionar este perfil sobre una miniPC que ya tiene un Home Assistant de cliente sin revisar antes puertos, datos y la topología existente. Durante el primer despliegue, el instalador provisiona automáticamente HACS y SonoffLAN si faltan, sin solicitar una autorización adicional porque el Home Assistant pertenece al compose de HomePilot. Los componentes quedan persistidos en `ha-config/custom_components`.
+Do not select this profile on a mini PC that already runs a customer Home Assistant without first reviewing ports, data, and existing topology. During first deployment, the installer provisions HACS and SonoffLAN if absent because this Home Assistant belongs to HomePilot compose. Components persist in ha-config/custom_components.
 
-#### Diagnostico operativo con `--status`
+#### Operational diagnostics with --status
 
-La opcion `--status` sirve para revisar una instalacion existente sin modificarla:
+--status checks an existing installation without modifying it:
 
-```bash
+~~~bash
 bash scripts/install-edge-office.sh --profile bridge_ha --status
-```
+~~~
 
-Esta opcion no limpia Docker, no construye imagenes, no crea archivos y no inicia ni reinicia contenedores. Comprueba:
+It does not clean Docker, build images, create files, or start/restart containers. It checks:
 
-- Estado de los contenedores de API, UI, Ollama, STT y TTS.
-- Puerto host configurado para API, UI, Ollama, STT y TTS, y puerto comprobado para Home Assistant.
-- Healthchecks disponibles para API, STT y TTS.
-- Respuesta HTTP de API, UI, STT y TTS.
-- Conectividad con Home Assistant solo en perfiles que lo requieren; en `native_only` informa que no es necesario.
-- Presencia de HACS y SonoffLAN cuando existe un Home Assistant configurado, sin instalar ni reiniciar nada.
+- API, UI, Ollama, STT, and TTS containers.
+- Configured host ports for API, UI, Ollama, STT, and TTS, plus Home Assistant where relevant.
+- Available health checks for API, STT, and TTS.
+- HTTP responses from API, UI, STT, and TTS.
+- Home Assistant connectivity only in profiles that require it; native_only reports it as unnecessary.
+- HACS and SonoffLAN presence when Home Assistant is configured, without installation or restart.
 
-Si todos los componentes responden correctamente, el script termina con codigo de salida `0`. Si falta un servicio, un healthcheck falla o un endpoint no responde, termina con un codigo distinto de `0`; esto permite usarlo tanto de forma manual como en monitoreo o automatizacion.
+The command exits with code 0 only when every required component responds correctly; otherwise it exits non-zero for manual support, monitoring, or automation.
 
-`--status` no debe combinarse con `--clean`, `--start` ni `--api-url`. Para instalar o reconstruir el sistema se usa `--start`; para consultar su salud sin hacer cambios se usa `--status`.
+Do not combine --status with --clean, --start, or --api-url. Use --start to install or rebuild and --status for read-only health inspection.
 
-Despues de conceder permiso de ejecucion, ambos formatos son equivalentes:
+After granting execute permission, both forms are equivalent:
 
-```bash
+~~~bash
 chmod +x scripts/install-edge-office.sh
 ./scripts/install-edge-office.sh --status
-```
+~~~
 
-El prefijo `bash` solo es necesario cuando el archivo todavia no tiene permiso de ejecucion o cuando se desea indicar explicitamente el interprete.
+The bash prefix is necessary only when the file has no execute permission or when the interpreter should be explicit.
 
-#### Mantenimiento despues de cada build
+#### Post-build maintenance
 
-En miniPCs con disco limitado, Docker puede acumular cache de `buildx`, capas intermedias, imagenes antiguas y contenedores detenidos. Para evitar que cada compilacion deje residuos, el repositorio incluye:
+On mini PCs with limited disks, Docker can accumulate buildx cache, intermediate layers, old images, and stopped containers. Use:
 
-```bash
+~~~bash
 bash scripts/homepilot-maintenance.sh --profile bridge_ha --deploy --yes
-```
+~~~
 
-Ese comando ejecuta un ciclo seguro:
+The command:
 
-1. Muestra espacio libre y consumo actual de Docker.
-2. Limpia cache de BuildKit/buildx conservando un maximo configurable.
-3. Elimina imagenes no usadas, contenedores detenidos y redes no usadas.
-4. Construye e inicia HomePilot con `docker-compose.office.yml`.
-5. Repite la limpieza segura despues del build.
-6. Muestra el espacio disponible final.
-7. Verifica API, UI, Ollama, STT, TTS y el bridge Home Assistant antes de declarar la instalación saludable.
+1. Shows available space and current Docker usage.
+2. Cleans BuildKit/buildx cache while retaining a configurable maximum.
+3. Removes unused images, stopped containers, and unused networks.
+4. Builds and starts HomePilot with docker-compose.office.yml.
+5. Repeats safe cleanup after the build.
+6. Shows final available space.
+7. Verifies API, UI, Ollama, STT, TTS, and the Home Assistant bridge before declaring the installation healthy.
 
-Por defecto conserva hasta `2GB` de cache util:
+It preserves up to 2GB of useful cache by default:
 
-```bash
+~~~bash
 bash scripts/homepilot-maintenance.sh --profile bridge_ha --deploy --keep-storage 2GB --yes
-```
+~~~
 
-Para solo limpiar sin reconstruir:
+Clean without rebuilding:
 
-```bash
+~~~bash
 bash scripts/homepilot-maintenance.sh --profile bridge_ha --clean --yes
-```
+~~~
 
-Para diagnosticar sin modificar nada, incluidos contenedores y endpoints locales:
+Diagnose without making changes:
 
-```bash
+~~~bash
 bash scripts/homepilot-maintenance.sh --profile bridge_ha --status
-```
+~~~
 
-El script no ejecuta `docker volume prune` y no borra bases de datos ni volumenes. Si los logs de Docker crecieron demasiado, se puede vaciarlos explicitamente:
+The script never runs docker volume prune and never deletes databases or volumes. To explicitly truncate oversized Docker logs:
 
-```bash
+~~~bash
 bash scripts/homepilot-maintenance.sh --profile bridge_ha --clean --truncate-logs --yes
-```
+~~~
 
-El comando `--truncate-logs` solo trunca archivos `*-json.log`; no borra contenedores ni datos persistentes.
+The truncate-logs command affects only *-json.log files, not containers or persistent data.
 
-Usa la plantilla correspondiente al perfil: `.env.office.example` para `bridge_ha`, `.env.native.example` para `native_only` y `.env.example` para `ha_companion`. Sus campos que deben verificarse por instalación son:
-
-| Variable | Uso |
+| Variable | Installation check |
 |---|---|
-| `HOMEPILOT_INSTALLATION_PROFILE` | Perfil explícito de la instalación: `bridge_ha`, `native_only` o `ha_companion`. |
-| `INTERNAL_HA_URL` | `http://host.docker.internal:8123` si HA esta disponible desde el host de la miniPC. Cambiarla si la topologia del cliente usa otra ruta local. |
-| `HOMEPILOT_HOME_ASSISTANT_CONTAINER` | Nombre del contenedor HA inspeccionado por el instalador. Predeterminado: `homeassistant`. |
-| `VITE_API_URL` | Vacia por defecto: UI, API y WebSocket comparten el origen de HomePilot. Definirla solo para una API publicada por separado; cambiarla exige reconstruir `homepilot-ui`. |
-| `HOMEPILOT_*_PORT` | Puertos publicados; ajustarlos solo si el diagnostico indica conflicto. |
-| `HOMEPILOT_DEV_BOOTSTRAP` | Debe permanecer `false` en cliente: el primer administrador se crea en la UI, no existe una clave impresa en logs. |
-| `HOMEPILOT_CORS_ORIGIN` | Lista separada por comas de orígenes autorizados. En producción debe contener únicamente las URLs reales de HomePilot. |
-| `HOMEPILOT_AUTH_MAX_FAILURES` | Fallos permitidos por combinación de usuario y origen antes de aplicar un bloqueo temporal. Predeterminado: `5`. |
-| `HOMEPILOT_AUTH_LOCKOUT_MS` | Duración del bloqueo temporal de acceso. Predeterminado: `900000` (15 minutos). |
+| HOMEPILOT_INSTALLATION_PROFILE | Explicit bridge_ha, native_only, or ha_companion profile |
+| INTERNAL_HA_URL | Use http://host.docker.internal:8123 when HA is reachable through the mini PC host; adjust only for a different customer topology |
+| HOMEPILOT_HOME_ASSISTANT_CONTAINER | Inspected HA container name; default homeassistant |
+| VITE_API_URL | Empty by default so UI, API, and WebSocket share origin; changing it requires a UI rebuild |
+| HOMEPILOT_*_PORT | Published ports; adjust only for a diagnosed conflict |
+| HOMEPILOT_DEV_BOOTSTRAP | Must remain false for a customer; first administrator is created in UI |
+| HOMEPILOT_CORS_ORIGIN | Comma-separated authorized origins; production contains only actual HomePilot URLs |
+| HOMEPILOT_AUTH_MAX_FAILURES | Allowed failures per user/origin before temporary lockout; default 5 |
+| HOMEPILOT_AUTH_LOCKOUT_MS | Temporary lockout duration; default 900000 milliseconds |
 
-Si se modifica `VITE_API_URL`, reconstruir la UI:
+After changing VITE_API_URL, rebuild the UI:
 
-```bash
+~~~bash
 docker compose -f docker-compose.office.yml up --build -d homepilot-ui
-```
+~~~
 
-El flujo esperado para dispositivos importados es:
+Expected imported-device flow:
 
-1. Configurar URL y token de Home Assistant en ajustes.
-2. Descubrir entidades disponibles.
-3. Importar la entidad como device HomePilot.
-4. Asignarla a una habitacion o dejarla en inbox.
-5. Controlarla desde dashboard, detalle, escenas, automatizaciones o voz.
-6. Si el dispositivo se rompe o desaparece en Home Assistant, HomePilot debe reflejarlo como no disponible y permitir refresh o eliminacion cuando aplique.
+1. Configure Home Assistant URL and token in settings.
+2. Discover available entities.
+3. Import the entity as a HomePilot device.
+4. Assign it to a room or leave it in the inbox.
+5. Control it from dashboard, detail, scenes, automations, or voice.
+6. If it fails or disappears in Home Assistant, HomePilot represents it as unavailable and permits refresh or removal where supported.
 
-Campos importantes de `devices`:
+Important devices fields:
 
-- `external_id`: entidad o identificador externo de Home Assistant.
-- `integration_source`: fuente de integracion; hoy por defecto `ha`.
-- `last_known_state`: estado JSON persistido.
-- `invert_state`: permite corregir dispositivos que reportan logica invertida, por ejemplo cortinas.
-- `semantic_type`: ayuda a interpretar el dispositivo de forma modular, por ejemplo interruptor, cortina, luz u otra categoria.
+- external_id: Home Assistant entity or external identifier.
+- integration_source: integration source, currently ha by default.
+- last_known_state: persisted JSON state.
+- invert_state: corrects inverted reporting, for example covers.
+- semantic_type: modular interpretation such as switch, cover, light, or another category.
+## Devices and modularity
 
-## Dispositivos y modularidad
+The UI and backend must not assume every device is identical. The current design treats each device through its capabilities and profile:
 
-La UI y el backend no deben asumir que todos los dispositivos son iguales. La direccion actual del codigo es tratar cada device segun sus capacidades y su perfil:
+- Smart switches: on/off.
+- Lights: on/off and, when supported, brightness/color.
+- Covers: open, close, stop, position, and possible state inversion.
+- Future device types: add profiles/capabilities without breaking existing ones.
 
-- Interruptores inteligentes: encendido/apagado.
-- Luces: encendido/apagado y, cuando exista soporte, intensidad/color.
-- Cortinas/covers: abrir, cerrar, detener, posicion y posible inversion de estado.
-- Otros dispositivos futuros: deben agregarse como perfiles/capacidades sin romper los existentes.
+Rules for device extensions:
 
-Buenas reglas para extender devices:
+- Do not code brand rules directly into a screen.
+- Prefer normalized capabilities.
+- Keep raw Home Assistant state in last_known_state.
+- Map brand differences in adapters or profiles, not generic visual components.
+- If a device stops responding, show unavailable state instead of hiding it.
+## Voice assistant
 
-- No codificar reglas por marca directamente en una pantalla.
-- Preferir capacidades normalizadas.
-- Mantener el estado crudo de Home Assistant en `last_known_state`.
-- Mapear diferencias de marca en adaptadores o perfiles, no en componentes visuales generales.
-- Si un dispositivo deja de responder, mostrar estado no disponible en vez de esconderlo.
+The assistant listens for the **Ok Nezu** wake phrase and then processes the command.
 
-## Asistente de voz
-
-El asistente esta pensado para escuchar el activador `Ok Nezu` y despues procesar la orden. El stack local relacionado es:
-
-| Pieza | Servicio | Funcion |
+| Piece | Service | Responsibility |
 |---|---|---|
-| Wake/listener UI | `GlobalWakeListener.tsx` | Captura activador y audio desde navegador |
-| STT | `homepilot-stt` | Convierte audio a texto con Whisper local |
-| Assistant API | `AssistantRoutes.ts` | Orquesta transcripcion, intencion, respuesta y acciones |
-| LLM | `ollama` | Razonamiento local si esta habilitado |
-| TTS | `homepilot-tts` | Respuesta de voz con Piper |
+| Wake/listener UI | GlobalWakeListener.tsx | Captures the wake phrase and browser audio |
+| STT | homepilot-stt | Converts audio to text with local Whisper |
+| Assistant API | AssistantRoutes.ts | Coordinates transcription, intent, response, and actions |
+| LLM | ollama | Local reasoning when enabled |
+| TTS | homepilot-tts | Piper voice response |
 
-Variables relevantes en Docker Compose:
+Relevant Docker Compose variables:
 
-| Variable | Uso |
+| Variable | Use |
 |---|---|
-| `OLLAMA_ENABLED` | Activa o desactiva integracion LLM con Ollama |
-| `OLLAMA_BASE_URL` | URL interna de Ollama desde API |
-| `OLLAMA_MODEL` | Modelo usado por el asistente |
-| `OLLAMA_TIMEOUT_MS` | Timeout de llamadas al modelo |
-| `ASSISTANT_PLANNER_V2_SHADOW` | Ejecuta planner V2 en modo sombra para comparar resultados |
-| `ASSISTANT_PLANNER_V2_EXECUTION` | Permite que planner V2 ejecute acciones cuando esta habilitado |
-| `STT_PROVIDER` | Proveedor STT, por ejemplo `whisper-local` |
-| `STT_BASE_URL` | URL interna del servicio STT |
-| `STT_TIMEOUT_MS` | Timeout de transcripcion |
-| `WHISPER_HOTWORDS` | Pistas de activador, incluye variantes de `Ok Nezu` |
-| `TTS_PROVIDER` | Proveedor TTS, por ejemplo `piper` |
-| `TTS_BASE_URL` | URL interna del servicio TTS |
-| `PIPER_VOICE_ES` | Voz Piper principal para español latino |
-| `PIPER_FALLBACK_VOICE_ES` | Voz Piper local de respaldo para español |
-| `PIPER_VOICE_EN` | Voz Piper en inglés |
-
+| OLLAMA_ENABLED | Enables or disables Ollama integration |
+| OLLAMA_BASE_URL | Internal Ollama URL from the API |
+| OLLAMA_MODEL | Model used by the assistant |
+| OLLAMA_TIMEOUT_MS | Model request timeout |
+| ASSISTANT_PLANNER_V2_SHADOW | Runs Planner V2 in shadow mode for comparison |
+| ASSISTANT_PLANNER_V2_EXECUTION | Allows Planner V2 to execute actions when enabled |
+| STT_PROVIDER | STT provider, for example whisper-local |
+| STT_BASE_URL | Internal STT service URL |
+| STT_TIMEOUT_MS | Transcription timeout |
+| WHISPER_HOTWORDS | Wake phrase hints, including Ok Nezu variants |
+| TTS_PROVIDER | TTS provider, for example piper |
+| TTS_BASE_URL | Internal TTS service URL |
+| PIPER_VOICE_ES | Primary Piper voice for Latin American Spanish |
+| PIPER_FALLBACK_VOICE_ES | Local Spanish fallback Piper voice |
+| PIPER_VOICE_EN | English Piper voice |
 ## Frontend
 
-La consola esta en `apps/operator-console` y usa React, TypeScript y Vite. La UI se organiza por vistas, componentes reutilizables, tokens de diseno y llamadas API centralizadas.
+The console is in apps/operator-console and uses React, TypeScript, and Vite. The UI is organized through views, reusable components, design tokens, and centralized API calls.
 
-Piezas principales:
-
-| Area | Ruta | Uso |
+| Area | Path | Use |
 |---|---|---|
-| App shell | `App.tsx` | Layout global, navegacion y gates por rol |
-| Config API | `config.ts` | URLs de endpoints |
-| Design tokens | `design-system/tokens.ts` | Colores, radios, sombras y escalas |
-| Componentes base | `components/ui` | Botones, cards, inputs, modales, selects |
-| Inicio | `views/DashboardView.tsx` y componentes dashboard | Cabecera del hogar, escenas favoritas, automatizaciones favoritas y sugerencias inteligentes |
-| Tableros | `views/DashboardsView.tsx` y `views/dashboards/*` | Navegacion por usuario, pestañas estilo Home Assistant, secciones editables y tarjetas modulares |
-| Devices/inbox | `views/InboxView.tsx` | Importacion y gestion de devices |
-| Home Assistant | `views/HomeAssistantSettingsView.tsx` | Configurar bridge y discovery |
-| Escenas | `views/ScenesView.tsx` | Listado y ejecucion de escenas |
-| Automatizaciones | `views/AutomationsView.tsx` y workbench | Reglas y builder |
-| Asistente | `views/AssistantView.tsx` | Chat/acciones del asistente |
-| Usuarios | `views/UsersView.tsx` | Gestion RBAC |
-| Diagnostico | `views/DiagnosticsView.tsx` | Salud del sistema |
+| App shell | App.tsx | Global layout, navigation, and role gates |
+| API configuration | config.ts | Endpoint URLs |
+| Design tokens | design-system/tokens.ts | Colors, radii, shadows, and scales |
+| Base components | components/ui | Buttons, cards, inputs, modals, and selects |
+| Home | views/DashboardView.tsx and dashboard components | Home header, favorite scenes/automations, intelligent suggestions |
+| Dashboards | views/DashboardsView.tsx and views/dashboards | User navigation, Home Assistant-style tabs, editable sections, modular cards |
+| Devices/inbox | views/InboxView.tsx | Device import and management |
+| Home Assistant | views/HomeAssistantSettingsView.tsx | Bridge configuration and discovery |
+| Scenes | views/ScenesView.tsx | Scene listing and execution |
+| Automations | views/AutomationsView.tsx and workbench | Rules and builder |
+| Assistant | views/AssistantView.tsx | Assistant chat/actions |
+| Users | views/UsersView.tsx | RBAC management |
+| Diagnostics | views/DiagnosticsView.tsx | System health |
 
-Reglas actuales de UI:
+Current UI rules:
 
-- Mantener datos visibles durante refresh.
-- No mostrar skeletons despues de la primera carga.
-- Evitar dependencias inestables en `useEffect`.
-- Evitar selectores Zustand que devuelvan arrays/objetos nuevos en cada render.
-- Mantener componentes responsive para celular, tablet y escritorio.
-- Usar tokens del design system en vez de colores sueltos.
+- Keep data visible during refresh.
+- Do not show skeletons after initial load.
+- Avoid unstable useEffect dependencies.
+- Avoid Zustand selectors that return new arrays/objects on every render.
+- Keep components responsive for phone, tablet, desktop, and kiosk.
+- Use design-system tokens instead of standalone colors.
+## Database
 
-## Base de datos
+HomePilot uses local SQLite. In Docker:
 
-La base de datos es SQLite local. En Docker:
-
-```bash
+~~~bash
 HOMEPILOT_DB_PATH=/app/data/homepilot.db
-```
+~~~
 
-Ese archivo vive en el volumen montado:
+The file lives in the mounted volume:
 
-```bash
+~~~bash
 ./data:/app/data
-```
+~~~
 
-Por eso, en el host queda en:
+The host path is therefore:
 
-```bash
+~~~text
 data/homepilot.db
-```
+~~~
 
-Las migraciones se guardan en `migrations/` y se registran en `_migrations`. No se debe editar la base manualmente para cambios de esquema; los cambios deben entrar como migraciones.
+Migrations are stored in migrations and recorded in _migrations. Do not edit the database manually for schema changes; schema changes must use migrations.
 
-### Tablas principales
+### Primary tables
 
-| Tabla | Proposito |
+| Table | Purpose |
 |---|---|
-| `_migrations` | Registro interno de migraciones aplicadas |
-| `homes` | Hogares definidos en el edge |
-| `rooms` | Habitaciones asociadas a un hogar |
-| `devices` | Inventario de dispositivos, estado persistido, habitacion y metadata de integracion |
-| `automation_rules` | Reglas de automatizacion con trigger/action JSON |
-| `activity_logs` | Auditoria append-only de eventos y acciones |
-| `ha_settings` | Configuracion singleton de Home Assistant |
-| `users` | Usuarios locales, rol, hash de password y estado activo |
-| `sessions` | Sesiones opacas por token |
-| `system_setup` | Estado de inicializacion/onboarding del edge |
-| `scenes` | Escenas con arreglo JSON de acciones |
-| `dashboards` | Dashboards configurables por usuario |
-| `assistant_findings` | Hallazgos/sugerencias proactivas del asistente |
-| `assistant_feedback_events` | Feedback para mejorar hallazgos del asistente |
-| `assistant_drafts` | Drafts estabilizados por fingerprint |
-| `system_variables` | Variables globales o por hogar para automatizacion/contexto |
-| `execution_records` | Resultado historico de ejecuciones manuales, escenas o automatizaciones |
-| `assistant_memory` | Memoria conversacional y preferencias por usuario |
-| `assistant_learning_events` | Eventos de aprendizaje/correccion del asistente |
+| _migrations | Internal applied-migration registry |
+| homes | Homes defined in the Edge appliance |
+| rooms | Rooms associated with a home |
+| devices | Device inventory, persisted state, room, and integration metadata |
+| automation_rules | Automation rules with trigger/action JSON |
+| activity_logs | Append-only audit of events and actions |
+| ha_settings | Singleton Home Assistant configuration |
+| users | Local users, roles, password hashes, and active state |
+| sessions | Opaque token sessions |
+| system_setup | Edge initialization/onboarding state |
+| scenes | Scenes with JSON action arrays |
+| dashboards | Configurable dashboards by user |
+| assistant_findings | Proactive assistant findings/suggestions |
+| assistant_feedback_events | Feedback that improves findings |
+| assistant_drafts | Fingerprint-stabilized drafts |
+| system_variables | Global or home-scoped variables for automation/context |
+| execution_records | Historical manual, scene, and automation results |
+| assistant_memory | Per-user conversational memory and preferences |
+| assistant_learning_events | Assistant learning/correction events |
 
-### Columnas clave por dominio
+### Key columns by domain
 
-| Dominio | Tablas | Notas |
+| Domain | Tables | Notes |
 |---|---|---|
-| Topologia | `homes`, `rooms` | `rooms.home_id` depende de `homes.id` |
-| Devices | `devices` | `UNIQUE(home_id, external_id)` evita duplicados por discovery |
-| Automatizacion | `automation_rules`, `system_variables`, `execution_records` | Triggers/actions/acciones se guardan como JSON |
-| Auditoria | `activity_logs`, `execution_records` | Permite investigar cambios y ejecuciones |
-| Auth | `users`, `sessions` | RBAC local con sesiones opacas |
-| Home Assistant | `ha_settings`, `devices` | `ha_settings` guarda bridge; `devices.external_id` apunta a entidades |
-| Asistente | `assistant_findings`, `assistant_feedback_events`, `assistant_drafts`, `assistant_memory`, `assistant_learning_events` | Persisten sugerencias, feedback, memoria y aprendizaje |
+| Topology | homes, rooms | rooms.home_id depends on homes.id |
+| Devices | devices | UNIQUE(home_id, external_id) prevents discovery duplicates |
+| Automation | automation_rules, system_variables, execution_records | Triggers/actions are persisted as JSON |
+| Audit | activity_logs, execution_records | Investigates changes and executions |
+| Auth | users, sessions | Local RBAC with opaque sessions |
+| Home Assistant | ha_settings, devices | ha_settings stores bridge; devices.external_id points to entities |
+| Assistant | assistant_findings, assistant_feedback_events, assistant_drafts, assistant_memory, assistant_learning_events | Persists suggestions, feedback, memory, and learning |
+## Relevant environment variables
 
-## Variables de entorno relevantes
+These are the local WSL development values used to run the real test runtime. They are visible here because they explain the working environment; never commit real secrets.
 
-Estas son las variables que Oscar usa actualmente en WSL para desarrollo local. Deben estar visibles porque explican como se levanta el runtime real de pruebas:
-
-```bash
+~~~bash
 HOMEPILOT_DEV_BOOTSTRAP=true
 HOMEPILOT_DB_PATH=./data/homepilot.db
 
@@ -611,195 +598,191 @@ WHISPER_BEAM_SIZE=3
 WHISPER_VAD_MIN_SILENCE_MS=650
 WHISPER_VAD_SPEECH_PAD_MS=400
 WHISPER_MAX_AUDIO_BYTES=9000000
-```
+~~~
 
-Detalle de uso:
-
-| Variable | Valor WSL actual | Descripcion |
+| Variable | Current local value | Description |
 |---|---|---|
-| `HOMEPILOT_DEV_BOOTSTRAP` | `true` | Crea `admin/admin` si la DB esta vacia. Solo desarrollo local. |
-| `HOMEPILOT_DB_PATH` | `./data/homepilot.db` | Ruta SQLite cuando se corre fuera del contenedor o desde entorno WSL local. En contenedor normalmente se usa `/app/data/homepilot.db`. |
-| `HOMEPILOT_SQLITE_JOURNAL_MODE` | `WAL` | Modo de journal SQLite. Use `WAL` en la miniPC Linux; use `DELETE` solo si Docker monta `data/` desde el filesystem de Windows. |
-| `OLLAMA_ENABLED` | `true` | Activa llamadas del asistente a Ollama. |
-| `OLLAMA_BASE_URL` | `http://ollama:11434` | URL interna Docker para el servicio Ollama. |
-| `OLLAMA_MODEL` | `phi3` | Modelo principal del asistente. |
-| `OLLAMA_TIMEOUT_MS` | `30000` | Tiempo maximo de espera para respuesta del modelo. |
-| `ASSISTANT_PLANNER_V2_SHADOW` | `true` | Activa planner V2 en modo sombra para comparar/validar comportamiento. |
-| `ASSISTANT_PLANNER_V2_SHADOW_SAMPLE_RATE` | `1` | Ejecuta shadow en el 100% de los casos elegibles. |
-| `ASSISTANT_PLANNER_V2_SHADOW_FORCE` | `true` | Fuerza ejecucion del shadow aunque el muestreo normal no lo elija. |
-| `ASSISTANT_PLANNER_V2_SHADOW_LIGHT_PROMPT` | `true` | Usa prompt liviano como fallback del planner shadow. |
-| `ASSISTANT_PLANNER_V2_SHADOW_ULTRA_LIGHT_PROMPT` | `true` | Usa prompt ultra liviano para reducir latencia/costo local. |
-| `ASSISTANT_PLANNER_V2_SHADOW_TIMEOUT_MS` | `20000` | Timeout del planner V2 shadow. |
-| `ASSISTANT_PLANNER_V2_EXECUTION` | `true` | Permite ejecutar acciones con planner V2. Debe usarse con cuidado porque puede accionar dispositivos. |
-| `ASSISTANT_PLANNER_V2_SHADOW_MODEL` | `qwen2.5:1.5b` | Modelo alterno para shadow planner. |
-| `TTS_PROVIDER` | `piper` | Motor de sintesis de voz. |
-| `TTS_BASE_URL` | `http://homepilot-tts:8088` | URL interna Docker del servicio TTS. |
-| `PIPER_VOICE_ES` | `es_MX-claude-high` | Voz Piper principal de alta calidad para respuestas en español latino. |
-| `PIPER_FALLBACK_VOICE_ES` | `es_ES-sharvard-medium` | Respaldo local si la voz principal no estuviera disponible. |
-| `PIPER_VOICE_EN` | `en_US-lessac-medium` | Voz Piper para respuestas en inglés. |
-| `PIPER_SYNTHESIS_TIMEOUT_SECONDS` | `20` | Timeout de generacion TTS. |
-| `STT_PROVIDER` | `whisper-local` | Motor de transcripcion. |
-| `STT_BASE_URL` | `http://homepilot-stt:8090` | URL interna Docker del servicio STT. |
-| `STT_TIMEOUT_MS` | `30000` | Timeout de transcripcion desde API. |
-| `WHISPER_MODEL` | `small` | Modelo Whisper usado por STT. |
-| `WHISPER_COMPUTE_TYPE` | `int8` | Tipo de computo para optimizar rendimiento local. |
-| `WHISPER_BEAM_SIZE` | `3` | Beam size de decodificacion Whisper. |
-| `WHISPER_VAD_MIN_SILENCE_MS` | `650` | Silencio minimo para cortar segmentos de voz. |
-| `WHISPER_VAD_SPEECH_PAD_MS` | `400` | Margen agregado alrededor de voz detectada. |
-| `WHISPER_MAX_AUDIO_BYTES` | `9000000` | Tamano maximo permitido del audio enviado a STT. |
+| HOMEPILOT_DEV_BOOTSTRAP | true | Creates admin/admin only when the database is empty; local development only |
+| HOMEPILOT_DB_PATH | ./data/homepilot.db | SQLite path outside Docker/inside local WSL; containers normally use /app/data/homepilot.db |
+| HOMEPILOT_SQLITE_JOURNAL_MODE | WAL | Use WAL on the Linux mini PC; use DELETE only when Docker mounts data from Windows |
+| OLLAMA_ENABLED | true | Enables assistant calls to Ollama |
+| OLLAMA_BASE_URL | http://ollama:11434 | Internal Docker URL for Ollama |
+| OLLAMA_MODEL | phi3 | Main assistant model |
+| OLLAMA_TIMEOUT_MS | 30000 | Maximum wait for a model response |
+| ASSISTANT_PLANNER_V2_SHADOW | true | Runs Planner V2 in comparison/validation mode |
+| ASSISTANT_PLANNER_V2_SHADOW_SAMPLE_RATE | 1 | Executes shadow mode for 100 percent of eligible cases |
+| ASSISTANT_PLANNER_V2_SHADOW_FORCE | true | Forces shadow execution even when ordinary sampling would skip it |
+| ASSISTANT_PLANNER_V2_SHADOW_LIGHT_PROMPT | true | Uses a lightweight prompt as planner-shadow fallback |
+| ASSISTANT_PLANNER_V2_SHADOW_ULTRA_LIGHT_PROMPT | true | Uses an ultra-light prompt to reduce local latency/cost |
+| ASSISTANT_PLANNER_V2_SHADOW_TIMEOUT_MS | 20000 | Planner V2 shadow timeout |
+| ASSISTANT_PLANNER_V2_EXECUTION | true | Allows Planner V2 actions; operate carefully because devices can be controlled |
+| ASSISTANT_PLANNER_V2_SHADOW_MODEL | qwen2.5:1.5b | Alternative model for the shadow planner |
+| TTS_PROVIDER | piper | Voice synthesis engine |
+| TTS_BASE_URL | http://homepilot-tts:8088 | Internal Docker URL for TTS |
+| PIPER_VOICE_ES | es_MX-claude-high | Primary high-quality Latin Spanish Piper voice |
+| PIPER_FALLBACK_VOICE_ES | es_ES-sharvard-medium | Local fallback when the primary voice is unavailable |
+| PIPER_VOICE_EN | en_US-lessac-medium | English Piper voice |
+| PIPER_SYNTHESIS_TIMEOUT_SECONDS | 20 | TTS generation timeout |
+| STT_PROVIDER | whisper-local | Transcription engine |
+| STT_BASE_URL | http://homepilot-stt:8090 | Internal Docker URL for STT |
+| STT_TIMEOUT_MS | 30000 | API transcription timeout |
+| WHISPER_MODEL | small | Whisper model used by STT |
+| WHISPER_COMPUTE_TYPE | int8 | Compute type optimized for local performance |
+| WHISPER_BEAM_SIZE | 3 | Whisper decoding beam size |
+| WHISPER_VAD_MIN_SILENCE_MS | 650 | Minimum silence used to split voice segments |
+| WHISPER_VAD_SPEECH_PAD_MS | 400 | Padding added around detected speech |
+| WHISPER_MAX_AUDIO_BYTES | 9000000 | Maximum audio size accepted by STT |
 
-Variables adicionales del contenedor:
+Additional container variables:
 
-| Variable | Valor local tipico | Descripcion |
+| Variable | Typical local value | Description |
 |---|---|---|
-| `NODE_ENV` | `production` en contenedor | Modo Node dentro de la imagen Docker |
-| `INTERNAL_HA_URL` | `http://homeassistant:8123` o `http://host.docker.internal:8123` | URL interna para hablar con Home Assistant. Usar `host.docker.internal` cuando el cliente ya tiene su propio HA fuera del compose de HomePilot. |
-| `VITE_API_URL` | Vacia | La UI usa su origen actual y Nginx enruta `/api` y `/ws`. Una URL absoluta queda reservada para despliegues con API separada. |
+| NODE_ENV | production in container | Node runtime mode inside the Docker image |
+| INTERNAL_HA_URL | http://homeassistant:8123 or http://host.docker.internal:8123 | Internal Home Assistant URL; use host.docker.internal for a customer HA outside HomePilot compose |
+| VITE_API_URL | Empty | UI uses current origin and Nginx routes /api and /ws. An absolute URL is only for a separately published API |
+## Windows and WSL workflow
 
-## Flujo de trabajo con Windows y WSL
+This project is edited on Windows:
 
-En este proyecto se edita el codigo en Windows:
-
-```bash
+~~~text
 C:\Users\ocuen\Developer\Nezu\homepilot
-```
+~~~
 
-El entorno donde Oscar corre la app esta en WSL:
+Oscar's local runtime is in WSL:
 
-```bash
+~~~text
 /home/oscar/homepilot
-```
+~~~
 
-Flujo recomendado cuando se termina una mejora:
+Recommended workflow after a completed improvement:
 
-1. Validar en Windows.
-2. Hacer commit.
-3. Hacer push a `main`.
-4. En WSL, traer cambios.
-5. Levantar o reconstruir Docker Compose.
+1. Validate in Windows.
+2. Commit.
+3. Push to main.
+4. Pull changes in WSL.
+5. Start or rebuild Docker Compose.
 
-Comandos en Windows:
+Windows commands:
 
-```bash
+~~~bash
 npm run typecheck
 npm run build
 npm run build --prefix apps/operator-console
 git status
 git add .
-git commit -m "Descripcion corta"
+git commit -m "Short description"
 git push
-```
+~~~
 
-Comandos en WSL:
+WSL commands:
 
-```bash
+~~~bash
 cd /home/oscar/homepilot
 git pull --ff-only
 docker compose up --build -d
 docker compose ps
 curl -fsS http://localhost:3000/health
-```
+~~~
 
-Si solo cambiaron archivos de documentacion, no hace falta reconstruir contenedores para ver cambios en runtime. Basta con:
+Documentation-only changes do not require a runtime rebuild:
 
-```bash
+~~~bash
 cd /home/oscar/homepilot
 git pull --ff-only
-```
+~~~
 
-Si se cambia frontend o backend, reconstruir:
+For frontend or backend changes:
 
-```bash
+~~~bash
 docker compose up --build -d homepilot-api homepilot-ui
-```
+~~~
 
-Si se toca STT, TTS, Home Assistant o dependencias de imagen:
+For STT, TTS, Home Assistant, or image dependency changes:
 
-```bash
+~~~bash
 docker compose up --build -d
-```
+~~~
+## Mandatory validation commands
 
-## Comandos de validacion obligatorios
+For frontend or full-stack changes:
 
-Para cambios frontend o full-stack:
-
-```bash
+~~~bash
 npm run typecheck
 npm run build
 npm run build --prefix apps/operator-console
-```
+~~~
 
-Para cambios backend, API, runtime, auth, automatizacion o bootstrap:
+For backend, API, runtime, auth, automation, or bootstrap changes:
 
-```bash
+~~~bash
 npm run test
-```
+~~~
 
-Para validar despliegue real:
+For real deployment validation:
 
-```bash
+~~~bash
 docker compose up --build
 docker compose ps
-```
+~~~
 
-## Operacion diaria
+## Daily operation
 
-### Levantar todo el stack
+### Start the complete stack
 
-```bash
+~~~bash
 docker compose up --build -d
-```
+~~~
 
-### Ver estado
+### Inspect state
 
-```bash
+~~~bash
 docker compose ps
-```
+~~~
 
-### Ver logs de API
+### Read API logs
 
-```bash
+~~~bash
 docker compose logs homepilot-api
-```
+~~~
 
-### Ver logs de UI
+### Read UI logs
 
-```bash
+~~~bash
 docker compose logs homepilot-ui
-```
+~~~
 
-### Ver logs de Home Assistant
+### Read Home Assistant logs
 
-```bash
+~~~bash
 docker compose logs homeassistant
-```
+~~~
 
-### Validar API
+### Validate API
 
-```bash
+~~~bash
 curl -fsS http://localhost:3000/health
-```
+~~~
 
 ## Troubleshooting
 
-| Sintoma | Revision recomendada |
+| Symptom | Recommended check |
 |---|---|
-| `HA_UNREACHABLE` al refrescar device | Verificar que Home Assistant este healthy, que `INTERNAL_HA_URL` sea `http://homeassistant:8123` o `http://host.docker.internal:8123` segun el despliegue, y que el token HA siga vigente |
-| Device duplicado despues de reimportar | Revisar `devices.external_id`; la restriccion unica aplica por `home_id + external_id` |
-| Cortina reporta invertido | Revisar `devices.invert_state` y el perfil/capacidad aplicado a cover |
-| Device no cambia en inicio | Revisar refresh de estado, eventos realtime y `last_known_state` persistido |
-| Login `admin/admin` no funciona | Confirmar que la DB estaba vacia al arrancar y que `HOMEPILOT_DEV_BOOTSTRAP=true` estaba activo |
-| STT devuelve transcript vacio | Revisar audio enviado, salud de `homepilot-stt` y que no existan llamadas concurrentes bloqueando la cola |
-| UI no conecta API | Confirmar `VITE_API_URL=` y revisar `http://localhost:8080/health`; Nginx debe alcanzar `homepilot-api:3000` |
-| UI publica intenta conectar a localhost | Reconstruir `homepilot-ui` con `VITE_API_URL=` y publicar solamente `127.0.0.1:8080` en Cloudflare Tunnel |
-| Cambios no aparecen en WSL | Hacer `git pull --ff-only` dentro de `/home/oscar/homepilot` |
+| HA_UNREACHABLE while refreshing a device | Verify Home Assistant health, that INTERNAL_HA_URL is http://homeassistant:8123 or http://host.docker.internal:8123 for the deployment, and that the HA token is still valid |
+| Duplicate device after re-import | Inspect devices.external_id; the unique constraint is scoped by home_id + external_id |
+| Cover reports inverted state | Inspect devices.invert_state and the cover profile/capability |
+| Device does not change on home view | Inspect state refresh, realtime events, and persisted last_known_state |
+| admin/admin login does not work | Confirm the database was empty at startup and HOMEPILOT_DEV_BOOTSTRAP=true was active |
+| STT returns an empty transcript | Inspect sent audio, homepilot-stt health, and concurrent calls blocking its queue |
+| UI cannot connect to API | Confirm VITE_API_URL= and inspect http://localhost:8080/health; Nginx must reach homepilot-api:3000 |
+| Public UI tries to connect to localhost | Rebuild homepilot-ui with VITE_API_URL= and publish only 127.0.0.1:8080 through Cloudflare Tunnel |
+| Changes do not appear in WSL | Run git pull --ff-only inside /home/oscar/homepilot |
 
-## Reglas de mantenimiento
+## Maintenance rules
 
-- No documentar comportamientos que el codigo no implemente.
-- No cambiar contratos API sin actualizar consumidores.
-- No guardar secretos reales en git.
-- No manipular `data/homepilot.db` a mano para cambios de esquema.
-- Agregar migraciones para cambios persistentes.
-- Mantener `docs/documentation-index.md` actualizado cuando se agregue documentacion importante.
-- Para nuevas marcas o nuevos tipos de devices, mapear capacidades de forma modular y evitar logica especial en componentes genericos.
+- Do not document behavior the code does not implement.
+- Do not change API contracts without updating consumers.
+- Do not commit real secrets.
+- Do not edit data/homepilot.db manually for schema changes.
+- Add migrations for persistent changes.
+- Keep docs/documentation-index.md updated when important documentation is added.
+- For new brands or device types, map capabilities modularly and avoid special logic in generic components.

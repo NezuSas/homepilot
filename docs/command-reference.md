@@ -1,230 +1,165 @@
-# Referencia de comandos operativos
+# HomePilot Command Reference
 
-Esta guía reúne los comandos soportados para instalar, iniciar, actualizar, validar y diagnosticar HomePilot. Ejecútalos desde la raíz del repositorio, salvo que se indique otra cosa.
+## Prerequisites
 
-## 1. Requisitos
+- Node.js 20.19 to 22.x and npm 10 or later.
+- Docker Engine on Linux, or Docker Desktop on Windows.
+- Run commands from the repository root unless stated otherwise.
 
-- Node.js 20.19 a 22 y npm 10 o superior para desarrollo local.
-- Docker Desktop en Windows, o Docker Engine con Docker Compose v2 en Linux.
-- Git para actualizar el código.
-
-Comprueba las herramientas:
-
-```bash
-node --version
-npm --version
-docker compose version
-git --version
-```
-
-## 2. Instalación de dependencias para desarrollo
-
-Solo es necesaria al clonar el proyecto o cuando cambien `package.json` o `package-lock.json`:
+## Install Dependencies
 
 ```bash
 npm install
 npm install --prefix apps/operator-console
 ```
 
-## 3. Inicio local para desarrollo
+## Local Development
 
-Inicia API y consola web en terminales coordinadas:
+Start API and UI development servers:
 
 ```bash
 npm run dev
 ```
 
-Para iniciar solamente la API:
-
-```bash
-npm run dev:api
-```
-
-Para iniciar solamente la consola web:
+Start only the Operator Console:
 
 ```bash
 npm run dev:ui
 ```
 
-Detén el proceso con `Ctrl+C` en la terminal correspondiente.
-
-## 4. Instalación o primera configuración del appliance
-
-El asistente guiado es el punto de entrada recomendado para una instalación nueva. Detecta el entorno y permite elegir el perfil de integración:
+Start only the API:
 
 ```bash
-bash scripts/install-edge-office.sh --wizard
+npm run dev:api
 ```
 
-Perfiles disponibles:
+## Deploy the Appliance Runtime
 
-- `bridge_ha`: conecta HomePilot con una instalación existente de Home Assistant.
-- `native_only`: usa únicamente integraciones nativas de HomePilot.
-- `ha_companion`: instala el Home Assistant complementario gestionado por HomePilot.
-
-Instalación no interactiva de un perfil y arranque inmediato:
-
-```bash
-bash scripts/install-edge-office.sh --profile bridge_ha --clean --start --yes
-```
-
-Consulta de estado sin modificar la instalación:
-
-```bash
-bash scripts/install-edge-office.sh --profile bridge_ha --status
-```
-
-Para ayuda completa del instalador:
-
-```bash
-bash scripts/install-edge-office.sh --help
-```
-
-## 5. Inicio con Docker
-
-### Windows con Docker Desktop
-
-Usa el overlay de Docker Desktop. Mantiene la base de datos canónica en `data/homepilot.db`:
-
-```powershell
-docker compose -f docker-compose.office.yml -f docker-compose.desktop.yml up -d --build
-```
-
-### Linux o miniPC
-
-```bash
-docker compose -f docker-compose.office.yml up -d --build
-```
-
-Después del arranque:
-
-```bash
-docker compose -f docker-compose.office.yml ps
-```
-
-En Windows añade también el overlay al comando de estado:
-
-```powershell
-docker compose -f docker-compose.office.yml -f docker-compose.desktop.yml ps
-```
-
-Puntos de acceso del runtime Docker:
-
-- Consola web: `http://localhost:8080`
-- API en Linux: `http://localhost:3000`
-- API en Docker Desktop: `http://localhost:13000`
-- Home Assistant local: `http://localhost:18123`
-
-## 6. Mantenimiento y despliegue seguro
-
-El script de mantenimiento selecciona automáticamente el compose adecuado entre Linux, WSL y Docker Desktop. Para actualizar imágenes y reiniciar conservando datos:
+The maintenance script selects the correct Compose overlay for the current
+operating system and installation profile.
 
 ```bash
 bash scripts/homepilot-maintenance.sh --deploy --yes
 ```
 
-Con perfil explícito:
+Select a profile explicitly when required:
 
 ```bash
 bash scripts/homepilot-maintenance.sh --profile bridge_ha --deploy --yes
+bash scripts/homepilot-maintenance.sh --profile native_only --deploy --yes
+bash scripts/homepilot-maintenance.sh --profile ha_companion --deploy --yes
 ```
 
-Estado de espacio, Docker y salud de API, UI, Ollama, STT, TTS y Home Assistant, sin cambios:
+Check service health without changing the runtime:
 
 ```bash
 bash scripts/homepilot-maintenance.sh --status
 ```
 
-Limpieza segura de caché e imágenes colgantes, sin borrar volúmenes ni la base de datos:
+## Compose Profiles
+
+Linux MiniPC, bridge to an existing Home Assistant:
 
 ```bash
-bash scripts/homepilot-maintenance.sh --clean --yes
+docker compose -f docker-compose.office.yml up -d --build
 ```
 
-Ayuda y opciones avanzadas:
-
-```bash
-bash scripts/homepilot-maintenance.sh --help
-```
-
-## 7. Actualización desde Windows hacia la miniPC Linux
-
-En Windows, después de validar cambios:
+Windows Docker Desktop, bridge or native profile:
 
 ```powershell
-git status
-git add -A
-git commit -m "descripcion del cambio"
-git push origin main
+docker compose -f docker-compose.office.yml -f docker-compose.desktop.yml up -d --build
 ```
 
-En la miniPC Linux, dentro del directorio del proyecto:
+Windows Docker Desktop, Home Assistant companion profile:
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.ha-companion.desktop.yml up -d --build
+```
+
+## Runtime Inspection
 
 ```bash
-git checkout main
-git pull origin main
-bash scripts/homepilot-maintenance.sh --deploy --yes
+docker compose ps
+docker compose logs --tail=150 homepilot-api
+docker compose logs --tail=150 homepilot-ui
+curl -fsS http://127.0.0.1:3000/health
 ```
 
-## 8. Validación antes de publicar cambios
+On Docker Desktop, the API is normally exposed on port `13000` and the UI on
+port `8080`.
 
-Validación de tipos:
+## Quality and Release Validation
 
-```bash
-npm run typecheck
-```
-
-Compilación del backend y la consola:
-
-```bash
-npm run build
-npm run build --prefix apps/operator-console
-```
-
-Pruebas unitarias e integración:
-
-```bash
-npm run test
-```
-
-Pruebas responsive de la consola:
-
-```bash
-npm run test:responsive
-```
-
-Puerta integral de calidad: SDD, BDD, arquitectura, i18n, lint, pruebas y compilaciones:
+Run the complete engineering validation suite:
 
 ```bash
 npm run verify:quality
 ```
 
-Para cambios de frontend, API, autenticación o runtime, valida también el runtime Docker con el comando correspondiente de la sección 5 y revisa el estado con `docker compose ... ps`.
-
-## 9. Diagnóstico de runtime
-
-Logs de un servicio en Linux:
+Run individual checks:
 
 ```bash
-docker compose -f docker-compose.office.yml logs --tail=100 homepilot-api
-docker compose -f docker-compose.office.yml logs --tail=100 homepilot-ui
+npm run check:spec-coverage
+npm run check:architecture-boundaries
+npm run check:no-production-any
+npm run check:bdd-traceability
+npm run check:module-test-coverage
+npm run check:docker-profiles
+npm run test:responsive
+npm run typecheck
+npm run test
+npm run build
+npm run build --prefix apps/operator-console
 ```
 
-En Windows, añade el overlay:
+## Database and Diagnostics
 
-```powershell
-docker compose -f docker-compose.office.yml -f docker-compose.desktop.yml logs --tail=100 homepilot-api
-docker compose -f docker-compose.office.yml -f docker-compose.desktop.yml logs --tail=100 homepilot-ui
-```
+The canonical appliance database is `data/homepilot.db`. Do not copy or create
+an alternative database for the same appliance unless performing an explicit,
+reviewed recovery operation.
 
-Comprobación rápida de salud:
+Inspect the current database through the running API container:
 
 ```bash
-curl -fsS http://127.0.0.1:13000/health
+docker compose exec -T homepilot-api node -e "const Database=require('better-sqlite3'); const db=new Database('/app/data/homepilot.db',{readonly:true}); console.table(db.prepare('SELECT id,name,created_at FROM homes').all())"
 ```
 
-En Linux, si la API usa el puerto estándar, sustituye `13000` por `3000`.
+Inspect available memory on a Linux MiniPC:
 
-## 10. Base de datos y datos persistentes
+```bash
+free -h
+```
 
-No elimines `data/`, volúmenes Docker ni `data/homepilot.db` durante actualizaciones normales. Windows y Linux usan la misma ruta canónica de base de datos por instalación; no se deben crear bases de datos paralelas.
+Inspect Docker disk usage:
+
+```bash
+docker system df
+```
+
+## Source Control Workflow
+
+From Windows development:
+
+```bash
+git status
+git pull --ff-only
+git add <files>
+git commit -m "<concise message>"
+git push origin main
+```
+
+On the Linux appliance after the push:
+
+```bash
+git pull --ff-only
+bash scripts/homepilot-maintenance.sh --deploy --yes
+bash scripts/homepilot-maintenance.sh --status
+```
+
+## Safety Notes
+
+- Use `--status` before cleanup or deployment when diagnosing a live appliance.
+- Do not delete `data/`, Docker volumes, or the SQLite database to solve a
+  connectivity issue.
+- Treat device availability as a physical integration state: verify power,
+  network, and vendor application status before changing HomePilot code.

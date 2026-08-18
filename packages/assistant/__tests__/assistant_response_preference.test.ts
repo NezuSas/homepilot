@@ -6,7 +6,9 @@ import {
 import {
   detectAssistantConversationToneCommand,
   detectAssistantPreferredAddressCommand,
-  normalizeAssistantPreferredAddress
+  normalizeAssistantPreferredAddress,
+  getAssistantConversationToneAcknowledgement,
+  getAssistantConversationTonePrompt
 } from '../application/response/AssistantConversationProfile';
 
 describe('AssistantResponsePreference', () => {
@@ -49,7 +51,14 @@ describe('AssistantConversationProfile', () => {
     expect(normalizeAssistantPreferredAddress('system')).toBeNull();
   });
 
-  it('detects the supported conversational tones', () => {
+
+  it('returns localized acknowledgements and system prompts for each supported tone', () => {
+    expect(getAssistantConversationToneAcknowledgement('formal', 'en')).toContain('formal tone');
+    expect(getAssistantConversationToneAcknowledgement('warm', 'es')).toContain('tono cálido');
+    expect(getAssistantConversationTonePrompt('warm')).toContain('warm, approachable');
+    expect(getAssistantConversationTonePrompt('formal')).toContain('formal, concise');
+    expect(getAssistantConversationTonePrompt('neutral')).toContain('neutral, calm');
+  });  it('detects the supported conversational tones', () => {
     expect(detectAssistantConversationToneCommand('usa un tono formal')).toBe('formal');
     expect(detectAssistantConversationToneCommand('use a warm tone')).toBe('warm');
   });

@@ -1,16 +1,20 @@
 # HomeConversationHeader
 
-**Fuente:** `apps/operator-console/src/components/HomeConversationHeader.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/HomeConversationHeader.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Presentar el contexto operativo de la conversación, su estado y la cantidad de mensajes sin acoplarse al transporte del asistente.
+Presents conversation operational context, status, and message count without
+coupling to assistant transport.
 
-## Contrato
+## Contract
 
-Recibe título, subtítulo, estado de carga y cantidad de mensajes desde la vista consumidora. Las etiquetas estáticas se resuelven con i18n dentro del componente.
+Receives title, subtitle, loading state, and message count from its consuming
+view. Static labels are resolved through component i18n.
 
-## Estados y aceptación
+## States and Acceptance
 
-El título y el subtítulo admiten texto largo sin truncado horizontal. Los indicadores de Edge, ejecución local, estado y conteo se adaptan al ancho disponible y conservan etiquetas localizadas.
+Title and subtitle support long text without horizontal truncation. Edge,
+local-execution, state, and count indicators adapt to available width and
+retain localized labels.

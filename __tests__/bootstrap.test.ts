@@ -47,6 +47,36 @@ describe('Bootstrap Integration', () => {
     expect(tableNames).toContain('homes');
   });
 
+  it('reports the explicitly enabled local language model without changing bootstrap wiring', async () => {
+    const previousEnabled = process.env.OLLAMA_ENABLED;
+    const previousModel = process.env.OLLAMA_MODEL;
+    const previousBaseUrl = process.env.OLLAMA_BASE_URL;
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+    process.env.OLLAMA_ENABLED = 'true';
+    process.env.OLLAMA_MODEL = 'test-model';
+    process.env.OLLAMA_BASE_URL = 'http://ollama.test:11434';
+
+    try {
+      await bootstrap({
+        dbPath,
+        migrationsDir: path.join(__dirname, '../migrations'),
+        verbose: false,
+      });
+
+      expect(logSpy).toHaveBeenCalledWith(
+        '[Assistant] Ollama enabled: model=test-model, baseUrl=http://ollama.test:11434',
+      );
+    } finally {
+      if (previousEnabled === undefined) delete process.env.OLLAMA_ENABLED;
+      else process.env.OLLAMA_ENABLED = previousEnabled;
+      if (previousModel === undefined) delete process.env.OLLAMA_MODEL;
+      else process.env.OLLAMA_MODEL = previousModel;
+      if (previousBaseUrl === undefined) delete process.env.OLLAMA_BASE_URL;
+      else process.env.OLLAMA_BASE_URL = previousBaseUrl;
+      logSpy.mockRestore();
+    }
+  });
+
   it('proceso de reinicio (warm reload) debe conservar de forma transparente el nivel de persistencia durable', async () => {
     const container1 = await bootstrap({
       dbPath: dbPath,

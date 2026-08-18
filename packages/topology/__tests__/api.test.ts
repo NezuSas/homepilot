@@ -101,6 +101,14 @@ describe('Topology API Boundary', () => {
       expect(resp.statusCode).toBe(400);
     });
 
+    it('rejects non-object room payloads before invoking the room use case', async () => {
+      const req: AuthenticatedHttpRequest = { userId: 'u1', body: 'invalid-json-shape' };
+
+      await expect(controller.createRoom(req)).resolves.toEqual({
+        statusCode: 400,
+        body: { error: 'Bad Request: name is required' },
+      });
+    });
     it('listRooms falla explícitamente RESTFUL vía 400 si se omite el parent identifier de ruta', async () => {
       const req: AuthenticatedHttpRequest = { userId: 'u1', query: {} };
       const resp = await controller.listRooms(req);

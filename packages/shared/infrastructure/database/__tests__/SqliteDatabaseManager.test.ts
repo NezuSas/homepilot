@@ -32,4 +32,32 @@ describe('Feature: SQLite journal compatibility', () => {
     expect(fs.existsSync(`${databasePath}-wal`)).toBe(false);
     expect(fs.existsSync(`${databasePath}-shm`)).toBe(false);
   });
+  it.each([undefined, ' WAL ', 'unsupported'])('Scenario: Given journal mode %p When a database opens Then a supported journal mode is applied', (journalMode) => {
+    const scopedPath = path.resolve(__dirname, `sqlite-journal-mode-${randomUUID()}.db`);
+    if (journalMode === undefined) {
+      delete process.env.HOMEPILOT_SQLITE_JOURNAL_MODE;
+    } else {
+      process.env.HOMEPILOT_SQLITE_JOURNAL_MODE = journalMode;
+    }
+
+    const database = SqliteDatabaseManager.getInstance(scopedPath);
+
+    expect(database.pragma('journal_mode', { simple: true })).toBe('wal');
+    SqliteDatabaseManager.close(scopedPath);
+    for (const filePath of [scopedPath, `${scopedPath}-wal`, `${scopedPath}-shm`]) {
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    }
+  });
+
+  it('Scenario: Given an open path When it is requested again and closed Then it reuses then releases exactly that connection', () => {
+    const first = SqliteDatabaseManager.getInstance(databasePath, true);
+    const second = SqliteDatabaseManager.getInstance(databasePath);
+
+    expect(second).toBe(first);
+    SqliteDatabaseManager.close(databasePath);
+    expect(() => SqliteDatabaseManager.close(databasePath)).not.toThrow();
+
+    const reopened = SqliteDatabaseManager.getInstance(databasePath);
+    expect(reopened).not.toBe(first);
+  });
 });

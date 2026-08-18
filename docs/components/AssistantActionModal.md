@@ -1,20 +1,28 @@
 # AssistantActionModal
 
-**Fuente:** `apps/operator-console/src/components/AssistantActionModal.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/AssistantActionModal.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Ejecutar una acción concreta sugerida por el asistente, sin duplicar la infraestructura visual o accesible de los diálogos de la consola.
+Executes a concrete assistant-suggested action without duplicating the visual
+or accessibility infrastructure of console dialogs.
 
-## Contrato
+## Contract
 
-Recibe el identificador del hallazgo, la acción tipada, nombre de dispositivo opcional y callbacks de cierre y éxito. Usa `Modal` para portal, foco, Escape, ciclo de Tab, scroll y composición responsive. Sus formularios conservan los flujos de asignar estancia, renombrar dispositivo, importar dispositivo y activar un borrador.
+Receives the finding identifier, typed action, optional device name, and close
+and success callbacks. It uses `Modal` for portal, focus, Escape, Tab cycle,
+scroll, and responsive composition. Its forms retain room assignment, device
+rename, device import, and draft activation flows.
 
-## Uso
+## Usage
 
-Solo debe abrirse desde una sugerencia del asistente que ya entregue una acción válida. El consumidor refresca sus datos mediante `onSuccess`; este componente no conoce ni modifica stores globales.
+Open only from an assistant suggestion that already provides a valid action. The
+consumer refreshes data through `onSuccess`; this component neither knows nor
+modifies global stores.
 
-## Estados y aceptación
+## States and Acceptance
 
-La confirmación se bloquea mientras se envía, evitando cierres o doble ejecución. Las acciones se mantienen visibles en el pie fijo del modal y el contenido largo conserva desplazamiento interno en móvil, tablet y escritorio.
+Confirmation is blocked while sending, preventing close or double execution.
+Actions remain visible in the fixed modal footer and long content retains
+internal scrolling on mobile, tablet, and desktop.

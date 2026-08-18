@@ -1,16 +1,22 @@
 # OverlayAccessibility
 
-**Fuente:** `apps/operator-console/src/components/ui/useOverlayAccessibility.ts`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/ui/useOverlayAccessibility.ts`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Centralizar el contrato de accesibilidad de las superficies superpuestas usadas por `Modal` y `Drawer`.
+Centralizes the accessibility contract for overlays used by `Modal` and
+`Drawer`.
 
-## Contrato
+## Contract
 
-Recibe la visibilidad, el callback de cierre y la referencia del contenedor. Gestiona foco inicial, Escape, ciclo de Tab, restauración de foco y bloqueo del scroll del documento. Mantiene una pila de superficies para que solo la capa superior retenga el foco.
+Receives visibility, close callback, and container reference. It manages
+initial focus, Escape, Tab cycle, focus restoration, and document scroll lock.
+It keeps an overlay stack so only the top layer retains focus.
 
-## Estados y aceptación
+## States and Acceptance
 
-Al abrir varios overlays, el documento conserva el bloqueo de scroll hasta que se cierre el último. La capa superior retiene foco incluso ante cambios programáticos y no compite con overlays anidados. Al cerrarse cada superficie, el foco vuelve al elemento que la abrió. El comportamiento se mantiene en móvil, tablet y escritorio.
+When multiple overlays open, document scroll remains locked until the last
+closes. The top layer retains focus even during programmatic changes and does
+not compete with nested overlays. On close, focus returns to the triggering
+element. Behavior is preserved on mobile, tablet, and desktop.

@@ -1,20 +1,26 @@
 # LoadingState
 
-**Fuente:** `apps/operator-console/src/components/ui/LoadingState.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/ui/LoadingState.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Presentar una carga inicial de forma uniforme, accesible y traducible, sin mezclar implementaciones de spinners entre vistas.
+Presents initial loading uniformly, accessibly, and with consumer-provided
+translations without mixing spinner implementations across views.
 
-## Contrato
+## Contract
 
-Recibe un `label` ya traducido, una escala `sm`, `md` o `lg` y atributos estándar de contenedor. Expone `role="status"`, anuncia cambios mediante `aria-live` y marca el icono como decorativo.
+Receives an already translated `label`, `sm`, `md`, or `lg` scale, and standard
+container attributes. It exposes `role="status"`, announces changes through
+`aria-live`, and marks the icon decorative.
 
-## Uso
+## Usage
 
-Usar únicamente mientras una vista aún no tiene datos que mostrar. Durante un refresh posterior se debe mantener la información previa visible y usar feedback localizado si hace falta.
+Use only while a view has no data to show. During a later refresh, keep prior
+information visible and use localized feedback when needed.
 
-## Estados y aceptación
+## States and Acceptance
 
-Mantiene centrado, escala tipográfica y contraste mediante tokens de diseño. El mensaje se anuncia de forma atómica a lectores de pantalla. No consulta datos, no crea estado global y no contiene texto hardcodeado.
+Preserves centered layout, typographic scale, and contrast through design
+tokens. The message is announced atomically to screen readers. It neither
+fetches data nor creates global state nor contains hard-coded text.

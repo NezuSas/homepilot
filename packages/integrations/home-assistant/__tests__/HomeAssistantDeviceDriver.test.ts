@@ -33,6 +33,7 @@ describe('HomeAssistantDeviceDriver', () => {
   };
 
   beforeEach(() => {
+    jest.spyOn(console, 'debug').mockImplementation(() => undefined);
     mockClient = {
       callService: jest.fn().mockResolvedValue(undefined)
     } as unknown as jest.Mocked<HomeAssistantClient>;
@@ -239,5 +240,28 @@ describe('HomeAssistantDeviceDriver', () => {
     
     expect(result.success).toBe(false);
     expect(result.error).toContain('Comando open no soportado para el dominio sensor');
+  });
+  it('rejects malformed Home Assistant external identifiers before dispatching', async () => {
+    const context = { userId: 'u1', correlationId: 'c1' };
+
+    await expect(driver.executeCommand({ ...mockDevice, externalId: 'native:light.test' }, { name: 'turn_on' }, context))
+      .resolves.toEqual(expect.objectContaining({ success: false, error: expect.stringContaining("prefijo 'ha:'") }));
+    await expect(driver.executeCommand({ ...mockDevice, externalId: 'ha:light' }, { name: 'turn_on' }, context))
+      .resolves.toEqual(expect.objectContaining({ success: false, error: expect.stringContaining('Formato de entityId inválido') }));
+    expect(mockClient.callService).not.toHaveBeenCalled();
+  });
+
+  it('applies turn-off power cleanup, cover stop, and generic client error contracts', async () => {
+    const poweredLight = { ...mockDevice, lastKnownState: { on: true, brightness: 120, power: 80 } };
+    const offResult = await driver.executeCommand(poweredLight, { name: 'turn_off' }, { userId: 'u1', correlationId: 'c1' });
+    const stopResult = await driver.executeCommand(mockCoverDevice, { name: 'stop' }, { userId: 'u1', correlationId: 'c2' });
+
+    expect(offResult.newState).toMatchObject({ on: false, state: 'off', brightness: 0, power: 0 });
+    expect(mockClient.callService).toHaveBeenLastCalledWith('cover', 'stop_cover', 'cover.test', undefined);
+    expect(stopResult.success).toBe(true);
+
+    mockClient.callService.mockRejectedValueOnce('unavailable');
+    await expect(driver.executeCommand(mockDevice, { name: 'turn_on' }, { userId: 'u1', correlationId: 'c3' }))
+      .resolves.toEqual({ success: false, error: 'Error desconocido en Home Assistant' });
   });
 });

@@ -1,20 +1,25 @@
 # DashboardTabsNav
 
-**Fuente:** `apps/operator-console/src/components/DashboardTabsNav.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/DashboardTabsNav.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Presenta y selecciona las pestañas de un tablero, incluida la creación y configuración contextual cuando el usuario tiene permisos.
+Presents and selects dashboard tabs, including contextual creation and
+configuration when the user has permission.
 
-## Contrato
+## Contract
 
-Recibe pestañas, índice activo y callbacks de selección, creación, edición y menú móvil. La vista conserva persistencia, permisos y datos del tablero.
+Receives tabs, active index, and selection, creation, edit, and mobile-menu
+callbacks. The view retains dashboard persistence, permissions, and data.
 
-## Uso
+## Usage
 
-Usar únicamente dentro de la superficie de tableros. Los títulos, etiquetas y accesibilidad se entregan ya traducidos por el consumidor.
+Use only inside the dashboard surface. Titles, labels, and accessibility text
+are already translated by the consumer.
 
-## Estados y aceptación
+## States and Acceptance
 
-La navegación se desplaza horizontalmente cuando es necesario. Cada pestaña limita visualmente títulos extensos, mantiene el nombre completo como etiqueta y tooltip, y conserva acciones de edición/creación sin provocar overflow de la página.
+Navigation scrolls horizontally when needed. Each tab visually limits long
+titles, retains the complete name as label and tooltip, and keeps edit and
+creation actions without causing page overflow.

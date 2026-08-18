@@ -60,6 +60,27 @@ describe('Feature: Home Assistant device import', () => {
     });
   });
 
+  it('rejects imports when the caller has no available home', async () => {
+    mockHomeRepo.findHomesByUserId.mockResolvedValue([]);
+
+    await expect(service.importDevice('light.luz_sala', 'user-1')).rejects.toThrow('HOME_NOT_FOUND');
+    expect(mockHAConnectionProvider.getClient).not.toHaveBeenCalled();
+  });
+
+  it('rejects duplicates before querying Home Assistant', async () => {
+    mockDeviceRepo.findByExternalIdAndHomeId.mockResolvedValue({ id: 'existing' } as never);
+
+    await expect(service.importDevice('light.luz_sala', 'user-1')).rejects.toThrow('DEVICE_ALREADY_EXISTS');
+    expect(mockHAConnectionProvider.getClient).not.toHaveBeenCalled();
+  });
+
+  it('rejects unknown Home Assistant entities before persisting a device', async () => {
+    mockHAClient.getEntityState.mockResolvedValue(null);
+
+    await expect(service.importDevice('light.missing', 'user-1')).rejects.toThrow('HA_ENTITY_NOT_FOUND');
+    expect(mockDeviceRepo.saveDevice).not.toHaveBeenCalled();
+  });
+
   it('HA entity light.luz_sala imports as type light and semanticType light', async () => {
     mockHAClient.getEntityState.mockResolvedValue({
       entity_id: 'light.luz_sala',

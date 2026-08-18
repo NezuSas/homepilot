@@ -8,6 +8,7 @@ import { SqliteDatabaseManager } from '../../shared/infrastructure/database/Sqli
 import { SqliteMigrationsRunner } from '../../shared/infrastructure/database/SqliteMigrationsRunner';
 import { Home, Room } from '../domain/types';
 import { Dashboard } from '../domain/Dashboard';
+import { SingleHomeInstallationError } from '../domain/errors';
 
 describe('SQLite Topology Persistence Integration', () => {
   let dbPath: string;
@@ -61,6 +62,20 @@ describe('SQLite Topology Persistence Integration', () => {
     expect(userHomes[0].id).toBe('home-1');
   });
 
+  it('declines a missing home and fails closed when persistence contains more than one local home', async () => {
+    await expect(homeRepo.findHomeById('missing-home')).resolves.toBeNull();
+    await expect(homeRepo.findAll()).resolves.toEqual([expect.objectContaining({ id: 'home-1' })]);
+
+    const db = SqliteDatabaseManager.getInstance(dbPath);
+    db.prepare(`
+      INSERT INTO homes (id, owner_id, name, entity_version, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run('home-corrupt-second', 'user-2', 'Unexpected second home', 1, '2026-08-17T00:00:00.000Z', '2026-08-17T00:00:00.000Z');
+
+    await expect(homeRepo.findHomesByUserId('any-authenticated-user')).rejects.toBeInstanceOf(SingleHomeInstallationError);
+    db.prepare('DELETE FROM homes WHERE id = ?').run('home-corrupt-second');
+  });
+
   it('debe actualizar los datos de un Home usando esquema de upsert', async () => {
     const updatedHome: Home = {
       id: 'home-1',
@@ -96,6 +111,16 @@ describe('SQLite Topology Persistence Integration', () => {
     expect(homeRooms[0].homeId).toBe(room.homeId);
   });
 
+  it('lists every persisted room with its complete domain mapping', async () => {
+    const rooms = await roomRepo.findAll();
+
+    expect(rooms).toEqual([expect.objectContaining({
+      id: 'room-1',
+      homeId: 'home-1',
+      name: 'Sala',
+      entityVersion: 1,
+    })]);
+  });
   it('debe actualizar el nombre de una Room sin cambiar su identidad ni su Home', async () => {
     const current = await roomRepo.findRoomById('room-1');
     expect(current).not.toBeNull();
@@ -114,6 +139,34 @@ describe('SQLite Topology Persistence Integration', () => {
       name: 'Sala principal',
       entityVersion: 2,
     }));
+  });
+
+  it('desasigna dispositivos y elimina la estancia dentro de una sola transacción', async () => {
+    const room: Room = {
+      id: 'room-delete',
+      homeId: 'home-1',
+      name: 'Temporal',
+      entityVersion: 1,
+      createdAt: '2026-08-17T00:00:00.000Z',
+      updatedAt: '2026-08-17T00:00:00.000Z',
+    };
+    await roomRepo.saveRoom(room);
+    const db = SqliteDatabaseManager.getInstance(dbPath);
+    db.prepare(`
+      INSERT INTO devices (id, home_id, room_id, external_id, name, type, vendor, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run('device-room-delete', room.homeId, room.id, 'external-room-delete', 'Temporal device', 'light', 'test', 'ASSIGNED', room.createdAt, room.updatedAt);
+
+    await expect(roomRepo.deleteRoomAndUnassignDevices(room.id, '2026-08-17T01:00:00.000Z')).resolves.toBe(1);
+
+    expect(await roomRepo.findRoomById(room.id)).toBeNull();
+    expect(db.prepare('SELECT room_id, status, entity_version, updated_at FROM devices WHERE id = ?').get('device-room-delete')).toEqual({
+      room_id: null,
+      status: 'PENDING',
+      entity_version: 2,
+      updated_at: '2026-08-17T01:00:00.000Z',
+    });
+    await expect(roomRepo.deleteRoomAndUnassignDevices('missing-room', '2026-08-17T01:00:00.000Z')).resolves.toBe(0);
   });
 
   it('consolida la instalación Nezu retirando únicamente el hogar histórico autorizado', () => {
@@ -191,5 +244,29 @@ describe('SQLite Topology Persistence Integration', () => {
 
     expect(revisions.map((revision) => revision.id)).toEqual(['revision-new', 'revision-old']);
     expect(revisions[0].snapshot.title).toBe('Segunda versión');
+  });
+
+  it('actualiza, elimina y resuelve ausencias de dashboards sin exponer registros eliminados', async () => {
+    const now = '2026-08-17T12:00:00.000Z';
+    const dashboard: Dashboard = {
+      id: 'dashboard-lifecycle',
+      ownerId: 'oscar-user',
+      title: 'Inicial',
+      visibility: { roles: [], users: [], homes: [] },
+      tabs: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await dashboardRepo.saveDashboard(dashboard);
+    await dashboardRepo.saveDashboard({ ...dashboard, title: 'Actualizado', updatedAt: '2026-08-17T12:01:00.000Z' });
+
+    await expect(dashboardRepo.findDashboardById(dashboard.id)).resolves.toEqual(expect.objectContaining({ title: 'Actualizado' }));
+    await expect(dashboardRepo.findDashboardById('missing-dashboard')).resolves.toBeNull();
+
+    await dashboardRepo.deleteDashboard(dashboard.id);
+
+    await expect(dashboardRepo.findDashboardById(dashboard.id)).resolves.toBeNull();
+    await expect(dashboardRepo.deleteDashboard('missing-dashboard')).resolves.toBeUndefined();
   });
 });

@@ -1,20 +1,26 @@
 # DeviceTileShell
 
-**Fuente:** `apps/operator-console/src/components/ui/DeviceTileShell.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/ui/DeviceTileShell.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Shell estructural para tarjetas de dispositivo con densidad y layout consistentes.
+Structural shell for device cards with consistent density and layout.
 
-## Contrato
+## Contract
 
-Recibe contenido de cabecera, cuerpo y acciones como slots; no deriva estado de integración ni ejecuta comandos.
+Receives header, body, and action content as slots. It neither derives
+integration state nor executes commands.
 
-## Uso
+## Usage
 
-Usar cuando una tarjeta requiere composición distinta pero debe conservar el sistema visual de dispositivo.
+Use when a card needs a different composition while retaining the device visual
+system.
 
-## Estados y aceptación
+## States and Acceptance
 
-El contenido no se superpone, respeta altura mínima tokenizada y se adapta de una a varias columnas. Puede reducirse dentro de grids o paneles angostos, conserva interacción táctil cuando aplica y comunica el estado deshabilitado mediante `aria-disabled`. Si contiene controles internos, su teclado no activa la tarjeta contenedora de forma accidental.
+Content does not overlap, honors tokenized minimum height, and adapts from one
+to multiple columns. It can shrink inside narrow grids or panels, retains touch
+interaction when applicable, and communicates disabled state through
+`aria-disabled`. When it contains internal controls, keyboard input does not
+accidentally activate the containing card.

@@ -1,20 +1,27 @@
 # IconButton
 
-**Fuente:** `apps/operator-console/src/components/ui/IconButton.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/ui/IconButton.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Acción compacta representada por icono: cerrar, editar, recargar o abrir una acción contextual.
+Compact icon action for close, edit, refresh, or opening contextual actions.
 
-## Contrato
+## Contract
 
-Recibe el icono, `label` accesible, variante, `isLoading` y atributos nativos de botón. `label` es obligatorio para lectores de pantalla y tooltip. En carga se deshabilita, expone `aria-busy` y reemplaza el icono por un indicador decorativo de igual escala.
+Receives icon, accessible `label`, variant, `isLoading`, and native button
+attributes. `label` is required for screen readers and tooltip. While loading,
+it disables itself, exposes `aria-busy`, and replaces the icon with an
+equally-scaled decorative indicator.
 
-## Uso
+## Usage
 
-No sustituye un botón con texto cuando el significado no es universal. El consumidor traduce el label y controla disabled/loading.
+Do not replace a textual button when meaning is not universal. The consumer
+translates the label and controls disabled and loading state.
 
-## Estados y aceptación
+## States and Acceptance
 
-Debe mostrar foco visible, no encogerse en touch y respetar normal, hover, focus, disabled y loading. El icono escala de forma proporcional con el área táctil `sm`, `md` o `lg`. Usa `touch-manipulation` para evitar demoras o gestos no deseados en acciones compactas móviles.
+Shows visible focus, does not shrink on touch devices, and supports normal,
+hover, focus, disabled, and loading states. The icon scales proportionally with
+`sm`, `md`, or `lg` touch target. It uses `touch-manipulation` to avoid delay or
+unwanted gestures for compact mobile actions.

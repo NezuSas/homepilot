@@ -437,4 +437,22 @@ describe('Assistant Alias Management V1', () => {
     // Shadow must NOT be called for safety-blocked prompts
     expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
+  it('32. confirmation, selection and command helpers keep multilingual decisions deterministic', () => {
+    const internals = service as unknown as {
+      isConfirmation(value: string): boolean;
+      isPositiveConfirmation(value: string): boolean;
+      isNegativeConfirmation(value: string): boolean;
+      resolveSelectionFromMemory(value: string, options: Array<{ id: string; label: string }>, language: string): string | null;
+      inferCommandFromPrompt(value: string): string | undefined;
+    };
+
+    expect(internals.isConfirmation('procede ahora')).toBe(true);
+    expect(internals.isPositiveConfirmation('go ahead please')).toBe(true);
+    expect(internals.isNegativeConfirmation('cancel now')).toBe(true);
+    expect(internals.isPositiveConfirmation('cancel now')).toBe(false);
+    expect(internals.resolveSelectionFromMemory('la segunda', [{ id: 'one', label: 'Sala' }, { id: 'two', label: 'Cocina' }], 'es')).toBe('two');
+    expect(internals.resolveSelectionFromMemory('cocina', [{ id: 'one', label: 'Sala' }, { id: 'two', label: 'Cocina principal' }], 'es')).toBe('two');
+    expect(internals.inferCommandFromPrompt('please close the curtain')).toBe('close');
+    expect(internals.inferCommandFromPrompt('enciende la sala')).toBe('turn_on');
+  });
 });

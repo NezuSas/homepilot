@@ -1,19 +1,25 @@
 # DashboardRoutinesSection
 
-**Fuente:** `apps/operator-console/src/components/DashboardRoutinesSection.tsx`
-**Spec de familia:** `specs/routines-unified-console-v1.md`
+**Source:** `apps/operator-console/src/components/DashboardRoutinesSection.tsx`
+**Family spec:** `specs/routines-unified-console-v1.md`
 
-## Propósito
+## Purpose
 
-Compone en Inicio las escenas y automatizaciones marcadas como favoritas bajo una única superficie de Rutinas favoritas.
+Composes favorite scenes and automations on Home under one **Favorite routines**
+surface.
 
-## Contrato
+## Contract
 
-Recibe las listas de escenas y automatizaciones, sus identificadores favoritos, el identificador en proceso y callbacks para ejecutar escenas, alternar automatizaciones y abrir la gestión de Rutinas.
+Receives scene and automation lists, their favorite identifiers, the identifier
+currently being processed, and callbacks to execute scenes, toggle automations,
+and open routine management.
 
-## Comportamiento
+## Behavior
 
-- Las escenas aparecen como rutinas **Manual** y se ejecutan al pulsarlas.
-- Las automatizaciones aparecen como rutinas **Automática** y alternan entre activas y pausadas al pulsarlas.
-- Si no hay favoritos, comunica el estado vacío y ofrece acceso a la gestión de Rutinas.
-- Mantiene etiquetas ES/EN y usa una grilla responsive de una, dos o tres columnas.
+- Scenes appear as **Manual** routines and execute when selected.
+- Automations appear as **Automatic** routines and toggle between active and
+  paused when selected.
+- When no favorites exist, it communicates the empty state and offers access to
+  routine management.
+- It preserves ES/EN labels and uses a responsive one-, two-, or three-column
+  grid.

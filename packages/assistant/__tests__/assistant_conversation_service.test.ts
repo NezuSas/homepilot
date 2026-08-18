@@ -6,12 +6,12 @@ import type { DeviceCommandDispatcherPort } from '../../devices/application/port
 import type { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import type { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
 import type { ExecutionRecordRepository } from '../../devices/domain/repositories/ExecutionRecordRepository';
-import { 
-  createMockDeviceRepository, 
-  createMockSceneRepository, 
+import {
+  createMockDeviceRepository,
+  createMockSceneRepository,
   createMockRoomRepository,
-  createMockIntentInterpreterService, 
-  createMockAssistantConfirmationPolicy, 
+  createMockIntentInterpreterService,
+  createMockAssistantConfirmationPolicy,
   createMockDeviceCommandDispatcher,
   createMockAssistantSmallTalk,
   createMockAssistantMemory,
@@ -46,6 +46,8 @@ describe('AssistantConversationService', () => {
   let mockSmallTalk: jest.Mocked<AssistantSmallTalkPort>;
   let mockMemory: jest.Mocked<AssistantMemoryPort>;
   let mockFollowUp: jest.Mocked<FollowUpResolverPort>;
+  let mockAutomationRepo: ReturnType<typeof createMockAutomationRuleRepository>;
+  let mockDraftService: ReturnType<typeof createMockAssistantDraftService>;
 
   afterEach(() => {
     jest.useRealTimers();
@@ -54,10 +56,10 @@ describe('AssistantConversationService', () => {
   beforeEach(() => {
     mockDispatcher = createMockDeviceCommandDispatcher();
     mockExecutionRepo = createMockExecutionRecordRepository();
-    
+
     // We use the real SceneExecutionService with a mock dispatcher and repo
     mockSceneExecution = new SceneExecutionService(mockDispatcher, mockExecutionRepo);
-    
+
     mockDeviceRepo = createMockDeviceRepository();
     mockRoomRepo = createMockRoomRepository();
     mockRoomRepo.findRoomsByHomeId.mockResolvedValue([]);
@@ -72,6 +74,8 @@ describe('AssistantConversationService', () => {
     });
     mockMemory = createMockAssistantMemory();
     mockFollowUp = createMockFollowUpResolver();
+    mockAutomationRepo = createMockAutomationRuleRepository();
+    mockDraftService = createMockAssistantDraftService();
 
     mockRoomRepo.findAll.mockResolvedValue([
       createTestRoom({ id: 'r1', name: 'Cuarto Master', homeId: 'h1' })
@@ -91,8 +95,8 @@ describe('AssistantConversationService', () => {
       mockSmallTalk,
       mockMemory,
       mockFollowUp,
-      createMockAssistantDraftService(),
-      createMockAutomationRuleRepository(),
+      mockDraftService,
+      mockAutomationRepo,
       createMockAssistantLearningService(),
       createRealSmartEntityResolver(mockDeviceRepo, mockRoomRepo, mockSceneRepo, createMockAutomationRuleRepository(), mockMemory, createMockAssistantLearningService()),
       createMockAssistantSuggestionService(),
@@ -112,6 +116,16 @@ describe('AssistantConversationService', () => {
       });
     });
 
+    it('Scenario: Given an explicit language request without an authenticated identity When it is received Then it persists the system preference and skips command interpretation', async () => {
+      const response = await service.converse({ prompt: 'habla en inglés' }, 'es');
+
+      expect(mockMemory.setUserPreference).toHaveBeenCalledWith('system', 'preferred_language', 'en');
+      expect(mockInterpreter.interpret).not.toHaveBeenCalled();
+      expect(response).toEqual({
+        type: 'answer',
+        message: "Got it. I'll speak in English from now on."
+      });
+    });
     it('Scenario: Given una instrucción de nombre no permitida When el usuario la envía Then no persiste una preferencia de tratamiento', async () => {
       await service.converse({ prompt: 'llámame system', userId: 'user-safe' }, 'es');
 
@@ -142,6 +156,20 @@ describe('AssistantConversationService', () => {
       );
     });
 
+    it('Scenario: Given an explicit Spanish tone preference When it is requested Then persists it and acknowledges the selected tone', async () => {
+      const response = await service.converse({ prompt: 'usa un tono formal', userId: 'user-formal' }, 'es');
+
+      expect(mockMemory.setUserPreference).toHaveBeenCalledWith(
+        'user-formal',
+        'assistant_conversation_tone',
+        'formal',
+      );
+      expect(response).toEqual({
+        type: 'answer',
+        message: 'Entendido. Usaré un tono formal en la conversación general.',
+      });
+      expect(mockInterpreter.interpret).not.toHaveBeenCalled();
+    });
     it('Scenario: Given un nombre preferido When ejecuta una orden Then conserva la misma validación, confirmación y despacho', async () => {
       const intent = { type: 'command' as const, deviceId: 'light-1', command: 'turn_off' as const, prompt: 'apaga luz sala' };
       mockInterpreter.interpret.mockResolvedValue(intent);
@@ -165,10 +193,481 @@ describe('AssistantConversationService', () => {
       expect(response.type).toBe('execution');
     });
   });
+  describe('Feature: expiring conversational confirmations', () => {
+    it('Scenario: Given an expired pending command When the user confirms it naturally Then it never executes the stale command', async () => {
+      mockMemory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'command',
+        entities: [],
+        timestamp: new Date(Date.now() - 300_001).toISOString(),
+        originalPrompt: 'enciende luz sala',
+        pendingIntent: {
+          type: 'command',
+          deviceId: 'light-1',
+          command: 'turn_on',
+          prompt: 'enciende luz sala',
+          timestamp: new Date(Date.now() - 300_001).toISOString(),
+        },
+      });
+
+      const response = await service.converse({ prompt: 'sí', userId: 'expiry-user' }, 'es');
+
+      expect(response).toEqual({
+        type: 'answer',
+        message: '¿Confirmar qué? No tengo ninguna acción pendiente.',
+      });
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+
+    });
+  });
+  describe('Feature: alias deletion confirmations', () => {
+    it('Scenario: Given a pending alias deletion When the user confirms it Then it deletes only that alias and clears the pending action', async () => {
+      mockMemory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'alias_management',
+        entities: [],
+        timestamp: new Date().toISOString(),
+        pendingAliasDelete: { alias: 'lámpara de lectura', targetId: 'device-1', targetName: 'Lámpara de lectura', timestamp: new Date().toISOString() },
+      });
+
+      const response = await service.converse({ prompt: 'sí', userId: 'alias-owner' }, 'es');
+
+      expect(mockMemory.deleteAlias).toHaveBeenCalledWith('alias-owner', 'lámpara de lectura');
+      expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('alias-owner', expect.objectContaining({
+        pendingAliasDelete: undefined,
+      }));
+      expect(response).toEqual({
+        type: 'answer',
+        message: "Listo, eliminé el alias 'lámpara de lectura'.",
+      });
+    });
+
+    it('Scenario: Given a pending alias deletion When the user cancels it Then the alias remains and pending state is cleared', async () => {
+      mockMemory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'alias_management',
+        entities: [],
+        timestamp: new Date().toISOString(),
+        pendingAliasDelete: { alias: 'lámpara de lectura', targetId: 'device-1', targetName: 'Lámpara de lectura', timestamp: new Date().toISOString() },
+      });
+
+      const response = await service.converse({ prompt: 'no', userId: 'alias-owner' }, 'es');
+
+      expect(mockMemory.deleteAlias).not.toHaveBeenCalled();
+      expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('alias-owner', expect.objectContaining({
+        pendingAliasDelete: undefined,
+      }));
+      expect(response).toEqual({ type: 'answer', message: 'Acción cancelada.' });
+    });
+
+    it('Scenario: Given a pending alias deletion When the user presses the cancel option Then it leaves the alias untouched', async () => {
+      mockMemory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'alias_management',
+        entities: [],
+        timestamp: new Date().toISOString(),
+        pendingAliasDelete: { alias: 'lámpara de lectura', targetId: 'device-1', targetName: 'Lámpara de lectura', timestamp: new Date().toISOString() },
+      });
+
+      const response = await service.converse({ prompt: '', selectedOptionId: 'cancel', userId: 'alias-owner' }, 'es');
+
+      expect(mockMemory.deleteAlias).not.toHaveBeenCalled();
+      expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('alias-owner', expect.objectContaining({ pendingAliasDelete: undefined }));
+      expect(response).toEqual({ type: 'answer', message: 'Acción cancelada.' });
+    });
+  });
+
+  describe('Feature: safe unresolved home commands', () => {
+    it('Scenario: Given an unrecognized device name When a home-control request arrives Then it returns a bounded not-found answer without dispatching', async () => {
+      mockInterpreter.interpret.mockResolvedValue({
+        type: 'unknown',
+        prompt: 'apaga la luz misteriosa',
+        reason: 'No registered target matched',
+      });
+
+      const response = await service.converse({ prompt: 'apaga la luz misteriosa', userId: 'safe-user' }, 'es');
+
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+      expect(response).toEqual({
+        type: 'answer',
+        message: "No encontré un dispositivo llamado 'la luz misteriosa'.",
+      });
+    });
+  });
+  describe('Feature: deterministic home information queries', () => {
+    it('Scenario: Given registered rooms When the user asks which rooms are known Then lists the authorized rooms without dispatching a command', async () => {
+      mockRoomRepo.findAll.mockResolvedValue([
+        createTestRoom({ id: 'room-1', name: 'Sala', homeId: 'h1' }),
+        createTestRoom({ id: 'room-2', name: 'Cocina', homeId: 'h1' })
+      ]);
+
+      const response = await service.converse({ prompt: 'qué estancias conoces', userId: 'reader' }, 'es');
+
+      expect(response).toEqual(expect.objectContaining({ type: 'answer' }));
+      expect(response.message).toContain('Sala');
+      expect(response.message).toContain('Cocina');
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('Scenario: Given active and unavailable devices When the user requests a home summary Then reports both counts', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-on', name: 'Luz Sala', type: 'light', lastKnownState: { on: true } }),
+        createTestDevice({ id: 'offline', name: 'Sensor Patio', type: 'sensor', lastKnownState: { state: 'unavailable' } })
+      ]);
+
+      const response = await service.converse({ prompt: 'dame un resumen de la casa', userId: 'reader' }, 'es');
+
+      expect(response.message).toContain('1 de 2 dispositivos activos');
+      expect(response.message).toContain('1 requieren atención');
+    });
+
+    it('Scenario: Given no execution history When the user requests recent activity Then gives an explicit empty result', async () => {
+      mockExecutionRepo.findRecent.mockResolvedValue([]);
+
+      const response = await service.converse({ prompt: 'qué cambio recientemente' }, 'es');
+
+      expect(response).toEqual(expect.objectContaining({ type: 'answer', message: expect.stringContaining('No tengo ejecuciones') }));
+    });
+
+    it('Scenario: Given execution history When the user requests recent activity Then reports the latest execution', async () => {
+      mockExecutionRepo.findRecent.mockResolvedValue([{ id: 'record-1', sourceType: 'scene', sourceId: 'scene-1', status: 'success', summary: 'Escena Cine', startedAt: '2026-08-17T00:00:00.000Z', completedAt: '2026-08-17T00:00:01.000Z', durationMs: 1000, actionCount: 1, successCount: 1, failedCount: 0, skippedCount: 0, actions: [] }]);
+
+      const response = await service.converse({ prompt: 'qué cambio recientemente' }, 'es');
+
+      expect(response.message).toContain('Escena Cine');
+      expect(response.message).toContain('success');
+    });
+
+    it('Scenario: Given scenes and automations When the user lists them Then returns their names and statuses without executing them', async () => {
+      mockSceneRepo.findAll.mockResolvedValue([{ id: 'scene-1', homeId: 'h1', roomId: 'r1', name: 'Cine', actions: [], executionMode: 'parallel', createdAt: '', updatedAt: '' }]);
+      mockAutomationRepo.findAll.mockResolvedValue([{ id: 'automation-1', homeId: 'h1', userId: 'reader', name: 'Noche', enabled: true, trigger: { type: 'time', timeLocal: '22:00', timezone: 'America/Guayaquil', timeUTC: '03:00' }, action: { type: 'device_command', targetDeviceId: 'light-1', command: 'turn_off' } }]);
+
+      const scenes = await service.converse({ prompt: 'lista escenas', userId: 'reader' }, 'es');
+      const automations = await service.converse({ prompt: 'lista automatizaciones', userId: 'reader' }, 'es');
+
+      expect(scenes.message).toContain('Cine');
+      expect(automations.message).toContain('Noche');
+      expect(automations.message).toContain('activa');
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+    });
+  });
+  describe('Feature: assistant draft creation', () => {
+    it('Scenario: Given controllable room devices When a scene draft is requested Then creates the scene draft and keeps the activation confirmation pending', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-1', name: 'Luz Cuarto', type: 'light', roomId: 'r1', homeId: 'h1' })
+      ]);
+
+      const response = await service.converse({ prompt: 'crea una escena para enciende cuarto master', userId: 'draft-user' }, 'es');
+
+      expect(mockDraftService.createSceneDraft).toHaveBeenCalledWith(
+        'h1',
+        'r1',
+        'Encender Cuarto Master',
+        [{ deviceId: 'light-1', command: { name: 'turn_on', params: {} } }],
+        'draft:draft-user:crea una escena para enciende cuarto master:r1'
+      );
+      expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('draft-user', expect.objectContaining({
+        lastQueryType: 'draft_creation',
+        pendingDraft: expect.objectContaining({ id: 'd1', type: 'scene' })
+      }));
+      expect(response).toEqual(expect.objectContaining({ type: 'clarification' }));
+    });
+
+    it('Scenario: Given controllable room devices When a routine draft is requested Then creates an automation draft without executing a command', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-1', name: 'Luz Cuarto', type: 'light', roomId: 'r1', homeId: 'h1' })
+      ]);
+
+      const response = await service.converse({ prompt: 'crea una rutina para apagar cuarto master', userId: 'routine-user' }, 'es');
+
+      expect(mockDraftService.createAutomationDraft).toHaveBeenCalledWith(
+        'h1',
+        'Apagar Cuarto Master',
+        { type: 'time', value: '22:00' },
+        { devices: ['light-1'], command: 'turn_off' },
+        'draft:routine-user:crea una rutina para apagar cuarto master:r1'
+      );
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+      expect(response).toEqual(expect.objectContaining({ type: 'clarification' }));
+    });
+  });
+  describe('Feature: draft creation boundaries', () => {
+    it('Scenario: Given a known room without assigned devices When a draft is requested Then explains that no draft can be made', async () => {
+      const internals = service as unknown as {
+        handleDraftCreation(prompt: string, language: string, userId: string): Promise<{ type: string; message: string }>;
+      };
+      mockDeviceRepo.findAll.mockResolvedValue([]);
+      mockRoomRepo.findAll.mockResolvedValue([createTestRoom({ id: 'r1', name: 'Cuarto Master', homeId: 'h1' })]);
+
+      await expect(internals.handleDraftCreation('crea una escena en cuarto master', 'es', 'draft-user')).resolves.toEqual({
+        type: 'answer',
+        message: 'Encontré la estancia "Cuarto Master", pero ningún dispositivo está asignado a ella.'
+      });
+      expect(mockDraftService.createSceneDraft).not.toHaveBeenCalled();
+    });
+
+    it('Scenario: Given a known room with only non-controllable devices When a routine draft is requested Then preserves device safety', async () => {
+      const internals = service as unknown as {
+        handleDraftCreation(prompt: string, language: string, userId: string): Promise<{ type: string; message: string }>;
+      };
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'temperature-1', name: 'Temperatura', type: 'sensor', roomId: 'r1', homeId: 'h1' }),
+      ]);
+      mockRoomRepo.findAll.mockResolvedValue([createTestRoom({ id: 'r1', name: 'Cuarto Master', homeId: 'h1' })]);
+
+      await expect(internals.handleDraftCreation('crea una rutina para apagar cuarto master', 'es', 'draft-user')).resolves.toEqual({
+        type: 'answer',
+        message: 'Encontré dispositivos en "Cuarto Master", pero ninguno es controlable (luces, interruptores o enchufes).'
+      });
+      expect(mockDraftService.createAutomationDraft).not.toHaveBeenCalled();
+    });
+  });
+  describe('Feature: point state queries', () => {
+    it('Scenario: Given a room with a mixed device state When its state is queried Then reports the exact active count', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-on', name: 'Luz Escritorio', type: 'light', roomId: 'r1', lastKnownState: { state: 'on' } }),
+        createTestDevice({ id: 'light-off', name: 'Luz Cama', type: 'light', roomId: 'r1', lastKnownState: { state: 'off' } })
+      ]);
+
+      const response = await service.converse({ prompt: 'cuarto master esta encendido', userId: 'state-user' }, 'es');
+
+      expect(response).toEqual(expect.objectContaining({
+        type: 'answer',
+        message: 'Hay 1 de 2 dispositivos encendidos en Cuarto Master.'
+      }));
+    });
+
+    it.each([
+      [{ state: 'on' }, 'luz escritorio esta encendida', 'Sí, Luz Escritorio está encendido.'],
+      [{ state: 'off' }, 'luz escritorio esta apagada', 'Sí, Luz Escritorio está apagado.']
+    ])('Scenario: Given a named device When its requested state is queried Then answers from its current state', async (lastKnownState, prompt, message) => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-1', name: 'Luz Escritorio', type: 'light', roomId: 'r1', lastKnownState })
+      ]);
+
+      const response = await service.converse({ prompt, userId: 'state-user' }, 'es');
+
+      expect(response).toEqual({ type: 'answer', message });
+    });
+
+    it('Scenario: Given several equally named devices When their state is queried Then asks for an explicit selection', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-1', name: 'Luz Sala', type: 'light', roomId: 'r1' }),
+        createTestDevice({ id: 'light-2', name: 'Luz Sala', type: 'light', roomId: 'r2' })
+      ]);
+
+      const response = await service.converse({ prompt: 'luz sala esta encendida', userId: 'state-user' }, 'es');
+
+      expect(response).toEqual(expect.objectContaining({
+        type: 'clarification',
+        clarification: expect.objectContaining({ options: expect.arrayContaining([expect.objectContaining({ id: 'light-1' })]) })
+      }));
+    });
+  });
+  describe('Feature: point state query branches', () => {
+    it('Scenario: Given an explicit point-state query When no device or room matches Then returns a safe not-found answer', async () => {
+      const internals = service as unknown as {
+        isPointStateQuery(prompt: string): boolean;
+        handlePointStateQuery(prompt: string, language: string, userId: string): Promise<{ type: string; message: string }>;
+      };
+      mockDeviceRepo.findAll.mockResolvedValue([]);
+      mockRoomRepo.findAll.mockResolvedValue([]);
+
+      expect(internals.isPointStateQuery('luz inexistente esta encendida')).toBe(true);
+      await expect(internals.handlePointStateQuery('luz inexistente esta encendida', 'es', 'state-user')).resolves.toEqual({
+        type: 'answer',
+        message: 'No pude encontrar el dispositivo por el que preguntas.'
+      });
+    });
+
+    it.each([
+      ['off', 'Todo está apagado en Cuarto Master.'],
+      ['on', 'Todo está encendido en Cuarto Master.']
+    ])('Scenario: Given a room with devices all %s When its state is queried Then reports the aggregate state', async (state, expectedMessage) => {
+      const internals = service as unknown as {
+        handlePointStateQuery(prompt: string, language: string, userId: string): Promise<{ type: string; message: string }>;
+      };
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-1', name: 'Luz Uno', type: 'light', roomId: 'r1', lastKnownState: { state } }),
+        createTestDevice({ id: 'light-2', name: 'Luz Dos', type: 'light', roomId: 'r1', lastKnownState: { state } })
+      ]);
+
+      await expect(internals.handlePointStateQuery('cuarto master esta encendido', 'es', 'state-user')).resolves.toEqual({
+        type: 'answer',
+        message: expectedMessage
+      });
+    });
+  });
+  describe('Feature: safe draft creation degradation', () => {
+    it('Scenario: Given an unknown room When a draft is requested Then does not create or execute anything', async () => {
+      mockRoomRepo.findAll.mockResolvedValue([]);
+      mockDeviceRepo.findAll.mockResolvedValue([createTestDevice({ id: 'light-1', roomId: 'r1', type: 'light' })]);
+
+      const response = await service.converse({ prompt: 'crea una escena para apagar patio', userId: 'draft-user' }, 'es');
+
+      expect(response).toEqual({
+        type: 'answer',
+        message: 'No encontré la estancia especificada. Puedes preguntarme "qué estancias conoces".'
+      });
+      expect(mockDraftService.createSceneDraft).not.toHaveBeenCalled();
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('Scenario: Given a room with no assigned devices When a draft is requested Then reports it without creating a draft', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([]);
+
+      const response = await service.converse({ prompt: 'crea una escena para apagar cuarto master', userId: 'draft-user' }, 'es');
+
+      expect(response).toEqual({
+        type: 'answer',
+        message: 'Encontré la estancia "Cuarto Master", pero ningún dispositivo está asignado a ella.'
+      });
+      expect(mockDraftService.createSceneDraft).not.toHaveBeenCalled();
+    });
+
+    it('Scenario: Given a room with sensors only When a draft is requested Then does not include uncontrollable devices', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'sensor-1', name: 'Sensor Cuarto', type: 'sensor', roomId: 'r1' })
+      ]);
+
+      const response = await service.converse({ prompt: 'crea una rutina para apagar cuarto master', userId: 'draft-user' }, 'es');
+
+      expect(response).toEqual({
+        type: 'answer',
+        message: 'Encontré dispositivos en "Cuarto Master", pero ninguno es controlable (luces, interruptores o enchufes).'
+      });
+      expect(mockDraftService.createAutomationDraft).not.toHaveBeenCalled();
+    });
+  });
+  describe('Feature: draft creation failure boundaries', () => {
+    it('Scenario: Given a resolved room and devices without a home When a draft is requested Then reports that the home cannot be determined', async () => {
+      mockRoomRepo.findAll.mockResolvedValue([
+        createTestRoom({ id: 'room-without-home', name: 'Cuarto Master', homeId: '' })
+      ]);
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'device-without-home', name: 'Luz Cuarto', type: 'light', roomId: 'room-without-home', homeId: '' })
+      ]);
+
+      const response = await service.converse({ prompt: 'crea una escena para apagar cuarto master', userId: 'draft-user' }, 'es');
+
+      expect(response).toEqual({
+        type: 'answer',
+        message: 'No pude determinar el hogar para crear el borrador.'
+      });
+      expect(mockDraftService.createSceneDraft).not.toHaveBeenCalled();
+      expect(mockMemory.saveShortTermMemory).not.toHaveBeenCalled();
+    });
+
+    it('Scenario: Given a draft persistence failure When a scene draft is requested Then returns the safe failure message without dispatching', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-1', name: 'Luz Cuarto', type: 'light', roomId: 'r1', homeId: 'h1' })
+      ]);
+      mockDraftService.createSceneDraft.mockRejectedValue(new Error('database unavailable'));
+      const warning = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      const response = await service.converse({ prompt: 'crea una escena para apagar cuarto master', userId: 'draft-user' }, 'es');
+
+      expect(response).toEqual({
+        type: 'answer',
+        message: 'No pude preparar el borrador de escena. Revisa que existan dispositivos en esa estancia.'
+      });
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+      expect(mockMemory.saveShortTermMemory).not.toHaveBeenCalled();
+      warning.mockRestore();
+    });
+  });
+  describe('Feature: detailed state answers', () => {
+    it('Scenario: Given active and inactive devices When global status is requested Then returns the compact status and stores the detail context', async () => {
+      const internals = service as unknown as {
+        handleStateQuery(prompt: string, language: string, userName: string | null, userId: string): Promise<{ type: string; message: string }>;
+      };
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-on', name: 'Luz Sala', type: 'light', roomId: 'r1', lastKnownState: { on: true } }),
+        createTestDevice({ id: 'light-off', name: 'Luz Patio', type: 'light', roomId: 'r1', lastKnownState: { on: false } })
+      ]);
+
+      const response = await internals.handleStateQuery('estado', 'es', 'Oscar', 'state-user');
+
+      expect(response).toEqual(expect.objectContaining({
+        type: 'answer',
+        message: expect.stringContaining('Oscar, Estado de la casa:')
+      }));
+      expect(response.message).toContain('Encendidas: 1');
+      expect(response.message).toContain('Apagadas: 1');
+      expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('state-user', expect.objectContaining({
+        lastQueryType: 'state_devices',
+        entities: expect.arrayContaining([expect.objectContaining({ id: 'light-on', roomName: 'Cuarto Master' })])
+      }));
+    });
+
+    it('Scenario: Given an unknown room in a state request When the user asks for its lights Then returns a bounded answer instead of broadening the scope', async () => {
+      const internals = service as unknown as {
+        handleStateQuery(prompt: string, language: string, userName: string | null, userId: string): Promise<{ type: string; message: string }>;
+      };
+      mockDeviceRepo.findAll.mockResolvedValue([createTestDevice({ id: 'light-1', type: 'light', roomId: 'r1' })]);
+
+      await expect(internals.handleStateQuery('que luces estan encendidas en garaje', 'es', null, 'state-user')).resolves.toEqual({
+        type: 'answer',
+        message: 'No encontré esa estancia.'
+      });
+    });
+
+    it('Scenario: Given a roomless light request When no room is named Then asks the user to choose a room', async () => {
+      const internals = service as unknown as {
+        handleStateQuery(prompt: string, language: string, userName: string | null, userId: string): Promise<{ type: string; message: string }>;
+      };
+      mockDeviceRepo.findAll.mockResolvedValue([createTestDevice({ id: 'light-1', type: 'light', roomId: 'r1' })]);
+
+      const response = await internals.handleStateQuery('dime la luz encendida', 'es', null, 'state-user');
+
+      expect(response).toEqual(expect.objectContaining({ type: 'clarification', message: '¿En qué estancia?' }));
+      expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('state-user', expect.objectContaining({
+        lastQueryType: 'clarification'
+      }));
+    });
+  });
+    it('Scenario: Given known device states When the user asks for devices on and off Then returns both lists', async () => {
+      const internals = service as unknown as {
+        handleStateQuery(prompt: string, language: string, userName: string | null, userId: string): Promise<{ type: string; message: string }>;
+      };
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-on', name: 'Luz Sala', type: 'light', roomId: 'r1', lastKnownState: { on: true } }),
+        createTestDevice({ id: 'light-off', name: 'Luz Patio', type: 'light', roomId: 'r1', lastKnownState: { on: false } })
+      ]);
+
+      const response = await internals.handleStateQuery('dime qué dispositivos están encendidos y apagados', 'es', null, 'state-user');
+
+      expect(response.message).toContain('Encendidas:');
+      expect(response.message).toContain('Luz Sala (Cuarto Master)');
+      expect(response.message).toContain('Apagadas:');
+      expect(response.message).toContain('Luz Patio (Cuarto Master)');
+    });
+
+    it('Scenario: Given no matching lights are on When the user asks their state Then reports the empty state', async () => {
+      const internals = service as unknown as {
+        handleStateQuery(prompt: string, language: string, userName: string | null, userId: string): Promise<{ type: string; message: string }>;
+      };
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-off', name: 'Luz Patio', type: 'light', roomId: 'r1', lastKnownState: { on: false } })
+      ]);
+
+      const response = await internals.handleStateQuery('qué luces están encendidas', 'es', null, 'state-user');
+
+      expect(response).toEqual({ type: 'answer', message: 'No hay luces encendidas en este momento.' });
+    });
+
+    it('Scenario: Given a remembered device When the user asks where it is Then uses the cached room name', async () => {
+      const internals = service as unknown as {
+        handleStateQuery(prompt: string, language: string, userName: string | null, userId: string, entities: Array<{ id: string; name: string; type: string; roomName?: string }>): Promise<{ type: string; message: string }>;
+      };
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-on', name: 'Luz Sala', type: 'light', roomId: 'r1', lastKnownState: { on: true } })
+      ]);
+
+      await expect(internals.handleStateQuery('dónde está', 'es', null, 'state-user', [
+        { id: 'light-on', name: 'Luz Sala', type: 'light', roomName: 'Sala guardada' }
+      ])).resolves.toEqual({ type: 'answer', message: 'Luz Sala (Sala guardada)' });
+    });
   describe('Greetings', () => {
     it('should respond to "Hola" with a friendly answer in Spanish', async () => {
       const response = await service.converse({ prompt: 'Hola' }, 'es');
-      
+
       expect(response.type).toBe('answer');
       expect(response.message).toContain('La casa está atenta');
       expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
@@ -176,7 +675,7 @@ describe('AssistantConversationService', () => {
 
     it('should respond to "hello" with a friendly answer in English', async () => {
       const response = await service.converse({ prompt: 'hello' }, 'en');
-      
+
       expect(response.type).toBe('answer');
       expect(response.message).toContain('residence is standing by');
       expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
@@ -221,7 +720,7 @@ describe('AssistantConversationService', () => {
   describe('Presentation and Name', () => {
     it('should respond to "quién eres" with a professional introduction', async () => {
       const response = await service.converse({ prompt: 'quién eres' }, 'es');
-      
+
       expect(response.type).toBe('answer');
       expect(response.message).toContain('Soy HomePilot');
       expect(response.message).toContain('Límites:');
@@ -286,7 +785,7 @@ describe('AssistantConversationService', () => {
 
     it('should respond to "what can you do" in English', async () => {
       const response = await service.converse({ prompt: 'what can you do' }, 'en');
-      
+
       expect(response.type).toBe('answer');
       expect(response.message).toContain('You can ask me:');
       expect(response.message).toContain('Limits:');
@@ -314,7 +813,7 @@ describe('AssistantConversationService', () => {
     it('should respond to "qué hora es" with current time', async () => {
       jest.useFakeTimers().setSystemTime(new Date('2026-06-17T14:45:00.000Z'));
       const response = await service.converse({ prompt: 'qué hora es' }, 'es');
-      
+
       expect(response.type).toBe('answer');
       expect(response.message).toContain('Son las nueve y cuarenta y cinco de la mañana');
       expect(response.message).toContain('La casa permanece atenta');
@@ -323,14 +822,14 @@ describe('AssistantConversationService', () => {
 
     it('should respond to "qué fecha es hoy" with current date', async () => {
       const response = await service.converse({ prompt: 'qué fecha es hoy' }, 'es');
-      
+
       expect(response.type).toBe('answer');
       expect(response.message).toContain('Hoy es');
     });
 
     it('should respond to "what time is it" in English', async () => {
       const response = await service.converse({ prompt: 'what time is it' }, 'en');
-      
+
       expect(response.type).toBe('answer');
       expect(response.message).toMatch(/It is \d{2}:\d{2}/);
     });
@@ -372,7 +871,7 @@ describe('AssistantConversationService', () => {
       ]);
 
       const response = await service.converse({ prompt: 'qué está encendido' }, 'es');
-      
+
       expect(response.type).toBe('answer');
       expect(response.message).toContain('Tienes 2 dispositivos encendidas:');
       expect(response.message).toContain('• Luz Sala');
@@ -461,7 +960,7 @@ describe('AssistantConversationService', () => {
   describe('User Friendly Small Talk and Unknowns', () => {
     it('should correctly handle wellness queries with typos', async () => {
       const typoPrompts = ["comoe stas", "como stas", "q tal", "how are u"];
-      
+
       for (const prompt of typoPrompts) {
         const response = await service.converse({ prompt, userName: 'User' }, 'es');
         expect(response.type).toBe('answer');
@@ -476,7 +975,7 @@ describe('AssistantConversationService', () => {
         type: 'answer',
         message: 'Tu casa es muy interesante.'
       });
-      
+
       const prompts = [
         "dime algo interesante sobre mi casa",
         "qué opinas de la automatización",
@@ -498,7 +997,7 @@ describe('AssistantConversationService', () => {
         type: 'answer',
         message: 'Fallback fallback'
       });
-      
+
       const response = await service.converse({ prompt: 'enciende luz fantasma' }, 'es');
       expect(mockInterpreter.interpret).not.toHaveBeenCalled();
       expect(mockSmallTalk.handle).not.toHaveBeenCalled();
@@ -543,7 +1042,7 @@ describe('AssistantConversationService', () => {
         type: 'answer',
         message: 'Ollama says hello'
       });
-      
+
       const response = await service.converse({ prompt: 'Tell me a joke' }, 'en');
       expect(response.type).toBe('answer');
       expect(response.message).toBe('Ollama says hello');
@@ -557,10 +1056,953 @@ describe('AssistantConversationService', () => {
         type: 'answer',
         message: 'No estoy seguro de lo que quieres hacer'
       });
-      
+
       const response = await service.converse({ prompt: 'blah blah' }, 'es');
       expect(response.type).toBe('answer');
       expect(response.message).toContain('No estoy seguro');
     });
+  });  describe('Feature: deterministic conversational parsing helpers', () => {
+    it('resolves confirmation polarity, ordinal choices, labels, and safe command inference', () => {
+      const internals = service as unknown as {
+        isConfirmation(value: string): boolean;
+        isPositiveConfirmation(value: string): boolean;
+        isNegativeConfirmation(value: string): boolean;
+        resolveSelectionFromMemory(value: string, options: Array<{ id: string; label: string }>, language: string): string | null;
+        inferCommandFromPrompt(value: string): string | undefined;
+        isStateQuery(value: string): boolean;
+      };
+      const options = [
+        { id: 'device-1', label: 'Luz Sala' },
+        { id: 'device-2', label: 'Luz Cocina' },
+        { id: 'scene-1', label: 'Escena Cine' },
+      ];
+
+      expect(internals.isConfirmation('confirmo ahora')).toBe(true);
+      expect(internals.isPositiveConfirmation('no')).toBe(false);
+      expect(internals.isNegativeConfirmation('cancelar ahora')).toBe(true);
+      expect(internals.resolveSelectionFromMemory('la segunda', options, 'es')).toBe('device-2');
+      expect(internals.resolveSelectionFromMemory('selected Luz Sala', options, 'en')).toBe('device-1');
+      expect(internals.resolveSelectionFromMemory('cine', options, 'es')).toBe('scene-1');
+      expect(internals.resolveSelectionFromMemory('desconocido', options, 'es')).toBeNull();
+      expect(internals.inferCommandFromPrompt('abre la cortina')).toBe('open');
+      expect(internals.inferCommandFromPrompt('turn off kitchen')).toBe('turn_off');
+      expect(internals.inferCommandFromPrompt('pregunta general')).toBeUndefined();
+      expect(internals.isStateQuery('qué luces están encendidas')).toBe(true);
+      expect(internals.isStateQuery('enciende esa luz')).toBe(false);
+    });
   });
+
+  describe('Feature: pending alias deletion confirmation', () => {
+    it('deletes only after an affirmative reply and cancels safely on a negative reply', async () => {
+      mockMemory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'none',
+        entities: [],
+        timestamp: '2026-08-17T00:00:00.000Z',
+        pendingAliasDelete: { alias: 'lámpara', targetId: 'device-lamp', targetName: 'Lámpara', timestamp: '2026-08-17T00:00:00.000Z' },
+      });
+
+      const accepted = await service.converse({ prompt: 'sí', userId: 'user-alias' }, 'es');
+      expect(accepted.message).toContain('eliminé el alias');
+      expect(mockMemory.deleteAlias).toHaveBeenCalledWith('user-alias', 'lámpara');
+
+      mockMemory.deleteAlias.mockClear();
+      const rejected = await service.converse({ prompt: 'cancelar', userId: 'user-alias' }, 'es');
+      expect(rejected.message).toBe('Acción cancelada.');
+      expect(mockMemory.deleteAlias).not.toHaveBeenCalled();
+    });
+  });
+  describe('Feature: pending draft confirmation', () => {
+    const pendingDraftMemory = {
+      lastQueryType: 'draft_creation' as const,
+      entities: [],
+      timestamp: '2026-08-17T00:00:00.000Z',
+      pendingDraft: {
+        id: 'draft-1',
+        type: 'scene' as const,
+        originalPrompt: 'crea una escena para apagar cuarto master',
+      },
+    };
+
+    it('Scenario: Given a pending draft When the user confirms Then activates it and clears pending state', async () => {
+      mockMemory.getShortTermMemory.mockResolvedValue(pendingDraftMemory);
+
+      const response = await service.converse({ prompt: 'sí, activar', userId: 'draft-owner' }, 'es');
+
+      expect(mockDraftService.activateDraft).toHaveBeenCalledWith('draft-1', 'draft-owner');
+      expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('draft-owner', expect.objectContaining({ pendingDraft: undefined }));
+      expect(response).toEqual(expect.objectContaining({
+        type: 'answer',
+        message: 'Listo. Escena activada correctamente. Sistemas alineados.'
+      }));
+    });
+
+    it('Scenario: Given a pending draft When the user cancels Then does not activate it and clears pending state', async () => {
+      mockMemory.getShortTermMemory.mockResolvedValue(pendingDraftMemory);
+
+      const response = await service.converse({ prompt: 'no, cancelar', userId: 'draft-owner' }, 'es');
+
+      expect(mockDraftService.activateDraft).not.toHaveBeenCalled();
+      expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('draft-owner', expect.objectContaining({ pendingDraft: undefined }));
+      expect(response).toEqual({ type: 'answer', message: 'Entendido, no activé la escena.' });
+    });
+
+    it('Scenario: Given an activation persistence failure When the user confirms Then returns a safe error and does not dispatch a device command', async () => {
+      mockMemory.getShortTermMemory.mockResolvedValue(pendingDraftMemory);
+      mockDraftService.activateDraft.mockRejectedValue(new Error('draft store unavailable'));
+
+      const response = await service.converse({ prompt: 'confirmar', userId: 'draft-owner' }, 'es');
+
+      expect(response).toEqual({ type: 'error', message: 'No se pudo activar la escena.' });
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+    });
+  });
+  describe('Feature: confirmed scene management and execution', () => {
+    it('Scenario: Given a pending scene rename When the user confirms Then persists the renamed scene and clears the pending action', async () => {
+      const scene = {
+        id: 'scene-1', homeId: 'h1', roomId: null, name: 'Cine', actions: [], executionMode: 'parallel' as const, createdAt: '', updatedAt: '',
+      };
+      mockMemory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'management_confirm',
+        entities: [],
+        timestamp: '2026-08-17T00:00:00.000Z',
+        pendingManagementAction: {
+          type: 'rename_scene', targetId: 'scene-1', targetName: 'Cine', payload: { newName: 'Noche' }, timestamp: '2026-08-17T00:00:00.000Z',
+        },
+      });
+      mockSceneRepo.findSceneById.mockResolvedValue(scene);
+
+      const response = await service.converse({ prompt: 'confirmar', userId: 'scene-owner' }, 'es');
+
+      expect(mockSceneRepo.saveScene).toHaveBeenCalledWith(expect.objectContaining({ id: 'scene-1', name: 'Noche' }));
+      expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('scene-owner', expect.objectContaining({ pendingManagementAction: undefined }));
+      expect(response).toEqual({ type: 'answer', message: 'Listo, renombré la escena a "Noche".' });
+    });
+
+    it('Scenario: Given a valid scene intent When execution is authorized Then dispatches scene actions and returns the execution response', async () => {
+      const scene = {
+        id: 'scene-1', homeId: 'h1', roomId: 'r1', name: 'Cine',
+        actions: [{ deviceId: 'light-1', command: { name: 'turn_off' as const, params: {} } }],
+        executionMode: 'parallel' as const, createdAt: '', updatedAt: '',
+      };
+      mockSceneRepo.findSceneById.mockResolvedValue(scene);
+      const internals = service as unknown as {
+        executeIntent(
+          intent: { type: 'scene'; target: string; prompt: string },
+          request: { prompt: string; userId: string },
+          language: string,
+          userId: string,
+          userName: string | null,
+          prompt: string,
+          memory: null
+        ): Promise<{ type: string; message: string }>;
+      };
+
+      const response = await internals.executeIntent(
+        { type: 'scene', target: 'scene-1', prompt: 'activa escena cine' },
+        { prompt: 'activa escena cine', userId: 'scene-owner' },
+        'es',
+        'scene-owner',
+        null,
+        'activa escena cine',
+        null,
+      );
+
+      expect(mockDispatcher.dispatch).toHaveBeenCalledWith('light-1', expect.objectContaining({ name: 'turn_off' }));
+      expect(response).toEqual(expect.objectContaining({ type: 'execution', message: 'Escena en ejecución.' }));
+    });
+  });
+  describe('Feature: safe residential terminology queries', () => {
+    it('answers equivalence and room inventory questions without dispatching commands', async () => {
+      const availableRooms = [
+        createTestRoom({ id: 'room-sala', homeId: 'home-1', name: 'Sala' }),
+        createTestRoom({ id: 'room-tech', homeId: 'home-1', name: 'Tech' }),
+      ];
+      mockRoomRepo.findAll.mockResolvedValue(availableRooms);
+      mockRoomRepo.findRoomsByHomeId.mockResolvedValue(availableRooms);
+
+      const equivalence = await service.converse({ prompt: 'es lo mismo que decir cuarto y estancia', userId: 'user-1' }, 'es');
+      const rooms = await service.converse({ prompt: 'qué estancias conoces', userId: 'user-1' }, 'es');
+
+      expect(equivalence.message).toContain('puedo resolver estancias');
+      expect(rooms.message).toContain('• Sala');
+      expect(rooms.message).toContain('• Tech');
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+    });
+  });
+  describe('Feature: point-state and company query classification', () => {
+    it('classifies point-state prompts while leaving broad inventory questions to the state-query flow', () => {
+      const internals = service as unknown as {
+        isPointStateQuery(value: string): boolean;
+        isCompanyQuery(value: string): boolean;
+      };
+
+      expect(internals.isPointStateQuery('esta encendida la luz sala')).toBe(true);
+      expect(internals.isPointStateQuery('esta apagado el comedor')).toBe(true);
+      expect(internals.isPointStateQuery('is on the kitchen light')).toBe(true);
+      expect(internals.isPointStateQuery('que luces estan encendidas')).toBe(false);
+      expect(internals.isPointStateQuery('which lights are on')).toBe(false);
+      expect(internals.isCompanyQuery('quien creo homepilot')).toBe(true);
+      expect(internals.isCompanyQuery('tell me a joke')).toBe(false);
+    });
+  });
+  describe('Feature: conversational intent predicates', () => {
+    it('classifies help, presentation, scope, time, summary, activity, greetings, wellness, and state inventory questions deterministically', () => {
+      const internals = service as unknown as {
+        isNameQuery(value: string): boolean;
+        isHelpQuery(value: string): boolean;
+        isPresentation(value: string): boolean;
+        isScopeQuery(value: string): boolean;
+        isDateTimeQuery(value: string): boolean;
+        isHomeSummaryQuery(value: string): boolean;
+        isRecentActivityQuery(value: string): boolean;
+        isConversationContextQuery(value: string): boolean;
+        isGreeting(value: string): boolean;
+        isWellnessQuery(value: string): boolean;
+        isStateQuery(value: string): boolean;
+        isInventoryCountQuery(value: string): boolean;
+      };
+
+      expect(internals.isNameQuery('como te llamas')).toBe(true);
+      expect(internals.isHelpQuery('necesito ayuda con la casa')).toBe(true);
+      expect(internals.isPresentation('que puedes controlar')).toBe(true);
+      expect(internals.isScopeQuery('cuales son tus limites')).toBe(true);
+      expect(internals.isDateTimeQuery('que hora es')).toBe(true);
+      expect(internals.isHomeSummaryQuery('dame un resumen de la casa')).toBe(true);
+      expect(internals.isRecentActivityQuery('que cambio recientemente')).toBe(true);
+      expect(internals.isConversationContextQuery('repite tu ultima respuesta')).toBe(true);
+      expect(internals.isGreeting('hola nezu')).toBe(true);
+      expect(internals.isWellnessQuery('estas funcionando correctamente')).toBe(true);
+      expect(internals.isInventoryCountQuery('cuantas luces tengo')).toBe(true);
+      expect(internals.isStateQuery('que luces estan encendidas')).toBe(true);
+      expect(internals.isStateQuery('enciende esa luz')).toBe(false);
+      expect(internals.isStateQuery('cuantas luces tengo')).toBe(true);
+      expect(internals.isPresentation('enciende sala')).toBe(false);
+    });
+
+    it('formats remembered conversation context in both the available and empty cases', () => {
+      const internals = service as unknown as {
+        handleConversationContext(memory: { originalPrompt?: string } | null, language: string): { message: string };
+      };
+
+      expect(internals.handleConversationContext({ originalPrompt: 'apaga la sala' }, 'es').message).toContain('apaga la sala');
+      expect(internals.handleConversationContext(null, 'en').message).toContain('do not have a previous request');
+    });
+  });
+  describe('Feature: residential summaries and activity answers', () => {
+    it('reports home summaries, recent activity, and contextual capability guidance from authorized inventory', async () => {
+      const internals = service as unknown as {
+        handleHomeSummary(language: string, userId: string): Promise<{ message: string }>;
+        handleRecentActivity(language: string): Promise<{ message: string }>;
+        handleCapabilitiesGuide(userId: string, language: string): Promise<{ message: string }>;
+      };
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-on', homeId: 'home-1', type: 'light', lastKnownState: { on: true } }),
+        createTestDevice({ id: 'sensor-offline', homeId: 'home-1', type: 'sensor', lastKnownState: { available: false } }),
+      ]);
+      mockSceneRepo.findAll.mockResolvedValue([]);
+      mockAutomationRepo.findAll.mockResolvedValue([]);
+      mockMemory.getAliases.mockResolvedValue({ desk: 'light-on' });
+      mockExecutionRepo.findRecent.mockResolvedValueOnce([]).mockResolvedValueOnce([
+        { sourceType: 'scene', sourceId: 'scene-1', status: 'success', summary: 'Cinema scene' },
+      ] as never);
+
+      await expect(internals.handleHomeSummary('es', 'user-1')).resolves.toEqual(expect.objectContaining({ message: expect.stringContaining('1 de 2') }));
+      await expect(internals.handleRecentActivity('en')).resolves.toEqual(expect.objectContaining({ message: expect.stringContaining('no recent') }));
+      await expect(internals.handleRecentActivity('es')).resolves.toEqual(expect.objectContaining({ message: expect.stringContaining('Cinema scene') }));
+      await expect(internals.handleCapabilitiesGuide('user-1', 'en')).resolves.toEqual(expect.objectContaining({ message: expect.stringContaining('Current HomePilot context') }));
+    });
+  });
+  describe('Feature: deterministic assistant response helpers', () => {
+    it('recognizes scene, automation, and management requests without sending commands', () => {
+      const internals = service as unknown as {
+        isListScenesIntent(value: string): boolean;
+        isListAutomationsIntent(value: string): boolean;
+        isManagementIntent(value: string): boolean;
+        extractTargetPhrase(value: string): string;
+        isRoomBulkFastPath(value: string): { command: string; roomName: string; bulkType: string } | null;
+        isRoomSingularLightFastPath(value: string): { command: string; roomName: string } | null;
+        containsWord(source: string, word: string): boolean;
+      };
+
+      expect(internals.isListScenesIntent('lista las escenas')).toBe(true);
+      expect(internals.isListScenesIntent('activa la escena cine')).toBe(false);
+      expect(internals.isListAutomationsIntent('list automations')).toBe(true);
+      expect(internals.isListAutomationsIntent('activa rutina noche')).toBe(false);
+      expect(internals.isManagementIntent('renombra la escena cine a noche')).toBe(true);
+      expect(internals.isManagementIntent('enciende la sala')).toBe(false);
+      expect(internals.extractTargetPhrase('Apaga la luz de la sala')).toBe('la luz de la sala');
+      expect(internals.extractTargetPhrase('turn off')).toBe('');
+      expect(internals.isRoomBulkFastPath('apaga todas las luces en sala')).toEqual({ command: 'turn_off', roomName: 'sala', bulkType: 'lights' });
+      expect(internals.isRoomBulkFastPath('turn on all lights in kitchen')).toEqual({ command: 'turn_on', roomName: 'kitchen', bulkType: 'lights' });
+      expect(internals.isRoomBulkFastPath('apaga todo')).toBeNull();
+      expect(internals.isRoomSingularLightFastPath('enciende la luz en sala')).toEqual({ command: 'turn_on', roomName: 'sala' });
+      expect(internals.isRoomSingularLightFastPath('turn off the lamp in kitchen')).toEqual({ command: 'turn_off', roomName: 'kitchen' });
+      expect(internals.containsWord('apaga la luz', 'la')).toBe(true);
+      expect(internals.containsWord('lateral', 'la')).toBe(false);
+    });
+
+    it('formats successful, partial, and failed execution summaries consistently', () => {
+      const internals = service as unknown as {
+        buildCommandSuccessMessage(command: 'turn_on' | 'turn_off' | 'toggle', deviceName: string, userName: string | null, language: string): string;
+        formatMultiCommandSummary(results: unknown[], language: string, bulkType?: 'all' | 'lights'): string;
+      };
+      const success = (name: string, command: 'turn_on' | 'turn_off') => ({
+        deviceName: name,
+        action: { command },
+        result: { status: 'success', actions: [] },
+      });
+      const failed = (name: string, error: string) => ({
+        deviceName: name,
+        action: { command: 'turn_off' },
+        result: { status: 'failed', actions: [{ error }] },
+      });
+
+      expect(internals.buildCommandSuccessMessage('turn_on', 'Sala', null, 'es')).toBe('Encendí Sala.');
+      expect(internals.buildCommandSuccessMessage('turn_off', 'Kitchen', null, 'en')).toBe('Turned off Kitchen.');
+      expect(internals.formatMultiCommandSummary([success('Sala', 'turn_on')], 'es')).toBe('Encendí Sala.');
+      expect(internals.formatMultiCommandSummary([success('Sala', 'turn_on'), success('Cocina', 'turn_on')], 'es')).toContain('Sala y Cocina');
+      expect(internals.formatMultiCommandSummary([success('A', 'turn_off'), success('B', 'turn_off'), success('C', 'turn_off'), success('D', 'turn_off')], 'en', 'lights')).toContain('turned off 4 lights');
+      expect(internals.formatMultiCommandSummary([failed('Sala', 'offline')], 'es')).toContain('offline');
+      expect(internals.formatMultiCommandSummary([success('Sala', 'turn_on'), failed('Cocina', 'offline')], 'en')).toContain('Executed 1 of 2');
+    });
+  });
+  describe('Feature: managed scene and automation changes', () => {
+    it('prepares confirmed rename, automation, and scene-edit actions without executing them directly', async () => {
+      const internals = service as unknown as {
+        handleManagementIntent(prompt: string, userId: string, language: string): Promise<{ type: string; message: string }>;
+      };
+      const scene = {
+        id: 'scene-cine', homeId: 'h1', roomId: null, name: 'Cine', actions: [{ deviceId: 'light-1', command: { name: 'turn_off' as const, params: {} } }], executionMode: 'parallel' as const, createdAt: '', updatedAt: '',
+      };
+      mockSceneRepo.findAll.mockResolvedValue([scene]);
+      mockAutomationRepo.findAll.mockResolvedValue([{
+        id: 'automation-night', homeId: 'h1', userId: 'user-1', name: 'Noche', enabled: true,
+        trigger: { type: 'time', timeLocal: '22:00', timezone: 'America/Guayaquil', timeUTC: '03:00' },
+        action: { type: 'device_command', targetDeviceId: 'light-1', command: 'turn_off' },
+      }]);
+      mockDeviceRepo.findAll.mockResolvedValue([createTestDevice({ id: 'light-1', homeId: 'h1', name: 'Luz Sala', type: 'light' })]);
+
+      await expect(internals.handleManagementIntent('renombra la escena cine a noche', 'user-1', 'es')).resolves.toEqual(expect.objectContaining({ type: 'clarification', message: expect.stringContaining('renombrar') }));
+      await expect(internals.handleManagementIntent('desactiva la automatizacion noche', 'user-1', 'es')).resolves.toEqual(expect.objectContaining({ type: 'clarification', message: expect.stringContaining('desactivar') }));
+      await expect(internals.handleManagementIntent('agrega luz sala a la escena cine', 'user-1', 'es')).resolves.toEqual(expect.objectContaining({ type: 'clarification', message: expect.stringContaining('agregar') }));
+      await expect(internals.handleManagementIntent('quita luz sala de la escena cine', 'user-1', 'es')).resolves.toEqual(expect.objectContaining({ type: 'clarification', message: expect.stringContaining('quitar') }));
+
+      expect(mockMemory.saveShortTermMemory).toHaveBeenCalledTimes(4);
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+    });
+  });
+  describe('Feature: confirmation and clarification guardrails', () => {
+    it('recognizes confirmation polarity and resolves deterministic clarification choices', () => {
+      const internals = service as unknown as {
+        isConfirmation(value: string): boolean;
+        isPositiveConfirmation(value: string): boolean;
+        isNegativeConfirmation(value: string): boolean;
+        resolveSelectionFromMemory(value: string, options: Array<{ id: string; label: string }>, language: string): string | null;
+        isLikelyHomeControlPrompt(value: string): boolean;
+        isClarificationSelectionReply(value: string): boolean;
+        isSuggestionAccept(value: string): boolean;
+        isSuggestionReject(value: string): boolean;
+        isSuggestionPostpone(value: string): boolean;
+        isBulkActionAccept(value: string): boolean;
+        isBulkActionReject(value: string): boolean;
+      };
+      const options = [
+        { id: 'sala', label: 'Luz Sala' },
+        { id: 'cocina', label: 'Luz Cocina' },
+        { id: 'patio', label: 'Luz Patio' },
+      ];
+
+      expect(internals.isConfirmation('procede ahora')).toBe(true);
+      expect(internals.isPositiveConfirmation('go ahead please')).toBe(true);
+      expect(internals.isNegativeConfirmation('cancelar ahora')).toBe(true);
+      expect(internals.resolveSelectionFromMemory('sala', options, 'es')).toBe('sala');
+      expect(internals.resolveSelectionFromMemory('la segunda', options, 'es')).toBe('cocina');
+      expect(internals.resolveSelectionFromMemory('selected patio', options, 'en')).toBe('patio');
+      expect(internals.resolveSelectionFromMemory('unknown', options, 'en')).toBeNull();
+      expect(internals.isLikelyHomeControlPrompt('apaga la luz sala')).toBe(true);
+      expect(internals.isLikelyHomeControlPrompt('dime como funciona homepilot')).toBe(false);
+      expect(internals.isClarificationSelectionReply('la segunda')).toBe(true);
+      expect(internals.isClarificationSelectionReply('que luces estan encendidas')).toBe(false);
+      expect(internals.isSuggestionAccept('create it')).toBe(true);
+      expect(internals.isSuggestionReject('dismiss')).toBe(true);
+      expect(internals.isSuggestionPostpone('remind me later')).toBe(true);
+      expect(internals.isBulkActionAccept('confirm')).toBe(true);
+      expect(internals.isBulkActionReject('no thanks')).toBe(true);
+    });
+  });
+  describe('Feature: deterministic room command parsing', () => {
+    it('extracts device targets and only recognizes complete Spanish and English room-control phrases', () => {
+      const internals = service as unknown as {
+        extractTargetPhrase(value: string): string;
+        isRoomBulkFastPath(value: string): { command: 'turn_on' | 'turn_off'; roomName: string; bulkType: 'all' | 'lights' } | null;
+        isSingularLightRequest(value: string): boolean;
+        isRoomSingularLightFastPath(value: string): { command: 'turn_on' | 'turn_off'; roomName: string } | null;
+      };
+
+      expect(internals.extractTargetPhrase('enciende la lámpara sala')).toBe('la lampara sala');
+      expect(internals.extractTargetPhrase('turn off')).toBe('');
+      expect(internals.extractTargetPhrase('estado de cocina')).toBe('estado de cocina');
+      expect(internals.isRoomBulkFastPath('apaga las luces en sala')).toEqual({ command: 'turn_off', roomName: 'sala', bulkType: 'lights' });
+      expect(internals.isRoomBulkFastPath('turn on everything in kitchen')).toEqual({ command: 'turn_on', roomName: 'kitchen', bulkType: 'all' });
+      expect(internals.isRoomBulkFastPath('apaga todas las luces y la sala')).toBeNull();
+      expect(internals.isRoomBulkFastPath('turn off all lights')).toBeNull();
+      expect(internals.isSingularLightRequest('enciende la luz del patio')).toBe(true);
+      expect(internals.isSingularLightRequest('enciende todas las luces')).toBe(false);
+      expect(internals.isRoomSingularLightFastPath('prende la luz en patio')).toEqual({ command: 'turn_on', roomName: 'patio' });
+      expect(internals.isRoomSingularLightFastPath('switch off the lamp at office')).toEqual({ command: 'turn_off', roomName: 'office' });
+      expect(internals.isRoomSingularLightFastPath('enciende luxury patio')).toBeNull();
+    });
+  });
+  it('resolves room aliases by exact, fuzzy, user-defined, ambiguous, and invalid targets', () => {
+    const internals = service as unknown as { resolveRoomAlias(name: string, rooms: ReadonlyArray<ReturnType<typeof createTestRoom>>, devices: ReadonlyArray<ReturnType<typeof createTestDevice>>, userId: string, aliases: Record<string, string>): { status: string; rooms: ReadonlyArray<{ id: string }>; candidates?: string[] } };
+    const rooms = [createTestRoom({ id: 'sala', name: 'Sala Principal', homeId: 'h1' }), createTestRoom({ id: 'sala-2', name: 'Sala TV', homeId: 'h1' })];
+    const device = createTestDevice({ id: 'device-1', homeId: 'h1', name: 'Luz', type: 'light' });
+    expect(internals.resolveRoomAlias('sala principal', rooms, [device], 'user-1', {})).toMatchObject({ status: 'resolved', rooms: [{ id: 'sala' }] });
+    expect(internals.resolveRoomAlias('principal', rooms, [device], 'user-1', {})).toMatchObject({ status: 'resolved', rooms: [{ id: 'sala' }] });
+    expect(internals.resolveRoomAlias('living', rooms, [device], 'user-1', { living: 'sala' })).toMatchObject({ status: 'resolved', rooms: [{ id: 'sala' }] });
+    expect(internals.resolveRoomAlias('sala', rooms, [device], 'user-1', {})).toMatchObject({ status: 'ambiguous' });
+    expect(internals.resolveRoomAlias('unknown', rooms, [device], 'user-1', { unknown: 'device-1' })).toMatchObject({ status: 'not_found' });
+  });
+
+  describe('Feature: conversation preferences and confirmation tickets', () => {
+    it('Scenario: Given a Spanish preferred-address instruction When it is accepted Then it is persisted and acknowledged in Spanish', async () => {
+      const response = await service.converse({ prompt: 'llámame Sofía', userId: 'user-sofia' }, 'es');
+
+      expect(mockMemory.setUserPreference).toHaveBeenCalledWith('user-sofia', 'assistant_preferred_address', 'Sofía');
+      expect(response).toEqual({
+        type: 'answer',
+        message: 'Entendido. Me dirigiré a ti como Sofía en la conversación general.'
+      });
+    });
+
+    it('Scenario: Given a legacy runtime without a ticket repository When a bulk proposal is prepared Then it stays non-executable and does not throw', async () => {
+      const legacyInternals = service as unknown as {
+        createConfirmationTicket(userId: string, homeId: string, command: 'turn_off', deviceIds: string[], originalPrompt: string, bulkType?: 'all' | 'lights'): Promise<void>;
+      };
+
+      await expect(legacyInternals.createConfirmationTicket('legacy-user', 'home-1', 'turn_off', ['light-1'], 'apaga todo', 'all')).resolves.toBeUndefined();
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+    });
+    it('Scenario: Given a bulk action requiring confirmation When a ticket is proposed Then it stores one bounded confirmation record', async () => {
+      const create = jest.fn().mockResolvedValue(undefined);
+      const internals = service as unknown as {
+        confirmationTicketRepository: { create(ticket: { userId: string; homeId: string; command: string; deviceIds: string[]; originalPrompt: string; bulkType?: string; createdAt: string; expiresAt: string; consumedAt: null }): Promise<void> } | undefined;
+        createConfirmationTicket(userId: string, homeId: string, command: 'turn_off', deviceIds: string[], originalPrompt: string, bulkType?: 'all' | 'lights'): Promise<void>;
+      };
+      internals.confirmationTicketRepository = { create };
+
+      await internals.createConfirmationTicket('user-1', 'home-1', 'turn_off', ['light-1', 'light-2'], 'apaga las luces', 'lights');
+
+      expect(create).toHaveBeenCalledWith(expect.objectContaining({
+        userId: 'user-1',
+        homeId: 'home-1',
+        command: 'turn_off',
+        deviceIds: ['light-1', 'light-2'],
+        originalPrompt: 'apaga las luces',
+        bulkType: 'lights',
+        consumedAt: null,
+      }));
+      const ticket = create.mock.calls[0][0] as { createdAt: string; expiresAt: string };
+      expect(new Date(ticket.expiresAt).getTime() - new Date(ticket.createdAt).getTime()).toBe(120_000);
+    });
+  });
+  describe('Feature: point-state assistant answers', () => {
+    it('Scenario: Given a room with mixed controllable states When its state is requested Then reports the exact on-device count', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-on', name: 'Luz techo', roomId: 'r1', type: 'light', lastKnownState: { state: 'on' } }),
+        createTestDevice({ id: 'light-off', name: 'Luz mesa', roomId: 'r1', type: 'light', lastKnownState: { state: 'off' } }),
+      ]);
+
+      const response = await (service as unknown as {
+        handlePointStateQuery(prompt: string, language: string, userId: string): Promise<{ type: string; message: string }>;
+      }).handlePointStateQuery('esta encendida cuarto master', 'es', 'state-reader');
+
+      expect(response).toEqual(expect.objectContaining({
+        type: 'answer',
+        message: 'Hay 1 de 2 dispositivos encendidos en Cuarto Master.',
+      }));
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('Scenario: Given no matching device or room When a point state is requested Then returns a bounded not-found answer', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-1', name: 'Luz sala', roomId: 'r1', type: 'light', lastKnownState: { state: 'on' } }),
+      ]);
+      mockRoomRepo.findAll.mockResolvedValue([createTestRoom({ id: 'r1', name: 'Sala', homeId: 'h1' })]);
+
+      const response = await (service as unknown as {
+        handlePointStateQuery(prompt: string, language: string, userId: string): Promise<{ type: string; message: string }>;
+      }).handlePointStateQuery('esta encendida luz inexistente', 'es', 'state-reader');
+
+      expect(response).toEqual({ type: 'answer', message: 'No pude encontrar el dispositivo por el que preguntas.' });
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('Scenario: Given no authorized rooms, scenes, or automations When they are listed Then returns explicit empty answers', async () => {
+      mockRoomRepo.findAll.mockResolvedValue([]);
+      mockSceneRepo.findAll.mockResolvedValue([]);
+      mockAutomationRepo.findAll.mockResolvedValue([]);
+      const privateService = service as unknown as {
+        handleRoomQuery(language: string, userId: string): Promise<{ type: string; message: string }>;
+        handleListScenes(language: string, userId: string): Promise<{ type: string; message: string }>;
+        handleListAutomations(language: string, userId: string): Promise<{ type: string; message: string }>;
+      };
+
+      await expect(privateService.handleRoomQuery('en', 'empty-reader')).resolves.toEqual({ type: 'answer', message: "I don't know any rooms yet." });
+      await expect(privateService.handleListScenes('en', 'empty-reader')).resolves.toEqual({ type: 'answer', message: "You don't have any scenes created yet." });
+      await expect(privateService.handleListAutomations('en', 'empty-reader')).resolves.toEqual({ type: 'answer', message: "You don't have any automations yet." });
+    });
+
+    it('Scenario: Given a room with only off controllable devices When its state is requested Then confirms everything is off', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-off', name: 'Luz techo', roomId: 'r1', type: 'light', lastKnownState: { state: 'off' } }),
+      ]);
+      mockRoomRepo.findAll.mockResolvedValue([createTestRoom({ id: 'r1', name: 'Sala', homeId: 'h1' })]);
+
+      await expect((service as unknown as {
+        handlePointStateQuery(prompt: string, language: string, userId: string): Promise<{ type: string; message: string }>;
+      }).handlePointStateQuery('esta apagada sala', 'es', 'state-reader')).resolves.toEqual({
+        type: 'answer', message: 'Todo está apagado en Sala.',
+      });
+    });
+
+    it('Scenario: Given a room with every controllable device on When its state is requested Then confirms everything is on', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-1', name: 'Luz techo', roomId: 'r1', type: 'light', lastKnownState: { state: 'on' } }),
+        createTestDevice({ id: 'switch-1', name: 'Ventilador', roomId: 'r1', type: 'switch', lastKnownState: { state: 'on' } }),
+      ]);
+      mockRoomRepo.findAll.mockResolvedValue([createTestRoom({ id: 'r1', name: 'Sala', homeId: 'h1' })]);
+
+      await expect((service as unknown as {
+        handlePointStateQuery(prompt: string, language: string, userId: string): Promise<{ type: string; message: string }>;
+      }).handlePointStateQuery('esta encendida sala', 'es', 'state-reader')).resolves.toEqual({
+        type: 'answer', message: 'Todo está encendido en Sala.',
+      });
+    });
+    it('Scenario: Given a room without controllable devices When its state is requested Then explains that limitation', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'sensor-1', name: 'Temperatura', roomId: 'r1', type: 'sensor', lastKnownState: { state: 'on' } }),
+      ]);
+      mockRoomRepo.findAll.mockResolvedValue([createTestRoom({ id: 'r1', name: 'Office', homeId: 'h1' })]);
+
+      await expect((service as unknown as {
+        handlePointStateQuery(prompt: string, language: string, userId: string): Promise<{ type: string; message: string }>;
+      }).handlePointStateQuery('is office on', 'en', 'state-reader')).resolves.toEqual({
+        type: 'answer', message: "I don't see controllable devices in Office.",
+      });
+    });
+    it('Scenario: Given two matching devices When a point state is requested Then asks for a bounded clarification', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-1', name: 'Luz Sala', type: 'light', lastKnownState: { state: 'on' } }),
+        createTestDevice({ id: 'light-2', name: 'Luz Sala', type: 'light', lastKnownState: { state: 'off' } }),
+      ]);
+
+      await expect((service as unknown as {
+        handlePointStateQuery(prompt: string, language: string, userId: string): Promise<{ type: string; message: string; clarification?: { options: Array<{ id: string }> } }>;
+      }).handlePointStateQuery('luz sala esta encendida', 'es', 'state-reader')).resolves.toMatchObject({
+        type: 'clarification',
+        clarification: { options: [expect.objectContaining({ id: 'light-1' }), expect.objectContaining({ id: 'light-2' })] },
+      });
+    });
+
+    it('Scenario: Given a numeric active state When it is queried Then treats it as on', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'dimmer-1', name: 'Dimmer Sala', type: 'light', lastKnownState: { state: 45 } }),
+      ]);
+
+      await expect((service as unknown as {
+        handlePointStateQuery(prompt: string, language: string, userId: string): Promise<{ type: string; message: string }>;
+      }).handlePointStateQuery('dimmer sala esta encendido', 'es', 'state-reader')).resolves.toEqual({
+        type: 'answer', message: 'Sí, Dimmer Sala está encendido.',
+      });
+    });
+    it('Scenario: Given an active device When it is asked whether it is off Then gives the inverse state answer', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-1', name: 'Luz Sala', type: 'light', lastKnownState: { state: 'on' } }),
+      ]);
+
+      await expect((service as unknown as {
+        handlePointStateQuery(prompt: string, language: string, userId: string): Promise<{ type: string; message: string }>;
+      }).handlePointStateQuery('luz sala esta apagada', 'es', 'state-reader')).resolves.toEqual({
+        type: 'answer', message: 'No, Luz Sala está encendido.',
+      });
+    });
+
+    it('Scenario: Given lights in multiple rooms When a vague light command has no source room Then asks for the room before acting', async () => {
+      mockInterpreter.interpret.mockResolvedValue({
+        type: 'command',
+        deviceId: '',
+        command: 'turn_off',
+        prompt: 'apaga las luces'
+      });
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'sala-light', name: 'Luz Sala', roomId: 'sala', type: 'light', lastKnownState: { state: 'on' } }),
+        createTestDevice({ id: 'kitchen-light', name: 'Luz Cocina', roomId: 'kitchen', type: 'light', lastKnownState: { state: 'on' } })
+      ]);
+
+      await expect(service.converse({ prompt: 'apaga las luces', userId: 'safe-user' }, 'es')).resolves.toMatchObject({
+        type: 'clarification',
+        message: '¿En qué estancia quieres controlar la luz?'
+      });
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+    });
+  });
+    it('Scenario: Given duplicate device matches for a specific request When a command is issued Then it persists bounded choices instead of dispatching blindly', async () => {
+      mockInterpreter.interpret.mockResolvedValue({
+        type: 'command',
+        deviceId: '',
+        command: 'turn_off',
+        prompt: 'apaga la luz sala',
+      });
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'sala-main', name: 'Luz Sala', roomId: 'sala', type: 'light', lastKnownState: { state: 'on' } }),
+        createTestDevice({ id: 'sala-secondary', name: 'Luz Sala', roomId: 'sala', type: 'light', lastKnownState: { state: 'on' } }),
+      ]);
+
+      await expect(service.converse({ prompt: 'apaga la luz sala', userId: 'duplicate-device-user' }, 'es')).resolves.toMatchObject({
+        type: 'clarification',
+        message: 'Encontré varios dispositivos compatibles. Indícame el objetivo.',
+        clarification: {
+          options: [
+            expect.objectContaining({ id: 'sala-main', label: 'Luz Sala' }),
+            expect.objectContaining({ id: 'sala-secondary', label: 'Luz Sala' }),
+          ],
+        },
+      });
+      expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('duplicate-device-user', expect.objectContaining({
+        lastQueryType: 'clarification',
+        pendingIntent: expect.objectContaining({ command: 'turn_off' }),
+      }));
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+    });
+  describe('Feature: home state summary', () => {
+    it('Scenario: Given devices with known on and off states When a broad home-state query is made Then it reports counts and active rooms without dispatching commands', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'on-light', name: 'Luz Sala', type: 'light', homeId: 'h1', roomId: 'r1', lastKnownState: { state: 'on' } }),
+        createTestDevice({ id: 'off-light', name: 'Luz Cocina', type: 'light', homeId: 'h1', roomId: 'r2', lastKnownState: { state: 'off' } })
+      ]);
+      mockRoomRepo.findAll.mockResolvedValue([
+        createTestRoom({ id: 'r1', name: 'Sala', homeId: 'h1' }),
+        createTestRoom({ id: 'r2', name: 'Cocina', homeId: 'h1' })
+      ]);
+      mockRoomRepo.findRoomsByHomeId.mockResolvedValue([
+        createTestRoom({ id: 'r1', name: 'Sala', homeId: 'h1' }),
+        createTestRoom({ id: 'r2', name: 'Cocina', homeId: 'h1' })
+      ]);
+
+      const response = await (service as unknown as {
+        handleStateQuery(normalized: string, language: string, userName: string | null, userId: string): Promise<{ type: string; message: string }>;
+      }).handleStateQuery('estado de la casa', 'es', 'Oscar', 'state-summary');
+
+      expect(response).toEqual(expect.objectContaining({
+        type: 'answer',
+        message: expect.stringContaining('Encendidas: 1')
+      }));
+      expect(response.message).toContain('Apagadas: 1');
+      expect(response.message).toContain('Sala');
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+    });
+  });
+  describe('Feature: deterministic informational intent classification', () => {
+    it('Scenario: Given date, greeting, wellness, and state prompts When they are classified Then no device command is inferred', async () => {
+      const privateService = service as unknown as {
+        handleDateTimeQuery(prompt: string, language: string): Promise<{ type: string; message: string }>;
+        isGreeting(prompt: string): boolean;
+        isWellnessQuery(prompt: string): boolean;
+        isStateQuery(prompt: string): boolean;
+      };
+
+      const dateResponse = await privateService.handleDateTimeQuery('qué fecha es hoy', 'es');
+      const timeResponse = await privateService.handleDateTimeQuery('what time is it', 'en');
+
+      expect(dateResponse).toMatchObject({ type: 'answer', message: expect.stringContaining('Hoy es') });
+      expect(timeResponse).toMatchObject({ type: 'answer', message: expect.stringContaining('Home systems remain attentive') });
+      expect(privateService.isGreeting('buenas tardes')).toBe(true);
+      expect(privateService.isWellnessQuery('estas funcionando correctamente')).toBe(true);
+      expect(privateService.isStateQuery('qué luces están encendidas')).toBe(true);
+      expect(privateService.isStateQuery('enciende esas luces')).toBe(false);
+    });
+  });
+  describe('Feature: deterministic command recognizers', () => {
+    it('Scenario: Given supported bulk and singular phrasing When fast-path recognizers parse it Then they preserve scope and reject ambiguous input', () => {
+      const privateService = service as unknown as {
+        isRoomBulkFastPath(prompt: string): { command: 'turn_on' | 'turn_off'; roomName: string; bulkType: 'all' | 'lights' } | null;
+        isRoomSingularLightFastPath(prompt: string): { command: 'turn_on' | 'turn_off'; roomName: string } | null;
+        isPointStateQuery(prompt: string): boolean;
+        extractTargetPhrase(prompt: string): string;
+        isCompanyQuery(prompt: string): boolean;
+        handleCompanyInfoQuery(language: string): { type: string; message: string };
+      };
+
+      expect(privateService.isRoomBulkFastPath('apaga todas las luces en Sala')).toEqual({
+        command: 'turn_off', roomName: 'sala', bulkType: 'lights'
+      });
+      expect(privateService.isRoomBulkFastPath('turn on all lights in Kitchen')).toEqual({
+        command: 'turn_on', roomName: 'kitchen', bulkType: 'lights'
+      });
+      expect(privateService.isRoomBulkFastPath('apaga luces y ventilador en Sala')).toBeNull();
+      expect(privateService.isRoomBulkFastPath('apaga luces')).toBeNull();
+
+      expect(privateService.isRoomSingularLightFastPath('enciende la luz en Sala')).toEqual({
+        command: 'turn_on', roomName: 'sala'
+      });
+      expect(privateService.isRoomSingularLightFastPath('switch off a lamp in Kitchen')).toEqual({
+        command: 'turn_off', roomName: 'kitchen'
+      });
+      expect(privateService.isRoomSingularLightFastPath('enciende luxury en Sala')).toBeNull();
+
+      expect(privateService.isPointStateQuery('la luz esta encendida')).toBe(true);
+      expect(privateService.isPointStateQuery('que luces estan encendidas')).toBe(false);
+      expect(privateService.extractTargetPhrase('apaga la luz de sala')).toBe('la luz de sala');
+      expect(privateService.extractTargetPhrase('turn off')).toBe('');
+      expect(privateService.isCompanyQuery('quién creó homepilot')).toBe(true);
+      expect(privateService.isCompanyQuery('estado de luces')).toBe(false);
+      expect(privateService.handleCompanyInfoQuery('en')).toMatchObject({
+        type: 'answer', message: expect.stringContaining('NEZU S.A.S.')
+      });
+    });
+  });
+  describe('Feature: suggestion response handling', () => {
+    const suggestion = {
+      id: 'suggestion-1',
+      type: 'scene_suggestion',
+      message: 'Create a scene?',
+      metadata: {}
+    } as never;
+
+    it('Scenario: Given a pending suggestion When accepted Then records acceptance and clears the pending state', async () => {
+      const internals = service as unknown as {
+        handleSuggestionAccept(userId: string, language: string, value: never): Promise<{ type: string; message: string }>;
+      };
+
+      mockMemory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'none',
+        entities: [],
+        timestamp: '2026-08-17T00:00:00.000Z',
+        pendingSuggestion: suggestion,
+      });
+
+      const response = await internals.handleSuggestionAccept('suggestion-user', 'es', suggestion);
+
+      expect(response).toEqual({ type: 'answer', message: '¡Listo! He creado un borrador para ti.' });
+      expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('suggestion-user', expect.objectContaining({ pendingSuggestion: undefined }));
+    });
+    it('Scenario: Given a high-confidence alias suggestion with one authorized target When accepted Then creates only that personal alias', async () => {
+      const internals = service as unknown as {
+        handleSuggestionAccept(userId: string, language: string, value: never): Promise<{ type: string; message: string }>;
+      };
+      const infoSpy = jest.spyOn(console, 'info').mockImplementation(() => undefined);
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-desk', name: 'Luz Escritorio', type: 'light', roomId: 'r1', homeId: 'h1' }),
+      ]);
+      mockRoomRepo.findAll.mockResolvedValue([createTestRoom({ id: 'r1', name: 'Oficina', homeId: 'h1' })]);
+      mockMemory.getAlias.mockResolvedValue(null);
+      mockMemory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'none', entities: [], timestamp: '2026-08-17T00:00:00.000Z',
+      });
+      const aliasSuggestion = {
+        id: 'alias-suggestion-1',
+        type: 'alias_suggestion',
+        message: 'Use an alias?',
+        metadata: { alias: 'escritorio', target: 'Luz Escritorio', confidence: 'high' },
+      } as never;
+
+      try {
+        const response = await internals.handleSuggestionAccept('alias-user', 'es', aliasSuggestion);
+
+        expect(mockMemory.setAlias).toHaveBeenCalledWith('alias-user', 'escritorio', 'light-desk');
+        expect(response.message).toBe('Alias creado: a partir de ahora entenderé "escritorio" como "Luz Escritorio".');
+      } finally {
+        infoSpy.mockRestore();
+      }
+    });
+
+    it('Scenario: Given an alias suggestion that collides with a device name When accepted Then keeps the device namespace unchanged', async () => {
+      const internals = service as unknown as {
+        handleSuggestionAccept(userId: string, language: string, value: never): Promise<{ type: string; message: string }>;
+      };
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-desk', name: 'Luz Escritorio', type: 'light', roomId: 'r1', homeId: 'h1' }),
+        createTestDevice({ id: 'light-other', name: 'Escritorio', type: 'light', roomId: 'r1', homeId: 'h1' }),
+      ]);
+      mockMemory.getAlias.mockResolvedValue(null);
+      mockMemory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'none', entities: [], timestamp: '2026-08-17T00:00:00.000Z',
+      });
+      const aliasSuggestion = {
+        id: 'alias-suggestion-collision',
+        type: 'alias_suggestion',
+        message: 'Use an alias?',
+        metadata: { alias: 'escritorio', target: 'Luz Escritorio', confidence: 'high' },
+      } as never;
+
+      const response = await internals.handleSuggestionAccept('alias-user', 'es', aliasSuggestion);
+
+      expect(mockMemory.setAlias).not.toHaveBeenCalled();
+      expect(response.message).toBe('No puedo usar "escritorio" como alias porque un dispositivo ya tiene ese nombre.');
+    });
+    it('Scenario: Given a scene suggestion with an authorized home When accepted Then creates a reviewable scene draft', async () => {
+      const internals = service as unknown as {
+        handleSuggestionAccept(userId: string, language: string, value: never): Promise<{ type: string; message: string }>;
+      };
+      mockMemory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'none', entities: [], timestamp: '2026-08-17T00:00:00.000Z',
+      });
+      const sceneSuggestion = {
+        id: 'scene-suggestion-1',
+        type: 'scene_suggestion',
+        message: 'Create a scene?',
+        metadata: { homeId: 'h1', roomId: 'r1', deviceIds: ['light-desk', 'light-door'] },
+      } as never;
+
+      const response = await internals.handleSuggestionAccept('draft-user', 'en', sceneSuggestion);
+
+      expect(mockDraftService.createDraft).toHaveBeenCalledWith('draft-user', 'scene', {
+        homeId: 'h1', roomId: 'r1', deviceIds: ['light-desk', 'light-door'],
+      });
+      expect(response.message).toBe("I've created a scene draft with those devices. You can find it in your drafts.");
+    });
+
+    it('Scenario: Given an automation suggestion with a time When accepted Then creates a scoped automation draft', async () => {
+      const internals = service as unknown as {
+        handleSuggestionAccept(userId: string, language: string, value: never): Promise<{ type: string; message: string }>;
+      };
+      mockMemory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'none', entities: [], timestamp: '2026-08-17T00:00:00.000Z',
+      });
+      const automationSuggestion = {
+        id: 'automation-suggestion-1',
+        type: 'automation_suggestion',
+        message: 'Create an automation?',
+        metadata: { homeId: 'h1', deviceId: 'light-desk', hour: 22 },
+      } as never;
+
+      const response = await internals.handleSuggestionAccept('draft-user', 'es', automationSuggestion);
+
+      expect(mockDraftService.createDraft).toHaveBeenCalledWith('draft-user', 'automation', {
+        homeId: 'h1', deviceId: 'light-desk', hour: '22', trigger: { type: 'time', hour: 22 },
+      });
+      expect(response.message).toBe('He creado un borrador de automatización para ti. Puedes revisarlo en tus borradores.');
+    });
+    it('Scenario: Given a pending suggestion When rejected Then returns the localized acknowledgement', async () => {
+      const internals = service as unknown as {
+        handleSuggestionReject(userId: string, language: string, value: never): Promise<{ type: string; message: string }>;
+      };
+
+      await expect(internals.handleSuggestionReject('suggestion-user', 'es', suggestion)).resolves.toEqual({
+        type: 'answer',
+        message: 'Entendido, no volveré a sugerirte esto por ahora.'
+      });
+    });
+
+    it('Scenario: Given a pending suggestion When postponed Then returns the localized acknowledgement', async () => {
+      const internals = service as unknown as {
+        handleSuggestionPostpone(userId: string, language: string, value: never): Promise<{ type: string; message: string }>;
+      };
+
+      await expect(internals.handleSuggestionPostpone('suggestion-user', 'en', suggestion)).resolves.toEqual({
+        type: 'answer',
+        message: "Okay, I'll remind you later."
+      });
+    });
+  });
+  describe('Feature: suggestion attachment guards', () => {
+    it('Scenario: Given no prior memory When a suggestion is available Then stores a fresh pending suggestion and appends its hint', async () => {
+      const internals = service as unknown as {
+        suggestionService: { getSuggestion: jest.Mock };
+        attachSuggestionIfNeeded(response: { type: 'answer'; message: string }, userId: string, language: string, memory: null, context: 'command'): Promise<{ type: string; message: string }>;
+      };
+      internals.suggestionService.getSuggestion.mockResolvedValue({
+        id: 'fresh-suggestion', type: 'scene_suggestion', message: 'Create a scene?', metadata: {}
+      });
+
+      const response = await internals.attachSuggestionIfNeeded({ type: 'answer', message: 'Done.' }, 'suggestion-user', 'en', null, 'command');
+
+      expect(response.message).toContain('💡 Create a scene?');
+      expect(response.message).toContain('You can reply:');
+      expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('suggestion-user', expect.objectContaining({
+        lastQueryType: 'none',
+        pendingSuggestion: expect.objectContaining({ id: 'fresh-suggestion' })
+      }));
+    });
+
+    it('Scenario: Given an eligible response When no suggestion is returned Then preserves the response unchanged', async () => {
+      const internals = service as unknown as {
+        suggestionService: { getSuggestion: jest.Mock };
+        attachSuggestionIfNeeded(response: { type: 'answer'; message: string }, userId: string, language: string, memory: null, context: 'command'): Promise<{ type: string; message: string }>;
+      };
+      internals.suggestionService.getSuggestion.mockResolvedValue(null);
+
+      await expect(internals.attachSuggestionIfNeeded({ type: 'answer', message: 'Done.' }, 'suggestion-user', 'es', null, 'command')).resolves.toEqual({
+        type: 'answer', message: 'Done.'
+      });
+      expect(mockMemory.saveShortTermMemory).not.toHaveBeenCalled();
+    });
+  });
+describe('Feature: interpreter ambiguity persistence', () => {
+  it('Scenario: Given an ambiguous interpreter outcome When a control request arrives Then it persists choices and returns a localized clarification', async () => {
+    const internals = service as unknown as {
+      attemptFastPathExecution: (prompt: string, userId: string, language: string, userName: string | null) => Promise<null>;
+      attemptDeviceAliasFastPathExecution: (prompt: string, userId: string, language: string, aliases: unknown) => Promise<null>;
+      attemptContextRoomFastPathExecution: (prompt: string, sourceRoomId: string | undefined, userId: string, userName: string | null, language: string, aliases: unknown) => Promise<null>;
+      applySafetyGateV2: (prompt: string, userId: string, language: string, request: unknown) => Promise<null>;
+      attemptV2HybridExecution: (prompt: string, userId: string, language: string, userName: string | null, memory: unknown) => Promise<null>;
+    };
+    jest.spyOn(internals, 'attemptFastPathExecution').mockResolvedValue(null);
+    jest.spyOn(internals, 'attemptDeviceAliasFastPathExecution').mockResolvedValue(null);
+    jest.spyOn(internals, 'attemptContextRoomFastPathExecution').mockResolvedValue(null);
+    jest.spyOn(internals, 'applySafetyGateV2').mockResolvedValue(null);
+    jest.spyOn(internals, 'attemptV2HybridExecution').mockResolvedValue(null);
+    mockInterpreter.interpret.mockResolvedValue({
+      type: 'clarificationRequired',
+      originalSegment: 'iluminación principal',
+      options: [
+        { id: 'light-1', label: 'Luz Sala', kind: 'device' },
+        { id: 'light-2', label: 'Luz Cocina', kind: 'device' },
+      ],
+    });
+
+    const response = await service.converse({
+      prompt: 'enciende iluminación principal',
+      userId: 'clarification-user',
+    }, 'es');
+
+    expect(response).toEqual(expect.objectContaining({
+      type: 'clarification',
+      message: expect.stringContaining('Encontré varias opciones'),
+      clarification: expect.objectContaining({
+        options: expect.arrayContaining([
+          expect.objectContaining({ id: 'light-1', label: 'Luz Sala', kind: 'device' }),
+        ]),
+      }),
+    }));
+    expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('clarification-user', expect.objectContaining({
+      lastQueryType: 'clarification',
+      originalPrompt: 'enciende iluminación principal',
+      pendingIntent: expect.objectContaining({ command: 'turn_on' }),
+    }));
+  });
+
+  it('Scenario: Given an interpreter failure When a control request reaches the semantic fallback Then returns its safe error without dispatching', async () => {
+    const internals = service as unknown as {
+      attemptFastPathExecution: (prompt: string, userId: string, language: string, userName: string | null) => Promise<null>;
+      attemptDeviceAliasFastPathExecution: (prompt: string, userId: string, language: string, aliases: unknown) => Promise<null>;
+      attemptContextRoomFastPathExecution: (prompt: string, sourceRoomId: string | undefined, userId: string, userName: string | null, language: string, aliases: unknown) => Promise<null>;
+      applySafetyGateV2: (prompt: string, userId: string, language: string, request: unknown) => Promise<null>;
+      attemptV2HybridExecution: (prompt: string, userId: string, language: string, userName: string | null, memory: unknown) => Promise<null>;
+    };
+    jest.spyOn(internals, 'attemptFastPathExecution').mockResolvedValue(null);
+    jest.spyOn(internals, 'attemptDeviceAliasFastPathExecution').mockResolvedValue(null);
+    jest.spyOn(internals, 'attemptContextRoomFastPathExecution').mockResolvedValue(null);
+    jest.spyOn(internals, 'applySafetyGateV2').mockResolvedValue(null);
+    jest.spyOn(internals, 'attemptV2HybridExecution').mockResolvedValue(null);
+    mockInterpreter.interpret.mockResolvedValue({ type: 'failure', message: 'Semantic resolver unavailable' });
+
+    await expect(service.converse({ prompt: 'controla iluminación principal', userId: 'failure-user' }, 'es')).resolves.toEqual({
+      type: 'error',
+      message: 'Semantic resolver unavailable',
+    });
+    expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+  });
+});
 });

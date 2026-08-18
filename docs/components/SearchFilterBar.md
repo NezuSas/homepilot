@@ -1,20 +1,27 @@
 # SearchFilterBar
 
-**Fuente:** `apps/operator-console/src/components/ui/SearchFilterBar.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/ui/SearchFilterBar.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Búsqueda local consistente sobre listas ya cargadas.
+Consistent local search over already loaded lists.
 
-## Contrato
+## Contract
 
-Recibe query, callback, placeholder y opciones de presentación. Cuando existe una consulta, muestra una acción compacta localizada para limpiarla mediante el `Input` modular. El filtrado de negocio y la carga remota permanecen en la vista.
+Receives query, callback, placeholder, and presentation options. When a query
+exists, it displays a compact localized clear action through modular `Input`.
+Business filtering and remote loading remain in the view.
 
-## Uso
+## Usage
 
-Usar para dispositivos, espacios, escenas o listas extensas. Placeholder y etiquetas deben venir de i18n.
+Use for devices, spaces, scenes, or long lists. Placeholder and labels come
+from i18n.
 
-## Estados y aceptación
+## States and Acceptance
 
-Debe ser legible en móvil, mostrar foco visible y no borrar el contenido existente mientras se filtra. En móvil mantiene búsqueda y filtros apilados; desde tablet los organiza en fila para aprovechar el ancho disponible. La limpieza de búsqueda mantiene altura y ancho estables. Las opciones permanecen navegables mediante desplazamiento horizontal, sin forzar overflow de la vista.
+Must remain readable on mobile, show visible focus, and not remove existing
+content while filtering. On mobile it stacks search and filters; from tablet it
+arranges them in a row to use available width. Clearing search retains stable
+height and width. Options remain navigable through horizontal scrolling without
+forcing view overflow.

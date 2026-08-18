@@ -59,4 +59,25 @@ describe('DatabaseBackupService', () => {
     expect(result.error).toContain('Source database not found');
     (getDbPathModule.getDatabasePath as jest.Mock).mockReturnValue(testDbPath);
   });
+  it('returns the copy failure without leaving a successful backup result', async () => {
+    const copyFileSync = jest.spyOn(fs, 'copyFileSync').mockImplementation(() => {
+      throw new Error('disk unavailable');
+    });
+
+    const result = await service.createBackup();
+
+    expect(result).toEqual({ success: false, error: 'disk unavailable' });
+    copyFileSync.mockRestore();
+  });
+
+  it('ignores non-backup files and returns an empty list when listing fails', async () => {
+    fs.writeFileSync(path.join(testBackupDir, 'notes.txt'), 'not a backup');
+    expect(await service.listBackups()).toEqual([]);
+
+    const readdirSync = jest.spyOn(fs, 'readdirSync').mockImplementation(() => {
+      throw new Error('directory unavailable');
+    });
+    await expect(service.listBackups()).resolves.toEqual([]);
+    readdirSync.mockRestore();
+  });
 });

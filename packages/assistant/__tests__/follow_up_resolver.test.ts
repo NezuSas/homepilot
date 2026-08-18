@@ -62,4 +62,30 @@ describe('FollowUpResolver', () => {
     expect(result.resolvedPrompt).toBe('apaga Luz Escritorio');
     expect(result.referencesMemory).toBe(true);
   });
+  it('prioritizes clarification options over previous entities and preserves surrounding text', () => {
+    const result = resolver.resolve('apaga la segunda ahora', {
+      ...mockMemory,
+      clarificationOptions: [
+        { id: 'option-1', label: 'Luz Sala', kind: 'device' },
+        { id: 'option-2', label: 'Luz Cocina', kind: 'device' },
+      ],
+    }, 'es');
+
+    expect(result).toMatchObject({
+      resolvedPrompt: 'apaga Luz Cocina ahora',
+      referencesMemory: true,
+    });
+  });
+
+  it('uses English wording for list and room follow-ups', () => {
+    expect(resolver.resolve('them', mockMemory, 'en').resolvedPrompt)
+      .toBe('tell me about Luz Escritorio, Luz Techo');
+    expect(resolver.resolve('where is it', mockMemory, 'en').resolvedPrompt)
+      .toBe('room of Luz Escritorio y Luz Techo');
+  });
+
+  it('keeps unresolved, empty-memory commands unchanged', () => {
+    expect(resolver.resolve('turn it off', { ...mockMemory, entities: [] }, 'en'))
+      .toEqual({ resolvedPrompt: 'turn it off', handled: false, referencesMemory: false });
+  });
 });

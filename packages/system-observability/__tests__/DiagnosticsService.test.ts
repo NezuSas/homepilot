@@ -155,4 +155,35 @@ describe('Feature: system diagnostics', () => {
       expect.objectContaining({ category: 'automation', eventType: 'AUTOMATION_FAILED', correlationId: 'corr-2' }),
     ]);
   });
+  it('Scenario: Given resilience variants and generic commands When events are requested Then each event uses its stable category and type', async () => {
+    const service = createService({
+      logs: [
+        resilienceLog('reconnect'),
+        resilienceLog('auth_error'),
+        resilienceLog('custom_source'),
+        { timestamp: '2026-08-11T10:00:00.000Z', deviceId: 'd1', type: 'COMMAND_DISPATCHED', description: 'Command', data: { status: 'success' } },
+        { timestamp: '2026-08-11T10:00:00.000Z', deviceId: 'd2', type: 'OTHER' as ActivityRecord['type'], description: 'Other', data: {}, correlationId: 'corr' },
+      ],
+    });
+
+    const events = await service.getRecentEvents(5);
+
+    expect(events.map((event) => [event.category, event.eventType])).toEqual([
+      ['resilience', 'WS_CONNECTED'],
+      ['resilience', 'AUTH_FAILED'],
+      ['resilience', 'custom_source'],
+      ['automation', 'AUTOMATION_EXECUTED'],
+      ['command', 'OTHER'],
+    ]);
+    expect(events[4].data).toEqual({});
+  });
+
+  it('Scenario: Given reconciliation records and a finite timeline limit When diagnostics are read Then counters and event limit stay accurate', async () => {
+    const logs = [resilienceLog('reconciliation'), resilienceLog('reconciliation'), resilienceLog('reconnect')];
+    const snapshot = await createService({ logs }).getSnapshot();
+    const events = await createService({ logs: [...logs, resilienceLog('reconnect')] }).getRecentEvents(1);
+
+    expect(snapshot.counters.recentReconciliations).toBe(2);
+    expect(events).toHaveLength(1);
+  });
 });

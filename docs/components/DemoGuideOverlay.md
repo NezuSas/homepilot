@@ -1,20 +1,28 @@
 # DemoGuideOverlay
 
-**Fuente:** `apps/operator-console/src/components/DemoGuideOverlay.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/DemoGuideOverlay.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Guiar al usuario por acciones relevantes de la consola, resaltando el objetivo activo sin bloquear la navegación hacia el paso requerido.
+Guides the user through relevant console actions by highlighting the active
+target without blocking navigation to the required step.
 
-## Contrato
+## Contract
 
-Consume el estado local de la demo y una navegación opcional. Localiza el elemento objetivo, ajusta el resaltado al viewport y muestra los textos exclusivamente mediante claves i18n definidas por cada paso.
+Consumes local demo state and optional navigation. It finds the target element,
+adjusts the highlight to the viewport, and renders text exclusively through
+i18n keys defined by each step.
 
-## Uso
+## Usage
 
-En escritorio posiciona la explicación cerca del objetivo. En móvil mantiene la guía disponible como tarjeta inferior dentro del área segura, sin recortar controles ni ocultar la experiencia.
+On desktop, position the explanation near the target. On mobile, keep the guide
+available as a bottom card within the safe area without clipping controls or
+hiding the experience.
 
-## Estados y aceptación
+## States and Acceptance
 
-El overlay actualiza su posición ante scroll y resize, permite terminar con Escape y conserva acciones táctiles accesibles en móvil, tablet y escritorio. No atrapa foco ni bloquea scroll: la persona puede completar directamente la acción resaltada sin que la guía interfiera con la navegación.
+The overlay updates position on scroll and resize, can finish with Escape, and
+keeps touch actions accessible on mobile, tablet, and desktop. It neither traps
+focus nor blocks scrolling: the user can directly complete the highlighted
+action without the guide interfering with navigation.

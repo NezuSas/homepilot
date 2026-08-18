@@ -5,6 +5,15 @@ module.exports = {
   roots: ['<rootDir>/packages/', '<rootDir>/__tests__/', '<rootDir>/apps/'],
   testMatch: ['**/__tests__/**/*.test.ts', '**/*.test.ts'],
   clearMocks: true,
+  coverageProvider: 'v8',
+  coverageThreshold: {
+    global: {
+      branches: 78,
+      functions: 91,
+      lines: 92,
+      statements: 91,
+    },
+  },
   transform: {
     '^.+\\.tsx?$': [
       'ts-jest',

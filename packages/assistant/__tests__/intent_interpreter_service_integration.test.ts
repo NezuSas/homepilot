@@ -242,4 +242,77 @@ describe('IntentInterpreterService Integration', () => {
       expect(sentPrompt).toContain('NEVER invent or hallucinate IDs');
     });
   });
+  describe('home-scoped deterministic resolution', () => {
+    it('does not fall back to global devices when an authorized user has no homes', async () => {
+      const roomRepository = { findAll: jest.fn().mockResolvedValue([]) };
+      const homeRepository = { findHomesByUserId: jest.fn().mockResolvedValue([]) };
+      const scopedService = new IntentInterpreterService(
+        mockDeviceRepo,
+        mockSceneRepo,
+        roomRepository as never,
+        new AssistantMultiCommandParser(mockDeviceRepo, roomRepository as never),
+        mockLlmInterpreter,
+        undefined,
+        homeRepository as never,
+      );
+
+      const intent = await scopedService.interpret('prende luz sala', 'user-without-home');
+
+      expect(intent).toMatchObject({ type: 'unknown', reason: 'Device not found' });
+      expect(mockDeviceRepo.findAll).not.toHaveBeenCalled();
+      expect(mockDeviceRepo.findAllByHomeId).not.toHaveBeenCalled();
+    });
+
+    it('resolves scenes and devices only from the homes authorized to the caller', async () => {
+      const roomRepository = { findAll: jest.fn().mockResolvedValue([]) };
+      const homeRepository = { findHomesByUserId: jest.fn().mockResolvedValue([{ id: 'home-authorized' }]) };
+      const authorizedDevice = {
+        id: 'authorized-light', homeId: 'home-authorized', roomId: null, externalId: 'ha:light.authorized',
+        name: 'Luz Autorizada', type: 'light', vendor: 'HA', status: 'ASSIGNED' as const,
+        integrationSource: 'ha', invertState: false, lastKnownState: null, entityVersion: 1,
+        createdAt: '', updatedAt: '',
+      };
+      const authorizedScene = { id: 'scene-authorized', name: 'Apaga todo', homeId: 'home-authorized', roomId: null, actions: [], createdAt: '', updatedAt: '' };
+      mockDeviceRepo.findAllByHomeId.mockResolvedValue([authorizedDevice]);
+      mockSceneRepo.findScenesByHomeId.mockResolvedValue([authorizedScene]);
+      const scopedService = new IntentInterpreterService(
+        mockDeviceRepo,
+        mockSceneRepo,
+        roomRepository as never,
+        new AssistantMultiCommandParser(mockDeviceRepo, roomRepository as never),
+        mockLlmInterpreter,
+        undefined,
+        homeRepository as never,
+      );
+
+      const command = await scopedService.interpret('prende luz sala', 'authorized-user');
+      const scene = await scopedService.interpret('apaga todo', 'authorized-user');
+
+      expect(command).toMatchObject({ type: 'command', deviceId: 'authorized-light', command: 'turn_on' });
+      expect(scene).toMatchObject({ type: 'scene', target: 'scene-authorized' });
+      expect(mockDeviceRepo.findAll).not.toHaveBeenCalled();
+      expect(mockSceneRepo.findAll).not.toHaveBeenCalled();
+    });
+  });
+  describe('deterministic support intents and ambiguity', () => {
+    it('recognizes explainability and retry prompts without invoking the LLM', async () => {
+      const explain = await service.interpret('¿Qué pasó con la luz?');
+      const retry = await service.interpret('prueba otra vez');
+
+      expect(explain).toMatchObject({ type: 'explain', prompt: '¿Qué pasó con la luz?' });
+      expect(retry).toMatchObject({ type: 'retry', prompt: 'prueba otra vez' });
+      expect(mockLlmInterpreter.interpret).not.toHaveBeenCalled();
+    });
+
+    it('keeps contradictory all-device and light commands explicit instead of guessing', async () => {
+      mockSceneRepo.findAll.mockResolvedValue([]);
+      mockDeviceRepo.findAll.mockResolvedValue([]);
+
+      const all = await (service as unknown as { interpretDeterministic(prompt: string): Promise<Intent> }).interpretDeterministic('apaga y enciende todo');
+      const light = await (service as unknown as { interpretDeterministic(prompt: string): Promise<Intent> }).interpretDeterministic('apaga y enciende la luz');
+
+      expect(all).toMatchObject({ type: 'unknown', reason: 'Ambiguous command intent.' });
+      expect(light).toMatchObject({ type: 'unknown', reason: 'Ambiguous command intent.' });
+    });
+  });
 });

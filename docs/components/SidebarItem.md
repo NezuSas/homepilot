@@ -1,20 +1,26 @@
 # SidebarItem
 
-**Fuente:** `apps/operator-console/src/components/ui/SidebarItem.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/ui/SidebarItem.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Elemento de navegación principal o secundario del sidebar.
+Primary or secondary sidebar navigation item.
 
-## Contrato
+## Contract
 
-Recibe etiqueta, icono, estado activo, contador y callback/navegación. El shell calcula visibilidad según permisos.
+Receives label, icon, active state, count, and callback or navigation target.
+The shell calculates visibility from permissions.
 
-## Uso
+## Usage
 
-Usar para cada opción del sidebar y sus subopciones; no definir tamaños de texto independientes en consumidores.
+Use for every sidebar option and sub-option; consumers must not define
+independent text sizing.
 
-## Estados y aceptación
+## States and Acceptance
 
-Normal, activo, expandido, colapsado y foco deben conservar etiqueta visible o accesible en todos los breakpoints. En el sidebar expandido, etiquetas largas se ajustan dentro del ancho disponible en lugar de truncarse; al colapsarse en escritorio, la etiqueta se oculta visualmente y se conserva mediante `title`. El ítem activo expone `aria-current="page"`.
+Normal, active, expanded, collapsed, and focus states retain a visible or
+accessible label at every breakpoint. In expanded sidebar, long labels wrap
+within available width rather than truncate; when collapsed on desktop, the
+label hides visually and remains through `title`. The active item exposes
+`aria-current="page"`.

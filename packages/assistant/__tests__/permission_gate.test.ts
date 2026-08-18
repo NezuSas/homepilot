@@ -7,6 +7,7 @@ import {
   createMockHomeRepository,
   createTestDevice,
   createTestRoom,
+  createTestScene,
   createTestHome
 } from './test_helpers';
 
@@ -70,5 +71,35 @@ describe('PermissionGate', () => {
     const gate = new PermissionGate(deviceRepo, roomRepo, sceneRepo, automationRepo, homeRepo);
     await expect(gate.assertHomeAuthorized('user-a', 'home-a')).resolves.toBeUndefined();
     await expect(gate.assertHomeAuthorized('user-a', 'home-b')).rejects.toThrow('ASSISTANT_HOME_FORBIDDEN');
+  });
+  it('scopes scenes and automations to authorized homes and retains legacy fallback only without home context', async () => {
+    const sceneA = createTestScene({ id: 'scene-a', homeId: 'home-a' });
+    const sceneB = createTestScene({ id: 'scene-b', homeId: 'home-b' });
+    const automationA = { id: 'automation-a', homeId: 'home-a' };
+    const automationB = { id: 'automation-b', homeId: 'home-b' };
+    sceneRepo.findScenesByHomeId.mockImplementation((homeId: string) => Promise.resolve(homeId === 'home-a' ? [sceneA] : [sceneB]));
+    automationRepo.findByHomeId.mockImplementation((homeId: string) => Promise.resolve(homeId === 'home-a' ? [automationA] : [automationB]));
+    sceneRepo.findAll.mockResolvedValue([sceneA, sceneB]);
+    automationRepo.findAll.mockResolvedValue([automationA, automationB]);
+
+    const scopedGate = new PermissionGate(deviceRepo, roomRepo, sceneRepo, automationRepo, homeRepo);
+    await expect(scopedGate.getAuthorizedScenes('user-a')).resolves.toEqual([sceneA]);
+    await expect(scopedGate.getAuthorizedAutomations('user-a')).resolves.toEqual([automationA]);
+    await expect(scopedGate.getAuthorizedScenes('user-without-home')).resolves.toEqual([]);
+    await expect(scopedGate.getAuthorizedAutomations('user-without-home')).resolves.toEqual([]);
+
+    const legacyGate = new PermissionGate(deviceRepo, roomRepo, sceneRepo, automationRepo);
+    await expect(legacyGate.getAuthorizedScenes('user-a')).resolves.toEqual([sceneA, sceneB]);
+    await expect(legacyGate.getAuthorizedAutomations('user-a')).resolves.toEqual([automationA, automationB]);
+  });
+
+  it('does not silently grant authorization without a home repository outside test mode', async () => {
+    const originalEnvironment = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    const gate = new PermissionGate(deviceRepo, roomRepo, sceneRepo, automationRepo);
+
+    await expect(gate.assertHomeAuthorized('user-a', 'home-a')).rejects.toThrow('ASSISTANT_AUTHORIZATION_UNAVAILABLE');
+
+    process.env.NODE_ENV = originalEnvironment;
   });
 });

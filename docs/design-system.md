@@ -1,124 +1,84 @@
 # Operator Console Design System
 
-## Objetivo
+## Purpose
 
-El design system de HomePilot mantiene una interfaz premium, local-first y operativa sin depender de estilos sueltos por pantalla. La fuente de verdad visual vive en tokens CSS, Tailwind y componentes base reutilizables.
+The HomePilot design system provides a premium, local-first operating console
+without screen-specific visual drift. CSS tokens, Tailwind exposure, and
+reusable primitives are the visual source of truth.
 
-## Fuentes de Verdad
+## Sources of Truth
 
-| Area | Archivo | Uso |
+| Area | Location | Responsibility |
 |---|---|---|
-| Tokens CSS | `apps/operator-console/src/index.css` | Colores, superficies, radius, motion, efectos y sombras |
-| Tailwind bridge | `apps/operator-console/tailwind.config.js` | Exponer tokens a clases utilitarias |
-| Primitives UI | `apps/operator-console/src/components/ui` | Controles reutilizables |
-| Guia frontend | `docs/operator-console-frontend.md` | Reglas de modularidad visual |
+| CSS tokens | `apps/operator-console/src/index.css` | Color, surfaces, radius, motion, and shadow |
+| Tailwind bridge | `apps/operator-console/tailwind.config.js` | Token access through utility classes |
+| UI primitives | `apps/operator-console/src/components/ui` | Reusable interaction controls |
+| Frontend rules | `docs/operator-console-frontend.md` | Module and composition rules |
 
-## Tokens Principales
+## Semantic Tokens
 
-### Superficies
-- `background`: canvas base.
-- `card`: paneles y superficies persistentes.
-- `popover`: modales, dropdowns y contenido elevado.
-- `border` / `border-subtle`: lineas de separacion.
+### Surfaces
 
-### Estados
-- `primary`: naranja Nezu `#D9542B`, reservado para identidad, foco y acciones principales.
-- `accent`: lima Nezu `#C9DF38`, reservado para Eco, ahorro y eficiencia.
-- `light-active`: ámbar cálido para luminarias físicamente encendidas.
-- `success`: online, sincronizado o completado.
-- `warning`: atencion o estado intermedio.
-- `danger` / `destructive`: error, riesgo o accion destructiva.
-- `muted`: informacion secundaria.
+- `background`: base canvas.
+- `card`: persistent panels and cards.
+- `popover`: dialogs, menus, and elevated content.
+- `border` and `border-subtle`: structural separation.
 
-## Estrategia de Color
+### States
 
-HomePilot compite contra sistemas residenciales premium, no contra un dashboard SaaS generico. La paleta Nezu debe comunicar control profesional, calidez doméstica y una identidad propia reconocible.
+- `primary`: Nezu orange (`#D9542B`) for identity, focus, and primary actions.
+- `accent`: Nezu lime (`#C9DF38`) for eco and efficiency meaning only.
+- `light-active`: warm amber for physical lighting state.
+- `success`, `warning`, and `danger`: semantic health and risk states.
+- `muted`: secondary information.
 
-### Modo Oscuro
-- Base: grafito calido y profundo, no negro plano.
-- Superficies: escalera de elevacion `background -> card -> popover`.
-- Accion primaria: naranja Nezu, usado para interaccion, foco y navegacion activa.
-- Eco: lima Nezu reservado para ahorro, eficiencia y estados energéticos saludables.
-- Iluminación: ámbar cálido para representar luz física, sin confundirla con la marca.
-- Estados: verdes, amarillos y rojos sobrios, evitando tonos neon.
+## Color Strategy
 
-### Modo Claro
-- Base: canvas claro profesional con suficiente contraste contra tarjetas y sidebar.
-- Superficies: tarjetas porcelana con bordes mas visibles y sombras suaves.
-- Accion primaria: derivado oscuro del naranja Nezu para mantener contraste con texto blanco.
-- Eco: lima más profundo sobre superficies claras, conservando el mismo significado.
-- Estados: mismos significados semanticos que en modo oscuro, ajustados para legibilidad.
+Dark mode uses warm graphite surfaces rather than flat black. Light mode uses a
+professional neutral canvas with visible card separation. Orange is the primary
+interaction color; lime is reserved for eco meaning; amber represents active
+lighting. Cyan is not an identity or selection color.
 
-### Criterio Visual
-- El modo claro no debe verse lavado ni como plantilla blanca generica.
-- El modo oscuro no debe perder separacion entre canvas, sidebar y cards.
-- Las cards de dispositivos deben tener presencia suficiente para una consola residencial premium.
-- Los estados activos usan un solo color semántico. No se mezclan naranja y lima como decoración.
-- El azul/cian no representa identidad, selección ni dispositivo activo.
-- Las habitaciones agrupan sus dispositivos dentro de una única superficie calmada; se evita el efecto de “mosaico SaaS”.
+A screen must not introduce raw utility colors when a semantic token exists.
+Active states use one semantic color rather than decorative color mixing.
 
-### Uso
-- `primary`: acciones principales, seleccion activa, navegacion y controles.
-- `accent`: Eco, ahorro y eficiencia, nunca como color de selección general.
-- `warning`: informacion energetica o atencion operativa.
-- `success`: salud, conexion y sincronizacion.
-- `danger` / `destructive`: errores, riesgos o eliminacion.
+## Typography and Scale
 
-### Radius
-- `rounded-control`: botones, inputs y controles compactos.
-- `rounded-card`: tarjetas.
-- `rounded-panel`: paneles grandes y banners.
-- `rounded-modal`: modales.
-- `rounded-pill`: pills y avatares circulares.
+`Rubik` is the UI family and `Disket Mono` is reserved for technical metadata,
+identifiers, timestamps, and operational values. Components use the exposed
+font tokens instead of declaring font families directly.
 
-### Tipografia
-- `Rubik` es la familia base para interfaz, lectura, controles y títulos. Se carga localmente desde `apps/operator-console/src/assets/fonts/`, por lo que la consola no depende de una CDN externa.
-- `Disket Mono` se reserva para información técnica: IDs, timestamps, valores operativos y labels compactos mediante `font-mono`. No se usa para párrafos ni títulos de lectura.
-- Las familias se exponen exclusivamente con `--font-sans` y `--font-mono` en `index.css`, y Tailwind las consume con `font-sans` y `font-mono`. No se declaran familias directamente en componentes.
-- `text-nano`: 10 px; reservado para decoración o timestamps, nunca para contenido funcional.
-- `text-micro`: 12 px; metadatos compactos y estados secundarios.
-- `text-label`: 12 px; etiquetas cortas, con mayúsculas y tracking moderado solo cuando aporten jerarquía.
-- `text-caption`: 13 px; ayudas y texto secundario.
-- `text-body-compact`: 14 px; navegación, controles compactos y filas densas.
-- `text-body`: 15 px; texto normal y controles.
-- `text-card-title`: 16 px; títulos de tarjetas.
-- `text-section-title`: 18 px; títulos internos de sección.
-- `text-view-title`: 24 px; títulos principales de pantalla.
+| Token | Intended use |
+|---|---|
+| `text-nano` | decorative detail or timestamp; never functional content |
+| `text-micro` | compact metadata and actionable state labels |
+| `text-label` | short labels with restrained tracking |
+| `text-caption` | supporting text |
+| `text-body-compact` | dense navigation and rows |
+| `text-body` | normal reading and controls |
+| `text-card-title` | card title |
+| `text-section-title` | section title |
+| `text-view-title` | screen title |
 
-La interfaz residencial debe usar una jerarquía corta y repetible: `view title → section title → card title → body → metadata`. Los estados accionables (por ejemplo, `Encendido` y `Apagado`) se muestran en `text-micro`, sin mayúsculas forzadas ni tracking amplio. Los labels técnicos no deben competir visualmente con el nombre del dispositivo.
+Use the hierarchy: view title → section title → card title → body → metadata.
+Arbitrary `text-[Npx]` values are reserved for data visualizations where size
+is intrinsic to the component.
 
-Los tamaños arbitrarios `text-[Npx]` no deben usarse para roles cubiertos por esta escala. Las excepciones se reservan para visualizaciones de datos cuyo tamaño sea parte del componente.
+## Required Primitives
 
-## Componentes Base
+Use `PageFrame`, `Button`, `IconButton`, `Card`, `Input`, `SearchInput`,
+`SelectField`, `SegmentedControl`, `StatusPill`, `Modal`, `AlertBanner`,
+`EmptyState`, `SidebarItem`, and `SectionHeader` before creating parallel
+implementations.
 
-Usar estos antes de crear estilos manuales:
+## Rules
 
-- `PageFrame`: padding, ancho maximo y ritmo vertical de vistas no inmersivas.
-- `Button`: acciones con variantes `primary`, `secondary`, `outline`, `ghost`, `danger`.
-- `IconButton`: acciones icon-only con `aria-label` obligatorio.
-- `Card`: superficies repetibles.
-- `Input` / `SearchInput`: campos de texto.
-- `Select` / `SelectField`: selectores.
-- `SegmentedControl`: tabs compactos, filtros y toggles mutuamente excluyentes.
-- `StatusPill`: estados semanticos.
-- `Modal`: dialogos comunes.
-- `AlertBanner`: mensajes persistentes de error, warning, success o info.
-- `EmptyState`: estados vacios reutilizables.
-- `SidebarItem`: navegacion lateral.
-- `SectionHeader`: encabezados de vista, seccion y grupo.
-
-## Reglas
-
-1. No usar colores crudos como `text-white`, `rose-500`, `emerald-500`, `shadow-black` si existe token semantico.
-2. No crear botones manuales cuando `Button` o `IconButton` cubran el caso.
-3. No crear filtros manuales cuando `SegmentedControl` cubra el caso.
-4. No crear estados vacios manuales cuando `EmptyState` cubra el caso.
-5. No crear banners manuales cuando `AlertBanner` cubra el caso.
-6. Usar radius nombrados antes que `rounded-[...]` en componentes nuevos.
-7. Las vistas pueden componer; no deben definir un lenguaje visual paralelo.
-8. No repetir `max-w-[1600px]`, `mx-auto` ni padding de pagina dentro de una vista si `PageFrame` ya gobierna el contenedor.
-8. Todo componente visual nuevo debe aceptar props explicitas y no depender de estado global salvo que sea dueño del flujo.
-
-## Estado Actual
-
-El sistema visual ya tiene tokens, modo claro/oscuro, primitives principales y componentes de soporte para controles, filtros, alertas y estados vacios. La migracion completa debe mantener cambios incrementales: cada nueva pantalla o refactor debe reducir estilos manuales y reutilizar primitives existentes.
+1. Use semantic tokens and named radius values.
+2. Reuse the existing primitive for buttons, filters, banners, empty states,
+   and dialogs.
+3. Views compose the system; they do not define a parallel visual language.
+4. New visual components require explicit props and may not depend on global
+   state unless they own that workflow.
+5. Active device status labels use `text-micro`, without forced uppercase or
+   excessive letter spacing.
+6. Device rooms use calm grouped surfaces rather than a SaaS-style tile wall.

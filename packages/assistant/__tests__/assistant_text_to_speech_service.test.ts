@@ -88,3 +88,19 @@ describe('AssistantTextToSpeechService', () => {
     );
   });
 });
+
+  it('rejects input above the supported text limit before making a network request', async () => {
+    const fetchMock = jest.fn();
+    global.fetch = fetchMock;
+    const service = new AssistantTextToSpeechService('piper', 'http://tts.local', 1000);
+
+    await expect(service.synthesize({ text: 'a'.repeat(4001), language: 'es' })).rejects.toThrow('4000');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('maps a non-successful provider response to the stable unavailable error', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 503 });
+    const service = new AssistantTextToSpeechService('piper', 'http://tts.local', 1000);
+
+    await expect(service.synthesize({ text: 'Hola', language: 'es' })).rejects.toThrow('TTS service returned 503');
+  });

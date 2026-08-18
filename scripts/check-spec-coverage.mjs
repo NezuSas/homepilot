@@ -32,7 +32,7 @@ const rules = [
   ['auth-rbac-v1-local-edge-security.md', /(?:packages\/auth|AuthRoutes|AdminRoutes|LoginView|UsersView|User[A-Z]|useSession|ChangePassword|ResetUserPassword)/i],
   ['home-room-management.md', /(?:packages\/topology|Topology|HomeController|RoomController|HomeClimate)/i],
   ['device-command-execution.md', /(?:packages\/devices|DeviceRoutes|Device[A-Z]|Inbox|Curtain|CoverPosition|ManagedDevice|DashDevice|device[A-Z])/i],
-  ['edge-platform-foundations-v1.md', /(?:apps\/api\/(?:ApiGateway|RouteHandler|OperatorConsoleServer)|apps\/api\/routes\/ApiRoutes|packages\/shared)/i],
+  ['edge-platform-foundations-v1.md', /(?:apps\/api\/(?:ApiGateway|RouteHandler|OperatorConsoleServer)|apps\/api\/__tests__\/ApiGateway|apps\/api\/routes\/ApiRoutes|packages\/shared)/i],
   ['release-hardening-v1.md', /(?:ApiRoutes\.error-sanitization|release-hardening)/i],
   ['operator-console-modular-components-v1.md', /(?:apps\/operator-console\/src\/(?:components\/ui|design-system)|apps\/operator-console\/src\/components\/(?:ConfirmModal|CoverPositionControl|AudioInputPicker|InlineTabCreator|DatabaseBackupsCard)|apps\/operator-console\/src\/(?:config|i18n|types|utils)\.ts)/i],
   ['operator-console-v1.md', /(?:apps\/operator-console)/i],
@@ -60,7 +60,7 @@ const invalidPrimarySpecs = rules.map(([spec]) => spec).filter((spec) => {
   if (!existsSync(specPath) || !existsSync(tasksPath)) return true;
 
   const contents = readFileSync(specPath, 'utf8');
-  return !/^\*\*Estado:\*\* (?:Borrador|Aprobado|Implementado)\s*$/m.test(contents) || !hasAcceptanceCriteria(contents);
+  return !/^\*\*(?:Estado|Status):\*\* (?:Borrador|Aprobado|Implementado|Draft|Approved|Implemented)\s*$/m.test(contents) || !hasAcceptanceCriteria(contents);
 });
 const coverage = new Map();
 const missing = [];
@@ -85,14 +85,14 @@ const allSpecIntegrityIssues = readdirSync(join(root, 'specs'))
     if (!existsSync(tasksPath)) return true;
 
     const contents = readFileSync(specPath, 'utf8');
-    return !/^\*\*Estado:\*\* (?:Borrador|Aprobado|Implementado)\s*$/m.test(contents) || !hasAcceptanceCriteria(contents);
+    return !/^\*\*(?:Estado|Status):\*\* (?:Borrador|Aprobado|Implementado|Draft|Approved|Implemented)\s*$/m.test(contents) || !hasAcceptanceCriteria(contents);
   });
 
 const coverageMatrixContents = readFileSync(coverageMatrixPath, 'utf8');
 const documentedCoverageMatch = coverageMatrixContents.match(
-  /- Los (\d+) archivos TypeScript\/TSX auditados tienen una regla de mapeo a una spec existente\./u
+  /(?:- Los (\d+) archivos TypeScript\/TSX auditados tienen una regla de mapeo a una spec existente\.|- The \*\*(\d+)\*\* audited TypeScript\/TSX files have a mapping rule to an existing\s+spec\.)/u
 );
-const documentedCoverage = documentedCoverageMatch ? Number(documentedCoverageMatch[1]) : null;
+const documentedCoverage = documentedCoverageMatch ? Number(documentedCoverageMatch[1] ?? documentedCoverageMatch[2]) : null;
 const coverageMatrixIssue = documentedCoverage !== files.length
   ? 'Spec coverage matrix declares ' + (documentedCoverage ?? 'no') + ' audited file(s), expected ' + files.length + '.'
   : null;

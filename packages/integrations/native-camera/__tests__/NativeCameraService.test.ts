@@ -1,4 +1,4 @@
-import { NativeCameraService } from '../application/NativeCameraService';
+import { isNativeCameraSourceType, isValidPort, NativeCameraService } from '../application/NativeCameraService';
 import type { NativeCameraSource, NativeCameraSourceRepository } from '../../../devices/domain/repositories/NativeCameraSourceRepository';
 import type { NativeCameraDriverRegistry } from '../application/ports/NativeCameraDriverRegistry';
 import type { NativeCameraDriver, NativeCameraNegotiation } from '../application/ports/NativeCameraDriver';
@@ -168,5 +168,114 @@ describe('NativeCameraService', () => {
     const deleted = await service.delete(created.deviceId);
     expect(deleted.ok).toBe(true);
     expect(deviceRepository.deleteDevice).toHaveBeenCalledWith(created.deviceId);
+  });
+  it('updates a native camera and synchronizes its device name and PTZ capability', async () => {
+    const driver = createFakeDriver('onvif-ptz', { outcome: 'reachable', profile: { rtspPort: 8554, rtspPath: '/new-stream', profileToken: 'profile-1', ptzConfigurationToken: 'ptz-1', ptzSupported: true } });
+    deviceRepository.findDeviceById.mockResolvedValue({
+      id: 'placeholder', name: 'Old camera', lastKnownState: { ptz: false }, entityVersion: 2,
+    });
+    const service = buildService(driver);
+    const created = await service.create({ homeId: 'home-1', name: 'Old camera', host: '192.168.1.20', username: 'admin', password: 'secret' });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    deviceRepository.findDeviceById.mockResolvedValue({
+      id: created.value.deviceId, name: 'Old camera', lastKnownState: { ptz: false }, entityVersion: 2,
+    });
+
+    const updated = await service.update(created.value.deviceId, { name: 'Front camera', rtspPort: 8554 });
+
+    expect(updated).toEqual(expect.objectContaining({ ok: true }));
+    expect(sourceRepository.findByDeviceId(created.value.deviceId)).toEqual(expect.objectContaining({
+      name: 'Front camera', rtspPort: 8554, rtspPath: '/new-stream', ptzSupported: true,
+    }));
+    expect(deviceRepository.saveDevice).toHaveBeenLastCalledWith(expect.objectContaining({
+      id: created.value.deviceId, name: 'Front camera', lastKnownState: { ptz: true }, entityVersion: 2,
+    }));
+  });
+
+  it('rejects invalid ports and missing RTSP paths during update', async () => {
+    const driver = createFakeDriver('rtsp-dvr', { outcome: 'reachable', profile: { rtspPort: 554, rtspPath: '/stream', profileToken: null, ptzConfigurationToken: null, ptzSupported: false } });
+    const service = buildService(driver);
+    const created = await service.create({ homeId: 'home-1', name: 'DVR', host: '192.168.1.20', username: 'admin', password: 'secret', sourceType: 'rtsp-dvr', rtspPath: '/stream' });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+
+    const invalidPort = await service.update(created.value.deviceId, { rtspPort: 0 });
+    const missingPath = await service.update(created.value.deviceId, { rtspPath: '' });
+
+    expect(invalidPort).toEqual(expect.objectContaining({ ok: false, error: expect.objectContaining({ kind: 'VALIDATION_ERROR' }) }));
+    expect(missingPath).toEqual(expect.objectContaining({ ok: false, error: expect.objectContaining({ kind: 'VALIDATION_ERROR' }) }));
+  });
+  it('validates native source types and ports while exposing the sources scoped to a home', async () => {
+    expect(isNativeCameraSourceType('onvif-ptz')).toBe(true);
+    expect(isNativeCameraSourceType('unknown')).toBe(false);
+    expect(isNativeCameraSourceType(554)).toBe(false);
+    expect(isValidPort(1)).toBe(true);
+    expect(isValidPort(65535)).toBe(true);
+    expect(isValidPort(0)).toBe(false);
+    expect(isValidPort(65536)).toBe(false);
+    expect(isValidPort(554.5)).toBe(false);
+
+    const driver = createFakeDriver('rtsp-dvr', { outcome: 'reachable', profile: { rtspPort: 554, rtspPath: '/stream', profileToken: null, ptzConfigurationToken: null, ptzSupported: false } });
+    const service = buildService(driver);
+    await service.create({ homeId: 'home-1', name: 'Home one', host: '192.168.1.20', username: 'admin', password: 'secret', sourceType: 'rtsp-dvr', rtspPath: 'stream' });
+    expect(service.listByHome('home-1')).toHaveLength(1);
+    expect(service.listByHome('other-home')).toEqual([]);
+  });
+
+  it('keeps update failures explicit and avoids writing an unchanged device projection', async () => {
+    const driver = createFakeDriver('onvif-ptz', { outcome: 'reachable', profile: { rtspPort: 554, rtspPath: '/stream', profileToken: null, ptzConfigurationToken: null, ptzSupported: false } });
+    const service = buildService(driver);
+    const missing = await service.update('missing', { name: 'Anything' });
+    expect(missing).toEqual(expect.objectContaining({ ok: false, error: expect.objectContaining({ kind: 'CAMERA_NOT_FOUND' }) }));
+
+    const created = await service.create({ homeId: 'home-1', name: 'Camera', host: '192.168.1.20', username: 'admin', password: 'secret' });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    deviceRepository.findDeviceById.mockResolvedValue({
+      id: created.value.deviceId,
+      name: 'Camera',
+      lastKnownState: { ptz: false },
+      entityVersion: 1,
+    });
+    deviceRepository.saveDevice.mockClear();
+
+    const unchanged = await service.update(created.value.deviceId, {});
+    expect(unchanged).toEqual(expect.objectContaining({ ok: true }));
+    expect(deviceRepository.saveDevice).not.toHaveBeenCalled();
+
+    driver.negotiate.mockResolvedValueOnce({ outcome: 'unauthorized' });
+    const unauthorized = await service.update(created.value.deviceId, { username: 'different' });
+    expect(unauthorized).toEqual(expect.objectContaining({ ok: false, error: expect.objectContaining({ kind: 'CAMERA_CONNECTION_FAILED' }) }));
+  });
+
+  it('rejects each remaining required creation field before negotiating with a driver', async () => {
+    const driver = createFakeDriver('onvif-ptz', { outcome: 'reachable', profile: { rtspPort: 554, rtspPath: '/stream', profileToken: null, ptzConfigurationToken: null, ptzSupported: false } });
+    const service = buildService(driver);
+    const valid = { homeId: 'home-1', name: 'Camera', host: '192.168.1.20', username: 'admin', password: 'secret' };
+
+    await expect(service.create({ ...valid, name: '' })).resolves.toEqual(expect.objectContaining({ ok: false, error: expect.objectContaining({ message: 'name is required' }) }));
+    await expect(service.create({ ...valid, host: '' })).resolves.toEqual(expect.objectContaining({ ok: false, error: expect.objectContaining({ message: 'host is required' }) }));
+    await expect(service.create({ ...valid, username: undefined as unknown as string })).resolves.toEqual(expect.objectContaining({ ok: false, error: expect.objectContaining({ message: 'username is required' }) }));
+    await expect(service.create({ ...valid, password: undefined as unknown as string })).resolves.toEqual(expect.objectContaining({ ok: false, error: expect.objectContaining({ message: 'password is required' }) }));
+
+    expect(driver.negotiate).not.toHaveBeenCalled();
+  });
+
+  it('reports an unreachable camera while updating without persisting a projection', async () => {
+    const driver = createFakeDriver('onvif-ptz', { outcome: 'reachable', profile: { rtspPort: 554, rtspPath: '/stream', profileToken: null, ptzConfigurationToken: null, ptzSupported: false } });
+    const service = buildService(driver);
+    const created = await service.create({ homeId: 'home-1', name: 'Camera', host: '192.168.1.20', username: 'admin', password: 'secret' });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+
+    deviceRepository.saveDevice.mockClear();
+    driver.negotiate.mockResolvedValueOnce({ outcome: 'unreachable', detail: 'Camera host timed out.' });
+
+    await expect(service.update(created.value.deviceId, { host: '192.168.1.99' })).resolves.toEqual(expect.objectContaining({
+      ok: false,
+      error: expect.objectContaining({ kind: 'CAMERA_CONNECTION_FAILED', message: 'Camera host timed out.' })
+    }));
+    expect(deviceRepository.saveDevice).not.toHaveBeenCalled();
   });
 });

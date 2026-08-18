@@ -1,42 +1,58 @@
-# HomePilot - Visión General del Proyecto
+# HomePilot Project Overview
 
-## ¿Qué es HomePilot?
-HomePilot es una plataforma de domótica de próxima generación diseñada principalmente para clientes de hogares inteligentes premium. Su objetivo es competir con sistemas de alta gama instalados por profesionales, como Control4, pero se distingue por una arquitectura moderna y modular, y una base sólida para la futura toma de decisiones por Inteligencia Artificial (IA).
+## Product
 
-## Visión
-Entregar un ecosistema de hogar robusto, completamente personalizable e inteligente que opere de manera fluida en el Edge (borde/local), mientras orquesta automatizaciones complejas sin la fragilidad de los motores de domótica heredados (legacy).
+HomePilot is a local-first smart-home platform for professionally installed
+homes. It combines an appliance-style Edge runtime with an Operator Console for
+control, automation, diagnostics, and assisted interaction.
 
-## Principios Centrales
-1. **Modularidad**: La lógica de dominio, las integraciones de dispositivos y las interfaces de usuario (UI) están estrictamente desacopladas. Deberías poder cambiar una integración sin alterar el motor central.
-2. **Edge-First (Prioridad Local)**: El sistema debe ser capaz de cumplir con sus funciones principales de forma local. La dependencia de la nube (Cloud) solo debe existir para respaldos, proxies de acceso remoto o descarga de cómputo pesado (ej. modelos avanzados de IA), nunca para encender una luz.
-3. **AI-Ready (Preparado para IA)**: Los modelos de datos y los buses de eventos (event buses) están diseñados desde cero para ser consumidos e influenciados por agentes de IA. Esto significa tipado estricto, transiciones de estado predecibles y alta observabilidad.
-4. **Spec-Driven (Basado en Especificaciones)**: Todo el desarrollo sigue el modelo de Desarrollo Basado en Especificaciones (Spec-Driven Development o SDD). No se escribe código sin una especificación previa.
-5. **Sin Magia Implícita**: Todo es explícito.
+## Vision
 
-## Estado Actual del Producto
+Provide a reliable, customizable, and intelligent home-control system that
+operates locally while supporting advanced automation without making a cloud
+connection a prerequisite for physical control.
 
-HomePilot ya cuenta con un runtime local ejecutable con Docker y una Operator Console web enfocada en operacion Edge. La consola cubre vistas de inicio, espacios, escenas, automatizaciones, asistente, conversacion con la casa, paneles, energia, sistema, descubrimiento, diagnosticos y usuarios.
+## Core Principles
 
-La UI esta organizada con una regla practica:
+1. **Modularity:** domain workflows, protocol adapters, and UI composition have
+   explicit boundaries.
+2. **Local first:** turning on a light, controlling a cover, and executing a
+   local automation must remain available when the internet is unavailable.
+3. **AI ready:** assistant workflows use typed state, explicit authorization,
+   confirmation gates, and auditable execution.
+4. **Spec driven:** functional changes are traced to an approved or implemented
+   feature spec and acceptance criteria.
+5. **Explicit behavior:** no hidden business rules, implicit cross-context
+   access, or undocumented fallback behavior.
 
-- Las vistas orquestan datos, estado y acciones.
-- Los componentes renderizan secciones visuales reutilizables.
-- Los primitivos de UI viven en `components/ui`.
-- El sidebar soporta modo expandido y modo rail colapsado sin comprimir textos largos.
+## Current Product Surface
 
-La documentacion operativa actual esta centralizada en:
+The local runtime and Operator Console cover home setup, spaces, device
+assignment, scenes, automations, dashboards, energy, diagnostics, users,
+Home Assistant integration, Sonoff LAN devices, native cameras, and the local
+HomePilot assistant.
 
-- `README.md`
-- `docs/architecture.md`
-- `docs/operator-console-frontend.md`
-- `docs/local-wsl-workflow.md`
-- `docs/documentation-index.md`
+The UI follows a practical composition rule:
 
-## Audiencia Objetivo
-- Clientes de hogares inteligentes (smart homes) premium.
-- Usuarios que necesitan alta confiabilidad, instalaciones de nivel profesional y automatización avanzada, pero que rechazan los ecosistemas cerrados de los integradores tradicionales.
+- Views orchestrate screen-level data, effects, navigation, and actions.
+- Components render reusable sections.
+- UI primitives live in `components/ui`.
+- The responsive sidebar supports a full desktop view and an icon rail without
+  compressing labels during transitions.
 
-## No-Objetivos (Non-Goals)
-- **No es una herramienta fragmentada para aficionados (hobbyists)**: Priorizamos la estabilidad y la arquitectura clara por sobre el soporte para cada dispositivo IoT DIY a través de scripts improvisados.
-- **No es una plataforma puramente basada en la nube**: No dependemos de conectividad constante a internet para las operaciones principales.
-- **No es un constructor de interfaces (UI builder)**: Aunque tendrá paneles de control (dashboards), el enfoque principal es un motor y una API potentes, no un creador de sitios web de "arrastrar y soltar" (drag-and-drop).
+## Target Audience
+
+- Premium smart-home residents.
+- Integrators and operators who require reliable local control, professional
+  installation workflows, and auditable automation.
+
+## Non-Goals
+
+- An unstructured DIY integration collection.
+- A cloud-only control system.
+- A generic drag-and-drop website builder.
+
+## Reference Documents
+
+Start with `README.md`, `docs/architecture.md`,
+`docs/modular-architecture-reference.md`, and `docs/command-reference.md`.

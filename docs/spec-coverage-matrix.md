@@ -1,55 +1,61 @@
-# Matriz de Cobertura Spec-Driven
+# Spec-Driven Coverage Matrix
 
-Esta matriz conecta el comportamiento implementado con su especificación primaria. No reemplaza los contratos de código ni duplica los criterios de aceptación de cada spec.
+This matrix connects implemented behavior to its primary specification. It
+does not replace code contracts or duplicate each spec's acceptance criteria.
 
-## Regla operativa
+## Operating Rule
 
-Antes de modificar comportamiento, API, persistencia, permisos, integración o UI funcional:
+Before changing functional behavior, API, persistence, authorization,
+integration, or UI behavior:
 
-1. Ubicar la fila correspondiente.
-2. Leer la spec primaria y su archivo `.tasks.md`.
-3. Actualizar la spec antes del código si el alcance cambia.
-4. Añadir una fila y una nueva spec si la superficie no existe.
+1. Find the applicable row.
+2. Read the primary spec and its `.tasks.md` file.
+3. Update the spec before code when the scope changes.
+4. Add a new spec and mapping rule when no existing surface applies.
 
-La comprobación ejecutable de cada archivo TypeScript/TSX bajo `apps/api`,
-`apps/operator-console/src` y `packages` se realiza con:
+Every TypeScript/TSX file under `apps/api`, `apps/operator-console/src`, and
+`packages` is checked by:
 
 ```bash
 npm run check:spec-coverage
 ```
 
-El comando falla si un archivo no se puede asignar a una spec existente.
+The command fails if a file cannot be mapped to an existing spec.
 
-| Dominio o superficie | Código principal | Spec primaria |
+| Domain or surface | Main code | Primary spec family |
 |---|---|---|
-| Autenticación, roles y usuarios | `packages/auth`, `AuthRoutes`, `AdminRoutes`, `UsersView` | `auth-rbac-v1-local-edge-security.md`, `user-management-v2-admin-user-administration.md` |
-| Onboarding, perfiles de instalación y primer administrador | `packages/system-setup`, `SystemRoutes`, `FirstAdminSetupView`, `OnboardingView`, `getInstallationProfile` | `first-run-setup-edge-onboarding-v1.md`, `edge-customer-installation-v1.md`, `installation-profiles-v1.md` |
-| Topología de hogares y habitaciones | `packages/topology`, `TopologyRoutes`, `TopologyView` | `home-room-management.md` |
-| Dashboards, pestañas, secciones y widgets | `DashboardRoutes`, `DashboardView`, `DashboardsView`, `views/dashboards` | `dashboard-layout-and-widgets-v1.md`, `user-dashboard-navigation.md` |
-| Dispositivos, comandos y estado | `packages/devices`, `DeviceRoutes`, gestor e inbox | `device-command-execution.md`, `device-capabilities-command-validation.md`, `device-state-sync-observability.md` |
-| Descubrimiento e importación | `DeviceRoutes`, `InboxView`, integración HA | `device-discovery-inbox.md` |
-| Escenas | `SceneRoutes`, `ScenesView`, `SceneBuilderModal` | `scene-lifecycle-v1.md` |
-| Automatizaciones y ejecución | `packages/automation`, `AutomationRoutes`, `AutomationsView`, `AutomationWorkbenchView` | `automation-rules-engine-v1.md`, `automation-rule-lifecycle-v1.md`, `automation-engine-v2-event-driven.md` |
-| Asistente de voz y conversación | `packages/assistant`, `AssistantRoutes`, `AssistantView`, `HomeConversationView` | `assistant-v1.md`, `home-conversation-natural-voice-v1.md`, `nezu-domestic-assistant-v1.md` |
-| Bridge y sincronización Home Assistant | `packages/integrations/home-assistant`, `SettingsRoutes`, `HomeAssistantSettingsView` | `home-assistant-settings-connection-management-v1.md`, `home-assistant-realtime-sync-v1.md`, `home-assistant-sync-resilience-v2.md` |
-| Cámaras HA y cámaras nativas | `CameraRoutes`, `NativeCameraRoutes`, `NativeCamerasView`, `CameraMediaFrame` | `home-assistant-camera-streaming-v1.md`, `native-camera-local-integration-v1.md` |
-| Reproductores multimedia | `MediaRoutes`, `MediaPlayerRoutes`, `MediaPlayerCard` | `media-player-local-control-v1.md` |
-| Energía | `EnergyView`, `useEnergyStore`, `EnergySnapshotWidget` | `energy-management-v1.md` |
-| Integración Sonoff local | `packages/integrations/sonoff` | `sonoff-local-integration-v1.md` |
-| Variables persistentes | `packages/system-vars`, `SystemVariableRoutes` | `system-variables-v1.md` |
-| Diagnóstico, auditoría y ejecución | `packages/system-observability`, `ExecutionRoutes`, `DiagnosticsView`, `AuditLogsView`, `ExecutionLogsView` | `observability-diagnostics-v1.md`, `release-hardening-v1.md` |
-| Ingreso público y despliegue Edge | Compose, ingress, scripts de instalación | `homepilot-public-ingress-v1.md`, `dockerization-edge-runtime-v1.md`, `local-durable-persistence-v1.md` |
-| Operator Console y sistema visual | `apps/operator-console`, `components/ui`, design tokens | `operator-console-v1.md`, `docs/design-system.md` |
-| Componentes modulares de consola | `components/ui`, modales, campos, navegación y tokens compartidos | `operator-console-modular-components-v1.md`, `docs/operator-console-component-catalog.md` |
-| Fundamentos de plataforma Edge | `ApiGateway`, `RouteHandler`, `OperatorConsoleServer`, `packages/shared` | `edge-platform-foundations-v1.md` |
+| Authentication, roles, and users | `packages/auth`, `AuthRoutes`, `AdminRoutes`, `UsersView` | Auth RBAC and user management |
+| Setup and installation profiles | `packages/system-setup`, `SystemRoutes`, onboarding views | Setup, installation, and Edge customer specs |
+| Home topology | `packages/topology`, `TopologyRoutes`, topology views | Home and room management |
+| Dashboards and widgets | Dashboard routes, dashboard views, widgets | Dashboard layout and user navigation |
+| Devices and commands | `packages/devices`, device routes, inbox, controls | Device command, capability, and state specs |
+| Discovery and import | device routes, inbox, Home Assistant integration | Device discovery inbox |
+| Scenes | scene routes, builder, and scene views | Scene lifecycle |
+| Automation | `packages/automation`, automation routes and views | Automation engine and lifecycle |
+| Assistant and voice | `packages/assistant`, assistant routes and conversation views | Assistant and natural voice specs |
+| Home Assistant | Home Assistant integration and settings routes | Home Assistant connection, realtime, and resilience specs |
+| Cameras | camera routes, native camera routes, camera UI | Home Assistant camera and native camera specs |
+| Media | media routes and player cards | Media player local control |
+| Energy | energy view and snapshot widgets | Energy management |
+| Sonoff LAN | `packages/integrations/sonoff` | Sonoff local integration |
+| System variables | system variables routes and package | System variables |
+| Diagnostics and audit | observability packages and diagnostic views | Observability diagnostics and release hardening |
+| Public ingress and deployment | Compose, ingress, and installation scripts | Public ingress, Docker, and durable persistence |
+| Operator Console | console application and design system | Operator Console specs |
+| Shared Edge foundations | API gateway, route handler, shared contracts | Edge platform foundations |
 
-## Cobertura auditada
+## Audited Coverage
 
-- Los 610 archivos TypeScript/TSX auditados tienen una regla de mapeo a una spec existente.
-- Todos los bounded contexts bajo `packages/` y familias de rutas de `apps/api/routes/` están cubiertos.
-- Las vistas de Operator Console se agrupan por comportamiento de dominio; una vista puramente composicional hereda la spec de su superficie.
-- Las nuevas superficies formalizadas en esta auditoría son escenas, dashboards/widgets, media player, system variables, energía, Sonoff local y fundamentos Edge.
+- The **674** audited TypeScript/TSX files have a mapping rule to an existing
+  spec.
+- All bounded contexts under `packages/` and all API route families are
+  covered.
+- Console views inherit the primary spec for the domain behavior they render.
+- The executable check also verifies primary spec status, task file presence,
+  acceptance criteria, and required component documentation.
 
-## Criterio de revisión
+## Review Gate
 
-Una modificación debe detenerse y solicitar definición cuando no pueda responder, desde su spec: quién puede ejecutarla, qué datos modifica, qué falla debe mostrar y cómo se valida.
+A change must stop for specification work when the relevant spec cannot answer:
+who can execute it, which data it changes, how it fails safely, and how it is
+validated.

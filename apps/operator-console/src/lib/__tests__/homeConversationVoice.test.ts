@@ -1,5 +1,5 @@
 /// <reference types="jest" />
-import { extractWakeCommand, isSilenceVoiceCommand, isUsableVoiceTranscript } from '../homeConversationVoice';
+import { extractWakeCommand, isSilenceVoiceCommand, isUsableVoiceTranscript, normalizeVoiceTranscript } from '../homeConversationVoice';
 import { NEZU_WAKE_PHRASES } from '../../../../../packages/shared/domain/nezuWakePhrases';
 
 describe('Feature: Local voice wake command normalization', () => {
@@ -83,5 +83,9 @@ describe('Feature: Local voice wake command normalization', () => {
     expect(isSilenceVoiceCommand('silencio')).toBe(true);
     expect(isSilenceVoiceCommand('deja de hablar')).toBe(true);
     expect(isSilenceVoiceCommand('no sigas hablando')).toBe(true);
+  });
+  it('normalizes observed speech-to-text spacing and lighting transcription variants before dispatch', () => {
+    expect(normalizeVoiceTranscript('  a pa  la luz a la sala  ')).toBe('apaga la luz de la sala');
+    expect(normalizeVoiceTranscript('que luces esta en sentidas')).toBe('que luces estan encendidas');
   });
 });

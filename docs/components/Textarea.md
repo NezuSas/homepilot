@@ -1,20 +1,29 @@
 # Textarea
 
-**Fuente:** `apps/operator-console/src/components/ui/Textarea.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/ui/Textarea.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Campo multilínea reutilizable para contenido editable general, con etiqueta accesible, foco, error y mensaje auxiliar consistentes.
+Reusable multiline field for general editable content with consistent
+accessible label, focus, error, and support text.
 
-## Contrato
+## Contract
 
-Extiende los atributos nativos de `textarea`. `containerClassName` controla el layout del contenedor y `className` modifica únicamente el área editable. Si recibe `label`, genera y asocia un `id` accesible automáticamente.
+Extends native `textarea` attributes. `containerClassName` controls container
+layout and `className` modifies only the editable area. If given `label`, it
+creates and associates an accessible id automatically.
 
-## Uso
+## Usage
 
-Usar para texto general de varias líneas, como el contenido editable del título de un tablero. Mantener el texto visible traducido en el consumidor. No reemplaza el compositor conversacional: ese control administra voz, envío, atajos de teclado y altura operativa propios.
+Use for general multiline text, such as editable dashboard title content. Keep
+visible text translated in the consumer. It does not replace the conversation
+composer, which owns voice, sending, keyboard shortcuts, and operational height.
 
-## Estados y aceptación
+## States and Acceptance
 
-Vacío, foco, valor, disabled y error conservan contraste, foco visible y soporte de texto largo sin overflow horizontal. El contenedor y el área editable pueden reducirse dentro de grids o filas flexibles; etiqueta, ayuda y error se ajustan al ancho disponible. Cuando hay ayuda o error, el área los referencia mediante `aria-describedby`; el error también expone `aria-invalid`.
+Empty, focus, value, disabled, and error preserve contrast, visible focus, and
+long-text support without horizontal overflow. Container and editable area may
+shrink within grids or flexible rows; label, help, and error wrap to available
+width. Help or error is referenced through `aria-describedby`; error also
+exposes `aria-invalid`.

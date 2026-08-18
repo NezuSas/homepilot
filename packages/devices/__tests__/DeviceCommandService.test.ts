@@ -113,6 +113,43 @@ describe('DeviceCommandService with Validation', () => {
     expect(mockDriver.executeCommand).toHaveBeenCalled();
   });
 
+  it('rejects an unknown device before resolving a driver', async () => {
+    mockRepo.findDeviceById.mockResolvedValue(null);
+
+    await expect(service.dispatch('missing', 'turn_on')).rejects.toThrow('Dispositivo missing no encontrado');
+    expect(mockRegistry.resolve).not.toHaveBeenCalled();
+  });
+
+  it('propagates a driver failure without persisting optimistic state', async () => {
+    mockDriver.executeCommand.mockResolvedValue({ success: false, error: 'Physical device unavailable' });
+
+    await expect(service.dispatch('d1', 'turn_on')).rejects.toThrow('Physical device unavailable');
+    expect(syncDeviceStateUseCase).not.toHaveBeenCalled();
+  });
+
+  it('continues when optimistic persistence fails after a successful physical command', async () => {
+    (syncDeviceStateUseCase as jest.Mock).mockRejectedValue(new Error('transient persistence failure'));
+
+    await expect(service.dispatch('d1', 'turn_on')).resolves.toBeUndefined();
+    expect(mockDriver.executeCommand).toHaveBeenCalledWith(
+      mockDevice,
+      { name: 'turn_on', params: undefined },
+      expect.objectContaining({ userId: 'system', correlationId: 'device-command:d1:turn_on' }),
+    );
+  });
+
+  it('does not attempt optimistic persistence when the driver returns no new state', async () => {
+    mockDriver.executeCommand.mockResolvedValue({ success: true });
+
+    await expect(service.dispatch('d1', { name: 'turn_off', metadata: { userId: 'oscar', correlationId: 'request-1' } })).resolves.toBeUndefined();
+    expect(mockDriver.executeCommand).toHaveBeenCalledWith(
+      mockDevice,
+      { name: 'turn_off', params: undefined },
+      { userId: 'oscar', correlationId: 'request-1' },
+    );
+    expect(syncDeviceStateUseCase).not.toHaveBeenCalled();
+  });
+
   it('should validate set_position parameters before driver', async () => {
     // cover supports set_position
     mockRepo.findDeviceById.mockResolvedValue({ 

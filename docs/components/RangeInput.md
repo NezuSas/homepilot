@@ -1,20 +1,29 @@
 # RangeInput
 
-**Fuente:** `apps/operator-console/src/components/ui/RangeInput.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/ui/RangeInput.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Control modular para valores numéricos continuos o discretos: posición de cortinas, opacidad y recorte de imagen.
+Modular control for continuous or discrete numeric values such as cover
+position, opacity, and image crop.
 
-## Contrato
+## Contract
 
-Recibe `value`, `min`, `max`, `step`, `onValueChange` y opcionalmente `onValueCommit`. El cambio se comunica de forma continua; la confirmación se emite al finalizar el gesto con pointer, al abandonar el foco o de forma explícita con Enter, evitando una confirmación por cada tecla. `formatValue` y `showBounds` permiten presentar límites y valor actual sin duplicar la estructura visual.
+Receives `value`, `min`, `max`, `step`, `onValueChange`, and optional
+`onValueCommit`. Change is communicated continuously; commit is emitted when
+the gesture ends with pointer, on focus exit, or explicitly with Enter,
+avoiding a commit per key press. `formatValue` and `showBounds` display limits
+and current value without duplicating visual structure.
 
-## Uso
+## Usage
 
-Usar para rangos nativos especializados. El consumidor conserva las reglas de dominio, traduce `aria-label` y decide si el valor requiere confirmación diferida.
+Use for specialized native ranges. The consumer retains domain rules,
+translates `aria-label`, and decides whether a value requires deferred commit.
 
-## Estados y aceptación
+## States and Acceptance
 
-Mantiene foco visible, estado deshabilitado y área táctil consistente. El control y los límites se adaptan al ancho disponible; el valor central conserva prioridad y los extremos no provocan overflow. No ejecuta lógica de negocio ni crea estado global.
+Preserves visible focus, disabled state, and a consistent touch target. Control
+and bounds adapt to available width; central value retains priority and end
+labels do not overflow. It executes no business logic and creates no global
+state.

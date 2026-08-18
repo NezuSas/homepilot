@@ -1,20 +1,26 @@
 # Card
 
-**Fuente:** `apps/operator-console/src/components/ui/Card.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/ui/Card.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Superficie visual reusable para agrupar contenido semántico sin acoplarlo al dominio.
+Reusable visual surface for grouping semantic content without domain coupling.
 
-## Contrato
+## Contract
 
-Recibe children y atributos de contenedor junto a variantes de superficie. No obtiene ni transforma datos.
+Receives children and container attributes together with surface variants. It
+does not fetch or transform data.
 
-## Uso
+## Usage
 
-Usar como contenedor de secciones o elementos compactos; tarjetas de dispositivo, cámara o media mantienen además su componente especializado.
+Use as the container for sections or compact elements; device, camera, and
+media cards retain their specialized components as well.
 
-## Estados y aceptación
+## States and Acceptance
 
-Mantiene contraste y bordes tokenizados en tema claro/oscuro y no introduce scroll horizontal. Cabecera, contenido y pie reducen su padding en móvil; títulos, descripciones y acciones largas se adaptan al ancho disponible sin recortar contenido. Los botones directos del pie ocupan el ancho táctil disponible en móvil y recuperan su ancho natural desde tablet.
+Preserves tokenized contrast and borders in light and dark themes and never
+introduces horizontal scrolling. Header, content, and footer reduce padding on
+mobile; long titles, descriptions, and actions adapt to the available width.
+Direct footer buttons use the available touch width on mobile and recover
+natural width from tablet upward.

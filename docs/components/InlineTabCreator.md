@@ -1,20 +1,24 @@
 # InlineTabCreator
 
-**Fuente:** `apps/operator-console/src/components/InlineTabCreator.tsx`  
-**Spec de familia:** `specs/operator-console-modular-components-v1.md`
+**Source:** `apps/operator-console/src/components/InlineTabCreator.tsx`
+**Family spec:** `specs/operator-console-modular-components-v1.md`
 
-## Propósito
+## Purpose
 
-Captura rápidamente el nombre de una pestaña nueva dentro de la navegación de tableros.
+Quickly captures a new tab name within dashboard navigation.
 
-## Contrato
+## Contract
 
-Recibe `onConfirm`, `onCancel`, placeholder e `initialValue`. Enfoca el campo al abrir y normaliza el título con `trim` antes de confirmar.
+Receives `onConfirm`, `onCancel`, placeholder, and `initialValue`. It focuses
+the field on open and normalizes title with `trim` before confirming.
 
-## Uso
+## Usage
 
-Usar únicamente en creación/renombrado de pestañas. La validación de unicidad y persistencia pertenece al dashboard.
+Use only for tab creation or rename. Uniqueness validation and persistence
+belong to the dashboard workflow.
 
-## Estados y aceptación
+## States and Acceptance
 
-Enter confirma un valor no vacío, Escape cancela y el botón de confirmación no permite títulos vacíos. El campo puede reducirse dentro de la navegación horizontal sin forzar overflow ni separar las acciones de confirmar/cancelar.
+Enter confirms a non-empty value, Escape cancels, and the confirmation button
+does not allow empty titles. The field can shrink within horizontal navigation
+without forcing overflow or separating confirm and cancel actions.

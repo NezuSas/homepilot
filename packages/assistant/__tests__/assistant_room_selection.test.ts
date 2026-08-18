@@ -89,6 +89,30 @@ describe('Assistant Room Selection Resolution', () => {
     expect(mockIntentInterpreter.interpret).not.toHaveBeenCalled();
   });
 
+  it('reports an explicit non-destructive result when the selected room has no controllable lights', async () => {
+    const room = createTestRoom({ id: 'r1', name: 'Sala' });
+    mockRoomRepo.findRoomById.mockResolvedValue(room);
+    mockDeviceRepo.findAll.mockResolvedValue([
+      createTestDevice({ id: 'sensor-1', name: 'Sensor Sala', type: 'sensor', roomId: 'r1' }),
+    ]);
+    mockMemory.getShortTermMemory.mockResolvedValue({
+      lastQueryType: 'clarification',
+      entities: [],
+      timestamp: new Date().toISOString(),
+      clarificationOptions: [{ id: 'r1', label: 'Sala', kind: 'room' }],
+      originalPrompt: 'prende la luz',
+      pendingIntent: { type: 'command', deviceId: '', command: 'turn_on', prompt: 'prende la luz', timestamp: new Date().toISOString() },
+    });
+
+    const response = await service.converse({ prompt: 'Sala', userId: 'u1', selectedOptionId: 'r1' }, 'es');
+
+    expect(response).toEqual(expect.objectContaining({
+      type: 'answer',
+      message: 'No encontré luces controlables en Sala.',
+    }));
+    expect(mockSceneExecutionService.execute).not.toHaveBeenCalled();
+    expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+  });
   it('2. selecting room with one light executes that light', async () => {
     const room = createTestRoom({ id: 'r1', name: 'Sala' });
     const light = createTestDevice({ id: 'l1', name: 'Luz Principal', type: 'light', roomId: 'r1' });

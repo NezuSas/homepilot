@@ -117,4 +117,52 @@ describe('Feature: Home Assistant device refresh', () => {
     expect(response.writeHead).toHaveBeenCalledWith(404, expect.any(Object));
     expect(response.end).toHaveBeenCalledWith(expect.stringContaining('HA_ENTITY_NOT_FOUND'));
   });
+  it('normalizes closed Home Assistant states and reports bridge failures as unreachable', async () => {
+    const successful = createContainer(jest.fn().mockResolvedValue({
+      entity_id: 'cover.cortina_cuarto',
+      state: 'closed',
+      attributes: {},
+    }));
+    const successResponse = createResponse();
+
+    await routes.handle(request, successResponse, '/api/v1/devices/cover-1/refresh', 'POST', successful.container);
+
+    expect(successful.saveDevice).toHaveBeenCalledWith(expect.objectContaining({
+      lastKnownState: expect.objectContaining({ state: 'closed', on: false, attributes: {} }),
+    }));
+
+    const failed = createContainer(jest.fn().mockRejectedValue(new Error('Home Assistant unavailable')));
+    const failedResponse = createResponse();
+
+    await routes.handle(request, failedResponse, '/api/v1/devices/cover-1/refresh', 'POST', failed.container);
+
+    expect(failed.updateStatusFromOperation).toHaveBeenCalledWith('unreachable');
+    expect(failedResponse.writeHead).toHaveBeenCalledWith(500, expect.any(Object));
+    expect(failedResponse.end).toHaveBeenCalledWith(expect.stringContaining('REFRESH_ERROR'));
+  });
+  it('returns device not found without consulting Home Assistant', async () => {
+    const getEntityState = jest.fn();
+    const { container } = createContainer(getEntityState);
+    (container.repositories.deviceRepository.findDeviceById as jest.Mock).mockResolvedValue(null);
+    const response = createResponse();
+
+    await routes.handle(request, response, '/api/v1/devices/missing/refresh', 'POST', container);
+
+    expect(getEntityState).not.toHaveBeenCalled();
+    expect(response.writeHead).toHaveBeenCalledWith(404, expect.any(Object));
+  });
+
+  it('rejects refresh for devices that do not belong to Home Assistant', async () => {
+    const getEntityState = jest.fn();
+    const { container } = createContainer(getEntityState);
+    (container.repositories.deviceRepository.findDeviceById as jest.Mock).mockResolvedValue({
+      ...createDevice(), externalId: 'native:cover-1', integrationSource: 'native-camera',
+    });
+    const response = createResponse();
+
+    await routes.handle(request, response, '/api/v1/devices/cover-1/refresh', 'POST', container);
+
+    expect(getEntityState).not.toHaveBeenCalled();
+    expect(response.writeHead).toHaveBeenCalledWith(400, expect.any(Object));
+  });
 });

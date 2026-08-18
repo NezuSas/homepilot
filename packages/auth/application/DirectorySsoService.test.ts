@@ -51,11 +51,59 @@ describe('Directory SSO AC1-AC8', () => {
     expect(await service.unlink('one', 'owner')).toBe(true);
   });
 
+  it('maps a SQLite consume constraint to the stable replay error before a session is created', async () => {
+    const payload = { directoryAccountId: 'directory-account', homeId: 'home-1', exp: now() + 60, jti: 'already-used' };
+    const verifier = {
+      verify: jest.fn().mockResolvedValue(payload),
+      consume: jest.fn().mockRejectedValue(Object.assign(new Error('UNIQUE constraint failed: directory_sso_used_tokens.jti'), { code: 'SQLITE_CONSTRAINT' })),
+    };
+    const repo = new MemorySsoRepository();
+    await repo.create('directory-account', 'local-user');
+    const localAuth = auth();
+    const service = new DirectorySsoService(verifier as never, repo, localAuth as never);
+
+    await expect(service.login('valid-but-replayed-token')).rejects.toMatchObject({ code: 'SSO_TOKEN_REPLAYED' });
+    expect(localAuth.createSessionForUserId).not.toHaveBeenCalled();
+  });
+
+  it('rejects a valid linked token when its linked local account no longer exists', async () => {
+    const repo = new MemorySsoRepository();
+    await repo.create('directory-account', 'deleted-local-user');
+    const localAuth = { createSessionForUserId: jest.fn().mockResolvedValue(null) };
+    const service = new DirectorySsoService(new DirectorySsoVerifier(repo, publicKey), repo, localAuth as never);
+
+    await expect(service.login(token())).rejects.toMatchObject({ code: 'SSO_TOKEN_INVALID' });
+  });
+
+  it('maps atomic link-and-consume uniqueness failures to the stable replay error', async () => {
+    const payload = { directoryAccountId: 'directory-account', homeId: 'home-1', exp: now() + 60, jti: 'already-used' };
+    const verifier = { verify: jest.fn().mockResolvedValue(payload) };
+    const repo = new MemorySsoRepository();
+    repo.linkAndConsume = jest.fn().mockRejectedValue(new Error('UNIQUE constraint failed: directory_sso_used_tokens.jti'));
+    const service = new DirectorySsoService(verifier as never, repo, auth() as never);
+
+    await expect(service.linkAfterLocalLogin('valid-but-replayed-token', 'local-user')).rejects.toMatchObject({ code: 'SSO_TOKEN_REPLAYED' });
+  });
+
   it('AC7/AC8 preserves the local role and does not require the Directory after a local session is issued', async () => {
     const repo = new MemorySsoRepository(); await repo.create('directory-account', 'operator-user');
     const localAuth = auth('operator'); const service = new DirectorySsoService(new DirectorySsoVerifier(repo, publicKey), repo, localAuth as never);
     const result = await service.login(token());
     expect(result).toMatchObject({ linked: true, user: { role: 'operator' } });
     expect(localAuth.createSessionForUserId).toHaveBeenCalledWith('operator-user');
+  });
+});
+describe('DirectorySsoVerifier structural security contracts', () => {
+  it('Scenario: Given an installation without a Directory public key When a token is presented Then verification remains unavailable', async () => {
+    const verifier = new DirectorySsoVerifier(new MemorySsoRepository(), '');
+
+    await expect(verifier.verify(token())).rejects.toMatchObject({ code: 'SSO_NOT_CONFIGURED' });
+  });
+
+  it('Scenario: Given a correctly signed token with missing mandatory claims When it is verified Then it is rejected as invalid before use', async () => {
+    const verifier = new DirectorySsoVerifier(new MemorySsoRepository(), publicKey);
+
+    await expect(verifier.verify(token({ jti: undefined }))).rejects.toMatchObject({ code: 'SSO_TOKEN_INVALID' });
+    await expect(verifier.verify(token({ iat: 'not-an-epoch' }))).rejects.toMatchObject({ code: 'SSO_TOKEN_INVALID' });
   });
 });
