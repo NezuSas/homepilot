@@ -998,7 +998,8 @@
       "pan_left": "Move left",
       "pan_right": "Move right",
       "zoom_in": "Zoom in",
-      "zoom_out": "Zoom out"
+      "zoom_out": "Zoom out",
+      "badge": "Pan-tilt-zoom camera"
     },
     "matter_badge": "Matter"
   },

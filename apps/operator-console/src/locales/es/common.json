@@ -998,7 +998,8 @@
       "pan_left": "Mover a la izquierda",
       "pan_right": "Mover a la derecha",
       "zoom_in": "Acercar zoom",
-      "zoom_out": "Alejar zoom"
+      "zoom_out": "Alejar zoom",
+      "badge": "Cámara con control de movimiento (PTZ)"
     },
     "matter_badge": "Matter"
   },

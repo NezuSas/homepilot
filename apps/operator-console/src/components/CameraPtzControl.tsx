@@ -56,18 +56,18 @@ export const CameraPtzControl: React.FC<CameraPtzControlProps> = ({ deviceId }) 
   });
 
   return (
-    <div className="grid grid-cols-3 gap-1.5" role="group" aria-label={t('camera.ptz.pan_up')}>
+    <div className="grid grid-cols-3 gap-2" role="group" aria-label={t('camera.ptz.pan_up')}>
       <span />
-      <IconButton icon={ChevronUp} label={t('camera.ptz.pan_up')} variant="ghost" size="sm" {...holdProps({ tilt: PTZ_SPEED })} />
+      <IconButton icon={ChevronUp} label={t('camera.ptz.pan_up')} variant="ghost" size="md" {...holdProps({ tilt: PTZ_SPEED })} />
       <span />
 
-      <IconButton icon={ChevronLeft} label={t('camera.ptz.pan_left')} variant="ghost" size="sm" {...holdProps({ pan: -PTZ_SPEED })} />
-      <IconButton icon={ZoomIn} label={t('camera.ptz.zoom_in')} variant="ghost" size="sm" {...holdProps({ zoom: PTZ_SPEED })} />
-      <IconButton icon={ChevronRight} label={t('camera.ptz.pan_right')} variant="ghost" size="sm" {...holdProps({ pan: PTZ_SPEED })} />
+      <IconButton icon={ChevronLeft} label={t('camera.ptz.pan_left')} variant="ghost" size="md" {...holdProps({ pan: -PTZ_SPEED })} />
+      <IconButton icon={ZoomIn} label={t('camera.ptz.zoom_in')} variant="ghost" size="md" {...holdProps({ zoom: PTZ_SPEED })} />
+      <IconButton icon={ChevronRight} label={t('camera.ptz.pan_right')} variant="ghost" size="md" {...holdProps({ pan: PTZ_SPEED })} />
 
       <span />
-      <IconButton icon={ChevronDown} label={t('camera.ptz.pan_down')} variant="ghost" size="sm" {...holdProps({ tilt: -PTZ_SPEED })} />
-      <IconButton icon={ZoomOut} label={t('camera.ptz.zoom_out')} variant="ghost" size="sm" {...holdProps({ zoom: -PTZ_SPEED })} />
+      <IconButton icon={ChevronDown} label={t('camera.ptz.pan_down')} variant="ghost" size="md" {...holdProps({ tilt: -PTZ_SPEED })} />
+      <IconButton icon={ZoomOut} label={t('camera.ptz.zoom_out')} variant="ghost" size="md" {...holdProps({ zoom: -PTZ_SPEED })} />
     </div>
   );
 };

@@ -12,10 +12,12 @@ import {
   RefreshCw,
   Search,
   Trash2,
+  VideoOff,
   X,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
+import { StatusPill } from '../../../components/ui/StatusPill';
 import { apiFetch } from '../../../lib/apiClient';
 import { API_BASE_URL } from '../../../config';
 import { CameraMediaFrame, type CameraFeedMode } from '../../../components/CameraMediaFrame';
@@ -156,18 +158,22 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
 
   if (isConnecting && !session) {
     return (
-      <div className="grid h-full w-full place-items-center bg-black/40 animate-pulse">
-        <Camera className="h-8 w-8 text-white/30" />
+      <div className="flex h-full w-full flex-col items-center justify-center gap-2.5 bg-black/40">
+        <div className="grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-white/5">
+          <Camera className="h-5 w-5 animate-pulse text-white/70" />
+        </div>
+        <span className="text-caption font-medium text-white/60">{t('camera.connecting')}</span>
       </div>
     );
   }
 
   if (hasFeedError || !session) {
     return (
-      <div className="relative grid h-full w-full place-items-center bg-scene-preview">
-        <div className="grid h-16 w-16 place-items-center rounded-full border border-white/15 bg-black/25 text-white/70">
-          <Camera className="h-9 w-9" />
+      <div className="relative flex h-full w-full flex-col items-center justify-center gap-2.5 bg-scene-preview">
+        <div className="grid h-11 w-11 place-items-center rounded-full border border-danger/25 bg-danger/10 text-danger">
+          <VideoOff className="h-5 w-5" />
         </div>
+        <span className="text-caption font-medium text-white/60">{t('camera.connection_error')}</span>
         <Button
           type="button"
           size="icon"
@@ -218,7 +224,7 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
         type="button"
         variant="ghost"
         size="md"
-        className="relative h-full w-full overflow-hidden text-left"
+        className="group relative h-full w-full overflow-hidden text-left"
         onClick={(event) => {
           event.stopPropagation();
           if (!hasFeedError) openViewer();
@@ -232,12 +238,17 @@ function SectionCameraCard({ deviceId, title }: { deviceId: string; title: strin
           snapshotUrl={snapshotUrl}
           preferredMode={feedMode}
           alt={title}
-          className="h-full w-full object-cover"
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
           onModeChange={setFeedMode}
           onReady={() => { /* noop */ }}
           onFailure={() => setHasFeedError(true)}
         />
-        <span className="absolute bottom-3 right-3 grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-black/65 text-white shadow-lg backdrop-blur-md">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/45 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+        <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-pill border border-white/15 bg-black/60 px-2.5 py-1 text-micro font-semibold uppercase tracking-wide text-white backdrop-blur-md">
+          <StatusPill variant="danger" dot pulse dotLabel={t('camera.live')} />
+          {t('camera.live')}
+        </div>
+        <span className="absolute bottom-3 right-3 grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-black/65 text-white shadow-lg backdrop-blur-md transition-transform duration-200 group-hover:scale-110">
           <Maximize2 className="h-4 w-4" />
         </span>
       </Button>

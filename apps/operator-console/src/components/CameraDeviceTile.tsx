@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Camera, Maximize2, RefreshCw, VideoOff } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Camera, Maximize2, MoveDiagonal, RefreshCw, VideoOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
@@ -92,6 +92,10 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
   useEffect(() => () => viewerSessionControllerRef.current?.abort(), []);
 
   const unavailable = reportedUnavailable && !media;
+  const ptzSupported = useMemo(
+    () => device.capabilities?.some((capability) => capability.type === 'camera_ptz') ?? false,
+    [device.capabilities]
+  );
 
   const openViewer = useCallback(() => {
     if (unavailable || !media || hasFeedError) return;
@@ -146,6 +150,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
   const hlsUrl = media?.hlsPath ? absoluteApiUrl(media.hlsPath) : undefined;
   const streamUrl = media ? absoluteApiUrl(media.streamPath) : '';
   const snapshotUrl = media ? absoluteApiUrl(media.snapshotPath) : '';
+  const isLive = Boolean(media) && !unavailable && !hasFeedError && !isConnecting;
   const statusLabel = unavailable
     ? t('camera.unavailable')
     : hasFeedError
@@ -172,16 +177,35 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
               snapshotUrl={snapshotUrl}
               preferredMode={feedMode}
               alt={t('camera.feed_alt', { name: displayName })}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
               onModeChange={handleFeedModeChange}
               onReady={handleFeedReady}
               onFailure={handleFeedFailure}
             />
           )}
           {(!media || hasFeedError || unavailable) && (
-            <div className="absolute inset-0 flex h-full w-full flex-col items-center justify-center gap-2 bg-muted/70 text-muted-foreground pointer-events-none">
-              {isConnecting ? <Camera className="h-7 w-7 animate-pulse" /> : <VideoOff className="h-7 w-7" />}
+            <div className="absolute inset-0 flex h-full w-full flex-col items-center justify-center gap-2.5 bg-muted/70 text-muted-foreground pointer-events-none">
+              <div className={cn(
+                'grid h-11 w-11 place-items-center rounded-full border',
+                isConnecting ? 'border-border/50 bg-background/40' : 'border-danger/25 bg-danger/10 text-danger'
+              )}>
+                {isConnecting ? <Camera className="h-5 w-5 animate-pulse" /> : <VideoOff className="h-5 w-5" />}
+              </div>
               <span className="text-caption font-medium">{statusLabel}</span>
+            </div>
+          )}
+
+          {/* Bottom vignette: keeps the maximize affordance legible against
+              bright/high-contrast footage without a solid backdrop that
+              would hide the feed. */}
+          {isLive && (
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/45 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+          )}
+
+          {isLive && (
+            <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-pill border border-white/15 bg-black/60 px-2.5 py-1 text-micro font-semibold uppercase tracking-wide text-white backdrop-blur-md">
+              <StatusPill variant="danger" dot pulse dotLabel={statusLabel} />
+              {t('camera.live')}
             </div>
           )}
 
@@ -192,14 +216,20 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
             </div>
           )}
 
+          {ptzSupported && isLive && (
+            <div className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-pill border border-white/15 bg-black/60 text-white backdrop-blur-md" title={t('camera.ptz.badge')}>
+              <MoveDiagonal className="h-3.5 w-3.5" />
+            </div>
+          )}
+
           {media && !unavailable && !hasFeedError && (
-            <span className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-pill border border-white/15 bg-black/65 text-white backdrop-blur-md">
+            <span className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-pill border border-white/15 bg-black/65 text-white backdrop-blur-md transition-transform duration-200 group-hover:scale-110">
               <Maximize2 className="h-4 w-4" />
             </span>
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-3 p-3 sm:p-4">
+        <div className="flex items-center justify-between gap-3 border-t border-border/50 p-3 sm:p-4">
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <span className="truncate text-card-title font-semibold tracking-tight text-foreground">{displayName}</span>
@@ -226,7 +256,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
           preferredMode={viewerMedia.hlsPath ? 'hls' : 'stream'}
           onClose={closeViewer}
           deviceId={device.id}
-          ptzSupported={device.capabilities?.some((capability) => capability.type === 'camera_ptz') ?? false}
+          ptzSupported={ptzSupported}
         />
       )}
     </>
