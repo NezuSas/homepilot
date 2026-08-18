@@ -261,13 +261,26 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
           }
           // Without this, any jitter (network burst, brief decode hiccup)
           // permanently adds to the gap between playback and the live edge —
-          // there's no HLS-style playlist position to re-sync against, so
-          // catch up by playing slightly faster until the gap closes. This is
-          // what kept this feed noticeably behind Home Assistant's cameras.
+          // there's no HLS-style playlist position to re-sync against. A
+          // speed-up alone isn't enough: on weaker hardware (kiosk tablets)
+          // the lag often comes from decode falling behind real time, and
+          // demanding an even higher decode rate via playbackRate only makes
+          // that worse, so the gap keeps growing despite the "fix". Once the
+          // gap is more than a couple of seconds, jump straight to the live
+          // edge instead — cheap for the decoder (only the current GOP, ~1s,
+          // needs decoding to resume there) and it's what actually happens
+          // when the user re-opens the camera to "fix" it.
           if (!buffer.updating && buffer.buffered.length > 0 && hasReadyFrameRef.current) {
             const bufferedEnd = buffer.buffered.end(buffer.buffered.length - 1);
             const lagSeconds = bufferedEnd - video.currentTime;
-            video.playbackRate = lagSeconds > 1.2 ? 1.5 : lagSeconds > 0.6 ? 1.15 : 1;
+            if (lagSeconds > 2) {
+              video.playbackRate = 1;
+              try {
+                video.currentTime = Math.max(video.currentTime, bufferedEnd - 0.3);
+              } catch { /* ignore */ }
+            } else {
+              video.playbackRate = lagSeconds > 1.2 ? 1.5 : lagSeconds > 0.6 ? 1.15 : 1;
+            }
           }
           processQueue();
         });
