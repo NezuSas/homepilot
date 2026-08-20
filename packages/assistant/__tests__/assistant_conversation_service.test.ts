@@ -1803,6 +1803,57 @@ describe('AssistantConversationService', () => {
       expect(response.message).toContain('Sala');
       expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
     });
+
+    it('Scenario: Given a partial room name in a room-status query When exactly one authorized room matches Then returns only that room state', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'meeting-light', name: 'Estar', type: 'light', homeId: 'h1', roomId: 'meeting-room', lastKnownState: { state: 'on' } }),
+        createTestDevice({ id: 'tech-light', name: 'Indirecta Planta', type: 'light', homeId: 'h1', roomId: 'tech-room', lastKnownState: { state: 'off' } })
+      ]);
+      const rooms = [
+        createTestRoom({ id: 'meeting-room', name: 'Sala de Reuniones', homeId: 'h1' }),
+        createTestRoom({ id: 'tech-room', name: 'Tech', homeId: 'h1' })
+      ];
+      mockRoomRepo.findAll.mockResolvedValue(rooms);
+      mockRoomRepo.findRoomsByHomeId.mockResolvedValue(rooms);
+
+      const response = await (service as unknown as {
+        handleStateQuery(normalized: string, language: string, userName: string | null, userId: string): Promise<{ type: string; message: string }>;
+      }).handleStateQuery('como esta la sala', 'es', 'Gustavo', 'room-status');
+
+      expect(response.message).toContain('estado en Sala de Reuniones');
+      expect(response.message).toContain('Estar');
+      expect(response.message).not.toContain('Indirecta Planta');
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('Scenario: Given one controllable curtain in a partially named room When a close command is issued Then executes through the existing confirmation policy', async () => {
+      const curtain = createTestDevice({
+        id: 'curtain-master',
+        name: 'Cortina Cuarto Master',
+        type: 'cover',
+        homeId: 'h1',
+        roomId: 'r1',
+        lastKnownState: { state: 'open' }
+      });
+      mockDeviceRepo.findAll.mockResolvedValue([
+        curtain,
+        createTestDevice({ id: 'curtain-sala', name: 'Cortina Sala', type: 'cover', homeId: 'h1', roomId: 'r2', lastKnownState: { state: 'open' } })
+      ]);
+      mockDeviceRepo.findDeviceById.mockResolvedValue(curtain);
+      mockRoomRepo.findAll.mockResolvedValue([createTestRoom({ id: 'r1', name: 'Cuarto Master', homeId: 'h1' })]);
+
+      const response = await service.converse({ prompt: 'cierra la cortina del cuarto', userId: 'curtain-user' }, 'es');
+
+      expect(mockConfirmationPolicy.evaluate).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'command',
+        deviceId: 'curtain-master',
+        command: 'close'
+      }), 'es');
+      expect(mockDispatcher.dispatch).toHaveBeenCalledWith('curtain-master', expect.objectContaining({
+        name: 'close'
+      }));
+      expect(response.type).toBe('execution');
+    });
   });
   describe('Feature: deterministic informational intent classification', () => {
     it('Scenario: Given date, greeting, wellness, and state prompts When they are classified Then no device command is inferred', async () => {

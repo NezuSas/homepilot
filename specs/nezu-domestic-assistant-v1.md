@@ -94,6 +94,8 @@ The assistant uses only homes, rooms, devices, routines, and dashboards that the
 ### RF-06a. Deterministic household-status queries
 
 - Queries for a named room status, unavailable devices, and globally active lights resolve against the authorized device scope before any model fallback.
+- A named-room status query may resolve a unique partial authorized room name after removing its conversational wrapper; ambiguous names require clarification.
+- A room-qualified curtain or blind command resolves the authorized room and a matching controllable cover before using the existing confirmation and execution policy.
 - A phrase such as "turn off the lights that are on" is global; a state qualifier must never be interpreted as a room name.
 - An availability query reports only devices whose current state is unavailable; it never invents a failure reason.
 

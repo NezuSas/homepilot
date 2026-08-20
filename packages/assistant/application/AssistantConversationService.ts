@@ -426,11 +426,19 @@ export class AssistantConversationService {
 
     activePrompt = normalized;
 
-    // --- 4. EXACT/STRONG FAST-PATH ---
+    // --- 4. ROOM CATEGORY FAST-PATHS ---
+    // A room-qualified cover command must pass through the normal confirmation
+    // policy before the generic device-name fast path can resolve it.
+    const roomCover = this.isRoomCoverFastPath(normalized);
+    if (roomCover) {
+      const roomCoverResponse = await this.handleRoomCoverFastPath(userId, roomCover.command, roomCover.roomName, language, prompt, aliases, userName, request);
+      if (roomCoverResponse) return roomCoverResponse;
+    }
+
+    // --- 5. EXACT/STRONG FAST-PATH ---
     const fastPathResponse = await this.attemptFastPathExecution(activePrompt, userId, language, userName);
     if (fastPathResponse) return fastPathResponse;
 
-    // --- 5. ROOM LIGHT FAST-PATH ---
     const roomSingular = this.isRoomSingularLightFastPath(normalized);
     if (roomSingular) {
       const singularResponse = await this.handleRoomSingularLightFastPath(userId, roomSingular.command, roomSingular.roomName, language, prompt, aliases);
@@ -2343,7 +2351,7 @@ export class AssistantConversationService {
 
     // We need to identify if there's a potential room mention in the prompt.
     // Since we don't have a static list, we'll look for room names or aliases in the prompt.
-    const resolution = this.resolveRoomAlias(normalized, rooms, allDevices, userId, userAliases);
+    const resolution = this.resolveRoomReference(normalized, rooms, allDevices, userId, userAliases);
 
     if (resolution.status === 'resolved' && resolution.rooms.length > 0) {
       targetRoomId = resolution.rooms[0].id;
@@ -3807,6 +3815,107 @@ export class AssistantConversationService {
     return null;
   }
 
+  private isRoomCoverFastPath(prompt: string): {
+    command: 'open' | 'close';
+    roomName: string;
+  } | null {
+    const normalized = prompt.toLowerCase();
+    const spanishMatch = /^(abre|cierra)\s+(?:la\s+|el\s+|las\s+|los\s+)?(?:cortina(?:s)?|persiana(?:s)?)\s+(?:en\s+|del\s+|de\s+la\s+|de\s+el\s+|de\s+|la\s+|el\s+)?(.+)$/iu.exec(normalized);
+    if (spanishMatch) {
+      return {
+        command: spanishMatch[1].toLowerCase() === 'abre' ? 'open' : 'close',
+        roomName: spanishMatch[2].trim()
+      };
+    }
+
+    const englishMatch = /^(open|close)\s+(?:the\s+)?(?:curtain(?:s)?|blind(?:s)?|cover(?:s)?)\s+(?:in\s+|at\s+|of\s+the\s+)?(.+)$/iu.exec(normalized);
+    if (englishMatch) {
+      return {
+        command: englishMatch[1].toLowerCase() === 'open' ? 'open' : 'close',
+        roomName: englishMatch[2].trim()
+      };
+    }
+
+    return null;
+  }
+
+  private async handleRoomCoverFastPath(
+    userId: string,
+    command: 'open' | 'close',
+    roomName: string,
+    language: string,
+    originalPrompt: string,
+    userAliases: Record<string, string>,
+    userName: string | null,
+    request: AssistantConverseRequest
+  ): Promise<AssistantConversationResponse | null> {
+    const [devices, rooms] = await Promise.all([
+      this.permissionGate.getAuthorizedDevices(userId),
+      this.permissionGate.getAuthorizedRooms(userId)
+    ]);
+    const resolution = this.resolveRoomAlias(roomName, Array.from(rooms), Array.from(devices), userId, userAliases);
+
+    if (resolution.status === 'ambiguous') {
+      return { type: 'answer', message: getAssistantResponseText('state.room_ambiguous', language, {}) };
+    }
+    if (resolution.status !== 'resolved' || resolution.rooms.length !== 1) {
+      return null;
+    }
+
+    const room = resolution.rooms[0];
+    const covers = devices.filter((device) =>
+      device.roomId === room.id
+      && ['cover', 'blind', 'curtain', 'shutter'].includes(device.type.toLowerCase())
+      && this.scopeFilter.isControllableDevice(device, command)
+    );
+
+    if (covers.length === 0) {
+      return {
+        type: 'answer',
+        message: getAssistantResponseText('state.no_targets_in_room', language, {
+          entityLabel: language === 'en' ? 'curtains' : 'cortinas',
+          roomName: room.name
+        })
+      };
+    }
+
+    if (covers.length > 1) {
+      const options = covers.map((device) => ({ id: device.id, label: device.name, kind: 'device' as const }));
+      await this.memoryService.saveShortTermMemory(userId, {
+        lastQueryType: 'clarification',
+        entities: [],
+        timestamp: new Date().toISOString(),
+        clarificationOptions: options,
+        originalPrompt,
+        pendingIntent: {
+          type: 'command',
+          deviceId: '',
+          command,
+          prompt: originalPrompt,
+          timestamp: new Date().toISOString()
+        }
+      });
+      return {
+        type: 'clarification',
+        message: language === 'en'
+          ? `I found multiple curtains in ${room.name}. Please choose one.`
+          : `Encontré varias cortinas en ${room.name}. Elige cuál quieres controlar.`,
+        clarification: {
+          question: language === 'en' ? 'Which curtain do you want to control?' : '¿Cuál cortina quieres controlar?',
+          options,
+          pendingAction: { command, originalPrompt }
+        }
+      };
+    }
+
+    return await this.executeIntent({
+      type: 'command',
+      deviceId: covers[0].id,
+      command,
+      prompt: originalPrompt
+    }, request, language, userId, userName, originalPrompt, null);
+  }
+
   private async handleRoomSingularLightFastPath(
     userId: string,
     command: 'turn_on' | 'turn_off',
@@ -3826,6 +3935,20 @@ export class AssistantConversationService {
     }
 
     return null;
+  }
+
+  private resolveRoomReference(prompt: string, rooms: ReadonlyArray<Room>, devices: ReadonlyArray<Device>, userId: string, userAliases: Record<string, string>): RoomAliasResolution {
+    const normalized = normalizeAssistantPrompt(prompt);
+    const candidates = [normalized];
+    const stateRoomMatch = /^(?:como esta|que tal|estado de)\s+(?:la\s+|el\s+)?(.+)$/iu.exec(normalized);
+    if (stateRoomMatch?.[1]) candidates.push(stateRoomMatch[1].trim());
+
+    for (const candidate of candidates) {
+      const resolution = this.resolveRoomAlias(candidate, rooms, devices, userId, userAliases);
+      if (resolution.status !== 'not_found') return resolution;
+    }
+
+    return { status: 'not_found', rooms: [] };
   }
 
   private resolveRoomAlias(roomName: string, rooms: ReadonlyArray<Room>, devices: ReadonlyArray<Device>, userId: string, userAliases: Record<string, string>): RoomAliasResolution {
