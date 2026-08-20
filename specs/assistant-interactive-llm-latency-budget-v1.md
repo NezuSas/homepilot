@@ -14,8 +14,8 @@ This specification bounds model work used by conversational turns and diagnostic
 
 ## Requirements
 
-- **REQ-01:** Conversational small talk must use the authorized ultra-light home map instead of the full home context, and send no more than 320 characters of that map to Ollama.
-- **REQ-02:** A conversational Ollama request must have a fixed 1,500 ms timeout and generate at most 32 tokens. A timeout or invalid model response must retain the existing deterministic fallback response.
+- **REQ-01:** Conversational small talk must use the authorized ultra-light home map instead of the full home context, and send no more than 160 characters of that map to Ollama.
+- **REQ-02:** A conversational Ollama request must have a fixed 2,500 ms timeout and generate at most 24 tokens. Its instruction must remain compact enough for CPU-only Edge hardware. A timeout or invalid model response must retain the existing deterministic fallback response.
 - **REQ-03:** A conversational response produced by `AssistantSmallTalkService` must not enqueue an additional Planner V2 shadow request for the same turn.
 - **REQ-04:** Planner V2 shadow sampling must use a fixed 1,500 ms timeout and a 48-token limit. Deployment environment values must not extend this diagnostic budget.
 - **REQ-05:** At most one Planner V2 shadow request may be in flight. New sampled requests while one is pending must be skipped and logged as `in_flight`.
@@ -23,8 +23,8 @@ This specification bounds model work used by conversational turns and diagnostic
 
 ## Acceptance Criteria
 
-- [x] **AC1:** Small-talk calls `buildUltraLightLlmHomeMap(prompt, userId)` and passes no more than 320 characters of authorized context to Ollama.
-- [x] **AC2:** Small-talk calls Ollama with `{ timeoutMs: 1500, numPredict: 32 }` and safely returns the existing fallback on failure.
+- [x] **AC1:** Small-talk calls `buildUltraLightLlmHomeMap(prompt, userId)` and passes no more than 160 characters of authorized context to Ollama.
+- [x] **AC2:** Small-talk calls Ollama with `{ timeoutMs: 2500, numPredict: 24 }` and safely returns the existing fallback on failure.
 - [x] **AC3:** A non-control conversational response does not call `runShadow` after the small-talk request completes.
 - [x] **AC4:** Shadow calls Planner V2 with `{ timeoutMs: 1500, numPredict: 48 }`, independent of `ASSISTANT_PLANNER_V2_SHADOW_TIMEOUT_MS`.
 - [x] **AC5:** A second overlapping shadow request does not call the interpreter and records an `in_flight` skip.

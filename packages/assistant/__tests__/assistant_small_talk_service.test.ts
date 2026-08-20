@@ -24,7 +24,7 @@ describe('AssistantSmallTalkService', () => {
     
     expect(mockContextBuilder.buildUltraLightLlmHomeMap).toHaveBeenCalledWith('dime algo interesante', undefined);
     const callArg = mockOllama.generateJson.mock.calls[0][0];
-    expect(callArg).toContain('Authorized home context:');
+    expect(callArg).toContain('Home:');
     expect(callArg).toContain('Devices: none');
   });
 
@@ -35,8 +35,8 @@ describe('AssistantSmallTalkService', () => {
     await service.handle('dime algo interesante', 'es');
 
     const callArg = mockOllama.generateJson.mock.calls[0][0];
-    expect(callArg).toContain(`${'a'.repeat(320)}…`);
-    expect(callArg).not.toContain('a'.repeat(321));
+    expect(callArg).toContain(`${'a'.repeat(160)}…`);
+    expect(callArg).not.toContain('a'.repeat(161));
   });
 
   it('should pass userId to contextBuilder if provided', async () => {
@@ -53,8 +53,7 @@ describe('AssistantSmallTalkService', () => {
     await service.handle('hola', 'es', 'Oscar');
     
     const callArg = mockOllama.generateJson.mock.calls[0][0];
-    expect(callArg).toContain('You are talking to Oscar.');
-    expect(callArg).toContain('Mention the user by name at most once');
+    expect(callArg).toContain('User: Oscar.');
   });
 
   it('should return answer when Ollama returns valid JSON', async () => {
@@ -64,7 +63,7 @@ describe('AssistantSmallTalkService', () => {
     
     expect(response.type).toBe('answer');
     expect(response.message).toBe('Hello from Ollama');
-    expect(mockOllama.generateJson).toHaveBeenCalledWith(expect.any(String), { timeoutMs: 1500, numPredict: 32 });
+    expect(mockOllama.generateJson).toHaveBeenCalledWith(expect.any(String), { timeoutMs: 2500, numPredict: 24 });
   });
 
   it('should return fallback when Ollama returns malformed object', async () => {

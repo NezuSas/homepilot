@@ -4,9 +4,9 @@ import type { OllamaClientPort } from './ports/OllamaClientPort';
 
 import type { AssistantContextBuilderPort } from './ports/AssistantContextBuilderPort';
 
-const INTERACTIVE_OLLAMA_TIMEOUT_MS = 1_500;
-const INTERACTIVE_OLLAMA_MAX_TOKENS = 32;
-const INTERACTIVE_CONTEXT_MAX_CHARS = 320;
+const INTERACTIVE_OLLAMA_TIMEOUT_MS = 2_500;
+const INTERACTIVE_OLLAMA_MAX_TOKENS = 24;
+const INTERACTIVE_CONTEXT_MAX_CHARS = 160;
 
 function isSmallTalkResponse(value: unknown): value is { text: string } {
   return !!value &&
@@ -33,17 +33,11 @@ export class AssistantSmallTalkService implements AssistantSmallTalkPort {
           ? `${homeMap.text.slice(0, INTERACTIVE_CONTEXT_MAX_CHARS)}…`
           : homeMap.text;
 
-        const systemPrompt = userName 
-          ? `You are HomePilot, a local smart home assistant with the calm, precise presence of a professional residential operator. You are talking to ${userName}.`
-          : `You are HomePilot, a local smart home assistant with the calm, precise presence of a professional residential operator.`;
-
-        const fullPrompt = `System: ${systemPrompt}
-Language: ${language === 'en' ? 'English' : 'Spanish'}
-Authorized home context:
-${compactHomeContext}
-Rules: Use only this context. Do not invent devices or scenes. Do not claim an action was executed. Mention the user by name at most once when present. Keep the answer operational and under two short sentences. For a control request, ask for a clear target.
-User: ${prompt}
-Return JSON: {"text":"..."}`;
+        const fullPrompt = `You are HomePilot. Reply in ${language === 'en' ? 'English' : 'Spanish'}.
+Home: ${compactHomeContext}
+Rules: use only Home; do not invent; do not claim an action; one short sentence.${userName ? ` User: ${userName}.` : ''}
+User request: ${prompt}
+JSON only: {"text":"reply"}`;
         if (process.env.NODE_ENV !== 'production') {
           console.debug(`[Assistant] SmallTalk → LLM call (lang=${language})`);
         }
