@@ -67,8 +67,8 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     );
   });
 
-  it('does not queue Planner V2 shadow work after a small-talk model response', async () => {
-    mockSmallTalk.handle.mockResolvedValue({ type: 'answer', message: 'La casa está lista para esta noche.', llmGenerated: true });
+  it('does not queue Planner V2 shadow work after a small-talk model attempt', async () => {
+    mockSmallTalk.handle.mockResolvedValue({ type: 'answer', message: 'No estoy seguro de lo que quieres hacer todavía.', llmAttempted: true });
 
     const response = await service.converse({ prompt: 'dime algo interesante de mi casa', userId: 'u1' }, 'es');
 

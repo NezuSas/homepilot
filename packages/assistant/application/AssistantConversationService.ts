@@ -59,7 +59,7 @@ import { normalizeText as sharedNormalizeText, levenshteinDistance } from './tex
 export interface AssistantConversationResponse {
   type: "answer" | "execution" | "clarification" | "error";
   message: string;
-  llmGenerated?: boolean;
+  llmAttempted?: boolean;
   execution?: SceneExecutionResult;
   clarification?: {
     question: string;
@@ -517,8 +517,8 @@ export class AssistantConversationService {
           : (language === 'en' ? 'Understood. ' : 'Entendido. ');
         conversationalResponse.message = `${prefix}${conversationalResponse.message}`;
       }
-      const { llmGenerated, ...conversationResponse } = conversationalResponse;
-      return this.returnWithShadow(activePrompt, userId, language, conversationResponse, responsePreference, true, !llmGenerated);
+      const { llmAttempted, ...conversationResponse } = conversationalResponse;
+      return this.returnWithShadow(activePrompt, userId, language, conversationResponse, responsePreference, true, !llmAttempted);
     }
 
     const v2Response = await this.attemptV2HybridExecution(activePrompt, userId, language, userName, memory);
@@ -3691,27 +3691,29 @@ export class AssistantConversationService {
     allowResponsePersonalization = false,
     scheduleShadow = true
   ): AssistantConversationResponse {
+    const { llmAttempted, ...publicResponse } = response;
+
     // Required: Any successful deterministic execution must return directly and bypass Planner V2 Shadow
-    if (response.type === 'execution' || response.type === 'clarification') {
-      return response;
+    if (publicResponse.type === 'execution' || publicResponse.type === 'clarification') {
+      return publicResponse;
     }
 
-    if (response.type === 'answer' && response.execution) {
-      return response;
+    if (publicResponse.type === 'answer' && publicResponse.execution) {
+      return publicResponse;
     }
 
-    if (scheduleShadow && this.shadowService) {
-      this.shadowService.runShadow(prompt, userId, language, response).catch(() => {});
+    if (scheduleShadow && !llmAttempted && this.shadowService) {
+      this.shadowService.runShadow(prompt, userId, language, publicResponse).catch(() => {});
     }
 
-    if (!allowResponsePersonalization || response.type !== 'answer') {
-      return response;
+    if (!allowResponsePersonalization || publicResponse.type !== 'answer') {
+      return publicResponse;
     }
 
     return {
-      ...response,
+      ...publicResponse,
       message: applyAssistantResponsePreference(
-        response.message,
+        publicResponse.message,
         responsePreference,
         language === 'en' ? 'en' : 'es'
       )

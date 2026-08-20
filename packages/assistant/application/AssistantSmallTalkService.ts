@@ -5,7 +5,7 @@ import type { OllamaClientPort } from './ports/OllamaClientPort';
 import type { AssistantContextBuilderPort } from './ports/AssistantContextBuilderPort';
 
 const INTERACTIVE_OLLAMA_TIMEOUT_MS = 2_500;
-const INTERACTIVE_OLLAMA_MAX_TOKENS = 24;
+const INTERACTIVE_OLLAMA_MAX_TOKENS = 32;
 const INTERACTIVE_CONTEXT_MAX_CHARS = 160;
 
 function isSmallTalkResponse(value: unknown): value is { text: string } {
@@ -23,7 +23,9 @@ export class AssistantSmallTalkService implements AssistantSmallTalkPort {
   public async handle(prompt: string, language: string, userName?: string | null, userId?: string | null): Promise<AssistantConversationResponse> {
     const isLlmEnabled = process.env.OLLAMA_ENABLED === 'true';
     
-    if (isLlmEnabled && this.ollamaClient) {
+    const llmAttempted = isLlmEnabled && !!this.ollamaClient;
+
+    if (llmAttempted) {
       try {
         const homeMap = this.contextBuilder
           ? await this.contextBuilder.buildUltraLightLlmHomeMap(prompt, userId)
@@ -33,10 +35,10 @@ export class AssistantSmallTalkService implements AssistantSmallTalkPort {
           ? `${homeMap.text.slice(0, INTERACTIVE_CONTEXT_MAX_CHARS)}…`
           : homeMap.text;
 
-        const fullPrompt = `You are HomePilot. Reply in ${language === 'en' ? 'English' : 'Spanish'}.
+        const fullPrompt = `You are HomePilot. Reply strictly in ${language === 'en' ? 'English' : 'Spanish'}.
 Home: ${compactHomeContext}
-Rules: use only Home; do not invent; do not claim an action; one short sentence.${userName ? ` User: ${userName}.` : ''}
-User request: ${prompt}
+Rules: use only Home; do not invent; do not claim an action; no greeting or introduction; maximum seven words.${userName ? ` User: ${userName}.` : ''}
+User: ${prompt}
 JSON only: {"text":"reply"}`;
         if (process.env.NODE_ENV !== 'production') {
           console.debug(`[Assistant] SmallTalk → LLM call (lang=${language})`);
@@ -50,7 +52,7 @@ JSON only: {"text":"reply"}`;
           return {
             type: 'answer',
             message: response.text,
-            llmGenerated: true
+            llmAttempted: true
           };
         }
       } catch (error) {
@@ -64,7 +66,8 @@ JSON only: {"text":"reply"}`;
       type: 'answer',
       message: language === 'en'
         ? "I’m not sure what you want me to do yet. Give me a clear home instruction, for example: “which lights are on?” or “turn on the living room light”."
-        : "No estoy seguro de lo que quieres hacer todavía. Dame una orden clara del hogar, por ejemplo: “qué luces están encendidas” o “enciende la luz de la sala”."
+        : "No estoy seguro de lo que quieres hacer todavía. Dame una orden clara del hogar, por ejemplo: “qué luces están encendidas” o “enciende la luz de la sala”.",
+      llmAttempted
     };
   }
 }
