@@ -28,6 +28,17 @@ describe('AssistantSmallTalkService', () => {
     expect(callArg).toContain('Devices: none');
   });
 
+  it('should bound the context sent to Ollama for interactive latency', async () => {
+    mockContextBuilder.buildUltraLightLlmHomeMap.mockResolvedValue({ text: 'a'.repeat(400), devicesCount: 0 });
+    mockOllama.generateJson.mockResolvedValue({ text: 'Respuesta breve' });
+
+    await service.handle('dime algo interesante', 'es');
+
+    const callArg = mockOllama.generateJson.mock.calls[0][0];
+    expect(callArg).toContain(`${'a'.repeat(320)}…`);
+    expect(callArg).not.toContain('a'.repeat(321));
+  });
+
   it('should pass userId to contextBuilder if provided', async () => {
     mockOllama.generateJson.mockResolvedValue({ text: 'Hello' });
     

@@ -6,6 +6,7 @@ import type { AssistantContextBuilderPort } from './ports/AssistantContextBuilde
 
 const INTERACTIVE_OLLAMA_TIMEOUT_MS = 1_500;
 const INTERACTIVE_OLLAMA_MAX_TOKENS = 32;
+const INTERACTIVE_CONTEXT_MAX_CHARS = 320;
 
 function isSmallTalkResponse(value: unknown): value is { text: string } {
   return !!value &&
@@ -28,6 +29,10 @@ export class AssistantSmallTalkService implements AssistantSmallTalkPort {
           ? await this.contextBuilder.buildUltraLightLlmHomeMap(prompt, userId)
           : { text: 'No home context is available.', devicesCount: 0 };
         
+        const compactHomeContext = homeMap.text.length > INTERACTIVE_CONTEXT_MAX_CHARS
+          ? `${homeMap.text.slice(0, INTERACTIVE_CONTEXT_MAX_CHARS)}…`
+          : homeMap.text;
+
         const systemPrompt = userName 
           ? `You are HomePilot, a local smart home assistant with the calm, precise presence of a professional residential operator. You are talking to ${userName}.`
           : `You are HomePilot, a local smart home assistant with the calm, precise presence of a professional residential operator.`;
@@ -35,7 +40,7 @@ export class AssistantSmallTalkService implements AssistantSmallTalkPort {
         const fullPrompt = `System: ${systemPrompt}
 Language: ${language === 'en' ? 'English' : 'Spanish'}
 Authorized home context:
-${homeMap.text}
+${compactHomeContext}
 Rules: Use only this context. Do not invent devices or scenes. Do not claim an action was executed. Mention the user by name at most once when present. Keep the answer operational and under two short sentences. For a control request, ask for a clear target.
 User: ${prompt}
 Return JSON: {"text":"..."}`;
