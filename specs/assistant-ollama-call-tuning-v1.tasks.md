@@ -11,7 +11,9 @@
 - [x] AC1/AC2: 3 tests nuevos en `ollama_client.test.ts` (keep_alive + options por defecto, schema
       personalizado como format, override de temperature/numPredict).
 - [x] AC3: 1 test nuevo en `llm_intent_interpreter.test.ts` verificando que `interpretV2` pasa el
-      schema real como `format`.
+      schema real como format.
+- [x] AC6: `.env.office.example` uses the host-network Ollama endpoint and
+      `check-docker-profiles` rejects profile/template URL mismatches.
 - [x] AC4: `npx tsc --noEmit`, `npm run build`, suite completa (143 suites, 1195 tests) sin
       regresiones.
 - [x] AC5: `docker build` + `docker run` con `ASSISTANT_PLANNER_V2_EXECUTION=true` — arranque

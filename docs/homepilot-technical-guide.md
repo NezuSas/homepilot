@@ -569,7 +569,8 @@ HOMEPILOT_DEV_BOOTSTRAP=true
 HOMEPILOT_DB_PATH=./data/homepilot.db
 
 OLLAMA_ENABLED=true
-OLLAMA_BASE_URL=http://ollama:11434
+# Office / host-network profile. Use http://ollama:11434 only with docker-compose.yml.
+OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=phi3
 OLLAMA_TIMEOUT_MS=30000
 
@@ -606,7 +607,7 @@ WHISPER_MAX_AUDIO_BYTES=9000000
 | HOMEPILOT_DB_PATH | ./data/homepilot.db | SQLite path outside Docker/inside local WSL; containers normally use /app/data/homepilot.db |
 | HOMEPILOT_SQLITE_JOURNAL_MODE | WAL | Use WAL on the Linux mini PC; use DELETE only when Docker mounts data from Windows |
 | OLLAMA_ENABLED | true | Enables assistant calls to Ollama |
-| OLLAMA_BASE_URL | http://ollama:11434 | Internal Docker URL for Ollama |
+| OLLAMA_BASE_URL | http://localhost:11434 (Office) / http://ollama:11434 (native Docker) | URL used by the API to reach Ollama; it depends on the deployment network model |
 | OLLAMA_MODEL | phi3 | Main assistant model |
 | OLLAMA_TIMEOUT_MS | 30000 | Maximum wait for a model response |
 | ASSISTANT_PLANNER_V2_SHADOW | true | Runs Planner V2 in comparison/validation mode |

@@ -49,7 +49,10 @@ conversacional original, nunca implementado hasta ahora.
 - **NFR-01**: Regresión cero — los tres llamadores existentes de `generateJson`
   (`AssistantSmallTalkService`, `LlmIntentInterpreter.interpret`, `LlmIntentInterpreter.interpretV2`)
   siguen funcionando con los valores por defecto sin cambiar su propio código de llamada, salvo
-  `interpretV2` que ahora pasa el schema explícitamente.
+  interpretV2 que ahora pasa el schema explícitamente.
+- **NFR-02**: The Office deployment profile uses host networking. Its environment template must
+  therefore address Ollama through `http://localhost:11434`; `http://ollama:11434` is only valid
+  for the native Docker-network profile.
 
 ## Criterios de aceptación
 
@@ -63,6 +66,8 @@ conversacional original, nunca implementado hasta ahora.
 - [x] AC4: Suite completa sin regresiones (143 suites, 1195 tests).
 - [x] AC5: Validado en contenedor Docker limpio con `ASSISTANT_PLANNER_V2_EXECUTION=true` — arranque
       correcto, `/health` en verde.
+- [x] AC6: Office and native installation templates use the Ollama URL compatible with their
+      respective network models, enforced by `check-docker-profiles`.
 
 ## Notas técnicas y arquitectura
 

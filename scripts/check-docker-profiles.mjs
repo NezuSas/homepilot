@@ -50,6 +50,11 @@ if (failures.length === 0) {
     || !nativeEnvironmentTemplate.includes('ASSISTANT_PLANNER_V2_EXECUTION=false')) {
     failures.push('Every deployment profile and installation template must keep Planner V2 execution disabled by default');
   }
+  if (!office.includes('OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://localhost:11434}')
+    || !officeEnvironmentTemplate.includes('OLLAMA_BASE_URL=http://localhost:11434')
+    || !nativeEnvironmentTemplate.includes('OLLAMA_BASE_URL=http://ollama:11434')) {
+    failures.push('Office host networking must reach Ollama through localhost, while the native Docker profile must use service DNS');
+  }
   if (!maintenance.includes('is_docker_desktop')
     || !maintenance.includes('docker-compose.desktop.yml')
     || !maintenance.includes('docker compose "${compose_args[@]}" up -d --build')) {
@@ -68,4 +73,4 @@ if (failures.length > 0) {
   process.exit(1);
 }
 
-console.log('Docker profile validation passed: canonical SQLite path, Desktop override, same-origin proxies, and safe Planner V2 defaults are present.');
+console.log('Docker profile validation passed: canonical SQLite path, network-aware Ollama URLs, Desktop override, same-origin proxies, and safe Planner V2 defaults are present.');
