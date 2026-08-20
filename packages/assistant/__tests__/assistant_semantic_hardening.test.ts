@@ -245,7 +245,8 @@ describe('Assistant Semantic Hardening', () => {
     const res = await service.converse({ prompt: 'estado del cuarto master', userId: 'u1' }, 'es');
     
     expect(res.type).toBe('answer');
-    expect(res.message).toContain('estado en Cuarto Master');
+    expect(res.message).toContain('Cuarto Master');
+    expect(res.message).toContain('Encendidas · 1');
   });
 
   it('UI selectedOptionId still resolves room selection regardless of prompt text', async () => {

@@ -2524,7 +2524,7 @@ export class AssistantConversationService {
     const namePrefix = userName ? `${userName}, ` : '';
 
     const areaPrefix = targetRoomName
-      ? (language === 'en' ? `${namePrefix}status in ${targetRoomName}:\n\n` : `${namePrefix}estado en ${targetRoomName}:\n\n`)
+      ? `${namePrefix}${targetRoomName}\n\n`
       : (language === 'en' ? `${namePrefix}home status:\n\n` : `${namePrefix}estado de la casa:\n\n`);
 
     message = areaPrefix;
@@ -2541,11 +2541,13 @@ export class AssistantConversationService {
       message = areaPrefix;
 
       // On section
-      message += language === 'en' ? "On:\n" : "Encendidas:\n";
+      message += targetRoomName
+        ? (language === 'en' ? `On · ${onDevices.length}\n` : `Encendidas · ${onDevices.length}\n`)
+        : (language === 'en' ? "On:\n" : "Encendidas:\n");
       if (onDevices.length > 0) {
         for (const d of onDevices) {
           const rName = this.resolveRoomName(d.roomId, roomMap, language);
-          message += `• ${d.name}${rName ? ` (${rName})` : ''}\n`;
+          message += `• ${d.name}${targetRoomName ? '' : rName ? ` (${rName})` : ''}\n`;
         }
       } else {
         message += language === 'en' ? "• None" : "• Ninguna";
@@ -2554,11 +2556,13 @@ export class AssistantConversationService {
       message += "\n";
 
       // Off section
-      message += language === 'en' ? "Off:\n" : "Apagadas:\n";
+      message += targetRoomName
+        ? (language === 'en' ? `Off · ${offDevices.length}\n` : `Apagadas · ${offDevices.length}\n`)
+        : (language === 'en' ? "Off:\n" : "Apagadas:\n");
       if (offDevices.length > 0) {
         for (const d of offDevices) {
           const rName = this.resolveRoomName(d.roomId, roomMap, language);
-          message += `• ${d.name}${rName ? ` (${rName})` : ''}\n`;
+          message += `• ${d.name}${targetRoomName ? '' : rName ? ` (${rName})` : ''}\n`;
         }
       } else {
         message += language === 'en' ? "• None" : "• Ninguna";

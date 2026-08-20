@@ -1820,8 +1820,11 @@ describe('AssistantConversationService', () => {
         handleStateQuery(normalized: string, language: string, userName: string | null, userId: string): Promise<{ type: string; message: string }>;
       }).handleStateQuery('como esta la sala', 'es', 'Gustavo', 'room-status');
 
-      expect(response.message).toContain('estado en Sala de Reuniones');
-      expect(response.message).toContain('Estar');
+      expect(response.message).toContain('Gustavo, Sala de Reuniones');
+      expect(response.message).toContain('Encendidas · 1');
+      expect(response.message).toContain('Apagadas · 0');
+      expect(response.message).toContain('• Estar\n');
+      expect(response.message).not.toContain('Estar (Sala de Reuniones)');
       expect(response.message).not.toContain('Indirecta Planta');
       expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
     });
