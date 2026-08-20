@@ -400,7 +400,7 @@ export class AssistantConversationService {
           if (command) { request.pendingAction = { command, targetId: selectedId, originalPrompt: memory.originalPrompt || prompt }; return await this.handleSelection(request, language); }
           else {
             await this.memoryService.saveShortTermMemory(userId, { ...memory, entities: [{ id: selectedId, name: selectedOption?.label || 'Selected', type: 'device', roomId: null }], timestamp: new Date().toISOString() });
-            return { type: 'answer', message: language === 'en' ? `I've selected ${selectedOption?.label}. What would you like to do with it?` : `Seleccioné ${selectedOption?.label}. ¿Qué quieres hacer con este dispositivo?` };
+            return { type: 'answer', message: getAssistantResponseText('selection.follow_up_selected', language, { label: selectedOption?.label ?? 'Selected' }) };
           }
         }
       }
@@ -409,7 +409,7 @@ export class AssistantConversationService {
     // --- PRE-INTENT: PRONOUN RESOLUTION ---
     const pronounIntent = await this.resolvePronounIntent(normalized, memory, language);
     if (pronounIntent) {
-      if ('type' in pronounIntent && pronounIntent.type === 'clarificationRequired') return { type: 'clarification', message: language === 'en' ? "I found several options for that. Which one do you mean?" : "Encontré varias opciones para eso. ¿A cuál te refieres?", clarification: { question: language === 'en' ? "Which one?" : "¿Cuál?", options: pronounIntent.options.map(opt => ({ ...opt, kind: isClarificationKind(opt.kind) ? opt.kind : 'device' })) } };
+      if ('type' in pronounIntent && pronounIntent.type === 'clarificationRequired') return { type: 'clarification', message: getAssistantResponseText('clarification.pronoun_multiple_options', language, {}), clarification: { question: getAssistantResponseText('clarification.which_one', language, {}), options: pronounIntent.options.map(opt => ({ ...opt, kind: isClarificationKind(opt.kind) ? opt.kind : 'device' })) } };
       if (isIntent(pronounIntent)) return await this.executeIntent(pronounIntent, request, language, userId, userName, prompt, memory);
     }
 
@@ -520,7 +520,7 @@ export class AssistantConversationService {
         const inferredCommand = this.inferCommandFromPrompt(intentResult.originalSegment) || this.inferCommandFromPrompt(activePrompt) || 'turn_on';
         await this.memoryService.saveShortTermMemory(userId, { lastQueryType: 'clarification', entities: [], timestamp: new Date().toISOString(), clarificationOptions: intentResult.options, originalPrompt: activePrompt, pendingIntent: { type: 'command', deviceId: '', command: inferredCommand as DeviceCommandV1, prompt: activePrompt, timestamp: new Date().toISOString() } });
         const options = intentResult.options.map(opt => ({ ...opt, kind: isClarificationKind(opt.kind) ? opt.kind : 'device' }));
-        return this.returnWithShadow(activePrompt, userId, language, this.withJarvisStyle({ type: 'clarification', message: language === 'en' ? `I found multiple matches for "${intentResult.originalSegment}".` : `Encontré varias opciones para "${intentResult.originalSegment}".`, clarification: { question: language === 'en' ? "Which one do you mean?" : "¿A cuál te refieres?", options } }, {
+        return this.returnWithShadow(activePrompt, userId, language, this.withJarvisStyle({ type: 'clarification', message: getAssistantResponseText('clarification.intent_multiple_matches', language, { segment: intentResult.originalSegment }), clarification: { question: getAssistantResponseText('clarification.which_one_do_you_mean', language, {}), options } }, {
           status: 'clarification',
           suggestions: options.map(option => option.label),
           userName: userName || undefined
@@ -600,9 +600,7 @@ export class AssistantConversationService {
 
         return this.withJarvisStyle({
           type: 'answer',
-          message: language === 'en'
-            ? `I couldn't find a device matching your request.`
-            : `No encontré un dispositivo llamado '${targetPhrase}'.`
+          message: getAssistantResponseText('resolution.device_not_found', language, { targetPhrase })
         }, {
           status: 'not_found',
           searched: targetPhrase,
@@ -616,11 +614,9 @@ export class AssistantConversationService {
         if (isVague && !request.sourceRoomId) {
           return {
             type: 'clarification',
-            message: language === 'en'
-              ? "In which room do you want to control the light?"
-              : "¿En qué estancia quieres controlar la luz?",
+            message: getAssistantResponseText('clarification.vague_light_room', language, {}),
             clarification: {
-              question: language === 'en' ? "You can say: 'turn on the living room light'." : "Puedes decir: 'prende la luz de la sala'.",
+              question: getAssistantResponseText('clarification.vague_light_room_example', language, {}),
               options: []
             }
           };
@@ -644,9 +640,9 @@ export class AssistantConversationService {
 
       return this.withJarvisStyle({
         type: 'clarification',
-        message: language === 'en' ? "I found several matching devices. Please choose the target." : "Encontré varios dispositivos compatibles. Indícame el objetivo.",
+        message: getAssistantResponseText('clarification.device_multiple_matches', language, {}),
           clarification: {
-            question: language === 'en' ? "Which one do you want to control?" : "¿Cuál quieres controlar?",
+            question: getAssistantResponseText('clarification.device_multiple_matches_question', language, {}),
             options,
             pendingAction: {
               command: intent.type === 'command' ? intent.command : undefined,
@@ -691,10 +687,10 @@ export class AssistantConversationService {
         type: 'clarification',
         message: `${namePrefix}${preview.reason} ${preview.summary}`.trim(),
         clarification: {
-          question: language === 'en' ? "Are you sure you want to proceed?" : "¿Estás seguro de que quieres continuar?",
+          question: getAssistantResponseText('confirmation.generic_proceed', language, {}),
           options: [
-            { id: 'confirm', label: language === 'en' ? "Yes, proceed" : "Sí, adelante", kind: 'device' },
-            { id: 'cancel', label: language === 'en' ? "No, cancel" : "No, cancelar", kind: 'device' }
+            { id: 'confirm', label: getAssistantResponseText('confirmation.generic_proceed_yes', language, {}), kind: 'device' },
+            { id: 'cancel', label: getAssistantResponseText('confirmation.generic_proceed_no', language, {}), kind: 'device' }
           ],
           pendingAction: {
             command: intent.type === 'command' ? intent.command : undefined,
@@ -713,7 +709,7 @@ export class AssistantConversationService {
     // E) Execution
     if (intent.type === 'scene') {
       const scene = await this.sceneRepository.findSceneById(intent.target);
-      if (!scene) return { type: 'error', message: language === 'en' ? "Scene not found. I need a valid scene." : "Escena no encontrada. Necesito una escena válida." };
+      if (!scene) return { type: 'error', message: getAssistantResponseText('scene.not_found', language, {}) };
 
       await this.permissionGate.assertHomeAuthorized(userId, scene.homeId);
 
@@ -731,7 +727,7 @@ export class AssistantConversationService {
 
       return await this.attachSuggestionIfNeeded({
         type: 'execution',
-        message: language === 'en' ? "Scene execution started." : "Escena en ejecución.",
+        message: getAssistantResponseText('scene.execution_started', language, {}),
         execution: result
       }, userId, language, memory, 'scene');
     }
@@ -750,9 +746,7 @@ export class AssistantConversationService {
         });
         return this.withJarvisStyle({
           type: 'clarification',
-          message: language === 'en'
-            ? `Are you sure you want to control ${deviceName}?`
-            : `¿Estás seguro de que quieres controlar ${deviceName}?`
+          message: getAssistantResponseText('confirmation.device_control', language, { deviceName })
         }, {
           status: 'security_blocked',
           reason: 'mass_action_requires_confirmation',
@@ -825,17 +819,15 @@ export class AssistantConversationService {
           originalPrompt: prompt
         });
         const actionSummary = intent.actions.slice(0, 3).map(a => a.targetName ?? a.deviceId).join(', ');
-        const confirmMsg = language === 'en'
-          ? `I can execute ${intent.actions.length} actions (${actionSummary}). Confirm to proceed.`
-          : `Puedo ejecutar ${intent.actions.length} acciones (${actionSummary}). Confírmame para proceder.`;
+        const confirmMsg = getAssistantResponseText('confirmation.multi_action', language, { count: intent.actions.length, actionSummary });
         return this.withJarvisStyle({
           type: 'clarification',
           message: confirmMsg,
           clarification: {
-            question: language === 'en' ? '¿Are you sure?' : '¿Estás seguro?',
+            question: getAssistantResponseText('confirmation.are_you_sure', language, {}),
             options: [
-              { id: 'confirm', label: language === 'en' ? 'Yes, execute all' : 'Sí, ejecutar todo', kind: 'device' as const },
-              { id: 'cancel', label: language === 'en' ? 'No, cancel' : 'No, cancelar', kind: 'device' as const }
+              { id: 'confirm', label: getAssistantResponseText('confirmation.multi_action_yes', language, {}), kind: 'device' as const },
+              { id: 'cancel', label: getAssistantResponseText('confirmation.multi_action_no', language, {}), kind: 'device' as const }
             ]
           }
         }, {
@@ -900,7 +892,7 @@ export class AssistantConversationService {
 
     return {
       type: 'error',
-      message: language === 'en' ? "Instruction type not recognized. Standing by for a clearer command." : "Tipo de instrucción no reconocido. Quedo atento a una orden más clara."
+      message: getAssistantResponseText('intent.not_recognized', language, {})
     };
   }
 
@@ -1634,7 +1626,7 @@ export class AssistantConversationService {
         ? `I found ${roomLights.length} lights in ${roomName}. Which one do you mean?`
         : `Encontré ${roomLights.length} luces en ${roomName}. ¿A cuál te refieres?`,
       clarification: {
-        question: language === 'en' ? "Which one?" : "¿Cuál?",
+        question: getAssistantResponseText('clarification.which_one', language, {}),
         options
       }
     };
@@ -2276,7 +2268,7 @@ export class AssistantConversationService {
     if (!allDevices) {
       return {
         type: 'answer',
-        message: language === 'en' ? 'No devices found.' : 'No se encontraron dispositivos.'
+        message: getAssistantResponseText('state.detail_no_devices', language, {})
       };
     }
 
@@ -2322,9 +2314,7 @@ export class AssistantConversationService {
       // Ambiguous is a form of "not resolved yet".
       return {
         type: 'answer',
-        message: language === 'en'
-          ? `I found several rooms that could match. Please be more specific.`
-          : `Encontré varias estancias que podrían coincidir. Por favor, sé más específico.`
+        message: getAssistantResponseText('state.room_ambiguous', language, {})
       };
     }
 
@@ -2338,7 +2328,7 @@ export class AssistantConversationService {
        if (!isGlobal) {
          return {
            type: 'answer',
-           message: language === 'en' ? "I couldn't find that room." : "No encontré esa estancia."
+           message: getAssistantResponseText('state.room_not_found', language, {})
          };
        }
     }
@@ -2375,9 +2365,9 @@ export class AssistantConversationService {
 
           return {
             type: 'clarification',
-            message: language === 'en' ? 'In which room?' : '¿En qué estancia?',
+            message: getAssistantResponseText('state.room_selection_required', language, {}),
             clarification: {
-              question: language === 'en' ? 'Which room?' : '¿En qué estancia?',
+              question: getAssistantResponseText('state.room_selection_question', language, {}),
               options,
               pendingAction: { originalPrompt: normalized }
             }
@@ -2390,21 +2380,21 @@ export class AssistantConversationService {
       }
     }
 
+    const targetEntityLabel = language === 'en'
+      ? (isLightsOnly ? 'lights' : 'devices')
+      : (isLightsOnly ? 'luces' : 'dispositivos');
+
     // If no devices match the query at all
     if (filteredDevices.length === 0) {
       if (targetRoomName) {
         return {
           type: 'answer',
-          message: language === 'en'
-            ? `I couldn't find any ${isLightsOnly ? 'lights' : 'devices'} in ${targetRoomName}.`
-            : `No encontré ${isLightsOnly ? 'luces' : 'dispositivos'} en ${targetRoomName}.`
+          message: getAssistantResponseText('state.no_targets_in_room', language, { entityLabel: targetEntityLabel, roomName: targetRoomName })
         };
       }
       return {
         type: 'answer',
-        message: language === 'en'
-          ? "I could not find any devices matching that query."
-          : "No encontré dispositivos que coincidan con esa consulta."
+        message: getAssistantResponseText('state.no_matching_targets', language, {})
       };
     }
 
@@ -2419,9 +2409,7 @@ export class AssistantConversationService {
 
       return {
         type: 'answer',
-        message: language === 'en'
-          ? `You have ${filteredDevices.length} ${itemLabel}${roomSuffix}.`
-          : `Tienes ${filteredDevices.length} ${itemLabel}${roomSuffix}.`
+        message: getAssistantResponseText('state.inventory_count', language, { count: filteredDevices.length, itemLabel, roomSuffix })
       };
     }
 
@@ -2498,9 +2486,7 @@ export class AssistantConversationService {
       if (onDevices.length === 0 && offDevices.length === 0) {
         return {
           type: 'answer',
-          message: language === 'en'
-            ? "I could not find any devices matching that query."
-            : "No encontré dispositivos que coincidan con esa consulta."
+          message: getAssistantResponseText('state.no_matching_targets', language, {})
         };
       }
 
@@ -2681,11 +2667,9 @@ export class AssistantConversationService {
     if (bestMatch && bestScore >= 0.7) {
       return {
         type: 'clarification',
-        message: language === 'en'
-          ? `I didn't find a device called '${targetPhrase}'. Did you mean '${bestMatch.name}'?`
-          : `No encontré un dispositivo llamado '${targetPhrase}'. ¿Quisiste decir '${bestMatch.name}'?`,
+        message: getAssistantResponseText('fuzzy.suggestion', language, { targetPhrase, deviceName: bestMatch.name }),
         clarification: {
-          question: language === 'en' ? `Did you mean '${bestMatch.name}'?` : `¿Quisiste decir '${bestMatch.name}'?`,
+          question: getAssistantResponseText('fuzzy.question', language, { deviceName: bestMatch.name }),
           options: [{ id: bestMatch.id, label: bestMatch.name, kind: 'device' }],
           pendingAction: {
             command,
@@ -2698,9 +2682,7 @@ export class AssistantConversationService {
     // Low confidence or no match
     return {
       type: 'answer',
-      message: language === 'en'
-        ? `I couldn't find a device called '${targetPhrase}'.`
-        : `No encontré un dispositivo llamado '${targetPhrase}'.`
+      message: getAssistantResponseText('fuzzy.not_found', language, { targetPhrase })
     };
   }
 
@@ -2911,7 +2893,7 @@ export class AssistantConversationService {
         if (roomDevices.length === 0) {
           return {
             type: 'answer',
-            message: language === 'en' ? `I don't see controllable devices in ${roomMatch.name}.` : `No veo dispositivos controlables en ${roomMatch.name}.`
+            message: getAssistantResponseText('state.room_no_controllable', language, { roomName: roomMatch.name })
           };
         }
 
@@ -2921,26 +2903,24 @@ export class AssistantConversationService {
         if (onDevices.length === 0) {
           return {
             type: 'answer',
-            message: language === 'en' ? `Everything is off in ${roomMatch.name}.` : `Todo está apagado en ${roomMatch.name}.`
+            message: getAssistantResponseText('state.room_all_off', language, { roomName: roomMatch.name })
           };
         } else if (onDevices.length === total) {
           return {
             type: 'answer',
-            message: language === 'en' ? `Everything is on in ${roomMatch.name}.` : `Todo está encendido en ${roomMatch.name}.`
+            message: getAssistantResponseText('state.room_all_on', language, { roomName: roomMatch.name })
           };
         } else {
           return {
             type: 'answer',
-            message: language === 'en'
-              ? `There are ${onDevices.length} out of ${total} devices on in ${roomMatch.name}.`
-              : `Hay ${onDevices.length} de ${total} dispositivos encendidos en ${roomMatch.name}.`
+            message: getAssistantResponseText('state.room_summary', language, { onCount: onDevices.length, total, roomName: roomMatch.name })
           };
         }
       }
 
       return {
         type: 'answer',
-        message: language === 'en' ? "I couldn't find the device you're asking about." : "No pude encontrar el dispositivo por el que preguntas."
+        message: getAssistantResponseText('state.device_not_found', language, {})
       };
     }
 
@@ -2948,8 +2928,8 @@ export class AssistantConversationService {
       const options = matches.map(d => ({ id: d.id, label: d.name, kind: 'device' as const }));
       return {
         type: 'clarification',
-        message: language === 'en' ? "I found several devices with that name. Which one do you mean?" : "Encontré varios dispositivos con ese nombre. ¿A cuál te refieres?",
-        clarification: { question: language === 'en' ? "Which one?" : "¿Cuál?", options, pendingAction: { originalPrompt: normalized } }
+        message: getAssistantResponseText('state.device_multiple_matches', language, {}),
+        clarification: { question: getAssistantResponseText('clarification.which_one', language, {}), options, pendingAction: { originalPrompt: normalized } }
       };
     }
 
@@ -2962,17 +2942,11 @@ export class AssistantConversationService {
 
     let answer = '';
     if (isAskingOn) {
-      answer = isOn
-        ? (language === 'en' ? `Yes, ${device.name} is on.` : `Sí, ${device.name} está encendido.`)
-        : (language === 'en' ? `No, ${device.name} is off.` : `No, ${device.name} está apagado.`);
+      answer = getAssistantResponseText('state.device_query_on', language, { deviceName: device.name, isOn });
     } else if (isAskingOff) {
-      answer = !isOn
-        ? (language === 'en' ? `Yes, ${device.name} is off.` : `Sí, ${device.name} está apagado.`)
-        : (language === 'en' ? `No, ${device.name} is on.` : `No, ${device.name} está encendido.`);
+      answer = getAssistantResponseText('state.device_query_off', language, { deviceName: device.name, isOff: !isOn });
     } else {
-      answer = isOn
-        ? (language === 'en' ? `${device.name} is on.` : `${device.name} está encendido.`)
-        : (language === 'en' ? `${device.name} is off.` : `${device.name} está apagado.`);
+      answer = getAssistantResponseText('state.device_status', language, { deviceName: device.name, isOn });
     }
 
     return { type: 'answer', message: answer };
@@ -2987,12 +2961,12 @@ export class AssistantConversationService {
   private async handleListScenes(language: string, userId: string): Promise<AssistantConversationResponse> {
     const scenes = await this.permissionGate.getAuthorizedScenes(userId);
     if (scenes.length === 0) {
-      return { type: 'answer', message: language === 'en' ? "You don't have any scenes created yet." : "Aún no tienes escenas creadas." };
+      return { type: 'answer', message: getAssistantResponseText('listing.scenes_empty', language, {}) };
     }
     const list = scenes.map(s => `• ${s.name}`).join('\n');
     return {
       type: 'answer',
-      message: (language === 'en' ? "These are your scenes:\n" : "Estas son tus escenas:\n") + list
+      message: getAssistantResponseText('listing.scenes', language, { list })
     };
   }
 
@@ -3003,12 +2977,12 @@ export class AssistantConversationService {
   private async handleListAutomations(language: string, userId: string): Promise<AssistantConversationResponse> {
     const automations = await this.permissionGate.getAuthorizedAutomations(userId);
     if (automations.length === 0) {
-      return { type: 'answer', message: language === 'en' ? "You don't have any automations yet." : "Aún no tienes automatizaciones." };
+      return { type: 'answer', message: getAssistantResponseText('listing.automations_empty', language, {}) };
     }
-    const list = automations.map(a => `• ${a.name} — ${a.enabled ? (language === 'en' ? 'active' : 'activa') : (language === 'en' ? 'inactive' : 'inactiva')}`).join('\n');
+    const list = automations.map((automation) => getAssistantResponseText('listing.automation_status', language, { name: automation.name, enabled: automation.enabled })).join('\n');
     return {
       type: 'answer',
-      message: (language === 'en' ? "These are your automations:\n" : "Estas son tus automatizaciones:\n") + list
+      message: getAssistantResponseText('listing.automations', language, { list })
     };
   }
 
@@ -3029,7 +3003,7 @@ export class AssistantConversationService {
       const scenes = await this.permissionGate.getAuthorizedScenes(userId);
       const scene = scenes.find(s => normalizeAssistantPrompt(s.name) === normalizeAssistantPrompt(oldName));
 
-      if (!scene) return { type: 'answer', message: language === 'en' ? `Scene "${oldName}" not found.` : `No encontré la escena "${oldName}".` };
+      if (!scene) return { type: 'answer', message: getAssistantResponseText('management.scene_not_found', language, { name: oldName }) };
 
       await this.memoryService.saveShortTermMemory(userId, {
         lastQueryType: 'management_confirm',
@@ -3046,14 +3020,12 @@ export class AssistantConversationService {
 
       return {
         type: 'clarification',
-        message: language === 'en'
-          ? `I'm going to rename the scene "${scene.name}" to "${newName}". Confirm?`
-          : `Voy a renombrar la escena "${scene.name}" a "${newName}". ¿Confirmo?`,
+        message: getAssistantResponseText('management.rename_scene_confirmation', language, { sceneName: scene.name, newName }),
         clarification: {
-          question: language === 'en' ? "Confirm?" : "¿Confirmo?",
+          question: getAssistantResponseText('confirmation.confirm', language, {}),
           options: [
-            { id: 'confirm', label: language === 'en' ? 'Yes' : 'Sí', kind: 'scene' },
-            { id: 'cancel', label: language === 'en' ? 'No' : 'No', kind: 'scene' }
+            { id: 'confirm', label: getAssistantResponseText('confirmation.yes', language, {}), kind: 'scene' },
+            { id: 'cancel', label: getAssistantResponseText('confirmation.no', language, {}), kind: 'scene' }
           ],
           pendingAction: { originalPrompt: normalized }
         }
@@ -3070,7 +3042,7 @@ export class AssistantConversationService {
       const automations = await this.permissionGate.getAuthorizedAutomations(userId);
       const auto = automations.find(a => normalizeAssistantPrompt(a.name) === normalizeAssistantPrompt(autoName));
 
-      if (!auto) return { type: 'answer', message: language === 'en' ? `Automation "${autoName}" not found.` : `No encontré la automatización "${autoName}".` };
+      if (!auto) return { type: 'answer', message: getAssistantResponseText('management.automation_not_found', language, { name: autoName }) };
 
       await this.memoryService.saveShortTermMemory(userId, {
         lastQueryType: 'management_confirm',
@@ -3087,14 +3059,12 @@ export class AssistantConversationService {
 
       return {
         type: 'clarification',
-        message: language === 'en'
-          ? `I'm going to ${enabled ? 'enable' : 'disable'} the automation "${auto.name}". Confirm?`
-          : `Voy a ${enabled ? 'activar' : 'desactivar'} la automatización "${auto.name}". ¿Confirmo?`,
+        message: getAssistantResponseText('management.toggle_automation_confirmation', language, { name: auto.name, enabled }),
         clarification: {
-          question: language === 'en' ? "Confirm?" : "¿Confirmo?",
+          question: getAssistantResponseText('confirmation.confirm', language, {}),
           options: [
-            { id: 'confirm', label: language === 'en' ? 'Yes' : 'Sí', kind: 'scene' },
-            { id: 'cancel', label: language === 'en' ? 'No' : 'No', kind: 'scene' }
+            { id: 'confirm', label: getAssistantResponseText('confirmation.yes', language, {}), kind: 'scene' },
+            { id: 'cancel', label: getAssistantResponseText('confirmation.no', language, {}), kind: 'scene' }
           ],
           pendingAction: { originalPrompt: normalized }
         }
@@ -3110,11 +3080,11 @@ export class AssistantConversationService {
 
       const scenes = await this.permissionGate.getAuthorizedScenes(userId);
       const scene = scenes.find(s => normalizeAssistantPrompt(s.name) === normalizeAssistantPrompt(sceneName));
-      if (!scene) return { type: 'answer', message: language === 'en' ? `Scene "${sceneName}" not found.` : `No encontré la escena "${sceneName}".` };
+      if (!scene) return { type: 'answer', message: getAssistantResponseText('management.scene_not_found', language, { name: sceneName }) };
 
       const devices = await this.permissionGate.getAuthorizedDevices(userId);
       const device = devices.find(d => normalizeAssistantPrompt(d.name) === normalizeAssistantPrompt(deviceName));
-      if (!device) return { type: 'answer', message: language === 'en' ? `Device "${deviceName}" not found.` : `No encontré el dispositivo "${deviceName}".` };
+      if (!device) return { type: 'answer', message: getAssistantResponseText('management.device_not_found', language, { name: deviceName }) };
 
       await this.memoryService.saveShortTermMemory(userId, {
         lastQueryType: 'management_confirm',
@@ -3131,14 +3101,12 @@ export class AssistantConversationService {
 
       return {
         type: 'clarification',
-        message: language === 'en'
-          ? `I'm going to add "${device.name}" (off) to the scene "${scene.name}". Confirm?`
-          : `Voy a agregar "${device.name}" (apagado) a la escena "${scene.name}". ¿Confirmo?`,
+        message: getAssistantResponseText('management.add_device_confirmation', language, { deviceName: device.name, sceneName: scene.name }),
         clarification: {
-          question: language === 'en' ? "Confirm?" : "¿Confirmo?",
+          question: getAssistantResponseText('confirmation.confirm', language, {}),
           options: [
-            { id: 'confirm', label: language === 'en' ? 'Yes' : 'Sí', kind: 'scene' },
-            { id: 'cancel', label: language === 'en' ? 'No' : 'No', kind: 'scene' }
+            { id: 'confirm', label: getAssistantResponseText('confirmation.yes', language, {}), kind: 'scene' },
+            { id: 'cancel', label: getAssistantResponseText('confirmation.no', language, {}), kind: 'scene' }
           ],
           pendingAction: { originalPrompt: normalized }
         }
@@ -3153,13 +3121,13 @@ export class AssistantConversationService {
 
       const scenes = await this.permissionGate.getAuthorizedScenes(userId);
       const scene = scenes.find(s => normalizeAssistantPrompt(s.name) === normalizeAssistantPrompt(sceneName));
-      if (!scene) return { type: 'answer', message: language === 'en' ? `Scene "${sceneName}" not found.` : `No encontré la escena "${sceneName}".` };
+      if (!scene) return { type: 'answer', message: getAssistantResponseText('management.scene_not_found', language, { name: sceneName }) };
 
       const devices = await this.permissionGate.getAuthorizedDevices(userId);
       const device = devices.find(d => normalizeAssistantPrompt(d.name) === normalizeAssistantPrompt(deviceName));
       const action = scene.actions.find(a => a.deviceId === device?.id || a.deviceId === deviceName);
 
-      if (!action) return { type: 'answer', message: language === 'en' ? `Device "${deviceName}" is not in the scene.` : `El dispositivo "${deviceName}" no está en la escena.` };
+      if (!action) return { type: 'answer', message: getAssistantResponseText('management.device_not_in_scene', language, { name: deviceName }) };
 
       await this.memoryService.saveShortTermMemory(userId, {
         lastQueryType: 'management_confirm',
@@ -3176,21 +3144,19 @@ export class AssistantConversationService {
 
       return {
         type: 'clarification',
-        message: language === 'en'
-          ? `I'm going to remove "${device?.name || deviceName}" from the scene "${scene.name}". Confirm?`
-          : `Voy a quitar "${device?.name || deviceName}" de la escena "${scene.name}". ¿Confirmo?`,
+        message: getAssistantResponseText('management.remove_device_confirmation', language, { deviceName: device?.name || deviceName, sceneName: scene.name }),
         clarification: {
-          question: language === 'en' ? "Confirm?" : "¿Confirmo?",
+          question: getAssistantResponseText('confirmation.confirm', language, {}),
           options: [
-            { id: 'confirm', label: language === 'en' ? 'Yes' : 'Sí', kind: 'scene' },
-            { id: 'cancel', label: language === 'en' ? 'No' : 'No', kind: 'scene' }
+            { id: 'confirm', label: getAssistantResponseText('confirmation.yes', language, {}), kind: 'scene' },
+            { id: 'cancel', label: getAssistantResponseText('confirmation.no', language, {}), kind: 'scene' }
           ],
           pendingAction: { originalPrompt: normalized }
         }
       };
     }
 
-    return { type: 'answer', message: language === 'en' ? "I'm not sure how to manage that." : "No estoy seguro de cómo gestionar eso." };
+    return { type: 'answer', message: getAssistantResponseText('management.unsupported_action', language, {}) };
   }
 
   private async executeManagementAction(
@@ -3211,7 +3177,7 @@ export class AssistantConversationService {
           scene.updatedAt = new Date().toISOString();
           await this.sceneRepository.saveScene(scene);
           await this.clearPendingAction(userId);
-          return { type: 'answer', message: language === 'en' ? `Ready, scene renamed to "${scene.name}".` : `Listo, renombré la escena a "${scene.name}".` };
+          return { type: 'answer', message: getAssistantResponseText('management.scene_renamed', language, { name: scene.name }) };
         }
       }
 
@@ -3224,7 +3190,7 @@ export class AssistantConversationService {
           const updatedAuto = { ...auto, enabled, updatedAt: new Date().toISOString() };
           await this.automationRepository.save(updatedAuto);
           await this.clearPendingAction(userId);
-          return { type: 'answer', message: language === 'en' ? `Ready, automation "${auto.name}" ${enabled ? 'enabled' : 'disabled'}.` : `Listo, ${enabled ? 'activé' : 'desactivé'} la automatización "${auto.name}".` };
+          return { type: 'answer', message: getAssistantResponseText('management.automation_toggled', language, { name: auto.name, enabled }) };
         }
       }
 
@@ -3246,7 +3212,7 @@ export class AssistantConversationService {
             scene.updatedAt = new Date().toISOString();
             await this.sceneRepository.saveScene(scene);
             await this.clearPendingAction(userId);
-            return { type: 'answer', message: language === 'en' ? `Ready, updated scene "${scene.name}".` : `Listo, actualicé la escena "${scene.name}".` };
+            return { type: 'answer', message: getAssistantResponseText('management.scene_updated', language, { name: scene.name }) };
           }
         } else if (mode === 'remove') {
           if (!deviceId) throw new Error('INVALID_PAYLOAD: deviceId is required for remove mode');
@@ -3256,12 +3222,12 @@ export class AssistantConversationService {
             scene.updatedAt = new Date().toISOString();
             await this.sceneRepository.saveScene(scene);
             await this.clearPendingAction(userId);
-            return { type: 'answer', message: language === 'en' ? `Ready, updated scene "${scene.name}".` : `Listo, actualicé la escena "${scene.name}".` };
+            return { type: 'answer', message: getAssistantResponseText('management.scene_updated', language, { name: scene.name }) };
           }
         }
       }
 
-      return { type: 'error', message: language === 'en' ? "Failed to execute management action." : "No se pudo ejecutar la acción de gestión." };
+      return { type: 'error', message: getAssistantResponseText('management.execution_failed', language, {}) };
     } catch (err: unknown) {
       return { type: 'error', message: err instanceof Error ? err.message : String(err) };
     }
@@ -4349,7 +4315,7 @@ export class AssistantConversationService {
           ? "I found multiple lights in this room. Which one do you want to control?"
           : "Encontré varias luces en esta estancia. ¿Cuál quieres controlar?",
         clarification: {
-          question: language === 'en' ? "Which one?" : "¿Cuál?",
+          question: getAssistantResponseText('clarification.which_one', language, {}),
           options: clarificationOptions,
           pendingAction: {
             command: vagueMatch.command,

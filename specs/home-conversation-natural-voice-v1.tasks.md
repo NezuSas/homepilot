@@ -7,6 +7,8 @@
 - [x] **Audio local STT/TTS.** `apps/api/__tests__/AssistantRoutes.test.ts` verifica TTS Piper, transcripción Whisper local y error recuperable sin exponer detalles internos.
 - [x] **Timeout y telemetría local.** `apps/operator-console/src/lib/__tests__/assistantApi.test.ts` y `homeConversationTelemetry.test.ts` cubren límite de espera de voz y eventos locales tipados.
 - [x] **Confirmación sonora local.** `apps/operator-console/src/lib/__tests__/wakeAcknowledgementSound.test.ts` cubre la señal de dos tonos independiente de red.
+- [x] **Captura manual de navegador simulada.** `apps/operator-console/tests/responsive-shell.spec.ts` verifica que una grabación aceptada genera exactamente una transcripción y una solicitud conversacional.
+- [x] **Activador global de navegador simulado.** `apps/operator-console/tests/responsive-shell.spec.ts` verifica silencio inicial, voz posterior, una transcripción, una solicitud conversacional y una única señal de confirmación para `Ok Nezu`.
 - [ ] **Evidencia E2E de hardware/navegador.** Verificar en navegador real permisos de micrófono, múltiples entradas, `MediaRecorder`, silencio, barge-in y reproducción contra STT/TTS Docker.
 - [x] **Evidencia runtime Docker.** Docker Desktop validado el 2026-08-11: `homepilot-stt` healthy (`whisper-local`, modelo `small`, `ready:true`), `homepilot-tts`, API y consola responden healthchecks. La integridad del modelo queda gestionada por el healthcheck de STT.
 

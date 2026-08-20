@@ -83,7 +83,7 @@ The assistant uses only homes, rooms, devices, routines, and dashboards that the
 
 - Reuse `AssistantConversationService`, `AssistantContextBuilder`, `AssistantFastPathResolver`, the existing planner, confirmation policies, and device capabilities.
 - The assistant never invents capabilities or states.
-- State synchronization propagates to Home, Spaces, Dashboards, and every affected surface.
+- State synchronization propagates to Home, Spaces, Dashboards, and every affected surface. A successful assistant execution received while a snapshot request is already in flight queues exactly one forced refresh after that request completes, so a pre-command response cannot remain authoritative.
 
 ### RF-06. Confirmations
 
@@ -218,25 +218,26 @@ Every transition belongs to one `turnId`. Stale callbacks are discarded before u
 
 ## 9. Acceptance criteria
 
-- [ ] One activation creates one capture and one STT request.
-- [ ] Cancelling an interaction prevents late responses, TTS, and results from appearing afterwards.
-- [ ] An empty transcript, 409, or timeout returns the lifecycle to available without self-reactivating.
-- [ ] Context respects user permissions and never reveals foreign entities.
-- [ ] The response matches the result confirmed by the executor and excludes irrelevant inventory warnings.
+- [x] One activation creates one capture and one STT request. Evidence: the Playwright `Global wake activation` scenario.
+- [x] Cancelling an interaction prevents late responses, TTS, and results from appearing afterwards. Evidence: `assistant-interaction-turn-lifecycle-v1.md` AC-01 through AC-05 and the corresponding coordinator and API tests.
+- [x] An empty transcript, 409, or timeout returns the lifecycle to available without self-reactivating. Evidence: `assistantApi.test.ts` and `assistant-domestic-use-case-verification-v1.md` UC-07.
+- [x] Context respects user permissions and never reveals foreign entities. Evidence: `assistant_home_isolation.test.ts`.
+- [x] The response matches the result confirmed by the executor and excludes irrelevant inventory warnings. Evidence: `assistant-domestic-use-case-verification-v1.md` UC-01 through UC-05.
 - [ ] Assistant domain results contain no full UI sentences; text, TTS, confirmations, and errors are composed from i18n keys and typed parameters.
 - [ ] Each assistant key has Spanish and English translation with controlled fallback for a missing key.
-- [ ] The current confirmation policy is respected for chat, voice, and sensitive actions.
-- [ ] Manual language changes modify assistant text and speech.
-- [ ] `Ok Nezu` is the primary phrase and a new activation clears the prior turn.
-- [ ] The audit shows useful events and groups technical noise.
-- [ ] Cancellation, callback races, permissions, language, and recovery have test coverage.
-- [ ] The voice baseline runs without an external account or third-party key.
+- [x] The current confirmation policy is respected for chat, voice, and sensitive actions. Evidence: `assistant_bulk_confirmation.test.ts` and `assistant_bulk_room_parity.test.ts`.
+- [x] Manual language changes modify assistant text and speech. Evidence: `apiClient.test.ts` and `AssistantRoutes.test.ts`.
+- [x] `Ok Nezu` is the primary phrase and a new activation clears the prior turn. Evidence: the Playwright `Global wake activation` scenario and `assistant-interaction-turn-lifecycle-v1.md`.
+- [x] The audit shows useful events and groups technical noise. Evidence: `assistant-audit-noise-reduction-v1.md` and `HomeAssistantRealtimeSyncManager.test.ts`.
+- [x] Cancellation, callback races, permissions, language, and recovery have test coverage. Evidence: `assistant-interaction-turn-lifecycle-v1.md`, `assistant_home_isolation.test.ts`, `apiClient.test.ts`, and `assistant-domestic-use-case-verification-v1.md`.
+- [x] The voice baseline runs without an external account or third-party key. Evidence: `assistant-voice-provider-baseline-v1.md`.
 - [ ] Spanish `Ok Nezu` is evaluated for precision, false positives, and noise before production enablement.
 - [ ] An administrator can enable an optional premium provider and its failure returns to Piper without interrupting text.
-- [ ] Cloned, imitated, or third-party-attributed voices are not allowed.
-- [ ] The language selected in HomePilot governs both assistant text and TTS.
-- [ ] Voice telemetry contains no audio, transcripts, prompts, tokens, or secrets.
-- [ ] Mandatory validation passes: `npm run typecheck`, `npm run build`, `npm run build --prefix apps/operator-console`, and `npm run test`.
+- [x] Cloned, imitated, or third-party-attributed voices are not allowed. Evidence: `assistant-voice-provider-baseline-v1.md`.
+- [x] The language selected in HomePilot governs both assistant text and TTS. Evidence: `apiClient.test.ts` and `AssistantRoutes.test.ts`.
+- [x] Voice telemetry contains no audio, transcripts, prompts, tokens, or secrets. Evidence: `assistant-voice-provider-baseline-v1.md` AC-05 and `homeConversationTelemetry.test.ts`.
+- [x] Mandatory validation passes: `npm run typecheck`, `npm run build`, `npm run build --prefix apps/operator-console`, and `npm run test`. Evidence: current validation run.
+- [x] A successful assistant execution cannot leave a pre-command snapshot authoritative; exactly one post-command refresh is queued while all Home, Spaces, Dashboard, and device-widget surfaces consume the shared snapshot. Evidence: `HomeConversationView`, `useDeviceSnapshotStore`, and `useDeviceSnapshotStore.test.ts`.
 
 ## 10. Later implementation plan
 

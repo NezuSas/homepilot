@@ -101,6 +101,7 @@ const initialState = {
 };
 
 let snapshotRequest: Promise<void> | null = null;
+let queuedForceRefresh: Promise<void> | null = null;
 let snapshotGeneration = 0;
 
 export const useDeviceSnapshotStore = create<DeviceSnapshotState>((set, get) => ({
@@ -115,7 +116,29 @@ export const useDeviceSnapshotStore = create<DeviceSnapshotState>((set, get) => 
     }
 
     if (snapshotRequest) {
-      return snapshotRequest;
+      if (!options.force) {
+        return snapshotRequest;
+      }
+
+      if (queuedForceRefresh) {
+        return queuedForceRefresh;
+      }
+
+      const inFlightRequest = snapshotRequest;
+      const inFlightGeneration = snapshotGeneration;
+      const followUpRefresh = inFlightRequest
+        .then(() => {
+          if (inFlightGeneration !== snapshotGeneration) return;
+          return get().refreshSnapshot({ force: true });
+        })
+        .finally(() => {
+          if (queuedForceRefresh === followUpRefresh) {
+            queuedForceRefresh = null;
+          }
+        });
+
+      queuedForceRefresh = followUpRefresh;
+      return followUpRefresh;
     }
 
     const requestGeneration = snapshotGeneration;
@@ -204,6 +227,7 @@ export const useDeviceSnapshotStore = create<DeviceSnapshotState>((set, get) => 
   resetSnapshotState: () => {
     snapshotGeneration += 1;
     snapshotRequest = null;
+    queuedForceRefresh = null;
     set({ ...initialState });
   },
 }));

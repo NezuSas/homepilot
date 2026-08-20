@@ -7,6 +7,8 @@ const requiredFiles = [
   'docker/ui/nginx.conf',
   'docker/ui/nginx.desktop.conf',
   'scripts/homepilot-maintenance.sh',
+  '.env.office.example',
+  '.env.native.example',
 ];
 
 const failures = [];
@@ -23,6 +25,8 @@ if (failures.length === 0) {
   const nginx = read('docker/ui/nginx.conf');
   const desktopNginx = read('docker/ui/nginx.desktop.conf');
   const maintenance = read('scripts/homepilot-maintenance.sh');
+  const officeEnvironmentTemplate = read('.env.office.example');
+  const nativeEnvironmentTemplate = read('.env.native.example');
 
   for (const [profile, content] of [['integrated', integrated], ['office', office], ['desktop override', desktop]]) {
     if (!content.includes('HOMEPILOT_DB_PATH')) failures.push(`${profile} profile does not declare HOMEPILOT_DB_PATH`);
@@ -39,6 +43,12 @@ if (failures.length === 0) {
   }
   if (!desktop.includes('HOMEPILOT_API_PORT:-13000') || !office.includes('HOMEPILOT_UI_PORT:-8080')) {
     failures.push('Desktop profile must expose API 13000 and UI 8080 defaults');
+  }
+  if (!integrated.includes('ASSISTANT_PLANNER_V2_EXECUTION=${ASSISTANT_PLANNER_V2_EXECUTION:-false}')
+    || !office.includes('ASSISTANT_PLANNER_V2_EXECUTION: ${ASSISTANT_PLANNER_V2_EXECUTION:-false}')
+    || !officeEnvironmentTemplate.includes('ASSISTANT_PLANNER_V2_EXECUTION=false')
+    || !nativeEnvironmentTemplate.includes('ASSISTANT_PLANNER_V2_EXECUTION=false')) {
+    failures.push('Every deployment profile and installation template must keep Planner V2 execution disabled by default');
   }
   if (!maintenance.includes('is_docker_desktop')
     || !maintenance.includes('docker-compose.desktop.yml')
@@ -58,4 +68,4 @@ if (failures.length > 0) {
   process.exit(1);
 }
 
-console.log('Docker profile validation passed: canonical SQLite path, Desktop override and same-origin proxies are present.');
+console.log('Docker profile validation passed: canonical SQLite path, Desktop override, same-origin proxies, and safe Planner V2 defaults are present.');

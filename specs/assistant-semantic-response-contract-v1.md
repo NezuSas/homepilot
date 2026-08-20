@@ -12,12 +12,12 @@ The assistant currently returns its public `message` string directly from multip
 
 - Introduce a typed internal response catalog for a bounded, low-risk response surface.
 - Keep the public `AssistantConversationResponse.message` contract unchanged.
-- Migrate quick responses, conversational-preference acknowledgements, the repetitive cancellation acknowledgement, and the bounded core multi-turn confirmation surface without changing their published Spanish or English text.
+- Migrate quick responses, conversational-preference acknowledgements, the repetitive cancellation acknowledgement, the bounded core multi-turn confirmation surface, the first multi-turn clarification responses, and the scene/automation listing and management response surface, the bounded point-state query response surface, and the bounded device-resolution, scene-execution, and confirmation response surface without changing their published Spanish or English text.
 - Cover every catalog entry in both supported languages with automated tests.
 
 ## Non-goals
 
-- Replacing dynamic execution, clarification, device-state, or confirmation text in this phase.
+- Replacing dynamic device-state or device-command execution text outside the bounded listing and scene/automation management response surface in this phase.
 - Changing public API payloads or returning translation keys to the Operator Console.
 - Changing tone, permissions, confirmations, or device behavior.
 
@@ -37,5 +37,12 @@ The assistant currently returns its public `message` string directly from multip
 - [x] **AC-04:** Every supported key and interpolation branch is tested.
 - [x] **AC-05:** Typecheck, assistant tests, and full builds preserve the public conversation contract.
 - [x] **AC-06:** The assistant response-catalog quality gate validates every bounded key and language in CI.
-- [x] **AC-07:** Alias deletion, draft activation, draft cancellation/failure, pending-confirmation expiry, and no-pending confirmation messages use the typed catalog without output changes.
+- [x] **AC-07:** Alias deletion, draft activation, draft cancellation/failure, pending-confirmation expiry, no-pending confirmation, and the generic multi-action confirmation question use the typed catalog without output changes.
 - [x] **AC-08:** Static generic command, execution, and selection messages use the typed catalog without output changes.
+- [x] **AC-09:** Selected-target, pronoun ambiguity, and interpreter-match clarification messages use typed parameters without output changes.
+- [x] **AC-10:** Scene and automation listing, management confirmation, not-found, and completed-action messages use typed parameters without output changes. Evidence: `AssistantResponseCatalog`, `assistant_response_catalog.test.ts`, `assistant_management_v1.test.ts`, and `check-assistant-response-catalog.mjs`.
+- [x] **AC-11:** Bounded point-state queries for a room or device use typed parameters for unavailable, ambiguous, aggregate, and on/off responses without output changes. Evidence: `AssistantResponseCatalog`, `assistant_response_catalog.test.ts`, `assistant_conversation_service.test.ts`, and `check-assistant-response-catalog.mjs`.
+
+- [x] **AC-12:** Bounded device resolution, scene execution, and confirmation messages use typed parameters without changing the published message or clarification payload. Evidence: `AssistantResponseCatalog`, `assistant_response_catalog.test.ts`, `assistant_conversation_service.test.ts`, and `check-assistant-response-catalog.mjs.
+
+- [x] **AC-13:** Bounded detailed-state-query outcomes use typed parameters for empty, room-resolution, selection, target, and inventory messages without changing the published message or clarification payload. Evidence: `AssistantResponseCatalog`, `assistant_response_catalog.test.ts`, `assistant_conversation_service.test.ts`, and `check-assistant-response-catalog.mjs.

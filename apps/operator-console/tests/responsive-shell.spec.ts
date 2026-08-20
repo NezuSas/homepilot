@@ -567,3 +567,281 @@ for (const viewport of viewports) {
     expect((composerBox?.y ?? 0) + (composerBox?.height ?? 0)).toBeLessThanOrEqual(viewport.height + 1);
   });
 }
+test('Feature: Home conversation composer — Scenario: Given a mobile virtual keyboard When the visual viewport shrinks Then the composer remains available above the keyboard', async ({ page }) => {
+  await page.setViewportSize(viewports[0]);
+  await page.addInitScript(() => {
+    const visualViewport = new EventTarget() as VisualViewport;
+    Object.defineProperties(visualViewport, {
+      height: { configurable: true, value: 410 },
+      offsetTop: { configurable: true, value: 0 },
+    });
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: visualViewport });
+  });
+  await prepareAuthenticatedDashboard(page);
+
+  await page.goto('/home-conversation');
+
+  await page.evaluate(() => window.visualViewport?.dispatchEvent(new Event('resize')));
+
+  const composer = page.getByTestId('home-conversation-composer');
+  const conversation = page.locator('section.flex.h-full.w-full');
+  const input = page.getByRole('textbox', { name: /dime algo|tell me something/i });
+
+  await expect(composer).toBeVisible();
+  await expect(conversation).toHaveAttribute('style', /height: calc\(100% - 310px\)/);
+  await input.focus();
+  await expect(input).toBeFocused();
+
+  const layout = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    clientWidth: document.documentElement.clientWidth,
+  }));
+  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth);
+});
+test('Feature: Manual voice capture — Scenario: Given an accepted recording When it is stopped Then HomePilot transcribes and submits it exactly once', async ({ page }) => {
+  await page.addInitScript(() => {
+    const track = {
+      stop: () => undefined,
+      addEventListener: () => undefined,
+    };
+    const stream = {
+      getTracks: () => [track],
+      getAudioTracks: () => [track],
+    };
+
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: {
+        getUserMedia: async () => stream,
+        enumerateDevices: async () => [{ deviceId: 'microphone-1', kind: 'audioinput', label: 'Test microphone' }],
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+      },
+    });
+    Object.defineProperty(navigator, 'locks', {
+      configurable: true,
+      value: {
+        request: () => new Promise<void>(() => undefined),
+      },
+    });
+
+    class FakeMediaRecorder {
+      static isTypeSupported() {
+        return true;
+      }
+
+      state = 'inactive';
+      mimeType = 'audio/webm';
+      ondataavailable: ((event: { data: Blob }) => void) | null = null;
+      onerror: (() => void) | null = null;
+      onstop: (() => void) | null = null;
+
+      constructor(_stream: unknown, _options?: unknown) {}
+
+      start() {
+        this.state = 'recording';
+      }
+
+      stop() {
+        if (this.state !== 'recording') return;
+        this.state = 'inactive';
+        window.setTimeout(() => {
+          this.ondataavailable?.({ data: new Blob(['accepted voice capture'], { type: this.mimeType }) });
+          this.onstop?.();
+        }, 0);
+      }
+    }
+
+    class FakeAudioContext {
+      createAnalyser() {
+        return {
+          fftSize: 0,
+          getByteTimeDomainData: (samples: Uint8Array) => samples.fill(140),
+        };
+      }
+
+      createMediaStreamSource() {
+        return { connect: () => undefined };
+      }
+
+      close() {
+        return Promise.resolve();
+      }
+    }
+
+    Object.defineProperty(window, 'MediaRecorder', { configurable: true, value: FakeMediaRecorder });
+    Object.defineProperty(window, 'AudioContext', { configurable: true, value: FakeAudioContext });
+  });
+  await prepareAuthenticatedDashboard(page);
+
+  let transcriptionCalls = 0;
+  let conversationCalls = 0;
+  await page.route('**/api/v1/assistant/stt', async (route) => {
+    transcriptionCalls += 1;
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ provider: 'whisper-local', transcript: 'apaga la luz de la sala' }),
+    });
+  });
+  await page.route('**/api/v1/assistant/converse', async (route) => {
+    conversationCalls += 1;
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ type: 'answer', message: 'Apagué la luz de la sala.' }),
+    });
+  });
+  await page.route('**/api/v1/assistant/tts', async (route) => {
+    await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
+  });
+
+  await page.goto('/home-conversation');
+  const microphone = page.getByRole('button', { name: /talk to nezu|hablar con nezu/i });
+  await expect(microphone).toBeVisible();
+  await microphone.click();
+  const stopRecording = page.getByRole('button', { name: /recording|grabando/i });
+  await expect(stopRecording).toBeVisible();
+  await stopRecording.click();
+
+  await expect.poll(() => transcriptionCalls).toBe(1);
+  await expect.poll(() => conversationCalls).toBe(1);
+  await expect(page.getByText('Apagué la luz de la sala.')).toBeVisible();
+  expect(transcriptionCalls).toBe(1);
+  expect(conversationCalls).toBe(1);
+});
+
+test('Feature: Global wake activation — Scenario: Given one accepted Ok Nezu capture When it contains a command Then HomePilot transcribes, acknowledges, and submits it exactly once', async ({ page }) => {
+  await page.addInitScript(() => {
+    const track = {
+      stop: () => undefined,
+      addEventListener: () => undefined,
+    };
+    const stream = {
+      getTracks: () => [track],
+      getAudioTracks: () => [track],
+    };
+    let recorderStarts = 0;
+    let analyserFrames = 0;
+
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: {
+        getUserMedia: async () => stream,
+        enumerateDevices: async () => [{ deviceId: 'microphone-1', kind: 'audioinput', label: 'Test microphone' }],
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+      },
+    });
+    Object.defineProperty(navigator, 'locks', { configurable: true, value: undefined });
+
+    class FakeMediaRecorder {
+      static isTypeSupported() {
+        return true;
+      }
+
+      state = 'inactive';
+      mimeType = 'audio/webm';
+      ondataavailable: ((event: { data: Blob }) => void) | null = null;
+      onerror: (() => void) | null = null;
+      onstop: (() => void) | null = null;
+
+      constructor(_stream: unknown, _options?: unknown) {}
+
+      start() {
+        this.state = 'recording';
+        recorderStarts += 1;
+        if (recorderStarts === 1) {
+          window.setTimeout(() => this.stop(), 1000);
+        }
+      }
+
+      stop() {
+        if (this.state !== 'recording') return;
+        this.state = 'inactive';
+        window.setTimeout(() => {
+          this.ondataavailable?.({ data: new Blob(['accepted wake capture'], { type: this.mimeType }) });
+          this.onstop?.();
+        }, 0);
+      }
+    }
+
+    class FakeAudioContext {
+      state = 'running';
+      currentTime = 0;
+      destination = {};
+
+      createAnalyser() {
+        return {
+          fftSize: 0,
+          getByteTimeDomainData: (samples: Uint8Array) => {
+            samples.fill(analyserFrames++ < 20 ? 128 : 160);
+          },
+        };
+      }
+
+      createMediaStreamSource() {
+        return { connect: () => undefined };
+      }
+
+      createGain() {
+        const root = document.documentElement;
+        root.dataset.wakeAcknowledgements = String(Number(root.dataset.wakeAcknowledgements || '0') + 1);
+        return {
+          gain: {
+            setValueAtTime: () => undefined,
+            exponentialRampToValueAtTime: () => undefined,
+          },
+          connect: () => undefined,
+        };
+      }
+
+      createOscillator() {
+        return {
+          type: 'sine',
+          frequency: { setValueAtTime: () => undefined },
+          connect: () => undefined,
+          start: () => undefined,
+          stop: () => undefined,
+        };
+      }
+
+      resume() {
+        return Promise.resolve();
+      }
+
+      close() {
+        return Promise.resolve();
+      }
+    }
+
+    Object.defineProperty(window, 'MediaRecorder', { configurable: true, value: FakeMediaRecorder });
+    Object.defineProperty(window, 'AudioContext', { configurable: true, value: FakeAudioContext });
+  });
+  await prepareAuthenticatedDashboard(page);
+
+  let transcriptionCalls = 0;
+  let conversationCalls = 0;
+  await page.route('**/api/v1/assistant/stt', async (route) => {
+    transcriptionCalls += 1;
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ provider: 'whisper-local', transcript: 'Ok Nezu apaga la luz de la sala' }),
+    });
+  });
+  await page.route('**/api/v1/assistant/converse', async (route) => {
+    conversationCalls += 1;
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ type: 'answer', message: 'Apagué la luz de la sala.' }),
+    });
+  });
+  await page.route('**/api/v1/assistant/tts', async (route) => {
+    await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
+  });
+
+  await page.goto('/');
+  await expect.poll(() => transcriptionCalls).toBe(1);
+  await expect.poll(() => conversationCalls).toBe(1);
+  await expect.poll(() => page.locator('html').getAttribute('data-wake-acknowledgements')).toBe('1');
+  expect(transcriptionCalls).toBe(1);
+  expect(conversationCalls).toBe(1);
+});

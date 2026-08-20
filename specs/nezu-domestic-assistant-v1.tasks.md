@@ -19,9 +19,10 @@ Primary specification: [nezu-domestic-assistant-v1.md](./nezu-domestic-assistant
 
 ## Phase B — Robust voice
 
-- [ ] Verify one STT request for each accepted capture.
+- [x] Verify one STT request for each accepted manual capture. Evidence: the Playwright `Manual voice capture` scenario verifies one local recording, one STT request, and one assistant conversation request.
+- [x] Verify one STT request for each accepted wake-word capture. Evidence: the Playwright `Global wake activation` scenario verifies one accepted capture, one STT request, and one assistant conversation request.
 - [x] Cover 409, timeout, empty transcript, and interruption without leaving interaction locks. Evidence: assistant API cancellation and recovery tests.
-- [ ] Verify that the wake-word listener clears the previous turn and emits only one acknowledgement sound.
+- [x] Verify that the wake-word listener clears the previous turn and emits only one acknowledgement sound. Evidence: the Playwright `Global wake activation` scenario verifies one acknowledgement for an accepted activation containing a command.
 - [x] Confirm a written fallback when TTS fails or is cancelled. Evidence: `assistantApi.test.ts`.
 
 ## Phase C — Context and safety
@@ -42,8 +43,8 @@ Primary specification: [nezu-domestic-assistant-v1.md](./nezu-domestic-assistant
 - [x] Persist a per-user local preference for concise, standard, or detailed responses without changing actions, confirmations, or permissions.
 - [x] Preserve natural Spanish and English phrasing for unambiguous single-entity follow-ups without bypassing safety. Evidence: `assistant-natural-follow-up-resolution-v1.md`.
 - [ ] Confirm complete Spanish and English translation, including TTS.
-- [ ] Verify the chat and voice composer on desktop, tablet, mobile, and virtual keyboard.
-- [ ] Validate state synchronization across every relevant surface.
+- [x] Verify the chat and voice composer on desktop, tablet, mobile, and virtual keyboard. Evidence: `responsive-shell.spec.ts` covers desktop, tablet, mobile, and a reduced `visualViewport` for the mobile virtual keyboard; manual and wake-word capture scenarios cover the local voice controls.
+- [x] Validate state synchronization across every relevant surface. Evidence: `HomeConversationView` forces the shared device snapshot after non-failed execution; Home, Spaces, Dashboards, and device widgets consume that store; `useDeviceSnapshotStore.test.ts` proves that an in-flight pre-command refresh produces exactly one post-command refresh and that reset prevents a queued request after logout.
 
 ## Phase E — Providers and voice quality
 

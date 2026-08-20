@@ -16,11 +16,73 @@ export type AssistantResponseCatalogParameters = {
   'draft.activation_failed': Record<never, never>;
   'draft.cancelled': Record<never, never>;
   'confirmation.none_pending': Record<never, never>;
+  'confirmation.are_you_sure': Record<never, never>;
+  'selection.follow_up_selected': { label: string };
+  'clarification.pronoun_multiple_options': Record<never, never>;
+  'clarification.which_one': Record<never, never>;
+  'clarification.which_one_do_you_mean': Record<never, never>;
+  'clarification.intent_multiple_matches': { segment: string };
+  'listing.scenes_empty': Record<never, never>;
+  'listing.scenes': { list: string };
+  'listing.automation_status': { name: string; enabled: boolean };
+  'listing.automations_empty': Record<never, never>;
+  'listing.automations': { list: string };
+  'management.scene_not_found': { name: string };
+  'management.automation_not_found': { name: string };
+  'management.device_not_found': { name: string };
+  'management.device_not_in_scene': { name: string };
+  'management.rename_scene_confirmation': { sceneName: string; newName: string };
+  'management.toggle_automation_confirmation': { name: string; enabled: boolean };
+  'management.add_device_confirmation': { deviceName: string; sceneName: string };
+  'management.remove_device_confirmation': { deviceName: string; sceneName: string };
+  'management.unsupported_action': Record<never, never>;
+  'management.scene_renamed': { name: string };
+  'management.automation_toggled': { name: string; enabled: boolean };
+  'management.scene_updated': { name: string };
+  'management.execution_failed': Record<never, never>;
+  'confirmation.confirm': Record<never, never>;
+  'confirmation.yes': Record<never, never>;
+  'confirmation.no': Record<never, never>;
   'command.not_understood': Record<never, never>;
   'execution.failed': Record<never, never>;
   'execution.unknown_error': Record<never, never>;
   'selection.invalid': Record<never, never>;
   'selection.target_required': Record<never, never>;
+  'resolution.device_not_found': { targetPhrase: string };
+  'clarification.vague_light_room': Record<never, never>;
+  'clarification.vague_light_room_example': Record<never, never>;
+  'clarification.device_multiple_matches': Record<never, never>;
+  'clarification.device_multiple_matches_question': Record<never, never>;
+  'confirmation.generic_proceed': Record<never, never>;
+  'confirmation.generic_proceed_yes': Record<never, never>;
+  'confirmation.generic_proceed_no': Record<never, never>;
+  'scene.not_found': Record<never, never>;
+  'scene.execution_started': Record<never, never>;
+  'confirmation.device_control': { deviceName: string };
+  'confirmation.multi_action': { count: number; actionSummary: string };
+  'confirmation.multi_action_yes': Record<never, never>;
+  'confirmation.multi_action_no': Record<never, never>;
+  'intent.not_recognized': Record<never, never>;
+  'fuzzy.suggestion': { targetPhrase: string; deviceName: string };
+  'fuzzy.question': { deviceName: string };
+  'fuzzy.not_found': { targetPhrase: string };
+  'state.detail_no_devices': Record<never, never>;
+  'state.room_ambiguous': Record<never, never>;
+  'state.room_not_found': Record<never, never>;
+  'state.room_selection_required': Record<never, never>;
+  'state.room_selection_question': Record<never, never>;
+  'state.no_targets_in_room': { entityLabel: string; roomName: string };
+  'state.no_matching_targets': Record<never, never>;
+  'state.inventory_count': { count: number; itemLabel: string; roomSuffix: string };
+  'state.room_no_controllable': { roomName: string };
+  'state.room_all_off': { roomName: string };
+  'state.room_all_on': { roomName: string };
+  'state.room_summary': { onCount: number; total: number; roomName: string };
+  'state.device_not_found': Record<never, never>;
+  'state.device_multiple_matches': Record<never, never>;
+  'state.device_query_on': { deviceName: string; isOn: boolean };
+  'state.device_query_off': { deviceName: string; isOff: boolean };
+  'state.device_status': { deviceName: string; isOn: boolean };
   'sensor.reading': { name: string; value: string; unit: string };
   'sensor.unavailable': { name: string };
   'sensor.not_found': Record<never, never>;
@@ -111,6 +173,114 @@ const responseCatalog: AssistantResponseCatalog = {
     es: () => '¿Confirmar qué? No tengo ninguna acción pendiente.',
     en: () => "Confirm what? I don't have any pending actions.",
   },
+  'confirmation.are_you_sure': {
+    es: () => '¿Estás seguro?',
+    en: () => '¿Are you sure?',
+  },
+  'selection.follow_up_selected': {
+    es: ({ label }) => `Seleccioné ${label}. ¿Qué quieres hacer con este dispositivo?`,
+    en: ({ label }) => `I've selected ${label}. What would you like to do with it?`,
+  },
+  'clarification.pronoun_multiple_options': {
+    es: () => 'Encontré varias opciones para eso. ¿A cuál te refieres?',
+    en: () => 'I found several options for that. Which one do you mean?',
+  },
+  'clarification.which_one': {
+    es: () => '¿Cuál?',
+    en: () => 'Which one?',
+  },
+  'clarification.which_one_do_you_mean': {
+    es: () => '¿A cuál te refieres?',
+    en: () => 'Which one do you mean?',
+  },
+  'clarification.intent_multiple_matches': {
+    es: ({ segment }) => `Encontré varias opciones para "${segment}".`,
+    en: ({ segment }) => `I found multiple matches for "${segment}".`,
+  },
+  'listing.scenes_empty': {
+    es: () => 'Aún no tienes escenas creadas.',
+    en: () => "You don't have any scenes created yet.",
+  },
+  'listing.scenes': {
+    es: ({ list }) => `Estas son tus escenas:\n${list}`,
+    en: ({ list }) => `These are your scenes:\n${list}`,
+  },
+  'listing.automation_status': {
+    es: ({ name, enabled }) => `• ${name} — ${enabled ? 'activa' : 'inactiva'}`,
+    en: ({ name, enabled }) => `• ${name} — ${enabled ? 'active' : 'inactive'}`,
+  },
+  'listing.automations_empty': {
+    es: () => 'Aún no tienes automatizaciones.',
+    en: () => "You don't have any automations yet.",
+  },
+  'listing.automations': {
+    es: ({ list }) => `Estas son tus automatizaciones:\n${list}`,
+    en: ({ list }) => `These are your automations:\n${list}`,
+  },
+  'management.scene_not_found': {
+    es: ({ name }) => `No encontré la escena "${name}".`,
+    en: ({ name }) => `Scene "${name}" not found.`,
+  },
+  'management.automation_not_found': {
+    es: ({ name }) => `No encontré la automatización "${name}".`,
+    en: ({ name }) => `Automation "${name}" not found.`,
+  },
+  'management.device_not_found': {
+    es: ({ name }) => `No encontré el dispositivo "${name}".`,
+    en: ({ name }) => `Device "${name}" not found.`,
+  },
+  'management.device_not_in_scene': {
+    es: ({ name }) => `El dispositivo "${name}" no está en la escena.`,
+    en: ({ name }) => `Device "${name}" is not in the scene.`,
+  },
+  'management.rename_scene_confirmation': {
+    es: ({ sceneName, newName }) => `Voy a renombrar la escena "${sceneName}" a "${newName}". ¿Confirmo?`,
+    en: ({ sceneName, newName }) => `I'm going to rename the scene "${sceneName}" to "${newName}". Confirm?`,
+  },
+  'management.toggle_automation_confirmation': {
+    es: ({ name, enabled }) => `Voy a ${enabled ? 'activar' : 'desactivar'} la automatización "${name}". ¿Confirmo?`,
+    en: ({ name, enabled }) => `I'm going to ${enabled ? 'enable' : 'disable'} the automation "${name}". Confirm?`,
+  },
+  'management.add_device_confirmation': {
+    es: ({ deviceName, sceneName }) => `Voy a agregar "${deviceName}" (apagado) a la escena "${sceneName}". ¿Confirmo?`,
+    en: ({ deviceName, sceneName }) => `I'm going to add "${deviceName}" (off) to the scene "${sceneName}". Confirm?`,
+  },
+  'management.remove_device_confirmation': {
+    es: ({ deviceName, sceneName }) => `Voy a quitar "${deviceName}" de la escena "${sceneName}". ¿Confirmo?`,
+    en: ({ deviceName, sceneName }) => `I'm going to remove "${deviceName}" from the scene "${sceneName}". Confirm?`,
+  },
+  'management.unsupported_action': {
+    es: () => 'No estoy seguro de cómo gestionar eso.',
+    en: () => "I'm not sure how to manage that.",
+  },
+  'management.scene_renamed': {
+    es: ({ name }) => `Listo, renombré la escena a "${name}".`,
+    en: ({ name }) => `Ready, scene renamed to "${name}".`,
+  },
+  'management.automation_toggled': {
+    es: ({ name, enabled }) => `Listo, ${enabled ? 'activé' : 'desactivé'} la automatización "${name}".`,
+    en: ({ name, enabled }) => `Ready, automation "${name}" ${enabled ? 'enabled' : 'disabled'}.`,
+  },
+  'management.scene_updated': {
+    es: ({ name }) => `Listo, actualicé la escena "${name}".`,
+    en: ({ name }) => `Ready, updated scene "${name}".`,
+  },
+  'management.execution_failed': {
+    es: () => 'No se pudo ejecutar la acción de gestión.',
+    en: () => 'Failed to execute management action.',
+  },
+  'confirmation.confirm': {
+    es: () => '¿Confirmo?',
+    en: () => 'Confirm?',
+  },
+  'confirmation.yes': {
+    es: () => 'Sí',
+    en: () => 'Yes',
+  },
+  'confirmation.no': {
+    es: () => 'No',
+    en: () => 'No',
+  },
   'command.not_understood': {
     es: () => 'No entendí ese comando. Indícame dispositivo y estancia, por ejemplo: apaga la luz de la sala.',
     en: () => 'I did not understand that command. Give me the device and room, for example: turn off the living room light.',
@@ -130,6 +300,146 @@ const responseCatalog: AssistantResponseCatalog = {
   'selection.target_required': {
     es: () => 'Falta el objetivo para la selección.',
     en: () => 'Missing target for selection.',
+  },
+  'resolution.device_not_found': {
+    es: ({ targetPhrase }) => `No encontré un dispositivo llamado '${targetPhrase}'.`,
+    en: () => `I couldn't find a device matching your request.`,
+  },
+  'clarification.vague_light_room': {
+    es: () => '¿En qué estancia quieres controlar la luz?',
+    en: () => 'In which room do you want to control the light?',
+  },
+  'clarification.vague_light_room_example': {
+    es: () => "Puedes decir: 'prende la luz de la sala'.",
+    en: () => "You can say: 'turn on the living room light'.",
+  },
+  'clarification.device_multiple_matches': {
+    es: () => 'Encontré varios dispositivos compatibles. Indícame el objetivo.',
+    en: () => 'I found several matching devices. Please choose the target.',
+  },
+  'clarification.device_multiple_matches_question': {
+    es: () => '¿Cuál quieres controlar?',
+    en: () => 'Which one do you want to control?',
+  },
+  'confirmation.generic_proceed': {
+    es: () => '¿Estás seguro de que quieres continuar?',
+    en: () => 'Are you sure you want to proceed?',
+  },
+  'confirmation.generic_proceed_yes': {
+    es: () => 'Sí, adelante',
+    en: () => 'Yes, proceed',
+  },
+  'confirmation.generic_proceed_no': {
+    es: () => 'No, cancelar',
+    en: () => 'No, cancel',
+  },
+  'scene.not_found': {
+    es: () => 'Escena no encontrada. Necesito una escena válida.',
+    en: () => 'Scene not found. I need a valid scene.',
+  },
+  'scene.execution_started': {
+    es: () => 'Escena en ejecución.',
+    en: () => 'Scene execution started.',
+  },
+  'confirmation.device_control': {
+    es: ({ deviceName }) => `¿Estás seguro de que quieres controlar ${deviceName}?`,
+    en: ({ deviceName }) => `Are you sure you want to control ${deviceName}?`,
+  },
+  'confirmation.multi_action': {
+    es: ({ count, actionSummary }) => `Puedo ejecutar ${count} acciones (${actionSummary}). Confírmame para proceder.`,
+    en: ({ count, actionSummary }) => `I can execute ${count} actions (${actionSummary}). Confirm to proceed.`,
+  },
+  'confirmation.multi_action_yes': {
+    es: () => 'Sí, ejecutar todo',
+    en: () => 'Yes, execute all',
+  },
+  'confirmation.multi_action_no': {
+    es: () => 'No, cancelar',
+    en: () => 'No, cancel',
+  },
+  'intent.not_recognized': {
+    es: () => 'Tipo de instrucción no reconocido. Quedo atento a una orden más clara.',
+    en: () => 'Instruction type not recognized. Standing by for a clearer command.',
+  },
+  'fuzzy.suggestion': {
+    es: ({ targetPhrase, deviceName }) => `No encontré un dispositivo llamado '${targetPhrase}'. ¿Quisiste decir '${deviceName}'?`,
+    en: ({ targetPhrase, deviceName }) => `I didn't find a device called '${targetPhrase}'. Did you mean '${deviceName}'?`,
+  },
+  'fuzzy.question': {
+    es: ({ deviceName }) => `¿Quisiste decir '${deviceName}'?`,
+    en: ({ deviceName }) => `Did you mean '${deviceName}'?`,
+  },
+  'fuzzy.not_found': {
+    es: ({ targetPhrase }) => `No encontré un dispositivo llamado '${targetPhrase}'.`,
+    en: ({ targetPhrase }) => `I couldn't find a device called '${targetPhrase}'.`,
+  },
+  'state.detail_no_devices': {
+    es: () => 'No se encontraron dispositivos.',
+    en: () => 'No devices found.',
+  },
+  'state.room_ambiguous': {
+    es: () => 'Encontré varias estancias que podrían coincidir. Por favor, sé más específico.',
+    en: () => 'I found several rooms that could match. Please be more specific.',
+  },
+  'state.room_not_found': {
+    es: () => 'No encontré esa estancia.',
+    en: () => "I couldn't find that room.",
+  },
+  'state.room_selection_required': {
+    es: () => '¿En qué estancia?',
+    en: () => 'In which room?',
+  },
+  'state.room_selection_question': {
+    es: () => '¿En qué estancia?',
+    en: () => 'Which room?',
+  },
+  'state.no_targets_in_room': {
+    es: ({ entityLabel, roomName }) => `No encontré ${entityLabel} en ${roomName}.`,
+    en: ({ entityLabel, roomName }) => `I couldn't find any ${entityLabel} in ${roomName}.`,
+  },
+  'state.no_matching_targets': {
+    es: () => 'No encontré dispositivos que coincidan con esa consulta.',
+    en: () => 'I could not find any devices matching that query.',
+  },
+  'state.inventory_count': {
+    es: ({ count, itemLabel, roomSuffix }) => `Tienes ${count} ${itemLabel}${roomSuffix}.`,
+    en: ({ count, itemLabel, roomSuffix }) => `You have ${count} ${itemLabel}${roomSuffix}.`,
+  },
+  'state.room_no_controllable': {
+    es: ({ roomName }) => `No veo dispositivos controlables en ${roomName}.`,
+    en: ({ roomName }) => `I don't see controllable devices in ${roomName}.`,
+  },
+  'state.room_all_off': {
+    es: ({ roomName }) => `Todo está apagado en ${roomName}.`,
+    en: ({ roomName }) => `Everything is off in ${roomName}.`,
+  },
+  'state.room_all_on': {
+    es: ({ roomName }) => `Todo está encendido en ${roomName}.`,
+    en: ({ roomName }) => `Everything is on in ${roomName}.`,
+  },
+  'state.room_summary': {
+    es: ({ onCount, total, roomName }) => `Hay ${onCount} de ${total} dispositivos encendidos en ${roomName}.`,
+    en: ({ onCount, total, roomName }) => `There are ${onCount} out of ${total} devices on in ${roomName}.`,
+  },
+  'state.device_not_found': {
+    es: () => 'No pude encontrar el dispositivo por el que preguntas.',
+    en: () => "I couldn't find the device you're asking about.",
+  },
+  'state.device_multiple_matches': {
+    es: () => 'Encontré varios dispositivos con ese nombre. ¿A cuál te refieres?',
+    en: () => 'I found several devices with that name. Which one do you mean?',
+  },
+  'state.device_query_on': {
+    es: ({ deviceName, isOn }) => isOn ? `Sí, ${deviceName} está encendido.` : `No, ${deviceName} está apagado.`,
+    en: ({ deviceName, isOn }) => isOn ? `Yes, ${deviceName} is on.` : `No, ${deviceName} is off.`,
+  },
+  'state.device_query_off': {
+    es: ({ deviceName, isOff }) => isOff ? `Sí, ${deviceName} está apagado.` : `No, ${deviceName} está encendido.`,
+    en: ({ deviceName, isOff }) => isOff ? `Yes, ${deviceName} is off.` : `No, ${deviceName} is on.`,
+  },
+  'state.device_status': {
+    es: ({ deviceName, isOn }) => isOn ? `${deviceName} está encendido.` : `${deviceName} está apagado.`,
+    en: ({ deviceName, isOn }) => isOn ? `${deviceName} is on.` : `${deviceName} is off.`,
   },
   'sensor.reading': {
     es: ({ name, value, unit }) => 'La lectura de ' + name + ' es ' + value + unit + '.',
