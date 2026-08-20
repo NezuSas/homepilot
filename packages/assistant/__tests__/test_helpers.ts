@@ -304,6 +304,9 @@ export const createMockOllamaClient = (overrides?: Partial<jest.Mocked<OllamaCli
 
 export const createMockAssistantContextBuilder = (overrides?: Partial<jest.Mocked<AssistantContextBuilderPort>>): jest.Mocked<AssistantContextBuilderPort> => ({
   build: jest.fn().mockResolvedValue('Context'),
+  buildLlmHomeMap: jest.fn().mockResolvedValue('Context'),
+  buildLightLlmHomeMap: jest.fn().mockResolvedValue('Context'),
+  buildUltraLightLlmHomeMap: jest.fn().mockResolvedValue({ text: 'Context', devicesCount: 0 }),
   ...overrides
 } as jest.Mocked<AssistantContextBuilderPort>);
 

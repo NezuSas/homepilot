@@ -150,7 +150,7 @@ User command: "${prompt.replace(/"/g, '\"')}"`;
   public async interpretV2(
     prompt: string,
     userId: string,
-    options?: { timeoutMs?: number; model?: string; promptMode?: 'full' | 'light' | 'ultra_light' }
+    options?: { timeoutMs?: number; model?: string; promptMode?: 'full' | 'light' | 'ultra_light'; numPredict?: number }
   ): Promise<PlannerV2InterpretResult> {
     // Step 1: Build home map and prompt BEFORE the LLM call.
     let homeMap = '';
@@ -194,7 +194,7 @@ User command: "${prompt.replace(/"/g, '\"')}"`;
         format: PLANNER_V2_SCHEMA,
         // Planner V2 emits a small schema-bound plan, never a conversational reply.
         // A compact output budget keeps shadow sampling viable on Edge hardware.
-        numPredict: 96
+        numPredict: options?.numPredict ?? 96
       });
 
       if (!response || typeof response !== 'object') {

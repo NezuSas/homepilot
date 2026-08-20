@@ -7,6 +7,9 @@ import { TargetReference, AssistantPlanV2, PlannerAction } from './ports/Assista
 import { AssistantMemoryState } from './ports/AssistantMemoryPort';
 import { LlmCircuitBreaker } from './LlmCircuitBreaker';
 
+const SHADOW_TIMEOUT_MS = 1_500;
+const SHADOW_MAX_TOKENS = 48;
+
 export interface ShadowResolutionResult {
   target: TargetReference;
   resolvedType: string;
@@ -33,6 +36,7 @@ export class AssistantPlannerV2ShadowService {
   private readonly executionTimeoutMs: number;
   /** Resolved model for logging: shadow override → OLLAMA_MODEL env → 'phi3' fallback */
   private readonly resolvedModelName: string;
+  private shadowInFlight = false;
 
   // In-memory diagnostic counters
   private totalRuns = 0;
@@ -60,7 +64,7 @@ export class AssistantPlannerV2ShadowService {
     const lightEnabled = process.env.ASSISTANT_PLANNER_V2_SHADOW_LIGHT_PROMPT === 'true'; // Fallback
     
     this.promptMode = ultraLightEnabled ? 'ultra_light' : (lightEnabled ? 'light' : 'full');
-    this.shadowTimeoutMs = parseInt(process.env.ASSISTANT_PLANNER_V2_SHADOW_TIMEOUT_MS || '8000', 10);
+    this.shadowTimeoutMs = SHADOW_TIMEOUT_MS;
     this.executionTimeoutMs = parseInt(process.env.ASSISTANT_PLANNER_V2_EXECUTION_TIMEOUT_MS || '3500', 10);
 
     // Resolve model name: specific override → OLLAMA_MODEL env → hardcoded fallback
@@ -76,6 +80,7 @@ export class AssistantPlannerV2ShadowService {
       promptMode: this.promptMode,
       ultraLightPrompt: this.promptMode === 'ultra_light',
       timeout: this.shadowTimeoutMs,
+      maxTokens: SHADOW_MAX_TOKENS,
       model: this.resolvedModelName
     })}`);
 
@@ -99,6 +104,11 @@ export class AssistantPlannerV2ShadowService {
   ): Promise<void> {
     if (!this.isShadowEnabled) return;
 
+    if (this.shadowInFlight) {
+      console.info(`[PLANNER_V2_SHADOW_SKIPPED] ${JSON.stringify({ reason: 'in_flight', promptLength: prompt.length })}`);
+      return;
+    }
+
     const lowerPrompt = prompt.trim().toLowerCase();
     
     let skipReason: string | null = null;
@@ -119,6 +129,7 @@ export class AssistantPlannerV2ShadowService {
       return;
     }
 
+    this.shadowInFlight = true;
     try {
       const t0 = Date.now();
       let errorInfo: { message: string; type: ShadowErrorType } | null = null;
@@ -130,7 +141,8 @@ export class AssistantPlannerV2ShadowService {
       const result = await this.llmInterpreter.interpretV2(prompt, userId, {
         timeoutMs: this.shadowTimeoutMs,
         model: this.shadowModel,
-        promptMode: this.promptMode
+        promptMode: this.promptMode,
+        numPredict: SHADOW_MAX_TOKENS
       });
 
       const { metadata } = result;
@@ -281,6 +293,8 @@ export class AssistantPlannerV2ShadowService {
 
     } catch (err: unknown) {
       console.warn(`[PLANNER_V2_SHADOW_ERROR] ${err}`);
+    } finally {
+      this.shadowInFlight = false;
     }
   }
 
@@ -496,6 +510,7 @@ export class AssistantPlannerV2ShadowService {
       environment: process.env.NODE_ENV || 'development',
       promptMode: this.promptMode,
       timeout: this.shadowTimeoutMs,
+      maxTokens: SHADOW_MAX_TOKENS,
       model: this.resolvedModelName,
       circuitBreaker: this.circuitBreaker.getState()
     };

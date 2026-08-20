@@ -136,6 +136,22 @@ describe('Assistant Planner V2 Shadow Mode', () => {
     spy.mockRestore();
   });
 
+  it('skips a sampled request while another shadow request is in flight', async () => {
+    process.env.ASSISTANT_PLANNER_V2_SHADOW = 'true';
+    let resolveFirst: ((value: ReturnType<typeof makePlan>) => void) | undefined;
+    llmInterpreter.interpretV2.mockImplementationOnce(() => new Promise((resolve) => {
+      resolveFirst = resolve;
+    }));
+    shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+
+    const first = shadowService.runShadow('primera orden', 'u1', 'es', { type: 'answer', message: 'ok' });
+    await Promise.resolve();
+    await shadowService.runShadow('segunda orden', 'u1', 'es', { type: 'answer', message: 'ok' });
+
+    expect(llmInterpreter.interpretV2).toHaveBeenCalledTimes(1);
+    resolveFirst?.(makePlan());
+    await first;
+  });
   // ─── Metadata always populated ────────────────────────────────────────────
 
   it('should populate metadata in log when LLM succeeds', async () => {
@@ -164,7 +180,7 @@ describe('Assistant Planner V2 Shadow Mode', () => {
     llmInterpreter.interpretV2.mockResolvedValue({
       plan: null,
       metadata: { promptChars: 542, devicesCount: 6 },
-      error: new Error('Ollama request timed out after 8000ms')
+      error: new Error('Ollama request timed out after 1500ms')
     });
     shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
 
@@ -266,7 +282,7 @@ describe('Assistant Planner V2 Shadow Mode', () => {
     expect(parsed.prompt_chars).toBe(620);
     expect(parsed.home_map_devices_count).toBe(8);
     expect(parsed.model).toBe('phi3');
-    expect(parsed.timeout_ms).toBe(8000);
+    expect(parsed.timeout_ms).toBe(1500);
     expect(parsed.promptMode).toBe('ultra_light');
 
     // No IDs or HA entity IDs in the log
@@ -475,7 +491,7 @@ describe('Assistant Planner V2 Shadow Mode', () => {
 
   // ─── Prompt mode default ──────────────────────────────────────────────────
 
-  it('should use ultra_light prompt and 8s timeout by default', async () => {
+  it('should use ultra_light prompt with the bounded shadow latency budget', async () => {
     process.env.ASSISTANT_PLANNER_V2_SHADOW = 'true';
     shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
 
@@ -484,7 +500,7 @@ describe('Assistant Planner V2 Shadow Mode', () => {
 
     expect(llmInterpreter.interpretV2).toHaveBeenCalledWith(
       'test', 'u1',
-      expect.objectContaining({ promptMode: 'ultra_light', timeoutMs: 8000 })
+      expect.objectContaining({ promptMode: 'ultra_light', timeoutMs: 1500, numPredict: 48 })
     );
     spy.mockRestore();
   });
@@ -500,7 +516,7 @@ describe('Assistant Planner V2 Shadow Mode', () => {
 
     expect(llmInterpreter.interpretV2).toHaveBeenCalledWith(
       'test', 'u1',
-      expect.objectContaining({ promptMode: 'light', timeoutMs: 8000 })
+      expect.objectContaining({ promptMode: 'light', timeoutMs: 1500, numPredict: 48 })
     );
     spy.mockRestore();
   });

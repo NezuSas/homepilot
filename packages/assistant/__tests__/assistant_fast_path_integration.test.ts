@@ -30,6 +30,7 @@ describe('Fast Path Integration in AssistantConversationService', () => {
   let mockShadowService: any;
   let mockIntentInterpreter: any;
   let mockSceneExecution: any;
+  let mockSmallTalk: any;
 
   beforeEach(() => {
     mockIntentInterpreter = createMockIntentInterpreterPort();
@@ -38,6 +39,7 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     mockDeviceRepo = createMockDeviceRepository();
     mockRoomRepo = createMockRoomRepository();
     mockSceneExecution = createMockSceneExecutionService();
+    mockSmallTalk = createMockAssistantSmallTalk();
     mockShadowService = {
       runShadow: jest.fn().mockResolvedValue(undefined),
       attemptHybridExecution: jest.fn().mockResolvedValue(null)
@@ -51,7 +53,7 @@ describe('Fast Path Integration in AssistantConversationService', () => {
       mockDeviceRepo, // 5
       mockRoomRepo, // 6
       createMockSceneRepository(), // 7
-      createMockAssistantSmallTalk(), // 8
+      mockSmallTalk, // 8
       mockMemory, // 9
       createMockFollowUpResolver(), // 10
       createMockAssistantDraftService(), // 11
@@ -65,6 +67,15 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     );
   });
 
+  it('does not queue Planner V2 shadow work after a small-talk model response', async () => {
+    mockSmallTalk.handle.mockResolvedValue({ type: 'answer', message: 'La casa está lista para esta noche.', llmGenerated: true });
+
+    const response = await service.converse({ prompt: 'dime algo interesante de mi casa', userId: 'u1' }, 'es');
+
+    expect(response.type).toBe('answer');
+    expect(mockSmallTalk.handle).toHaveBeenCalled();
+    expect(mockShadowService.runShadow).not.toHaveBeenCalled();
+  });
   it('executes via fast path and saves memory, allowing pronoun follow-up', async () => {
     // 1. Setup mock devices
     const testDevice = createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'light', roomId: 'r1' });

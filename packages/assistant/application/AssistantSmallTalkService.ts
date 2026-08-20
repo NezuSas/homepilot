@@ -4,6 +4,9 @@ import type { OllamaClientPort } from './ports/OllamaClientPort';
 
 import type { AssistantContextBuilderPort } from './ports/AssistantContextBuilderPort';
 
+const INTERACTIVE_OLLAMA_TIMEOUT_MS = 1_500;
+const INTERACTIVE_OLLAMA_MAX_TOKENS = 32;
+
 function isSmallTalkResponse(value: unknown): value is { text: string } {
   return !!value &&
     typeof value === 'object' &&
@@ -21,53 +24,34 @@ export class AssistantSmallTalkService implements AssistantSmallTalkPort {
     
     if (isLlmEnabled && this.ollamaClient) {
       try {
-        const homeContext = this.contextBuilder ? await this.contextBuilder.build(userId) : '{}';
+        const homeMap = this.contextBuilder
+          ? await this.contextBuilder.buildUltraLightLlmHomeMap(prompt, userId)
+          : { text: 'No home context is available.', devicesCount: 0 };
         
         const systemPrompt = userName 
           ? `You are HomePilot, a local smart home assistant with the calm, precise presence of a professional residential operator. You are talking to ${userName}.`
           : `You are HomePilot, a local smart home assistant with the calm, precise presence of a professional residential operator.`;
 
-        const rulesPrompt = `- Usa SOLO información del contexto si está disponible
-- No inventes dispositivos ni escenas
-- Si no hay datos, dilo claramente
-- Puedes usar el estado (state) y la ubicación (roomId) de los dispositivos para dar respuestas más precisas
-- Mention the room when relevant to give context (e.g. "The light in the Living Room is on").
-- Use the 'lastConversationEntities' if the user asks follow-up questions like "where is that?" or "turn it off".
-- Do not claim you executed devices.
-- For device control, tell the user to ask clearly.
-- Keep answers short, elegant, and operational. Sound like a polished home operator, not a generic chatbot.
-- Avoid jokes, drama, or science-fiction roleplay. A subtle Jarvis-like tone is acceptable; clarity is mandatory.
-- Prefer calm phrases such as "sistema en orden", "listo para operar", "necesito un objetivo más claro", or their English equivalents when they fit naturally.
-- Answer in ${language === 'en' ? 'English' : 'Spanish'}.
-${userName ? `- Mention the user by name (${userName}) at most once in your response.` : ''}`;
-
-        const fullPrompt = `System:
-${systemPrompt}
-
-Context:
-${homeContext}
-
-Rules:
-${rulesPrompt}
-
-User:
-${prompt}
-
-Response JSON format: {"text": "your response"}`;
-
+        const fullPrompt = `System: ${systemPrompt}
+Language: ${language === 'en' ? 'English' : 'Spanish'}
+Authorized home context:
+${homeMap.text}
+Rules: Use only this context. Do not invent devices or scenes. Do not claim an action was executed. Mention the user by name at most once when present. Keep the answer operational and under two short sentences. For a control request, ask for a clear target.
+User: ${prompt}
+Return JSON: {"text":"..."}`;
         if (process.env.NODE_ENV !== 'production') {
           console.debug(`[Assistant] SmallTalk → LLM call (lang=${language})`);
         }
         const response = await this.ollamaClient.generateJson(fullPrompt, {
-          // Small-talk responses are deliberately brief; do not spend the Edge
-          // request budget generating text that the UI will not need.
-          numPredict: 96
+          timeoutMs: INTERACTIVE_OLLAMA_TIMEOUT_MS,
+          numPredict: INTERACTIVE_OLLAMA_MAX_TOKENS
         });
         
         if (isSmallTalkResponse(response) && response.text.trim().length > 0) {
           return {
             type: 'answer',
-            message: response.text
+            message: response.text,
+            llmGenerated: true
           };
         }
       } catch (error) {

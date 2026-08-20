@@ -12,20 +12,20 @@ describe('AssistantSmallTalkService', () => {
     process.env.OLLAMA_ENABLED = 'true';
     mockOllama = createMockOllamaClient();
     mockContextBuilder = createMockAssistantContextBuilder({
-      build: jest.fn().mockResolvedValue('{"devices":[]}')
+      buildUltraLightLlmHomeMap: jest.fn().mockResolvedValue({ text: 'Devices: none', devicesCount: 0 })
     });
     service = new AssistantSmallTalkService(mockOllama, mockContextBuilder);
   });
 
-  it('should call contextBuilder and include Context in the prompt', async () => {
+  it('should use the compact authorized home map and include it in the prompt', async () => {
     mockOllama.generateJson.mockResolvedValue({ text: 'Hello from Ollama' });
     
     await service.handle('dime algo interesante', 'es');
     
-    expect(mockContextBuilder.build).toHaveBeenCalled();
+    expect(mockContextBuilder.buildUltraLightLlmHomeMap).toHaveBeenCalledWith('dime algo interesante', undefined);
     const callArg = mockOllama.generateJson.mock.calls[0][0];
-    expect(callArg).toContain('Context:');
-    expect(callArg).toContain('{"devices":[]}');
+    expect(callArg).toContain('Authorized home context:');
+    expect(callArg).toContain('Devices: none');
   });
 
   it('should pass userId to contextBuilder if provided', async () => {
@@ -33,7 +33,7 @@ describe('AssistantSmallTalkService', () => {
     
     await service.handle('hola', 'es', 'Oscar', 'user-123');
     
-    expect(mockContextBuilder.build).toHaveBeenCalledWith('user-123');
+    expect(mockContextBuilder.buildUltraLightLlmHomeMap).toHaveBeenCalledWith('hola', 'user-123');
   });
 
   it('should include userName in the prompt if provided', async () => {
@@ -43,7 +43,7 @@ describe('AssistantSmallTalkService', () => {
     
     const callArg = mockOllama.generateJson.mock.calls[0][0];
     expect(callArg).toContain('You are talking to Oscar.');
-    expect(callArg).toContain('Mention the user by name (Oscar) at most once');
+    expect(callArg).toContain('Mention the user by name at most once');
   });
 
   it('should return answer when Ollama returns valid JSON', async () => {
@@ -53,7 +53,7 @@ describe('AssistantSmallTalkService', () => {
     
     expect(response.type).toBe('answer');
     expect(response.message).toBe('Hello from Ollama');
-    expect(mockOllama.generateJson).toHaveBeenCalledWith(expect.any(String), { numPredict: 96 });
+    expect(mockOllama.generateJson).toHaveBeenCalledWith(expect.any(String), { timeoutMs: 1500, numPredict: 32 });
   });
 
   it('should return fallback when Ollama returns malformed object', async () => {

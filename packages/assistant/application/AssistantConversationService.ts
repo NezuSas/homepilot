@@ -59,6 +59,7 @@ import { normalizeText as sharedNormalizeText, levenshteinDistance } from './tex
 export interface AssistantConversationResponse {
   type: "answer" | "execution" | "clarification" | "error";
   message: string;
+  llmGenerated?: boolean;
   execution?: SceneExecutionResult;
   clarification?: {
     question: string;
@@ -516,7 +517,8 @@ export class AssistantConversationService {
           : (language === 'en' ? 'Understood. ' : 'Entendido. ');
         conversationalResponse.message = `${prefix}${conversationalResponse.message}`;
       }
-      return this.returnWithShadow(activePrompt, userId, language, conversationalResponse, responsePreference, true);
+      const { llmGenerated, ...conversationResponse } = conversationalResponse;
+      return this.returnWithShadow(activePrompt, userId, language, conversationResponse, responsePreference, true, !llmGenerated);
     }
 
     const v2Response = await this.attemptV2HybridExecution(activePrompt, userId, language, userName, memory);
@@ -3686,7 +3688,8 @@ export class AssistantConversationService {
     language: string,
     response: AssistantConversationResponse,
     responsePreference: AssistantResponsePreference = 'standard',
-    allowResponsePersonalization = false
+    allowResponsePersonalization = false,
+    scheduleShadow = true
   ): AssistantConversationResponse {
     // Required: Any successful deterministic execution must return directly and bypass Planner V2 Shadow
     if (response.type === 'execution' || response.type === 'clarification') {
@@ -3697,7 +3700,7 @@ export class AssistantConversationService {
       return response;
     }
 
-    if (this.shadowService) {
+    if (scheduleShadow && this.shadowService) {
       this.shadowService.runShadow(prompt, userId, language, response).catch(() => {});
     }
 
