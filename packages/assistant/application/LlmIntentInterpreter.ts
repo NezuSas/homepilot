@@ -77,7 +77,11 @@ Required Output Format:
 User command: "${prompt.replace(/"/g, '\"')}"`;
 
     try {
-      const response = await this.ollamaClient.generateJson(systemPrompt);
+      const response = await this.ollamaClient.generateJson(systemPrompt, {
+        // Intents are intentionally compact. Keeping this bounded prevents a local
+        // model from spending the request budget on unused prose.
+        numPredict: 96
+      });
       return await this.validateAndMap(response, prompt);
     } catch (error: unknown) {
       // We log errors but return null to trigger deterministic fallback
@@ -187,7 +191,10 @@ User command: "${prompt.replace(/"/g, '\"')}"`;
         // Grammar-constrained decoding against the real schema — this matters most in
         // ultra_light mode, whose prompt text omits the schema entirely in favor of
         // few-shot examples, so this is otherwise the only enforcement of valid enums.
-        format: PLANNER_V2_SCHEMA
+        format: PLANNER_V2_SCHEMA,
+        // Planner V2 emits a small schema-bound plan, never a conversational reply.
+        // A compact output budget keeps shadow sampling viable on Edge hardware.
+        numPredict: 96
       });
 
       if (!response || typeof response !== 'object') {

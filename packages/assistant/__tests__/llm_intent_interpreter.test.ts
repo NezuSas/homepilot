@@ -44,7 +44,7 @@ describe('LlmIntentInterpreter', () => {
 
     expect(mockOllama.generateJson).toHaveBeenCalledWith(
       expect.any(String),
-      expect.objectContaining({ format: expect.objectContaining({ type: 'object' }) })
+      expect.objectContaining({ format: expect.objectContaining({ type: 'object' }), numPredict: 96 })
     );
   });
 
@@ -55,6 +55,7 @@ describe('LlmIntentInterpreter', () => {
 
     const intent = await interpreter.interpret('activate scene 1');
     expect(intent).toEqual({ type: 'scene', target: 's1', prompt: 'activate scene 1' });
+    expect(mockOllama.generateJson).toHaveBeenCalledWith(expect.any(String), { numPredict: 96 });
   });
 
   it('should return null if scene does not exist', async () => {

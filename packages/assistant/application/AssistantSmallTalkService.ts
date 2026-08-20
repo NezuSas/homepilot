@@ -58,7 +58,11 @@ Response JSON format: {"text": "your response"}`;
         if (process.env.NODE_ENV !== 'production') {
           console.debug(`[Assistant] SmallTalk → LLM call (lang=${language})`);
         }
-        const response = await this.ollamaClient.generateJson(fullPrompt);
+        const response = await this.ollamaClient.generateJson(fullPrompt, {
+          // Small-talk responses are deliberately brief; do not spend the Edge
+          // request budget generating text that the UI will not need.
+          numPredict: 96
+        });
         
         if (isSmallTalkResponse(response) && response.text.trim().length > 0) {
           return {

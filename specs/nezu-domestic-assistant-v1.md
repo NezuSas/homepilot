@@ -91,6 +91,12 @@ The assistant uses only homes, rooms, devices, routines, and dashboards that the
 - Chat preserves visual confirmation when an action is sensitive according to the existing policy.
 - When ambiguous, ask first; never guess the target.
 
+### RF-06a. Deterministic household-status queries
+
+- Queries for a named room status, unavailable devices, and globally active lights resolve against the authorized device scope before any model fallback.
+- A phrase such as "turn off the lights that are on" is global; a state qualifier must never be interpreted as a room name.
+- An availability query reports only devices whose current state is unavailable; it never invents a failure reason.
+
 ### RF-07. Response
 
 Every interaction ends in one of these categories: `completed`, `needs_clarification`, `needs_confirmation`, `cancelled`, `failed`, or `no_speech`. The response communicates only the information needed by the user.
@@ -226,6 +232,7 @@ Every transition belongs to one `turnId`. Stale callbacks are discarded before u
 - [ ] Assistant domain results contain no full UI sentences; text, TTS, confirmations, and errors are composed from i18n keys and typed parameters.
 - [ ] Each assistant key has Spanish and English translation with controlled fallback for a missing key.
 - [x] The current confirmation policy is respected for chat, voice, and sensitive actions. Evidence: `assistant_bulk_confirmation.test.ts` and `assistant_bulk_room_parity.test.ts`.
+- [x] Named-room status, unavailable-device, and global active-light queries resolve deterministically against the authorized scope. Evidence: `assistant_conversation_service.test.ts`.
 - [x] Manual language changes modify assistant text and speech. Evidence: `apiClient.test.ts` and `AssistantRoutes.test.ts`.
 - [x] `Ok Nezu` is the primary phrase and a new activation clears the prior turn. Evidence: the Playwright `Global wake activation` scenario and `assistant-interaction-turn-lifecycle-v1.md`.
 - [x] The audit shows useful events and groups technical noise. Evidence: `assistant-audit-noise-reduction-v1.md` and `HomeAssistantRealtimeSyncManager.test.ts`.

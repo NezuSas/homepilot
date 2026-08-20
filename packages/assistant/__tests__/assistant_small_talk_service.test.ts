@@ -53,6 +53,7 @@ describe('AssistantSmallTalkService', () => {
     
     expect(response.type).toBe('answer');
     expect(response.message).toBe('Hello from Ollama');
+    expect(mockOllama.generateJson).toHaveBeenCalledWith(expect.any(String), { numPredict: 96 });
   });
 
   it('should return fallback when Ollama returns malformed object', async () => {

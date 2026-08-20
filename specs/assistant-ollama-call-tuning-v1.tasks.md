@@ -12,6 +12,8 @@
       personalizado como format, override de temperature/numPredict).
 - [x] AC3: 1 test nuevo en `llm_intent_interpreter.test.ts` verificando que `interpretV2` pasa el
       schema real como format.
+- [x] AC7: Los tests de intérprete V1/V2 y conversación corta verifican que cada flujo pide
+      `numPredict: 96`, sin cambiar los valores predeterminados de `OllamaClient`.
 - [x] AC6: `.env.office.example` uses the host-network Ollama endpoint and
       `check-docker-profiles` rejects profile/template URL mismatches.
 - [x] AC4: `npx tsc --noEmit`, `npm run build`, suite completa (143 suites, 1195 tests) sin

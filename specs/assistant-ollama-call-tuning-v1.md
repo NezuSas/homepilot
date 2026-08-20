@@ -23,6 +23,9 @@ conversacional original, nunca implementado hasta ahora.
 - Ítem C: `format` ahora acepta un JSON Schema completo además de `'json'` — `LlmIntentInterpreter`
   pasa `PLANNER_V2_SCHEMA` real en `interpretV2`, restringiendo la decodificación del modelo a la
   gramática válida (enums de `type`/`command`/`target.type`), en vez de solo validar después.
+- Ítem D: Los tres flujos que solicitan una respuesta JSON compacta (intérprete V1, Planner V2 y
+  conversación general) solicitan como máximo 96 tokens. El límite global de 256 se conserva para
+  los llamadores que necesiten una salida mayor.
 
 ## Fuera de alcance
 
@@ -43,6 +46,8 @@ conversacional original, nunca implementado hasta ahora.
 - **REQ-03**: `LlmIntentInterpreter.interpretV2` pasa `format: PLANNER_V2_SCHEMA` en vez de
   `'json'`, en todos los modos de prompt (full/light/ultra_light) — esto importa especialmente en
   modo `ultra_light`, cuyo texto de prompt omite el schema por completo a favor de ejemplos few-shot.
+- **REQ-04**: Los flujos de intención y conversación corta pasan `numPredict: 96` de forma explícita;
+  esto debe reducir el tiempo de inferencia Edge sin cambiar el valor predeterminado de `OllamaClient`.
 
 ## Requisitos no funcionales
 
@@ -68,6 +73,8 @@ conversacional original, nunca implementado hasta ahora.
       correcto, `/health` en verde.
 - [x] AC6: Office and native installation templates use the Ollama URL compatible with their
       respective network models, enforced by `check-docker-profiles`.
+- [x] AC7: Los flujos V1, Planner V2 y conversación corta solicitan una salida máxima de 96 tokens,
+      mientras la llamada genérica conserva el valor predeterminado de 256.
 
 ## Notas técnicas y arquitectura
 

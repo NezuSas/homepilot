@@ -28,6 +28,7 @@ Primary specification: [nezu-domestic-assistant-v1.md](./nezu-domestic-assistant
 ## Phase C — Context and safety
 
 - [x] Verify that context contains only authorized entities. Evidence: `assistant_home_isolation.test.ts`.
+- [x] Cover deterministic named-room status, unavailable-device, and global active-light queries without weakening confirmation. Evidence: `assistant_conversation_service.test.ts`.
 - [x] Validate the confirmation policy by origin and sensitivity. Evidence: `assistant_bulk_confirmation.test.ts` and `assistant_bulk_room_parity.test.ts`.
 - [x] Reduce repetitive technical audit events while retaining actionable data. Evidence: `assistant-audit-noise-reduction-v1.md` and `HomeAssistantRealtimeSyncManager.test.ts`.
 - [x] Ensure secrets, audio, and prompts never reach the UI or ordinary logs. Evidence: sanitized assistant telemetry and privacy tests.

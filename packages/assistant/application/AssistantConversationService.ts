@@ -450,6 +450,7 @@ export class AssistantConversationService {
 
     // --- DETERMINISTIC GENERAL ROUTES ---
     if (this.isHomeSummaryQuery(normalized)) return await this.handleHomeSummary(language, userId);
+    if (this.isAttentionQuery(normalized)) return await this.handleAttentionQuery(language, userId);
     if (this.isRecentActivityQuery(normalized)) return await this.handleRecentActivity(language);
     if (this.isConversationContextQuery(normalized)) return this.handleConversationContext(memory, language);
     if (this.isGreeting(normalized)) return AssistantQuickResponseService.format('greeting', language, userName);
@@ -1499,6 +1500,43 @@ export class AssistantConversationService {
     };
   }
 
+  private isAttentionQuery(normalized: string): boolean {
+    return [
+      'que dispositivos necesitan atencion',
+      'cuales dispositivos necesitan atencion',
+      'que requiere atencion',
+      'que dispositivos no estan disponibles',
+      'which devices need attention',
+      'which devices are unavailable'
+    ].some(trigger => normalized.includes(trigger));
+  }
+
+  private async handleAttentionQuery(language: string, userId: string): Promise<AssistantConversationResponse> {
+    const unavailable = (await this.permissionGate.getAuthorizedDevices(userId))
+      .filter(device => !this.scopeFilter.isDeviceAvailable(device));
+
+    if (unavailable.length === 0) {
+      return {
+        type: 'answer',
+        message: language === 'en'
+          ? 'No devices require attention right now.'
+          : 'No hay dispositivos que requieran atención en este momento.'
+      };
+    }
+
+    const preview = unavailable.slice(0, 5).map(device => device.name).join(', ');
+    const remaining = unavailable.length - 5;
+    const suffix = remaining > 0
+      ? (language === 'en' ? ', and ' + remaining + ' more.' : ' y ' + remaining + ' más.')
+      : '.';
+
+    return {
+      type: 'answer',
+      message: language === 'en'
+        ? unavailable.length + ' devices require attention: ' + preview + suffix
+        : unavailable.length + ' dispositivos requieren atención: ' + preview + suffix
+    };
+  }
   private isRecentActivityQuery(normalized: string): boolean {
     return [
       'que cambio recientemente',
@@ -1702,7 +1740,7 @@ export class AssistantConversationService {
     const hasState = stateKeywords.some(kw => this.containsWord(normalized, kw));
 
     const generalTriggers = [
-      "que", "hay", "tengo", "luces", "dispositivos", "estado", "cuales", "donde", "quien", "cuanto", "son", "cuarto", "habitacion",
+      "que", "hay", "tengo", "luces", "dispositivos", "estado", "cuales", "donde", "quien", "cuanto", "son", "cuarto", "habitacion", "como",
       "esas", "esos", "esa", "eso",
       "what", "whats", "which", "status", "on", "off", "where", "those", "them"
     ];
@@ -1711,6 +1749,7 @@ export class AssistantConversationService {
 
 
     const isInventoryCountQuery = this.isInventoryCountQuery(normalized);
+    const isRoomStatus = normalized.includes('como esta la ') || normalized.includes('como esta el ');
     const isGeneralState = isGeneral && (
       hasState ||
       isInventoryCountQuery ||
@@ -1727,7 +1766,8 @@ export class AssistantConversationService {
       this.containsWord(normalized, "esa") ||
       this.containsWord(normalized, "eso") ||
       this.containsWord(normalized, "those") ||
-      this.containsWord(normalized, "them")
+      this.containsWord(normalized, "them") ||
+      isRoomStatus
     );
 
     if (!isGeneralState) return false;
@@ -3692,7 +3732,7 @@ export class AssistantConversationService {
     // Spanish Regex:
     // Group 1: Verb (enciende|prende|apaga|activa|desactiva)
     // Group 2: Bulk keyword — fixed set without embedded prepositions
-    // Optional preposition cluster (en|el|del|de|la|las)
+    // Optional preposition cluster (en|el|del|de|la|las); state-qualified global light requests are rejected below.
     // Group 3: Room name (mandatory, at least one non-empty token after bulk keyword)
     const esRegex = /^(enciende|prende|apaga|activa|desactiva)\s+(todo|todas\s+las\s+luces|todas\s+las|todas|todo\s+el|todo\s+en|las\s+luces|luces)\s+(?:en\s+|el\s+|del\s+|de\s+|la\s+|las\s+)?(.+)$/i;
     const esMatch = normalized.match(esRegex);
@@ -3702,7 +3742,7 @@ export class AssistantConversationService {
       const bulkKeyword = esMatch[2].toLowerCase().trim();
       const roomName = esMatch[3].trim();
       // Guard: if the captured room name is itself a bulk-only word, no room was actually given
-      if (esBulkOnlyWords.includes(roomName)) return null;
+      if (esBulkOnlyWords.includes(roomName) || /^(?:que\s+)?(?:esten|estan)\s+(?:encendidas?|prendidas?)$|^(?:encendidas?|prendidas?)$/.test(roomName)) return null;
       const bulkType = (bulkKeyword.includes('todo') || bulkKeyword === 'todas') ? 'all' : 'lights';
       return { command, roomName, bulkType };
     }
@@ -3970,7 +4010,7 @@ export class AssistantConversationService {
 
     const hasGlobalScope = /\b(todo|everything)\b|\btoda la casa\b|\bcasa (completa|entera)\b|\bhogar (completo|entero)\b|\bwhole house\b/.test(normalized);
     const targetsLights = /\b(luz|luces|iluminacion|lampara|lamparas|light|lights)\b/.test(normalized);
-    const targetsAllLights = /\btodas? las luces\b|\ball (the )?lights\b/.test(normalized);
+    const targetsAllLights = /\btodas? las luces\b|\blas luces que esten encendidas\b|\ball (the )?lights\b|\bthe lights that are on\b/.test(normalized);
     if (!hasGlobalScope && !targetsAllLights) return null;
 
     return {

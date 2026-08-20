@@ -1811,6 +1811,7 @@ describe('AssistantConversationService', () => {
         isGreeting(prompt: string): boolean;
         isWellnessQuery(prompt: string): boolean;
         isStateQuery(prompt: string): boolean;
+        isAttentionQuery(prompt: string): boolean;
       };
 
       const dateResponse = await privateService.handleDateTimeQuery('qué fecha es hoy', 'es');
@@ -1821,13 +1822,31 @@ describe('AssistantConversationService', () => {
       expect(privateService.isGreeting('buenas tardes')).toBe(true);
       expect(privateService.isWellnessQuery('estas funcionando correctamente')).toBe(true);
       expect(privateService.isStateQuery('qué luces están encendidas')).toBe(true);
+      expect(privateService.isStateQuery('como esta la sala')).toBe(true);
       expect(privateService.isStateQuery('enciende esas luces')).toBe(false);
+      expect(privateService.isAttentionQuery('que dispositivos necesitan atencion')).toBe(true);
+    });
+  });
+  it('Scenario: Given unavailable devices When attention is requested Then only unavailable authorized devices are reported', async () => {
+    mockDeviceRepo.findAll.mockResolvedValue([
+      createTestDevice({ id: 'available', name: 'Luz disponible', lastKnownState: { on: false } }),
+      createTestDevice({ id: 'unavailable', name: 'Sensor sin conexión', lastKnownState: { state: 'unavailable' } })
+    ]);
+
+    const response = await (service as unknown as {
+      handleAttentionQuery(language: string, userId: string): Promise<{ type: string; message: string }>;
+    }).handleAttentionQuery('es', 'attention-user');
+
+    expect(response).toEqual({
+      type: 'answer',
+      message: '1 dispositivos requieren atención: Sensor sin conexión.'
     });
   });
   describe('Feature: deterministic command recognizers', () => {
     it('Scenario: Given supported bulk and singular phrasing When fast-path recognizers parse it Then they preserve scope and reject ambiguous input', () => {
       const privateService = service as unknown as {
         isRoomBulkFastPath(prompt: string): { command: 'turn_on' | 'turn_off'; roomName: string; bulkType: 'all' | 'lights' } | null;
+        isBulkFastPath(prompt: string): { command: 'turn_on' | 'turn_off'; bulkType: 'all' | 'lights' } | null;
         isRoomSingularLightFastPath(prompt: string): { command: 'turn_on' | 'turn_off'; roomName: string } | null;
         isPointStateQuery(prompt: string): boolean;
         extractTargetPhrase(prompt: string): string;
@@ -1843,6 +1862,11 @@ describe('AssistantConversationService', () => {
       });
       expect(privateService.isRoomBulkFastPath('apaga luces y ventilador en Sala')).toBeNull();
       expect(privateService.isRoomBulkFastPath('apaga luces')).toBeNull();
+      expect(privateService.isRoomBulkFastPath('apaga las luces que esten encendidas')).toBeNull();
+      expect(privateService.isBulkFastPath('apaga las luces que esten encendidas')).toEqual({
+        command: 'turn_off',
+        bulkType: 'lights'
+      });
 
       expect(privateService.isRoomSingularLightFastPath('enciende la luz en Sala')).toEqual({
         command: 'turn_on', roomName: 'sala'
