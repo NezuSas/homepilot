@@ -403,11 +403,23 @@ describe('AssistantConversationService', () => {
         createTestRoom({ id: 'room-2', name: 'Cocina', homeId: 'h1' })
       ]);
 
-      const response = await service.converse({ prompt: 'qué estancias conoces', userId: 'reader' }, 'es');
+      const prompts = [
+        'qué estancias conoces',
+        'qué estancias tengo',
+        'qué espacios tengo',
+        'qué habitaciones tengo',
+        'qué estancias o espacios tengo'
+      ];
 
-      expect(response).toEqual(expect.objectContaining({ type: 'answer' }));
-      expect(response.message).toContain('Sala');
-      expect(response.message).toContain('Cocina');
+      for (const prompt of prompts) {
+        const response = await service.converse({ prompt, userId: 'reader' }, 'es');
+
+        expect(response).toEqual(expect.objectContaining({ type: 'answer' }));
+        expect(response.message).toContain('Sala');
+        expect(response.message).toContain('Cocina');
+      }
+
+      expect(mockSmallTalk.handle).not.toHaveBeenCalled();
       expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
     });
 

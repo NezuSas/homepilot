@@ -9,6 +9,7 @@
 - [ ] Validar los criterios conversacionales de `assistant-v1.md` mediante las suites `packages/assistant/__tests__`.
 - [ ] Mantener el formato residencial opcional: sin nombre de usuario, las respuestas conservan el mensaje funcional original.
 - [ ] Registrar en esta tarea cualquier cambio de comportamiento conversacional antes de implementarlo.
+- [x] Route home-scoped room-inventory questions for estancias, espacios, habitaciones, cuartos, and zonas before the general-conversation fallback; covered by assistant_conversation_service.test.ts.
 
 
 ## Perfil conversacional

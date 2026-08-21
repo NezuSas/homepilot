@@ -84,6 +84,7 @@ Introduce an intelligent assistant layer that detects system issues and suggests
 - Las acciones masivas, tanto por voz como por chat, requieren una confirmación explícita y persistida antes de ejecutarse.
 - Ambiguous, unsafe, or unknown commands must be acknowledged immediately and ask for a clearer device/room target.
 - The assistant must not claim that an action was executed unless the execution result confirms it.
+- The assistant must list only authorized rooms for home-scoped room-inventory questions, including Spanish requests for estancias, espacios, habitaciones, cuartos, and zonas.
 
 
 ## 10. Perfil conversacional por usuario

@@ -463,6 +463,7 @@ export class AssistantConversationService {
 
     // --- DETERMINISTIC GENERAL ROUTES ---
     if (this.isHomeSummaryQuery(normalized)) return await this.handleHomeSummary(language, userId);
+    if (this.isRoomQuery(normalized)) return await this.handleRoomQuery(language, userId);
     if (this.isAttentionQuery(normalized)) return await this.handleAttentionQuery(language, userId);
     if (this.isRecentActivityQuery(normalized)) return await this.handleRecentActivity(language);
     if (this.isConversationContextQuery(normalized)) return this.handleConversationContext(memory, language);
@@ -1262,11 +1263,13 @@ export class AssistantConversationService {
    */
   private isRoomQuery(normalized: string): boolean {
     const triggers = [
-      "que estancias conoces", "que estancia conoces", "que estancia nomas conoces",
-      "que cuartos conoces", "que habitaciones tienes", "que zonas conoces",
-      "what rooms do you know", "what areas do you know", "list rooms"
+      'que estancias conoces', 'que estancia conoces', 'que estancia nomas conoces',
+      'que cuartos conoces', 'que habitaciones tienes', 'que zonas conoces',
+      'que estancias tengo', 'que espacios tengo', 'que habitaciones tengo', 'que cuartos tengo', 'que zonas tengo',
+      'que estancias o espacios tengo', 'que espacios o estancias tengo',
+      'what rooms do you know', 'what areas do you know', 'what rooms do i have', 'list rooms'
     ];
-    return triggers.some(t => normalized.includes(t));
+    return triggers.some(trigger => normalized.includes(trigger));
   }
 
   private async handleRoomQuery(language: string, userId: string): Promise<AssistantConversationResponse> {
