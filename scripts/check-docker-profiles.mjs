@@ -4,6 +4,7 @@ const requiredFiles = [
   'docker-compose.yml',
   'docker-compose.office.yml',
   'docker-compose.desktop.yml',
+  'docker-compose.ha-companion.desktop.yml',
   'docker/ui/nginx.conf',
   'docker/ui/nginx.desktop.conf',
   'scripts/homepilot-maintenance.sh',
@@ -23,6 +24,7 @@ if (failures.length === 0) {
   const integrated = read('docker-compose.yml');
   const office = read('docker-compose.office.yml');
   const desktop = read('docker-compose.desktop.yml');
+  const haCompanionDesktop = read('docker-compose.ha-companion.desktop.yml');
   const nginx = read('docker/ui/nginx.conf');
   const desktopNginx = read('docker/ui/nginx.desktop.conf');
   const maintenance = read('scripts/homepilot-maintenance.sh');
@@ -47,6 +49,18 @@ if (failures.length === 0) {
   }
   if (!desktop.includes('HOMEPILOT_API_PORT:-13000') || !office.includes('HOMEPILOT_UI_PORT:-8080')) {
     failures.push('Desktop profile must expose API 13000 and UI 8080 defaults');
+  }
+  if (!office.includes('TTS_BASE_URL: http://127.0.0.1:8088')
+    || !office.includes('STT_BASE_URL: http://127.0.0.1:8090')
+    || !integrated.includes('TTS_BASE_URL=${TTS_BASE_URL:-http://127.0.0.1:8088}')
+    || !integrated.includes('STT_BASE_URL=${STT_BASE_URL:-http://127.0.0.1:8090}')) {
+    failures.push('Linux host-network profiles must use loopback URLs for local voice services');
+  }
+  for (const desktopProfile of [desktop, haCompanionDesktop]) {
+    if (!desktopProfile.includes('TTS_BASE_URL: http://homepilot-tts:8088')
+      || !desktopProfile.includes('STT_BASE_URL: http://homepilot-stt:8090')) {
+      failures.push('Docker Desktop overlays must use Docker service URLs for local voice services');
+    }
   }
   if (modelRuntimePattern.test(officeEnvironmentTemplate) || modelRuntimePattern.test(nativeEnvironmentTemplate)) {
     failures.push('Installation environment templates must not configure a language-model runtime');

@@ -12,6 +12,8 @@ Entregar HomePilot como una aplicación Edge reproducible en Linux y Docker Desk
 | --- | --- | --- | --- |
 | Oficina/Linux | `docker-compose.office.yml` | API en `network_mode: host`; conecta al Home Assistant existente configurado para la oficina. | UI `8080`, API `3000` |
 | Docker Desktop | `docker-compose.office.yml` + `docker-compose.desktop.yml` | Red bridge; API accede al Home Assistant local mediante `host.docker.internal:18123`. | UI `8080`, API `13000` |
+
+The Linux host-network profiles must route API-to-STT/TTS requests through `127.0.0.1` because Docker service DNS is not available to a host-networked API. Docker Desktop bridge overlays must explicitly route those requests through `homepilot-stt` and `homepilot-tts`.
 | Stack de desarrollo integrado | `docker-compose.yml` | Incluye Home Assistant, API/UI y servicios locales. | UI `80`, Home Assistant `18123` |
 
 La UI usa el proxy Nginx same-origin (`/api`, `/ws` y `/health`) en todos los perfiles. El navegador no resuelve nombres DNS internos de Docker ni requiere `VITE_API_URL` para el flujo normal.

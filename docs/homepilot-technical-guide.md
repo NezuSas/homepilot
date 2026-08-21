@@ -564,7 +564,7 @@ HOMEPILOT_DB_PATH=./data/homepilot.db
 
 
 TTS_PROVIDER=kokoro
-TTS_BASE_URL=http://homepilot-tts:8088
+TTS_BASE_URL=http://127.0.0.1:8088
 KOKORO_VOICE_ES=em_alex
 KOKORO_VOICE_EN=af_heart
 PIPER_VOICE_ES=es_MX-claude-high
@@ -573,7 +573,7 @@ PIPER_VOICE_EN=en_US-lessac-medium
 PIPER_SYNTHESIS_TIMEOUT_SECONDS=20
 
 STT_PROVIDER=whisper-local
-STT_BASE_URL=http://homepilot-stt:8090
+STT_BASE_URL=http://127.0.0.1:8090
 STT_TIMEOUT_MS=30000
 WHISPER_MODEL=small
 WHISPER_COMPUTE_TYPE=int8
@@ -589,7 +589,7 @@ WHISPER_MAX_AUDIO_BYTES=9000000
 | HOMEPILOT_DB_PATH | ./data/homepilot.db | SQLite path outside Docker/inside local WSL; containers normally use /app/data/homepilot.db |
 | HOMEPILOT_SQLITE_JOURNAL_MODE | WAL | Use WAL on the Linux mini PC; use DELETE only when Docker mounts data from Windows | Bundled HomePilot synthetic voice identity; `male` is also available |
 | TTS_PROVIDER | kokoro | Primary local voice engine with Piper fallback |
-| TTS_BASE_URL | http://homepilot-tts:8088 | Internal Docker URL for TTS |
+| TTS_BASE_URL | http://127.0.0.1:8088 | Linux host-network URL for TTS; Docker Desktop overrides it to the service URL |
 | KOKORO_VOICE_ES | em_alex | Primary local Spanish Kokoro voice |
 | KOKORO_VOICE_EN | af_heart | Primary local English Kokoro voice |
 | PIPER_VOICE_ES | es_MX-claude-high | Local Piper fallback voice for Latin American Spanish |
@@ -597,7 +597,7 @@ WHISPER_MAX_AUDIO_BYTES=9000000
 | PIPER_VOICE_EN | en_US-lessac-medium | English Piper voice |
 | PIPER_SYNTHESIS_TIMEOUT_SECONDS | 20 | TTS generation timeout |
 | STT_PROVIDER | whisper-local | Transcription engine |
-| STT_BASE_URL | http://homepilot-stt:8090 | Internal Docker URL for STT |
+| STT_BASE_URL | http://127.0.0.1:8090 | Linux host-network URL for STT; Docker Desktop overrides it to the service URL |
 | STT_TIMEOUT_MS | 30000 | API transcription timeout |
 | WHISPER_MODEL | small | Whisper model used by STT |
 | WHISPER_COMPUTE_TYPE | int8 | Compute type optimized for local performance |

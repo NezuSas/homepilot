@@ -26,10 +26,10 @@ services:
       - HOMEPILOT_INTEGRATION_API_KEY=${HOMEPILOT_INTEGRATION_API_KEY:-}
 
       - TTS_PROVIDER=${TTS_PROVIDER:-kokoro}
-      - TTS_BASE_URL=${TTS_BASE_URL:-http://homepilot-tts:8088}
+      - TTS_BASE_URL=${TTS_BASE_URL:-http://127.0.0.1:8088}
       - TTS_TIMEOUT_MS=${TTS_TIMEOUT_MS:-12000}
       - STT_PROVIDER=${STT_PROVIDER:-whisper-local}
-      - STT_BASE_URL=${STT_BASE_URL:-http://homepilot-stt:8090}
+      - STT_BASE_URL=${STT_BASE_URL:-http://127.0.0.1:8090}
       - STT_TIMEOUT_MS=${STT_TIMEOUT_MS:-30000}
     extra_hosts:
       - "host.docker.internal:host-gateway"
