@@ -8,6 +8,12 @@ describe('sanitizeAssistantResponse', () => {
     expect(response).not.toContain('✅');
   });
 
+  it('preserves operational response rows', () => {
+    const response = sanitizeAssistantResponse('Oscar, Así está Cuarto Master ahora:\n• Encendidos (1): Dicroicos Trabajo.\n• Apagados (6): Dicroicos Cama, Led Cama y 4 más.');
+
+    expect(response).toBe('Oscar, Así está Cuarto Master ahora:\n• Encendidos (1): Dicroicos Trabajo.\n• Apagados (6): Dicroicos Cama, Led Cama y 4 más.');
+  });
+
   it('limits excessively long responses without splitting the final word', () => {
     const response = sanitizeAssistantResponse(`Resultado: ${'operación '.repeat(80)}`);
 
