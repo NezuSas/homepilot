@@ -107,14 +107,13 @@ export const HomeConversationMessageBubble: React.FC<HomeConversationMessageBubb
               </div>
             )}
 
-            <p className="whitespace-pre-wrap break-words text-body font-medium leading-relaxed">
+            <div className="space-y-2 break-words text-body font-medium leading-relaxed">
               {messageLines.map((line, index) => (
-                <React.Fragment key={`${message.id}-${index}`}>
+                <p key={`${message.id}-${index}`} className={line.length === 0 ? "h-1" : undefined}>
                   {line}
-                  {index < messageLines.length - 1 && <br />}
-                </React.Fragment>
+                </p>
               ))}
-            </p>
+            </div>
 
             {message.options && message.options.length > 0 && (
               <div className="mt-4 space-y-3 border-t border-border/50 pt-4">
