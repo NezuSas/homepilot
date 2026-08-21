@@ -18,7 +18,8 @@ const WAKE_SPEECH_LEVEL_THRESHOLD = 0.018;
 const WAKE_SPEECH_CONFIRMATION_MS = 120;
 const WAKE_NOISE_CALIBRATION_MS = 300;
 const WAKE_NOISE_FLOOR_MULTIPLIER = 1.6;
-const PASSIVE_STT_TIMEOUT_MS = 8000;
+// Low-power Edge appliances may need the full server-side STT window; aborting earlier cancels valid wake-word captures.
+const PASSIVE_STT_TIMEOUT_MS = 30_000;
 const PASSIVE_STT_RETRY_DELAY_MS = 1500;
 const GLOBAL_WAKE_LOCK_NAME = 'homepilot-global-wake-listener';
 

@@ -84,6 +84,7 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - Cuando se reconoce cualquier variante canónica del activador y HomePilot comienza a capturar una orden, la consola debe reproducir una confirmación sonora local breve. El sonido también debe emitirse al interrumpir una respuesta para iniciar una nueva captura, sin depender de red ni de TTS.
 - La confirmación sonora debe reproducirse inmediatamente después de que Whisper reconozca el activador, antes de iniciar la captura de la orden.
 - La escucha pasiva debe reanudarse inmediatamente al cerrar cada muestra de audio, incluso mientras la muestra anterior se convierte o transcribe; una llamada STT lenta o fallida no puede crear una zona ciega ni detener permanentemente el activador.
+- The passive wake-word transcription timeout must not be shorter than the local Edge STT timeout, so a low-power appliance cannot abort a valid Whisper response in the browser before the local service responds.
 - El ciclo global debe recuperarse automáticamente si falla `getUserMedia`, `MediaRecorder`, una pista del micrófono o la transcripción, sin requerir recargar la página.
 - Tras la confirmación sonora, si el usuario no comienza una orden en 2 segundos, HomePilot vuelve a la escucha pasiva sin encadenar capturas vacías.
 - Una vez iniciada la orden, HomePilot espera pausas naturales y finaliza la captura después de 2 segundos continuos de silencio.
