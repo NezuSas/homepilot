@@ -12,9 +12,13 @@ export type AssistantResponseCatalogParameters = {
   'action.cancelled': Record<never, never>;
   'confirmation.expired': Record<never, never>;
   'alias.deleted': { alias: string };
-  'draft.activated': Record<never, never>;
+  'draft.activated': { draftType?: 'scene' | 'routine' };
+  'draft.room_required': { draftType: 'scene' | 'routine' };
+  'draft.action_required': { draftType: 'scene' | 'routine' };
+  'draft.time_required': Record<never, never>;
+  'draft.prepared': { draftType: 'scene' | 'routine'; name: string; command: 'turn_on' | 'turn_off'; count: number; roomName: string; time?: string };
   'draft.activation_failed': Record<never, never>;
-  'draft.cancelled': Record<never, never>;
+  'draft.cancelled': { draftType?: 'scene' | 'routine' };
   'confirmation.none_pending': Record<never, never>;
   'confirmation.are_you_sure': Record<never, never>;
   'selection.follow_up_selected': { label: string };
@@ -162,16 +166,32 @@ const responseCatalog: AssistantResponseCatalog = {
     en: ({ alias }) => `Done, I deleted the alias '${alias}'.`,
   },
   'draft.activated': {
-    es: () => 'Listo. Escena activada correctamente. Sistemas alineados.',
-    en: () => 'Ready. Scene activated successfully. Systems aligned.',
+    es: ({ draftType }) => draftType === 'routine' ? 'Listo. Rutina activada correctamente.' : 'Listo. Escena activada correctamente. Sistemas alineados.',
+    en: ({ draftType }) => draftType === 'routine' ? 'Ready. Routine activated successfully.' : 'Ready. Scene activated successfully. Systems aligned.',
   },
   'draft.activation_failed': {
     es: () => 'No se pudo activar la escena.',
     en: () => 'Failed to activate draft.',
   },
   'draft.cancelled': {
-    es: () => 'Entendido, no activé la escena.',
-    en: () => "Understood, I didn't activate the scene.",
+    es: ({ draftType }) => `Entendido, no activé la ${draftType === 'routine' ? 'rutina' : 'escena'}.`,
+    en: ({ draftType }) => `Understood, I didn't activate the ${draftType === 'routine' ? 'routine' : 'scene'}.`,
+  },
+  'draft.room_required': {
+    es: ({ draftType }) => `Para crear la ${draftType === 'routine' ? 'rutina' : 'escena'}, indícame la estancia.`,
+    en: ({ draftType }) => `To create the ${draftType === 'routine' ? 'routine' : 'scene'}, tell me which room it belongs to.`,
+  },
+  'draft.action_required': {
+    es: ({ draftType }) => `Para crear la ${draftType === 'routine' ? 'rutina' : 'escena'}, indícame qué debe hacer, por ejemplo encender o apagar las luces.`,
+    en: ({ draftType }) => `To create the ${draftType === 'routine' ? 'routine' : 'scene'}, tell me what it should do, for example turn lights on or off.`,
+  },
+  'draft.time_required': {
+    es: () => 'Para crear la rutina, indícame la hora local, por ejemplo a las 22:30.',
+    en: () => 'To create the routine, tell me the local time, for example at 22:30.',
+  },
+  'draft.prepared': {
+    es: ({ draftType, name, command, count, roomName, time }) => `Preparé ${draftType === 'scene' ? 'la escena' : 'la rutina'} "${name}" para ${command === 'turn_on' ? 'encender' : 'apagar'} ${count} dispositivo${count === 1 ? '' : 's'} en ${roomName}${time ? ` a las ${time}` : ''}. ¿Quieres activarla ahora?`,
+    en: ({ draftType, name, command, count, roomName, time }) => `I prepared the ${draftType === 'routine' ? 'routine' : 'scene'} "${name}" to ${command === 'turn_on' ? 'turn on' : 'turn off'} ${count} device${count === 1 ? '' : 's'} in ${roomName}${time ? ` at ${time}` : ''}. Do you want to activate it now?`,
   },
   'confirmation.none_pending': {
     es: () => '¿Confirmar qué? No tengo ninguna acción pendiente.',

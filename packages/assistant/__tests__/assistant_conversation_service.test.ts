@@ -504,6 +504,57 @@ describe('AssistantConversationService', () => {
       expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
       expect(response).toEqual(expect.objectContaining({ type: 'clarification' }));
     });
+    it('Scenario: Given a named scene request When it includes room and action Then preserves its name and proposes activation', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-1', name: 'Luz Cuarto', type: 'light', roomId: 'r1', homeId: 'h1' })
+      ]);
+
+      const response = await service.converse({ prompt: 'Crea una escena llamada Cine en Cuarto Master para encender las luces', userId: 'scene-owner' }, 'es');
+
+      expect(mockDraftService.createSceneDraft).toHaveBeenCalledWith(
+        'h1',
+        'r1',
+        'Cine',
+        [{ deviceId: 'light-1', command: { name: 'turn_on', params: {} } }],
+        'draft:scene-owner:crea una escena llamada cine en cuarto master para encender las luces:r1'
+      );
+      expect(response).toEqual(expect.objectContaining({
+        type: 'clarification',
+        message: expect.stringContaining('escena "Cine"')
+      }));
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('Scenario: Given a named routine request When it includes a valid local time Then preserves the schedule and proposes activation', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-1', name: 'Luz Cuarto', type: 'light', roomId: 'r1', homeId: 'h1' })
+      ]);
+
+      const response = await service.converse({ prompt: 'Crea una rutina llamada Buenas noches en Cuarto Master para apagar las luces a las 22:30', userId: 'routine-owner' }, 'es');
+
+      expect(mockDraftService.createAutomationDraft).toHaveBeenCalledWith(
+        'h1',
+        'Buenas noches',
+        { type: 'time', value: '22:30' },
+        { devices: ['light-1'], command: 'turn_off' },
+        'draft:routine-owner:crea una rutina llamada buenas noches en cuarto master para apagar las luces a las 22:30:r1'
+      );
+      expect(response).toEqual(expect.objectContaining({
+        type: 'clarification',
+        message: expect.stringContaining('a las 22:30')
+      }));
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('Scenario: Given incomplete named requests When an action or routine time is missing Then asks for the missing safety-critical detail', async () => {
+      const sceneResponse = await service.converse({ prompt: 'Crea una escena llamada Cine en Cuarto Master', userId: 'draft-owner' }, 'es');
+      const routineResponse = await service.converse({ prompt: 'Crea una rutina llamada Noche en Cuarto Master para apagar las luces', userId: 'draft-owner' }, 'es');
+
+      expect(sceneResponse).toEqual(expect.objectContaining({ type: 'answer', message: expect.stringContaining('qué debe hacer') }));
+      expect(routineResponse).toEqual(expect.objectContaining({ type: 'answer', message: expect.stringContaining('hora local') }));
+      expect(mockDraftService.createSceneDraft).not.toHaveBeenCalled();
+      expect(mockDraftService.createAutomationDraft).not.toHaveBeenCalled();
+    });
   });
   describe('Feature: draft creation boundaries', () => {
     it('Scenario: Given a known room without assigned devices When a draft is requested Then explains that no draft can be made', async () => {

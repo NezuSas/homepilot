@@ -86,6 +86,7 @@ Introduce an intelligent assistant layer that detects system issues and suggests
 - The assistant must not claim that an action was executed unless the execution result confirms it.
 - The assistant must list only authorized rooms for home-scoped room-inventory questions, including Spanish requests for estancias, espacios, habitaciones, cuartos, and zonas.
 - The assistant must support creating a named room through the existing authorized Topology use case only after an explicit conversational confirmation; a missing name must request clarification and duplicate names must not be proposed.
+- The assistant must support creating named scenes and time-based routines through the existing draft workflow. A named scene requires an authorized room and an explicit controllable action; a named routine additionally requires a valid local time. The draft may become active only after an explicit conversational confirmation.
 
 
 ## 10. Perfil conversacional por usuario
