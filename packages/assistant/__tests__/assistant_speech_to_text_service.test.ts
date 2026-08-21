@@ -12,6 +12,18 @@ describe('AssistantSpeechToTextService', () => {
     jest.restoreAllMocks();
   });
 
+  it('enforces the low-power Edge timeout minimum for environment configuration', () => {
+    const previousTimeout = process.env.STT_TIMEOUT_MS;
+    process.env.STT_TIMEOUT_MS = '30000';
+
+    try {
+      const service = new AssistantSpeechToTextService();
+      expect((service as unknown as { timeoutMs: number }).timeoutMs).toBe(60_000);
+    } finally {
+      if (previousTimeout === undefined) delete process.env.STT_TIMEOUT_MS;
+      else process.env.STT_TIMEOUT_MS = previousTimeout;
+    }
+  });
   it('rejects empty audio', async () => {
     const service = new AssistantSpeechToTextService('whisper-local', 'http://stt.local', 1000);
 

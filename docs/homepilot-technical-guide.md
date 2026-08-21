@@ -574,7 +574,7 @@ PIPER_SYNTHESIS_TIMEOUT_SECONDS=20
 
 STT_PROVIDER=whisper-local
 STT_BASE_URL=http://127.0.0.1:8090
-STT_TIMEOUT_MS=30000
+STT_TIMEOUT_MS=60000
 WHISPER_MODEL=small
 WHISPER_COMPUTE_TYPE=int8
 WHISPER_BEAM_SIZE=3
@@ -598,7 +598,7 @@ WHISPER_MAX_AUDIO_BYTES=9000000
 | PIPER_SYNTHESIS_TIMEOUT_SECONDS | 20 | TTS generation timeout |
 | STT_PROVIDER | whisper-local | Transcription engine |
 | STT_BASE_URL | http://127.0.0.1:8090 | Linux host-network URL for STT; Docker Desktop overrides it to the service URL |
-| STT_TIMEOUT_MS | 30000 | API transcription timeout |
+| STT_TIMEOUT_MS | 60000 | API transcription timeout for low-power Edge hardware |
 | WHISPER_MODEL | small | Whisper model used by STT |
 | WHISPER_COMPUTE_TYPE | int8 | Compute type optimized for local performance |
 | WHISPER_BEAM_SIZE | 3 | Whisper decoding beam size |

@@ -29,10 +29,10 @@ services:
       TTS_PROVIDER: ${TTS_PROVIDER:-piper}
       # The API uses host networking on Linux; Docker service DNS is unavailable here.
       TTS_BASE_URL: http://127.0.0.1:8088
-      TTS_TIMEOUT_MS: ${TTS_TIMEOUT_MS:-12000}
+      TTS_TIMEOUT_MS: ${TTS_TIMEOUT_MS:-45000}
       STT_PROVIDER: ${STT_PROVIDER:-whisper-local}
       STT_BASE_URL: http://127.0.0.1:8090
-      STT_TIMEOUT_MS: ${STT_TIMEOUT_MS:-30000}
+      STT_TIMEOUT_MS: ${STT_TIMEOUT_MS:-60000}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s

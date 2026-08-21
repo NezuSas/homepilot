@@ -14,6 +14,12 @@ export class AssistantTextToSpeechValidationError extends Error {}
 export class AssistantTextToSpeechUnavailableError extends Error {}
 
 const MAX_TEXT_LENGTH = 4000;
+const MINIMUM_EDGE_TTS_TIMEOUT_MS = 45_000;
+
+function resolveEdgeTimeout(value: string | undefined, minimumMs: number): number {
+  const parsed = Number.parseInt(value ?? '', 10);
+  return Number.isFinite(parsed) ? Math.max(parsed, minimumMs) : minimumMs;
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -44,7 +50,7 @@ export class AssistantTextToSpeechService {
   constructor(
     private readonly provider = process.env.TTS_PROVIDER || 'kokoro',
     private readonly baseUrl = process.env.TTS_BASE_URL || 'http://localhost:8088',
-    private readonly timeoutMs = Number.parseInt(process.env.TTS_TIMEOUT_MS || '12000', 10)
+    private readonly timeoutMs = resolveEdgeTimeout(process.env.TTS_TIMEOUT_MS, MINIMUM_EDGE_TTS_TIMEOUT_MS)
   ) {}
 
   async synthesize(request: AssistantTextToSpeechRequest): Promise<AssistantTextToSpeechResponse> {

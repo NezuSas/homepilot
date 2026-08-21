@@ -12,6 +12,18 @@ describe('AssistantTextToSpeechService', () => {
     jest.restoreAllMocks();
   });
 
+  it('enforces the low-power Edge timeout minimum for environment configuration', () => {
+    const previousTimeout = process.env.TTS_TIMEOUT_MS;
+    process.env.TTS_TIMEOUT_MS = '12000';
+
+    try {
+      const service = new AssistantTextToSpeechService();
+      expect((service as unknown as { timeoutMs: number }).timeoutMs).toBe(45_000);
+    } finally {
+      if (previousTimeout === undefined) delete process.env.TTS_TIMEOUT_MS;
+      else process.env.TTS_TIMEOUT_MS = previousTimeout;
+    }
+  });
   it('rejects empty text', async () => {
     const service = new AssistantTextToSpeechService('piper', 'http://tts.local', 1000);
 

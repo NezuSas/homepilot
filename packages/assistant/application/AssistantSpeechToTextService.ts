@@ -17,6 +17,12 @@ export class AssistantSpeechToTextUnavailableError extends Error {}
 const MAX_AUDIO_BASE64_LENGTH = 12_000_000;
 const MAX_CONTEXT_TERMS = 40;
 const MAX_CONTEXT_TERM_LENGTH = 64;
+const MINIMUM_EDGE_STT_TIMEOUT_MS = 60_000;
+
+function resolveEdgeTimeout(value: string | undefined, minimumMs: number): number {
+  const parsed = Number.parseInt(value ?? '', 10);
+  return Number.isFinite(parsed) ? Math.max(parsed, minimumMs) : minimumMs;
+}
 
 function normalizeContextTerms(contextTerms: readonly string[] | undefined): string[] {
   if (!contextTerms) return [];
@@ -55,7 +61,7 @@ export class AssistantSpeechToTextService {
   constructor(
     private readonly provider = process.env.STT_PROVIDER || 'whisper-local',
     private readonly baseUrl = process.env.STT_BASE_URL || 'http://localhost:8090',
-    private readonly timeoutMs = Number.parseInt(process.env.STT_TIMEOUT_MS || '30000', 10)
+    private readonly timeoutMs = resolveEdgeTimeout(process.env.STT_TIMEOUT_MS, MINIMUM_EDGE_STT_TIMEOUT_MS)
   ) {}
 
   async transcribe(request: AssistantSpeechToTextRequest): Promise<AssistantSpeechToTextResponse> {
