@@ -51,6 +51,7 @@ import { extractNezuWakeCommand } from '../../shared/domain/nezuWakePhrases';
 import { formatNaturalSpanishTime, getSpanishDayPeriod } from './NaturalDateTimeFormatter';
 import { detectAssistantLanguage, detectAssistantLanguageOverride } from './AssistantLanguagePolicy';
 import { AssistantAliasManagementService } from './AssistantAliasManagementService';
+import { DomesticSkillResolver } from './DomesticSkillResolver';
 import { normalizeAssistantPrompt } from './AssistantPromptNormalizer';
 import { ScopeFilter } from './ScopeFilter';
 import { PermissionGate } from './PermissionGate';
@@ -159,12 +160,15 @@ export class AssistantConversationService {
     private readonly fastPathResolver: AssistantFastPathResolver = new AssistantFastPathResolver(),
     aliasManagementService?: AssistantAliasManagementService,
     private readonly homeRepository?: HomeRepository,
-    private readonly confirmationTicketRepository?: ConfirmationTicketRepository
+    private readonly confirmationTicketRepository?: ConfirmationTicketRepository,
+    domesticSkillResolver?: DomesticSkillResolver
   ) {
     this.aliasManagementService = aliasManagementService ?? new AssistantAliasManagementService(memoryService, deviceRepository, roomRepository);
     this.permissionGate = new PermissionGate(deviceRepository, roomRepository, sceneRepository, automationRepository, homeRepository);
+    this.domesticSkillResolver = domesticSkillResolver ?? new DomesticSkillResolver(this.permissionGate);
   }
 
+  private readonly domesticSkillResolver: DomesticSkillResolver;
   private readonly aliasManagementService: AssistantAliasManagementService;
   private readonly permissionGate: PermissionGate;
   private readonly scopeFilter = new ScopeFilter();
@@ -507,6 +511,36 @@ export class AssistantConversationService {
         type: 'answer',
         message: getAssistantResponsePreferenceAcknowledgement(responsePreferenceOverride, language)
       };
+    }
+
+    const domesticSkillResponse = await this.domesticSkillResolver.resolve(activePrompt, userId, language);
+    const domesticFollowUpResponse = await this.handleDomesticSkillFollowUp(resolvedNormalized, memory, userId, language);
+    if (domesticFollowUpResponse) return this.returnWithShadow(activePrompt, userId, language, domesticFollowUpResponse, 'standard', false, false);
+    if (domesticSkillResponse) {
+      const roomEntity: AssistantMemoryEntity[] = domesticSkillResponse.context.room
+        ? [{
+          id: domesticSkillResponse.context.room.id,
+          name: domesticSkillResponse.context.room.name,
+          type: 'room',
+          roomId: domesticSkillResponse.context.room.id,
+          roomName: domesticSkillResponse.context.room.name
+        }]
+        : [];
+      await this.memoryService.saveShortTermMemory(userId, {
+        ...(memory ?? {}),
+        lastQueryType: 'domestic_skill',
+        entities: [...roomEntity, ...domesticSkillResponse.context.entities],
+        timestamp: new Date().toISOString()
+      });
+      return this.returnWithShadow(
+        activePrompt,
+        userId,
+        language,
+        { type: 'answer', message: domesticSkillResponse.message },
+        'standard',
+        false,
+        false
+      );
     }
 
     if (!this.isLikelyHomeControlPrompt(resolvedNormalized)) {
@@ -1005,6 +1039,59 @@ export class AssistantConversationService {
     if (normalized.includes('turn on')) return 'turn_on';
 
     return undefined;
+  }
+
+  private async handleDomesticSkillFollowUp(
+    normalized: string,
+    memory: AssistantMemoryState | null,
+    userId: string,
+    language: 'es' | 'en'
+  ): Promise<AssistantConversationResponse | null> {
+    if (!memory || memory.lastQueryType !== 'domestic_skill' || memory.entities.length === 0 || !this.isDomesticSkillFollowUpPrompt(normalized)) return null;
+
+    const [devices, scenes] = await Promise.all([
+      this.permissionGate.getAuthorizedDevices(userId),
+      this.permissionGate.getAuthorizedScenes(userId)
+    ]);
+    const availableDeviceIds = new Set(devices.filter((device) => this.scopeFilter.isDeviceAvailable(device)).map((device) => device.id));
+    const availableSceneIds = new Set(scenes.map((scene) => scene.id));
+    const candidates = memory.entities.filter((entity) => entity.type === 'scene'
+      ? availableSceneIds.has(entity.id)
+      : entity.type !== 'room' && availableDeviceIds.has(entity.id));
+
+    if (candidates.length === 0) {
+      return {
+        type: 'answer',
+        message: language === 'en' ? 'Those previous options are no longer available. Ask me for current options and I will check again.' : 'Las opciones anteriores ya no están disponibles. Pídeme las opciones actuales y las revisaré de nuevo.'
+      };
+    }
+
+    const preferredScene = candidates.find((entity) => entity.type === 'scene');
+    if (this.isDomesticRecommendationPrompt(normalized) && preferredScene) {
+      const command = language === 'en' ? `activate ${preferredScene.name}` : `activa ${preferredScene.name}`;
+      return {
+        type: 'answer',
+        message: language === 'en' ? `From the options I found, I recommend ${preferredScene.name}. To use it, say: “${command}”.` : `De las opciones que encontré, te recomiendo ${preferredScene.name}. Para usarla, puedes decir: “${command}”.`
+      };
+    }
+
+    const listedCandidates = candidates.slice(0, 4).map((entity) => `• ${entity.name}`).join('\n');
+    return {
+      type: 'answer',
+      message: language === 'en' ? `The options from the previous recommendation that are still available are:\n${listedCandidates}` : `Las opciones de la recomendación anterior que siguen disponibles son:\n${listedCandidates}`
+    };
+  }
+
+  private isDomesticSkillFollowUpPrompt(normalized: string): boolean {
+    const recommendationRequests = ['cual recomiendas', 'que recomiendas', 'cual es mejor', 'which do you recommend', 'what do you recommend', 'which one is best'];
+    const moreOptionsRequests = ['que mas hay', 'que otras opciones', 'muestrame mas opciones', 'what else is available', 'what other options', 'show me more options'];
+    return recommendationRequests.some((request) => normalized.includes(request))
+      || moreOptionsRequests.some((request) => normalized.includes(request));
+  }
+
+  private isDomesticRecommendationPrompt(normalized: string): boolean {
+    const recommendationRequests = ['cual recomiendas', 'que recomiendas', 'cual es mejor', 'which do you recommend', 'what do you recommend', 'which one is best'];
+    return recommendationRequests.some((request) => normalized.includes(request));
   }
 
   private isEquivalenceQuery(normalized: string): boolean {

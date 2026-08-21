@@ -23,6 +23,7 @@ import {
   createMockSmartEntityResolver,
   createRealSmartEntityResolver,
   createMockAssistantSuggestionService,
+  createTestScene,
   createTestDevice,
   createTestRoom,
   createMockSystemVariableService
@@ -1078,7 +1079,7 @@ describe('AssistantConversationService', () => {
       });
 
       const prompts = [
-        "dime algo interesante sobre mi casa",
+        "dime algo divertido de mi casa",
         "qué opinas de la automatización",
         "cuéntame algo divertido"
       ];
@@ -1092,8 +1093,43 @@ describe('AssistantConversationService', () => {
       }
     });
 
+    it('returns a factual domestic insight without invoking small talk or execution', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([createTestDevice({ id: 'light-1', name: 'Luz Sala', lastKnownState: { on: true } })]);
+
+      const response = await service.converse({ prompt: 'Dime algo interesante sobre mi casa', userId: 'user-1' }, 'es');
+
+      expect(response.message).toContain('Tu casa tiene actualmente');
+      expect(mockSmallTalk.handle).not.toHaveBeenCalled();
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+      expect(mockInterpreter.interpret).not.toHaveBeenCalled();
+      expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('user-1', expect.objectContaining({
+        lastQueryType: 'domestic_skill',
+        entities: []
+      }));
+    });
+
+    it('continues a domestic recommendation with only the currently authorized scene', async () => {
+      mockMemory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'domestic_skill',
+        timestamp: new Date().toISOString(),
+        entities: [
+          { id: 'room-1', name: 'Sala', type: 'room', roomId: 'room-1', roomName: 'Sala' },
+          { id: 'scene-cine', name: 'Cine en casa', type: 'scene', roomId: 'room-1', roomName: 'Sala' }
+        ]
+      });
+      mockSceneRepo.findAll.mockResolvedValue([createTestScene({ id: 'scene-cine', name: 'Cine en casa', roomId: 'room-1' })]);
+
+      const response = await service.converse({ prompt: '¿Cuál recomiendas?', userId: 'user-1' }, 'es');
+
+      expect(response.type).toBe('answer');
+      expect(response.message).toContain('Cine en casa');
+      expect(response.message).toContain('activa Cine en casa');
+      expect(mockSmallTalk.handle).not.toHaveBeenCalled();
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+      expect(mockInterpreter.interpret).not.toHaveBeenCalled();
+    });
+
     it('should answer quickly when a likely home control prompt remains unknown', async () => {
-      mockInterpreter.interpret.mockResolvedValue({ type: 'unknown', prompt: 'enciende luz fantasma', reason: 'mock' });
       mockSmallTalk.handle.mockResolvedValue({
         type: 'answer',
         message: 'Fallback fallback'

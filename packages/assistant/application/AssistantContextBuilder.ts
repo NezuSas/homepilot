@@ -218,21 +218,23 @@ export class AssistantContextBuilder implements AssistantContextBuilderPort {
    * Format: name|room|type|state
    */
   public async buildUltraLightLlmHomeMap(prompt: string, userId: string | null = 'system'): Promise<{ text: string, devicesCount: number }> {
-    const [allDevices, allScenes, allRooms, allAliases] = await Promise.all([
+    // Small-talk never resolves a command. Avoid scene and alias reads unless
+    // the prompt can actually reference them, keeping the local fallback path
+    // cheap on low-power Edge hardware.
+    const lowerPrompt = prompt.toLowerCase();
+    const needsScenes = lowerPrompt.includes('escena') || lowerPrompt.includes('scene') || lowerPrompt.includes('modo') || lowerPrompt.includes('mode');
+    const needsMemory = lowerPrompt.match(/\b(it|them|esa|ese|eso|la primera|lo primero|enciéndela|apágala|enciendelo|apagalo)\b/i) !== null;
+    const needsAliases = needsMemory || lowerPrompt.includes('alias');
+    const [allDevices, allRooms, allAliases, allScenes] = await Promise.all([
       this.getAuthorizedDevices(userId),
-      this.getAuthorizedScenes(userId),
       this.getAuthorizedRooms(userId),
-      this.memoryService && userId ? this.memoryService.getAliases(userId) : Promise.resolve([])
+      this.memoryService && userId && needsAliases ? this.memoryService.getAliases(userId) : Promise.resolve([]),
+      needsScenes ? this.getAuthorizedScenes(userId) : Promise.resolve([])
     ]);
 
     const roomMap = new Map<string, string>(allRooms.map(r => [r.id, r.name]));
     const aliases = (allAliases || {}) as Record<string, string>;
     const aliasEntries = Object.entries(aliases);
-
-    // Context detection
-    const lowerPrompt = prompt.toLowerCase();
-    const needsScenes = lowerPrompt.includes('escena') || lowerPrompt.includes('scene') || lowerPrompt.includes('modo') || lowerPrompt.includes('mode');
-    const needsMemory = lowerPrompt.match(/\b(it|them|esa|ese|eso|la primera|lo primero|enciéndela|apágala|enciendelo|apagalo)\b/i) !== null;
 
     let text = "Rooms: " + allRooms.map(r => r.name).join(', ') + "\nDevices:\n";
     

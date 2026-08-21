@@ -10,6 +10,7 @@ describe('AssistantSmallTalkService', () => {
 
   beforeEach(() => {
     process.env.OLLAMA_ENABLED = 'true';
+    delete process.env.ASSISTANT_CONVERSATIONAL_LLM_PROVIDER;
     mockOllama = createMockOllamaClient();
     mockContextBuilder = createMockAssistantContextBuilder({
       buildUltraLightLlmHomeMap: jest.fn().mockResolvedValue({ text: 'Devices: none', devicesCount: 0 })
@@ -35,8 +36,8 @@ describe('AssistantSmallTalkService', () => {
     await service.handle('dime algo interesante', 'es');
 
     const callArg = mockOllama.generateJson.mock.calls[0][0];
-    expect(callArg).toContain(`${'a'.repeat(160)}…`);
-    expect(callArg).not.toContain('a'.repeat(161));
+    expect(callArg).toContain(`${'a'.repeat(120)}…`);
+    expect(callArg).not.toContain('a'.repeat(121));
   });
 
   it('should pass userId to contextBuilder if provided', async () => {
@@ -63,8 +64,25 @@ describe('AssistantSmallTalkService', () => {
     
     expect(response.type).toBe('answer');
     expect(response.message).toBe('Hello from Ollama');
-    expect(mockOllama.generateJson).toHaveBeenCalledWith(expect.any(String), { timeoutMs: 2500, numPredict: 32 });
-    expect(mockOllama.generateJson.mock.calls[0][0]).toContain('maximum seven words');
+    expect(mockOllama.generateJson).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ timeoutMs: 800, numPredict: 20, format: expect.objectContaining({ type: 'object' }) }));
+    expect(mockOllama.generateJson.mock.calls[0][0]).toContain('at most 56 characters');
+  });
+
+  it('should return a complete clause when Ollama reaches the response limit', async () => {
+    mockOllama.generateJson.mockResolvedValue({ text: 'Tu casa es un lugar tranquilo y acogedor, perfecto para relajarte con la' });
+
+    const response = await service.handle('dime algo interesante', 'es');
+
+    expect(response.message).toBe('Tu casa es un lugar tranquilo y acogedor.');
+  });
+
+  it('should return an authorized device summary when Ollama is unavailable', async () => {
+    mockContextBuilder.buildUltraLightLlmHomeMap.mockResolvedValue({ text: 'Devices: seven', devicesCount: 7 });
+    mockOllama.generateJson.mockRejectedValue(new Error('timeout'));
+
+    const response = await service.handle('dime algo interesante', 'es');
+
+    expect(response.message).toBe('Tu casa tiene 7 dispositivos disponibles para consultar y controlar.');
   });
 
   it('should return fallback when Ollama returns malformed object', async () => {
@@ -73,7 +91,7 @@ describe('AssistantSmallTalkService', () => {
     const response = await service.handle('hola', 'es');
     
     expect(response.type).toBe('answer');
-    expect(response.message).toContain('No estoy seguro');
+    expect(response.message).toBe('Tu casa tiene 0 dispositivos disponibles para consultar y controlar.');
   });
 
   it('should return fallback when Ollama returns empty text', async () => {
@@ -82,7 +100,7 @@ describe('AssistantSmallTalkService', () => {
     const response = await service.handle('hola', 'es');
     
     expect(response.type).toBe('answer');
-    expect(response.message).toContain('No estoy seguro');
+    expect(response.message).toBe('Tu casa tiene 0 dispositivos disponibles para consultar y controlar.');
   });
 
   it('should return English fallback when language is en', async () => {
@@ -91,16 +109,30 @@ describe('AssistantSmallTalkService', () => {
     const response = await service.handle('hi', 'en');
     
     expect(response.type).toBe('answer');
-    expect(response.message).toContain('I’m not sure');
+    expect(response.message).toBe('Your home has 0 devices ready to check or control.');
   });
 
-  it('should return fallback when OLLAMA_ENABLED is false', async () => {
+  it('should return a general assistant fallback when OLLAMA_ENABLED is false', async () => {
     process.env.OLLAMA_ENABLED = 'false';
     
     const response = await service.handle('hola', 'es');
     
     expect(response.type).toBe('answer');
-    expect(response.message).toContain('No estoy seguro');
+    expect(response.message).toBe('Puedo ayudarte a consultar tu casa, controlar dispositivos y explorar escenas disponibles.');
     expect(mockOllama.generateJson).not.toHaveBeenCalled();
+  });
+
+  it('uses the configured Cloudflare conversational client without enabling Ollama', async () => {
+    process.env.OLLAMA_ENABLED = 'false';
+    process.env.ASSISTANT_CONVERSATIONAL_LLM_PROVIDER = 'cloudflare';
+    mockOllama.generateJson.mockResolvedValue({ text: 'Respuesta desde Cloudflare' });
+
+    const response = await service.handle('dime algo interesante', 'es');
+
+    expect(response).toEqual(expect.objectContaining({
+      message: 'Respuesta desde Cloudflare',
+      llmAttempted: true
+    }));
+    expect(mockOllama.generateJson).toHaveBeenCalledTimes(1);
   });
 });

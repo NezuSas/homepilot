@@ -101,12 +101,14 @@ describe('AssistantContextBuilder scoped and lightweight maps', () => {
     const plain = await builder.buildUltraLightLlmHomeMap('turn on the light', 'user-1');
     const contextual = await builder.buildUltraLightLlmHomeMap('activate scene and turn it off', 'user-1');
 
-    expect(plain).toEqual(expect.objectContaining({ devicesCount: 1, text: expect.stringContaining('Kitchen light|No Room|light|on|alias:kitchen') }));
+    expect(plain).toEqual(expect.objectContaining({ devicesCount: 1, text: expect.stringContaining('Kitchen light|No Room|light|on') }));
+    expect(plain.text).not.toContain('alias:kitchen');
     expect(plain.text).not.toContain('Scenes:');
     expect(plain.text).not.toContain('Memory:');
     expect(contextual.text).toContain('Scenes: Movie');
     expect(contextual.text).toContain('Memory: Kitchen light');
     expect(assistantMemory.getShortTermMemory).toHaveBeenCalledWith('user-1');
+    expect(assistantMemory.getAliases).toHaveBeenCalledTimes(1);
   });
   it('limits recent action context and does not read user memory without an identity', async () => {
     const devices = createMockDeviceRepository({ findAll: jest.fn().mockResolvedValue([]) });

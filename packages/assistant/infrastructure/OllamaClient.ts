@@ -19,6 +19,23 @@ export class OllamaClient implements OllamaClientPort {
    * `keep_alive` keeps the model resident between requests — without it, every
    * single call pays the full model-load cost on top of inference time.
    */
+  /**
+   * Keeps the configured model resident before the first customer request.
+   * Callers must treat a failure as non-fatal: deterministic HomePilot flows
+   * remain available even when the local model is unavailable.
+   */
+  public async warmUp(timeoutMs: number = 5_000): Promise<void> {
+    await this.generateJson('Return JSON where ready is true.', {
+      timeoutMs,
+      numPredict: 8,
+      format: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['ready'],
+        properties: { ready: { type: 'boolean' } }
+      }
+    });
+  }
   public async generateJson(prompt: string, options?: OllamaGenerateOptions): Promise<unknown> {
     const targetModel = options?.model || this.model;
     const targetTimeout = options?.timeoutMs || this.timeoutMs;

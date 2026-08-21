@@ -15,11 +15,14 @@ import { DatabaseBackupService } from './packages/shared/infrastructure/database
 import { IntentInterpreterService } from './packages/assistant/application/IntentInterpreterService';
 import { AssistantMultiCommandParser } from './packages/assistant/application/AssistantMultiCommandParser';
 import { OllamaClient } from './packages/assistant/infrastructure/OllamaClient';
+import { CloudflareWorkersAiClient } from './packages/assistant/infrastructure/CloudflareWorkersAiClient';
 import { AssistantContextBuilder } from './packages/assistant/application/AssistantContextBuilder';
 import { LlmIntentInterpreter } from './packages/assistant/application/LlmIntentInterpreter';
 import { AssistantConfirmationPolicy } from './packages/assistant/application/AssistantConfirmationPolicy';
 import { AssistantMemoryService } from './packages/assistant/application/AssistantMemoryService';
 import { AssistantConversationService } from './packages/assistant/application/AssistantConversationService';
+import { DomesticSkillResolver } from './packages/assistant/application/DomesticSkillResolver';
+import { PermissionGate } from './packages/assistant/application/PermissionGate';
 import { AssistantFastPathResolver } from './packages/assistant/application/AssistantFastPathResolver';
 import { AssistantAliasManagementService } from './packages/assistant/application/AssistantAliasManagementService';
 import { AssistantSmallTalkService } from './packages/assistant/application/AssistantSmallTalkService';
@@ -260,6 +263,12 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
 
   if (process.env.OLLAMA_ENABLED === 'true') {
     console.log(`[Assistant] Ollama enabled: model=${process.env.OLLAMA_MODEL || 'phi3'}, baseUrl=${process.env.OLLAMA_BASE_URL || 'http://localhost:11434'}`);
+    if (process.env.OLLAMA_PREWARM !== 'false') {
+      void ollamaClient.warmUp().then(
+        () => console.log('[Assistant] Ollama model is ready for local conversations.'),
+        () => console.warn('[Assistant] Ollama prewarm unavailable; deterministic assistant flows remain ready.')
+      );
+    }
   }
   const assistantMemoryService = new AssistantMemoryService(repos.executionRecordRepository, repos.assistantMemoryRepository);
   const assistantLearningService = new AssistantLearningService(repos.assistantLearningRepository);
@@ -293,7 +302,25 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     repos.deviceRepository
   );
 
-  const assistantSmallTalkService = new AssistantSmallTalkService(ollamaClient, contextBuilder);
+  const conversationalProvider = process.env.ASSISTANT_CONVERSATIONAL_LLM_PROVIDER || 'ollama';
+  const cloudflareAccountId = process.env.CLOUDFLARE_AI_ACCOUNT_ID;
+  const cloudflareApiToken = process.env.CLOUDFLARE_AI_API_TOKEN;
+  const conversationalLlmClient = conversationalProvider === 'cloudflare' && cloudflareAccountId && cloudflareApiToken
+    ? new CloudflareWorkersAiClient(
+      cloudflareAccountId,
+      cloudflareApiToken,
+      process.env.CLOUDFLARE_AI_MODEL || '@cf/meta/llama-3.1-8b-instruct-fast',
+      parseInt(process.env.CLOUDFLARE_AI_TIMEOUT_MS || '2200')
+    )
+    : conversationalProvider === 'ollama'
+      ? ollamaClient
+      : undefined;
+
+  if (conversationalProvider === 'cloudflare' && !conversationalLlmClient) {
+    console.warn('[Assistant] Cloudflare Workers AI is selected but missing account ID or API token; using deterministic conversational fallback.');
+  }
+
+  const assistantSmallTalkService = new AssistantSmallTalkService(conversationalLlmClient, contextBuilder);
 
   const plannerV2Validator = new PlannerV2Validator();
   const plannerV2Resolver = new PlannerV2Resolver(repos.deviceRepository, repos.roomRepository, repos.sceneRepository, assistantMemoryService, repos.homeRepository);
@@ -301,6 +328,14 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   const assistantTextToSpeechService = new AssistantTextToSpeechService();
   const assistantSpeechToTextService = new AssistantSpeechToTextService();
 
+  const assistantPermissionGate = new PermissionGate(
+    repos.deviceRepository,
+    repos.roomRepository,
+    repos.sceneRepository,
+    repos.automationRuleRepository,
+    repos.homeRepository
+  );
+  const domesticSkillResolver = new DomesticSkillResolver(assistantPermissionGate);
   const assistantFastPathResolver = new AssistantFastPathResolver();
   const assistantAliasManagementService = new AssistantAliasManagementService(
     assistantMemoryService,
@@ -329,7 +364,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     assistantFastPathResolver,
     assistantAliasManagementService,
     repos.homeRepository,
-    repos.confirmationTicketRepository
+    repos.confirmationTicketRepository,
+    domesticSkillResolver
   );
 
   const container: BootstrapContainer = {

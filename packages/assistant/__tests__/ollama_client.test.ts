@@ -104,4 +104,19 @@ describe('OllamaClient', () => {
 
     await expect(client.generateJson('test')).rejects.toThrow('Failed to parse Ollama response as JSON');
   });
+  it('preloads the configured local model with a bounded structured request', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({ response: JSON.stringify({ ready: true }) }),
+    });
+
+    await client.warmUp(750);
+
+    const [, init] = (global.fetch as jest.Mock).mock.calls[0];
+    const body = JSON.parse(init.body);
+    expect(body.model).toBe(model);
+    expect(body.keep_alive).toBe('30m');
+    expect(body.options.num_predict).toBe(8);
+    expect(init.body).toContain('Return JSON where ready is true.');
+  });
 });
