@@ -204,6 +204,15 @@ describe('Assistant Management V1', () => {
   });
 
   describe('Room creation', () => {
+    it('lists authorized rooms for singular Spanish room questions with a natural response', async () => {
+      roomRepo.findAll.mockResolvedValue([{ id: 'room-library', name: 'Biblioteca' }]);
+
+      const response = await service.converse({ prompt: 'Qué estancia tengo?', userId: 'manager' }, 'es');
+
+      expect(response).toEqual({ type: 'answer', message: 'Claro. Estas son las estancias que tienes:\n• Biblioteca' });
+      expect(smallTalk.handle).not.toHaveBeenCalled();
+    });
+
     it('asks for a room name instead of using the general conversation fallback', async () => {
       const response = await service.converse({ prompt: 'Puedo agregar una estancia?', userId: 'manager' }, 'es');
 
@@ -258,7 +267,7 @@ describe('Assistant Management V1', () => {
 
     it('proposes, confirms, and renames an authorized room through the management port', async () => {
       roomRepo.findAll.mockResolvedValue([{ id: 'room-library', name: 'Biblioteca' }]);
-      const proposal = await service.converse({ prompt: 'Renombra la estancia Biblioteca a Estudio', userId: 'manager' }, 'es');
+      const proposal = await service.converse({ prompt: 'Cambia de nombre la estancia Biblioteca a Estudio', userId: 'manager' }, 'es');
 
       expect(proposal.type).toBe('clarification');
       expect(proposal.message).toContain('Voy a cambiar el nombre de la estancia "Biblioteca" a "Estudio"');

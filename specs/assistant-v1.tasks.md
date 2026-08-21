@@ -12,6 +12,7 @@
 - [x] Route home-scoped room-inventory questions for estancias, espacios, habitaciones, cuartos, and zonas before the general-conversation fallback; covered by assistant_conversation_service.test.ts.
 - [x] Route named room-creation requests through an explicit confirmation and the existing Topology use case; request the missing name, preserve its casing, and reject duplicates. Covered by assistant_management_v1.test.ts.
 - [x] Route named room-renaming and deletion requests through explicit confirmations and existing Topology use cases; disclose device unassignment before deletion. Cover create, rename, delete, duplicates, cancellation, and revalidation.
+- [x] Recognize natural Spanish room-management variations, including singular room inventory questions and "cambia de nombre la estancia … a …"; preserve home scoping and provide an actionable conversational response.
 - [x] Route named scene and routine requests through the existing draft workflow; require the room and action for scenes, and a valid local time for routines, before proposing activation. Covered by assistant_conversation_service.test.ts.
 
 

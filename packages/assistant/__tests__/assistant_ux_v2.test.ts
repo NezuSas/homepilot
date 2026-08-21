@@ -474,7 +474,7 @@ describe('AssistantConversationService UX V2', () => {
     const res = await service.converse({ prompt: 'qué estancias conoces', userId: 'u1' });
 
     expect(res.type).toBe('answer');
-    expect(res.message).toContain('Conozco estas estancias:');
+    expect(res.message).toContain('Claro. Estas son las estancias que tienes:');
     expect(res.message).toContain('• Sala');
     expect(res.message).toContain('• Cocina');
   });

@@ -1307,7 +1307,8 @@ export class AssistantConversationService {
     const triggers = [
       'que estancias conoces', 'que estancia conoces', 'que estancia nomas conoces',
       'que cuartos conoces', 'que habitaciones tienes', 'que zonas conoces',
-      'que estancias tengo', 'que espacios tengo', 'que habitaciones tengo', 'que cuartos tengo', 'que zonas tengo',
+      'que estancias tengo', 'que estancia tengo', 'que espacios tengo', 'que espacio tengo',
+      'que habitaciones tengo', 'que habitacion tengo', 'que cuartos tengo', 'que cuarto tengo', 'que zonas tengo', 'que zona tengo',
       'que estancias o espacios tengo', 'que espacios o estancias tengo',
       'what rooms do you know', 'what areas do you know', 'what rooms do i have', 'list rooms'
     ];
@@ -1345,7 +1346,7 @@ export class AssistantConversationService {
   }
 
   private extractRoomRenameRequest(prompt: string): { currentName: string; newName: string } | null {
-    const match = prompt.match(/(?:renombra|cambia el nombre de)\s+(?:(?:la|el)\s+)?(?:estancia|habitación|habitacion|cuarto|espacio|zona)\s+(.+?)\s+(?:a|por)\s+(.+)$/i) ??
+    const match = prompt.match(/(?:renombra|cambia el nombre de|cambia de nombre)\s+(?:(?:la|el)\s+)?(?:estancia|habitación|habitacion|cuarto|espacio|zona)\s+(.+?)\s+(?:a|por)\s+(.+)$/i) ??
       prompt.match(/(?:rename|change name of)\s+(?:the\s+)?(?:room|area|space|zone)\s+(.+?)\s+to\s+(.+)$/i);
     if (!match) return null;
 
@@ -1380,8 +1381,8 @@ export class AssistantConversationService {
     return {
       type: 'answer',
       message: language === 'en'
-        ? `I know these rooms:\n${roomList}`
-        : `Conozco estas estancias:\n${roomList}`
+        ? `Here are the rooms you have:\n${roomList}`
+        : `Claro. Estas son las estancias que tienes:\n${roomList}`
     };
   }
 
