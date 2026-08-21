@@ -1278,7 +1278,7 @@ describe('AssistantConversationService', () => {
       expect(response.type).toBe('answer');
       expect(response.message).toContain('No estoy seguro');
     });
-  });  describe('Feature: deterministic conversational parsing helpers', () => {
+  });  describe('Feature: deterministic conversational parsing helpers', () => {
     it('resolves confirmation polarity, ordinal choices, labels, and safe command inference', () => {
       const internals = service as unknown as {
         isConfirmation(value: string): boolean;
@@ -1681,46 +1681,12 @@ describe('AssistantConversationService', () => {
     expect(internals.resolveRoomAlias('unknown', rooms, [device], 'user-1', { unknown: 'device-1' })).toMatchObject({ status: 'not_found' });
   });
 
-  describe('Feature: conversation preferences and confirmation tickets', () => {
+  describe('Feature: conversation preferences and direct household commands', () => {
     it('Scenario: Given a Spanish preferred-address instruction When it is accepted Then it is persisted and acknowledged in Spanish', async () => {
       const response = await service.converse({ prompt: 'llámame Sofía', userId: 'user-sofia' }, 'es');
 
       expect(mockMemory.setUserPreference).toHaveBeenCalledWith('user-sofia', 'assistant_preferred_address', 'Sofía');
-      expect(response).toEqual({
-        type: 'answer',
-        message: 'Entendido. Me dirigiré a ti como Sofía en la conversación general.'
-      });
-    });
-
-    it('Scenario: Given a legacy runtime without a ticket repository When a bulk proposal is prepared Then it stays non-executable and does not throw', async () => {
-      const legacyInternals = service as unknown as {
-        createConfirmationTicket(userId: string, homeId: string, command: 'turn_off', deviceIds: string[], originalPrompt: string, bulkType?: 'all' | 'lights'): Promise<void>;
-      };
-
-      await expect(legacyInternals.createConfirmationTicket('legacy-user', 'home-1', 'turn_off', ['light-1'], 'apaga todo', 'all')).resolves.toBeUndefined();
-      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
-    });
-    it('Scenario: Given a bulk action requiring confirmation When a ticket is proposed Then it stores one bounded confirmation record', async () => {
-      const create = jest.fn().mockResolvedValue(undefined);
-      const internals = service as unknown as {
-        confirmationTicketRepository: { create(ticket: { userId: string; homeId: string; command: string; deviceIds: string[]; originalPrompt: string; bulkType?: string; createdAt: string; expiresAt: string; consumedAt: null }): Promise<void> } | undefined;
-        createConfirmationTicket(userId: string, homeId: string, command: 'turn_off', deviceIds: string[], originalPrompt: string, bulkType?: 'all' | 'lights'): Promise<void>;
-      };
-      internals.confirmationTicketRepository = { create };
-
-      await internals.createConfirmationTicket('user-1', 'home-1', 'turn_off', ['light-1', 'light-2'], 'apaga las luces', 'lights');
-
-      expect(create).toHaveBeenCalledWith(expect.objectContaining({
-        userId: 'user-1',
-        homeId: 'home-1',
-        command: 'turn_off',
-        deviceIds: ['light-1', 'light-2'],
-        originalPrompt: 'apaga las luces',
-        bulkType: 'lights',
-        consumedAt: null,
-      }));
-      const ticket = create.mock.calls[0][0] as { createdAt: string; expiresAt: string };
-      expect(new Date(ticket.expiresAt).getTime() - new Date(ticket.createdAt).getTime()).toBe(120_000);
+      expect(response).toEqual({ type: 'answer', message: 'Entendido. Me dirigiré a ti como Sofía en la conversación general.' });
     });
   });
   describe('Feature: point-state assistant answers', () => {

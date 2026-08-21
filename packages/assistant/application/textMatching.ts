@@ -93,6 +93,46 @@ export function wordSimilarity(a: string, b: string): number {
 }
 
 /**
+ * Produces a conservative Spanish-oriented phonetic key for speech recognition
+ * variations. It does not encode device names: callers still compare only against
+ * the authorized inventory vocabulary.
+ */
+function spanishPhoneticKey(value: string): string {
+  return normalizeText(value)
+    .replace(/qu/g, 'k')
+    .replace(/[ckq]/g, 'k')
+    .replace(/v/g, 'b')
+    .replace(/[zs]/g, 's')
+    .replace(/h/g, '')
+    .replace(/ll/g, 'y')
+    .replace(/([aeiou])\1+/g, '$1');
+}
+
+function phoneticInventoryMatch(input: string, candidate: string): boolean {
+  const inputKey = spanishPhoneticKey(input);
+  const candidateKey = spanishPhoneticKey(candidate);
+  const shortest = Math.min(inputKey.length, candidateKey.length);
+  const lengthDelta = Math.abs(inputKey.length - candidateKey.length);
+
+  const phoneticSimilarity = wordSimilarity(inputKey, candidateKey);
+
+  return shortest >= 5
+    && lengthDelta <= 3
+    && (
+      inputKey.endsWith(candidateKey)
+      || candidateKey.endsWith(inputKey)
+      || phoneticSimilarity >= 0.8
+    );
+}
+
+function singularCandidate(token: string): string | null {
+  if (token.length < 5) return null;
+  if (token.endsWith('es')) return token.slice(0, -2);
+  if (token.endsWith('s')) return token.slice(0, -1);
+  return null;
+}
+
+/**
  * Corrects each word in `text` against a known vocabulary instead of a static
  * typo dictionary. A word is substituted only when it isn't already in the
  * vocabulary and a close match is found at or above `threshold`.
@@ -110,17 +150,24 @@ export function correctAgainstVocabulary(
     .map((token) => {
       if (token.length < 3 || vocabulary.has(token)) return token;
 
+      const singular = singularCandidate(token);
+      if (singular && vocabulary.has(singular)) return singular;
+
       let bestWord = token;
       let bestScore = threshold;
       for (const word of vocabulary) {
         if (Math.abs(word.length - token.length) > 3) continue; // cheap prefilter
         const score = wordSimilarity(token, word);
-        if (score > bestScore) {
+        if (score > bestScore || (score === bestScore && phoneticInventoryMatch(token, word))) {
           bestScore = score;
           bestWord = word;
         }
       }
-      return bestWord;
+
+      if (bestWord !== token) return bestWord;
+
+      const phoneticMatch = Array.from(vocabulary).find((word) => phoneticInventoryMatch(token, word));
+      return phoneticMatch ?? token;
     })
     .join(' ');
 }

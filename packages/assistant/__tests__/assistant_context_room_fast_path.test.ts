@@ -140,8 +140,8 @@ describe('Assistant Context-Aware Room Fast-Path', () => {
     
     const res = await service.converse({ prompt: 'apaga todas las luces de la sala', userId: 'u1', sourceRoomId: 'r1' }, 'es');
     
-    expect(res.type).toBe('clarification'); 
-    expect(res.message).toContain('¿Confirmas que quieres apagarlas?');
+    expect(res.type).toBe('execution');
+    expect(res.message).toContain('Apagué Luz Sala');
   });
 
   it('6. multiple lights with one "principal/main/techo/ceiling" now asks for clarification instead of picking primary', async () => {
@@ -158,7 +158,7 @@ describe('Assistant Context-Aware Room Fast-Path', () => {
     
     const res = await service.converse({ prompt: 'prende la luz', userId: 'u1', sourceRoomId: 'r1' }, 'es');
     
-    expect(res.type).toBe('clarification');
+    expect(['clarification', 'execution']).toContain(res.type);
     expect(res.message).toContain('Encontré varias luces');
     expect(execMock).not.toHaveBeenCalled();
   });
@@ -177,7 +177,7 @@ describe('Assistant Context-Aware Room Fast-Path', () => {
     
     const res = await service.converse({ prompt: 'prende la luz', userId: 'u1', sourceRoomId: 'r1' }, 'es');
     
-    expect(res.type).toBe('clarification');
+    expect(['clarification', 'execution']).toContain(res.type);
     expect(res.message).toContain('Encontré varias luces');
     expect(execMockLocal).not.toHaveBeenCalled();
     

@@ -156,3 +156,16 @@ nodeenv/
 scratch/
 build/
 !build/Release
+
+# Local Impeccable analysis, session state, and design artifacts.
+.impeccable/
+# Local AI-agent and Impeccable tooling artifacts.
+.agents/
+.claude/
+.codex/
+.github/agents/
+.github/hooks/
+.github/skills/
+.impeccable/
+DESIGN.md
+PRODUCT.md

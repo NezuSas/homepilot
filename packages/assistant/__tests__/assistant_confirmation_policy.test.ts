@@ -15,131 +15,58 @@ describe('AssistantConfirmationPolicy', () => {
     policy = new AssistantConfirmationPolicy(mockSceneRepo, mockDeviceRepo);
   });
 
-  describe('Localization', () => {
-    it('should return ES message for unknown intent by default', async () => {
-      const intent: Intent = { type: 'unknown', prompt: 'haz magia', reason: 'Not understood' };
-      const result = await policy.evaluate(intent);
-      expect(result.summary).toBe('No pude interpretar esa instrucción.');
-    });
+  it('keeps unknown intents confirmation-free with localized feedback', async () => {
+    const es = await policy.evaluate({ type: 'unknown', prompt: 'haz magia', reason: 'Not understood' });
+    const en = await policy.evaluate({ type: 'unknown', prompt: 'do magic', reason: 'Not understood' }, 'en');
 
-    it('should return EN message for unknown intent when lang is en', async () => {
-      const intent: Intent = { type: 'unknown', prompt: 'do magic', reason: 'Not understood' };
-      const result = await policy.evaluate(intent, 'en');
-      expect(result.summary).toBe('I could not interpret that instruction.');
-    });
-
-    it('should return EN reason for scene when lang is en', async () => {
-      const scene = createTestScene({ name: 'Night', actions: [{ deviceId: '1', command: 'turn_on' }] });
-      mockSceneRepo.findSceneById.mockResolvedValue(scene);
-      
-      const intent: Intent = { type: 'scene', target: 'scene_1', prompt: 'activate night mode' };
-      const result = await policy.evaluate(intent, 'en');
-
-      expect(result.requiresConfirmation).toBe(true);
-      expect(result.reason).toBe('Scenes always require confirmation.');
-    });
-
-    it('should return EN reason for global command when lang is en', async () => {
-      const device = createTestDevice({ name: 'Home Group' });
-      mockDeviceRepo.findDeviceById.mockResolvedValue(device);
-
-      const intent: Intent = { type: 'command', deviceId: 'dev_1', command: 'turn_off', prompt: 'turn off every light' };
-      const result = await policy.evaluate(intent, 'en');
-
-      expect(result.requiresConfirmation).toBe(true);
-      expect(result.reason).toBe('Global commands require confirmation.');
-    });
+    expect(es).toEqual(expect.objectContaining({ requiresConfirmation: false, summary: 'No pude interpretar esa instrucción.' }));
+    expect(en).toEqual(expect.objectContaining({ requiresConfirmation: false, summary: 'I could not interpret that instruction.' }));
   });
 
-  it('preview de unknown no requiere confirmación', async () => {
-    const intent: Intent = { type: 'unknown', prompt: 'haz magia', reason: 'Not understood' };
-    const result = await policy.evaluate(intent);
-    
-    expect(result.requiresConfirmation).toBe(false);
-    expect(result.intentType).toBe('unknown');
-    expect(result.summary).toBe('No pude interpretar esa instrucción.');
+  it('executes an explicitly requested scene without confirmation', async () => {
+    mockSceneRepo.findSceneById.mockResolvedValue(createTestScene({ name: 'Noche', actions: [{ deviceId: '1', command: 'turn_on' }] }));
+
+    const result = await policy.evaluate({ type: 'scene', target: 'scene_1', prompt: 'activa modo noche' });
+
+    expect(result).toEqual(expect.objectContaining({ requiresConfirmation: false, intentType: 'scene', targetName: 'Noche', estimatedActionCount: 1 }));
   });
 
-  it('preview de scene requiere confirmación', async () => {
-    const scene = createTestScene({ name: 'Noche', actions: [{ deviceId: '1', command: 'turn_on' }, { deviceId: '2', command: 'turn_off' }] });
-    mockSceneRepo.findSceneById.mockResolvedValue(scene);
-    
-    const intent: Intent = { type: 'scene', target: 'scene_1', prompt: 'activa modo noche' };
-    const result = await policy.evaluate(intent);
+  it.each([
+    ['abre la cortina cuarto master', 'open'],
+    ['cierra la cortina cuarto master', 'close'],
+    ['apaga toda la casa', 'turn_off'],
+    ['prende todas las luces', 'turn_on'],
+  ] as const)('executes explicit domestic command %s without confirmation', async (prompt, command) => {
+    mockDeviceRepo.findDeviceById.mockResolvedValue(createTestDevice({ name: 'Cortina Cuarto Master' }));
 
-    expect(result.requiresConfirmation).toBe(true);
-    expect(result.intentType).toBe('scene');
-    expect(result.estimatedActionCount).toBe(2);
-    expect(result.targetName).toBe('Noche');
+    const result = await policy.evaluate({ type: 'command', deviceId: 'dev_1', command, prompt });
+
+    expect(result).toEqual(expect.objectContaining({ requiresConfirmation: false, intentType: 'command', targetName: 'Cortina Cuarto Master' }));
   });
 
-  it('command simple turn_on no requiere confirmación', async () => {
-    const device = createTestDevice({ name: 'Luz Sala' });
-    mockDeviceRepo.findDeviceById.mockResolvedValue(device);
+  it('executes explicitly requested multi-device commands without confirmation', async () => {
+    const result = await policy.evaluate({
+      type: 'multi_command',
+      prompt: 'apaga sala y cocina',
+      actions: [
+        { deviceId: 'one', command: 'turn_off', targetName: 'Sala' },
+        { deviceId: 'two', command: 'turn_off', targetName: 'Cocina' },
+      ],
+      requiresConfirmation: false,
+    }, 'en');
 
-    const intent: Intent = { type: 'command', deviceId: 'dev_1', command: 'turn_on', prompt: 'prende la luz sala' };
-    const result = await policy.evaluate(intent);
-
-    expect(result.requiresConfirmation).toBe(false);
-    expect(result.intentType).toBe('command');
+    expect(result).toEqual(expect.objectContaining({ requiresConfirmation: false, intentType: 'multi_command', estimatedActionCount: 2 }));
   });
 
-  it('command global turn_off requiere confirmación', async () => {
-    const device = createTestDevice({ name: 'Grupo Casa' });
-    mockDeviceRepo.findDeviceById.mockResolvedValue(device);
-
-    const intent: Intent = { type: 'command', deviceId: 'dev_1', command: 'turn_off', prompt: 'apaga toda la casa' };
-    const result = await policy.evaluate(intent);
-
-    expect(result.requiresConfirmation).toBe(true);
-    expect(result.reason).toContain('globales');
-  });
-
-  it('command global turn_on requiere confirmación', async () => {
-    const device = createTestDevice({ name: 'Grupo Casa' });
-    mockDeviceRepo.findDeviceById.mockResolvedValue(device);
-
-    const intent: Intent = { type: 'command', deviceId: 'dev_1', command: 'turn_on', prompt: 'prende todas las luces' };
-    const result = await policy.evaluate(intent);
-
-    expect(result.requiresConfirmation).toBe(true);
-    expect(result.reason).toContain('globales');
-  });
-
-  it('command de movimiento (open/close) requiere confirmación', async () => {
-    const device = createTestDevice({ name: 'Cortina' });
-    mockDeviceRepo.findDeviceById.mockResolvedValue(device);
-
-    const intent: Intent = { type: 'command', deviceId: 'dev_1', command: 'open', prompt: 'abre la cortina' };
-    const result = await policy.evaluate(intent);
-
-    expect(result.requiresConfirmation).toBe(true);
-    expect(result.reason).toContain('movimiento');
-  });
-  it('uses unknown labels for missing scene or device records while preserving safety decisions', async () => {
+  it('preserves resolved target labels when a device or scene no longer exists', async () => {
     mockSceneRepo.findSceneById.mockResolvedValue(null);
     mockDeviceRepo.findDeviceById.mockResolvedValue(null);
 
     const scene = await policy.evaluate({ type: 'scene', target: 'missing', prompt: 'activa escena' });
     const command = await policy.evaluate({ type: 'command', deviceId: 'missing', command: 'turn_off', prompt: 'apaga luz' }, 'en');
 
-    expect(scene).toEqual(expect.objectContaining({ targetName: 'Desconocido', estimatedActionCount: 0, requiresConfirmation: true }));
+    expect(scene).toEqual(expect.objectContaining({ targetName: 'Desconocido', requiresConfirmation: false }));
     expect(command).toEqual(expect.objectContaining({ targetName: 'Unknown', requiresConfirmation: false }));
-  });
-
-  it('requires confirmation for every multi-command and movement command variant', async () => {
-    const multi = await policy.evaluate({
-      type: 'multi_command', prompt: 'apaga sala y cocina', actions: [
-        { deviceId: 'one', command: 'turn_off', targetName: 'Sala' },
-        { deviceId: 'two', command: 'turn_off', targetName: 'Cocina' },
-      ], requiresConfirmation: true,
-    }, 'en');
-    expect(multi).toEqual(expect.objectContaining({ requiresConfirmation: true, estimatedActionCount: 2, summary: 'I will execute 2 actions.' }));
-
-    for (const command of ['close', 'stop', 'set_position']) {
-      const result = await policy.evaluate({ type: 'command', deviceId: 'cover-1', command, prompt: 'cortina' } as Intent);
-      expect(result).toEqual(expect.objectContaining({ requiresConfirmation: true }));
-    }
   });
 
   it('keeps informational intents confirmation-free in both supported languages', async () => {

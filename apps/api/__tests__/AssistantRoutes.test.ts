@@ -50,7 +50,11 @@ describe('Feature: Local assistant speech transport', () => {
       } as any,
       repositories: {
         homeRepository: { findHomesByUserId: jest.fn().mockResolvedValue([{ id: 'home-1' }]) },
-        roomRepository: { findRoomById: jest.fn().mockResolvedValue({ id: 'r1', homeId: 'home-1' }) }
+        deviceRepository: { findAllByHomeId: jest.fn().mockResolvedValue([{ name: 'Dicroicos Trabajo' }]) },
+        roomRepository: {
+          findRoomById: jest.fn().mockResolvedValue({ id: 'r1', homeId: 'home-1' }),
+          findRoomsByHomeId: jest.fn().mockResolvedValue([{ name: 'Cuarto Master' }])
+        }
       } as any
     };
     routes = new AssistantRoutes();
@@ -216,7 +220,8 @@ describe('Feature: Local assistant speech transport', () => {
     expect(mockAssistantSpeechToTextService.transcribe).toHaveBeenCalledWith({
       audioBase64: 'YWJj',
       audioContentType: 'audio/webm',
-      language: 'es'
+      language: 'es',
+      contextTerms: ['Dicroicos Trabajo', 'Cuarto Master']
     });
     expect(mockRes.writeHead).toHaveBeenCalledWith(200, { 'Content-Type': 'application/json' });
     expect(mockRes.end).toHaveBeenCalledWith(JSON.stringify({

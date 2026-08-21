@@ -62,7 +62,6 @@ is_docker_desktop() {
   operating_system="$(docker info --format '{{.OperatingSystem}}' 2>/dev/null || true)"
   [[ "$operating_system" =~ [Dd]ocker[[:space:]][Dd]esktop ]]
 }
-
 configure_profile() {
   case "$profile" in
     bridge_ha|native_only)
@@ -319,6 +318,7 @@ remove_unused_ollama_image() {
 
 deploy_homepilot() {
   section "Despliegue HomePilot"
+  enable_gpu_voice_profile
   info "Compose: ${compose_files[*]}"
   info "Perfil: ${profile}"
   info "COMPOSE_BAKE=false evita que Compose use bake si no hace falta."

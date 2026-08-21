@@ -1,9 +1,8 @@
-import { randomUUID } from 'crypto';
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { RoomRepository } from '../../topology/domain/repositories/RoomRepository';
 import { HomeRepository } from '../../topology/domain/repositories/HomeRepository';
 import { ConfirmationTicketRepository } from '../domain/repositories/ConfirmationTicketRepository';
-import { ConfirmationTicket, ConfirmationTicketCommand } from '../domain/ConfirmationTicket';
+import { ConfirmationTicket } from '../domain/ConfirmationTicket';
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
 import { AutomationRuleRepository } from '../../devices/domain/repositories/AutomationRuleRepository';
 import { SceneExecutionService } from '../../devices/application/SceneExecutionService';
@@ -56,7 +55,7 @@ import { DomesticSkillResolver } from './DomesticSkillResolver';
 import { normalizeAssistantPrompt } from './AssistantPromptNormalizer';
 import { ScopeFilter } from './ScopeFilter';
 import { PermissionGate } from './PermissionGate';
-import { normalizeText as sharedNormalizeText, levenshteinDistance } from './textMatching';
+import { buildVocabulary, correctAgainstVocabulary, normalizeText as sharedNormalizeText, levenshteinDistance } from './textMatching';
 
 export interface AssistantConversationResponse {
   type: "answer" | "execution" | "clarification" | "error";
@@ -175,46 +174,9 @@ export class AssistantConversationService {
   private readonly permissionGate: PermissionGate;
   private readonly scopeFilter = new ScopeFilter();
 
-  /** Single TTL for confirmation tickets, enforced both here and by the repository query. */
-  private static readonly CONFIRMATION_TICKET_TTL_MS = 120_000;
-
-  /**
-   * The pre-existing conversational confirmation window for a single pending intent.
-   * UI and natural-language confirmations share this exact bound so neither origin can
-   * execute a stale intent.
-   */
+  /** Expiration window for a legacy pending conversational clarification. */
   private static readonly PENDING_INTENT_CONFIRMATION_TTL_MS = 300_000;
 
-  /**
-   * Persists a single-use, TTL-bound confirmation ticket for a proposed bulk/multi-device
-   * action. No-op if no ConfirmationTicketRepository is wired (legacy/test contexts) —
-   * callers degrade gracefully to "propose but never confirmable", never to
-   * "execute without confirmation".
-   */
-  private async createConfirmationTicket(
-    userId: string,
-    homeId: string,
-    command: ConfirmationTicketCommand,
-    deviceIds: string[],
-    originalPrompt: string,
-    bulkType?: 'all' | 'lights'
-  ): Promise<void> {
-    if (!this.confirmationTicketRepository) return;
-    const now = Date.now();
-    const ticket: ConfirmationTicket = {
-      id: randomUUID(),
-      userId,
-      homeId,
-      command,
-      bulkType,
-      deviceIds,
-      originalPrompt,
-      createdAt: new Date(now).toISOString(),
-      expiresAt: new Date(now + AssistantConversationService.CONFIRMATION_TICKET_TTL_MS).toISOString(),
-      consumedAt: null
-    };
-    await this.confirmationTicketRepository.create(ticket);
-  }
 
   private withJarvisStyle(
     response: AssistantConversationResponse,
@@ -350,10 +312,14 @@ export class AssistantConversationService {
     // F) Natural Language Confirmations (Yes/No)
     if (this.isConfirmation(normalized)) {
       if (memory?.pendingIntent) {
-        if (this.isPendingIntentConfirmationActive(memory.pendingIntent)) {
+        const isClarificationSelection = memory.clarificationOptions
+          && memory.clarificationOptions.length > 0
+          && memory.pendingIntent.type === 'command'
+          && !memory.pendingIntent.deviceId;
+        if (!isClarificationSelection && this.isPendingIntentConfirmationActive(memory.pendingIntent)) {
           if (this.isPositiveConfirmation(normalized)) { request.confirmed = true; return await this.executeIntent(memory.pendingIntent, request, language, userId, userName, memory.originalPrompt || prompt, memory); }
           else if (this.isNegativeConfirmation(normalized)) { await this.clearPendingAction(userId); return { type: 'answer', message: getAssistantResponseText('action.cancelled', language, {}) }; }
-        } else {
+        } else if (!isClarificationSelection) {
           await this.clearPendingAction(userId);
           return {
             type: 'answer',
@@ -367,6 +333,38 @@ export class AssistantConversationService {
         if (this.isSuggestionReject(normalized)) return await this.handleSuggestionReject(userId, language, pendingSuggestion);
         if (this.isSuggestionPostpone(normalized)) return await this.handleSuggestionPostpone(userId, language, pendingSuggestion);
       }
+
+      if (this.isPositiveConfirmation(normalized) && memory?.clarificationOptions?.length === 1) {
+        const selectedOption = memory.clarificationOptions[0];
+        if (memory.source === 'sensor_reading') {
+          return await this.handleSensorReadingSelection(userId, selectedOption.id, language);
+        }
+
+        const command = memory.pendingIntent?.type === 'command'
+          ? memory.pendingIntent.command
+          : this.inferCommandFromPrompt(memory.originalPrompt || prompt) as DeviceCommandV1 | undefined;
+
+        if (command) {
+          request.pendingAction = {
+            command,
+            targetId: selectedOption.id,
+            originalPrompt: memory.originalPrompt || prompt
+          };
+          return await this.handleSelection(request, language);
+        }
+      }
+
+      if (this.isPositiveConfirmation(normalized) && memory?.clarificationOptions && memory.clarificationOptions.length > 1) {
+        return {
+          type: 'clarification',
+          message: getAssistantResponseText('clarification.device_multiple_matches', language, {}),
+          clarification: {
+            question: getAssistantResponseText('clarification.which_one', language, {}),
+            options: memory.clarificationOptions
+          }
+        };
+      }
+
       if (this.isPositiveConfirmation(normalized)) return { type: 'answer', message: getAssistantResponseText('confirmation.none_pending', language, {}) };
     }
 
@@ -453,11 +451,11 @@ export class AssistantConversationService {
     }
 
     const roomBulk = this.isRoomBulkFastPath(normalized);
-    if (roomBulk) return await this.handleRoomBulkFastPath(userId, roomBulk.command, roomBulk.roomName, roomBulk.bulkType, language, aliases);
+    if (roomBulk) return await this.handleRoomBulkFastPath(userId, roomBulk.command, roomBulk.roomName, roomBulk.bulkType, language, prompt, aliases);
 
     // --- 6. GLOBAL BULK FAST-PATH ---
     const globalBulk = this.isBulkFastPath(normalized);
-    if (globalBulk) { const bulkResponse = await this.handleBulkFastPath(normalized, globalBulk.bulkType, globalBulk.command, language, userId, request.interactionMode); if (bulkResponse) return bulkResponse; }
+    if (globalBulk) { const bulkResponse = await this.handleBulkFastPath(normalized, globalBulk.bulkType, globalBulk.command, language, userId); if (bulkResponse) return bulkResponse; }
 
     // --- 7. DEVICE ALIAS FAST-PATH ---
     const deviceAliasFastPath = await this.attemptDeviceAliasFastPathExecution(activePrompt, userId, language, aliases);
@@ -2055,6 +2053,48 @@ export class AssistantConversationService {
           }, language);
         }
       }
+
+      if (allMatches.length > 1) {
+        const command = (this.inferCommandFromPrompt(normalized) || 'turn_on') as DeviceCommandV1;
+        const options = allMatches.map((device) => ({
+          id: device.id,
+          label: device.name,
+          kind: 'device' as const
+        }));
+
+        await this.memoryService.saveShortTermMemory(userId, {
+          lastQueryType: 'clarification',
+          entities: allMatches.map((device) => ({
+            id: device.id,
+            name: device.name,
+            type: device.type,
+            roomId: device.roomId
+          })),
+          timestamp: new Date().toISOString(),
+          clarificationOptions: options,
+          originalPrompt: prompt,
+          pendingIntent: {
+            type: 'command',
+            deviceId: '',
+            command,
+            prompt,
+            timestamp: new Date().toISOString()
+          }
+        });
+
+        return this.withJarvisStyle({
+          type: 'clarification',
+          message: getAssistantResponseText('clarification.intent_multiple_matches', language, { segment: targetPhrase }),
+          clarification: {
+            question: getAssistantResponseText('clarification.which_one_do_you_mean', language, {}),
+            options
+          }
+        }, {
+          status: 'clarification',
+          suggestions: options.map((option) => option.label),
+          userName: request.userName?.trim() || undefined
+        }, language);
+      }
     }
 
     // B. Vague Light Blocker
@@ -2216,6 +2256,50 @@ export class AssistantConversationService {
     return triggers.includes(normalized);
   }
 
+  private async executeBulkDevices(
+    userId: string,
+    language: string,
+    devices: readonly Device[],
+    command: DeviceCommandV1,
+    originalPrompt: string,
+    bulkType: 'all' | 'lights',
+    skippedCount: number = 0
+  ): Promise<AssistantConversationResponse> {
+    const correlationId = `bulk-${Date.now()}`;
+    const results: ExecutedCommandResult[] = [];
+    const entities: AssistantMemoryEntity[] = [];
+
+    for (const device of devices) {
+      const result = await this.executeAuthorizedCommand(userId, device.id, command, originalPrompt, correlationId, undefined, device);
+      results.push({ action: { deviceId: device.id, command }, deviceName: device.name, result });
+      entities.push({ id: device.id, name: device.name, type: device.type, roomId: device.roomId });
+    }
+
+    await this.clearPendingAction(userId);
+    await this.memoryService.saveShortTermMemory(userId, {
+      lastQueryType: 'command',
+      entities,
+      timestamp: new Date().toISOString()
+    });
+
+    let summary = this.formatMultiCommandSummary(results, language, bulkType);
+    if (skippedCount > 0) {
+      summary += language === 'en'
+        ? ` (${skippedCount} device(s) were already in the requested state and were skipped.)`
+        : ` (${skippedCount} dispositivo(s) ya estaban en el estado solicitado y se omitieron.)`;
+    }
+
+    const successCount = results.filter(result => result.result.status === 'success').length;
+    return this.attachSuggestionIfNeeded({
+      type: 'execution',
+      message: summary,
+      execution: {
+        sceneId: 'bulk_action',
+        status: successCount === results.length ? 'success' : successCount === 0 ? 'failed' : 'partial',
+        actions: results.flatMap(result => result.result.actions)
+      }
+    }, userId, language, await this.memoryService.getShortTermMemory(userId), 'multi_command');
+  }
   private async handleBulkActionAccept(userId: string, language: string, ticket: ConfirmationTicket): Promise<AssistantConversationResponse> {
     const memory = await this.memoryService.getShortTermMemory(userId);
     const allowedCommands = ['turn_on', 'turn_off', 'toggle'];
@@ -2941,11 +3025,15 @@ export class AssistantConversationService {
   }
 
   private async findMatchingDevices(prompt: string, userId: string = 'system'): Promise<Device[]> {
-    const normalized = normalizeAssistantPrompt(prompt);
     let devices = await this.permissionGate.getAuthorizedDevices(userId);
 
     // Filter out non-controllable/deprecated devices
     devices = devices.filter(d => this.scopeFilter.isDeviceAvailable(d));
+
+    // Resolve transcription spelling and simple plural drift only against this
+    // user's authorized inventory. No household name is ever hardcoded here.
+    const vocabulary = buildVocabulary(devices.map((device) => device.name));
+    const normalized = correctAgainstVocabulary(normalizeAssistantPrompt(prompt), vocabulary);
 
     // 1. Check for Exact Match first (highest priority)
     const exactMatch = devices.find(d => normalizeAssistantPrompt(d.name) === normalized);
@@ -3768,27 +3856,26 @@ export class AssistantConversationService {
     command: DeviceCommandV1,
     prompt: string,
     correlationId: string,
-    params?: Record<string, unknown>
+    params?: Record<string, unknown>,
+    knownDevice?: Device
   ): Promise<SceneExecutionResult> {
     const hasParams = params !== undefined && Object.keys(params).length > 0;
     if (!this.homeRepository && process.env.NODE_ENV === 'test') {
-      return hasParams
-        ? this.executeSingleCommand(deviceId, command, prompt, correlationId, params)
-        : this.executeSingleCommand(deviceId, command, prompt, correlationId);
+      if (!hasParams && !knownDevice) return this.executeSingleCommand(deviceId, command, prompt, correlationId);
+      return this.executeSingleCommand(deviceId, command, prompt, correlationId, hasParams ? params : undefined, knownDevice);
     }
 
-    const device = deviceId === 'all' ? null : await this.deviceRepository.findDeviceById(deviceId);
+    const device = deviceId === 'all' ? null : knownDevice ?? await this.deviceRepository.findDeviceById(deviceId);
     const homeId = deviceId === 'all'
       ? (await this.permissionGate.authorizedHomeIdsFor(userId))[0]
       : device?.homeId;
 
     if (!homeId) throw new Error('DEVICE_HOME_ID_NOT_FOUND');
     await this.permissionGate.assertHomeAuthorized(userId, homeId);
-    return hasParams
-      ? this.executeSingleCommand(deviceId, command, prompt, correlationId, params)
-      : this.executeSingleCommand(deviceId, command, prompt, correlationId);
+    if (!hasParams && !knownDevice) return this.executeSingleCommand(deviceId, command, prompt, correlationId);
+    return this.executeSingleCommand(deviceId, command, prompt, correlationId, hasParams ? params : undefined, knownDevice);
   }
-  private async executeSingleCommand(deviceId: string, command: DeviceCommandV1, prompt: string, correlationId: string, params?: Record<string, unknown>): Promise<SceneExecutionResult> {
+  private async executeSingleCommand(deviceId: string, command: DeviceCommandV1, prompt: string, correlationId: string, params?: Record<string, unknown>, knownDevice?: Device): Promise<SceneExecutionResult> {
     let homeId: string | undefined;
     let roomId: string | null = null;
 
@@ -3796,7 +3883,7 @@ export class AssistantConversationService {
       const allDevices = await this.deviceRepository.findAll();
       homeId = allDevices[0]?.homeId;
     } else {
-      const device = await this.deviceRepository.findDeviceById(deviceId);
+      const device = knownDevice ?? await this.deviceRepository.findDeviceById(deviceId);
       homeId = device?.homeId;
       roomId = device?.roomId ?? null;
     }
@@ -4426,6 +4513,7 @@ export class AssistantConversationService {
     roomName: string,
     bulkType: 'all' | 'lights',
     language: string,
+    originalPrompt: string,
     userAliases: Record<string, string>
   ): Promise<AssistantConversationResponse> {
     const [devices, rooms] = await Promise.all([
@@ -4479,40 +4567,7 @@ export class AssistantConversationService {
       };
     }
 
-    const deviceIds = matchingDevices.map(l => l.id);
-
-    // Bulk/room-scale actions always require explicit confirmation, in chat and in
-    // voice alike — interactionMode must never skip this gate (security requirement).
-
-    console.info(`[ASSISTANT_BULK_CONFIRMATION_REQUIRED] ${JSON.stringify({
-      source: "room_bulk_fast_path",
-      room: displayRoomName,
-      count: matchingDevices.length,
-      command,
-      bulkType
-    })}`);
-
-    await this.createConfirmationTicket(userId, matchingDevices[0].homeId, command, deviceIds, `Bulk room action for ${displayRoomName}`, bulkType);
-
-    const deviceTerm = bulkType === 'lights'
-      ? (language === 'en' ? 'lights' : 'luces')
-      : (language === 'en' ? 'devices' : 'dispositivos');
-
-    const actionText = command === 'turn_on'
-      ? (language === 'en' ? 'turn them on' : 'encenderlos')
-      : (language === 'en' ? 'turn them off' : 'apagarlos');
-
-    // For Spanish, "encenderlas/apagarlas" if it's "luces", "encenderlos/apagarlos" if it's "dispositivos"
-    const actionTextFinal = language === 'es' && bulkType === 'lights'
-      ? actionText.replace('los', 'las')
-      : actionText;
-
-    return {
-      type: 'clarification',
-      message: language === 'en'
-        ? `I found ${matchingDevices.length} ${deviceTerm} in ${displayRoomName}. Do you confirm you want to ${actionText}?`
-        : `Encontré ${matchingDevices.length} ${deviceTerm} en ${displayRoomName}. ¿Confirmas que quieres ${actionTextFinal}?`
-    };
+    return this.executeBulkDevices(userId, language, matchingDevices, command, originalPrompt, bulkType);
   }
 
   private isBulkFastPath(normalized: string): { command: 'turn_on' | 'turn_off', bulkType: 'all' | 'lights' } | null {
@@ -4541,7 +4596,7 @@ export class AssistantConversationService {
       bulkType: targetsLights ? 'lights' : 'all'
     };
   }
-  private async handleBulkFastPath(normalized: string, bulkType: 'all' | 'lights', command: 'turn_on' | 'turn_off', language: string, userId: string, interactionMode: 'chat' | 'voice' = 'chat'): Promise<AssistantConversationResponse | null> {
+  private async handleBulkFastPath(normalized: string, bulkType: 'all' | 'lights', command: 'turn_on' | 'turn_off', language: string, userId: string): Promise<AssistantConversationResponse | null> {
     const allDevices = await this.permissionGate.getAuthorizedDevices(userId);
 
     const targetDevices = allDevices.filter(d => {
@@ -4560,36 +4615,7 @@ export class AssistantConversationService {
       };
     }
 
-    const deviceIds = targetDevices.map(d => d.id);
-    console.info(`[ASSISTANT_BULK_CONFIRMATION_REQUIRED] ${JSON.stringify({
-      source: 'bulk_fast_path',
-      count: targetDevices.length,
-      command,
-      bulkType
-    })}`);
-
-    await this.createConfirmationTicket(userId, targetDevices[0].homeId, command, deviceIds, normalized, bulkType);
-
-    const deviceTerm = bulkType === 'lights'
-      ? (language === 'en' ? 'lights' : 'luces')
-      : (language === 'en' ? 'devices' : 'dispositivos');
-
-    const isOff = command === 'turn_off';
-    const actionText = isOff
-      ? (language === 'en' ? 'turn them all off' : 'apagarlos todos')
-      : (language === 'en' ? 'turn them all on' : 'encenderlos todos');
-
-    // For Spanish, "apagarlas/encenderlas" if it's "luces"
-    const actionTextFinal = language === 'es' && bulkType === 'lights'
-      ? actionText.replace('los', 'las').replace('todos', 'todas')
-      : actionText;
-
-    return {
-      type: 'clarification',
-      message: language === 'en'
-        ? `I found ${targetDevices.length} ${deviceTerm}. Do you confirm you want to ${actionText}?`
-        : `Encontré ${targetDevices.length} ${deviceTerm}. ¿Confirmas que quieres ${actionTextFinal}?`
-    };
+    return this.executeBulkDevices(userId, language, targetDevices, command, normalized, bulkType);
   }
 
   private async attemptDeviceAliasFastPathExecution(activePrompt: string, userId: string, language: string, aliases: Record<string, string>): Promise<AssistantConversationResponse | null> {
@@ -4747,30 +4773,23 @@ export class AssistantConversationService {
     const v2Result = await this.shadowService.attemptHybridExecution(activePrompt, userId, memory);
     if (!v2Result) return null;
 
-    // Multi-Target Guard
     if ((v2Result.resolvedIds && v2Result.resolvedIds.length > 1) || v2Result.resolvedType === 'category') {
-      console.info(`[ASSISTANT_CONFIRMATION_REQUIRED] ${JSON.stringify({ count: v2Result.resolvedIds?.length ?? 0, command: v2Result.command, resolvedType: v2Result.resolvedType })}`);
-
       const resolvedIds = v2Result.resolvedIds || [];
-      const firstDevice = resolvedIds[0] ? await this.deviceRepository.findDeviceById(resolvedIds[0]) : null;
-      if (firstDevice) {
-        await this.createConfirmationTicket(
-          userId,
-          firstDevice.homeId,
-          v2Result.command as ConfirmationTicketCommand,
-          resolvedIds,
-          activePrompt
-        );
-      }
+      const devices = (await this.permissionGate.getAuthorizedDevices(userId)).filter((device) =>
+        resolvedIds.includes(device.id)
+        && this.scopeFilter.isControllableDevice(device, v2Result.command as DeviceCommandV1)
+      );
+      if (devices.length === 0) return null;
 
-      return {
-        type: 'clarification',
-        message: language === 'en'
-          ? `I found ${v2Result.resolvedIds?.length} devices. Do you confirm you want to execute this action?`
-          : `Encontré ${v2Result.resolvedIds?.length} dispositivos. ¿Confirmas que quieres ejecutar esta acción?`
-      };
+      return this.executeBulkDevices(
+        userId,
+        language,
+        devices,
+        v2Result.command as DeviceCommandV1,
+        activePrompt,
+        'all'
+      );
     }
-
     if (!v2Result.deviceId) return null;
 
     // Bypass V1 execution completely

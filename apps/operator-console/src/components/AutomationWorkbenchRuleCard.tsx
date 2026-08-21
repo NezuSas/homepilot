@@ -119,7 +119,7 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
         </div>
 
         {rule._error && (
-          <div className="absolute top-4 left-4 right-4 bg-destructive text-destructive-foreground text-micro font-black py-1.5 px-3 rounded-lg text-center animate-bounce shadow-xl flex items-center justify-center gap-2">
+          <div className="absolute top-4 left-4 right-4 bg-destructive text-destructive-foreground text-micro font-black py-1.5 px-3 rounded-lg text-center animate-in fade-in slide-in-from-top-2 duration-200 shadow-xl flex items-center justify-center gap-2">
             <AlertCircle className="w-3 h-3" /> {rule._error}
           </div>
         )}

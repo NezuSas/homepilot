@@ -90,8 +90,8 @@ describe('Assistant User Alias', () => {
 
     const res = await service.converse({ prompt: 'apaga todas las luces de mi oficina porfa', userId: 'u1' }, 'es');
 
-    expect(res.type).toBe('clarification');
-    expect(res.message).toContain('Cuarto Master');
+    expect(res.type).toBe('execution');
+    expect(res.message).toContain('Apagué Luz Techo');
   });
 
   it('prioritizes the longest matching alias', async () => {

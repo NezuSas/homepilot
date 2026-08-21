@@ -2,6 +2,7 @@ export interface AssistantSpeechToTextRequest {
   audioBase64: string;
   audioContentType: string;
   language: 'es' | 'en';
+  contextTerms?: readonly string[];
 }
 
 export interface AssistantSpeechToTextResponse {
@@ -14,6 +15,22 @@ export class AssistantSpeechToTextValidationError extends Error {}
 export class AssistantSpeechToTextUnavailableError extends Error {}
 
 const MAX_AUDIO_BASE64_LENGTH = 12_000_000;
+const MAX_CONTEXT_TERMS = 40;
+const MAX_CONTEXT_TERM_LENGTH = 64;
+
+function normalizeContextTerms(contextTerms: readonly string[] | undefined): string[] {
+  if (!contextTerms) return [];
+
+  const terms = new Set<string>();
+  for (const candidate of contextTerms) {
+    const term = candidate.trim().replace(/\s+/g, ' ');
+    if (term && term.length <= MAX_CONTEXT_TERM_LENGTH) {
+      terms.add(term);
+    }
+    if (terms.size >= MAX_CONTEXT_TERMS) break;
+  }
+  return [...terms];
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -44,6 +61,7 @@ export class AssistantSpeechToTextService {
   async transcribe(request: AssistantSpeechToTextRequest): Promise<AssistantSpeechToTextResponse> {
     const audioBase64 = request.audioBase64.trim();
     const audioContentType = request.audioContentType.trim();
+    const contextTerms = normalizeContextTerms(request.contextTerms);
 
     if (!audioBase64) {
       throw new AssistantSpeechToTextValidationError('audioBase64 is required');
@@ -73,7 +91,8 @@ export class AssistantSpeechToTextService {
         body: JSON.stringify({
           audioBase64,
           audioContentType,
-          language: request.language
+          language: request.language,
+          ...(contextTerms.length > 0 ? { contextTerms } : {})
         }),
         signal: controller.signal
       });

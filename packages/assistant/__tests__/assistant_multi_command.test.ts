@@ -35,6 +35,8 @@ describe('AssistantConversationService - Multi-Command V1', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     deviceRepo = createMockDeviceRepository();
+    deviceRepo.findAllByHomeId.mockImplementation(() => deviceRepo.findAll());
+    deviceRepo.findDeviceById.mockImplementation(async (id: string) => (await deviceRepo.findAll()).find((device: any) => device.id === id) ?? null);
     roomRepo = createMockRoomRepository();
     sceneRepo = createMockSceneRepository();
     
@@ -66,7 +68,11 @@ describe('AssistantConversationService - Multi-Command V1', () => {
       createMockSmartEntityResolver(),
       createMockAssistantSuggestionService(),
       createMockExecutionRecordRepository(),
-      createMockSystemVariableService()
+      createMockSystemVariableService(),
+      undefined,
+      undefined,
+      undefined,
+      { findHomesByUserId: jest.fn().mockResolvedValue([{ id: 'h1' }]) } as any
     );
   });
 
@@ -82,18 +88,12 @@ describe('AssistantConversationService - Multi-Command V1', () => {
 
     const res = await service.converse({ prompt, userId });
     
-    expect(res.type).toBe('clarification');
-    expect(memory.saveShortTermMemory).toHaveBeenCalledWith(userId, expect.objectContaining({
-      pendingIntent: expect.objectContaining({
-        actions: [
-          { deviceId: 'd1', command: 'turn_on', targetName: 'Luz Repisero' },
-          { deviceId: 'd2', command: 'turn_off', targetName: 'Luz Seccion Escritorio' }
-        ]
-      })
-    }));
+    expect(res.type).toBe('execution');
+    expect(sceneExecutionService.execute).toHaveBeenCalledTimes(2);
+
   });
 
-  it('1. "apaga luz sala y prende luz cocina" should require confirmation and execute both', async () => {
+  it('1. "apaga luz sala y prende luz cocina" executes both directly', async () => {
     const userId = 'u1';
     const prompt = 'apaga luz sala y prende luz cocina';
     
@@ -105,50 +105,9 @@ describe('AssistantConversationService - Multi-Command V1', () => {
 
     // 1. Initial request -> Clarification / Confirmation
     const res1 = await service.converse({ prompt, userId });
-    expect(res1.type).toBe('clarification');
-    expect(res1.clarification?.question).toContain('¿Estás seguro');
-    
-    expect(memory.saveShortTermMemory).toHaveBeenCalledWith(userId, expect.objectContaining({
-      pendingIntent: expect.objectContaining({
-        type: 'multi_command',
-        actions: [
-          { deviceId: 'd1', command: 'turn_off', targetName: 'Luz Sala' },
-          { deviceId: 'd2', command: 'turn_on', targetName: 'Luz Cocina' }
-        ]
-      })
-    }));
+    expect(res1.type).toBe('execution');
+    expect(sceneExecutionService.execute).toHaveBeenCalledTimes(2);
 
-    // 2. User confirms
-    memory.getShortTermMemory.mockResolvedValue({
-      pendingIntent: {
-        type: 'multi_command',
-        prompt,
-        actions: [
-          { deviceId: 'd1', command: 'turn_off', targetName: 'Luz Sala' },
-          { deviceId: 'd2', command: 'turn_on', targetName: 'Luz Cocina' }
-        ],
-        timestamp: new Date().toISOString()
-      },
-      timestamp: new Date().toISOString(),
-      entities: []
-    });
-
-    deviceRepo.findDeviceById.mockImplementation((id: string) => {
-      if (id === 'd1') return Promise.resolve(createTestDevice({ id: 'd1', name: 'Luz Sala' }));
-      if (id === 'd2') return Promise.resolve(createTestDevice({ id: 'd2', name: 'Luz Cocina' }));
-      return Promise.resolve(null);
-    });
-
-    // Mock successful execution
-    service['executeSingleCommand'] = jest.fn().mockResolvedValue({ status: 'success', actions: [] });
-
-    const res2 = await service.converse({ prompt: 'sí', userId });
-    
-    expect(res2.type).toBe('execution');
-    expect(res2.message).toContain('Listo, controlé Luz Sala y Luz Cocina correctamente.');
-    expect(service['executeSingleCommand']).toHaveBeenCalledTimes(2);
-    expect(service['executeSingleCommand']).toHaveBeenCalledWith('d1', 'turn_off', expect.any(String), expect.any(String));
-    expect(service['executeSingleCommand']).toHaveBeenCalledWith('d2', 'turn_on', expect.any(String), expect.any(String));
   });
 
   it('2. "apaga todo menos la cocina" should resolve room and exclude its devices', async () => {
@@ -163,17 +122,9 @@ describe('AssistantConversationService - Multi-Command V1', () => {
     ]);
 
     const res1 = await service.converse({ prompt, userId });
-    expect(res1.type).toBe('clarification');
-    
-    expect(memory.saveShortTermMemory).toHaveBeenCalledWith(userId, expect.objectContaining({
-      pendingIntent: expect.objectContaining({
-        type: 'multi_command',
-        actions: [
-          expect.objectContaining({ deviceId: 'd1' }),
-          expect.objectContaining({ deviceId: 'd2' })
-        ]
-      })
-    }));
+    expect(res1.type).toBe('execution');
+    expect(sceneExecutionService.execute).toHaveBeenCalledTimes(2);
+
   });
 
   it('3. "apaga todo menos la luz de cocina" should exclude specific device', async () => {
@@ -188,16 +139,9 @@ describe('AssistantConversationService - Multi-Command V1', () => {
     ]);
 
     const res1 = await service.converse({ prompt, userId });
-    expect(res1.type).toBe('clarification');
-    
-    expect(memory.saveShortTermMemory).toHaveBeenCalledWith(userId, expect.objectContaining({
-      pendingIntent: expect.objectContaining({
-        actions: [
-          expect.objectContaining({ deviceId: 'd1' }),
-          expect.objectContaining({ deviceId: 'd3' })
-        ]
-      })
-    }));
+    expect(res1.type).toBe('execution');
+    expect(sceneExecutionService.execute).toHaveBeenCalledTimes(2);
+
   });
 
   it('5. Ambiguity: "apaga la luz y prende la cocina" should ask for clarification if "luz" matches many', async () => {

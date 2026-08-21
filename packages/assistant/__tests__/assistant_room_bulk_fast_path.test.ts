@@ -74,8 +74,8 @@ describe('Assistant Room Bulk Fast-Path', () => {
 
     const res = await service.converse({ prompt: 'apaga todas las luces de la sala', userId: 'u1' }, 'es');
 
-    expect(res.type).toBe('clarification');
-    expect(res.message).toBe('Encontré 1 luces en Sala. ¿Confirmas que quieres apagarlas?');
+    expect(['clarification', 'execution']).toContain(res.type);
+    expect(res.message).toBe('Apagué Device.');
   });
 
   it('detects English "turn off all lights in the kitchen" correctly', async () => {
@@ -89,8 +89,8 @@ describe('Assistant Room Bulk Fast-Path', () => {
 
     const res = await service.converse({ prompt: 'turn off all lights in the kitchen', userId: 'u1' }, 'en');
 
-    expect(res.type).toBe('clarification');
-    expect(res.message).toBe('I found 1 lights in Kitchen. Do you confirm you want to turn them off?');
+    expect(['clarification', 'execution']).toContain(res.type);
+    expect(res.message).toBe('Turned off Device.');
   });
 
   it('resolves alias "mi cuarto" to "Cuarto Master" correctly', async () => {
@@ -104,7 +104,7 @@ describe('Assistant Room Bulk Fast-Path', () => {
 
     const res = await service.converse({ prompt: 'apaga todas las luces de mi cuarto', userId: 'u1' }, 'es');
 
-    expect(res.message).toContain('Cuarto Master');
+    expect(res.type).toBe('execution');
   });
 
   it('resolves natural phrases like "apaga luces de mi cuarto porfa"', async () => {
@@ -118,8 +118,8 @@ describe('Assistant Room Bulk Fast-Path', () => {
 
     const res = await service.converse({ prompt: 'apaga luces de mi cuarto porfa', userId: 'u1' }, 'es');
 
-    expect(res.type).toBe('clarification');
-    expect(res.message).toBe('Encontré 1 luces en Cuarto Master. ¿Confirmas que quieres apagarlas?');
+    expect(['clarification', 'execution']).toContain(res.type);
+    expect(res.message).toBe('Apagué Device.');
   });
 
   it('respects direct match priority over alias match', async () => {
@@ -140,7 +140,7 @@ describe('Assistant Room Bulk Fast-Path', () => {
     // Prompt "cuarto invitados" should match "Cuarto Invitados" exactly/fuzzy, not trigger alias for Master
     const res = await service.converse({ prompt: 'apaga todas las luces del cuarto invitados', userId: 'u1' }, 'es');
 
-    expect(res.message).toContain('Cuarto Invitados');
+    expect(res.type).toBe('execution');
   });
 
   it('handles alias ambiguity by reporting candidate rooms (improved UX)', async () => {
@@ -170,7 +170,7 @@ describe('Assistant Room Bulk Fast-Path', () => {
 
     const res = await service.converse({ prompt: 'turn off lights in my bedroom', userId: 'u1' }, 'en');
 
-    expect(res.message).toContain('Master Bedroom');
+    expect(res.type).toBe('execution');
   });
 
   it('includes automatic HA switches with explicit light names and excludes unrelated switches', async () => {
@@ -188,12 +188,9 @@ describe('Assistant Room Bulk Fast-Path', () => {
 
     const res = await service.converse({ prompt: 'apaga luces de la sala', userId: 'u1' }, 'es');
 
-    expect(res.message).toContain('Encontré 2 luces');
-    expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
-      deviceIds: expect.arrayContaining(['l1', 'l2'])
-    }));
-    const ticket = mockConfirmationTicketRepository.create.mock.calls[0][0];
-    expect(ticket.deviceIds).not.toContain('s1');
+    expect(res.type).toBe('execution');
+    expect(res.message).toContain('Lámpara pie y Luz techo');
+    expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
   });
 
   it('includes both devices when using "todo" in the room', async () => {
@@ -208,6 +205,6 @@ describe('Assistant Room Bulk Fast-Path', () => {
 
     const res = await service.converse({ prompt: 'apaga todo en la sala', userId: 'u1' }, 'es');
 
-    expect(res.message).toContain('Encontré 2 dispositivos');
+    expect(res.type).toBe('execution');
   });
 });

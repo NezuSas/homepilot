@@ -218,9 +218,9 @@ describe('Assistant Semantic Hardening', () => {
 
     const res = await service.converse({ prompt: 'apaga todo el cuarto master', userId: 'u1' }, 'es');
     
-    // Should NOT be a selection. Should be a bulk action confirmation.
-    expect(res.type).toBe('clarification');
-    expect(res.message).toContain('Encontré 1 dispositivos en Cuarto Master');
+    // An explicit bulk command bypasses the prior room-selection clarification and executes directly.
+    expect(res.type).toBe('execution');
+    expect(res.message).toContain('Apagué Luz');
     // Verify memory was cleared
     expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('u1', expect.objectContaining({
       clarificationOptions: undefined
@@ -414,13 +414,11 @@ describe('Assistant Semantic Hardening', () => {
 
       const res = await service.converse({ prompt: 'apaga todas las luces sala', userId: 'u1' }, 'es');
 
-      // haLight should be included; regularSwitch excluded (no semanticType=light)
-      expect(res.type).toBe('clarification');
-      expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
-        deviceIds: expect.arrayContaining(['ha-sw-1'])
-      }));
-      const ticket = mockConfirmationTicketRepository.create.mock.calls[0][0];
-      expect(ticket.deviceIds).not.toContain('sw-2');
+      // haLight is executed; the non-light switch remains excluded.
+      expect(res.type).toBe('execution');
+      expect(mockDispatcher.dispatch).toHaveBeenCalledWith('ha-sw-1', expect.objectContaining({ name: 'turn_off' }));
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalledWith('sw-2', expect.anything());
+      expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
     });
 
     it('switch device with semanticType=switch is NOT included in light bulk', async () => {
@@ -449,11 +447,9 @@ describe('Assistant Semantic Hardening', () => {
       // "todo" uses bulkType = 'all', so it should NOT filter out switches
       const res = await service.converse({ prompt: 'apaga todo en la sala', userId: 'u1' }, 'es');
 
-      expect(res.type).toBe('clarification');
-      expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
-        deviceIds: expect.arrayContaining(['sw-1']),
-        bulkType: 'all'
-      }));
+      expect(res.type).toBe('execution');
+      expect(mockDispatcher.dispatch).toHaveBeenCalledWith('sw-1', expect.objectContaining({ name: 'turn_off' }));
+      expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
     });
   });
 
@@ -509,9 +505,10 @@ describe('Assistant Semantic Hardening', () => {
 
       const res = await service.converse({ prompt: 'apaga todo cocina', userId: 'u1' }, 'es');
 
-      // "todo" is a bulk keyword → room bulk fast-path → confirmation
-      expect(res.type).toBe('clarification');
-      expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({ bulkType: 'all' }));
+      // "todo" is a bulk keyword and executes immediately after authorization.
+      expect(res.type).toBe('execution');
+      expect(mockDispatcher.dispatch).toHaveBeenCalledWith('d1', expect.objectContaining({ name: 'turn_off' }));
+      expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
     });
   });
 

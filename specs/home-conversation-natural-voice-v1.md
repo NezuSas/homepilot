@@ -3,7 +3,7 @@
 **Estado:** Borrador
 
 ## Objetivo
-Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y permita interacción por voz desde la Operator Console, manteniendo el Edge como fuente de verdad y las confirmaciones de seguridad existentes.
+Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y permita interacción por voz desde la Operator Console, manteniendo el Edge como fuente de verdad y la ejecución directa de órdenes domésticas explícitas.
 
 ## Alcance
 - El backend debe tolerar prefijos, invocaciones y muletillas comunes sin cambiar contratos API.
@@ -19,6 +19,7 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - Después de detectar voz en una orden iniciada por activador, la captura debe cerrarse tras 2 segundos continuos de silencio.
 - Las órdenes habladas deben dejar de esperar al asistente después de 5 segundos y responder con un mensaje breve de incomprensión o indisponibilidad.
 - La UI debe permitir un modo de activador local `Ok Nezu` mientras la consola esté abierta y tenga permiso de micrófono.
+- La lectura de respuestas debe iniciar activada cuando el navegador pueda reproducir audio y conservar la preferencia explícita del usuario entre recargas.
 - La UI no debe bloquear frases naturales de varias palabras por no coincidir con una lista rígida de keywords; el backend conserva la responsabilidad de resolver intención o responder que no entendió.
 - La captura manual del chat y el activador global deben compartir utilidades de audio comunes para evitar divergencias de comportamiento.
 - La UI debe mostrar estado global discreto de escucha, captura, transcripción, procesamiento y respuesta cuando el activador esté disponible.
@@ -31,19 +32,25 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - La interrupción de voz debe detener tanto la reproducción global como la reproducción de `Conversar con mi casa`, y responder con una confirmación breve y elegante.
 - Mientras HomePilot procesa una orden o reproduce una respuesta hablada, el activador global debe aceptar el activador como interrupción tipo barge-in, detener la voz actual y volver a escuchar una orden sin reenviar eco al backend.
 - Las vistas pesadas de la Operator Console deben poder cargarse de forma diferida para reducir el bundle inicial.
-- La guía de producto debe explicar que la voz es local, que requiere permiso de micrófono, que el activador funciona con la consola abierta y que las acciones sensibles conservan confirmación.
+- La guía de producto debe explicar que la voz es local, que requiere permiso de micrófono, que el activador funciona con la consola abierta y que HomePilot solo pregunta cuando el destino es ambiguo.
 - La UI debe poder leer respuestas del asistente usando una voz profesional gratuita sin API keys como ruta principal.
 - El backend debe exponer un endpoint TTS propio que delegue en un servicio local Docker con Piper.
 - La UI no debe usar `speechSynthesis` para leer respuestas del asistente.
 - La experiencia de voz no debe requerir API keys ni proveedores cloud de pago.
 - El backend debe exponer un endpoint STT propio que delegue en un servicio local Docker con Whisper.
-- Las acciones ambiguas, masivas o sensibles deben seguir usando las confirmaciones actuales.
+- Las acciones domésticas explícitas, incluidas cortinas, escenas y acciones masivas, se ejecutan directamente; solo una ambigüedad real de destino requiere aclaración.
+- Voice-transcribed device references must be resolved against the authorized home inventory using accent-insensitive, Spanish phonetic, and safe singular/plural normalization.
+- A voice-originated request with an unambiguous authorized target executes immediately without a follow-up confirmation capture.
+- Authorization and command-capability validation remain mandatory before every execution.
+- The console must not render accept/reject controls for domestic device actions.
+- A single pending clarification option may be accepted with a natural affirmative reply such as sí, sí por favor, ese, or el primero; multiple options must still require a concrete choice.
+- Whisper contextual terms may include a bounded list of authorized room and device names for the active user, and must never leave the local Edge installation.
 
 ## Fuera de Alcance
 - No se agrega STT cloud.
 - No se agrega TTS cloud con API key.
 - No se agrega streaming de audio en tiempo real.
-- No se elimina la validación determinística ni las políticas de confirmación.
+- No se elimina la validación determinística, de autorización ni de capacidades de comando.
 - No se habilita ejecución autónoma de Planner V2.
 - No se cambian contratos de dispositivos, escenas, automatizaciones ni API.
 
@@ -63,13 +70,13 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - Si el activador global se usa desde otra pantalla, HomePilot no debe forzar navegación al chat; debe procesar la orden en segundo plano, mostrar una respuesta discreta y reproducir voz si el navegador lo permite.
 - Frases con activador fonético o separado, como `ok nesu apaga la luz de la sala` u `ok ne su abre la cortina`, deben normalizar el prefijo antes de evaluar la intención.
 - Comandos de control con verbo claro pero destino inexistente deben responder por ruta determinística rápida, sin esperar interpretación pesada.
-- Las respuestas de ejecución, error, objetivo no encontrado, aclaración y bloqueo de seguridad deben poder adjuntar metadato opcional `responseStyle` y formatearse con tono residencial tipo Jarvis sin afirmar acciones no confirmadas.
+- Las respuestas de ejecución, error, objetivo no encontrado, aclaración y bloqueo de seguridad deben poder adjuntar metadato opcional `responseStyle` y formatearse con tono residencial tipo Jarvis sin afirmar acciones que no se hayan ejecutado.
 - El tono tipo Jarvis debe sonar como un operador residencial premium: natural, breve, sereno y seguro, evitando lenguaje técnico como "dispositivo ha sido..." cuando pueda expresarse como una acción humana.
 - Preguntas conversacionales cortas como `Ok Nezu cómo estás` o `Ok Nezu qué hora es` deben responder de forma útil y enfocada en la casa, no como charla genérica desconectada del sistema residencial.
 - El contrato conversacional debe mantener al menos 100 expresiones representativas verificadas por tests, distribuidas entre conversación, fecha y hora, estado general, luces, cortinas, estancias, escenas, automatizaciones, ayuda y contexto.
 - Las consultas de hora deben responder en lenguaje hablado y con franja del día, por ejemplo `Son las nueve y cuarenta y cinco de la mañana`, respetando la zona horaria configurada. Las consultas `qué día es hoy`, `cuál es la fecha`, `es de mañana`, `es de tarde` y `ya es de noche` deben resolverse de forma determinista.
 - Preguntas de capacidad como `Ok Nezu qué puedes hacer`, `qué te puedo pedir`, `cómo me ayudas con la casa`, `qué comandos entiendes` o `qué puedes controlar` deben responder con una guía residencial concreta, sin caer en aclaración genérica.
-- La guía de capacidades debe cubrir escenarios humanos de uso: estado, control por estancia, luces, cortinas, escenas, automatizaciones, alias, confirmaciones, recuperación de fallos, límites y ejemplos disponibles del hogar actual.
+- La guía de capacidades debe cubrir escenarios humanos de uso: estado, control por estancia, luces, cortinas, escenas, automatizaciones, alias, aclaraciones de destino, recuperación de fallos, límites y ejemplos disponibles del hogar actual.
 - Frases como `cuando puedas apaga la luz de la sala` y `me ayudas a encender la luz de cocina` ejecutan la misma ruta segura que `apaga luz sala` o `enciende luz cocina`.
 - Frases naturales de varias palabras deben llegar al backend aunque no contengan una keyword exacta conocida; solo deben descartarse capturas vacías o de bajo valor como ruido.
 - La grabación manual y la escucha global usan la misma implementación base para soporte de `MediaRecorder`, selección de MIME y conversión base64.
@@ -99,6 +106,7 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - El healthcheck de STT solo debe responder correctamente después de que el modelo haya superado la verificación de integridad y esté cargado en memoria.
 - La grabación se detiene por silencio o por límite máximo, sin obligar al usuario a esperar el timeout completo.
 - La caja de chat expone botón para activar/desactivar lectura de respuestas si el navegador puede reproducir audio o usar síntesis local.
+- Cuando el navegador soporte reproducción de audio, la lectura de respuestas queda activa de forma predeterminada; si el usuario la desactiva o reactiva, su elección se conserva tras recargar la consola.
 - Si una respuesta del asistente llega con lectura activada, la UI solicita audio WAV al endpoint TTS backend.
 - Órdenes como `abre la cortina de la sala` y `cierra la cortina de la sala` deben resolverse por ruta determinística hacia los comandos `open` y `close`; nunca deben degradarse a `turn_on` o `turn_off`.
 - Si `la cortina` identifica un único dispositivo `cover` disponible, `abre la cortina` y `cierra la cortina` deben resolverse por la misma ruta determinística; si hay más de uno disponible, el asistente debe pedir contexto en vez de elegir uno.
@@ -106,10 +114,15 @@ Mejorar `Conversar con mi casa` para que acepte frases humanas más naturales y 
 - Las consultas `qué luces están apagadas` deben incluir dispositivos HA de tipo `switch` cuyo nombre indique explícitamente que son luces cuando no exista una clasificación semántica manual; una clasificación manual distinta de `light` siempre prevalece.
 - El endpoint TTS acepta respuestas residenciales extensas, incluida la guía completa de capacidades, sin devolver `VALIDATION_ERROR` por el límite anterior de 1200 caracteres.
 - Las consultas de inventario, como `cuántas luces tengo`, deben responder con el total disponible sin exigir una estancia ni degradarse a una aclaración de comando.
-- El endpoint TTS backend usa el servicio local `homepilot-tts` con Piper y la voz principal `es_MX-claude-high` por defecto, configurable por `PIPER_VOICE_ES`.
-- La selección española conserva un respaldo local explícito configurable por `PIPER_FALLBACK_VOICE_ES`; si la voz principal no existe, el asistente no queda sin respuesta de voz.
+- El endpoint TTS backend usa el servicio local `homepilot-tts` con Kokoro como motor principal (`em_alex` para español y `af_heart` para inglés), configurable mediante `KOKORO_VOICE_ES` y `KOKORO_VOICE_EN`.
+- Piper permanece como respaldo local explícito mediante `PIPER_VOICE_ES`, `PIPER_FALLBACK_VOICE_ES` y `PIPER_VOICE_EN`; si Kokoro no puede sintetizar, el asistente conserva una respuesta de voz local.
 - El servicio TTS debe mantener Piper cargado en memoria para evitar arrancar un proceso por cada respuesta.
 - Si el servicio TTS local falla, la conversación sigue funcionando en texto sin reproducir la voz del navegador.
 - Si el servicio STT local falla, la conversación sigue funcionando por texto sin depender del reconocimiento de voz del navegador.
+- Speech variants such as Apaga los Trabajos, Apaga de Croikos Trabajo, and Enciende en Decróicos Trabajo resolve only when the authorized inventory yields one unambiguous command target; otherwise HomePilot keeps the action pending and asks for a concrete choice.
+- After a one-option clarification, an affirmative voice reply executes the original authorized command; an affirmative reply can never choose arbitrarily from multiple options.
+- Voice variants such as sierra cortina cuarto master normalize to cierra cortina cuarto master before deterministic resolution.
+- An explicit home-control request executes without a confirmation prompt after authorization, target resolution, and capability validation succeed.
+- Local Whisper receives only bounded authorized room and device terms as contextual hotwords for the current request.
 - Typecheck, build, build de Operator Console, tests y Docker pasan.
 

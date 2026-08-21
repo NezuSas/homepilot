@@ -36,6 +36,7 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
     mockMemory = createMockAssistantMemory();
     mockDeviceRepo = createMockDeviceRepository();
     mockSceneExecutionService = createMockSceneExecutionService();
+    mockSceneExecutionService.execute.mockResolvedValue({ status: 'success', actions: [{ status: 'success' }] });
     mockHomeRepository = { findHomesByUserId: jest.fn().mockResolvedValue([{ id: 'h1' }]) };
     mockConfirmationTicketRepository = createFakeConfirmationTicketRepository();
 
@@ -76,7 +77,7 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
     delete process.env.ASSISTANT_PLANNER_V2_EXECUTION;
   });
 
-  it('recognizes an infinitive bulk shortcut and requires confirmation', async () => {
+  it('executes an infinitive bulk shortcut directly', async () => {
     mockMemory.getShortTermMemory.mockResolvedValue(null);
     mockDeviceRepo.findAll.mockResolvedValue([
       createTestDevice({ id: 'd1', name: 'Luz Sala', homeId: 'h1', type: 'light', lastKnownState: { on: true } })
@@ -84,11 +85,9 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
 
     const res = await service.converse({ prompt: 'Apagar todo', userId: 'u1' }, 'es');
 
-    expect(res.type).toBe('clarification');
-    expect(res.message).toContain('¿Confirmas');
-    expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
-      userId: 'u1', command: 'turn_off', deviceIds: ['d1']
-    }));
+    expect(res.type).toBe('execution');
+    expect(mockSceneExecutionService.execute).toHaveBeenCalledTimes(1);
+    expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
     expect(mockShadowService.attemptHybridExecution).not.toHaveBeenCalled();
   });
   it('understands a conversational whole-house command, skips only lights confirmed already off, and includes unknown-state lights', async () => {
@@ -101,13 +100,10 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
 
     const res = await service.converse({ prompt: '¿Podrías apagar todas las luces de toda la casa, por favor?', userId: 'u1' }, 'es');
 
-    expect(res.type).toBe('clarification');
-    // An unreported/unknown state is never assumed to already satisfy "off" — only
-    // off-light is provably off, so on-light and unknown-light are both included.
-    expect(res.message).toContain('2 luces');
-    expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
-      command: 'turn_off', deviceIds: ['on-light', 'unknown-light']
-    }));
+    expect(res.type).toBe('execution');
+    expect(mockSceneExecutionService.execute).toHaveBeenCalledTimes(2);
+    expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
+
     expect(mockShadowService.attemptHybridExecution).not.toHaveBeenCalled();
   });
   it('understands an invoked elliptical whole-house shutdown without waiting for the model', async () => {
@@ -119,14 +115,13 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
 
     const res = await service.converse({ prompt: 'HomePilot, apagado todo', userId: 'u1' }, 'es');
 
-    expect(res.type).toBe('clarification');
-    expect(res.message).toContain('1 dispositivos');
-    expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
-      command: 'turn_off', deviceIds: ['on-light']
-    }));
+    expect(res.type).toBe('execution');
+    expect(mockSceneExecutionService.execute).toHaveBeenCalledTimes(1);
+    expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
+
     expect(mockShadowService.attemptHybridExecution).not.toHaveBeenCalled();
   });
-  it('triggers confirmation when multiple devices are resolved', async () => {
+  it('asks for clarification when multiple devices remain ambiguous', async () => {
     mockShadowService.attemptHybridExecution.mockResolvedValue({
       command: 'turn_on',
       confidence: 0.9,
@@ -148,7 +143,7 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
     }));
   });
 
-  it('a same-command multi-action semantic plan creates a confirmable ticket, then executes both devices', async () => {
+  it('executes a same-command multi-action semantic plan directly', async () => {
     const devices = [
       createTestDevice({ id: 'd1', name: 'Ventilador Pasillo', homeId: 'h1', type: 'switch', lastKnownState: { on: false } }),
       createTestDevice({ id: 'd2', name: 'Persiana Estudio', homeId: 'h1', type: 'switch', lastKnownState: { on: false } })
@@ -163,31 +158,16 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
     });
     mockMemory.getShortTermMemory.mockResolvedValue(null);
 
-    const consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation();
     const res = await service.converse({ prompt: 'ejecuta la rutina combinada dos', userId: 'u1' }, 'es');
 
     // Guard: this prompt must actually reach the semantic path, not be intercepted
     // by an earlier deterministic fast path — otherwise this test would silently
     // exercise the wrong code path (see the sibling tests above for that pitfall).
     expect(mockShadowService.attemptHybridExecution).toHaveBeenCalled();
-    expect(res.type).toBe('clarification');
-    expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
-      command: 'turn_on', deviceIds: ['d1', 'd2']
-    }));
-    const confirmationLog = consoleInfoSpy.mock.calls
-      .map(([value]) => String(value))
-      .find(value => value.includes('[ASSISTANT_CONFIRMATION_REQUIRED]'));
-    expect(confirmationLog).toContain('count');
-    expect(confirmationLog).not.toContain('ejecuta la rutina combinada dos');
-
-    mockSceneExecutionService.execute.mockResolvedValue({ status: 'success', actions: [{ status: 'success' }] });
-    mockMemory.getShortTermMemory.mockResolvedValue({ lastQueryType: 'confirmation', entities: [], timestamp: new Date().toISOString() });
-
-    const confirmRes = await service.converse({ prompt: 'sí', userId: 'u1' }, 'es');
-
-    expect(confirmRes.type).toBe('execution');
+    expect(res.type).toBe('execution');
+    expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
     expect(mockSceneExecutionService.execute).toHaveBeenCalledTimes(2);
-    consoleInfoSpy.mockRestore();
+
   });
 
   it('triggers confirmation when a category is resolved', async () => {
@@ -327,7 +307,7 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
   });
 
   describe('Bulk Fast-Path (Deterministic)', () => {
-    it('triggers bulk confirmation for "enciende todas las luces" without calling shadow', async () => {
+    it('executes directly for "enciende todas las luces" without calling shadow', async () => {
       const lights = [
         createTestDevice({ id: 'l1', name: 'Luz 1', type: 'light' }),
         createTestDevice({ id: 'l2', name: 'Luz 2', type: 'light' })
@@ -337,15 +317,13 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
 
       const res = await service.converse({ prompt: 'enciende todas las luces', userId: 'u1' }, 'es');
 
-      expect(res.type).toBe('clarification');
-      expect(res.message).toContain('Encontré 2 luces');
+      expect(res.type).toBe('execution');
       expect(mockShadowService.attemptHybridExecution).not.toHaveBeenCalled();
-      expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
-        command: 'turn_on', deviceIds: ['l1', 'l2']
-      }));
+      expect(mockSceneExecutionService.execute).toHaveBeenCalledTimes(2);
+      expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
     });
 
-    it('triggers bulk confirmation for "apaga todas las luces" without calling shadow', async () => {
+    it('executes directly for "apaga todas las luces" without calling shadow', async () => {
       const lights = [
         createTestDevice({ id: 'l1', name: 'Luz 1', type: 'light', lastKnownState: { on: true } })
       ];
@@ -354,12 +332,10 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
 
       const res = await service.converse({ prompt: 'apaga todas las luces', userId: 'u1' }, 'es');
 
-      expect(res.type).toBe('clarification');
-      expect(res.message).toContain('Encontré 1 luces');
+      expect(res.type).toBe('execution');
       expect(mockShadowService.attemptHybridExecution).not.toHaveBeenCalled();
-      expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
-        command: 'turn_off', deviceIds: ['l1']
-      }));
+      expect(mockSceneExecutionService.execute).toHaveBeenCalledTimes(1);
+      expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
     });
 
     it('returns safe answer if no lights are found', async () => {
@@ -382,11 +358,9 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
 
       const res = await service.converse({ prompt: 'enciende todas las luces', userId: 'u1' }, 'es');
 
-      expect(res.type).toBe('clarification');
-      expect(res.message).toContain('Encontré 1 luces');
-      expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
-        deviceIds: ['l1']
-      }));
+      expect(res.type).toBe('execution');
+      expect(mockSceneExecutionService.execute).toHaveBeenCalledTimes(1);
+      expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
     });
   });
 });

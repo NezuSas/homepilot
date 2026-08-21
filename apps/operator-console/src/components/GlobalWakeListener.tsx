@@ -1,16 +1,18 @@
 import { useEffect, useRef } from 'react';
 import { transcribeAssistantSpeech } from '../lib/assistantApi';
 import { blobToBase64, canUseLocalSpeechRecording, getPreferredAudioMimeType } from '../lib/audioRecording';
-import { extractWakeCommand, isUsableVoiceTranscript, normalizeVoiceTranscript } from '../lib/homeConversationVoice';
+import { HOME_CONVERSATION_CONFIRMATION_LISTEN_EVENT, extractWakeCommand, isUsableVoiceTranscript, normalizeVoiceTranscript } from '../lib/homeConversationVoice';
 import { playWakeAcknowledgementSound } from '../lib/wakeAcknowledgementSound';
 import type { GlobalWakeStatus } from './GlobalWakeNotice';
 
 const MAX_PASSIVE_WAKE_RECORDING_MS = 3000;
 const MAX_COMMAND_RECORDING_MS = 9000;
+const MAX_CONFIRMATION_REPLY_RECORDING_MS = 5000;
 const MIN_WAKE_DETECTION_RECORDING_MS = 350;
 const MIN_COMMAND_RECORDING_MS = 900;
 const STOP_WAKE_DETECTION_AFTER_SILENCE_MS = 350;
 const START_COMMAND_CAPTURE_TIMEOUT_MS = 2000;
+const START_CONFIRMATION_REPLY_CAPTURE_TIMEOUT_MS = 5000;
 const STOP_COMMAND_CAPTURE_AFTER_SILENCE_MS = 2000;
 const WAKE_SPEECH_LEVEL_THRESHOLD = 0.018;
 const WAKE_SPEECH_CONFIRMATION_MS = 120;
@@ -59,6 +61,7 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
   const wakeGenerationRef = useRef(0);
   const passiveTranscriptionUnavailableUntilRef = useRef(0);
   const releaseWakeOwnershipRef = useRef<(() => void) | null>(null);
+  const confirmationCapturePendingRef = useRef(false);
   const onCommandRef = useRef(onCommand);
   const onWakeInterruptRef = useRef(onWakeInterrupt);
   const onStatusChangeRef = useRef(onStatusChange);
@@ -190,7 +193,7 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
     scheduleWakeCycle(captureCommand, delayMs);
   };
 
-  const startSilenceDetection = (stream: MediaStream, captureCommand: boolean) => {
+  const startSilenceDetection = (stream: MediaStream, captureCommand: boolean, isConfirmationCapture: boolean) => {
     stopSilenceDetection();
 
     const browserWindow = window as Window & { webkitAudioContext?: typeof AudioContext };
@@ -240,7 +243,7 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
           speechDetectedRef.current = true;
           silenceStartedAtRef.current = null;
         }
-      } else if (captureCommand && !speechDetectedRef.current && elapsed >= START_COMMAND_CAPTURE_TIMEOUT_MS) {
+      } else if (captureCommand && !speechDetectedRef.current && elapsed >= (isConfirmationCapture ? START_CONFIRMATION_REPLY_CAPTURE_TIMEOUT_MS : START_COMMAND_CAPTURE_TIMEOUT_MS)) {
         speechCandidateStartedAtRef.current = null;
         stopRecording();
         return;
@@ -387,6 +390,22 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
     void transcribeRecording(audioBlob, captureCommand, generation);
   };
 
+  useEffect(() => {
+    const captureConfirmationReply = () => {
+      if (!enabledRef.current) return;
+
+      confirmationCapturePendingRef.current = true;
+      wakeGenerationRef.current += 1;
+      queuedPassiveRecordingRef.current = null;
+      switchWakeCycle(true, 0);
+    };
+
+    window.addEventListener(HOME_CONVERSATION_CONFIRMATION_LISTEN_EVENT, captureConfirmationReply);
+    return () => {
+      window.removeEventListener(HOME_CONVERSATION_CONFIRMATION_LISTEN_EVENT, captureConfirmationReply);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Capture functions use stable refs while recording.
+
   async function startWakeCycle(captureCommand: boolean) {
     if (!enabledRef.current || isRecordingRef.current) return;
 
@@ -406,6 +425,8 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
         isRecordingRef.current = false;
         return;
       }
+      const isConfirmationCapture = captureCommand && confirmationCapturePendingRef.current;
+      confirmationCapturePendingRef.current = false;
       const mimeType = getPreferredAudioMimeType();
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       mediaChunksRef.current = [];
@@ -467,9 +488,9 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
       recordingStartedAtRef.current = Date.now();
       silenceStartedAtRef.current = null;
       recorder.start();
-      startSilenceDetection(stream, captureCommand);
+      startSilenceDetection(stream, captureCommand, isConfirmationCapture);
       const maximumRecordingMs = captureCommand
-        ? MAX_COMMAND_RECORDING_MS
+        ? (isConfirmationCapture ? MAX_CONFIRMATION_REPLY_RECORDING_MS : MAX_COMMAND_RECORDING_MS)
         : MAX_PASSIVE_WAKE_RECORDING_MS;
       recordingTimeoutRef.current = window.setTimeout(() => stopRecording(), maximumRecordingMs);
     } catch {

@@ -28,6 +28,7 @@ class SpeechToTextRequest(BaseModel):
     audioBase64: str = Field(min_length=1)
     audioContentType: str = Field(min_length=1)
     language: str = "es"
+    contextTerms: list[str] = Field(default_factory=list, max_length=40)
 
 
 class SpeechToTextResponse(BaseModel):
@@ -67,6 +68,19 @@ def verify_model_integrity(model_path: str) -> None:
         raise RuntimeError(
             f"Whisper model integrity check failed: expected {expected_digest}, got {actual_digest}"
         )
+
+
+def build_hotwords(context_terms: list[str]) -> str | None:
+    normalized_terms = []
+    for term in context_terms:
+        normalized = " ".join(term.split())
+        if normalized and len(normalized) <= 64 and normalized not in normalized_terms:
+            normalized_terms.append(normalized)
+        if len(normalized_terms) >= 40:
+            break
+
+    combined = ", ".join(term for term in [HOTWORDS, *normalized_terms] if term)
+    return combined[:3000] or None
 
 
 def suffix_for_content_type(content_type: str) -> str:
@@ -122,7 +136,7 @@ async def transcribe(request: SpeechToTextRequest) -> SpeechToTextResponse:
                 "speech_pad_ms": VAD_SPEECH_PAD_MS
             },
             condition_on_previous_text=False,
-            hotwords=HOTWORDS or None
+            hotwords=build_hotwords(request.contextTerms)
         )
         transcript = " ".join(segment.text.strip() for segment in segments).strip()
 

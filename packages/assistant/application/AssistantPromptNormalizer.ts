@@ -37,6 +37,9 @@ export function normalizeAssistantPrompt(prompt: string): string {
       .replace(/\bensaila\b/g, "en sala")
       .replace(/\bensala\b/g, "en sala")
       .replace(/\bcierres\b/g, "cierra")
+      .replace(/\bsierra\b/g, "cierra")
+      .replace(/\bsierras\b/g, "cierra")
+      .replace(/\bcortinas?\b/g, "cortina")
       .replace(/\babras\b/g, "abre");
 
     const wakeCommand = extractNezuWakeCommand(normalized);

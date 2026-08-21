@@ -19,3 +19,9 @@ Primary specification: [assistant-voice-provider-baseline-v1.md](./assistant-voi
 - [x] Run typecheck and targeted console tests.
 - [x] Run the full workspace test suite and production builds.
 - [x] Start the Docker stack and verify API health.
+
+## Hardware-neutral voice baseline
+
+- [x] Keep the production TTS deployment limited to Kokoro with Piper fallback.
+- [x] Remove GPU detection, GPU-specific Compose overrides, model dependencies, and synthetic voice-reference assets.
+- [x] Verify that the CPU-only voice path stays healthy and responsive.

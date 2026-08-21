@@ -4,7 +4,7 @@ export interface AssistantTextToSpeechRequest {
 }
 
 export interface AssistantTextToSpeechResponse {
-  provider: 'piper';
+  provider: 'kokoro' | 'piper';
   audioContentType: 'audio/wav';
   audioBase64: string;
 }
@@ -25,7 +25,7 @@ function parseAudioResponse(value: unknown): AssistantTextToSpeechResponse {
   }
 
   if (
-    value.provider !== 'piper' ||
+    (value.provider !== 'kokoro' && value.provider !== 'piper') ||
     value.audioContentType !== 'audio/wav' ||
     typeof value.audioBase64 !== 'string' ||
     value.audioBase64.length === 0
@@ -42,7 +42,7 @@ function parseAudioResponse(value: unknown): AssistantTextToSpeechResponse {
 
 export class AssistantTextToSpeechService {
   constructor(
-    private readonly provider = process.env.TTS_PROVIDER || 'piper',
+    private readonly provider = process.env.TTS_PROVIDER || 'kokoro',
     private readonly baseUrl = process.env.TTS_BASE_URL || 'http://localhost:8088',
     private readonly timeoutMs = Number.parseInt(process.env.TTS_TIMEOUT_MS || '12000', 10)
   ) {}
@@ -57,7 +57,7 @@ export class AssistantTextToSpeechService {
       throw new AssistantTextToSpeechValidationError(`text must be ${MAX_TEXT_LENGTH} characters or fewer`);
     }
 
-    if (this.provider !== 'piper') {
+    if (this.provider !== 'kokoro' && this.provider !== 'piper') {
       throw new AssistantTextToSpeechUnavailableError(`Unsupported TTS provider: ${this.provider}`);
     }
 

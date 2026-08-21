@@ -9,4 +9,9 @@ describe('normalizeAssistantPrompt', () => {
   it('preserves the existing polite-wrapper normalization for natural requests', () => {
     expect(normalizeAssistantPrompt('HomePilot, porfa que luces están encendidas?')).toBe('que luces estan encendidas');
   });
+
+  it('normalizes common speech-recognition variants for curtain commands', () => {
+    expect(normalizeAssistantPrompt('sierra cortina cuarto master')).toBe('cierra cortina cuarto master');
+    expect(normalizeAssistantPrompt('sierras las cortinas del cuarto master')).toBe('cierra las cortina del cuarto master');
+  });
 });

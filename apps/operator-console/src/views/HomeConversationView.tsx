@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS, converseWithAssistant, synthesizeAssistantSpeech, transcribeAssistantSpeech } from '../lib/assistantApi';
 import { blobToBase64, canUseLocalSpeechRecording, createSpeechAudioUrl, getPreferredAudioMimeType } from '../lib/audioRecording';
@@ -10,7 +10,11 @@ import type { AssistantConversationResponse, ChatMessage } from '../types/assist
 import { HomeConversationComposer } from '../components/HomeConversationComposer';
 import { HomeConversationMessageBubble } from '../components/HomeConversationMessageBubble';
 import { HomeConversationTypingIndicator } from '../components/HomeConversationTypingIndicator';
+import { HomeConversationEmptyState } from '../components/HomeConversationEmptyState';
+import { Button } from '../components/ui/Button';
+import { MessageSquarePlus } from 'lucide-react';
 import {
+  HOME_CONVERSATION_CONFIRMATION_LISTEN_EVENT,
   HOME_CONVERSATION_SPEECH_ACTIVITY_EVENT,
   HOME_CONVERSATION_STOP_SPEECH_EVENT,
   isUsableVoiceTranscript,
@@ -23,6 +27,52 @@ const MAX_RECORDING_MS = 8000;
 const MIN_RECORDING_MS = 700;
 const STOP_AFTER_SILENCE_MS = 900;
 const SPEECH_LEVEL_THRESHOLD = 0.018;
+const HOME_CONVERSATION_STORAGE_PREFIX = 'hp_home_conversation_v1';
+const HOME_CONVERSATION_SPEECH_ENABLED_STORAGE_KEY = 'hp_home_conversation_speech_enabled';
+const MAX_PERSISTED_MESSAGES = 80;
+
+type ConversationActivity = 'ready' | 'listening' | 'transcribing' | 'consulting' | 'notice';
+
+function requiresVoiceConfirmation(response: AssistantConversationResponse): boolean {
+  if (response.type !== 'clarification') return false;
+
+  const optionIds = new Set(response.clarification?.options.map(option => option.id));
+  return optionIds.has('confirm') && optionIds.has('cancel');
+}
+
+function readStoredMessages(storageKey: string | null): ChatMessage[] {
+  if (!storageKey) return [];
+  try {
+    const parsed: unknown = JSON.parse(sessionStorage.getItem(storageKey) ?? '[]');
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((value): value is ChatMessage => typeof value === 'object' && value !== null
+        && typeof value.id === 'string'
+        && (value.role === 'user' || value.role === 'assistant')
+        && typeof value.content === 'string'
+        && typeof value.timestamp === 'string')
+      .map(({ options: _options, ...message }) => message)
+      .slice(-MAX_PERSISTED_MESSAGES);
+  } catch {
+    return [];
+  }
+}
+
+function readSpeechEnabledPreference(): boolean {
+  try {
+    return localStorage.getItem(HOME_CONVERSATION_SPEECH_ENABLED_STORAGE_KEY) !== 'false';
+  } catch {
+    return true;
+  }
+}
+
+function storeSpeechEnabledPreference(enabled: boolean): void {
+  try {
+    localStorage.setItem(HOME_CONVERSATION_SPEECH_ENABLED_STORAGE_KEY, String(enabled));
+  } catch {
+    // The conversation remains usable when browser storage is unavailable.
+  }
+}
 
 interface HomeConversationViewProps {
   pendingPrompt?: { id: string; text: string; interactionMode: 'voice' } | null;
@@ -33,11 +83,14 @@ interface HomeConversationViewProps {
 export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pendingPrompt, onPendingPromptConsumed, assistantTurnCoordinator }) => {
   const { t } = useTranslation();
   const { user } = useSession(noopSessionCleared);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const conversationStorageKey = user ? HOME_CONVERSATION_STORAGE_PREFIX + ':' + user.id : null;
+  const [messages, setMessages] = useState<ChatMessage[]>(() => readStoredMessages(conversationStorageKey));
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [conversationActivity, setConversationActivity] = useState<ConversationActivity>('ready');
   const [isListening, setIsListening] = useState(false);
-  const [isSpeechEnabled, setIsSpeechEnabled] = useState(false);
+  const initialSpeechEnabledRef = useRef(readSpeechEnabledPreference());
+  const [isSpeechEnabled, setIsSpeechEnabled] = useState(initialSpeechEnabledRef.current);
   const [speechNotice, setSpeechNotice] = useState('');
   const [keyboardInset, setKeyboardInset] = useState(0);
   const [speechSupport, setSpeechSupport] = useState({
@@ -56,7 +109,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
   const speechDetectedRef = useRef(false);
   const silenceAnimationFrameRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const speechEnabledRef = useRef(false);
+  const speechEnabledRef = useRef(initialSpeechEnabledRef.current);
   const speechAudioRef = useRef<HTMLAudioElement | null>(null);
   const speechAudioUrlRef = useRef<string | null>(null);
   const speechRequestIdRef = useRef(0);
@@ -114,11 +167,21 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     };
   }, []);
 
+  useLayoutEffect(() => {
+    const feed = scrollRef.current;
+    if (!feed) return;
+
+    const previousScrollBehavior = feed.style.scrollBehavior;
+    feed.style.scrollBehavior = 'auto';
+    feed.scrollTop = feed.scrollHeight;
+    feed.style.scrollBehavior = previousScrollBehavior;
+  }, [conversationStorageKey, messages.length, isLoading]);
+
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages.length, isLoading]);
+    if (!conversationStorageKey) return;
+    const safeMessages = messages.slice(-MAX_PERSISTED_MESSAGES).map(({ options: _options, ...message }) => message);
+    sessionStorage.setItem(conversationStorageKey, JSON.stringify(safeMessages));
+  }, [conversationStorageKey, messages]);
 
   useEffect(() => () => {
     if (recordingTimeoutRef.current !== null) {
@@ -210,10 +273,17 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       const audio = new Audio(audioUrl);
       speechAudioUrlRef.current = audioUrl;
       speechAudioRef.current = audio;
-      audio.onended = stopProfessionalSpeech;
-      audio.onerror = stopProfessionalSpeech;
+      const playbackFinished = new Promise<void>(resolve => {
+        const finishPlayback = () => {
+          stopProfessionalSpeech();
+          resolve();
+        };
+        audio.onended = finishPlayback;
+        audio.onerror = finishPlayback;
+      });
       notifySpeechActivity(true);
       await audio.play();
+      await playbackFinished;
     } catch {
       stopProfessionalSpeech();
     }
@@ -230,7 +300,11 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     if (response.type === 'execution' && response.execution?.status !== 'failed') {
       void refreshDeviceSnapshot({ force: true });
     }
-    void speakAssistantResponse(response.message, turn);
+    void speakAssistantResponse(response.message, turn).finally(() => {
+      if (turn.origin === 'manual_voice' && requiresVoiceConfirmation(response)) {
+        window.dispatchEvent(new Event(HOME_CONVERSATION_CONFIRMATION_LISTEN_EVENT));
+      }
+    });
   };
 
   const addErrorMessage = (error: unknown) => {
@@ -242,6 +316,22 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       responseType: 'error'
     });
     return resolvedMessage;
+  };
+
+  const handleCancelRequest = () => {
+    const activeTurn = activeConversationTurnRef.current;
+    if (!activeTurn) return;
+
+    conversationRequestIdRef.current += 1;
+    assistantTurnCoordinator.cancel(activeTurn);
+    activeConversationTurnRef.current = null;
+    setIsLoading(false);
+    setConversationActivity('notice');
+    addMessage({
+      role: 'assistant',
+      content: t('assistant.conversation.request_cancelled'),
+      responseType: 'answer'
+    });
   };
 
   const handleSend = async (text: string = input, responseTimeoutMs?: number, replaceActive = false, interactionMode: 'chat' | 'voice' = 'chat', existingTurn?: AssistantTurn) => {
@@ -257,6 +347,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     setSpeechNotice('');
     setInput('');
     addMessage({ role: 'user', content: userText });
+    setConversationActivity('consulting');
     setIsLoading(true);
 
     try {
@@ -276,6 +367,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
           activeConversationTurnRef.current = null;
         }
         setIsLoading(false);
+        setConversationActivity('ready');
       }
     }
   };
@@ -397,6 +489,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     const turn = assistantTurnCoordinator.begin('manual_voice');
     activeConversationTurnRef.current = turn;
     setSpeechNotice(t('assistant.conversation.voice_transcribing'));
+    setConversationActivity('transcribing');
 
     try {
       const audioBase64 = await blobToBase64(audioBlob);
@@ -408,11 +501,13 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       const spokenText = normalizeVoiceTranscript(transcription?.transcript ?? '');
       if (!spokenText) {
         setSpeechNotice(t('assistant.conversation.voice_no_speech'));
+        setConversationActivity('notice');
         return;
       }
 
       if (!isUsableVoiceTranscript(spokenText)) {
         setSpeechNotice(t('assistant.conversation.voice_not_understood'));
+        setConversationActivity('notice');
         return;
       }
 
@@ -421,6 +516,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     } catch {
       if (assistantTurnCoordinator.isCurrent(turn)) {
         setSpeechNotice(t('assistant.conversation.voice_transcription_error'));
+        setConversationActivity('notice');
       }
     }
   };
@@ -478,6 +574,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       };
 
       setSpeechNotice('');
+      setConversationActivity('listening');
       setIsListening(true);
       recordingStartedAtRef.current = Date.now();
       silenceStartedAtRef.current = null;
@@ -492,6 +589,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     } catch (error) {
       const errorName = error instanceof DOMException ? error.name : undefined;
       setSpeechNotice(resolveRecordingError(errorName));
+      setConversationActivity('notice');
       stopMediaStream();
       setIsListening(false);
     }
@@ -508,6 +606,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       stopProfessionalSpeech();
     }
     speechEnabledRef.current = nextSpeechEnabled;
+    storeSpeechEnabledPreference(nextSpeechEnabled);
     setIsSpeechEnabled(nextSpeechEnabled);
   };
 
@@ -522,6 +621,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     activeConversationTurnRef.current = turn;
     conversationRequestIdRef.current += 1;
     const requestId = conversationRequestIdRef.current;
+    setConversationActivity('consulting');
     setIsLoading(true);
 
     try {
@@ -540,6 +640,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
           activeConversationTurnRef.current = null;
         }
         setIsLoading(false);
+        setConversationActivity('ready');
       }
     }
   };
@@ -551,12 +652,26 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     }
   };
 
+  const clearConversation = () => {
+    if (conversationStorageKey) sessionStorage.removeItem(conversationStorageKey);
+    setMessages([]);
+    setSpeechNotice('');
+    setConversationActivity('ready');
+  };
+
   const suggestions = useMemo(() => [
-    t('assistant.conversation.suggestion_status'),
-    t('assistant.conversation.suggestion_1'),
-    t('assistant.conversation.suggestion_2'),
-    t('assistant.conversation.suggestion_4')
+    { id: 'lights-on', label: t('assistant.conversation.suggestion_status') },
+    { id: 'home-status', label: t('assistant.conversation.suggestion_home_status') },
+    { id: 'all-off', label: t('assistant.conversation.suggestion_1'), requiresConfirmation: true }
   ], [t]);
+
+  const activityStatus = useMemo(() => {
+    if (conversationActivity === 'listening') return { label: t('assistant.conversation.voice_listening_status'), tone: 'danger' as const };
+    if (conversationActivity === 'transcribing') return { label: t('assistant.conversation.voice_transcribing_status'), tone: 'warning' as const };
+    if (conversationActivity === 'consulting') return { label: t('assistant.conversation.consulting'), tone: 'primary' as const };
+    if (conversationActivity === 'notice' && speechNotice) return { label: speechNotice, tone: 'warning' as const };
+    return { label: t('assistant.conversation.ready'), tone: 'success' as const };
+  }, [conversationActivity, speechNotice, t]);
 
 
   const audioInputOptions = useMemo(() => audioInputDevices.map((device, index) => ({
@@ -566,20 +681,32 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
 
   return (
     <section
-      className="flex h-full w-full animate-in fade-in duration-500 flex-col overflow-hidden bg-background"
+      className="home-conversation-shell flex h-full w-full animate-in fade-in duration-500 flex-col overflow-hidden"
       style={{ height: keyboardInset > 0 ? `calc(100% - ${keyboardInset}px)` : '100%' }}
     >
 
       <div
         ref={scrollRef}
-        className="custom-scrollbar flex-1 overflow-y-auto scroll-smooth bg-muted/10 px-3 py-4 sm:px-4 md:px-6 lg:px-8 xl:px-10 xl:py-8"
+        className="home-conversation-feed custom-scrollbar flex-1 overflow-y-auto px-3 py-4 sm:px-4 md:px-6 lg:px-8 xl:px-10 xl:py-8"
       >
         <div
           role="log"
           aria-live="polite"
           aria-relevant="additions text"
-          className="mx-auto flex w-full max-w-7xl flex-col gap-4 md:gap-5"
+          className="home-conversation-thread mx-auto flex w-full max-w-6xl flex-col gap-4 md:gap-5"
         >
+
+          {messages.length === 0 && !isLoading && (
+            <HomeConversationEmptyState
+              title={t('assistant.conversation.empty_title')}
+              description={t('assistant.conversation.empty_description')}
+              suggestionsLabel={t('assistant.conversation.suggestions_label')}
+              suggestions={suggestions}
+              confirmationRequiredLabel={t('assistant.conversation.confirmation_required')}
+              onSuggestionClick={handleSend}
+            />
+          )}
+
 
           {messages.map(message => (
             <HomeConversationMessageBubble
@@ -590,6 +717,21 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
             />
           ))}
 
+          {messages.length > 0 && !isLoading && (
+            <div className="home-conversation-thread-actions">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={clearConversation}
+                className="home-conversation-new-thread"
+              >
+                <MessageSquarePlus className="h-4 w-4" aria-hidden="true" />
+                <span>{t('assistant.conversation.new_conversation')}</span>
+              </Button>
+            </div>
+          )}
+
           {isLoading && <HomeConversationTypingIndicator />}
         </div>
       </div>
@@ -599,10 +741,9 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
         isLoading={isLoading}
         placeholder={t('assistant.conversation.placeholder')}
         sendLabel={t('assistant.conversation.send')}
-        statusLabel={isLoading ? t('assistant.conversation.sending') : t('assistant.conversation.ready')}
+        activityLabel={activityStatus.label}
+        activityTone={activityStatus.tone}
         inputHint={speechNotice || t('assistant.conversation.input_hint')}
-        suggestions={messages.length === 0 ? suggestions : []}
-        onSuggestionClick={handleSend}
         isListening={isListening}
         isSpeechRecordingSupported={speechSupport.recording}
         isSpeechSynthesisSupported={speechSupport.synthesis}
@@ -614,12 +755,14 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
         listeningLabel={t('assistant.conversation.voice_listening')}
         speechOnLabel={t('assistant.conversation.speech_on')}
         speechOffLabel={t('assistant.conversation.speech_off')}
+        cancelLabel={t('assistant.conversation.cancel_request')}
         onInputChange={setInput}
         onAudioInputChange={setSelectedAudioInputId}
         onSend={() => handleSend()}
         onKeyDown={handleKeyDown}
         onToggleListening={() => void handleToggleListening()}
         onToggleSpeech={handleToggleSpeech}
+        onCancelRequest={handleCancelRequest}
       />
     </section>
   );

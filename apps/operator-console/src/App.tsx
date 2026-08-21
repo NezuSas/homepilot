@@ -32,7 +32,7 @@ import { apiFetch } from './lib/apiClient';
 import { ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS, converseWithAssistant, synthesizeAssistantSpeech } from './lib/assistantApi';
 import { createSpeechAudioUrl } from './lib/audioRecording';
 import { AssistantTurnCoordinator, type AssistantTurn } from './lib/assistantTurnCoordinator';
-import { HOME_CONVERSATION_SPEECH_ACTIVITY_EVENT, HOME_CONVERSATION_STOP_SPEECH_EVENT, isSilenceVoiceCommand } from './lib/homeConversationVoice';
+import { HOME_CONVERSATION_CONFIRMATION_LISTEN_EVENT, HOME_CONVERSATION_SPEECH_ACTIVITY_EVENT, HOME_CONVERSATION_STOP_SPEECH_EVENT, isSilenceVoiceCommand } from './lib/homeConversationVoice';
 import { recordHomeConversationTelemetry } from './lib/homeConversationTelemetry';
 import { useSession, type UserContext } from './lib/useSession';
 import { LoginView } from './views/LoginView';
@@ -46,6 +46,7 @@ import { LoadingState } from './components/ui/LoadingState';
 import { PageFrame } from './components/ui/PageFrame';
 import { SidebarItem } from './components/ui/SidebarItem';
 import type { View } from './types';
+import type { AssistantConversationResponse } from './types/assistantConversation';
 import { DASHBOARDS_ONE_PATTERN, DASHBOARDS_TAB_PATTERN, isSystemView, pathToView, resolveView, viewToPath } from './lib/viewNavigation';
 import { useRealtimeEvents } from './lib/useRealtimeEvents';
 import { useAppShellStore } from './stores/useAppShellStore';
@@ -78,6 +79,13 @@ const FAMILY_CONTROL_ROLES = new Set(['admin', 'operator', 'parent', 'child']);
 const ADMIN_CONTROL_ROLES = new Set(['admin', 'operator', 'parent']);
 const SYSTEM_ROLES = new Set(['admin', 'operator']);
 const REALTIME_REFRESH_DEBOUNCE_MS = 300;
+
+function requiresVoiceConfirmation(response: AssistantConversationResponse): boolean {
+  if (response.type !== 'clarification') return false;
+
+  const optionIds = new Set(response.clarification?.options.map(option => option.id));
+  return optionIds.has('confirm') && optionIds.has('cancel');
+}
 
 function ViewLoadingState() {
   const { t } = useTranslation();
@@ -471,14 +479,21 @@ function App() {
       const audio = new Audio(audioUrl);
       globalWakeAudioUrlRef.current = audioUrl;
       globalWakeAudioRef.current = audio;
-      audio.onended = stopGlobalWakeSpeech;
-      audio.onerror = stopGlobalWakeSpeech;
+      const playbackFinished = new Promise<void>(resolve => {
+        const finishPlayback = () => {
+          stopGlobalWakeSpeech();
+          resolve();
+        };
+        audio.onended = finishPlayback;
+        audio.onerror = finishPlayback;
+      });
       setIsGlobalWakeSpeaking(true);
       await audio.play();
       recordHomeConversationTelemetry('global_wake_spoken', {
         elapsedMs: Date.now() - globalWakeStartedAtRef.current,
         textLength: text.length
       });
+      await playbackFinished;
     } catch {
       stopGlobalWakeSpeech();
     }
@@ -509,6 +524,7 @@ function App() {
       window.removeEventListener(HOME_CONVERSATION_SPEECH_ACTIVITY_EVENT, handleHomeConversationSpeechActivity);
     };
   }, []);
+
 
   useEffect(() => {
     return () => {
@@ -568,9 +584,9 @@ function App() {
           <div className="flex flex-col items-center gap-2">
             <h2 className="text-panel-title font-black tracking-tighter uppercase">{t('shell.status.verifying_session')}</h2>
             <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]" />
-              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
-              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" />
+              <div className="w-1.5 h-1.5 rounded-full bg-primary hp-typing-dot [animation-delay:-0.3s]" />
+              <div className="w-1.5 h-1.5 rounded-full bg-primary hp-typing-dot [animation-delay:-0.15s]" />
+              <div className="w-1.5 h-1.5 rounded-full bg-primary hp-typing-dot" />
             </div>
           </div>
         </div>
@@ -710,7 +726,11 @@ function App() {
         if (response.type === 'execution' && response.execution?.status !== 'failed') {
           void refreshDeviceSnapshot();
         }
-        void speakGlobalWakeResponse(response.message, turn);
+        void speakGlobalWakeResponse(response.message, turn).finally(() => {
+          if (requiresVoiceConfirmation(response)) {
+            window.dispatchEvent(new Event(HOME_CONVERSATION_CONFIRMATION_LISTEN_EVENT));
+          }
+        });
       }).catch(() => {
         if (!assistantTurnCoordinator.isCurrent(turn) || turn.signal.aborted) return;
         const message = t('assistant.conversation.voice_processing_error');

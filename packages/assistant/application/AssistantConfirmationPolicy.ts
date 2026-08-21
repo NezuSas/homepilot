@@ -12,9 +12,6 @@ export class AssistantConfirmationPolicy implements AssistantConfirmationPolicyP
 
   public async evaluate(intent: Intent, lang: string = 'es'): Promise<AssistantPreviewResult> {
     const t_eval = Date.now();
-    const normalizedPrompt = intent.prompt.toLowerCase();
-    const globalKeywords = lang === 'en' ? ['all', 'every', 'home', 'global'] : ['todo', 'todas', 'casa', 'global'];
-    const hasGlobalKeyword = globalKeywords.some(kw => normalizedPrompt.includes(kw));
     const isEn = lang === 'en';
 
     const finalize = (res: AssistantPreviewResult) => {
@@ -42,11 +39,11 @@ export class AssistantConfirmationPolicy implements AssistantConfirmationPolicyP
       return finalize({
         prompt: intent.prompt,
         intentType: 'scene',
-        requiresConfirmation: true,
+        requiresConfirmation: false,
         summary: isEn 
           ? `Scene "${targetName}" will be executed with ${estimatedActionCount} actions.`
           : `Se ejecutará la escena "${targetName}" con ${estimatedActionCount} acciones.`,
-        reason: isEn ? 'Scenes always require confirmation.' : 'Las escenas siempre requieren confirmación.',
+        reason: isEn ? 'Explicit scene request.' : 'Solicitud explícita de escena.',
         estimatedActionCount,
         targetName
       });
@@ -55,21 +52,8 @@ export class AssistantConfirmationPolicy implements AssistantConfirmationPolicyP
     if (intent.type === 'command') {
       const device = await this.deviceRepository.findDeviceById(intent.deviceId);
       const targetName = device ? device.name : (isEn ? 'Unknown' : 'Desconocido');
-      
-      const isTurnOff = intent.command === 'turn_off';
-      const isTurnOn = intent.command === 'turn_on';
-      const isPositionOrStateCommand = ['set_position', 'open', 'close', 'stop'].includes(intent.command);
-
-      let requiresConfirmation = false;
-      let reason = undefined;
-
-      if ((isTurnOff || isTurnOn) && hasGlobalKeyword) {
-        requiresConfirmation = true;
-        reason = isEn ? 'Global commands require confirmation.' : 'Comandos globales requieren confirmación.';
-      } else if (isPositionOrStateCommand) {
-        requiresConfirmation = true;
-        reason = isEn ? 'Movement or position commands require confirmation.' : 'Comandos de movimiento o posición requieren confirmación.';
-      }
+      const requiresConfirmation = false;
+      const reason = isEn ? 'Explicit device request.' : 'Solicitud explícita de dispositivo.';
 
       const summaryText = isEn
         ? (requiresConfirmation ? `Command "${intent.command}" will be sent to "${targetName}".` : `Executing command "${intent.command}" on "${targetName}".`)
@@ -91,13 +75,13 @@ export class AssistantConfirmationPolicy implements AssistantConfirmationPolicyP
       return finalize({
         prompt: intent.prompt,
         intentType: 'multi_command',
-        requiresConfirmation: true, // Always require confirmation for multi-commands
+        requiresConfirmation: false, // Always require confirmation for multi-commands
         summary: isEn
           ? `I will execute ${estimatedActionCount} actions.`
           : `Voy a ejecutar ${estimatedActionCount} acciones.`,
-        reason: isEn 
-          ? 'Multiple actions always require confirmation.' 
-          : 'Comandos múltiples siempre requieren confirmación.',
+        reason: isEn
+          ? 'Explicit multi-device request.'
+          : 'Solicitud explícita para varios dispositivos.',
         estimatedActionCount
       });
     }

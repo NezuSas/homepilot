@@ -40,7 +40,7 @@ export interface AssistantConverseRequest {
 }
 
 export interface AssistantTextToSpeechResponse {
-  provider: "piper";
+  provider: "kokoro" | "piper";
   audioContentType: "audio/wav";
   audioBase64: string;
 }

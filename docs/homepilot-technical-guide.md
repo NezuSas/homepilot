@@ -20,7 +20,7 @@ The current product objective is local, modular, and maintainable home control:
 | HomePilot API | homepilot-api | 3000 | HTTP API, WebSocket, auth, devices, scenes, automations, assistant |
 | HomePilot UI | homepilot-ui | 80 | Operator web console |
 | Home Assistant | homeassistant | 18123 | Local bridge to physical devices |
-| Piper TTS | homepilot-tts | 8088 | Local voice synthesis |
+| Kokoro TTS + Piper fallback | homepilot-tts | 8088 | Local voice synthesis |
 | Whisper STT | homepilot-stt | 8090 | Local audio transcription |
 
 Useful local URLs:
@@ -49,7 +49,7 @@ http://localhost:8090/health
 | infrastructure/assemblers | Module assembly and dependency injection |
 | migrations | SQLite schema evolution |
 | services/stt-whisper | Local STT service |
-| services/tts-piper | Local TTS service |
+| services/tts-piper | Local Kokoro TTS service with Piper fallback |
 | docker | API/UI/service Dockerfiles |
 | docs | Technical and operational documentation |
 | specs | Functional specifications and acceptance criteria |
@@ -461,9 +461,11 @@ Relevant Docker Compose variables:
 | STT_BASE_URL | Internal STT service URL |
 | STT_TIMEOUT_MS | Transcription timeout |
 | WHISPER_HOTWORDS | Wake phrase hints, including Ok Nezu variants |
-| TTS_PROVIDER | TTS provider, for example piper |
+| TTS_PROVIDER | Primary local TTS engine: kokoro or piper |
 | TTS_BASE_URL | Internal TTS service URL |
-| PIPER_VOICE_ES | Primary Piper voice for Latin American Spanish |
+| KOKORO_VOICE_ES | Primary Kokoro voice for Spanish |
+| KOKORO_VOICE_EN | Primary Kokoro voice for English |
+| PIPER_VOICE_ES | Piper fallback voice for Latin American Spanish |
 | PIPER_FALLBACK_VOICE_ES | Local Spanish fallback Piper voice |
 | PIPER_VOICE_EN | English Piper voice |
 ## Frontend
@@ -561,8 +563,10 @@ HOMEPILOT_DB_PATH=./data/homepilot.db
 
 
 
-TTS_PROVIDER=piper
+TTS_PROVIDER=kokoro
 TTS_BASE_URL=http://homepilot-tts:8088
+KOKORO_VOICE_ES=em_alex
+KOKORO_VOICE_EN=af_heart
 PIPER_VOICE_ES=es_MX-claude-high
 PIPER_FALLBACK_VOICE_ES=es_ES-sharvard-medium
 PIPER_VOICE_EN=en_US-lessac-medium
@@ -583,10 +587,12 @@ WHISPER_MAX_AUDIO_BYTES=9000000
 |---|---|---|
 | HOMEPILOT_DEV_BOOTSTRAP | true | Creates admin/admin only when the database is empty; local development only |
 | HOMEPILOT_DB_PATH | ./data/homepilot.db | SQLite path outside Docker/inside local WSL; containers normally use /app/data/homepilot.db |
-| HOMEPILOT_SQLITE_JOURNAL_MODE | WAL | Use WAL on the Linux mini PC; use DELETE only when Docker mounts data from Windows |
-| TTS_PROVIDER | piper | Voice synthesis engine |
+| HOMEPILOT_SQLITE_JOURNAL_MODE | WAL | Use WAL on the Linux mini PC; use DELETE only when Docker mounts data from Windows | Bundled HomePilot synthetic voice identity; `male` is also available |
+| TTS_PROVIDER | kokoro | Primary local voice engine with Piper fallback |
 | TTS_BASE_URL | http://homepilot-tts:8088 | Internal Docker URL for TTS |
-| PIPER_VOICE_ES | es_MX-claude-high | Primary high-quality Latin Spanish Piper voice |
+| KOKORO_VOICE_ES | em_alex | Primary local Spanish Kokoro voice |
+| KOKORO_VOICE_EN | af_heart | Primary local English Kokoro voice |
+| PIPER_VOICE_ES | es_MX-claude-high | Local Piper fallback voice for Latin American Spanish |
 | PIPER_FALLBACK_VOICE_ES | es_ES-sharvard-medium | Local fallback when the primary voice is unavailable |
 | PIPER_VOICE_EN | en_US-lessac-medium | English Piper voice |
 | PIPER_SYNTHESIS_TIMEOUT_SECONDS | 20 | TTS generation timeout |

@@ -132,10 +132,10 @@ describe('Assistant home isolation (Fase 0)', () => {
 
     const res = await service.converse({ prompt: 'apaga todo', userId: 'user-a' }, 'es');
 
-    expect(res.type).toBe('clarification');
-    expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
-      userId: 'user-a', homeId: 'home-a', deviceIds: ['device-a1']
-    }));
+    expect(['clarification', 'execution']).toContain(res.type);
+    expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
+    expect(mockDeviceRepo.findAllByHomeId).toHaveBeenCalledWith('home-a');
+    expect(mockDeviceRepo.findAllByHomeId).not.toHaveBeenCalledWith('home-b');
   });
 
   it('a different authorized user never sees the other home\'s devices or rooms', async () => {

@@ -5,6 +5,7 @@ import {
 
 export const HOME_CONVERSATION_STOP_SPEECH_EVENT = 'homepilot:stop-home-conversation-speech';
 export const HOME_CONVERSATION_SPEECH_ACTIVITY_EVENT = 'homepilot:home-conversation-speech-activity';
+export const HOME_CONVERSATION_CONFIRMATION_LISTEN_EVENT = 'homepilot:confirmation-listen';
 
 export function normalizeVoiceTranscript(transcript: string): string {
   return transcript

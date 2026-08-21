@@ -2,12 +2,15 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
+ENV HF_HOME=/models/kokoro-cache
+
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates \
+    && apt-get install -y --no-install-recommends ca-certificates espeak-ng libsndfile1 sox \
     && rm -rf /var/lib/apt/lists/*
 
 COPY services/tts-piper/requirements.txt ./requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.7.1+cpu \
+    && pip install --no-cache-dir -r requirements.txt
 
 RUN mkdir -p /models \
     && python - <<'PY'
@@ -23,10 +26,19 @@ MODELS = [
     ("en/en_US/lessac/medium/en_US-lessac-medium.onnx", "en_US-lessac-medium.onnx"),
     ("en/en_US/lessac/medium/en_US-lessac-medium.onnx.json", "en_US-lessac-medium.onnx.json"),
 ]
-
 target = Path("/models")
 for remote_path, filename in MODELS:
     urlretrieve(f"{BASE_URL}/{remote_path}", target / filename)
+PY
+
+RUN python - <<'PY'
+from kokoro import KPipeline
+for language, voice, text in (
+    ("e", "ef_dora", "HomePilot esta listo."),
+    ("a", "af_heart", "HomePilot is ready."),
+):
+    pipeline = KPipeline(lang_code=language)
+    next(iter(pipeline(text, voice=voice)))
 PY
 
 COPY services/tts-piper/app.py ./app.py

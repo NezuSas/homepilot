@@ -63,4 +63,10 @@ describe('textMatching', () => {
     const vocabulary = buildVocabulary(['Luz Sala']);
     expect(correctAgainstVocabulary('sal', vocabulary)).toBe('sal');
   });
+  it('normalizes speech-like phonetic and plural variants only from the supplied inventory', () => {
+    const vocabulary = buildVocabulary(['Dicroicos Trabajo', 'Led Trabajo']);
+    expect(correctAgainstVocabulary('croikos trabajos', vocabulary)).toBe('dicroicos trabajo');
+    expect(correctAgainstVocabulary('decróicos trabajo', vocabulary)).toBe('dicroicos trabajo');
+  });
+
 });

@@ -219,10 +219,12 @@ export class AssistantRoutes extends ApiRoutes {
       try {
         const body = await this.parseBody<{ audioBase64?: string; audioContentType?: string }>(req);
         const language = req.headers['accept-language']?.startsWith('en') ? 'en' : 'es';
+        const contextTerms = await this.resolveLocalSpeechContext(container, authorizedHomeIds);
         const response = await container.services.assistantSpeechToTextService.transcribe({
           audioBase64: body.audioBase64 || '',
           audioContentType: body.audioContentType || '',
-          language
+          language,
+          contextTerms
         });
 
         return this.sendJson(res, response), true;
@@ -240,6 +242,20 @@ export class AssistantRoutes extends ApiRoutes {
 
     this.sendError(res, 404, 'NOT_FOUND', 'Assistant route not found');
     return true;
+  }
+
+  private async resolveLocalSpeechContext(container: BootstrapContainer, authorizedHomeIds: readonly string[]): Promise<string[]> {
+    try {
+      const [devicesByHome, roomsByHome] = await Promise.all([
+        Promise.all(authorizedHomeIds.map((homeId) => container.repositories.deviceRepository.findAllByHomeId(homeId))),
+        Promise.all(authorizedHomeIds.map((homeId) => container.repositories.roomRepository.findRoomsByHomeId(homeId)))
+      ]);
+      const terms = [...devicesByHome.flat().map((device) => device.name), ...roomsByHome.flat().map((room) => room.name)];
+      return [...new Set(terms.map((term) => term.trim()).filter((term) => term.length > 0 && term.length <= 64))].slice(0, 40);
+    } catch {
+      // Speech recognition remains available without contextual terms if a local inventory read is temporarily unavailable.
+      return [];
+    }
   }
 
   private sendAssistantError(res: http.ServerResponse, error: unknown, fallbackCode: string = 'ASSISTANT_ERROR'): void {

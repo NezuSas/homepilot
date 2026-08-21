@@ -48,7 +48,7 @@ export const AutomationWorkbenchForm: React.FC<AutomationWorkbenchFormProps> = (
     <form onSubmit={onSubmit} className="relative overflow-hidden rounded-panel border-2 border-primary/20 bg-card p-4 shadow-2xl animate-in zoom-in-95 duration-300 sm:p-6 lg:rounded-hero lg:p-10">
       {success && (
         <div className="absolute inset-0 bg-primary/95 backdrop-blur-md flex flex-col items-center justify-center text-primary-foreground z-10 animate-in fade-in transition-all">
-          <CheckCircle2 className="w-16 h-16 mb-4 animate-bounce" />
+          <CheckCircle2 className="w-16 h-16 mb-4 animate-pulse" />
           <span className="text-panel-title font-black uppercase tracking-tighter">{editingId ? t('automations.rule_updated') : t('automations.rule_created')}</span>
         </div>
       )}

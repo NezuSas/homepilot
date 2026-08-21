@@ -18,9 +18,9 @@ export const HomeConversationTypingIndicator: React.FC = () => {
           <Bot className="h-5 w-5 animate-pulse text-primary" aria-hidden="true" />
         </div>
         <Card className="flex items-center gap-1.5 rounded-2xl rounded-tl-md p-4 shadow-depth-1">
-          <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/60 [animation-delay:-0.3s]" />
-          <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/60 [animation-delay:-0.15s]" />
-          <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/60" />
+          <div className="h-1.5 w-1.5 hp-typing-dot rounded-full bg-primary/60 [animation-delay:-0.3s]" />
+          <div className="h-1.5 w-1.5 hp-typing-dot rounded-full bg-primary/60 [animation-delay:-0.15s]" />
+          <div className="h-1.5 w-1.5 hp-typing-dot rounded-full bg-primary/60" />
         </Card>
       </div>
     </div>

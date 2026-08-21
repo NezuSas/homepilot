@@ -146,6 +146,33 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     expect(mockIntentInterpreter.interpret).not.toHaveBeenCalled();
   });
 
+  it('keeps a plural voice reference explicit when it matches more than one authorized device', async () => {
+    const dicroicos = createTestDevice({ id: 'dicroicos', name: 'Dicroicos Trabajo', type: 'light', roomId: 'r1' });
+    const led = createTestDevice({ id: 'led', name: 'Led Trabajo', type: 'light', roomId: 'r1' });
+    mockDeviceRepo.findAll.mockResolvedValue([dicroicos, led]);
+
+    const response = await service.converse({ prompt: 'apaga los trabajos', userId: 'u1' }, 'es');
+
+    expect(response.type).toBe('clarification');
+    expect(response.clarification?.options).toEqual([
+      expect.objectContaining({ id: 'dicroicos', label: 'Dicroicos Trabajo' }),
+      expect.objectContaining({ id: 'led', label: 'Led Trabajo' })
+    ]);
+    expect(mockSceneExecution.execute).not.toHaveBeenCalled();
+  });
+
+  it('resolves a phonetic voice spelling from the authorized device inventory', async () => {
+    const device = createTestDevice({ id: 'dicroicos', name: 'Dicroicos Trabajo', type: 'light', roomId: 'r1' });
+    mockDeviceRepo.findAll.mockResolvedValue([device]);
+    mockDeviceRepo.findDeviceById.mockResolvedValue(device);
+
+    const response = await service.converse({ prompt: 'apaga de croikos trabajo', userId: 'u1' }, 'es');
+
+    expect(response.type).toBe('execution');
+    expect(response.message).toContain('Dicroicos Trabajo');
+    expect(mockIntentInterpreter.interpret).not.toHaveBeenCalled();
+  });
+
   it('normalizes separated wake phrase before fast path execution', async () => {
     const testDevice = createTestDevice({ id: 'd1', name: 'Luz Sala', type: 'light', roomId: 'r1' });
     mockDeviceRepo.findAll.mockResolvedValue([testDevice]);

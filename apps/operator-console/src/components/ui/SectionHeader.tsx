@@ -61,7 +61,7 @@ export const SectionHeader = React.forwardRef<HTMLDivElement, SectionHeaderProps
             )}
 
             {level === 'view' ? (
-              <h2 className="min-w-0 break-words text-view-title font-black tracking-tighter luxury-text-gradient">
+              <h2 className="min-w-0 break-words text-view-title font-black tracking-tighter text-foreground">
                 {title}
               </h2>
             ) : level === 'section' ? (

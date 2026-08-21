@@ -133,6 +133,10 @@ describe('Feature: assistant voice API contracts', () => {
     mockApiFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ provider: 'piper', audioContentType: 'audio/wav', audioBase64: 'UklGRg==' }) });
     await expect(synthesizeAssistantSpeech('Hola')).resolves.toEqual({ provider: 'piper', audioContentType: 'audio/wav', audioBase64: 'UklGRg==' });
 
+    mockApiFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ provider: 'kokoro', audioContentType: 'audio/wav', audioBase64: 'S29rb3Jv' }) });
+    await expect(synthesizeAssistantSpeech('Hola')).resolves.toEqual({ provider: 'kokoro', audioContentType: 'audio/wav', audioBase64: 'S29rb3Jv' });
+
+
     mockApiFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ provider: 'remote', audioContentType: 'audio/wav', audioBase64: 'audio' }) });
     await expect(synthesizeAssistantSpeech('Hola')).resolves.toBeNull();
 

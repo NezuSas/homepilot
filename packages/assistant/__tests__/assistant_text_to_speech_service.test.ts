@@ -54,6 +54,24 @@ describe('AssistantTextToSpeechService', () => {
     );
   });
 
+  it('accepts Kokoro audio while permitting the local Piper fallback contract', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        provider: 'kokoro',
+        audioContentType: 'audio/wav',
+        audioBase64: 'YWJj'
+      })
+    });
+    const service = new AssistantTextToSpeechService('kokoro', 'http://tts.local', 1000);
+
+    await expect(service.synthesize({ text: 'Hola casa', language: 'es' })).resolves.toEqual({
+      provider: 'kokoro',
+      audioContentType: 'audio/wav',
+      audioBase64: 'YWJj'
+    });
+  });
+
   it('accepts capability responses longer than the previous 1200 character limit', async () => {
     const fetchMock = jest.fn().mockResolvedValue({
       ok: true,

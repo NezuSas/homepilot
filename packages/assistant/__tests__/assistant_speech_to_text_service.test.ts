@@ -81,6 +81,36 @@ describe('AssistantSpeechToTextService', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('forwards only bounded local context terms to Whisper', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        provider: 'whisper-local',
+        transcript: 'apaga dicroicos trabajo'
+      })
+    } as unknown as Response);
+    const service = new AssistantSpeechToTextService('whisper-local', 'http://stt.local', 1000);
+
+    await service.transcribe({
+      audioBase64: 'YWJj',
+      audioContentType: 'audio/webm',
+      language: 'es',
+      contextTerms: ['Dicroicos Trabajo', 'Cuarto Master', 'Dicroicos Trabajo', 'x'.repeat(65)]
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'http://stt.local/api/stt',
+      expect.objectContaining({
+        body: JSON.stringify({
+          audioBase64: 'YWJj',
+          audioContentType: 'audio/webm',
+          language: 'es',
+          contextTerms: ['Dicroicos Trabajo', 'Cuarto Master']
+        })
+      })
+    );
+  });
+
   it('maps a non-successful Whisper response to the stable unavailable error', async () => {
     global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 502 } as unknown as Response);
     const service = new AssistantSpeechToTextService('whisper-local', 'http://stt.local', 1000);

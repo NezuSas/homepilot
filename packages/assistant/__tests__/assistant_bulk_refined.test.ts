@@ -76,21 +76,10 @@ describe('Assistant Bulk Refined Semantics', () => {
 
     const res = await service.converse({ prompt: 'apaga todo el cuarto master', userId: 'u1' }, 'es');
 
-    expect(res.type).toBe('clarification');
-    // Should include light1 and switchEscritorio. 
-    // Exclude cover (turn_off), sensor, and unavailable.
-    expect(res.message).toContain('Encontré 2 dispositivos');
-    expect(res.message).toContain('apagarlos');
-
-    // Verify the ticket contains the correct bulkType and device set
-    expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
-      bulkType: 'all',
-      deviceIds: expect.arrayContaining(['l1', 's1'])
-    }));
-    const ticket = mockConfirmationTicketRepository.create.mock.calls[0][0];
-    expect(ticket.deviceIds).not.toContain('c1');
-    expect(ticket.deviceIds).not.toContain('sn1');
-    expect(ticket.deviceIds).not.toContain('u1');
+    expect(res.type).toBe('execution');
+    // The direct command controls only the compatible, available light and switch.
+    expect(mockSceneExecution.execute).toHaveBeenCalledTimes(2);
+    expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
   });
 
   it('excludes switch named "Escritorio" in "apaga todas las luces del cuarto master"', async () => {
@@ -99,17 +88,10 @@ describe('Assistant Bulk Refined Semantics', () => {
 
     const res = await service.converse({ prompt: 'apaga todas las luces del cuarto master', userId: 'u1' }, 'es');
 
-    expect(res.type).toBe('clarification');
-    // Should include only light1.
-    expect(res.message).toContain('Encontré 1 luces');
-    expect(res.message).toContain('apagarlas');
-
-    expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
-      bulkType: 'lights',
-      deviceIds: expect.arrayContaining(['l1'])
-    }));
-    const ticket = mockConfirmationTicketRepository.create.mock.calls[0][0];
-    expect(ticket.deviceIds).not.toContain('s1');
+    expect(res.type).toBe('execution');
+    // The light-only request excludes the switch.
+    expect(mockSceneExecution.execute).toHaveBeenCalledTimes(1);
+    expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
   });
 
   it('global "apaga todo" uses "dispositivos" terminology', async () => {
@@ -120,8 +102,9 @@ describe('Assistant Bulk Refined Semantics', () => {
     
     const res = await service.converse({ prompt: 'apaga todo', userId: 'u1' }, 'es');
 
-    expect(res.message).toContain('Encontré 2 dispositivos');
-    expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({ bulkType: 'all' }));
+    expect(res.type).toBe('execution');
+    expect(res.message).toContain('Luz Techo y Escritorio');
+    expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
   });
 
   it('global "apaga todas las luces" uses "luces" terminology', async () => {
@@ -132,8 +115,9 @@ describe('Assistant Bulk Refined Semantics', () => {
     
     const res = await service.converse({ prompt: 'apaga todas las luces', userId: 'u1' }, 'es');
 
-    expect(res.message).toContain('Encontré 1 luces');
-    expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({ bulkType: 'lights' }));
+    expect(res.type).toBe('execution');
+    expect(res.message).toContain('Luz Techo');
+    expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
   });
 
   it('execution summary uses "dispositivos" for bulkType "all"', async () => {
@@ -264,9 +248,9 @@ describe('Assistant Bulk Refined Semantics', () => {
 
     const res = await service.converse({ prompt: 'apaga todas las luces del cuarto master', userId: 'u1' }, 'es');
 
-    expect(res.type).toBe('clarification');
-    expect(res.message).toContain('Encontré 1 luces en Cuarto Master');
-    expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({ bulkType: 'lights' }));
+    expect(res.type).toBe('execution');
+    expect(mockSceneExecution.execute).toHaveBeenCalledTimes(1);
+    expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
   });
 
 });

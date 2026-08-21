@@ -83,7 +83,7 @@ describe('AssistantConversationService UX V2', () => {
     );
   });
 
-  it('apaga todo: should require confirmation and then execute on "yes"', async () => {
+  it('apaga todo: executes directly', async () => {
     const prompt = 'apaga todo';
     const userId = 'u1';
     
@@ -106,19 +106,11 @@ describe('AssistantConversationService UX V2', () => {
 
     const res1 = await service.converse({ prompt, userId });
 
-    expect(res1.type).toBe('clarification');
-    expect(confirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({
-      command: 'turn_off', bulkType: 'all'
-    }));
-
-    // 2. Positive confirmation
-    memory.getShortTermMemory.mockResolvedValue({ lastQueryType: 'confirmation', timestamp: new Date().toISOString(), entities: [] });
-
-    const res2 = await service.converse({ prompt: 'sí', userId });
-
-    expect(res2.type).toBe('execution');
-    expect(res2.message).toBe('Apagué Device.');
+    expect(res1.type).toBe('execution');
+    expect(confirmationTicketRepository.create).not.toHaveBeenCalled();
+    expect(res1.message).toBe('Apagué Device.');
     expect(sceneExecutionService.execute).toHaveBeenCalled();
+
   });
 
   it('apaga todo: should cancel on "no"', async () => {
@@ -273,6 +265,48 @@ describe('AssistantConversationService UX V2', () => {
     expect(res.message).toContain('no activé la escena');
     expect(draftService.activateDraft).not.toHaveBeenCalled();
     expect(memory.saveShortTermMemory).toHaveBeenCalledWith(userId, expect.objectContaining({ pendingDraft: undefined }));
+  });
+
+
+  it('accepts an affirmative reply for one pending device clarification', async () => {
+    const userId = 'u1';
+    memory.getShortTermMemory.mockResolvedValue({
+      clarificationOptions: [{ id: 'dev-1', label: 'Led Trabajo', kind: 'device' as const }],
+      pendingIntent: { type: 'command', command: 'turn_off', deviceId: '', prompt: 'apaga luz de trabajo', timestamp: new Date().toISOString() },
+      originalPrompt: 'apaga luz de trabajo',
+      entities: [],
+      timestamp: new Date().toISOString()
+    });
+    deviceRepo.findDeviceById.mockResolvedValue(createTestDevice({ id: 'dev-1', name: 'Led Trabajo' }));
+
+    const response = await service.converse({ prompt: 'sí, por favor', userId }, 'es');
+
+    expect(response.type).toBe('execution');
+    expect(sceneExecutionService.execute).toHaveBeenCalledWith(expect.objectContaining({
+      actions: expect.arrayContaining([
+        expect.objectContaining({ deviceId: 'dev-1', command: expect.objectContaining({ name: 'turn_off' }) })
+      ])
+    }), expect.anything());
+  });
+
+  it('keeps multiple pending device clarifications explicit after an affirmative reply', async () => {
+    const userId = 'u1';
+    memory.getShortTermMemory.mockResolvedValue({
+      clarificationOptions: [
+        { id: 'dev-1', label: 'Dicroicos Trabajo', kind: 'device' as const },
+        { id: 'dev-2', label: 'Led Trabajo', kind: 'device' as const }
+      ],
+      pendingIntent: { type: 'command', command: 'turn_off', deviceId: '', prompt: 'apaga los trabajos', timestamp: new Date().toISOString() },
+      originalPrompt: 'apaga los trabajos',
+      entities: [],
+      timestamp: new Date().toISOString()
+    });
+
+    const response = await service.converse({ prompt: 'sí', userId }, 'es');
+
+    expect(response.type).toBe('clarification');
+    expect(response.clarification?.options).toHaveLength(2);
+    expect(sceneExecutionService.execute).not.toHaveBeenCalled();
   });
 
   it('BUG A: "la primera" should resolve selection using clarificationOptions and pendingIntent', async () => {

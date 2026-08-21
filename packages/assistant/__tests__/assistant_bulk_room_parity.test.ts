@@ -74,7 +74,7 @@ describe('Assistant bulk/room-bulk parity (Fase 0b)', () => {
     );
   });
 
-  it('H2: room bulk over voice still asks for confirmation instead of executing directly', async () => {
+  it('H2: room bulk over voice executes directly', async () => {
     const room = createTestRoom({ id: 'r1', name: 'Sala' });
     const device = createTestDevice({ id: 'd1', name: 'Luz Sala', type: 'light', roomId: 'r1', lastKnownState: { on: true } });
     mockRoomRepo.findAll.mockResolvedValue([room]);
@@ -85,9 +85,9 @@ describe('Assistant bulk/room-bulk parity (Fase 0b)', () => {
       'es'
     );
 
-    expect(res.type).toBe('clarification');
-    expect(mockSceneExecutionService.execute).not.toHaveBeenCalled();
-    expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({ deviceIds: ['d1'] }));
+    expect(res.type).toBe('execution');
+    expect(mockSceneExecutionService.execute).toHaveBeenCalledTimes(1);
+    expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
   });
 
   it('H3: room bulk excludes devices already in the target state, same as global bulk', async () => {
@@ -99,9 +99,10 @@ describe('Assistant bulk/room-bulk parity (Fase 0b)', () => {
 
     const res = await service.converse({ prompt: 'apaga todas las luces de la sala', userId: 'u1' }, 'es');
 
-    expect(res.type).toBe('clarification');
-    expect(res.message).toContain('1 luces');
-    expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({ deviceIds: ['on-1'] }));
+    expect(res.type).toBe('execution');
+    expect(res.message).toContain('Luz Encendida');
+    expect(mockSceneExecutionService.execute).toHaveBeenCalledTimes(1);
+    expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
   });
 
   it('H9: an unreported device state is never assumed to already satisfy turn_on', async () => {
@@ -112,8 +113,8 @@ describe('Assistant bulk/room-bulk parity (Fase 0b)', () => {
 
     const res = await service.converse({ prompt: 'prende todas las luces de la sala', userId: 'u1' }, 'es');
 
-    expect(res.type).toBe('clarification');
-    expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({ deviceIds: ['unknown-1'] }));
+    expect(res.type).toBe('execution');
+    expect(mockSceneExecutionService.execute).toHaveBeenCalledTimes(1);
   });
 
   it('H9: an unreported device state is never assumed to already satisfy turn_off', async () => {
@@ -126,7 +127,7 @@ describe('Assistant bulk/room-bulk parity (Fase 0b)', () => {
 
     const res = await service.converse({ prompt: 'apaga todas las luces de la sala', userId: 'u1' }, 'es');
 
-    expect(res.type).toBe('clarification');
-    expect(mockConfirmationTicketRepository.create).toHaveBeenCalledWith(expect.objectContaining({ deviceIds: ['unknown-1'] }));
+    expect(res.type).toBe('execution');
+    expect(mockSceneExecutionService.execute).toHaveBeenCalledTimes(1);
   });
 });
