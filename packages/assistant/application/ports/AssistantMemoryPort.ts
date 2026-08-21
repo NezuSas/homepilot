@@ -38,9 +38,9 @@ export interface AssistantMemoryState {
     originalPrompt: string;
   };
 
-  /** Management action waiting for confirmation (rename, toggle, etc) */
+  /** Management action waiting for confirmation (rename, toggle, topology changes, etc) */
   pendingManagementAction?: {
-    type: 'rename_scene' | 'rename_automation' | 'toggle_automation' | 'edit_scene';
+    type: 'rename_scene' | 'rename_automation' | 'toggle_automation' | 'edit_scene' | 'create_room';
     targetId: string;
     targetName: string;
     payload: Record<string, unknown>;

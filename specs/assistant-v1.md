@@ -85,6 +85,7 @@ Introduce an intelligent assistant layer that detects system issues and suggests
 - Ambiguous, unsafe, or unknown commands must be acknowledged immediately and ask for a clearer device/room target.
 - The assistant must not claim that an action was executed unless the execution result confirms it.
 - The assistant must list only authorized rooms for home-scoped room-inventory questions, including Spanish requests for estancias, espacios, habitaciones, cuartos, and zonas.
+- The assistant must support creating a named room through the existing authorized Topology use case only after an explicit conversational confirmation; a missing name must request clarification and duplicate names must not be proposed.
 
 
 ## 10. Perfil conversacional por usuario

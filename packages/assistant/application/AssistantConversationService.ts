@@ -22,6 +22,7 @@ import { Room } from '../../topology/domain/types';
 import type { Intent, MultiCommandAction, IntentInterpreterPort } from './ports/IntentInterpreterPort';
 import type { AssistantConfirmationPolicyPort } from './ports/AssistantConfirmationPolicyPort';
 import type { AssistantSmallTalkPort } from './ports/AssistantSmallTalkPort';
+import type { AssistantRoomManagementPort } from './ports/AssistantRoomManagementPort';
 import { AssistantMemoryPort, AssistantMemoryEntity, AssistantMemoryState } from './ports/AssistantMemoryPort';
 import { FollowUpResolverPort, ResolvedFollowUp } from './ports/FollowUpResolverPort';
 import { AssistantPlannerV2ShadowService } from './AssistantPlannerV2ShadowService';
@@ -161,7 +162,8 @@ export class AssistantConversationService {
     aliasManagementService?: AssistantAliasManagementService,
     private readonly homeRepository?: HomeRepository,
     private readonly confirmationTicketRepository?: ConfirmationTicketRepository,
-    domesticSkillResolver?: DomesticSkillResolver
+    domesticSkillResolver?: DomesticSkillResolver,
+    private readonly roomManagementService?: AssistantRoomManagementPort
   ) {
     this.aliasManagementService = aliasManagementService ?? new AssistantAliasManagementService(memoryService, deviceRepository, roomRepository);
     this.permissionGate = new PermissionGate(deviceRepository, roomRepository, sceneRepository, automationRepository, homeRepository);
@@ -463,6 +465,9 @@ export class AssistantConversationService {
 
     // --- DETERMINISTIC GENERAL ROUTES ---
     if (this.isHomeSummaryQuery(normalized)) return await this.handleHomeSummary(language, userId);
+    if (this.isDraftCreation(normalized)) return await this.handleDraftCreation(normalized, language, userId);
+    if (this.isRoomCreationIntent(normalized)) return await this.handleManagementIntent(normalized, userId, language, prompt);
+    if (this.isRoomCreationFollowUp(normalized, memory)) return await this.handleManagementIntent('agregar una estancia', userId, language);
     if (this.isRoomQuery(normalized)) return await this.handleRoomQuery(language, userId);
     if (this.isAttentionQuery(normalized)) return await this.handleAttentionQuery(language, userId);
     if (this.isRecentActivityQuery(normalized)) return await this.handleRecentActivity(language);
@@ -491,8 +496,9 @@ export class AssistantConversationService {
     // --- 11. PLANNER V2 / V1 FALLBACK ---
     const resolvedNormalized = normalizeAssistantPrompt(activePrompt);
     if (this.isEquivalenceQuery(resolvedNormalized)) return this.handleEquivalenceQuery(language);
-    if (this.isRoomQuery(resolvedNormalized)) return await this.handleRoomQuery(language, userId);
     if (this.isDraftCreation(resolvedNormalized)) return await this.handleDraftCreation(resolvedNormalized, language, userId);
+    if (this.isRoomCreationIntent(resolvedNormalized)) return await this.handleManagementIntent(resolvedNormalized, userId, language, activePrompt);
+    if (this.isRoomQuery(resolvedNormalized)) return await this.handleRoomQuery(language, userId);
     if (this.isSensorReadingQuery(resolvedNormalized)) return await this.handleSensorReadingQuery(resolvedNormalized, language, userId);
     if (this.isPointStateQuery(resolvedNormalized)) return await this.handlePointStateQuery(resolvedNormalized, language, userId);
     if (this.isStateQuery(resolvedNormalized)) return await this.handleStateQuery(resolvedNormalized, language, userName, userId, followUp.referencesMemory ? memory?.entities : undefined, request.sourceRoomId);
@@ -1272,6 +1278,26 @@ export class AssistantConversationService {
     return triggers.some(trigger => normalized.includes(trigger));
   }
 
+  private isRoomCreationIntent(normalized: string): boolean {
+    const hasCreationVerb = /(?:^|\s)(?:crea|crear|agrega|agregar|anade|anadir|add|create)(?:\s|$)/.test(normalized);
+    const hasRoomTerm = /(?:^|\s)(?:estancia|habitacion|cuarto|espacio|zona|room)(?:\s|$)/.test(normalized);
+    const targetsDraft = /(?:^|\s)(?:escena|rutina|automatizacion|scene|routine|automation)(?:\s|$)/.test(normalized);
+    return hasCreationVerb && hasRoomTerm && !targetsDraft;
+  }
+
+  private isRoomCreationFollowUp(normalized: string, memory: AssistantMemoryState | null): boolean {
+    if (memory?.lastQueryType !== 'room_inventory') return false;
+    return /^(?:puedo|podemos|puedes|puede) (?:agregar|anadir|crear) otra(?: (?:estancia|habitacion|cuarto|zona|room))?$/.test(normalized);
+  }
+
+  private extractRoomCreationName(prompt: string): string | null {
+    const match = prompt.match(/(?:^|\s)(?:crea(?:r)?|agrega(?:r)?|anade(?:r)?|añade(?:r)?|add|create)\s+(?:(?:una?|la|el|otra)\s+)?(?:nueva\s+)?(?:estancia|habitacion|habitación|cuarto|espacio|zona|room)(?:\s+(?:llamada|llamado|de nombre|named|called))?\s+(.+)$/i);
+    if (!match) return null;
+
+    const name = match[1].trim().replace(/[.?!]+$/, '').trim();
+    return ['nueva', 'otra'].includes(normalizeAssistantPrompt(name)) ? null : name;
+  }
+
   private async handleRoomQuery(language: string, userId: string): Promise<AssistantConversationResponse> {
     const rooms = await this.permissionGate.getAuthorizedRooms(userId);
     if (rooms.length === 0) {
@@ -1281,6 +1307,11 @@ export class AssistantConversationService {
       };
     }
 
+    await this.memoryService.saveShortTermMemory(userId, {
+      lastQueryType: 'room_inventory',
+      entities: rooms.map((room) => ({ id: room.id, name: room.name, type: 'room', roomId: room.id })),
+      timestamp: new Date().toISOString()
+    });
     const roomList = rooms.map((r: Room) => `• ${r.name}`).join('\n');
     return {
       type: 'answer',
@@ -3147,12 +3178,50 @@ export class AssistantConversationService {
   // --- MANAGEMENT ---
 
   private isManagementIntent(normalized: string): boolean {
-    const managementKeywords = ['renombra', 'cambia el nombre', 'rename', 'change name', 'activa', 'desactiva', 'pausa', 'resume', 'enable', 'disable', 'agrega', 'add', 'quita', 'remove'];
+    const managementKeywords = ['renombra', 'cambia el nombre', 'rename', 'change name', 'activa', 'desactiva', 'pausa', 'resume', 'enable', 'disable', 'agrega', 'add', 'quita', 'remove', 'crea', 'create'];
     return managementKeywords.some(kw => normalized.includes(kw)) &&
-           (normalized.includes('escena') || normalized.includes('automatizacion') || normalized.includes('rutina') || normalized.includes('scene') || normalized.includes('automation') || normalized.includes('routine'));
+           (normalized.includes('escena') || normalized.includes('automatizacion') || normalized.includes('rutina') || normalized.includes('scene') || normalized.includes('automation') || normalized.includes('routine') || normalized.includes('estancia') || normalized.includes('habitacion') || normalized.includes('cuarto') || normalized.includes('espacio') || normalized.includes('zona') || normalized.includes('room'));
   }
 
-  private async handleManagementIntent(normalized: string, userId: string, language: string): Promise<AssistantConversationResponse> {
+  private async handleManagementIntent(normalized: string, userId: string, language: string, originalPrompt: string = normalized): Promise<AssistantConversationResponse> {
+    if (this.isRoomCreationIntent(normalized)) {
+      const name = this.extractRoomCreationName(originalPrompt);
+      if (!name) {
+        return { type: 'answer', message: getAssistantResponseText('management.room_name_required', language, {}) };
+      }
+
+      const rooms = await this.permissionGate.getAuthorizedRooms(userId);
+      const alreadyExists = rooms.some((room) => normalizeAssistantPrompt(room.name) === normalizeAssistantPrompt(name));
+      if (alreadyExists) {
+        return { type: 'answer', message: getAssistantResponseText('management.room_already_exists', language, { name }) };
+      }
+
+      await this.memoryService.saveShortTermMemory(userId, {
+        lastQueryType: 'management_confirm',
+        entities: [],
+        timestamp: new Date().toISOString(),
+        pendingManagementAction: {
+          type: 'create_room',
+          targetId: '',
+          targetName: name,
+          payload: { name },
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      return {
+        type: 'clarification',
+        message: getAssistantResponseText('management.create_room_confirmation', language, { name }),
+        clarification: {
+          question: getAssistantResponseText('confirmation.confirm', language, {}),
+          options: [
+            { id: 'confirm', label: getAssistantResponseText('confirmation.yes', language, {}), kind: 'room' },
+            { id: 'cancel', label: getAssistantResponseText('confirmation.no', language, {}), kind: 'room' }
+          ],
+          pendingAction: { originalPrompt: normalized }
+        }
+      };
+    }
     // 1. Rename Scene
     const renameSceneMatch = normalized.match(/(?:renombra|rename|cambia el nombre de|change name of) (?:la escena|the scene)? (.+) (?:a|to) (.+)/i);
     if (renameSceneMatch) {
@@ -3325,6 +3394,27 @@ export class AssistantConversationService {
     const { type, targetId, payload } = action;
 
     try {
+      if (type === 'create_room') {
+        const name = typeof payload['name'] === 'string' ? payload['name'] : undefined;
+        if (!name) throw new Error('INVALID_PAYLOAD: name is required');
+        if (!this.roomManagementService) {
+          return { type: 'error', message: getAssistantResponseText('management.execution_failed', language, {}) };
+        }
+
+        const rooms = await this.permissionGate.getAuthorizedRooms(userId);
+        if (rooms.some((room) => normalizeAssistantPrompt(room.name) === normalizeAssistantPrompt(name))) {
+          await this.clearPendingAction(userId);
+          return { type: 'answer', message: getAssistantResponseText('management.room_already_exists', language, { name }) };
+        }
+
+        const room = await this.roomManagementService.createRoom({
+          userId,
+          name,
+          correlationId: `assistant:room-create:${Date.now()}`
+        });
+        await this.clearPendingAction(userId);
+        return { type: 'answer', message: getAssistantResponseText('management.room_created', language, { name: room.name }) };
+      }
       if (type === 'rename_scene') {
         const newName = typeof payload['newName'] === 'string' ? payload['newName'] : undefined;
         if (!newName) throw new Error('INVALID_PAYLOAD: newName is required');

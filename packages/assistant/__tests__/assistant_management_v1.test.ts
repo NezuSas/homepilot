@@ -31,6 +31,7 @@ describe('Assistant Management V1', () => {
   let memory: any;
   let followUp: any;
   let draftService: any;
+  let roomManagement: any;
 
   beforeEach(() => {
     deviceRepo = createMockDeviceRepository();
@@ -54,6 +55,7 @@ describe('Assistant Management V1', () => {
       createAutomationDraft: jest.fn(), 
       activateDraft: jest.fn() 
     };
+    roomManagement = { createRoom: jest.fn() };
 
     service = new AssistantConversationService(
       intentInterpreter,
@@ -72,7 +74,14 @@ describe('Assistant Management V1', () => {
       createRealSmartEntityResolver(deviceRepo, roomRepo, sceneRepo, automationRepo, memory, createMockAssistantLearningService()),
       createMockAssistantSuggestionService(),
       createMockExecutionRecordRepository(),
-      createMockSystemVariableService()
+      createMockSystemVariableService(),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      roomManagement
     );
 
     // Default mocks
@@ -194,6 +203,45 @@ describe('Assistant Management V1', () => {
     });
   });
 
+  describe('Room creation', () => {
+    it('asks for a room name instead of using the general conversation fallback', async () => {
+      const response = await service.converse({ prompt: 'Puedo agregar una estancia?', userId: 'manager' }, 'es');
+
+      expect(response).toEqual({
+        type: 'answer',
+        message: 'Sí. Dime el nombre de la nueva estancia, por ejemplo: crea una estancia llamada Biblioteca.'
+      });
+      expect(smallTalk.handle).not.toHaveBeenCalled();
+    });
+
+    it('proposes, confirms, and creates a named room through the management port', async () => {
+      roomRepo.findAll.mockResolvedValue([]);
+      const proposal = await service.converse({ prompt: 'Crea una estancia llamada Biblioteca', userId: 'manager' }, 'es');
+
+      expect(proposal.type).toBe('clarification');
+      expect(proposal.message).toContain('Voy a crear la estancia "Biblioteca"');
+      const pendingState = memory.saveShortTermMemory.mock.calls.at(-1)?.[1];
+      expect(pendingState).toEqual(expect.objectContaining({
+        pendingManagementAction: expect.objectContaining({ type: 'create_room', payload: { name: 'Biblioteca' } })
+      }));
+
+      memory.getShortTermMemory.mockResolvedValue(pendingState);
+      roomManagement.createRoom.mockResolvedValue({ id: 'room-library', name: 'Biblioteca' });
+      const response = await service.converse({ prompt: 'sí', userId: 'manager' }, 'es');
+
+      expect(roomManagement.createRoom).toHaveBeenCalledWith(expect.objectContaining({ userId: 'manager', name: 'Biblioteca' }));
+      expect(response).toEqual({ type: 'answer', message: 'Listo, creé la estancia "Biblioteca".' });
+    });
+
+    it('does not propose a duplicate room name', async () => {
+      roomRepo.findAll.mockResolvedValue([{ id: 'room-library', name: 'Biblioteca' }]);
+
+      const response = await service.converse({ prompt: 'Agrega una estancia llamada biblioteca', userId: 'manager' }, 'es');
+
+      expect(response).toEqual({ type: 'answer', message: 'Ya existe una estancia llamada "biblioteca".' });
+      expect(roomManagement.createRoom).not.toHaveBeenCalled();
+    });
+  });
   describe('H. Edit Scene', () => {
     it('adding device to scene should create pending action', async () => {
       sceneRepo.findAll.mockResolvedValue([{ id: 's1', name: 'Modo Noche', actions: [] }]);

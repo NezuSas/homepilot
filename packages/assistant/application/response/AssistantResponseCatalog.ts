@@ -35,6 +35,10 @@ export type AssistantResponseCatalogParameters = {
   'management.toggle_automation_confirmation': { name: string; enabled: boolean };
   'management.add_device_confirmation': { deviceName: string; sceneName: string };
   'management.remove_device_confirmation': { deviceName: string; sceneName: string };
+  'management.room_name_required': Record<never, never>;
+  'management.room_already_exists': { name: string };
+  'management.create_room_confirmation': { name: string };
+  'management.room_created': { name: string };
   'management.unsupported_action': Record<never, never>;
   'management.scene_renamed': { name: string };
   'management.automation_toggled': { name: string; enabled: boolean };
@@ -248,6 +252,22 @@ const responseCatalog: AssistantResponseCatalog = {
   'management.remove_device_confirmation': {
     es: ({ deviceName, sceneName }) => `Voy a quitar "${deviceName}" de la escena "${sceneName}". ¿Confirmo?`,
     en: ({ deviceName, sceneName }) => `I'm going to remove "${deviceName}" from the scene "${sceneName}". Confirm?`,
+  },
+  'management.room_name_required': {
+    es: () => 'Sí. Dime el nombre de la nueva estancia, por ejemplo: crea una estancia llamada Biblioteca.',
+    en: () => 'Yes. Tell me the name of the new room, for example: create a room called Library.',
+  },
+  'management.room_already_exists': {
+    es: ({ name }) => `Ya existe una estancia llamada "${name}".`,
+    en: ({ name }) => `A room named "${name}" already exists.`,
+  },
+  'management.create_room_confirmation': {
+    es: ({ name }) => `Voy a crear la estancia "${name}". ¿Confirmo?`,
+    en: ({ name }) => `I'm going to create the room "${name}". Confirm?`,
+  },
+  'management.room_created': {
+    es: ({ name }) => `Listo, creé la estancia "${name}".`,
+    en: ({ name }) => `Ready, created the room "${name}".`,
   },
   'management.unsupported_action': {
     es: () => 'No estoy seguro de cómo gestionar eso.',

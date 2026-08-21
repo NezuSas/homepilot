@@ -26,6 +26,7 @@ import { PermissionGate } from './packages/assistant/application/PermissionGate'
 import { AssistantFastPathResolver } from './packages/assistant/application/AssistantFastPathResolver';
 import { AssistantAliasManagementService } from './packages/assistant/application/AssistantAliasManagementService';
 import { AssistantSmallTalkService } from './packages/assistant/application/AssistantSmallTalkService';
+import { TopologyRoomManagementAdapter } from './packages/assistant/infrastructure/TopologyRoomManagementAdapter';
 import { FollowUpResolver } from './packages/assistant/application/FollowUpResolver';
 import { PlannerV2Validator } from './packages/assistant/application/PlannerV2Validator';
 import { PlannerV2Resolver } from './packages/assistant/application/PlannerV2Resolver';
@@ -33,6 +34,7 @@ import { AssistantPlannerV2ShadowService } from './packages/assistant/applicatio
 import { AssistantTextToSpeechService } from './packages/assistant/application/AssistantTextToSpeechService';
 import { AssistantSpeechToTextService } from './packages/assistant/application/AssistantSpeechToTextService';
 import fs from 'fs';
+import { randomUUID } from 'crypto';
 
 import type { SQLiteDashboardRepository } from './packages/topology/infrastructure/repositories/SQLiteDashboardRepository';
 import type { SQLiteHomeRepository } from './packages/topology/infrastructure/repositories/SQLiteHomeRepository';
@@ -342,6 +344,13 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     repos.deviceRepository,
     repos.roomRepository
   );
+  const roomManagementService = new TopologyRoomManagementAdapter({
+    homeRepository: repos.homeRepository,
+    roomRepository: repos.roomRepository,
+    eventPublisher: topologyEventPublisher,
+    idGenerator: { generate: () => randomUUID() },
+    clock: { now: () => new Date().toISOString() }
+  });
   const assistantConversationService = new AssistantConversationService(
     intentInterpreterService,
     assistantConfirmationPolicy,
@@ -365,7 +374,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     assistantAliasManagementService,
     repos.homeRepository,
     repos.confirmationTicketRepository,
-    domesticSkillResolver
+    domesticSkillResolver,
+    roomManagementService
   );
 
   const container: BootstrapContainer = {
