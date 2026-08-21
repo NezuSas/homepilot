@@ -33,6 +33,7 @@ export const HomeConversationMessageBubble: React.FC<HomeConversationMessageBubb
   const hasConfirmationOptions = message.options?.some(option => option.id === 'confirm' || option.id === 'cancel') ?? false;
   const requiresConfirmation = isClarification && /\b(confirm|confirma|confirmas|confirmacion)\b/i.test(message.content);
   const isSuccessfulExecution = message.execution?.status === 'success';
+  const messageLines = message.content.split(/\r?\n/);
 
   return (
     <div
@@ -107,7 +108,12 @@ export const HomeConversationMessageBubble: React.FC<HomeConversationMessageBubb
             )}
 
             <p className="whitespace-pre-wrap break-words text-body font-medium leading-relaxed">
-              {message.content}
+              {messageLines.map((line, index) => (
+                <React.Fragment key={`${message.id}-${index}`}>
+                  {line}
+                  {index < messageLines.length - 1 && <br />}
+                </React.Fragment>
+              ))}
             </p>
 
             {message.options && message.options.length > 0 && (

@@ -51,13 +51,18 @@ if (failures.length === 0) {
   if (modelRuntimePattern.test(officeEnvironmentTemplate) || modelRuntimePattern.test(nativeEnvironmentTemplate)) {
     failures.push('Installation environment templates must not configure a language-model runtime');
   }
-  if (modelRuntimePattern.test(maintenance)) {
+  const maintenanceWithoutOllamaCleanup = maintenance
+    .replace(/remove_unused_ollama_image\(\) \{[\s\S]*?^\}/m, '')
+    .replace(/^\s*remove_unused_ollama_image\s*$/m, '');
+  if (modelRuntimePattern.test(maintenanceWithoutOllamaCleanup)) {
     failures.push('Maintenance runtime checks must not require a language-model service');
   }
   if (!maintenance.includes('is_docker_desktop')
     || !maintenance.includes('docker-compose.desktop.yml')
-    || !maintenance.includes('docker compose ' + String.fromCharCode(34) + '${compose_args[@]}' + String.fromCharCode(34) + ' up -d --build')) {
-    failures.push('Maintenance deploy must select the Docker Desktop overlay and pass every selected compose file');
+    || !maintenance.includes('docker compose ' + String.fromCharCode(34) + '${compose_args[@]}' + String.fromCharCode(34) + ' up -d --build --remove-orphans')
+    || !maintenance.includes('remove_unused_ollama_image')
+    || !maintenance.includes('ollama/ollama:latest')) {
+    failures.push('Maintenance deploy must select the Docker Desktop overlay, pass every selected compose file, remove stale Compose services, and clear an unused Ollama image');
   }
   for (const entry of [['office nginx', nginx], ['desktop nginx', desktopNginx]]) {
     const name = entry[0];

@@ -298,6 +298,25 @@ clean_docker_residue() {
   fi
 }
 
+remove_unused_ollama_image() {
+  local image="ollama/ollama:latest"
+
+  if ! docker image inspect "$image" >/dev/null 2>&1; then
+    return
+  fi
+
+  if docker ps -a --filter "ancestor=$image" -q | grep -q '.'; then
+    warn "La imagen de Ollama se conserva porque otro contenedor aún la utiliza."
+    return
+  fi
+
+  if docker image rm "$image" >/dev/null 2>&1; then
+    ok "Imagen de Ollama sin uso eliminada."
+  else
+    warn "No se pudo eliminar la imagen de Ollama sin uso."
+  fi
+}
+
 deploy_homepilot() {
   section "Despliegue HomePilot"
   info "Compose: ${compose_files[*]}"
@@ -316,7 +335,7 @@ deploy_homepilot() {
 
   while (( attempt <= max_attempts )); do
     info "Construcción e inicio: intento ${attempt}/${max_attempts}."
-    if COMPOSE_BAKE=false docker compose "${compose_args[@]}" up -d --build; then
+    if COMPOSE_BAKE=false docker compose "${compose_args[@]}" up -d --build --remove-orphans; then
       ok "HomePilot construido e iniciado."
       break
     fi
@@ -407,6 +426,7 @@ if [[ "$deploy" == true ]]; then
   if confirm "Limpiar, construir e iniciar HomePilot ahora?"; then
     clean_docker_residue
     deploy_homepilot
+    remove_unused_ollama_image
     clean_docker_residue
     show_disk
     verify_runtime 180
