@@ -461,7 +461,6 @@ wait_for_runtime_ready() {
   while (( elapsed <= timeout_seconds )); do
     if container_ready "homepilot-api" true \
       && container_ready "homepilot-ui" false \
-      && container_ready "homepilot-ollama" false \
       && container_ready "homepilot-stt" true \
       && container_ready "homepilot-tts" true; then
       ok "Servicios HomePilot listos."
@@ -626,10 +625,9 @@ provision_home_assistant_community_integrations() {
   restart_home_assistant_after_community_install "$container"
 }
 show_runtime_status() {
-  local api_port ui_port ollama_port tts_port stt_port
+  local api_port ui_port tts_port stt_port
   api_port="$(env_value HOMEPILOT_API_PORT 3000)"
   ui_port="$(env_value HOMEPILOT_UI_PORT 8080)"
-  ollama_port="$(env_value HOMEPILOT_OLLAMA_PORT 11434)"
   tts_port="$(env_value HOMEPILOT_TTS_PORT 8088)"
   stt_port="$(env_value HOMEPILOT_STT_PORT 8090)"
 
@@ -637,7 +635,6 @@ show_runtime_status() {
   section "Estado operativo de servicios"
   check_container "homepilot-api" "API HomePilot · puerto ${api_port}" true
   check_container "homepilot-ui" "UI HomePilot · puerto ${ui_port}" false
-  check_container "homepilot-ollama" "Ollama · puerto ${ollama_port}" false
   check_container "homepilot-stt" "STT Whisper · puerto ${stt_port}" true
   check_container "homepilot-tts" "TTS Piper · puerto ${tts_port}" true
 

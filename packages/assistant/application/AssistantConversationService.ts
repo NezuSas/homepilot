@@ -551,8 +551,7 @@ export class AssistantConversationService {
           : (language === 'en' ? 'Understood. ' : 'Entendido. ');
         conversationalResponse.message = `${prefix}${conversationalResponse.message}`;
       }
-      const { llmAttempted, ...conversationResponse } = conversationalResponse;
-      return this.returnWithShadow(activePrompt, userId, language, conversationResponse, responsePreference, true, !llmAttempted);
+      return this.returnWithShadow(activePrompt, userId, language, conversationalResponse, responsePreference, true, false);
     }
 
     const v2Response = await this.attemptV2HybridExecution(activePrompt, userId, language, userName, memory);
@@ -2619,7 +2618,6 @@ export class AssistantConversationService {
     message = areaPrefix;
 
     if (isCompound || hasNoExplicitState) {
-      // If devices exist but we have NO known states for any of them, fallback gracefully
       if (onDevices.length === 0 && offDevices.length === 0) {
         return {
           type: 'answer',
@@ -2627,34 +2625,34 @@ export class AssistantConversationService {
         };
       }
 
-      message = areaPrefix;
-
-      // On section
-      message += targetRoomName
-        ? (language === 'en' ? `On · ${onDevices.length}\n` : `Encendidas · ${onDevices.length}\n`)
-        : (language === 'en' ? "On:\n" : "Encendidas:\n");
-      if (onDevices.length > 0) {
-        for (const d of onDevices) {
-          const rName = this.resolveRoomName(d.roomId, roomMap, language);
-          message += `• ${d.name}${targetRoomName ? '' : rName ? ` (${rName})` : ''}\n`;
-        }
+      if (targetRoomName) {
+        const onSummary = this.formatStateDevicePreview(onDevices, language);
+        const offSummary = this.formatStateDevicePreview(offDevices, language);
+        message = language === 'en'
+          ? `${namePrefix}${targetRoomName} is currently:\n• On (${onDevices.length}): ${onSummary}.\n• Off (${offDevices.length}): ${offSummary}.`
+          : `${namePrefix}Así está ${targetRoomName} ahora:\n• Encendidos (${onDevices.length}): ${onSummary}.\n• Apagados (${offDevices.length}): ${offSummary}.`;
       } else {
-        message += language === 'en' ? "• None" : "• Ninguna";
-      }
-
-      message += "\n";
-
-      // Off section
-      message += targetRoomName
-        ? (language === 'en' ? `Off · ${offDevices.length}\n` : `Apagadas · ${offDevices.length}\n`)
-        : (language === 'en' ? "Off:\n" : "Apagadas:\n");
-      if (offDevices.length > 0) {
-        for (const d of offDevices) {
-          const rName = this.resolveRoomName(d.roomId, roomMap, language);
-          message += `• ${d.name}${targetRoomName ? '' : rName ? ` (${rName})` : ''}\n`;
+        message = areaPrefix;
+        message += language === 'en' ? "On:\n" : "Encendidas:\n";
+        if (onDevices.length > 0) {
+          for (const d of onDevices) {
+            const rName = this.resolveRoomName(d.roomId, roomMap, language);
+            message += `• ${d.name}${rName ? ` (${rName})` : ''}\n`;
+          }
+        } else {
+          message += language === 'en' ? "• None" : "• Ninguna";
         }
-      } else {
-        message += language === 'en' ? "• None" : "• Ninguna";
+
+        message += "\n";
+        message += language === 'en' ? "Off:\n" : "Apagadas:\n";
+        if (offDevices.length > 0) {
+          for (const d of offDevices) {
+            const rName = this.resolveRoomName(d.roomId, roomMap, language);
+            message += `• ${d.name}${rName ? ` (${rName})` : ''}\n`;
+          }
+        } else {
+          message += language === 'en' ? "• None" : "• Ninguna";
+        }
       }
     } else if (isOnQuery) {
       if (onDevices.length === 0) {
@@ -2727,6 +2725,22 @@ export class AssistantConversationService {
     };
   }
 
+  private formatStateDevicePreview(devices: readonly Device[], language: string): string {
+    if (devices.length === 0) return language === 'en' ? 'none' : 'ninguno';
+
+    const counts = new Map<string, number>();
+    for (const device of devices) {
+      counts.set(device.name, (counts.get(device.name) ?? 0) + 1);
+    }
+
+    const labels = Array.from(counts.entries()).map(([name, count]) => count === 1 ? name : `${name} ×${count}`);
+    const visible = labels.slice(0, 4);
+    const remaining = labels.length - visible.length;
+    const suffix = remaining > 0
+      ? (language === 'en' ? ` and ${remaining} more` : ` y ${remaining} más`)
+      : '';
+    return `${visible.join(', ')}${suffix}`;
+  }
   private isDetailFollowUp(normalized: string): boolean {
     const detailTriggers = [
       "dame detalle", "detalle", "ver detalle", "lista completa", "muestrame todo", "muéstrametodo",

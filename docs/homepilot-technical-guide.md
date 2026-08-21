@@ -10,7 +10,7 @@ The current product objective is local, modular, and maintainable home control:
 - The backend exposes a local Fastify API.
 - Persistence uses local SQLite.
 - Home Assistant acts as the integration bridge for physical devices.
-- STT, TTS, and the LLM can run locally as separate services.
+- STT and TTS run locally as separate services.
 - Docker Compose starts the complete stack for development and local validation.
 
 ## Local runtime overview
@@ -20,7 +20,6 @@ The current product objective is local, modular, and maintainable home control:
 | HomePilot API | homepilot-api | 3000 | HTTP API, WebSocket, auth, devices, scenes, automations, assistant |
 | HomePilot UI | homepilot-ui | 80 | Operator web console |
 | Home Assistant | homeassistant | 18123 | Local bridge to physical devices |
-| Ollama | ollama | 11434 | Local assistant reasoning model |
 | Piper TTS | homepilot-tts | 8088 | Local voice synthesis |
 | Whisper STT | homepilot-stt | 8090 | Local audio transcription |
 
@@ -30,7 +29,6 @@ Useful local URLs:
 http://localhost
 http://localhost:3000/health
 http://localhost:18123
-http://localhost:11434
 http://localhost:8088/health
 http://localhost:8090/health
 ~~~
@@ -164,7 +162,7 @@ The UI represents loading, error, and unavailable states without treating a came
 
 ### Customer with an existing Home Assistant instance
 
-In real customer deployments, HomePilot must not create or replace the customer's Home Assistant when one already works. The appliance deploys only HomePilot API, UI, STT, TTS, and Ollama, then links to the existing Home Assistant through a local URL and long-lived token.
+In real customer deployments, HomePilot must not create or replace the customer's Home Assistant when one already works. The appliance deploys only HomePilot API, UI, STT, and TTS, then links to the existing Home Assistant through a local URL and long-lived token.
 
 Recommended pattern when Home Assistant runs on the mini PC host or an existing container:
 
@@ -330,8 +328,8 @@ bash scripts/install-edge-office.sh --profile bridge_ha --status
 
 It does not clean Docker, build images, create files, or start/restart containers. It checks:
 
-- API, UI, Ollama, STT, and TTS containers.
-- Configured host ports for API, UI, Ollama, STT, and TTS, plus Home Assistant where relevant.
+- API, UI, STT, and TTS containers.
+- Configured host ports for API, UI, STT, and TTS, plus Home Assistant where relevant.
 - Available health checks for API, STT, and TTS.
 - HTTP responses from API, UI, STT, and TTS.
 - Home Assistant connectivity only in profiles that require it; native_only reports it as unnecessary.
@@ -366,7 +364,7 @@ The command:
 4. Builds and starts HomePilot with docker-compose.office.yml.
 5. Repeats safe cleanup after the build.
 6. Shows final available space.
-7. Verifies API, UI, Ollama, STT, TTS, and the Home Assistant bridge before declaring the installation healthy.
+7. Verifies API, UI, STT, TTS, and the Home Assistant bridge before declaring the installation healthy.
 
 It preserves up to 2GB of useful cache by default:
 
@@ -453,19 +451,12 @@ The assistant listens for the **Ok Nezu** wake phrase and then processes the com
 | Wake/listener UI | GlobalWakeListener.tsx | Captures the wake phrase and browser audio |
 | STT | homepilot-stt | Converts audio to text with local Whisper |
 | Assistant API | AssistantRoutes.ts | Coordinates transcription, intent, response, and actions |
-| LLM | ollama | Local reasoning when enabled |
 | TTS | homepilot-tts | Piper voice response |
 
 Relevant Docker Compose variables:
 
 | Variable | Use |
 |---|---|
-| OLLAMA_ENABLED | Enables or disables Ollama integration |
-| OLLAMA_BASE_URL | Internal Ollama URL from the API |
-| OLLAMA_MODEL | Model used by the assistant |
-| OLLAMA_TIMEOUT_MS | Model request timeout |
-| ASSISTANT_PLANNER_V2_SHADOW | Runs sampled Planner V2 shadow evaluation for comparison; enabled by default in Docker |
-| ASSISTANT_PLANNER_V2_EXECUTION | Allows Planner V2 to execute actions only after the documented rollout criteria are met |
 | STT_PROVIDER | STT provider, for example whisper-local |
 | STT_BASE_URL | Internal STT service URL |
 | STT_TIMEOUT_MS | Transcription timeout |
@@ -568,20 +559,7 @@ These are the safe production rollout defaults for Planner V2. A local operator 
 HOMEPILOT_DEV_BOOTSTRAP=true
 HOMEPILOT_DB_PATH=./data/homepilot.db
 
-OLLAMA_ENABLED=true
-# Office / host-network profile. Use http://ollama:11434 only with docker-compose.yml.
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=phi3
-OLLAMA_TIMEOUT_MS=30000
 
-ASSISTANT_PLANNER_V2_SHADOW=true
-ASSISTANT_PLANNER_V2_SHADOW_SAMPLE_RATE=0.1
-ASSISTANT_PLANNER_V2_SHADOW_FORCE=true
-ASSISTANT_PLANNER_V2_SHADOW_LIGHT_PROMPT=true
-ASSISTANT_PLANNER_V2_SHADOW_ULTRA_LIGHT_PROMPT=true
-ASSISTANT_PLANNER_V2_SHADOW_TIMEOUT_MS=20000
-ASSISTANT_PLANNER_V2_EXECUTION=false
-ASSISTANT_PLANNER_V2_SHADOW_MODEL=qwen2.5:1.5b
 
 TTS_PROVIDER=piper
 TTS_BASE_URL=http://homepilot-tts:8088
@@ -606,18 +584,6 @@ WHISPER_MAX_AUDIO_BYTES=9000000
 | HOMEPILOT_DEV_BOOTSTRAP | true | Creates admin/admin only when the database is empty; local development only |
 | HOMEPILOT_DB_PATH | ./data/homepilot.db | SQLite path outside Docker/inside local WSL; containers normally use /app/data/homepilot.db |
 | HOMEPILOT_SQLITE_JOURNAL_MODE | WAL | Use WAL on the Linux mini PC; use DELETE only when Docker mounts data from Windows |
-| OLLAMA_ENABLED | true | Enables assistant calls to Ollama |
-| OLLAMA_BASE_URL | http://localhost:11434 (Office) / http://ollama:11434 (native Docker) | URL used by the API to reach Ollama; it depends on the deployment network model |
-| OLLAMA_MODEL | phi3 | Main assistant model |
-| OLLAMA_TIMEOUT_MS | 30000 | Maximum wait for a model response |
-| ASSISTANT_PLANNER_V2_SHADOW | true | Runs Planner V2 in comparison/validation mode |
-| ASSISTANT_PLANNER_V2_SHADOW_SAMPLE_RATE | 0.1 | Samples 10 percent of eligible cases to protect low-power Edge hardware |
-| ASSISTANT_PLANNER_V2_SHADOW_FORCE | true | Forces shadow execution even when ordinary sampling would skip it |
-| ASSISTANT_PLANNER_V2_SHADOW_LIGHT_PROMPT | true | Uses a lightweight prompt as planner-shadow fallback |
-| ASSISTANT_PLANNER_V2_SHADOW_ULTRA_LIGHT_PROMPT | true | Uses an ultra-light prompt to reduce local latency/cost |
-| ASSISTANT_PLANNER_V2_SHADOW_TIMEOUT_MS | 20000 | Planner V2 shadow timeout |
-| ASSISTANT_PLANNER_V2_EXECUTION | false | Opt-in live Planner V2 execution; enable only after the production rollout criteria in `assistant-planner-v2-production-rollout-v1.md` are met |
-| ASSISTANT_PLANNER_V2_SHADOW_MODEL | qwen2.5:1.5b | Alternative model for the shadow planner |
 | TTS_PROVIDER | piper | Voice synthesis engine |
 | TTS_BASE_URL | http://homepilot-tts:8088 | Internal Docker URL for TTS |
 | PIPER_VOICE_ES | es_MX-claude-high | Primary high-quality Latin Spanish Piper voice |
@@ -633,22 +599,6 @@ WHISPER_MAX_AUDIO_BYTES=9000000
 | WHISPER_VAD_MIN_SILENCE_MS | 650 | Minimum silence used to split voice segments |
 | WHISPER_VAD_SPEECH_PAD_MS | 400 | Padding added around detected speech |
 | WHISPER_MAX_AUDIO_BYTES | 9000000 | Maximum audio size accepted by STT |
-
-### Planner V2 shadow review
-
-Keep `ASSISTANT_PLANNER_V2_EXECUTION=false` while shadow diagnostics are collected. On the target appliance, aggregate only the structured diagnostic logs:
-
-~~~bash
-docker compose logs --no-log-prefix homepilot-api | node scripts/review-planner-v2-shadow.mjs
-~~~
-
-Use `--strict` to make the command fail when the automatable sample-size, valid-plan-resolution, or p95-latency checks are not met:
-
-~~~bash
-docker compose logs --no-log-prefix homepilot-api | node scripts/review-planner-v2-shadow.mjs --strict
-~~~
-
-The report intentionally contains aggregate metrics only. It does not print prompts, audio, credentials, tokens, or a promotion decision. The manual safety, candidate-review, and circuit-breaker evidence in `assistant-planner-v2-production-rollout-v1.md` remains mandatory before enabling live execution.
 
 Additional container variables:
 

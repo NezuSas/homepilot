@@ -13,9 +13,10 @@ const requiredFiles = [
 
 const failures = [];
 const read = (file) => readFileSync(file, 'utf8');
+const modelRuntimePattern = /\bollama\b|OLLAMA_|ASSISTANT_CONVERSATIONAL_LLM_PROVIDER|CLOUDFLARE_AI_|ASSISTANT_PLANNER_V2_/i;
 
 for (const file of requiredFiles) {
-  if (!existsSync(file)) failures.push(`Missing required Docker profile file: ${file}`);
+  if (!existsSync(file)) failures.push('Missing required Docker profile file: ' + file);
 }
 
 if (failures.length === 0) {
@@ -28,8 +29,11 @@ if (failures.length === 0) {
   const officeEnvironmentTemplate = read('.env.office.example');
   const nativeEnvironmentTemplate = read('.env.native.example');
 
-  for (const [profile, content] of [['integrated', integrated], ['office', office], ['desktop override', desktop]]) {
-    if (!content.includes('HOMEPILOT_DB_PATH')) failures.push(`${profile} profile does not declare HOMEPILOT_DB_PATH`);
+  for (const entry of [['integrated', integrated], ['office', office], ['desktop override', desktop]]) {
+    const profile = entry[0];
+    const content = entry[1];
+    if (!content.includes('HOMEPILOT_DB_PATH')) failures.push(profile + ' profile does not declare HOMEPILOT_DB_PATH');
+    if (modelRuntimePattern.test(content)) failures.push(profile + ' profile must not declare a language-model runtime');
   }
 
   if (!integrated.includes('./data:/app/data') || !office.includes('./data:/app/data')) {
@@ -44,33 +48,30 @@ if (failures.length === 0) {
   if (!desktop.includes('HOMEPILOT_API_PORT:-13000') || !office.includes('HOMEPILOT_UI_PORT:-8080')) {
     failures.push('Desktop profile must expose API 13000 and UI 8080 defaults');
   }
-  if (!integrated.includes('ASSISTANT_PLANNER_V2_EXECUTION=${ASSISTANT_PLANNER_V2_EXECUTION:-false}')
-    || !office.includes('ASSISTANT_PLANNER_V2_EXECUTION: ${ASSISTANT_PLANNER_V2_EXECUTION:-false}')
-    || !officeEnvironmentTemplate.includes('ASSISTANT_PLANNER_V2_EXECUTION=false')
-    || !nativeEnvironmentTemplate.includes('ASSISTANT_PLANNER_V2_EXECUTION=false')) {
-    failures.push('Every deployment profile and installation template must keep Planner V2 execution disabled by default');
+  if (modelRuntimePattern.test(officeEnvironmentTemplate) || modelRuntimePattern.test(nativeEnvironmentTemplate)) {
+    failures.push('Installation environment templates must not configure a language-model runtime');
   }
-  if (!office.includes('OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://localhost:11434}')
-    || !officeEnvironmentTemplate.includes('OLLAMA_BASE_URL=http://localhost:11434')
-    || !nativeEnvironmentTemplate.includes('OLLAMA_BASE_URL=http://ollama:11434')) {
-    failures.push('Office host networking must reach Ollama through localhost, while the native Docker profile must use service DNS');
+  if (modelRuntimePattern.test(maintenance)) {
+    failures.push('Maintenance runtime checks must not require a language-model service');
   }
   if (!maintenance.includes('is_docker_desktop')
     || !maintenance.includes('docker-compose.desktop.yml')
-    || !maintenance.includes('docker compose "${compose_args[@]}" up -d --build')) {
+    || !maintenance.includes('docker compose ' + String.fromCharCode(34) + '${compose_args[@]}' + String.fromCharCode(34) + ' up -d --build')) {
     failures.push('Maintenance deploy must select the Docker Desktop overlay and pass every selected compose file');
   }
-  for (const [name, content] of [['office nginx', nginx], ['desktop nginx', desktopNginx]]) {
+  for (const entry of [['office nginx', nginx], ['desktop nginx', desktopNginx]]) {
+    const name = entry[0];
+    const content = entry[1];
     if (!content.includes('location /api/') || !content.includes('location /ws') || !content.includes('location = /health')) {
-      failures.push(`${name} must proxy /api, /ws and /health same-origin`);
+      failures.push(name + ' must proxy /api, /ws and /health same-origin');
     }
   }
 }
 
 if (failures.length > 0) {
   console.error('Docker profile validation failed:');
-  failures.forEach((failure) => console.error(`- ${failure}`));
+  failures.forEach((failure) => console.error('- ' + failure));
   process.exit(1);
 }
 
-console.log('Docker profile validation passed: canonical SQLite path, network-aware Ollama URLs, Desktop override, same-origin proxies, and safe Planner V2 defaults are present.');
+console.log('Docker profile validation passed: canonical SQLite path, model-free deterministic assistant runtime, Desktop override, and same-origin proxies are present.');

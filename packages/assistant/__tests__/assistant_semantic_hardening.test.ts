@@ -246,7 +246,7 @@ describe('Assistant Semantic Hardening', () => {
     
     expect(res.type).toBe('answer');
     expect(res.message).toContain('Cuarto Master');
-    expect(res.message).toContain('Encendidas · 1');
+    expect(res.message).toContain('Encendidos (1): Luz.');
   });
 
   it('UI selectedOptionId still resolves room selection regardless of prompt text', async () => {

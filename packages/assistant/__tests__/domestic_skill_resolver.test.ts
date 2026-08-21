@@ -52,7 +52,7 @@ describe('DomesticSkillResolver', () => {
     const result = await resolver.resolve('Quiero que la sala se sienta acogedora esta noche', 'user-1', 'es');
 
     expect(result).toEqual(expect.objectContaining({ skill: 'room_comfort' }));
-    expect(result?.message).toContain('Sala de Reuniones');
+    expect(result?.message).toContain('Para crear un ambiente más cómodo en Sala de Reuniones');
     expect(result?.message).toContain('Cine');
     expect(result?.message).toContain('Estar');
     expect(result?.message).toContain('Cortina Sala');
@@ -84,6 +84,7 @@ describe('DomesticSkillResolver', () => {
     const result = await resolver.resolve('¿Qué opciones tengo para la noche?', 'user-1', 'es');
 
     expect(result).toEqual(expect.objectContaining({ skill: 'night_options' }));
+    expect(result?.message).toContain('Cuando quieras preparar la casa para la noche');
     expect(result?.message).toContain('Buenas noches');
     expect(result?.message).toContain('Lámpara');
     expect(result?.message).toContain('Cortina Master');

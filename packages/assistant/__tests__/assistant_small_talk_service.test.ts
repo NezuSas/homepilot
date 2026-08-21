@@ -10,7 +10,7 @@ describe('AssistantSmallTalkService', () => {
 
   beforeEach(() => {
     process.env.OLLAMA_ENABLED = 'true';
-    delete process.env.ASSISTANT_CONVERSATIONAL_LLM_PROVIDER;
+    process.env.ASSISTANT_CONVERSATIONAL_LLM_PROVIDER = 'ollama';
     mockOllama = createMockOllamaClient();
     mockContextBuilder = createMockAssistantContextBuilder({
       buildUltraLightLlmHomeMap: jest.fn().mockResolvedValue({ text: 'Devices: none', devicesCount: 0 })
@@ -112,13 +112,26 @@ describe('AssistantSmallTalkService', () => {
     expect(response.message).toBe('Your home has 0 devices ready to check or control.');
   });
 
-  it('should return a general assistant fallback when OLLAMA_ENABLED is false', async () => {
+  it('uses the local responder by default without invoking Ollama', async () => {
+    delete process.env.ASSISTANT_CONVERSATIONAL_LLM_PROVIDER;
+
+    const response = await service.handle('a que hora debo dormir', 'es');
+
+    expect(response).toEqual(expect.objectContaining({
+      type: 'answer',
+      message: expect.stringContaining('No puedo recomendar una hora personal para dormir'),
+      llmAttempted: false
+    }));
+    expect(mockOllama.generateJson).not.toHaveBeenCalled();
+  });
+
+  it('returns a local home-focused answer when Ollama is disabled', async () => {
     process.env.OLLAMA_ENABLED = 'false';
     
     const response = await service.handle('hola', 'es');
     
     expect(response.type).toBe('answer');
-    expect(response.message).toBe('Puedo ayudarte a consultar tu casa, controlar dispositivos y explorar escenas disponibles.');
+    expect(response.message).toContain('Puedo ayudarte a revisar la casa');
     expect(mockOllama.generateJson).not.toHaveBeenCalled();
   });
 

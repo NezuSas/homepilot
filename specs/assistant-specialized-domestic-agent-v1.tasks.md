@@ -19,5 +19,12 @@ Primary specification: [assistant-specialized-domestic-agent-v1.md](./assistant-
 ## Phase 3 — Evaluation and validation
 
 - [x] Add Spanish and English evaluation cases for every supported skill and natural phrase variation.
-- [x] Add authorization, no-execution, and Ollama-unavailable tests.
+- [x] Add authorization, no-execution, and model-free runtime tests.
 - [x] Verify AC-01 through AC-11 and run mandatory validation.
+
+## Phase 4 — Local conversational polish
+
+- [x] Make the deterministic local responder the only supported conversational provider.
+- [x] Cover local boundary replies, short Spanish normalization, and the absence of Planner V2 shadow work for a local conversation.
+- [x] Format room-state answers with grouped names and compact on/off summaries.
+- [x] Verify AC-12 and AC-13 through focused tests and the mandatory validation suite.

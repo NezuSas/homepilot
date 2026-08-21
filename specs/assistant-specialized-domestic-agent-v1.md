@@ -20,6 +20,7 @@ Make HomePilot a natural-language domestic agent for the user's authorized HomeP
 - Support factual home insights, room comfort recommendations, night preparation recommendations, targeted scene discovery, and available-scene inventory from authorized device, room, and scene data.
 - Preserve conversational references through the existing short-term memory contract.
 - Add an executable Spanish and English evaluation corpus for the supported skills.
+- Keep general non-control conversation local and deterministic by default, with explicit boundaries for requests outside the home domain.
 
 ## 4. Non-goals
 
@@ -90,9 +91,21 @@ Room-comfort detection accepts common Spanish and English expressions for a rela
 
 ### FR-07 Latency and degradation
 
-- The supported domestic skills do not wait for Ollama.
+- The supported domestic skills do not wait for a language model.
 - Existing direct commands and household-status queries keep their current fast paths.
 - Unsupported requests continue through the existing safe flow; a model timeout must not block or weaken a deterministic response.
+
+### FR-08 Local conversational boundary
+
+- Local deterministic conversation is the only supported assistant runtime.
+- Greetings, thanks, help requests, and common personal-wellbeing questions receive an honest, concise local response without reading the home graph or waiting for a model.
+- Requests outside the HomePilot domain clearly state the boundary and guide the user back to relevant home capabilities. They must not return an unrelated device-count fallback.
+- Common short Spanish forms, including omitted punctuation and `q`/`pa`, normalize before intent or conversation matching.
+
+### FR-09 Readable household state
+
+- A room-state answer uses a short heading and separate on/off lines.
+- Repeated device names are grouped with a count, while entities outside the resolved room are not shown.
 
 ## 7. Acceptance criteria
 
@@ -102,11 +115,13 @@ Room-comfort detection accepts common Spanish and English expressions for a rela
 - [x] AC-04: A night request reports only actionable authorized scenes, active lights, or controllable covers and never executes them automatically.
 - [x] AC-05: Scene discovery returns only scenes available to the user and does not expose foreign-home scenes.
 - [x] AC-06: A domestic skill stores safe room/entity context without overwriting pending confirmation state.
-- [x] AC-07: Supported domestic skills do not invoke the LLM and remain available while Ollama is unavailable.
+- [x] AC-07: Supported domestic skills do not invoke a language model and remain available without an Ollama service.
 - [x] AC-08: Existing deterministic commands, confirmation tickets, and Planner V2 rollout gates retain their behavior.
 - [x] AC-09: A versioned Spanish/English evaluation corpus covers supported phrases, expected skill classification, authorization isolation, and no-execution behavior.
 - [x] AC-10: Common Spanish and English room-comfort and scene-inventory phrasing resolves deterministically, prioritizes matching authorized scenes, and performs no action.
 - [x] AC-11: A domestic follow-up returns only still-authorized and available prior options, without execution.
+- [x] AC-12: Default local conversation answers common greetings, help, thanks, and personal bedtime questions without invoking an LLM or Planner V2 shadow work.
+- [x] AC-13: Room-state responses are formatted as a heading with grouped on/off summaries, and short Spanish punctuation-free variants normalize before matching.
 
 ## 8. Validation
 

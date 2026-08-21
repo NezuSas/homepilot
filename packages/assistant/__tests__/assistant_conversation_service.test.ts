@@ -26,7 +26,8 @@ import {
   createTestScene,
   createTestDevice,
   createTestRoom,
-  createMockSystemVariableService
+  createMockSystemVariableService,
+  createMockAssistantPlannerV2ShadowService
 } from './test_helpers';
 import type { AssistantSmallTalkPort } from '../application/ports/AssistantSmallTalkPort';
 import type { RoomRepository } from '../../topology/domain/repositories/RoomRepository';
@@ -49,6 +50,7 @@ describe('AssistantConversationService', () => {
   let mockFollowUp: jest.Mocked<FollowUpResolverPort>;
   let mockAutomationRepo: ReturnType<typeof createMockAutomationRuleRepository>;
   let mockDraftService: ReturnType<typeof createMockAssistantDraftService>;
+  let mockShadow: ReturnType<typeof createMockAssistantPlannerV2ShadowService>;
 
   afterEach(() => {
     jest.useRealTimers();
@@ -77,6 +79,7 @@ describe('AssistantConversationService', () => {
     mockFollowUp = createMockFollowUpResolver();
     mockAutomationRepo = createMockAutomationRuleRepository();
     mockDraftService = createMockAssistantDraftService();
+    mockShadow = createMockAssistantPlannerV2ShadowService();
 
     mockRoomRepo.findAll.mockResolvedValue([
       createTestRoom({ id: 'r1', name: 'Cuarto Master', homeId: 'h1' })
@@ -102,7 +105,8 @@ describe('AssistantConversationService', () => {
       createRealSmartEntityResolver(mockDeviceRepo, mockRoomRepo, mockSceneRepo, createMockAutomationRuleRepository(), mockMemory, createMockAssistantLearningService()),
       createMockAssistantSuggestionService(),
       mockExecutionRepo,
-      createMockSystemVariableService()
+      createMockSystemVariableService(),
+      mockShadow
     );
   });
 
@@ -1174,6 +1178,19 @@ describe('AssistantConversationService', () => {
       expect(mockDispatcher.dispatch).toHaveBeenCalled();
     });
 
+    it('does not schedule Planner V2 for a local conversational response', async () => {
+      mockSmallTalk.handle.mockResolvedValue({
+        type: 'answer',
+        message: 'Puedo ayudarte con tu casa.',
+        llmAttempted: false
+      });
+
+      await service.converse({ prompt: 'cuentame un chiste', userId: 'user-1' }, 'es');
+
+      expect(mockSmallTalk.handle).toHaveBeenCalled();
+      expect(mockShadow.runShadow).not.toHaveBeenCalled();
+    });
+
     it('should delegate unknown conversational prompts to SmallTalkService', async () => {
       mockSmallTalk.handle.mockResolvedValue({
         type: 'answer',
@@ -1843,6 +1860,8 @@ describe('AssistantConversationService', () => {
     it('Scenario: Given a partial room name in a room-status query When exactly one authorized room matches Then returns only that room state', async () => {
       mockDeviceRepo.findAll.mockResolvedValue([
         createTestDevice({ id: 'meeting-light', name: 'Estar', type: 'light', homeId: 'h1', roomId: 'meeting-room', lastKnownState: { state: 'on' } }),
+        createTestDevice({ id: 'meeting-light-2', name: 'Sala2', type: 'light', homeId: 'h1', roomId: 'meeting-room', lastKnownState: { state: 'off' } }),
+        createTestDevice({ id: 'meeting-light-3', name: 'Sala2', type: 'light', homeId: 'h1', roomId: 'meeting-room', lastKnownState: { state: 'off' } }),
         createTestDevice({ id: 'tech-light', name: 'Indirecta Planta', type: 'light', homeId: 'h1', roomId: 'tech-room', lastKnownState: { state: 'off' } })
       ]);
       const rooms = [
@@ -1856,10 +1875,9 @@ describe('AssistantConversationService', () => {
         handleStateQuery(normalized: string, language: string, userName: string | null, userId: string): Promise<{ type: string; message: string }>;
       }).handleStateQuery('como esta la sala', 'es', 'Gustavo', 'room-status');
 
-      expect(response.message).toContain('Gustavo, Sala de Reuniones');
-      expect(response.message).toContain('Encendidas · 1');
-      expect(response.message).toContain('Apagadas · 0');
-      expect(response.message).toContain('• Estar\n');
+      expect(response.message).toContain('Gustavo, Así está Sala de Reuniones ahora:');
+      expect(response.message).toContain('Encendidos (1): Estar.');
+      expect(response.message).toContain('Apagados (2): Sala2 ×2.');
       expect(response.message).not.toContain('Estar (Sala de Reuniones)');
       expect(response.message).not.toContain('Indirecta Planta');
       expect(mockDispatcher.dispatch).not.toHaveBeenCalled();

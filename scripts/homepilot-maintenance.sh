@@ -239,7 +239,6 @@ verify_runtime_once() {
   runtime_failures=0
   check_container "homepilot-api" "API HomePilot"
   check_container "homepilot-ui" "UI HomePilot"
-  check_container "ollama" "Ollama"
   check_container "homepilot-stt" "STT Whisper"
   check_container "homepilot-tts" "TTS Piper"
   check_endpoint "API HomePilot · puerto ${api_port}" "http://127.0.0.1:${api_port}/health" "200"

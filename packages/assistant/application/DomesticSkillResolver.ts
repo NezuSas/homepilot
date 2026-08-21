@@ -225,8 +225,8 @@ export class DomesticSkillResolver {
 
     const message = parts.length > 0
       ? (language === 'en'
-        ? `For ${resolution.room.name}, I can work with the following real options:\n${parts.map((part) => `• ${part}`).join('\n')}`
-        : `Para ${resolution.room.name}, estas son las opciones reales disponibles:\n${parts.map((part) => `• ${part}`).join('\n')}`)
+        ? `To make ${resolution.room.name} more comfortable, these options are available:\n${parts.map((part) => `• ${part}`).join('\n')}`
+        : `Para crear un ambiente más cómodo en ${resolution.room.name}, tienes estas opciones:\n${parts.map((part) => `• ${part}`).join('\n')}`)
       : (language === 'en'
         ? `I did not find controllable lights, covers, or scenes in ${resolution.room.name} to recommend yet.`
         : `Todavía no encontré luces, cortinas o escenas controlables en ${resolution.room.name} para recomendar.`);
@@ -272,8 +272,8 @@ export class DomesticSkillResolver {
 
     const message = parts.length > 0
       ? (language === 'en'
-        ? `For tonight, these are your real HomePilot options:\n${parts.map((part) => `• ${part}`).join('\n')}`
-        : `Para esta noche, estas son las opciones reales de HomePilot:\n${parts.map((part) => `• ${part}`).join('\n')}`)
+        ? `When you are ready for the night, I can help with:\n${parts.map((part) => `• ${part}`).join('\n')}`
+        : `Cuando quieras preparar la casa para la noche, puedo ayudarte con:\n${parts.map((part) => `• ${part}`).join('\n')}`)
       : (language === 'en'
         ? 'I did not find a night scene, active light, or controllable cover to prepare right now.'
         : 'No encontré una escena nocturna, luz encendida o cortina controlable para preparar en este momento.');

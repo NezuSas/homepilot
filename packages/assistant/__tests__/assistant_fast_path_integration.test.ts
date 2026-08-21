@@ -342,13 +342,13 @@ describe('Fast Path Integration in AssistantConversationService', () => {
       expect(mockShadowService.runShadow).not.toHaveBeenCalled();
     });
 
-    it('falls back to intent/shadow for "dame detalle" if memory is missing', async () => {
+    it('does not schedule shadow work for "dame detalle" if memory is missing', async () => {
       mockMemory.getShortTermMemory.mockResolvedValue(null);
       mockIntentInterpreter.interpret.mockResolvedValue({ type: 'unknown', prompt: 'dame detalle' });
 
       await service.converse({ prompt: 'dame detalle', userId: 'u1' }, 'es');
 
-      expect(mockShadowService.runShadow).toHaveBeenCalled();
+      expect(mockShadowService.runShadow).not.toHaveBeenCalled();
     });
 
     it('works with English "show detail"', async () => {

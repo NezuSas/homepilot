@@ -1,4 +1,4 @@
-# SPEC: Assistant Interactive LLM Latency Budget V1
+# SPEC: Assistant Deterministic Conversation Runtime V1
 
 **Status:** Implemented
 **Owner:** HomePilot Engineering
@@ -6,34 +6,30 @@
 
 ## Problem
 
-A local Ollama model has no token billing cost, but it still consumes finite CPU time. The conversational assistant used the complete home context, could wait for the generic Ollama timeout, and then scheduled a second Planner V2 shadow request for the same non-control turn. On CPU-only Edge hardware this produced unpredictable waits and queued model work.
+Local language models consume finite CPU time and can delay deterministic HomePilot responses on CPU-only Edge hardware. The approved assistant runtime must never depend on a local or cloud language model to answer or control the home.
 
 ## Scope
 
-This specification bounds model work used by conversational turns and diagnostic Planner V2 shadow sampling. It does not change deterministic device control, authorization, confirmation, or enable Planner V2 live execution.
+This specification removes language-model services and configuration from every supported Edge deployment profile. It preserves deterministic device control, authorization, confirmation, voice services, and existing assistant API contracts.
 
 ## Requirements
 
-- **REQ-01:** Conversational small talk must use the authorized ultra-light home map instead of the full home context, send no more than 120 characters of that map to Ollama, and avoid reading scenes or aliases unless the prompt can reference them.
-- **REQ-02:** A conversational Ollama request must have a fixed 800 ms timeout and generate at most 20 tokens. Its instruction must remain compact enough for CPU-only Edge hardware, prohibit greetings, and constrain decoding to a response object with a non-empty `text` value of at most 56 characters. A timeout or invalid model response must return a deterministic, authorized device-summary fallback instead of a generic command-error message.
-- **REQ-03:** A conversational attempt made by `AssistantSmallTalkService` must not enqueue an additional Planner V2 shadow request for the same turn, including when it falls back.
-- **REQ-04:** Planner V2 shadow sampling must use a fixed 1,500 ms timeout and a 48-token limit. Deployment environment values must not extend this diagnostic budget.
-- **REQ-05:** At most one Planner V2 shadow request may be in flight. New sampled requests while one is pending must be skipped and logged as `in_flight`.
-- **REQ-06:** When local Ollama is enabled, bootstrap must prewarm the configured local model unless `OLLAMA_PREWARM=false`. A failed prewarm is logged and never prevents deterministic HomePilot operation.
-- **REQ-07:** Planner V2 live execution remains disabled by default and is outside this latency change.
+- **REQ-01:** The production assistant runtime answers conversational requests through the deterministic local responder only.
+- **REQ-02:** Supported Compose profiles declare no Ollama service, dependency, port, volume, or model environment variable.
+- **REQ-03:** Bootstrap has no active model configuration, so it never prewarms or invokes a language-model service.
+- **REQ-04:** Installation and maintenance scripts neither wait for nor report Ollama as a required service.
+- **REQ-05:** Environment templates and the effective local environment contain no Ollama, conversational-provider, Cloudflare Workers AI, or Planner V2 model configuration.
+- **REQ-06:** Existing deterministic commands, queries, confirmations, domestic recommendations, speech-to-text, and text-to-speech retain their behavior.
 
 ## Acceptance Criteria
 
-- [x] **AC1:** Small-talk calls `buildUltraLightLlmHomeMap(prompt, userId)`, passes no more than 120 characters of authorized context to Ollama, and skips scene/alias reads for a plain conversational prompt.
-- [x] **AC2:** Small-talk calls Ollama with `{ timeoutMs: 800, numPredict: 20 }` and the bounded response schema and safely returns an authorized device-summary fallback on failure.
-- [x] **AC3:** A non-control conversational attempt does not call `runShadow` after the small-talk request completes, including when the model response falls back.
-- [x] **AC4:** Shadow calls Planner V2 with `{ timeoutMs: 1500, numPredict: 48 }`, independent of `ASSISTANT_PLANNER_V2_SHADOW_TIMEOUT_MS`.
-- [x] **AC5:** A second overlapping shadow request does not call the interpreter and records an `in_flight` skip.
-- [x] **AC6:** Enabled local Ollama starts a 5,000 ms-bounded, structured prewarm request that keeps the configured model resident; a failure is non-fatal.
-- [x] **AC7:** Type checking, all tests, backend build, operator console build, and Docker runtime validation pass.
+- [x] **AC1:** Every supported Compose profile has no Ollama service, dependency, port, volume, or model environment variable.
+- [x] **AC2:** The installer and maintenance status checks do not reference Ollama.
+- [x] **AC3:** Environment templates have no Ollama, Cloudflare Workers AI, conversational-provider, or Planner V2 model variable.
+- [x] **AC4:** Deployment validation prevents a language-model runtime from being reintroduced.
+- [x] **AC5:** Type checking, all tests, backend build, operator console build, and Docker runtime validation pass without an Ollama container.
 
 ## Non-Goals
 
-- Selecting a different Ollama model or detecting hardware profiles.
-- Promoting Planner V2 to live execution.
 - Changing existing deterministic commands, state queries, safety confirmation, permissions, or UI contracts.
+- Removing Cloudflared or any remote-access tunnel configuration.
