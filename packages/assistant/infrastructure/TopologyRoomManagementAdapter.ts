@@ -1,11 +1,12 @@
 import { createRoomUseCase, type CreateRoomUseCaseDependencies } from '../../topology/application/createRoomUseCase';
+import { deleteRoomUseCase } from '../../topology/application/deleteRoomUseCase';
+import { renameRoomUseCase } from '../../topology/application/renameRoomUseCase';
 import type { Room } from '../../topology/domain/types';
 import type { AssistantRoomManagementPort } from '../application/ports/AssistantRoomManagementPort';
 
 /**
- * Bridges a confirmed assistant request to the existing Topology room-creation
- * use case. The adapter resolves the caller's installed home instead of
- * accepting a client-controlled home identifier.
+ * Bridges confirmed assistant room requests to authorized Topology use cases.
+ * It never accepts a browser-controlled home identifier.
  */
 export class TopologyRoomManagementAdapter implements AssistantRoomManagementPort {
   constructor(private readonly dependencies: CreateRoomUseCaseDependencies) {}
@@ -22,12 +23,22 @@ export class TopologyRoomManagementAdapter implements AssistantRoomManagementPor
       throw new Error('ASSISTANT_HOME_NOT_FOUND');
     }
 
-    return createRoomUseCase(
-      input.name,
-      home.id,
-      input.userId,
-      input.correlationId,
-      this.dependencies
-    );
+    return createRoomUseCase(input.name, home.id, input.userId, input.correlationId, this.dependencies);
+  }
+
+  async renameRoom(input: {
+    readonly userId: string;
+    readonly roomId: string;
+    readonly name: string;
+    readonly correlationId: string;
+  }): Promise<Room> {
+    return renameRoomUseCase(input.roomId, input.name, input.userId, input.correlationId, this.dependencies);
+  }
+
+  async deleteRoom(input: {
+    readonly userId: string;
+    readonly roomId: string;
+  }): Promise<{ readonly room: Room; readonly unassignedDevices: number }> {
+    return deleteRoomUseCase(input.roomId, input.userId, this.dependencies);
   }
 }

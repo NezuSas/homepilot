@@ -40,9 +40,16 @@ export type AssistantResponseCatalogParameters = {
   'management.add_device_confirmation': { deviceName: string; sceneName: string };
   'management.remove_device_confirmation': { deviceName: string; sceneName: string };
   'management.room_name_required': Record<never, never>;
+  'management.room_rename_details_required': Record<never, never>;
+  'management.room_deletion_name_required': Record<never, never>;
   'management.room_already_exists': { name: string };
+  'management.room_not_found': { name: string };
   'management.create_room_confirmation': { name: string };
   'management.room_created': { name: string };
+  'management.rename_room_confirmation': { currentName: string; newName: string };
+  'management.room_renamed': { name: string };
+  'management.delete_room_confirmation': { name: string; unassignedDevices: number };
+  'management.room_deleted': { name: string; unassignedDevices: number };
   'management.unsupported_action': Record<never, never>;
   'management.scene_renamed': { name: string };
   'management.automation_toggled': { name: string; enabled: boolean };
@@ -277,9 +284,21 @@ const responseCatalog: AssistantResponseCatalog = {
     es: () => 'Sí. Dime el nombre de la nueva estancia, por ejemplo: crea una estancia llamada Biblioteca.',
     en: () => 'Yes. Tell me the name of the new room, for example: create a room called Library.',
   },
+  'management.room_rename_details_required': {
+    es: () => 'Dime qué estancia deseas renombrar y el nuevo nombre, por ejemplo: renombra la estancia Biblioteca a Estudio.',
+    en: () => 'Tell me which room to rename and its new name, for example: rename the room Library to Study.',
+  },
+  'management.room_deletion_name_required': {
+    es: () => 'Dime qué estancia deseas eliminar, por ejemplo: elimina la estancia Biblioteca.',
+    en: () => 'Tell me which room to delete, for example: delete the room Library.',
+  },
   'management.room_already_exists': {
     es: ({ name }) => `Ya existe una estancia llamada "${name}".`,
     en: ({ name }) => `A room named "${name}" already exists.`,
+  },
+  'management.room_not_found': {
+    es: ({ name }) => `No encontré la estancia "${name}".`,
+    en: ({ name }) => `Room "${name}" not found.`,
   },
   'management.create_room_confirmation': {
     es: ({ name }) => `Voy a crear la estancia "${name}". ¿Confirmo?`,
@@ -288,6 +307,22 @@ const responseCatalog: AssistantResponseCatalog = {
   'management.room_created': {
     es: ({ name }) => `Listo, creé la estancia "${name}".`,
     en: ({ name }) => `Ready, created the room "${name}".`,
+  },
+  'management.rename_room_confirmation': {
+    es: ({ currentName, newName }) => `Voy a cambiar el nombre de la estancia "${currentName}" a "${newName}". ¿Confirmo?`,
+    en: ({ currentName, newName }) => `I'm going to rename the room "${currentName}" to "${newName}". Confirm?`,
+  },
+  'management.room_renamed': {
+    es: ({ name }) => `Listo, la estancia ahora se llama "${name}".`,
+    en: ({ name }) => `Ready, the room is now named "${name}".`,
+  },
+  'management.delete_room_confirmation': {
+    es: ({ name, unassignedDevices }) => `Voy a eliminar la estancia "${name}". ${unassignedDevices === 0 ? 'No tiene dispositivos asignados.' : `${unassignedDevices} ${unassignedDevices === 1 ? 'dispositivo quedará' : 'dispositivos quedarán'} sin estancia.`} ¿Confirmo?`,
+    en: ({ name, unassignedDevices }) => `I'm going to delete the room "${name}". ${unassignedDevices === 0 ? 'It has no assigned devices.' : `${unassignedDevices} ${unassignedDevices === 1 ? 'device will' : 'devices will'} be left without a room.`} Confirm?`,
+  },
+  'management.room_deleted': {
+    es: ({ name, unassignedDevices }) => `Listo, eliminé la estancia "${name}".${unassignedDevices === 0 ? '' : ` ${unassignedDevices} ${unassignedDevices === 1 ? 'dispositivo quedó' : 'dispositivos quedaron'} sin estancia.`}`,
+    en: ({ name, unassignedDevices }) => `Ready, deleted the room "${name}".${unassignedDevices === 0 ? '' : ` ${unassignedDevices} ${unassignedDevices === 1 ? 'device was' : 'devices were'} left without a room.`}`,
   },
   'management.unsupported_action': {
     es: () => 'No estoy seguro de cómo gestionar eso.',

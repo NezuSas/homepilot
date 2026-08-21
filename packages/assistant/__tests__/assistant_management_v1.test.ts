@@ -55,7 +55,7 @@ describe('Assistant Management V1', () => {
       createAutomationDraft: jest.fn(), 
       activateDraft: jest.fn() 
     };
-    roomManagement = { createRoom: jest.fn() };
+    roomManagement = { createRoom: jest.fn(), renameRoom: jest.fn(), deleteRoom: jest.fn() };
 
     service = new AssistantConversationService(
       intentInterpreter,
@@ -240,6 +240,116 @@ describe('Assistant Management V1', () => {
 
       expect(response).toEqual({ type: 'answer', message: 'Ya existe una estancia llamada "biblioteca".' });
       expect(roomManagement.createRoom).not.toHaveBeenCalled();
+    });
+
+    it('guides the user when a room rename or deletion omits the required room details', async () => {
+      const renameResponse = await service.converse({ prompt: 'Renombra una estancia', userId: 'manager' }, 'es');
+      const deletionResponse = await service.converse({ prompt: 'Elimina una estancia', userId: 'manager' }, 'es');
+
+      expect(renameResponse).toEqual({
+        type: 'answer',
+        message: 'Dime qué estancia deseas renombrar y el nuevo nombre, por ejemplo: renombra la estancia Biblioteca a Estudio.'
+      });
+      expect(deletionResponse).toEqual({
+        type: 'answer',
+        message: 'Dime qué estancia deseas eliminar, por ejemplo: elimina la estancia Biblioteca.'
+      });
+    });
+
+    it('proposes, confirms, and renames an authorized room through the management port', async () => {
+      roomRepo.findAll.mockResolvedValue([{ id: 'room-library', name: 'Biblioteca' }]);
+      const proposal = await service.converse({ prompt: 'Renombra la estancia Biblioteca a Estudio', userId: 'manager' }, 'es');
+
+      expect(proposal.type).toBe('clarification');
+      expect(proposal.message).toContain('Voy a cambiar el nombre de la estancia "Biblioteca" a "Estudio"');
+      const pendingState = memory.saveShortTermMemory.mock.calls.at(-1)?.[1];
+      expect(pendingState).toEqual(expect.objectContaining({
+        pendingManagementAction: expect.objectContaining({ type: 'rename_room', targetId: 'room-library', payload: { name: 'Estudio' } })
+      }));
+
+      memory.getShortTermMemory.mockResolvedValue(pendingState);
+      roomManagement.renameRoom.mockResolvedValue({ id: 'room-library', name: 'Estudio' });
+      const response = await service.converse({ prompt: 'sí', userId: 'manager' }, 'es');
+
+      expect(roomManagement.renameRoom).toHaveBeenCalledWith(expect.objectContaining({ userId: 'manager', roomId: 'room-library', name: 'Estudio' }));
+      expect(response).toEqual({ type: 'answer', message: 'Listo, la estancia ahora se llama "Estudio".' });
+    });
+
+    it('rejects a room rename to an existing authorized room name', async () => {
+      roomRepo.findAll.mockResolvedValue([
+        { id: 'room-library', name: 'Biblioteca' },
+        { id: 'room-study', name: 'Estudio' }
+      ]);
+
+      const response = await service.converse({ prompt: 'Renombra la estancia Biblioteca a Estudio', userId: 'manager' }, 'es');
+
+      expect(response).toEqual({ type: 'answer', message: 'Ya existe una estancia llamada "Estudio".' });
+      expect(roomManagement.renameRoom).not.toHaveBeenCalled();
+    });
+
+    it('discloses device unassignment before deleting a room and deletes only after confirmation', async () => {
+      roomRepo.findAll.mockResolvedValue([{ id: 'room-library', name: 'Biblioteca' }]);
+      deviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'device-1', roomId: 'room-library' }),
+        createTestDevice({ id: 'device-2', roomId: 'room-library' }),
+        createTestDevice({ id: 'device-3', roomId: 'other-room' })
+      ]);
+      const proposal = await service.converse({ prompt: 'Elimina la estancia Biblioteca', userId: 'manager' }, 'es');
+
+      expect(proposal.type).toBe('clarification');
+      expect(proposal.message).toContain('2 dispositivos quedarán sin estancia');
+      const pendingState = memory.saveShortTermMemory.mock.calls.at(-1)?.[1];
+      expect(pendingState).toEqual(expect.objectContaining({
+        pendingManagementAction: expect.objectContaining({ type: 'delete_room', targetId: 'room-library' })
+      }));
+
+      memory.getShortTermMemory.mockResolvedValue(pendingState);
+      roomManagement.deleteRoom.mockResolvedValue({ room: { id: 'room-library', name: 'Biblioteca' }, unassignedDevices: 2 });
+      const response = await service.converse({ prompt: 'sí', userId: 'manager' }, 'es');
+
+      expect(roomManagement.deleteRoom).toHaveBeenCalledWith({ userId: 'manager', roomId: 'room-library' });
+      expect(response).toEqual({ type: 'answer', message: 'Listo, eliminé la estancia "Biblioteca". 2 dispositivos quedaron sin estancia.' });
+    });
+
+    it('cancels a pending room deletion without invoking the management port', async () => {
+      memory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'management_confirm',
+        entities: [],
+        timestamp: new Date().toISOString(),
+        pendingManagementAction: {
+          type: 'delete_room',
+          targetId: 'room-library',
+          targetName: 'Biblioteca',
+          payload: {},
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      const response = await service.converse({ prompt: 'no', userId: 'manager' }, 'es');
+
+      expect(roomManagement.deleteRoom).not.toHaveBeenCalled();
+      expect(response).toEqual({ type: 'answer', message: 'Acción cancelada.' });
+    });
+
+    it('revalidates a room before a confirmed deletion', async () => {
+      memory.getShortTermMemory.mockResolvedValue({
+        lastQueryType: 'management_confirm',
+        entities: [],
+        timestamp: new Date().toISOString(),
+        pendingManagementAction: {
+          type: 'delete_room',
+          targetId: 'room-library',
+          targetName: 'Biblioteca',
+          payload: {},
+          timestamp: new Date().toISOString()
+        }
+      });
+      roomRepo.findAll.mockResolvedValue([]);
+
+      const response = await service.converse({ prompt: 'sí', userId: 'manager' }, 'es');
+
+      expect(roomManagement.deleteRoom).not.toHaveBeenCalled();
+      expect(response).toEqual({ type: 'answer', message: 'No encontré la estancia "Biblioteca".' });
     });
   });
   describe('H. Edit Scene', () => {

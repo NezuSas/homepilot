@@ -427,7 +427,7 @@ export class AssistantConversationService {
     if (this.aliasManagementService.isAliasListQuery(normalized)) return await this.aliasManagementService.handleAliasList(userId, language);
     const meaningAlias = this.aliasManagementService.extractAliasMeaningQuery(normalized);
     if (meaningAlias) return await this.aliasManagementService.handleAliasMeaning(userId, meaningAlias, language);
-    const deleteAliasReq = this.aliasManagementService.extractAliasDeleteRequest(normalized);
+    const deleteAliasReq = this.isRoomDeletionIntent(normalized) ? null : this.aliasManagementService.extractAliasDeleteRequest(normalized);
     if (deleteAliasReq) return await this.aliasManagementService.handleAliasDeleteRequest(userId, deleteAliasReq, language, memory);
     if (this.aliasManagementService.isAliasCreation(normalized)) return await this.aliasManagementService.handleAliasCreation(normalized, userId, language);
 
@@ -466,7 +466,7 @@ export class AssistantConversationService {
     // --- DETERMINISTIC GENERAL ROUTES ---
     if (this.isHomeSummaryQuery(normalized)) return await this.handleHomeSummary(language, userId);
     if (this.isDraftCreation(normalized)) return await this.handleDraftCreation(normalized, language, userId, prompt);
-    if (this.isRoomCreationIntent(normalized)) return await this.handleManagementIntent(normalized, userId, language, prompt);
+    if (this.isRoomCreationIntent(normalized) || this.isRoomRenameIntent(normalized) || this.isRoomDeletionIntent(normalized)) return await this.handleManagementIntent(normalized, userId, language, prompt);
     if (this.isRoomCreationFollowUp(normalized, memory)) return await this.handleManagementIntent('agregar una estancia', userId, language);
     if (this.isRoomQuery(normalized)) return await this.handleRoomQuery(language, userId);
     if (this.isAttentionQuery(normalized)) return await this.handleAttentionQuery(language, userId);
@@ -497,7 +497,7 @@ export class AssistantConversationService {
     const resolvedNormalized = normalizeAssistantPrompt(activePrompt);
     if (this.isEquivalenceQuery(resolvedNormalized)) return this.handleEquivalenceQuery(language);
     if (this.isDraftCreation(resolvedNormalized)) return await this.handleDraftCreation(resolvedNormalized, language, userId, activePrompt);
-    if (this.isRoomCreationIntent(resolvedNormalized)) return await this.handleManagementIntent(resolvedNormalized, userId, language, activePrompt);
+    if (this.isRoomCreationIntent(resolvedNormalized) || this.isRoomRenameIntent(resolvedNormalized) || this.isRoomDeletionIntent(resolvedNormalized)) return await this.handleManagementIntent(resolvedNormalized, userId, language, activePrompt);
     if (this.isRoomQuery(resolvedNormalized)) return await this.handleRoomQuery(language, userId);
     if (this.isSensorReadingQuery(resolvedNormalized)) return await this.handleSensorReadingQuery(resolvedNormalized, language, userId);
     if (this.isPointStateQuery(resolvedNormalized)) return await this.handlePointStateQuery(resolvedNormalized, language, userId);
@@ -1334,6 +1334,34 @@ export class AssistantConversationService {
     return ['nueva', 'otra'].includes(normalizeAssistantPrompt(name)) ? null : name;
   }
 
+  private isRoomRenameIntent(normalized: string): boolean {
+    return /(?:^|\s)(?:renombra|rename|cambia el nombre de|cambia de nombre|change name of)(?:\s|$)/.test(normalized) &&
+      /(?:^|\s)(?:estancia|habitacion|cuarto|espacio|zona|room)(?:\s|$)/.test(normalized);
+  }
+
+  private isRoomDeletionIntent(normalized: string): boolean {
+    return /(?:^|\s)(?:elimina|eliminar|borra|borrar|quita|quitar|delete|remove)(?:\s|$)/.test(normalized) &&
+      /(?:^|\s)(?:estancia|habitacion|cuarto|espacio|zona|room)(?:\s|$)/.test(normalized);
+  }
+
+  private extractRoomRenameRequest(prompt: string): { currentName: string; newName: string } | null {
+    const match = prompt.match(/(?:renombra|cambia el nombre de)\s+(?:(?:la|el)\s+)?(?:estancia|habitación|habitacion|cuarto|espacio|zona)\s+(.+?)\s+(?:a|por)\s+(.+)$/i) ??
+      prompt.match(/(?:rename|change name of)\s+(?:the\s+)?(?:room|area|space|zone)\s+(.+?)\s+to\s+(.+)$/i);
+    if (!match) return null;
+
+    const currentName = match[1].trim().replace(/[.?!]+$/, '').trim();
+    const newName = match[2].trim().replace(/[.?!]+$/, '').trim();
+    return currentName && newName ? { currentName, newName } : null;
+  }
+
+  private extractRoomDeletionName(prompt: string): string | null {
+    const match = prompt.match(/(?:elimina|eliminar|borra|borrar|quita|quitar)\s+(?:(?:la|el)\s+)?(?:estancia|habitación|habitacion|cuarto|espacio|zona)\s+(.+)$/i) ??
+      prompt.match(/(?:delete|remove)\s+(?:the\s+)?(?:room|area|space|zone)\s+(.+)$/i);
+    if (!match) return null;
+
+    const name = match[1].trim().replace(/[.?!]+$/, '').trim();
+    return name || null;
+  }
   private async handleRoomQuery(language: string, userId: string): Promise<AssistantConversationResponse> {
     const rooms = await this.permissionGate.getAuthorizedRooms(userId);
     if (rooms.length === 0) {
@@ -3220,6 +3248,87 @@ export class AssistantConversationService {
   }
 
   private async handleManagementIntent(normalized: string, userId: string, language: string, originalPrompt: string = normalized): Promise<AssistantConversationResponse> {
+    if (this.isRoomRenameIntent(normalized)) {
+      const roomRename = this.extractRoomRenameRequest(originalPrompt);
+      if (!roomRename) {
+        return { type: 'answer', message: getAssistantResponseText('management.room_rename_details_required', language, {}) };
+      }
+      const rooms = await this.permissionGate.getAuthorizedRooms(userId);
+      const room = rooms.find((candidate) => normalizeAssistantPrompt(candidate.name) === normalizeAssistantPrompt(roomRename.currentName));
+      if (!room) {
+        return { type: 'answer', message: getAssistantResponseText('management.room_not_found', language, { name: roomRename.currentName }) };
+      }
+      if (rooms.some((candidate) => candidate.id !== room.id && normalizeAssistantPrompt(candidate.name) === normalizeAssistantPrompt(roomRename.newName))) {
+        return { type: 'answer', message: getAssistantResponseText('management.room_already_exists', language, { name: roomRename.newName }) };
+      }
+
+      await this.memoryService.saveShortTermMemory(userId, {
+        lastQueryType: 'management_confirm',
+        entities: [],
+        timestamp: new Date().toISOString(),
+        pendingManagementAction: {
+          type: 'rename_room',
+          targetId: room.id,
+          targetName: room.name,
+          payload: { name: roomRename.newName },
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      return {
+        type: 'clarification',
+        message: getAssistantResponseText('management.rename_room_confirmation', language, roomRename),
+        clarification: {
+          question: getAssistantResponseText('confirmation.confirm', language, {}),
+          options: [
+            { id: 'confirm', label: getAssistantResponseText('confirmation.yes', language, {}), kind: 'room' },
+            { id: 'cancel', label: getAssistantResponseText('confirmation.no', language, {}), kind: 'room' }
+          ],
+          pendingAction: { originalPrompt: normalized }
+        }
+      };
+    }
+
+    if (this.isRoomDeletionIntent(normalized)) {
+      const roomDeletionName = this.extractRoomDeletionName(originalPrompt);
+      if (!roomDeletionName) {
+        return { type: 'answer', message: getAssistantResponseText('management.room_deletion_name_required', language, {}) };
+      }
+      const rooms = await this.permissionGate.getAuthorizedRooms(userId);
+      const room = rooms.find((candidate) => normalizeAssistantPrompt(candidate.name) === normalizeAssistantPrompt(roomDeletionName));
+      if (!room) {
+        return { type: 'answer', message: getAssistantResponseText('management.room_not_found', language, { name: roomDeletionName }) };
+      }
+      const devices = await this.permissionGate.getAuthorizedDevices(userId);
+      const unassignedDevices = devices.filter((device) => device.roomId === room.id).length;
+
+      await this.memoryService.saveShortTermMemory(userId, {
+        lastQueryType: 'management_confirm',
+        entities: [],
+        timestamp: new Date().toISOString(),
+        pendingManagementAction: {
+          type: 'delete_room',
+          targetId: room.id,
+          targetName: room.name,
+          payload: {},
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      return {
+        type: 'clarification',
+        message: getAssistantResponseText('management.delete_room_confirmation', language, { name: room.name, unassignedDevices }),
+        clarification: {
+          question: getAssistantResponseText('confirmation.confirm', language, {}),
+          options: [
+            { id: 'confirm', label: getAssistantResponseText('confirmation.yes', language, {}), kind: 'room' },
+            { id: 'cancel', label: getAssistantResponseText('confirmation.no', language, {}), kind: 'room' }
+          ],
+          pendingAction: { originalPrompt: normalized }
+        }
+      };
+    }
+
     if (this.isRoomCreationIntent(normalized)) {
       const name = this.extractRoomCreationName(originalPrompt);
       if (!name) {
@@ -3259,7 +3368,7 @@ export class AssistantConversationService {
       };
     }
     // 1. Rename Scene
-    const renameSceneMatch = normalized.match(/(?:renombra|rename|cambia el nombre de|change name of) (?:la escena|the scene)? (.+) (?:a|to) (.+)/i);
+    const renameSceneMatch = normalized.match(/(?:renombra|rename|cambia el nombre de|cambia de nombre|change name of) (?:la escena|the scene)? (.+) (?:a|to) (.+)/i);
     if (renameSceneMatch) {
       const oldName = renameSceneMatch[1].trim();
       const newName = renameSceneMatch[2].trim();
@@ -3451,6 +3560,57 @@ export class AssistantConversationService {
         await this.clearPendingAction(userId);
         return { type: 'answer', message: getAssistantResponseText('management.room_created', language, { name: room.name }) };
       }
+      if (type === 'rename_room') {
+        const name = typeof payload['name'] === 'string' ? payload['name'] : undefined;
+        if (!name) throw new Error('INVALID_PAYLOAD: name is required');
+        if (!this.roomManagementService) {
+          return { type: 'error', message: getAssistantResponseText('management.execution_failed', language, {}) };
+        }
+
+        const rooms = await this.permissionGate.getAuthorizedRooms(userId);
+        const room = rooms.find((candidate) => candidate.id === targetId);
+        if (!room) {
+          await this.clearPendingAction(userId);
+          return { type: 'answer', message: getAssistantResponseText('management.room_not_found', language, { name: action.targetName }) };
+        }
+        if (rooms.some((candidate) => candidate.id !== room.id && normalizeAssistantPrompt(candidate.name) === normalizeAssistantPrompt(name))) {
+          await this.clearPendingAction(userId);
+          return { type: 'answer', message: getAssistantResponseText('management.room_already_exists', language, { name }) };
+        }
+
+        const renamedRoom = await this.roomManagementService.renameRoom({
+          userId,
+          roomId: room.id,
+          name,
+          correlationId: `assistant:room-rename:${Date.now()}`
+        });
+        await this.clearPendingAction(userId);
+        return { type: 'answer', message: getAssistantResponseText('management.room_renamed', language, { name: renamedRoom.name }) };
+      }
+
+      if (type === 'delete_room') {
+        if (!this.roomManagementService) {
+          return { type: 'error', message: getAssistantResponseText('management.execution_failed', language, {}) };
+        }
+
+        const rooms = await this.permissionGate.getAuthorizedRooms(userId);
+        const room = rooms.find((candidate) => candidate.id === targetId);
+        if (!room) {
+          await this.clearPendingAction(userId);
+          return { type: 'answer', message: getAssistantResponseText('management.room_not_found', language, { name: action.targetName }) };
+        }
+
+        const deleted = await this.roomManagementService.deleteRoom({ userId, roomId: room.id });
+        await this.clearPendingAction(userId);
+        return {
+          type: 'answer',
+          message: getAssistantResponseText('management.room_deleted', language, {
+            name: deleted.room.name,
+            unassignedDevices: deleted.unassignedDevices
+          })
+        };
+      }
+
       if (type === 'rename_scene') {
         const newName = typeof payload['newName'] === 'string' ? payload['newName'] : undefined;
         if (!newName) throw new Error('INVALID_PAYLOAD: newName is required');

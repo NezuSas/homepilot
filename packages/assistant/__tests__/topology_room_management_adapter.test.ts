@@ -34,6 +34,50 @@ describe('TopologyRoomManagementAdapter', () => {
     expect(eventPublisher.getEvents()).toEqual([expect.objectContaining({ eventType: 'RoomCreatedEvent' })]);
   });
 
+  it('renames and deletes a room through the authorized Topology use cases', async () => {
+    const homeRepository = new InMemoryHomeRepository();
+    const roomRepository = new InMemoryRoomRepository();
+    const eventPublisher = new InMemoryEventPublisher();
+    await homeRepository.saveHome({
+      id: 'home-1',
+      ownerId: 'owner-1',
+      name: 'Home',
+      entityVersion: 1,
+      createdAt: '',
+      updatedAt: ''
+    });
+    await roomRepository.saveRoom({
+      id: 'room-1',
+      homeId: 'home-1',
+      name: 'Biblioteca',
+      entityVersion: 1,
+      createdAt: '',
+      updatedAt: ''
+    });
+    const adapter = new TopologyRoomManagementAdapter({
+      homeRepository,
+      roomRepository,
+      eventPublisher,
+      idGenerator: { generate: () => 'unused' },
+      clock: { now: () => '2026-08-20T23:00:00.000Z' }
+    });
+
+    const renamed = await adapter.renameRoom({
+      userId: 'owner-1',
+      roomId: 'room-1',
+      name: 'Estudio',
+      correlationId: 'assistant:room-rename:test'
+    });
+    const deleted = await adapter.deleteRoom({ userId: 'owner-1', roomId: 'room-1' });
+
+    expect(renamed).toEqual(expect.objectContaining({ id: 'room-1', name: 'Estudio' }));
+    expect(deleted).toEqual(expect.objectContaining({ room: expect.objectContaining({ id: 'room-1', name: 'Estudio' }), unassignedDevices: 0 }));
+    await expect(roomRepository.findRoomById('room-1')).resolves.toBeNull();
+    expect(eventPublisher.getEvents()).toEqual(expect.arrayContaining([
+      expect.objectContaining({ eventType: 'RoomRenamedEvent' })
+    ]));
+  });
+
   it('fails closed when the caller has no authorized home', async () => {
     const adapter = new TopologyRoomManagementAdapter({
       homeRepository: new InMemoryHomeRepository(),
