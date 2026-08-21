@@ -318,7 +318,6 @@ remove_unused_ollama_image() {
 
 deploy_homepilot() {
   section "Despliegue HomePilot"
-  enable_gpu_voice_profile
   info "Compose: ${compose_files[*]}"
   info "Perfil: ${profile}"
   info "COMPOSE_BAKE=false evita que Compose use bake si no hace falta."
