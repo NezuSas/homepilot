@@ -603,7 +603,7 @@ function CardPreview({
     return (
       <div
         className={cn(
-          "relative flex h-full min-h-0 w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-section border p-2 text-center text-foreground transition-all",
+          "relative flex h-full min-h-0 w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-section border p-1.5 text-center text-foreground transition-all",
           isActive
             ? isLightKind
               ? "border-light-active/45 bg-light-active/14 shadow-surface-card"
@@ -612,10 +612,10 @@ function CardPreview({
         )}
       >
         <Icon className={cn(
-          "h-7 w-7 shrink-0 transition-colors",
+          "h-5 w-5 shrink-0 transition-colors",
           isActive ? (isLightKind ? "text-light-active" : "text-primary") : "text-muted-foreground"
         )} />
-        <span className="line-clamp-2 min-w-0 text-micro font-bold leading-tight text-foreground">{title}</span>
+        <span className="line-clamp-2 min-w-0 text-nano font-bold leading-tight text-foreground">{title}</span>
       </div>
     );
   }
@@ -667,7 +667,7 @@ const MASONRY_ROW_GAP_PX = 12;
 // different measured heights, so visually identical tiles end up a few
 // pixels apart in height — the "collapsed/uneven tile" look. All compact
 // tiles in a section now stay perfectly uniform.
-const COMPACT_TILE_ROW_SPAN = Math.ceil((96 + MASONRY_ROW_GAP_PX) / (MASONRY_ROW_UNIT_PX + MASONRY_ROW_GAP_PX));
+const COMPACT_TILE_ROW_SPAN = Math.ceil((72 + MASONRY_ROW_GAP_PX) / (MASONRY_ROW_UNIT_PX + MASONRY_ROW_GAP_PX));
 
 function useMasonryRowSpans() {
   const [rowSpans, setRowSpans] = useState<Record<string, number>>({});
@@ -856,7 +856,7 @@ function SectionCardItem({
       onClick={isCover || normalizedKind === 'action' ? undefined : (event) => { void handleCardAction(card, event); }}
       className={cn(
         "group/card relative overflow-hidden rounded-section shadow-sm transition-all",
-        span === 'small' && (normalizedKind === 'device' || normalizedKind === 'light' ? "aspect-[4/3] min-h-device-card-compact" : "min-h-section-card-sm"),
+        span === 'small' && (normalizedKind === 'device' || normalizedKind === 'light' ? "min-h-device-card-compact" : "min-h-section-card-sm"),
         span === 'medium' && "min-h-section-card-md",
         span === 'full' && "min-h-section-card-lg",
         isCamera && "min-h-curtain-card",
@@ -957,7 +957,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   // small tiles stay a similar physical width either way instead of
   // stretching thin across a wide section.
   const sectionSpan = config.layout.span ?? 1;
-  const innerColumns = sectionSpan >= 2 ? 4 : 2;
+  const innerColumns = sectionSpan >= 2 ? 8 : 4;
 
   const catalogLabel = (kind: SectionCardKind) => t(getCatalogLabelKey(kind));
 
