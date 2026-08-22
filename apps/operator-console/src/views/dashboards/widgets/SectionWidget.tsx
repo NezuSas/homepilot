@@ -442,7 +442,7 @@ function CardPreview({
     const unavailable = !isAssigned || !onAction || Boolean(isPreview);
 
     return (
-      <button
+      <Button
         type="button"
         onClick={(event) => {
           event.stopPropagation();
@@ -452,6 +452,7 @@ function CardPreview({
         aria-busy={actionFeedback === 'pending' || undefined}
         aria-label={t('dashboard.editor.sections.action_button_aria', { name: title })}
         title={unavailable ? t('dashboard.editor.sections.action_button_unavailable') : undefined}
+        variant="ghost"
         className={cn(
           'dashboard-action-button relative flex h-full min-h-0 w-full flex-col justify-between overflow-hidden rounded-section border p-3 text-left transition-[background-color,border-color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-default disabled:opacity-65 sm:p-4',
           `dashboard-action-button--${actionFeedback}`,
@@ -477,7 +478,7 @@ function CardPreview({
             {subtitle || t('dashboard.editor.sections.action_button_description')}
           </span>
         </div>
-      </button>
+      </Button>
     );
   }
   if (normalized === 'energy') {
@@ -676,40 +677,36 @@ function useMasonryRowSpans() {
   const [rowSpans, setRowSpans] = useState<Record<string, number>>({});
   const observerRef = useRef<ResizeObserver | null>(null);
 
-  // Created eagerly (not inside an effect) so it already exists when the
-  // cards' ref callbacks fire during the same commit — effects run after
-  // ref callbacks, which would otherwise miss every card mounted up front.
-  if (observerRef.current === null && typeof ResizeObserver !== 'undefined') {
-    observerRef.current = new ResizeObserver((entries) => {
-      setRowSpans((previous) => {
-        let changed = false;
-        const next = { ...previous };
-
-        for (const entry of entries) {
-          const cardId = (entry.target as HTMLElement).dataset.cardId;
-          if (!cardId) continue;
-
-          const height = entry.contentRect.height;
-          const span = Math.max(1, Math.ceil((height + MASONRY_ROW_GAP_PX) / (MASONRY_ROW_UNIT_PX + MASONRY_ROW_GAP_PX)));
-          if (next[cardId] !== span) {
-            next[cardId] = span;
-            changed = true;
-          }
-        }
-
-        return changed ? next : previous;
-      });
-    });
-  }
-
   useEffect(() => () => observerRef.current?.disconnect(), []);
 
   const registerCard = useCallback((cardId: string, element: HTMLElement | null) => {
-    const observer = observerRef.current;
-    if (!observer || !element) return;
+    if (!element || typeof ResizeObserver === 'undefined') return;
+
+    if (observerRef.current === null) {
+      observerRef.current = new ResizeObserver((entries) => {
+        setRowSpans((previous) => {
+          let changed = false;
+          const next = { ...previous };
+
+          for (const entry of entries) {
+            const observedCardId = (entry.target as HTMLElement).dataset.cardId;
+            if (!observedCardId) continue;
+
+            const height = entry.contentRect.height;
+            const span = Math.max(1, Math.ceil((height + MASONRY_ROW_GAP_PX) / (MASONRY_ROW_UNIT_PX + MASONRY_ROW_GAP_PX)));
+            if (next[observedCardId] !== span) {
+              next[observedCardId] = span;
+              changed = true;
+            }
+          }
+
+          return changed ? next : previous;
+        });
+      });
+    }
 
     element.dataset.cardId = cardId;
-    observer.observe(element);
+    observerRef.current.observe(element);
   }, []);
 
   return { rowSpans, registerCard };

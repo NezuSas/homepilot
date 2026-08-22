@@ -51,7 +51,6 @@ function readStoredMessages(storageKey: string | null): ChatMessage[] {
         && (value.role === 'user' || value.role === 'assistant')
         && typeof value.content === 'string'
         && typeof value.timestamp === 'string')
-      .map(({ options: _options, ...message }) => message)
       .slice(-MAX_PERSISTED_MESSAGES);
   } catch {
     return [];
@@ -179,7 +178,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
 
   useEffect(() => {
     if (!conversationStorageKey) return;
-    const safeMessages = messages.slice(-MAX_PERSISTED_MESSAGES).map(({ options: _options, ...message }) => message);
+    const safeMessages = messages.slice(-MAX_PERSISTED_MESSAGES);
     sessionStorage.setItem(conversationStorageKey, JSON.stringify(safeMessages));
   }, [conversationStorageKey, messages]);
 
@@ -695,6 +694,12 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
           aria-relevant="additions text"
           className="home-conversation-thread mx-auto flex w-full max-w-6xl flex-col gap-4 md:gap-5"
         >
+
+          {messages.length > 0 && (
+            <p className="home-conversation-thread-status text-xs font-medium text-muted-foreground">
+              {t('assistant.conversation.conversation_active')}
+            </p>
+          )}
 
           {messages.length === 0 && !isLoading && (
             <HomeConversationEmptyState

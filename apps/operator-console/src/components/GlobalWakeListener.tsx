@@ -483,7 +483,7 @@ export function GlobalWakeListener({ enabled, interruptOnly = false, onCommand, 
         const hadSpeech = speechDetectedRef.current;
         const audioBlob = new Blob(mediaChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
         mediaChunksRef.current = [];
-        handleRecordingComplete(audioBlob, hadSpeech, isCapturingCommandRef.current);
+        handleRecordingComplete(audioBlob, hadSpeech || isConfirmationCapture, isCapturingCommandRef.current);
       };
 
       recordingStartedAtRef.current = Date.now();

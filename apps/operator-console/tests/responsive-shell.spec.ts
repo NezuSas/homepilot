@@ -623,7 +623,7 @@ test('Feature: Conversational confirmation — Scenario: Given a protected actio
 
   await page.goto('/home-conversation');
 
-  await expect(page.getByText(/responde sí para continuar o no para cancelar/i)).toBeVisible();
+  await expect(page.getByText(/responde sí para continuar o no para cancelar|reply yes to continue or no to cancel/i)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Sí, adelante' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'No, cancelar' })).toHaveCount(0);
 });
@@ -745,7 +745,7 @@ test('Feature: Manual voice capture — Scenario: Given an accepted recording Wh
       onerror: (() => void) | null = null;
       onstop: (() => void) | null = null;
 
-      constructor(_stream: unknown, _options?: unknown) {}
+      constructor(...args: unknown[]) { void args; }
 
       start() {
         this.state = 'recording';
@@ -853,7 +853,7 @@ test('Feature: Global wake activation — Scenario: Given one accepted Ok Nezu c
       onerror: (() => void) | null = null;
       onstop: (() => void) | null = null;
 
-      constructor(_stream: unknown, _options?: unknown) {}
+      constructor(...args: unknown[]) { void args; }
 
       start() {
         this.state = 'recording';
@@ -981,7 +981,7 @@ test('Feature: Voice confirmation follow-up — Scenario: Given a pending confir
       onerror: (() => void) | null = null;
       onstop: (() => void) | null = null;
 
-      constructor(_stream: unknown, _options?: unknown) {}
+      constructor(...args: unknown[]) { void args; }
 
       start() {
         this.state = 'recording';

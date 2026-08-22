@@ -31,7 +31,7 @@ export const HomeConversationMessageBubble: React.FC<HomeConversationMessageBubb
   const isClarification = message.responseType === 'clarification';
   const userLabel = user?.displayName || user?.username || t('assistant.conversation.user_fallback');
   const hasConfirmationOptions = message.options?.some(option => option.id === 'confirm' || option.id === 'cancel') ?? false;
-  const requiresConfirmation = isClarification && /\b(confirm|confirma|confirmas|confirmacion)\b/i.test(message.content);
+  const requiresConfirmation = hasConfirmationOptions || (isClarification && /\b(confirm|confirma|confirmas|confirmacion)\b/i.test(message.content));
   const isSuccessfulExecution = message.execution?.status === 'success';
   const messageLines = message.content.split(/\r?\n/);
   const [showAllOptions, setShowAllOptions] = useState(false);

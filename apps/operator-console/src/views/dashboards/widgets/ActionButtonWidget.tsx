@@ -5,6 +5,7 @@ import { apiFetch } from '../../../lib/apiClient';
 import { canExecuteCommand } from '../../../lib/deviceCapabilities';
 import { cn } from '../../../lib/utils';
 import { API_BASE_URL } from '../../../config';
+import { Button } from '../../../components/ui/Button';
 import { useDeviceSnapshotStore, type SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig } from '../types';
 import { DormantWidgetPlaceholder } from '../components/DormantWidgetPlaceholder';
@@ -81,13 +82,14 @@ export function ActionButtonWidget({ config, isEditing, onConfigure }: {
   };
 
   return (
-    <button
+    <Button
       type="button"
       onClick={handlePress}
       disabled={isEditing || status === 'pending' || !canPress}
       aria-busy={status === 'pending' || undefined}
       aria-label={t('dashboards.widgets.action_button.aria', { name: title })}
       title={!canPress ? t('dashboards.widgets.action_button.unavailable') : undefined}
+      variant="ghost"
       className={cn(
         'dashboard-action-button relative flex h-full w-full min-h-0 min-w-0 flex-col justify-between overflow-hidden rounded-[inherit] border p-3 text-left transition-[background-color,border-color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-default disabled:opacity-65 @md:p-4',
         `dashboard-action-button--${status}`,
@@ -108,6 +110,6 @@ export function ActionButtonWidget({ config, isEditing, onConfigure }: {
           {t('dashboards.widgets.action_button.description')}
         </p>
       </div>
-    </button>
+    </Button>
   );
 }
