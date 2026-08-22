@@ -869,7 +869,17 @@ function SectionCardItem({
       }}
       onClick={isCover || normalizedKind === 'action' ? undefined : (event) => { void handleCardAction(card, event); }}
       className={cn(
-        "group/card relative min-w-0 overflow-hidden rounded-section shadow-sm transition-all",
+        // `grid` here isn't for a multi-cell layout — CardPreview is the
+        // only child. It's so that child fills this box automatically:
+        // this element's own height comes from min-height + grid-row
+        // placement (never an explicit height), and a CSS percentage
+        // height on the child (h-full) doesn't resolve against a parent
+        // whose own height is indefinite that way — a grid container's
+        // default stretch sizing does, regardless of *why* its own size
+        // was determined. Without this, the card's colored background
+        // (painted by CardPreview) could end up shorter than this outer
+        // box, leaving a transparent gap at the bottom.
+        "group/card relative grid min-w-0 overflow-hidden rounded-section shadow-sm transition-all",
         isTileKind
           ? "min-h-device-card-compact"
           : span === 'small' && "min-h-section-card-sm",

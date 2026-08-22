@@ -4,12 +4,14 @@ import type { DashboardWidget, DashboardWidgetConfig } from './types';
 import { generateId } from '../../utils/generateId';
 
 const DASHBOARD_MAX_SECTION_SPAN = 4;
-// Home Assistant Sections view lays out fixed-width (~340-360px) columns
-// that add up across the available width, instead of stretching a small
-// fixed column count. Reproduced here as a column basis + gap so wider
-// screens get more columns rather than a few very wide ones.
-const DASHBOARD_SECTION_COLUMN_BASIS_PX = 350;
-const DASHBOARD_SECTION_COLUMN_GAP_PX = 16;
+// Must match DashboardCanvas's own grid-template-columns
+// (repeat(auto-fill, minmax(20rem, 30rem))) exactly. This JS count decides
+// grid-column: span N for full-width items (the title bar, add-section
+// placeholder), and a mismatch forces the browser to create an extra
+// implicit column to satisfy that span — one that doesn't participate in
+// auto-fill's wrapping and pushes content off-screen instead.
+const DASHBOARD_SECTION_COLUMN_BASIS_PX = 320;
+const DASHBOARD_SECTION_COLUMN_GAP_PX = 24;
 const PORTRAIT_KIOSK_MIN_VIEWPORT_WIDTH = 1080;
 const PORTRAIT_KIOSK_MIN_VIEWPORT_HEIGHT = 1280;
 const PORTRAIT_KIOSK_MIN_ASPECT_RATIO = 1.3;

@@ -290,12 +290,17 @@ export function DashboardCanvas({
             : "border-transparent bg-transparent p-0"
         )}
         style={{
-          // auto-fit + minmax(min(100%, 460px), 1fr): a section never
-          // shrinks below its own min-content width (which would collapse
-          // it to a 1px sliver at the row's edge), grows to fill leftover
-          // row width via 1fr, and wraps cleanly to the next row instead
-          // of squeezing every section thinner to fit one more per row.
-          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 460px), 1fr))',
+          // auto-fill + minmax(20rem, 30rem): a section is never narrower
+          // than 320px (never collapses to a sliver) nor wider than 480px,
+          // and always wraps to the next row instead of being squeezed or
+          // overflowing when it doesn't fit. This basis (320px + the
+          // canvas gap) MUST match getDashboardSectionColumns' own basis
+          // in dashboardUtils.ts — that JS-computed count decides
+          // grid-column: span N for the title/add-section placeholders,
+          // and a mismatched count forces CSS to add an extra implicit
+          // column to satisfy that span, which doesn't participate in
+          // auto-fill's wrapping and overflows the viewport instead.
+          gridTemplateColumns: 'repeat(auto-fill, minmax(20rem, 30rem))',
           gridAutoRows: `${CANVAS_ROW_UNIT}px`,
           gridAutoFlow: 'row',
           alignItems: 'start',
