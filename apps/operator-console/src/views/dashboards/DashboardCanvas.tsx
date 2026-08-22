@@ -46,7 +46,7 @@ interface DashboardCanvasProps {
 const CANVAS_ROW_UNIT = 8;
 
 function getCanvasGap(columns: number): number {
-  return columns === 1 ? 10 : 20;
+  return columns === 1 ? 16 : 24;
 }
 
 /** Measures an element's rendered height and derives a grid row-span from it. */
@@ -90,7 +90,7 @@ function CanvasFlowItem({
     <div
       ref={(node) => { nodeRef.current = node; }}
       style={{ gridColumn: `span ${span}`, gridRow: `span ${rowSpan}`, ...style }}
-      className={className}
+      className={cn("min-w-0", className)}
     >
       {children}
     </div>
@@ -283,20 +283,19 @@ export function DashboardCanvas({
       <div
         ref={containerRef}
         className={cn(
-          "relative w-full grid transition-all duration-500",
+          "relative w-full grid min-w-0 overflow-x-hidden transition-all duration-500",
           isPortraitKiosk && "homepilot-portrait-kiosk-canvas",
           isEditing
             ? "min-h-[calc(100dvh-8rem)] border-2 border-dashed border-primary/10 bg-card/20 p-3 sm:p-4 bg-dashboard-grid bg-dashboard shadow-2xl shadow-primary/5"
             : "border-transparent bg-transparent p-0"
         )}
         style={{
-          // Fixed-width columns (20-31.25rem / 320-500px, Home Assistant
-          // Sections style): sections never stretch past ~500px, and
-          // justify-content: start packs them against the left edge so
-          // padding stays minimal instead of centering a block and
-          // doubling the side margins.
-          gridTemplateColumns: 'repeat(auto-fit, minmax(20rem, 31.25rem))',
-          justifyContent: 'start',
+          // auto-fit + minmax(min(100%, 460px), 1fr): a section never
+          // shrinks below its own min-content width (which would collapse
+          // it to a 1px sliver at the row's edge), grows to fill leftover
+          // row width via 1fr, and wraps cleanly to the next row instead
+          // of squeezing every section thinner to fit one more per row.
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 460px), 1fr))',
           gridAutoRows: `${CANVAS_ROW_UNIT}px`,
           gridAutoFlow: 'row',
           alignItems: 'start',

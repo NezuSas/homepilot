@@ -863,7 +863,7 @@ function SectionCardItem({
       }}
       onClick={isCover || normalizedKind === 'action' ? undefined : (event) => { void handleCardAction(card, event); }}
       className={cn(
-        "group/card relative overflow-hidden rounded-section shadow-sm transition-all",
+        "group/card relative min-w-0 overflow-hidden rounded-section shadow-sm transition-all",
         isTileKind
           ? "min-h-device-card-compact"
           : span === 'small' && "min-h-section-card-sm",
@@ -1731,7 +1731,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
   const sectionGrid = (
     <div
       onClick={(event) => event.stopPropagation()}
-      className="grid min-h-0 flex-1 auto-rows-[minmax(20px,auto)] grid-flow-row-dense content-start items-start gap-3 overflow-visible pr-1"
+      className="grid min-h-0 min-w-0 flex-1 auto-rows-[minmax(20px,auto)] grid-flow-row-dense content-start items-start gap-3 overflow-visible pr-1"
       style={{ gridTemplateColumns: `repeat(${innerColumns}, minmax(0, 1fr))` }}
     >
       <DndContext sensors={cardDragSensors} onDragEnd={handleCardDragEnd}>
