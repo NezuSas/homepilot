@@ -29,7 +29,7 @@ import { CameraMediaFrame, type CameraFeedMode } from '../../../components/Camer
 import { CameraViewerModal } from '../../../components/CameraViewerModal';
 import { useDeviceSnapshotStore, type SnapshotDevice, type SnapshotRoom } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig } from '../types';
-import { cardKinds, catalogCategories, clockCardOptions, createId, getCatalogCategory, getCatalogDescriptionKey, getCatalogLabelKey, getClockKindLabelKey, getClockStyleForKind, getDefaultIcon, getDefaultSpan, getRecommendedSectionHeight, getSpanClass, getWidgetType, isBindableKind, isClockKind, normalizeCards, normalizeKind, type AssignableAutomation, type AssignableScene, type CardDraft, type NormalizedSectionCardItem, type NormalizedSectionCardKind, type SectionCardCategory, type SectionCardIcon, type SectionCardKind, type SectionCardSpan } from './sectionCardCatalog';
+import { cardKinds, catalogCategories, clockCardOptions, createId, getCatalogCategory, getCatalogDescriptionKey, getCatalogLabelKey, getClockKindLabelKey, getClockStyleForKind, getDefaultIcon, getDefaultSpan, getRecommendedSectionHeight, getSpanClass, getWidgetType, isBindableKind, isClockKind, MAX_MANUAL_ROW_SPAN, normalizeCards, normalizeKind, type AssignableAutomation, type AssignableScene, type CardDraft, type NormalizedSectionCardItem, type NormalizedSectionCardKind, type SectionCardCategory, type SectionCardIcon, type SectionCardKind, type SectionCardSpan } from './sectionCardCatalog';
 import { getAssignableDevicesForSectionCard, isDeviceActive } from '../dashboardUtils';
 import { canExecuteCommand } from '../../../lib/deviceCapabilities';
 import { IconPicker, getDashboardIconComponent, needsMdiCatalog, useMdiCatalogLoaded } from '../components/IconPicker';
@@ -847,7 +847,9 @@ function SectionCardItem({
       }}
       style={{
         containerType: 'inline-size',
-        gridRow: `span ${isCompactDeviceCard ? COMPACT_TILE_ROW_SPAN : rowSpan}`,
+        // card.rowSpan is a human-scale unit (1 = one compact-tile height);
+        // convert to the grid's fine-grained 20px row tracks.
+        gridRow: `span ${card.rowSpan ? card.rowSpan * COMPACT_TILE_ROW_SPAN : (isCompactDeviceCard ? COMPACT_TILE_ROW_SPAN : rowSpan)}`,
         transform: CSS.Translate.toString(transform),
         transition: transition ?? undefined,
       }}
@@ -971,7 +973,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
-  const [cardDraft, setCardDraft] = useState<CardDraft>({ title: '', kind: 'device', entityId: '', span: 'small', icon: 'lightbulb' });
+  const [cardDraft, setCardDraft] = useState<CardDraft>({ title: '', kind: 'device', entityId: '', span: 'small', rowSpan: 0, icon: 'lightbulb' });
   const [scenes, setScenes] = useState<AssignableScene[]>([]);
   const [automations, setAutomations] = useState<AssignableAutomation[]>([]);
 
@@ -1117,6 +1119,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       kind: nextCard.kind,
       entityId: '',
       span: nextCard.span ?? getDefaultSpan(nextCard.kind),
+      rowSpan: nextCard.rowSpan ?? 0,
       icon: nextIcon,
     });
   };
@@ -1129,6 +1132,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       kind: card.kind,
       entityId: card.entityId || '',
       span: card.span ?? getDefaultSpan(card.kind),
+      rowSpan: card.rowSpan ?? 0,
       icon: nextIcon,
     });
   };
@@ -1147,6 +1151,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         entityId: cardDraft.entityId || undefined,
         entityName: selectedScene?.name || selectedAutomation?.name || selectedRoom?.name || selectedDevice?.name,
         span: isClockKind(cardDraft.kind) ? 'full' : cardDraft.span,
+        rowSpan: isClockKind(cardDraft.kind) || cardDraft.rowSpan < 1 ? undefined : cardDraft.rowSpan,
         icon: cardDraft.icon,
       };
     });
@@ -1582,6 +1587,22 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                 span: isClockKind(draft.kind) ? 'full' : value as SectionCardSpan,
               }))}
             />
+
+            {!isClockKind(cardDraft.kind) ? (
+              <SearchableSelectField
+                label={t('dashboard.editor.sections.card_height')}
+                value={String(cardDraft.rowSpan)}
+                placement="down"
+                options={[
+                  { value: '0', label: t('dashboard.editor.sections.card_height_auto') },
+                  ...Array.from({ length: MAX_MANUAL_ROW_SPAN }, (_, index) => index + 1).map((rows) => ({
+                    value: String(rows),
+                    label: t('dashboard.editor.sections.card_height_rows', { count: rows }),
+                  })),
+                ]}
+                onChange={(value) => setCardDraft((draft) => ({ ...draft, rowSpan: Number(value) }))}
+              />
+            ) : null}
 
             {(cardDraft.kind === 'light' || cardDraft.kind === 'device' || cardDraft.kind === 'cover') ? (
               <IconPicker

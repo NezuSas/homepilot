@@ -3,7 +3,7 @@ import { canExecuteCommand } from '../../lib/deviceCapabilities';
 import type { DashboardWidget, DashboardWidgetConfig } from './types';
 import { generateId } from '../../utils/generateId';
 
-const DASHBOARD_MAX_SECTION_SPAN = 3;
+const DASHBOARD_MAX_SECTION_SPAN = 4;
 // Home Assistant Sections view lays out fixed-width (~340-360px) columns
 // that add up across the available width, instead of stretching a small
 // fixed column count. Reproduced here as a column basis + gap so wider

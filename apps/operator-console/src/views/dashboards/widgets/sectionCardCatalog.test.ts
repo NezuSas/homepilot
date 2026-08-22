@@ -14,6 +14,7 @@ import {
   getWidgetType,
   isBindableKind,
   isClockKind,
+  MAX_MANUAL_ROW_SPAN,
   normalizeCards,
   normalizeKind,
 } from './sectionCardCatalog';
@@ -31,6 +32,22 @@ describe('section card catalog contracts', () => {
     expect(cards).toHaveLength(2);
     expect(cards[0]).toEqual(expect.objectContaining({ id: 'legacy-clock', kind: 'clock_digital', span: 'full', widgetType: 'clock_display', icon: 'Clock' }));
     expect(cards[1]).toEqual(expect.objectContaining({ kind: 'camera', entityId: 'camera.gate', span: 'full', widgetType: 'device_control', icon: 'Camera' }));
+  });
+
+  it('clamps a manual card rowSpan to 1..MAX_MANUAL_ROW_SPAN and ignores it for clock cards', () => {
+    const cards = normalizeCards({
+      cards: [
+        { kind: 'sensor', rowSpan: 999 },
+        { kind: 'sensor', rowSpan: 0 },
+        { kind: 'sensor' },
+        { kind: 'clock_digital', rowSpan: 3 },
+      ],
+    });
+
+    expect(cards[0].rowSpan).toBe(MAX_MANUAL_ROW_SPAN);
+    expect(cards[1].rowSpan).toBeUndefined();
+    expect(cards[2].rowSpan).toBeUndefined();
+    expect(cards[3].rowSpan).toBeUndefined();
   });
 
   it('maps every supported card kind to its visual catalog, binding, and layout contracts', () => {

@@ -33,6 +33,10 @@ export interface SectionCardItem {
   entityId?: string;
   entityName?: string;
   span?: SectionCardSpan;
+  /** Manual grid-row height override (1..MAX_MANUAL_ROW_SPAN). Undefined means
+   * "auto" — measured from the card's own rendered content, Home Assistant
+   * masonry style. */
+  rowSpan?: number;
   icon?: SectionCardIcon;
 }
 
@@ -40,11 +44,15 @@ export interface NormalizedSectionCardItem extends Omit<SectionCardItem, 'kind'>
   kind: NormalizedSectionCardKind;
 }
 
+export const MAX_MANUAL_ROW_SPAN = 6;
+
 export interface CardDraft {
   title: string;
   kind: NormalizedSectionCardKind;
   entityId: string;
   span: SectionCardSpan;
+  /** 0 means "auto" (measured height); 1..MAX_MANUAL_ROW_SPAN is a manual override. */
+  rowSpan: number;
   icon: SectionCardIcon;
 }
 
@@ -303,6 +311,9 @@ export function normalizeCards(extra?: DashboardWidgetConfig['extra']): Normaliz
         : card.span === 'medium' || card.span === 'full' || card.span === 'small'
           ? card.span
           : getDefaultSpan(kind),
+      rowSpan: isClockKind(kind) || typeof card.rowSpan !== 'number' || card.rowSpan < 1
+        ? undefined
+        : Math.min(MAX_MANUAL_ROW_SPAN, Math.round(card.rowSpan)),
       icon: typeof card.icon === 'string' && card.icon.trim() ? card.icon : getDefaultIcon(kind),
       order: typeof card.order === 'number' ? card.order : index,
     }];

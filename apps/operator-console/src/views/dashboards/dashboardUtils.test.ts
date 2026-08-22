@@ -115,7 +115,7 @@ describe('sanitizeWidgetConfig', () => {
   });
 
   it('clamps a persisted span to the 1..3 column range', () => {
-    expect(sanitizeWidgetConfig({ layout: { x: 0, y: 0, w: 4, h: 2, span: 9 } }).layout.span).toBe(3);
+    expect(sanitizeWidgetConfig({ layout: { x: 0, y: 0, w: 4, h: 2, span: 9 } }).layout.span).toBe(4);
     expect(sanitizeWidgetConfig({ layout: { x: 0, y: 0, w: 4, h: 2, span: 0 } }).layout.span).toBe(1);
     expect(sanitizeWidgetConfig({ layout: { x: 0, y: 0, w: 4, h: 2 } }).layout.span).toBeUndefined();
   });
