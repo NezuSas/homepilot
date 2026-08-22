@@ -1529,6 +1529,9 @@
         "units_one": "1 Equipo",
         "units_other": "{{count}} Equipos",
         "turn_off_all": "Apagar Todo",
+        "confirm_turn_off_all_title": "¿Apagar todo en {{room}}?",
+        "confirm_turn_off_all_description_one": "Se apagará 1 dispositivo activo en esta habitación.",
+        "confirm_turn_off_all_description_other": "Se apagarán {{count}} dispositivos activos en esta habitación.",
         "placeholder": "Vincúlalo a una habitación para controlar todo el espacio."
       },
       "selected_device": {
@@ -1558,7 +1561,17 @@
       },
       "activity_feed": {
         "label": "Actividad",
-        "placeholder": "No hay eventos registrados en el sistema en este momento."
+        "placeholder": "No hay eventos registrados en el sistema en este momento.",
+        "events": {
+          "COMMAND_DISPATCHED": "Comando enviado",
+          "COMMAND_FAILED": "Comando fallido",
+          "AUTOMATION_EXECUTED": "Automatización ejecutada",
+          "AUTOMATION_FAILED": "Automatización fallida",
+          "RECONCILIATION_DONE": "Sincronización completada",
+          "WS_CONNECTED": "Conexión restablecida",
+          "AUTH_FAILED": "Autenticación fallida",
+          "HA_RESILIENCE": "Evento de Home Assistant"
+        }
       },
       "system_status": {
         "label": "Sistema",

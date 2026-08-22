@@ -1529,6 +1529,9 @@
         "units_one": "1 Unit",
         "units_other": "{{count}} Units",
         "turn_off_all": "Turn Off All",
+        "confirm_turn_off_all_title": "Turn off everything in {{room}}?",
+        "confirm_turn_off_all_description_one": "This will turn off 1 active device in this room.",
+        "confirm_turn_off_all_description_other": "This will turn off {{count}} active devices in this room.",
         "placeholder": "Link it to a room to control the entire space."
       },
       "selected_device": {
@@ -1558,7 +1561,17 @@
       },
       "activity_feed": {
         "label": "Activity",
-        "placeholder": "No events recorded in the system at this time."
+        "placeholder": "No events recorded in the system at this time.",
+        "events": {
+          "COMMAND_DISPATCHED": "Command dispatched",
+          "COMMAND_FAILED": "Command failed",
+          "AUTOMATION_EXECUTED": "Automation executed",
+          "AUTOMATION_FAILED": "Automation failed",
+          "RECONCILIATION_DONE": "Sync completed",
+          "WS_CONNECTED": "Connection restored",
+          "AUTH_FAILED": "Authentication failed",
+          "HA_RESILIENCE": "Home Assistant event"
+        }
       },
       "system_status": {
         "label": "System",

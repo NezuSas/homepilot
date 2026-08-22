@@ -9,6 +9,7 @@ import { API_BASE_URL } from '../../../config';
 import { isDeviceActive, getDevicesInRoom } from '../dashboardUtils';
 import { DormantWidgetPlaceholder } from '../components/DormantWidgetPlaceholder';
 import { Button } from '../../../components/ui/Button';
+import ConfirmModal from '../../../components/ConfirmModal';
 
 const API = `${API_BASE_URL}/api/v1`;
 
@@ -19,6 +20,7 @@ export function RoomWidget({ config, isEditing, onConfigure }: { config: Dashboa
   const roomId = config.binding.entityId;
   const room = rooms.find(r => r.id === roomId);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const roomDevices = useMemo(() => getDevicesInRoom(devices, roomId), [devices, roomId]);
   const activeDevices = useMemo(() => roomDevices.filter(isDeviceActive), [roomDevices]);
@@ -41,12 +43,16 @@ export function RoomWidget({ config, isEditing, onConfigure }: { config: Dashboa
     );
   }
 
-  const handleToggleAll = async (e: React.MouseEvent) => {
+  const requestToggleAll = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onCount === 0) return;
+    setIsConfirmOpen(true);
+  };
+
+  const handleToggleAll = async () => {
     setIsProcessing(true);
     try {
-      await Promise.all(activeDevices.map(d => 
+      await Promise.all(activeDevices.map(d =>
         apiFetch(`${API}/devices/${d.id}/command`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -57,6 +63,7 @@ export function RoomWidget({ config, isEditing, onConfigure }: { config: Dashboa
       console.error('Failed to toggle room devices:', err);
     } finally {
       setIsProcessing(false);
+      setIsConfirmOpen(false);
     }
   };
 
@@ -83,16 +90,13 @@ export function RoomWidget({ config, isEditing, onConfigure }: { config: Dashboa
         <div>
           <h4 className="text-body-lg @md:text-panel-title font-black tracking-tight text-foreground truncate">{config.appearance.title || room.name}</h4>
           <div className="flex items-center gap-2 mt-1">
-             <span className={cn(
-               "text-micro font-black uppercase tracking-widest",
-               onCount > 0 ? "text-primary" : "text-muted-foreground/40"
-             )}>
-               {onCount > 0 
-                 ? t('dashboards.widgets.room_summary.active_count', { count: onCount }) 
+             <span className={onCount > 0 ? "hp-type-label-accent" : "hp-type-label"}>
+               {onCount > 0
+                 ? t('dashboards.widgets.room_summary.active_count', { count: onCount })
                  : t('dashboards.widgets.room_summary.all_off')}
              </span>
              <div className="h-1 w-1 rounded-full bg-border" />
-             <span className="text-micro font-bold text-muted-foreground/30 uppercase tracking-tight">
+             <span className="hp-type-label text-muted-foreground/50">
                {t('dashboards.widgets.room_summary.units', { count: roomDevices.length })}
              </span>
           </div>
@@ -102,7 +106,7 @@ export function RoomWidget({ config, isEditing, onConfigure }: { config: Dashboa
           <div className="flex flex-wrap gap-2">
              {activeTypes.map(type => (
                <div key={type} className="flex items-center gap-1.5 rounded-full border border-border/60 bg-background/85 px-3 py-1.5 shadow-sm backdrop-blur-md dark:bg-background/45">
-                  <span className="text-micro font-black uppercase tracking-tight text-muted-foreground/60">
+                  <span className="hp-type-label text-muted-foreground/70">
                     {t(`device_types.${type}`, { defaultValue: type })}
                   </span>
                </div>
@@ -113,15 +117,27 @@ export function RoomWidget({ config, isEditing, onConfigure }: { config: Dashboa
 
       {onCount > 0 && (
         <Button
-          onClick={handleToggleAll}
+          onClick={requestToggleAll}
           isLoading={isProcessing}
           variant="danger"
-          className="relative mt-6 w-full rounded-2xl border border-danger/20 bg-danger/5 py-3 text-micro font-black uppercase tracking-label text-danger hover:border-transparent hover:bg-danger hover:text-danger-foreground"
+          className="relative mt-6 w-full rounded-card border border-danger/20 bg-danger/5 py-3 text-micro font-black uppercase tracking-label text-danger hover:border-transparent hover:bg-danger hover:text-danger-foreground"
         >
           {!isProcessing && <Power className="w-4 h-4" />}
           {t('dashboards.widgets.room_summary.turn_off_all')}
         </Button>
       )}
+
+      <ConfirmModal
+        isOpen={isConfirmOpen}
+        onClose={() => { if (!isProcessing) setIsConfirmOpen(false); }}
+        onConfirm={() => { void handleToggleAll(); }}
+        title={t('dashboards.widgets.room_summary.confirm_turn_off_all_title', { room: room.name })}
+        description={t('dashboards.widgets.room_summary.confirm_turn_off_all_description', { count: onCount })}
+        confirmText={t('dashboards.widgets.room_summary.turn_off_all')}
+        cancelText={t('common.cancel')}
+        variant="danger"
+        isSubmitting={isProcessing}
+      />
     </div>
   );
 }

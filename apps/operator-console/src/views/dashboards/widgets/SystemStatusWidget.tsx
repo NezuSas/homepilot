@@ -72,7 +72,7 @@ export function SystemStatusWidget({ config, isEditing, onConfigure }: { config:
 
   return (
     <div className={cn(
-      "flex flex-col h-full min-h-0 rounded-2xl @md:rounded-3xl p-4 @md:p-5 overflow-hidden transition-all duration-500",
+      "flex flex-col h-full min-h-0 rounded-card p-4 @md:p-5 overflow-hidden transition-all duration-500",
       config.appearance.variant === 'glass' ? "bg-card/40 backdrop-blur-md border border-border/40" : "bg-card border border-border"
     )}>
       <div className="flex items-center justify-between gap-2 mb-3 @md:mb-5 shrink-0">
@@ -87,7 +87,7 @@ export function SystemStatusWidget({ config, isEditing, onConfigure }: { config:
         {!loading && (
            <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse shadow-glow shadow-success/50" />
-              <span className="text-micro font-black uppercase tracking-widest text-muted-foreground/40">{t('dashboards.widgets.system_status.online')}</span>
+              <span className="hp-type-label text-muted-foreground/50">{t('dashboards.widgets.system_status.online')}</span>
            </div>
         )}
       </div>
@@ -112,11 +112,11 @@ export function SystemStatusWidget({ config, isEditing, onConfigure }: { config:
           <div className="space-y-3 @md:space-y-5 animate-in fade-in duration-500">
             {/* CPU Metric */}
             <div className="space-y-2">
-              <div className="flex justify-between items-center text-micro font-black uppercase tracking-widest mb-1 px-1">
-                <span className="text-muted-foreground/60 flex items-center gap-1.5">
+              <div className="flex justify-between items-center mb-1 px-1">
+                <span className="hp-type-label flex items-center gap-1.5 text-muted-foreground/60">
                    <Zap className="w-3 h-3" /> {t('dashboards.widgets.system_status.processor')}
                 </span>
-                <span className={getMetricColor(snapshot.cpuUsage)}>{Math.round(snapshot.cpuUsage)}%</span>
+                <span className={cn("text-micro font-bold tabular-nums", getMetricColor(snapshot.cpuUsage))}>{Math.round(snapshot.cpuUsage)}%</span>
               </div>
               <div className="h-1.5 w-full bg-muted/40 rounded-full overflow-hidden">
                 <div 
@@ -128,11 +128,11 @@ export function SystemStatusWidget({ config, isEditing, onConfigure }: { config:
 
             {/* RAM Metric */}
             <div className="space-y-2">
-              <div className="flex justify-between items-center text-micro font-black uppercase tracking-widest mb-1 px-1">
-                <span className="text-muted-foreground/60 flex items-center gap-1.5">
+              <div className="flex justify-between items-center mb-1 px-1">
+                <span className="hp-type-label flex items-center gap-1.5 text-muted-foreground/60">
                    <HardDrive className="w-3 h-3" /> {t('dashboards.widgets.system_status.memory')}
                 </span>
-                <span className={getMetricColor(snapshot.memoryUsage.percentage)}>{Math.round(snapshot.memoryUsage.percentage)}%</span>
+                <span className={cn("text-micro font-bold tabular-nums", getMetricColor(snapshot.memoryUsage.percentage))}>{Math.round(snapshot.memoryUsage.percentage)}%</span>
               </div>
               <div className="h-1.5 w-full bg-muted/40 rounded-full overflow-hidden">
                 <div 
@@ -140,7 +140,7 @@ export function SystemStatusWidget({ config, isEditing, onConfigure }: { config:
                   style={{ width: `${snapshot.memoryUsage.percentage}%` }} 
                 />
               </div>
-              <p className="text-micro text-muted-foreground/30 font-bold uppercase tracking-tight text-right px-1">
+              <p className="hp-type-label text-right text-muted-foreground/40">
                 {Math.round(snapshot.memoryUsage.used / 1024)}GB / {Math.round(snapshot.memoryUsage.total / 1024)}GB
               </p>
             </div>
@@ -151,7 +151,7 @@ export function SystemStatusWidget({ config, isEditing, onConfigure }: { config:
                   <Timer className="w-3 h-3 text-muted-foreground" />
                </div>
                <div>
-                  <p className="text-micro font-black uppercase tracking-widest text-muted-foreground/40 leading-none mb-1">{t('dashboards.widgets.system_status.uptime')}</p>
+                  <p className="hp-type-label leading-none mb-1 text-muted-foreground/50">{t('dashboards.widgets.system_status.uptime')}</p>
                   <p className="text-caption font-black text-foreground tracking-tight">{formatUptime(snapshot.uptime)}</p>
                </div>
             </div>

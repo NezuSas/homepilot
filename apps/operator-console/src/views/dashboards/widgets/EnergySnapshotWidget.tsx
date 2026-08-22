@@ -60,7 +60,7 @@ export function EnergySnapshotWidget({ config, isEditing, onConfigure }: EnergyS
                 {config.appearance.title || t('dashboards.widgets.energy_insight.label')}
               </h3>
             )}
-            <div className="flex items-center gap-1.5 text-micro text-muted-foreground/60 font-bold uppercase tracking-widest">
+            <div className="hp-type-label flex items-center gap-1.5 text-muted-foreground/60">
               <Activity className="w-3 h-3" />
               {t('shell.status.live')}
             </div>
@@ -71,7 +71,7 @@ export function EnergySnapshotWidget({ config, isEditing, onConfigure }: EnergyS
 
       <div className="grid grid-cols-1 gap-4 @md:gap-6 relative z-10">
         <div className="flex flex-col gap-1">
-          <span className="text-micro font-black uppercase tracking-label text-muted-foreground/40">{t('dashboards.widgets.energy_insight.current_power')}</span>
+          <span className="hp-type-label text-muted-foreground/50">{t('dashboards.widgets.energy_insight.current_power')}</span>
           <div className="flex items-baseline gap-2">
             <span className="text-widget-metric-fluid font-black tracking-tighter text-foreground tabular-nums">
               {power.toLocaleString()}
@@ -86,12 +86,12 @@ export function EnergySnapshotWidget({ config, isEditing, onConfigure }: EnergyS
                <Battery className="w-4 h-4" />
             </div>
             <div className="flex flex-col">
-               <span className="text-micro font-black uppercase tracking-widest text-muted-foreground/40">{t('dashboards.widgets.energy_insight.consumption_today')}</span>
+               <span className="hp-type-label text-muted-foreground/50">{t('dashboards.widgets.energy_insight.consumption_today')}</span>
                <span className="text-body font-black text-foreground tabular-nums">{energy.toFixed(1)} kWh</span>
             </div>
           </div>
           <div className="flex flex-col items-end">
-             <div className="flex items-center gap-1 text-micro font-black text-accent uppercase tracking-widest">
+             <div className="hp-type-label flex items-center gap-1 text-accent">
                 <AlertCircle className="w-2.5 h-2.5 rotate-180" />
                 {t('dashboards.widgets.energy_insight.sustainable')}
              </div>
@@ -102,7 +102,7 @@ export function EnergySnapshotWidget({ config, isEditing, onConfigure }: EnergyS
       <div className="mt-6 space-y-2 relative z-10">
          {entities.slice(0, 2).map(entity => (
            <div key={entity.entity_id} className="flex items-center justify-between px-2">
-              <span className="text-micro font-bold text-muted-foreground/60 truncate max-w-copy-xs uppercase tracking-widest">{entity.name}</span>
+              <span className="hp-type-label truncate max-w-copy-xs text-muted-foreground/70">{entity.name}</span>
               <span className="text-micro font-black text-foreground/80 tabular-nums">{entity.state} {entity.unit}</span>
            </div>
          ))}

@@ -36,7 +36,7 @@ export function DormantWidgetPlaceholder({
       </div>
 
       <div className={cn(
-        "relative w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-transform duration-500",
+        "relative w-14 h-14 rounded-card flex items-center justify-center mb-4 transition-transform duration-500",
         isEditing ? "bg-primary/20 text-primary animate-pulse" : "bg-muted text-muted-foreground/30"
       )}>
         <Icon className="w-7 h-7" />
@@ -57,7 +57,7 @@ export function DormantWidgetPlaceholder({
           variant="secondary"
           size="sm"
           onClick={onConfigure}
-          className="mt-6 rounded-xl border-primary/20 hover:bg-primary/10 hover:text-primary transition-all group active:scale-95"
+          className="mt-6 rounded-control border-primary/20 hover:bg-primary/10 hover:text-primary transition-all group active:scale-95"
         >
           <Settings2 className="w-3.5 h-3.5 mr-2 group-hover:rotate-90 transition-transform" />
           <span className="text-micro font-black uppercase tracking-widest leading-none">

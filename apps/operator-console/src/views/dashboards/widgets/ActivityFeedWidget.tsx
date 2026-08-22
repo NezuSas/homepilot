@@ -8,10 +8,13 @@ import { API_BASE_URL } from '../../../config';
 
 const API = `${API_BASE_URL}/api/v1`;
 
+type SystemEventCategory = 'command' | 'resilience' | 'automation';
+
 interface SystemEvent {
+  occurredAt: string;
+  category: SystemEventCategory;
   eventType: string;
-  timestamp: string;
-  payload: Record<string, unknown>;
+  description: string;
 }
 
 import { DormantWidgetPlaceholder } from '../components/DormantWidgetPlaceholder';
@@ -43,20 +46,24 @@ export function ActivityFeedWidget({ config, isEditing, onConfigure }: { config:
     return () => clearInterval(interval);
   }, [fetchEvents]);
 
-  const getEventIcon = (type: string) => {
-    if (type.includes('Auth')) return <Shield className="h-3 w-3 text-primary" />;
-    if (type.includes('Device')) return <Zap className="w-3 h-3 text-warning" />;
-    if (type.includes('Room')) return <Activity className="w-3 h-3 text-success" />;
+  const getEventIcon = (category: SystemEventCategory, eventType: string) => {
+    if (eventType === 'AUTH_FAILED') return <Shield className="h-3 w-3 text-danger" />;
+    if (category === 'automation') return <Zap className="w-3 h-3 text-warning" />;
+    if (category === 'resilience') return <Activity className="w-3 h-3 text-success" />;
     return <Cpu className="w-3 h-3 text-muted-foreground/60" />;
   };
 
-  const formatEventName = (type: string) => {
-    return type.replace('Event', '').replace(/([A-Z])/g, ' $1').trim();
+  // Known event codes get a calm, translated label; anything new the backend
+  // introduces still shows something readable instead of a blank string.
+  const formatEventName = (eventType: string) => {
+    const translated = t(`dashboards.widgets.activity_feed.events.${eventType}`, { defaultValue: '' });
+    if (translated) return translated;
+    return eventType.replace(/_/g, ' ').toLowerCase().replace(/^\w/, (c) => c.toUpperCase());
   };
 
   return (
     <div className={cn(
-      "flex flex-col h-full min-h-0 rounded-2xl @md:rounded-3xl p-4 @md:p-5 overflow-hidden transition-all duration-500",
+      "flex flex-col h-full min-h-0 rounded-card p-4 @md:p-5 overflow-hidden transition-all duration-500",
       config.appearance.variant === 'glass' ? "bg-card/40 backdrop-blur-md border border-border/40" : "bg-card border border-border"
     )}>
       <div className="flex items-center justify-between gap-2 mb-3 @md:mb-4 shrink-0">
@@ -69,7 +76,7 @@ export function ActivityFeedWidget({ config, isEditing, onConfigure }: { config:
           </h3>
         </div>
         {!loading && (
-          <span className="text-micro font-bold text-muted-foreground/40 uppercase tracking-widest">{t('shell.status.live')}</span>
+          <span className="hp-type-label text-muted-foreground/50">{t('shell.status.live')}</span>
         )}
       </div>
 
@@ -93,7 +100,7 @@ export function ActivityFeedWidget({ config, isEditing, onConfigure }: { config:
           events.map((event, idx) => (
             <div key={idx} className="flex items-start gap-3 group animate-in fade-in slide-in-from-bottom-1 duration-500" style={{ animationDelay: `${idx * 50}ms` }}>
               <div className="p-1.5 rounded-lg bg-muted/50 border border-border/40 shrink-0 mt-0.5">
-                {getEventIcon(event.eventType)}
+                {getEventIcon(event.category, event.eventType)}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-label font-bold text-foreground leading-tight truncate">
@@ -102,7 +109,7 @@ export function ActivityFeedWidget({ config, isEditing, onConfigure }: { config:
                 <div className="flex items-center gap-1.5 mt-0.5 opacity-60">
                   <Clock className="w-2.5 h-2.5 text-muted-foreground" />
                   <span className="text-micro font-medium text-muted-foreground">
-                    {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    {new Date(event.occurredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                   </span>
                 </div>
               </div>
