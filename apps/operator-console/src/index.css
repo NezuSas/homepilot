@@ -575,6 +575,100 @@
     box-shadow: 0 0 20px -6px hsl(var(--danger) / 0.25);
   }
 
+  /* ── Dashboard action buttons ───────────────────────────────
+   * Stateless actions stay on the dashboard's neutral elevation. Feedback
+   * is localized to semantic details so success remains legible over any
+   * dashboard background in both themes. */
+  .dashboard-action-button {
+    isolation: isolate;
+    background: hsl(var(--card) / 0.98);
+    border-color: hsl(var(--border) / 0.78);
+    box-shadow: 0 12px 28px -24px hsl(var(--foreground) / 0.52), inset 0 1px 0 hsl(var(--popover) / 0.5);
+  }
+
+  .dashboard-action-button:not(:disabled):hover {
+    transform: translateY(-2px);
+    border-color: hsl(var(--primary) / 0.58);
+    box-shadow: 0 16px 34px -24px hsl(var(--primary) / 0.5), inset 0 1px 0 hsl(var(--primary-foreground) / 0.06);
+  }
+
+  .dashboard-action-button--pending {
+    border-color: hsl(var(--primary) / 0.5);
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.08), hsl(var(--card) / 0.98) 58%);
+  }
+
+  .dashboard-action-button--success {
+    border-color: hsl(var(--success) / 0.56);
+    background: linear-gradient(135deg, hsl(var(--success) / 0.08), hsl(var(--card) / 0.98) 58%);
+    box-shadow: 0 14px 32px -24px hsl(var(--success) / 0.52), inset 0 1px 0 hsl(var(--success-foreground) / 0.06);
+  }
+
+  .dashboard-action-button--error {
+    border-color: hsl(var(--danger) / 0.56);
+    background: linear-gradient(135deg, hsl(var(--danger) / 0.08), hsl(var(--card) / 0.98) 58%);
+    box-shadow: 0 14px 32px -24px hsl(var(--danger) / 0.48), inset 0 1px 0 hsl(var(--danger-foreground) / 0.06);
+  }
+
+  .dashboard-action-button__icon {
+    color: hsl(var(--primary));
+    border-color: hsl(var(--primary) / 0.28);
+    background: hsl(var(--primary) / 0.1);
+    transition: background-color 180ms var(--ease-out), border-color 180ms var(--ease-out), color 180ms var(--ease-out);
+  }
+
+  .dashboard-action-button--success .dashboard-action-button__icon {
+    color: hsl(var(--success));
+    border-color: hsl(var(--success) / 0.32);
+    background: hsl(var(--success) / 0.13);
+  }
+
+  .dashboard-action-button--error .dashboard-action-button__icon {
+    color: hsl(var(--danger));
+    border-color: hsl(var(--danger) / 0.32);
+    background: hsl(var(--danger) / 0.13);
+  }
+
+  .dashboard-action-button__status {
+    color: hsl(var(--primary));
+    border-color: hsl(var(--primary) / 0.24);
+    background: hsl(var(--primary) / 0.1);
+    line-height: 1.1;
+  }
+
+  .dashboard-action-button--success .dashboard-action-button__status {
+    color: hsl(var(--success));
+    border-color: hsl(var(--success) / 0.3);
+    background: hsl(var(--success) / 0.12);
+  }
+
+  .dashboard-action-button--error .dashboard-action-button__status {
+    color: hsl(var(--danger));
+    border-color: hsl(var(--danger) / 0.3);
+    background: hsl(var(--danger) / 0.12);
+  }
+
+  .light .dashboard-action-button {
+    background: hsl(var(--card) / 0.99);
+    border-color: hsl(var(--border) / 0.88);
+    box-shadow: 0 12px 28px -24px hsl(26 12% 24% / 0.44), inset 0 1px 0 hsl(var(--popover) / 0.82);
+  }
+
+  .light .dashboard-action-button--success {
+    background: linear-gradient(135deg, hsl(var(--success) / 0.1), hsl(var(--card) / 0.99) 58%);
+    box-shadow: 0 14px 32px -24px hsl(var(--success) / 0.42), inset 0 1px 0 hsl(var(--popover) / 0.84);
+  }
+
+  .light .dashboard-action-button--error {
+    background: linear-gradient(135deg, hsl(var(--danger) / 0.1), hsl(var(--card) / 0.99) 58%);
+    box-shadow: 0 14px 32px -24px hsl(var(--danger) / 0.38), inset 0 1px 0 hsl(var(--popover) / 0.84);
+  }
+
+  @media (max-width: 25rem) {
+    .dashboard-action-button__status {
+      max-width: calc(100% - 3rem);
+      padding-inline: 0.5rem;
+    }
+  }
   /* ── Sidebar active indicator ─────────────────────────────── */
   .sidebar-item-active {
     background: hsl(var(--primary) / 0.10);

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, typ
 import { createPortal } from 'react-dom';
 import {
   Camera,
+  Check,
+  CircleAlert,
   GripVertical,
   Home,
   Loader2,
@@ -448,22 +450,21 @@ function CardPreview({
         aria-label={t('dashboard.editor.sections.action_button_aria', { name: title })}
         title={unavailable ? t('dashboard.editor.sections.action_button_unavailable') : undefined}
         className={cn(
-          'group/action relative flex h-full min-h-0 w-full flex-col justify-between overflow-hidden rounded-section border p-3 text-left transition-[background-color,border-color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-default disabled:opacity-65 sm:p-4',
-          actionFeedback === 'success'
-            ? 'border-success/45 bg-success/10 shadow-sm'
-            : actionFeedback === 'error'
-              ? 'border-danger/45 bg-danger/10 shadow-sm'
-              : 'border-border/60 bg-card/95 shadow-surface-card hover:-translate-y-0.5 hover:border-primary/55 hover:shadow-depth-2',
+          'dashboard-action-button relative flex h-full min-h-0 w-full flex-col justify-between overflow-hidden rounded-section border p-3 text-left transition-[background-color,border-color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-default disabled:opacity-65 sm:p-4',
+          `dashboard-action-button--${actionFeedback}`,
         )}
       >
         <div className="flex min-w-0 items-start justify-between gap-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-control border border-primary/25 bg-primary/10 text-primary transition-colors group-hover/action:bg-primary group-hover/action:text-primary-foreground">
-            {actionFeedback === 'pending' ? <Loader2 className="h-5 w-5 animate-spin" /> : <Icon className="h-5 w-5" />}
+          <span className="dashboard-action-button__icon grid h-10 w-10 shrink-0 place-items-center rounded-control border">
+            {actionFeedback === 'pending'
+              ? <Loader2 className="h-5 w-5 animate-spin" />
+              : actionFeedback === 'success'
+                ? <Check className="h-5 w-5" />
+                : actionFeedback === 'error'
+                  ? <CircleAlert className="h-5 w-5" />
+                  : <Icon className="h-5 w-5" />}
           </span>
-          <span className={cn(
-            'rounded-pill px-2 py-1 text-micro font-black uppercase tracking-status',
-            actionFeedback === 'success' ? 'bg-success/15 text-success' : actionFeedback === 'error' ? 'bg-danger/15 text-danger' : 'bg-primary/10 text-primary',
-          )}>
+          <span className="dashboard-action-button__status min-w-0 max-w-[calc(100%-3.25rem)] truncate rounded-pill border px-2.5 py-1 text-micro font-semibold normal-case tracking-normal">
             {actionLabel}
           </span>
         </div>

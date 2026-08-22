@@ -89,27 +89,20 @@ export function ActionButtonWidget({ config, isEditing, onConfigure }: {
       aria-label={t('dashboards.widgets.action_button.aria', { name: title })}
       title={!canPress ? t('dashboards.widgets.action_button.unavailable') : undefined}
       className={cn(
-        'relative flex h-full w-full min-h-0 min-w-0 flex-col justify-between overflow-hidden rounded-[inherit] border p-3 text-left transition-[background-color,border-color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-default disabled:opacity-65 @md:p-4',
-        status === 'success'
-          ? 'border-success/45 bg-success/10 shadow-sm'
-          : status === 'error'
-            ? 'border-danger/45 bg-danger/10 shadow-sm'
-            : 'border-border/60 bg-card hover:-translate-y-0.5 hover:border-primary/55 hover:shadow-depth-2',
+        'dashboard-action-button relative flex h-full w-full min-h-0 min-w-0 flex-col justify-between overflow-hidden rounded-[inherit] border p-3 text-left transition-[background-color,border-color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-default disabled:opacity-65 @md:p-4',
+        `dashboard-action-button--${status}`,
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <span className="grid h-11 w-11 place-items-center rounded-control border border-primary/25 bg-primary/10 text-primary">
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <span className="dashboard-action-button__icon grid h-11 w-11 shrink-0 place-items-center rounded-control border">
           {status === 'pending' ? <Loader2 className="h-5 w-5 animate-spin" /> : status === 'success' ? <Check className="h-5 w-5" /> : status === 'error' ? <CircleAlert className="h-5 w-5" /> : <MousePointerClick className="h-5 w-5" />}
         </span>
-        <span className={cn(
-          'rounded-pill px-2 py-1 text-widget-meta-fluid font-black uppercase tracking-status',
-          status === 'success' ? 'bg-success/15 text-success' : status === 'error' ? 'bg-danger/15 text-danger' : 'bg-primary/10 text-primary',
-        )}>
+        <span className="dashboard-action-button__status min-w-0 max-w-[calc(100%-3.5rem)] truncate rounded-pill border px-2.5 py-1 text-widget-meta-fluid font-semibold normal-case tracking-normal">
           {feedbackLabel}
         </span>
       </div>
 
-      <div className="min-w-0 pt-4">
+      <div className="min-w-0 pt-3">
         <h4 className="line-clamp-2 text-widget-body-lg-fluid font-black leading-tight tracking-tight text-foreground">{title}</h4>
         <p className="mt-1 line-clamp-2 text-widget-meta-fluid text-muted-foreground">
           {t('dashboards.widgets.action_button.description')}

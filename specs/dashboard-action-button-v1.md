@@ -38,6 +38,12 @@ Provide a dedicated **Action Button** card in dashboard Sections. The card invok
 
 This is intentionally not a second toggle card. It complements the existing `device_control` card with Home Assistant's stateless Button-card behavior. Its neutral surface and restrained primary interaction belong to the existing Warm Local Command Center design system.
 
+Transient feedback must not repaint the whole card as a generic success or error
+surface. The card stays on the normal dashboard elevation while its border,
+icon, and compact status indicator communicate pending, success, or failure.
+The status copy must remain single-line and legible in the compact card size in
+both light and dark themes.
+
 ## Verification
 
 - Device profile, import, driver, capability, catalog, compatibility-filter, and action-widget tests cover AC1–AC5.
