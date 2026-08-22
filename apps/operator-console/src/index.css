@@ -765,7 +765,7 @@
   }
 
   .homepilot-dashboard-content {
-    max-width: 96rem;
+    /* max-width: 96rem; */
     margin-inline: auto;
   }
 

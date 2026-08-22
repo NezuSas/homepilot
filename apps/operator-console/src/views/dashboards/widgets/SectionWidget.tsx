@@ -1747,7 +1747,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
   const sectionGrid = (
     <div
       onClick={(event) => event.stopPropagation()}
-      className="grid min-h-0 min-w-0 flex-1 auto-rows-[minmax(20px,auto)] grid-flow-row-dense content-start items-start gap-3 overflow-visible pr-1"
+      className="grid min-h-0 min-w-0 flex-1 auto-rows-[minmax(20px,auto)] grid-flow-row-dense content-start items-start gap-2 overflow-visible pr-1"
       style={{ gridTemplateColumns: `repeat(${innerColumns}, minmax(0, 1fr))` }}
     >
       <DndContext sensors={cardDragSensors} onDragEnd={handleCardDragEnd}>
