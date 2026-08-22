@@ -57,28 +57,29 @@ function createDevice(
 }
 
 describe('dashboard canvas columns', () => {
-  it('derives the column count from the exact 320px/24px basis DashboardCanvas\'s own auto-fill grid uses, instead of a capped 1/2/3 breakpoint table', () => {
+  it('derives the column count from the exact 500px/24px basis DashboardCanvas\'s own grid uses, instead of a capped 1/2/3 breakpoint table', () => {
     // This must stay in lockstep with DashboardCanvas's
-    // repeat(auto-fill, minmax(20rem, 30rem)) + 24px gap: a mismatch here
-    // forces the browser to add an extra implicit column for full-width
-    // items (title bar, add-section placeholder), which overflows instead
-    // of wrapping.
-    expect(getDashboardSectionColumns(320)).toBe(1);
-    expect(getDashboardSectionColumns(663)).toBe(1);
-    expect(getDashboardSectionColumns(664)).toBe(2);
-    expect(getDashboardSectionColumns(1007)).toBe(2);
-    expect(getDashboardSectionColumns(1008)).toBe(3);
-    expect(getDashboardSectionColumns(1440)).toBe(4);
+    // repeat(auto-fit, minmax(min(100%, 31.25rem), 1fr)) + 24px gap: a
+    // mismatch here forces the browser to add an extra implicit column
+    // for full-width items (title bar, add-section placeholder), which
+    // overflows instead of wrapping. 500px is also the minimum a section
+    // needs so its own 4-column inner grid doesn't have to squeeze.
+    expect(getDashboardSectionColumns(500)).toBe(1);
+    expect(getDashboardSectionColumns(1023)).toBe(1);
+    expect(getDashboardSectionColumns(1024)).toBe(2);
+    expect(getDashboardSectionColumns(1547)).toBe(2);
+    expect(getDashboardSectionColumns(1548)).toBe(3);
+    expect(getDashboardSectionColumns(2100)).toBe(4);
     // Ultra-wide canvases keep adding fixed-width columns instead of capping at 3.
-    expect(getDashboardSectionColumns(1696)).toBe(5);
+    expect(getDashboardSectionColumns(2600)).toBe(5);
   });
 
   it('uses two readable columns only on high-resolution portrait kiosks', () => {
     expect(isPortraitKioskViewport(1080, 1920)).toBe(true);
     expect(getDashboardSectionColumnsForViewport(1080, 1080, 1920)).toBe(2);
-    expect(getDashboardSectionColumnsForViewport(1440, 1440, 900)).toBe(4);
-    expect(getDashboardSectionColumnsForViewport(1024, 1024, 1366)).toBe(3);
-    expect(getDashboardSectionColumnsForViewport(768, 768, 1024)).toBe(2);
+    expect(getDashboardSectionColumnsForViewport(2100, 2100, 900)).toBe(4);
+    expect(getDashboardSectionColumnsForViewport(1024, 1024, 1366)).toBe(2);
+    expect(getDashboardSectionColumnsForViewport(768, 768, 1024)).toBe(1);
     expect(isPortraitKioskViewport(768, 1024)).toBe(false);
   });
 });

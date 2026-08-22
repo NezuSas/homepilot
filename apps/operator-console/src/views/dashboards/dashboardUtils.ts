@@ -5,12 +5,14 @@ import { generateId } from '../../utils/generateId';
 
 const DASHBOARD_MAX_SECTION_SPAN = 4;
 // Must match DashboardCanvas's own grid-template-columns
-// (repeat(auto-fill, minmax(20rem, 30rem))) exactly. This JS count decides
-// grid-column: span N for full-width items (the title bar, add-section
-// placeholder), and a mismatch forces the browser to create an extra
-// implicit column to satisfy that span — one that doesn't participate in
-// auto-fill's wrapping and pushes content off-screen instead.
-const DASHBOARD_SECTION_COLUMN_BASIS_PX = 320;
+// (repeat(auto-fit, minmax(min(100%, 31.25rem), 1fr))) exactly. This JS
+// count decides grid-column: span N for full-width items (the title bar,
+// add-section placeholder), and a mismatch forces the browser to create an
+// extra implicit column to satisfy that span — one that doesn't
+// participate in the grid's wrapping and pushes content off-screen
+// instead. 500px is also the minimum a section needs so its own 4-column
+// inner grid doesn't have to squeeze.
+const DASHBOARD_SECTION_COLUMN_BASIS_PX = 500;
 const DASHBOARD_SECTION_COLUMN_GAP_PX = 24;
 const PORTRAIT_KIOSK_MIN_VIEWPORT_WIDTH = 1080;
 const PORTRAIT_KIOSK_MIN_VIEWPORT_HEIGHT = 1280;
