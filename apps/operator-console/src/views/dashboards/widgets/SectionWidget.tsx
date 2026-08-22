@@ -590,6 +590,46 @@ function CardPreview({
     );
   }
 
+  const isLightKind = normalized === 'light';
+
+  // Compact, Home Assistant-style tile: a small icon chip and two lines of
+  // text in a single row, sized for a short card instead of a large centered
+  // icon that only fits a tall one.
+  if (isSmall) {
+    return (
+      <div
+        className={cn(
+          "relative flex h-full min-h-0 w-full items-center gap-2.5 overflow-hidden rounded-section border px-3 py-2.5 text-left text-foreground transition-all",
+          isActive
+            ? isLightKind
+              ? "border-light-active/45 bg-light-active/14 shadow-surface-card"
+              : "border-primary/45 bg-primary/14 shadow-surface-card"
+            : "border-border/60 bg-card/95 shadow-surface-card"
+        )}
+      >
+        <span
+          className={cn(
+            "grid h-9 w-9 shrink-0 place-items-center rounded-control transition-colors",
+            isActive
+              ? isLightKind ? "bg-light-active text-light-active-foreground" : "bg-primary text-primary-foreground"
+              : "bg-muted/70 text-muted-foreground"
+          )}
+        >
+          <Icon className="h-5 w-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-caption font-black leading-tight text-foreground">{title}</span>
+          <span className={cn(
+            "mt-0.5 block truncate text-micro font-semibold",
+            isActive ? (isLightKind ? "text-light-active" : "text-primary") : "text-muted-foreground"
+          )}>
+            {isAssigned ? (isActive ? t('common.on') : t('common.off')) : subtitle || t('dashboard.editor.sections.unassigned')}
+          </span>
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -601,20 +641,16 @@ function CardPreview({
     >
       <span
         className={cn(
-          "mb-2 grid place-items-center rounded-full transition-all sm:mb-3",
-          isSmall ? "h-14 w-14 sm:h-16 sm:w-16" : "h-24 w-24",
+          "mb-2 grid place-items-center rounded-full transition-all sm:mb-3 h-24 w-24",
           isActive
             ? "bg-primary text-primary-foreground shadow-primary-room-icon ring-1 ring-primary/35"
             : "bg-muted/65 text-muted-foreground ring-1 ring-border/40"
         )}
       >
-        <Icon className={cn(isSmall ? "h-12 w-12 sm:h-14 sm:w-14" : "h-20 w-20")} />
+        <Icon className="h-20 w-20" />
       </span>
-      <span className={cn(
-        "line-clamp-2 min-w-0 font-black leading-tight text-foreground",
-        isSmall ? "text-caption" : "text-body"
-      )}>{title}</span>
-      {!isAssigned && !isSmall ? (
+      <span className="line-clamp-2 min-w-0 text-body font-black leading-tight text-foreground">{title}</span>
+      {!isAssigned ? (
         <span className="mt-1 line-clamp-2 text-micro font-bold leading-tight text-muted-foreground">
           {subtitle || t('dashboard.editor.sections.unassigned')}
         </span>
@@ -1066,7 +1102,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         onClick={isCover || normalizedKind === 'action' ? undefined : (event) => { void handleCardAction(card, event); }}
         className={cn(
           "group/card relative overflow-hidden rounded-section shadow-sm transition-all",
-          span === 'small' && "min-h-section-card-sm",
+          span === 'small' && (normalizedKind === 'device' || normalizedKind === 'light' ? "min-h-device-card-compact" : "min-h-section-card-sm"),
           span === 'medium' && "min-h-section-card-md",
           span === 'full' && "min-h-section-card-lg",
           isCamera && "min-h-curtain-card",
@@ -1170,7 +1206,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     return (
       <div className={cn(
         "grid overflow-hidden rounded-section bg-background/40 transition-[height,width,max-width] duration-200",
-        span === 'small' && "h-section-card-sm w-full max-w-[12rem] justify-self-center",
+        span === 'small' && (normalizedPreviewKind === 'device' || normalizedPreviewKind === 'light' ? "h-device-card-compact w-full max-w-[12rem] justify-self-center" : "h-section-card-sm w-full max-w-[12rem] justify-self-center"),
         span === 'medium' && !isCoverPreview && "h-section-card-md w-full max-w-form-md",
         span === 'medium' && isCoverPreview && "h-curtain-card w-full max-w-form-md justify-self-center",
         span === 'full' && "w-full",
@@ -1491,7 +1527,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         if (sourceId) moveCardToEnd(sourceId);
         setDraggingCardId(null);
       }}
-      className="grid min-h-0 flex-1 auto-rows-[minmax(8.25rem,auto)] content-start gap-3 overflow-visible pr-1"
+      className="grid min-h-0 flex-1 auto-rows-[minmax(4.5rem,auto)] content-start gap-3 overflow-visible pr-1"
       style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr))' }}
     >
       {cards.map(renderCard)}

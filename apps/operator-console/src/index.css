@@ -568,6 +568,20 @@
     box-shadow: inset 0 1px 0 hsl(var(--popover) / 0.92), 0 14px 28px -24px hsl(var(--light-active) / 0.52);
   }
 
+  /* The dark-mode "on" chip/pill colors assume a saturated primary
+   * background, so they use --primary-foreground (near white) text. Light
+   * mode's "on" background is a pale primary-tinted gradient instead, which
+   * turns that white text/icon invisible. Use the primary hue itself. */
+  .light .device-state-on:not(.device-tone-light) .device-toggle-icon {
+    background-color: hsl(var(--primary) / 0.16);
+    color: hsl(var(--primary));
+  }
+
+  .light .device-state-on:not(.device-tone-light) .device-toggle-status {
+    background-color: hsl(var(--primary) / 0.18);
+    color: hsl(var(--primary));
+  }
+
   /* Error state */
   .device-state-error {
     background: linear-gradient(135deg, hsl(var(--danger) / 0.06) 0%, hsl(var(--card)) 100%);
