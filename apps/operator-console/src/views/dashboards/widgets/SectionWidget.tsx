@@ -1586,8 +1586,8 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
               options={isClockKind(cardDraft.kind)
                 ? [{ value: 'full', label: t('dashboard.editor.sections.card_size_full') }]
                 : [
-                  { value: 'small', label: t('dashboard.editor.sections.card_size_small') },
-                  { value: 'medium', label: t('dashboard.editor.sections.card_size_medium') },
+                  { value: 'small', label: t('dashboard.editor.sections.card_size_small', { count: innerColumns }) },
+                  { value: 'medium', label: t('dashboard.editor.sections.card_size_medium', { count: Math.max(1, Math.floor(innerColumns / 2)) }) },
                   { value: 'full', label: t('dashboard.editor.sections.card_size_full') },
                 ]}
               onChange={(value) => setCardDraft((draft) => ({
