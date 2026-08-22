@@ -46,7 +46,7 @@ interface DashboardCanvasProps {
 const CANVAS_ROW_UNIT = 8;
 
 function getCanvasGap(columns: number): number {
-  return columns === 1 ? 16 : 24;
+  return columns === 1 ? 16 : 20;
 }
 
 /** Measures an element's rendered height and derives a grid row-span from it. */
@@ -290,19 +290,19 @@ export function DashboardCanvas({
             : "border-transparent bg-transparent p-0"
         )}
         style={{
-          // auto-fit + minmax(min(100%, 31.25rem), 1fr): a section is
-          // never narrower than 500px (its 4-column inner grid needs that
-          // room to breathe, per Home Assistant's own Sections sizing) and
-          // stretches via 1fr to fill leftover row width on wide monitors
-          // instead of leaving blank space. Wraps to the next row instead
-          // of squeezing when a new section doesn't fit. This 500px basis
-          // (+ the canvas gap) MUST match getDashboardSectionColumns' own
-          // basis in dashboardUtils.ts — that JS-computed count decides
-          // grid-column: span N for the title/add-section placeholders,
-          // and a mismatched count forces CSS to add an extra implicit
-          // column to satisfy that span, which overflows the viewport
-          // instead of wrapping.
-          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 31.25rem), 1fr))',
+          // auto-fit + minmax(350px, 1fr): a section never shrinks below
+          // 350px (never collapses to a sliver), but — critically — has
+          // NO max-width on the track itself, so with few sections on a
+          // wide monitor the 1fr share stretches each one edge to edge
+          // instead of leaving blank margins on the sides. Wraps to a new
+          // row instead of squeezing when a section doesn't fit. This
+          // 350px basis (+ the canvas gap) MUST match
+          // getDashboardSectionColumns' own basis in dashboardUtils.ts —
+          // that JS-computed count decides grid-column: span N for the
+          // title/add-section placeholders, and a mismatched count forces
+          // CSS to add an extra implicit column, which overflows the
+          // viewport instead of wrapping.
+          gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
           gridAutoRows: `${CANVAS_ROW_UNIT}px`,
           gridAutoFlow: 'row',
           alignItems: 'start',

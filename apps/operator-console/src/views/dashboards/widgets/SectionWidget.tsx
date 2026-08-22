@@ -1819,7 +1819,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     <div
       onClick={(event) => event.stopPropagation()}
       className={cn(
-        "group/section relative flex min-h-fit w-full max-w-[31.25rem] min-w-0 self-start flex-col overflow-visible px-widget-pad-x py-widget-pad-y text-left transition-all duration-200",
+        "group/section relative flex min-h-fit w-full min-w-0 self-start flex-col overflow-visible px-widget-pad-x py-widget-pad-y text-left transition-all duration-200",
         // Home Assistant sections have no visible container in normal view —
         // just a title with tiles below. The dashed outline is an editing
         // affordance only, not a permanent "card" around every section.
