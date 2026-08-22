@@ -95,9 +95,15 @@ export function isClockKind(kind: SectionCardKind) {
 
 export function getDefaultSpan(kind: SectionCardKind): SectionCardSpan {
   const normalized = normalizeKind(kind);
-  if (normalized === 'light' || normalized === 'device' || normalized === 'cover' || normalized === 'action') return 'small';
+  // Tiles (light/device/switch/button-style cards) default to 2-of-4
+  // columns — a horizontal rectangle, two per row — matching Home
+  // Assistant's default tile size. The true quarter-width 'small' (four
+  // per row) stays available, but only as a manual choice.
+  if (normalized === 'light' || normalized === 'device' || normalized === 'cover' || normalized === 'action') return 'medium';
   if (isClockKind(normalized)) return 'full';
-  if (normalized === 'camera') return 'full';
+  // Media players, cameras, and sensors need real room for controls/
+  // gauges and default to the section's full width.
+  if (normalized === 'camera' || normalized === 'media' || normalized === 'sensor') return 'full';
   return 'medium';
 }
 

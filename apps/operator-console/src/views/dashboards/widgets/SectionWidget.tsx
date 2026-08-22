@@ -594,16 +594,19 @@ function CardPreview({
   }
 
   const isLightKind = normalized === 'light';
+  const isTileKind = normalized === 'light' || normalized === 'device';
 
   // Compact, Home Assistant-style tile: a bare icon (no chip/circle behind
   // it) with the name wrapping below (up to two lines instead of being
   // truncated). No separate on/off text — the icon and title color already
   // carry the active state, exactly like Home Assistant's button cards.
-  if (isSmall) {
+  // This is the only rendering for light/device cards regardless of span —
+  // 'small'/'medium'/'full' only change how many columns it occupies.
+  if (isTileKind) {
     return (
       <div
         className={cn(
-          "relative flex h-full min-h-0 w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-section border p-1.5 text-center text-foreground transition-all",
+          "relative flex h-full min-h-0 w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl border p-2.5 text-center text-foreground transition-all",
           isActive
             ? isLightKind
               ? "border-light-active/45 bg-light-active/14 shadow-surface-card"
@@ -612,10 +615,10 @@ function CardPreview({
         )}
       >
         <Icon className={cn(
-          "h-5 w-5 shrink-0 transition-colors",
+          "h-7 w-7 shrink-0 transition-colors",
           isActive ? (isLightKind ? "text-light-active" : "text-primary") : "text-muted-foreground"
         )} />
-        <span className="line-clamp-2 min-w-0 text-nano font-bold leading-tight text-foreground">{title}</span>
+        <span className="line-clamp-2 min-w-0 text-micro font-bold leading-tight text-foreground">{title}</span>
       </div>
     );
   }
@@ -667,7 +670,7 @@ const MASONRY_ROW_GAP_PX = 12;
 // different measured heights, so visually identical tiles end up a few
 // pixels apart in height — the "collapsed/uneven tile" look. All compact
 // tiles in a section now stay perfectly uniform.
-const COMPACT_TILE_ROW_SPAN = Math.ceil((72 + MASONRY_ROW_GAP_PX) / (MASONRY_ROW_UNIT_PX + MASONRY_ROW_GAP_PX));
+const COMPACT_TILE_ROW_SPAN = Math.ceil((96 + MASONRY_ROW_GAP_PX) / (MASONRY_ROW_UNIT_PX + MASONRY_ROW_GAP_PX));
 
 function useMasonryRowSpans() {
   const [rowSpans, setRowSpans] = useState<Record<string, number>>({});
@@ -826,7 +829,8 @@ function SectionCardItem({
   const cameraDeviceId = isCamera && card.entityId ? card.entityId : undefined;
   const normalizedKind = normalizeKind(card.kind);
   const isCover = normalizedKind === 'cover';
-  const isCompactDeviceCard = (normalizedKind === 'device' || normalizedKind === 'light') && span === 'small';
+  const isTileKind = normalizedKind === 'device' || normalizedKind === 'light';
+  const isCompactDeviceCard = isTileKind && span === 'small';
   const canResize = isEditing && !isClock;
   const roomDevices = normalizedKind === 'room' && card.entityId
     ? devices.filter((device) => device.roomId === card.entityId)
@@ -853,16 +857,18 @@ function SectionCardItem({
         containerType: 'inline-size',
         // card.rowSpan is a human-scale unit (1 = one compact-tile height);
         // convert to the grid's fine-grained 20px row tracks.
-        gridRow: `span ${card.rowSpan ? card.rowSpan * COMPACT_TILE_ROW_SPAN : (isCompactDeviceCard ? COMPACT_TILE_ROW_SPAN : rowSpan)}`,
+        gridRow: `span ${card.rowSpan ? card.rowSpan * COMPACT_TILE_ROW_SPAN : (isTileKind ? COMPACT_TILE_ROW_SPAN : rowSpan)}`,
         transform: CSS.Translate.toString(transform),
         transition: transition ?? undefined,
       }}
       onClick={isCover || normalizedKind === 'action' ? undefined : (event) => { void handleCardAction(card, event); }}
       className={cn(
         "group/card relative overflow-hidden rounded-section shadow-sm transition-all",
-        span === 'small' && (normalizedKind === 'device' || normalizedKind === 'light' ? "min-h-device-card-compact" : "min-h-section-card-sm"),
-        span === 'medium' && "min-h-section-card-md",
-        span === 'full' && "min-h-section-card-lg",
+        isTileKind
+          ? "min-h-device-card-compact"
+          : span === 'small' && "min-h-section-card-sm",
+        !isTileKind && span === 'medium' && "min-h-section-card-md",
+        !isTileKind && span === 'full' && "min-h-section-card-lg",
         isCamera && "min-h-curtain-card",
         isClock && "min-h-clock-card",
         isCover && "w-full max-w-curtain-dashboard justify-self-start",
@@ -955,13 +961,12 @@ function SectionCardItem({
 export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProps) {
   const { t } = useTranslation();
 
-  // The inner card grid's column count follows the Section's own outer
-  // canvas width (Home Assistant Sections style): a 1-column-wide section
-  // fits 2 tile columns, a wider section (2+ outer columns) fits 4 — so
-  // small tiles stay a similar physical width either way instead of
-  // stretching thin across a wide section.
-  const sectionSpan = config.layout.span ?? 1;
-  const innerColumns = sectionSpan >= 2 ? 8 : 4;
+  // Every section uses a strict 4-column inner grid (Home Assistant
+  // Sections style), regardless of the section's own outer canvas width —
+  // a section is capped at ~500px (see the root container below), so a
+  // wider section just means more sections fit side by side, not a wider
+  // internal grid.
+  const innerColumns = 4;
 
   const catalogLabel = (kind: SectionCardKind) => t(getCatalogLabelKey(kind));
 
@@ -1798,7 +1803,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     <div
       onClick={(event) => event.stopPropagation()}
       className={cn(
-        "group/section relative flex min-h-fit w-full min-w-0 self-start flex-col overflow-visible px-widget-pad-x py-widget-pad-y text-left transition-all duration-200",
+        "group/section relative flex min-h-fit w-full max-w-[31.25rem] min-w-0 self-start flex-col overflow-visible px-widget-pad-x py-widget-pad-y text-left transition-all duration-200",
         // Home Assistant sections have no visible container in normal view —
         // just a title with tiles below. The dashed outline is an editing
         // affordance only, not a permanent "card" around every section.

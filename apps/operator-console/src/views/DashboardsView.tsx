@@ -625,7 +625,7 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
 
               {/* Canvas Area */}
               {activeTab ? (
-                <div className={cn("homepilot-dashboard-content relative flex w-full flex-col gap-5", (isEditing && isOwner) ? "p-3 sm:p-4" : "px-4 py-4 sm:px-6 sm:py-6 md:px-8")}>
+                <div className={cn("homepilot-dashboard-content relative flex w-full flex-col gap-5", (isEditing && isOwner) ? "p-3 sm:p-4" : "px-2 py-4 sm:px-3 sm:py-6 md:px-4")}>
                    {activeTab.widgets.length === 0 && !(isEditing && isOwner) ? (
                      <div className="flex min-h-64 flex-col items-center justify-center rounded-panel border border-dashed border-primary/25 bg-primary/[0.03] p-8 text-center">
                        <p className="text-section-title font-semibold text-foreground">{t('dashboards.widgets_empty')}</p>

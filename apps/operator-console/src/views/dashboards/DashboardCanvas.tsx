@@ -46,9 +46,7 @@ interface DashboardCanvasProps {
 const CANVAS_ROW_UNIT = 8;
 
 function getCanvasGap(columns: number): number {
-  if (columns === 1) return 10;
-  if (columns === 2) return 12;
-  return 24;
+  return columns === 1 ? 10 : 20;
 }
 
 /** Measures an element's rendered height and derives a grid row-span from it. */
@@ -292,12 +290,13 @@ export function DashboardCanvas({
             : "border-transparent bg-transparent p-0"
         )}
         style={{
-          // Sections stretch to fill the full canvas width (auto-fit +
-          // 1fr max): the 20rem minimum keeps a section from getting too
-          // narrow, and any extra width is distributed across existing
-          // sections instead of centering the block and leaving large
-          // blank margins on both sides when there aren't many sections.
-          gridTemplateColumns: 'repeat(auto-fit, minmax(20rem, 1fr))',
+          // Fixed-width columns (20-31.25rem / 320-500px, Home Assistant
+          // Sections style): sections never stretch past ~500px, and
+          // justify-content: start packs them against the left edge so
+          // padding stays minimal instead of centering a block and
+          // doubling the side margins.
+          gridTemplateColumns: 'repeat(auto-fit, minmax(20rem, 31.25rem))',
+          justifyContent: 'start',
           gridAutoRows: `${CANVAS_ROW_UNIT}px`,
           gridAutoFlow: 'row',
           alignItems: 'start',
