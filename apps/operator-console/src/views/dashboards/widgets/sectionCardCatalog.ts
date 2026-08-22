@@ -8,6 +8,7 @@ export type SectionCardKind =
   | 'camera'
   | 'sensor'
   | 'media'
+  | 'action'
   | 'room'
   | 'scene'
   | 'clock'
@@ -50,7 +51,12 @@ export interface CardDraft {
 export interface AssignableScene {
   id: string;
   name: string;
-  actionCount: number;
+}
+
+export interface AssignableAutomation {
+  id: string;
+  name: string;
+  enabled: boolean;
 }
 
 export const createId = () => `section-card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -61,6 +67,7 @@ export const cardKinds: NormalizedSectionCardKind[] = [
   'camera',
   'sensor',
   'media',
+  'action',
   'room',
   'scene',
   'clock_digital',
@@ -80,7 +87,7 @@ export function isClockKind(kind: SectionCardKind) {
 
 export function getDefaultSpan(kind: SectionCardKind): SectionCardSpan {
   const normalized = normalizeKind(kind);
-  if (normalized === 'light' || normalized === 'device' || normalized === 'cover') return 'small';
+  if (normalized === 'light' || normalized === 'device' || normalized === 'cover' || normalized === 'action') return 'small';
   if (isClockKind(normalized)) return 'full';
   if (normalized === 'camera') return 'full';
   return 'medium';
@@ -106,6 +113,8 @@ export function getCatalogLabelKey(kind: SectionCardKind) {
       return 'dashboard.editor.sections.section_card_sensor';
     case 'media':
       return 'dashboard.editor.sections.section_card_media';
+    case 'action':
+      return 'dashboard.editor.sections.section_card_action';
     case 'room':
       return 'dashboard.editor.sections.section_card_room';
     case 'scene':
@@ -140,6 +149,8 @@ export function getCatalogDescriptionKey(kind: SectionCardKind) {
       return 'dashboard.editor.sections.section_card_sensor_desc';
     case 'media':
       return 'dashboard.editor.sections.section_card_media_desc';
+    case 'action':
+      return 'dashboard.editor.sections.section_card_action_desc';
     case 'room':
       return 'dashboard.editor.sections.section_card_room_desc';
     case 'scene':
@@ -172,6 +183,8 @@ export function getWidgetType(kind: SectionCardKind): WidgetType {
       return 'energy_snapshot' as WidgetType;
     case 'assistant':
       return 'assistant_insight' as WidgetType;
+    case 'action':
+      return 'action_button' as WidgetType;
     case 'clock_digital':
     case 'clock_analog':
     case 'clock_premium':
@@ -196,6 +209,7 @@ export function isBindableKind(kind: SectionCardKind) {
     || normalized === 'camera'
     || normalized === 'sensor'
     || normalized === 'media'
+    || normalized === 'action'
     || normalized === 'room'
     || normalized === 'scene';
 }
@@ -212,6 +226,8 @@ export function getDefaultIcon(kind: SectionCardKind): SectionCardIcon {
       return 'Gauge';
     case 'media':
       return 'Music2';
+    case 'action':
+      return 'MousePointerClick';
     case 'room':
       return 'Home';
     case 'scene':

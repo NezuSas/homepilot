@@ -36,8 +36,26 @@ describe('DeviceProfiles', () => {
       'binary_sensor',
       'climate',
       'media_player',
+      'button',
+      'scene',
       'camera',
     ]);
+  });
+
+  it('defines Home Assistant buttons as stateless press actions', () => {
+    const profile = getHomeAssistantDeviceProfile('button.gate_release');
+
+    expect(profile.type).toBe('button');
+    expect(profile.semanticType).toBe('button');
+    expect(profile.supportedCommands).toEqual(['press']);
+  });
+
+  it('defines Home Assistant scenes as stateless activate actions', () => {
+    const profile = getHomeAssistantDeviceProfile('scene.tv_input');
+
+    expect(profile.type).toBe('scene');
+    expect(profile.semanticType).toBe('scene');
+    expect(profile.supportedCommands).toEqual(['activate']);
   });
 
   it('defines Home Assistant cameras as read-only media devices', () => {

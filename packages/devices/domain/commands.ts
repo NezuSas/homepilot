@@ -20,7 +20,9 @@ export type DeviceCommandV1 =
   | 'ptz_stop'
   | 'set_temperature'
   | 'set_hvac_mode'
-  | 'set_fan_mode';
+  | 'set_fan_mode'
+  | 'press'
+  | 'activate';
 
 /**
  * DeviceCommandRequest
@@ -61,6 +63,8 @@ export function isValidCommand(cmd: string): cmd is DeviceCommandV1 {
     'set_temperature',
     'set_hvac_mode',
     'set_fan_mode',
+    'press',
+    'activate',
   ];
   return validCommands.includes(cmd as DeviceCommandV1);
 }

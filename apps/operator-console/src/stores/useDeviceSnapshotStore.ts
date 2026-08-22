@@ -56,7 +56,7 @@ export interface SnapshotDevice {
   externalId?: string;
   name: string;
   type: string;
-  semanticType?: 'light' | 'switch' | 'outlet' | 'cover' | 'camera' | 'sensor' | 'unknown' | null;
+  semanticType?: 'light' | 'switch' | 'outlet' | 'cover' | 'camera' | 'sensor' | 'button' | 'unknown' | null;
   vendor?: string;
   status: 'PENDING' | 'ASSIGNED';
   invertState?: boolean;

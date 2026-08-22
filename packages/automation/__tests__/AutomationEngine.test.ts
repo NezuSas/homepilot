@@ -58,6 +58,7 @@ const matchingEvent = (): SystemStateChangeEvent => ({
 function createHarness(rules: ReadonlyArray<AutomationRule>, targetDevice: Device | null = createDevice()) {
   const ruleRepository = {
     findAll: jest.fn().mockResolvedValue(rules),
+    findById: jest.fn().mockImplementation((id: string) => Promise.resolve(rules.find((rule) => rule.id === id) ?? null)),
   } as unknown as AutomationRuleRepository;
   const deviceRepository = {
     findDeviceById: jest.fn().mockResolvedValue(targetDevice),
@@ -329,5 +330,39 @@ describe('Feature: automation rule execution', () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+});
+
+describe('Feature: manual "run now" execution (dashboard routine action cards)', () => {
+  it('runs a rule immediately, bypassing its trigger and the loop-prevention cache', async () => {
+    const harness = createHarness([createRule()]);
+    const internals = harness.engine as unknown as { loopPreventionCache: Map<string, number> };
+    internals.loopPreventionCache.set('automation-1:target-device:turn_on', Date.now());
+
+    const result = await harness.engine.runRuleNow('automation-1', 'manual-1');
+
+    expect(result).toEqual({ success: true });
+    expect(harness.dispatcher.dispatchCommand).toHaveBeenCalledWith(
+      'home-1', 'target-device', 'turn_on', 'manual-1', 'automation-1',
+    );
+  });
+
+  it('returns a not-found error for an unknown rule id', async () => {
+    const harness = createHarness([createRule()]);
+
+    const result = await harness.engine.runRuleNow('missing-rule', 'manual-1');
+
+    expect(result).toEqual({ success: false, error: 'AUTOMATION_NOT_FOUND' });
+    expect(harness.dispatcher.dispatchCommand).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a failure when the dispatched command throws', async () => {
+    const harness = createHarness([createRule()]);
+    harness.dispatcher.dispatchCommand.mockRejectedValueOnce(new Error('device offline'));
+
+    const result = await harness.engine.runRuleNow('automation-1', 'manual-1');
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Turn on target');
   });
 });

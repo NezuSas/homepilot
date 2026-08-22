@@ -13,6 +13,7 @@ import { clampSectionSpan, getSectionSpan } from './dashboardUtils';
 
 // Sub-widgets
 import { DeviceWidget } from './widgets/DeviceWidget';
+import { ActionButtonWidget } from './widgets/ActionButtonWidget';
 import { RoomWidget } from './widgets/RoomWidget';
 import { SceneShortcutWidget } from './widgets/SceneShortcutWidget';
 import { ActivityFeedWidget } from './widgets/ActivityFeedWidget';
@@ -48,6 +49,8 @@ export function WidgetContent({ widget, isEditing, isSelected = false, onClick, 
   switch (widget.type) {
     case 'device_control':
       return <DeviceWidget config={widget.config} isEditing={isEditing} onConfigure={onClick} />;
+    case 'action_button':
+      return <ActionButtonWidget config={widget.config} isEditing={isEditing} onConfigure={onClick} />;
     case 'room_overview':
     case 'room_summary':
       return <RoomWidget config={widget.config} isEditing={isEditing} onConfigure={onClick} />;
@@ -113,7 +116,7 @@ export function DashboardWidgetNode({
   const devices = useDeviceSnapshotStore(state => state.devices);
   const boundDevice = devices.find(d => d.id === widget.config.binding.entityId);
   const isCamera = widget.type === 'device_control' && (boundDevice?.type === 'camera' || boundDevice?.semanticType === 'camera');
-  const isDevice = widget.type === 'device_control' && !isCamera;
+  const isDevice = (widget.type === 'device_control' || widget.type === 'action_button') && !isCamera;
   const isSection = widget.type === 'section'; const isTitleWidget = widget.type === 'dashboard_title';
 
   const accentColor = widget.config.appearance?.accentColor;

@@ -52,6 +52,41 @@ describe('HomeAssistantDeviceDriver', () => {
     expect(driver.supports({ ...mockDevice, integrationSource: 'sonoff' })).toBe(false);
   });
 
+  it('dispatches a stateless press only to Home Assistant button.press', async () => {
+    const button = { ...mockDevice, externalId: 'ha:button.gate_release', type: 'button', lastKnownState: { state: '2026-08-21T12:00:00Z' } };
+
+    const result = await driver.executeCommand(button, { name: 'press' }, { userId: 'u1', correlationId: 'c1' });
+
+    expect(result.success).toBe(true);
+    expect(mockClient.callService).toHaveBeenCalledWith('button', 'press', 'button.gate_release', undefined);
+    expect(result.newState).toEqual(button.lastKnownState);
+  });
+
+  it('does not dispatch press for a non-button Home Assistant domain', async () => {
+    const result = await driver.executeCommand(mockDevice, { name: 'press' }, { userId: 'u1', correlationId: 'c1' });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Comando press no soportado para el dominio light');
+    expect(mockClient.callService).not.toHaveBeenCalled();
+  });
+
+  it('dispatches activate on a Home Assistant scene entity to scene.turn_on', async () => {
+    const scene = { ...mockDevice, externalId: 'ha:scene.tv_input', type: 'scene', lastKnownState: { state: '2026-08-21T12:00:00Z' } };
+
+    const result = await driver.executeCommand(scene, { name: 'activate' }, { userId: 'u1', correlationId: 'c1' });
+
+    expect(result.success).toBe(true);
+    expect(mockClient.callService).toHaveBeenCalledWith('scene', 'turn_on', 'scene.tv_input', undefined);
+    expect(result.newState).toEqual(scene.lastKnownState);
+  });
+
+  it('does not dispatch activate for a non-scene Home Assistant domain', async () => {
+    const result = await driver.executeCommand(mockDevice, { name: 'activate' }, { userId: 'u1', correlationId: 'c1' });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Comando activate no soportado para el dominio light');
+    expect(mockClient.callService).not.toHaveBeenCalled();
+  });
   it('should execute turn_on command correctly', async () => {
     const result = await driver.executeCommand(
       mockDevice, 

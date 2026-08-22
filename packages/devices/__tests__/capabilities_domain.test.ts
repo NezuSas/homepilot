@@ -7,6 +7,11 @@ describe('Devices: Capabilities Domain', () => {
       expect(canDeviceExecuteCommand('light', 'toggle')).toBe(true);
     });
 
+    it('debe permitir press solo para dispositivos de tipo button', () => {
+      expect(canDeviceExecuteCommand('button', 'press')).toBe(true);
+      expect(canDeviceExecuteCommand('light', 'press')).toBe(false);
+    });
+
     it('debe permitir turn_on para dispositivos de tipo switch', () => {
       expect(canDeviceExecuteCommand('switch', 'turn_on')).toBe(true);
     });

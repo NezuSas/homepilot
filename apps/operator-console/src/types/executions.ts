@@ -3,7 +3,7 @@
  * Mirrors Backend domain for type-safe observability.
  */
 
-export type DeviceCommandV1 = "turn_on" | "turn_off" | "toggle" | "open" | "close" | "stop" | "set_position" | "set_temperature" | "set_hvac_mode" | "set_fan_mode";
+export type DeviceCommandV1 = "turn_on" | "turn_off" | "toggle" | "open" | "close" | "stop" | "set_position" | "set_temperature" | "set_hvac_mode" | "set_fan_mode" | "press";
 
 export interface DeviceCommandRequest {
   name: DeviceCommandV1;

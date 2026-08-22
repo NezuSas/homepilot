@@ -1,4 +1,5 @@
 import type { SnapshotDevice } from '../../stores/useDeviceSnapshotStore';
+import { canExecuteCommand } from '../../lib/deviceCapabilities';
 import type { DashboardWidget, DashboardWidgetConfig } from './types';
 import { generateId } from '../../utils/generateId';
 
@@ -154,6 +155,7 @@ export function getAssignableDevicesForSectionCard(kind: string, devices: Snapsh
       : kind === 'light' ? devices.filter(isLightDevice)
         : kind === 'sensor' ? devices.filter(isSensorDevice)
           : kind === 'media' ? devices.filter(isMediaPlayerDevice)
+            : kind === 'action' ? devices.filter((device) => canExecuteCommand(device, 'press') || canExecuteCommand(device, 'activate'))
             : kind === 'device'
               ? devices.filter((device) => !isCameraDevice(device) && !isSensorDevice(device) && !isMediaPlayerDevice(device))
               : [];

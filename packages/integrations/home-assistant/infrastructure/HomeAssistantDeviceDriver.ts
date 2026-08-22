@@ -80,6 +80,12 @@ export class HomeAssistantDeviceDriver implements DeviceDriver {
       domain = 'climate';
       service = 'set_fan_mode';
       data = { fan_mode: fanMode };
+    } else if (dispatchedCommand === 'press' && haDomain === 'button') {
+      domain = 'button';
+      service = 'press';
+    } else if (dispatchedCommand === 'activate' && haDomain === 'scene') {
+      domain = 'scene';
+      service = 'turn_on';
     } else if (dispatchedCommand === 'turn_on') service = 'turn_on';
     else if (dispatchedCommand === 'turn_off') service = 'turn_off';
     else if (dispatchedCommand === 'toggle') service = 'toggle';

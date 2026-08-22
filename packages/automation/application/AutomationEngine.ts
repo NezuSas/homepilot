@@ -388,6 +388,26 @@ export class AutomationEngine {
     }
   }
 
+  // ─── Manual execution (dashboard "routine" action cards) ──────────────────────
+
+  /**
+   * Runs a rule's action immediately, bypassing its trigger/condition and the
+   * loop-prevention cache — both exist to stop automations from re-firing
+   * each other, not to stop a person from deliberately pressing a button.
+   * Ownership must already be validated by the caller (route/use case).
+   */
+  public async runRuleNow(ruleId: string, correlationId: string): Promise<{ success: boolean; error?: string }> {
+    const rule = await this.ruleRepository.findById(ruleId);
+    if (!rule) return { success: false, error: 'AUTOMATION_NOT_FOUND' };
+
+    const failuresBefore = this.totalFailures;
+    await this.fireRule(rule, correlationId);
+    if (this.totalFailures !== failuresBefore) {
+      return { success: false, error: `Automation "${rule.name}" failed to run` };
+    }
+    return { success: true };
+  }
+
   // ─── Observable State Provider ────────────────────────────────────────────────
 
   public getObservableState(): AutomationEngineObservableState {

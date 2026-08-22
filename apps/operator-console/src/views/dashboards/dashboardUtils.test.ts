@@ -131,6 +131,29 @@ describe('dashboard section devices', () => {
     expect(getAssignableDevicesForSectionCard('light', devices).map((device) => device.id)).toEqual(['light-1']);
     expect(getAssignableDevicesForSectionCard('media', devices).map((device) => device.id)).toEqual(['media-1']);
     expect(getAssignableDevicesForSectionCard('camera', devices).map((device) => device.id)).toEqual(['camera-1']);
+    expect(getAssignableDevicesForSectionCard('action', devices)).toEqual([]);
+  });
+
+  it('lists action-card bindings only when the backend explicitly exposes press', () => {
+    const devices = [
+      createDevice('button-1', 'Abrir portón', 'button', { domain: 'button', type: 'button', category: 'switching' }),
+      createDevice('light-1', 'Sala', 'light'),
+    ];
+    devices[0]!.capabilities = [{ type: 'button', name: 'Button', commands: [{ name: 'press' }] }];
+    devices[1]!.capabilities = [{ type: 'light', name: 'Light', commands: [{ name: 'turn_on' }] }];
+
+    expect(getAssignableDevicesForSectionCard('action', devices).map((device) => device.id)).toEqual(['button-1']);
+  });
+
+  it('also lists Home Assistant scene entities imported as activatable devices for action cards', () => {
+    const devices = [
+      createDevice('scene-1', 'TV Input', 'scene', { domain: 'scene', type: 'scene', category: 'switching' }),
+      createDevice('light-1', 'Sala', 'light'),
+    ];
+    devices[0]!.capabilities = [{ type: 'scene', name: 'Scene', commands: [{ name: 'activate' }] }];
+    devices[1]!.capabilities = [{ type: 'light', name: 'Light', commands: [{ name: 'turn_on' }] }];
+
+    expect(getAssignableDevicesForSectionCard('action', devices).map((device) => device.id)).toEqual(['scene-1']);
   });
 
   it('never treats a camera media feed as a media player', () => {

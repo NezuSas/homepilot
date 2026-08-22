@@ -10,6 +10,13 @@ export interface DeviceTileShellProps extends React.HTMLAttributes<HTMLDivElemen
   children: React.ReactNode;
 }
 
+export function getDeviceTileStateClasses(active: boolean, tone: 'brand' | 'light' = 'brand') {
+  return cn(
+    active ? 'device-state-on' : 'device-state-off',
+    tone === 'light' && 'device-tone-light',
+  );
+}
+
 export const DeviceTileShell = React.forwardRef<HTMLDivElement, DeviceTileShellProps>(
   (
     {
@@ -48,8 +55,7 @@ export const DeviceTileShell = React.forwardRef<HTMLDivElement, DeviceTileShellP
         className={cn(
           'surface-transition relative flex min-w-0 w-full self-start min-h-device-tile flex-col justify-between overflow-hidden rounded-card border p-3 group sm:min-h-device-tile-lg sm:p-4',
           isInteractive ? 'interactive-lift touch-manipulation cursor-pointer' : 'cursor-default',
-          active ? 'device-state-on' : 'device-state-off',
-          tone === 'light' && 'device-tone-light',
+          getDeviceTileStateClasses(active, tone),
           syncing && 'ring-1 ring-primary/15',
           disabled && 'pointer-events-none select-none opacity-30 grayscale',
           className

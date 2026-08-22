@@ -14,7 +14,9 @@ export type CapabilityType =
   | 'climate' 
   | 'media_player'
   | 'camera'
-  | 'camera_ptz';
+  | 'camera_ptz'
+  | 'button'
+  | 'scene';
 
 /**
  * CapabilityCommandParamSchema
@@ -89,6 +91,12 @@ export const CAPABILITY_DEFINITIONS: Record<CapabilityType, CapabilityCommand[]>
     },
   ],
   'camera': [],
+  'button': [
+    { name: 'press' },
+  ],
+  'scene': [
+    { name: 'activate' },
+  ],
   'camera_ptz': [
     {
       name: 'ptz_move',

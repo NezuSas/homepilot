@@ -168,6 +168,34 @@ export class AutomationRoutes extends ApiRoutes {
       return true;
     }
 
+    // POST /api/v1/automations/:id/run — manual "run now", used by dashboard action cards.
+    const runMatch = method === 'POST' && pathname.match(/^\/api\/v1\/automations\/([^\/]+)\/run$/);
+    if (runMatch) {
+      const ruleId = runMatch[1];
+      try {
+        const rule = await container.repositories.automationRuleRepository.findById(ruleId);
+        if (!rule) { this.sendError(res, 404, 'AUTOMATION_NOT_FOUND', `Automation ${ruleId} not found`); return true; }
+        await this.createTopologyReferencePort(container).validateHomeOwnership(rule.homeId, req.user!.id);
+
+        if (!container.engine) {
+          this.sendError(res, 503, 'AUTOMATION_ENGINE_UNAVAILABLE', 'Automation engine is not running');
+          return true;
+        }
+
+        const correlationId = crypto.randomUUID();
+        const result = await container.engine.runRuleNow(ruleId, correlationId);
+        if (!result.success) {
+          this.sendError(res, 502, 'AUTOMATION_RUN_FAILED', result.error || `Automation ${ruleId} failed to run`);
+          return true;
+        }
+        this.sendJson(res, { success: true, correlationId });
+      } catch (error: unknown) {
+        const { name, message } = this.getErrorDetails(error);
+        this.sendError(res, name === 'ForbiddenOwnershipError' ? 403 : 500, 'AUTOMATION_RUN_ERROR', message);
+      }
+      return true;
+    }
+
     // DELETE /api/v1/automations/:id
     const deleteMatch = method === 'DELETE' && pathname.match(/^\/api\/v1\/automations\/([^\/]+)$/);
     if (deleteMatch) {

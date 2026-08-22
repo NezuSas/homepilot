@@ -2,6 +2,7 @@
 
 export type WidgetType = 
   | 'device_control' 
+  | 'action_button'
   | 'room_overview' 
   | 'room_summary'   // legacy alias; maps to RoomWidget
   | 'scene_shortcut' 
@@ -36,7 +37,7 @@ export interface DashboardWidgetConfig {
   layout: WidgetLayout;
   binding: {
     entityId: string;
-    entityType: 'device' | 'room' | 'scene' | 'group' | 'system' | 'assistant' | 'energy';
+    entityType: 'device' | 'room' | 'scene' | 'automation' | 'group' | 'system' | 'assistant' | 'energy';
     entityName?: string;
   };
   visibility: {

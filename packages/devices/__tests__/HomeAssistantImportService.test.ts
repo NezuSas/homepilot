@@ -146,6 +146,38 @@ describe('Feature: Home Assistant device import', () => {
     expect(mockDeviceRepo.saveDevice).toHaveBeenCalledWith(device);
   });
 
+  it('HA entity button.gate_release imports as a stateless button action', async () => {
+    mockHAClient.getEntityState.mockResolvedValue({
+      entity_id: 'button.gate_release',
+      state: '2026-08-21T12:00:00Z',
+      attributes: { friendly_name: 'Abrir portón' },
+      last_changed: '2026-08-21T12:00:00Z',
+      last_updated: '2026-08-21T12:00:00Z',
+    });
+
+    const device = await service.importDevice('button.gate_release', 'user-1');
+
+    expect(device.type).toBe('button');
+    expect(device.semanticType).toBe('button');
+    expect(mockDeviceRepo.saveDevice).toHaveBeenCalledWith(device);
+  });
+
+  it('HA entity scene.tv_input imports as an activatable scene instead of a generic sensor', async () => {
+    mockHAClient.getEntityState.mockResolvedValue({
+      entity_id: 'scene.tv_input',
+      state: '2026-08-21T12:00:00Z',
+      attributes: { friendly_name: 'TV Input' },
+      last_changed: '2026-08-21T12:00:00Z',
+      last_updated: '2026-08-21T12:00:00Z',
+    });
+
+    const device = await service.importDevice('scene.tv_input', 'user-1');
+
+    expect(device.type).toBe('scene');
+    expect(device.semanticType).toBe('scene');
+    expect(mockDeviceRepo.saveDevice).toHaveBeenCalledWith(device);
+  });
+
   it('HA entity camera.ingreso imports as a read-only camera', async () => {
     mockHAClient.getEntityState.mockResolvedValue({
       entity_id: 'camera.ingreso',

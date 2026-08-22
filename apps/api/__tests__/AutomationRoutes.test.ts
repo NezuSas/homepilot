@@ -32,8 +32,12 @@ function createContainer(isAuthorized = true): BootstrapContainer {
       },
       automationRuleRepository: {
         findByHomeId: jest.fn().mockResolvedValue([{ id: 'automation-1', homeId: 'home-1' }]),
+        findById: jest.fn().mockResolvedValue({ id: 'automation-1', homeId: 'home-1' }),
       },
       roomRepository: { findRoomById: jest.fn() },
+    },
+    engine: {
+      runRuleNow: jest.fn().mockResolvedValue({ success: true }),
     },
   } as unknown as BootstrapContainer;
 }
@@ -109,5 +113,73 @@ describe('Feature: automation route contract', () => {
 
     expect(handled).toBe(false);
     expect(container.guards.authGuard.protect).not.toHaveBeenCalled();
+  });
+
+  describe('Scenario: manual "run now" (dashboard routine action cards)', () => {
+    it('runs the rule immediately for its owner and returns a correlation id', async () => {
+      const container = createContainer();
+      const response = new MockResponse();
+
+      await new AutomationRoutes().handle(createRequest(), response as unknown as http.ServerResponse, '/api/v1/automations/automation-1/run', 'POST', container);
+
+      expect(container.engine!.runRuleNow).toHaveBeenCalledWith('automation-1', expect.any(String));
+      expect(response.writeHead).toHaveBeenCalledWith(200, expect.any(Object));
+      expect(response.end).toHaveBeenCalledWith(expect.stringContaining('"success":true'));
+    });
+
+    it('returns AUTOMATION_NOT_FOUND for an unknown rule id', async () => {
+      const container = createContainer();
+      const response = new MockResponse();
+      (container.repositories.automationRuleRepository.findById as jest.Mock).mockResolvedValue(null);
+
+      await new AutomationRoutes().handle(createRequest(), response as unknown as http.ServerResponse, '/api/v1/automations/missing/run', 'POST', container);
+
+      expect(response.writeHead).toHaveBeenCalledWith(404, expect.any(Object));
+      expect(response.end).toHaveBeenCalledWith(expect.stringContaining('AUTOMATION_NOT_FOUND'));
+      expect(container.engine!.runRuleNow).not.toHaveBeenCalled();
+    });
+
+    it('rejects a rule that does not belong to the requesting user\'s home', async () => {
+      const container = createContainer();
+      const response = new MockResponse();
+      (container.repositories.automationRuleRepository.findById as jest.Mock).mockResolvedValue({ id: 'automation-1', homeId: 'other-home' });
+      (container.repositories.homeRepository.findHomeById as jest.Mock).mockResolvedValue({ id: 'other-home' });
+
+      await new AutomationRoutes().handle(createRequest(), response as unknown as http.ServerResponse, '/api/v1/automations/automation-1/run', 'POST', container);
+
+      expect(response.writeHead).toHaveBeenCalledWith(403, expect.any(Object));
+      expect(container.engine!.runRuleNow).not.toHaveBeenCalled();
+    });
+
+    it('returns AUTOMATION_RUN_FAILED when the engine reports a failure', async () => {
+      const container = createContainer();
+      const response = new MockResponse();
+      (container.engine!.runRuleNow as jest.Mock).mockResolvedValue({ success: false, error: 'device offline' });
+
+      await new AutomationRoutes().handle(createRequest(), response as unknown as http.ServerResponse, '/api/v1/automations/automation-1/run', 'POST', container);
+
+      expect(response.writeHead).toHaveBeenCalledWith(502, expect.any(Object));
+      expect(response.end).toHaveBeenCalledWith(expect.stringContaining('AUTOMATION_RUN_FAILED'));
+    });
+
+    it('returns AUTOMATION_ENGINE_UNAVAILABLE when the engine is not wired', async () => {
+      const container = createContainer();
+      delete (container as { engine?: unknown }).engine;
+      const response = new MockResponse();
+
+      await new AutomationRoutes().handle(createRequest(), response as unknown as http.ServerResponse, '/api/v1/automations/automation-1/run', 'POST', container);
+
+      expect(response.writeHead).toHaveBeenCalledWith(503, expect.any(Object));
+      expect(response.end).toHaveBeenCalledWith(expect.stringContaining('AUTOMATION_ENGINE_UNAVAILABLE'));
+    });
+
+    it('requires authentication before running a rule', async () => {
+      const container = createContainer(false);
+      const response = new MockResponse();
+
+      await new AutomationRoutes().handle(createRequest(), response as unknown as http.ServerResponse, '/api/v1/automations/automation-1/run', 'POST', container);
+
+      expect(container.repositories.automationRuleRepository.findById).not.toHaveBeenCalled();
+    });
   });
 });

@@ -10,7 +10,8 @@ import { isDeviceActive } from '../dashboardUtils';
 import { DormantWidgetPlaceholder } from '../components/DormantWidgetPlaceholder';
 import { CameraDeviceTile } from '../../../components/CameraDeviceTile';
 import { getDashboardIconComponent, needsMdiCatalog, useMdiCatalogLoaded } from '../components/IconPicker';
-import { Button } from '../../../components/ui/Button';
+import { getDeviceTileStateClasses } from '../../../components/ui/DeviceTileShell';
+import { createDeviceTogglePlan, executeDeviceToggle } from './deviceToggle';
 
 const API = `${API_BASE_URL}/api/v1`;
 
@@ -20,8 +21,10 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
   // catalog for the normal HomePilot icon set.
   useMdiCatalogLoaded(needsMdiCatalog(config.appearance.icon));
   const devices = useDeviceSnapshotStore((state) => state.devices);
-  const device = devices.find(d => d.id === config.binding.entityId);
+  const upsertDevice = useDeviceSnapshotStore((state) => state.upsertDevice);
+  const device = devices.find((candidate) => candidate.id === config.binding.entityId);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [toggleError, setToggleError] = useState<string | null>(null);
 
   if (!device) {
     return (
@@ -45,137 +48,137 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
   }
 
   const isOn = isDeviceActive(device);
-
-  const handleToggle = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsProcessing(true);
-    try {
-      await apiFetch(`${API}/devices/${device.id}/command`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command: isOn ? 'turn_off' : 'turn_on' })
-      });
-    } catch (err) {
-      console.error('Failed to toggle device:', err);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const getIcon = (): React.ElementType => {
-    if (config.appearance.icon) {
-      const raw = config.appearance.icon.trim();
-      const withoutPrefix = raw.replace(/^mdi:/i, '');
-
-      // Legacy Spanish aliases stored before the shared MDI+Lucide catalog
-      // existed; kept so previously saved icons keep resolving.
-      const customMap: Record<string, string> = {
-        gata: 'mdi:cat',
-        cat: 'mdi:cat',
-        luz: 'mdi:lightbulb',
-        interruptor: 'mdi:power',
-        enchuf: 'mdi:power-plug',
-        enchufe: 'mdi:power-plug',
-        camera: 'mdi:camera',
-        camara: 'mdi:camera',
-        recessed: 'mdi:lightbulb',
-        'light-recessed': 'mdi:lightbulb'
-      };
-
-      const alias = customMap[withoutPrefix.toLowerCase()];
-      // Shared resolver: understands both `mdi:*` (Home Assistant Material
-      // Design Icons) and plain Lucide names, unlike the old Lucide-only lookup.
-      const resolved = getDashboardIconComponent(alias ?? raw);
-      if (resolved !== CircleHelp) return resolved;
-    }
-
-    switch (device.type) {
-      case 'light': return Lightbulb;
-      case 'switch': return Power;
-      default: return Power;
-    }
-  };
-  
-  const IconComponent = getIcon();
+  const isPhysicalLight = device.type === 'light' || device.semanticType === 'light';
+  const togglePlan = createDeviceTogglePlan(device);
+  const canToggle = togglePlan !== null;
+  const displayName = config.appearance.title || config.binding.entityName || device.name;
+  const IconComponent = getIconComponent(device.type, config.appearance.icon);
   const isCompact = config.layout.h === 1;
+  const stateLabel = isOn ? t('common.on') : t('common.off');
 
-  if (isCompact) {
-    return (
-      <Button
-        type="button"
-        variant="ghost"
-        size="md"
-        className={cn(
-          "relative h-full w-full min-w-0 min-h-0 flex flex-row items-center gap-3 px-3 py-2 @md:px-4 transition-all duration-300 select-none group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-background"
-        )}
-        onClick={handleToggle}
-        disabled={isProcessing}
-      >
-        <div className={cn(
-          "flex shrink-0 items-center justify-center transition-all duration-300",
-          isOn 
-            ? device.type === 'light' 
-              ? "text-light-active drop-shadow-none shadow-[0_0_8px_hsl(var(--light-active)/0.5)] scale-110"
-              : "text-primary drop-shadow-primary-beacon scale-110"
-            : "text-muted-foreground/50 scale-100 group-hover:text-muted-foreground/70"
-        )}>
-          <IconComponent className="h-device-icon-sm w-device-icon-sm" />
-        </div>
-        <div className="flex-1 min-w-0 overflow-hidden text-left">
-          <h4 className={cn(
-            "text-widget-body-fluid font-bold tracking-tight leading-none truncate",
-            isOn ? "text-foreground" : "text-muted-foreground/80"
-          )}>
-            {config.appearance.title || config.binding.entityName || device.name}
-          </h4>
-        </div>
+  const handleToggle = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (isProcessing || !canToggle) return;
 
-        {/* Loading state overlay */}
-        {isProcessing && (
-          <div className="absolute inset-0 bg-background/50 backdrop-blur-surface flex items-center justify-center rounded-[inherit] z-10">
-            <Loader2 className="w-4 h-4 animate-spin text-primary" />
-          </div>
-        )}
-      </Button>
-    );
-  }
+    setIsProcessing(true);
+    setToggleError(null);
+
+    const result = await executeDeviceToggle(device, {
+      upsertDevice,
+      sendCommand: async (command) => {
+        const response = await apiFetch(`${API}/devices/${encodeURIComponent(device.id)}/command`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`DEVICE_COMMAND_${response.status}`);
+        }
+
+        return await response.json();
+      },
+    });
+
+    if (!result.succeeded) {
+      setToggleError(t('dashboards.widgets.selected_device.toggle_error'));
+    }
+
+    setIsProcessing(false);
+  };
 
   return (
-    <Button
+    <button
       type="button"
-      variant="ghost"
-      size="md"
       className={cn(
-        "relative h-full w-full min-w-0 min-h-0 flex flex-col items-center justify-center p-3 @md:p-4 transition-all duration-300 select-none group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+        'device-toggle-control relative h-full w-full min-h-0 min-w-0 overflow-hidden rounded-[inherit] text-left transition-[background-color,border-color,box-shadow,transform] duration-300 ease-out',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        'disabled:pointer-events-none disabled:cursor-default',
+        'group',
+        getDeviceTileStateClasses(isOn, isPhysicalLight ? 'light' : 'brand'),
+        isCompact
+          ? 'flex items-center gap-3 px-3 py-2 @md:px-4'
+          : 'flex flex-col justify-between p-3 @md:p-4',
       )}
       onClick={handleToggle}
-      disabled={isProcessing}
+      disabled={isProcessing || !canToggle}
+      aria-pressed={isOn}
+      aria-busy={isProcessing || undefined}
+      aria-label={t('dashboards.widgets.selected_device.toggle_label', { name: displayName, state: stateLabel })}
+      title={!canToggle ? t('dashboards.widgets.selected_device.toggle_unavailable') : undefined}
     >
-      <div className={cn(
-        "flex items-center justify-center transition-all duration-300",
-        isOn
-          ? device.type === 'light'
-            ? "text-light-active drop-shadow-none shadow-[0_0_16px_hsl(var(--light-active)/0.6)] scale-110"
-            : "text-primary drop-shadow-none shadow-primary-glow scale-110"
-          : "text-muted-foreground/50 scale-100 group-hover:text-muted-foreground/70"
-      )}>
-        <IconComponent className="h-device-icon-lg w-device-icon-lg" />
-      </div>
-      <div className="mt-2 w-full min-w-0 overflow-hidden text-center">
-        <h4 className={cn(
-          "text-widget-body-lg-fluid font-bold tracking-tight leading-tight truncate px-1",
-          isOn ? "text-foreground" : "text-muted-foreground/80"
-        )}>
-          {config.appearance.title || config.binding.entityName || device.name}
-        </h4>
+      <div className={cn('flex min-w-0 items-center', isCompact ? 'flex-1 gap-3' : 'w-full justify-between gap-3')}>
+        <span
+          aria-hidden="true"
+          className={cn(
+            'device-toggle-icon flex shrink-0 items-center justify-center rounded-control transition-colors duration-300',
+            isCompact ? 'h-9 w-9' : 'h-11 w-11 @md:h-12 @md:w-12',
+          )}
+        >
+          <IconComponent className={cn(isCompact ? 'h-device-icon-sm w-device-icon-sm' : 'h-device-icon-md w-device-icon-md')} />
+        </span>
+        {isCompact && (
+          <div className="min-w-0 flex-1">
+            <h4 className="truncate text-widget-body-fluid font-semibold leading-tight tracking-tight">{displayName}</h4>
+            <p className="mt-0.5 text-widget-meta-fluid text-muted-foreground">{stateLabel}</p>
+          </div>
+        )}
+        <span className="device-toggle-status shrink-0 rounded-pill px-2 py-1 text-widget-meta-fluid font-semibold leading-none">
+          {stateLabel}
+        </span>
       </div>
 
-      {/* Loading state overlay */}
-      {isProcessing && (
-        <div className="absolute inset-0 bg-background/50 backdrop-blur-surface flex items-center justify-center rounded-[inherit] z-10">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      {!isCompact && (
+        <div className="min-w-0 pr-1">
+          <h4 className="truncate text-widget-body-lg-fluid font-semibold leading-tight tracking-tight">{displayName}</h4>
+          <p className="mt-1 text-widget-meta-fluid text-muted-foreground">
+            {t('dashboards.widgets.selected_device.toggle_hint', { state: stateLabel })}
+          </p>
         </div>
       )}
-    </Button>
+
+      {toggleError && (
+        <span role="status" className="device-toggle-error absolute inset-x-3 bottom-2 truncate rounded-control px-2 py-1 text-widget-meta-fluid font-medium">
+          {toggleError}
+        </span>
+      )}
+
+      {isProcessing && (
+        <span className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-background/28 backdrop-blur-surface" aria-hidden="true">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        </span>
+      )}
+    </button>
   );
+}
+
+function getIconComponent(deviceType: string, configuredIcon?: string): React.ElementType {
+  if (configuredIcon) {
+    const raw = configuredIcon.trim();
+    const withoutPrefix = raw.replace(/^mdi:/i, '');
+
+    // Legacy Spanish aliases stored before the shared MDI+Lucide catalog
+    // existed; kept so previously saved icons keep resolving.
+    const customMap: Record<string, string> = {
+      gata: 'mdi:cat',
+      cat: 'mdi:cat',
+      luz: 'mdi:lightbulb',
+      interruptor: 'mdi:power',
+      enchuf: 'mdi:power-plug',
+      enchufe: 'mdi:power-plug',
+      camera: 'mdi:camera',
+      camara: 'mdi:camera',
+      recessed: 'mdi:lightbulb',
+      'light-recessed': 'mdi:lightbulb',
+    };
+
+    const resolved = getDashboardIconComponent(customMap[withoutPrefix.toLowerCase()] ?? raw);
+    if (resolved !== CircleHelp) return resolved;
+  }
+
+  switch (deviceType) {
+    case 'light': return Lightbulb;
+    case 'switch': return Power;
+    default: return Power;
+  }
 }
