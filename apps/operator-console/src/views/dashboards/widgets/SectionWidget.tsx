@@ -603,7 +603,7 @@ function CardPreview({
     return (
       <div
         className={cn(
-          "relative flex h-full min-h-0 w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-section border p-2 text-center text-foreground transition-all",
+          "relative flex h-full min-h-0 w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-section border p-1.5 text-center text-foreground transition-all",
           isActive
             ? isLightKind
               ? "border-light-active/45 bg-light-active/14 shadow-surface-card"
@@ -612,10 +612,10 @@ function CardPreview({
         )}
       >
         <Icon className={cn(
-          "h-8 w-8 shrink-0 transition-colors",
+          "h-6 w-6 shrink-0 transition-colors",
           isActive ? (isLightKind ? "text-light-active" : "text-primary") : "text-muted-foreground"
         )} />
-        <span className="line-clamp-2 min-w-0 text-micro font-bold leading-tight text-foreground">{title}</span>
+        <span className="line-clamp-2 min-w-0 text-nano font-bold leading-tight text-foreground">{title}</span>
       </div>
     );
   }
@@ -1683,7 +1683,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     <div
       onClick={(event) => event.stopPropagation()}
       className="grid min-h-0 flex-1 auto-rows-[minmax(20px,auto)] grid-flow-row-dense content-start items-start gap-3 overflow-visible pr-1"
-      style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 6rem), 1fr))' }}
+      style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 4rem), 1fr))' }}
     >
       <DndContext sensors={cardDragSensors} onDragEnd={handleCardDragEnd}>
         <SortableContext items={cards.map((card) => card.id)} strategy={rectSortingStrategy}>
