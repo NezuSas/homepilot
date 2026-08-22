@@ -16,6 +16,7 @@
       llegue el estado real.
 - [x] AC18: El canvas limita la distribución a dos columnas en kioscos verticales de alta resolución;
       prueba unitaria y prueba responsive cubren el caso 1080×1920 sin cambiar móvil, tablet ni escritorio.
+- [x] AC24–AC25: Reserved the four-per-row compact size for light cards, normalized stale compact spans for all other kinds, and simplified section-card edit controls to direct edit, overflow actions, and drag-from-card reordering.
 
 ## Verificación obligatoria ante cambios
 

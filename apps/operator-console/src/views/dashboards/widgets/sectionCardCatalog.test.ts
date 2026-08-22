@@ -95,11 +95,11 @@ describe('section card catalog contracts', () => {
     }
   });
 
-  it('never lets a media/camera/sensor/room/scene card collapse to a quarter-width col-span-1 tile', () => {
+  it('reserves the quarter-width layout for light cards and normalizes every other kind to medium', () => {
     expect(canUseCompactSpan('light')).toBe(true);
-    expect(canUseCompactSpan('device')).toBe(true);
-    expect(canUseCompactSpan('action')).toBe(true);
-    expect(canUseCompactSpan('cover')).toBe(true);
+    expect(canUseCompactSpan('device')).toBe(false);
+    expect(canUseCompactSpan('action')).toBe(false);
+    expect(canUseCompactSpan('cover')).toBe(false);
     expect(canUseCompactSpan('media')).toBe(false);
     expect(canUseCompactSpan('camera')).toBe(false);
     expect(canUseCompactSpan('sensor')).toBe(false);
@@ -109,6 +109,9 @@ describe('section card catalog contracts', () => {
     expect(getEffectiveCardSpan('media', 'small')).toBe('medium');
     expect(getEffectiveCardSpan('camera', 'small')).toBe('medium');
     expect(getEffectiveCardSpan('sensor', 'small')).toBe('medium');
+    expect(getEffectiveCardSpan('device', 'small')).toBe('medium');
+    expect(getEffectiveCardSpan('action', 'small')).toBe('medium');
+    expect(getEffectiveCardSpan('cover', 'small')).toBe('medium');
     expect(getEffectiveCardSpan('light', 'small')).toBe('small');
 
     // A stale/imported card with a nonsensical stored span is corrected at
@@ -117,6 +120,9 @@ describe('section card catalog contracts', () => {
       { kind: 'media', span: 'small' },
       { kind: 'camera', span: 'small' },
       { kind: 'sensor', span: 'small' },
+      { kind: 'device', span: 'small' },
+      { kind: 'action', span: 'small' },
+      { kind: 'cover', span: 'small' },
     ] });
     expect(cards.every((card) => card.span === 'medium')).toBe(true);
   });

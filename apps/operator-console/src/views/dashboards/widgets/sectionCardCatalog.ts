@@ -107,12 +107,12 @@ export function getDefaultSpan(kind: SectionCardKind): SectionCardSpan {
   return 'medium';
 }
 
-// Only button/tile-shaped kinds render sensibly at a quarter of the
-// section's width. Media players, cameras, sensors, rooms, and scenes need
-// real room for controls/gauges/summaries and must never collapse to
-// col-span-1, even if a card was left with a stale/manually-dragged
-// 'small' span from before this kind existed or from a stray resize.
-const COMPACT_TILE_KINDS = new Set<NormalizedSectionCardKind>(['light', 'device', 'action', 'cover']);
+// Quarter-width cards are deliberately exclusive to lights. A light keeps
+// its simple on/off affordance at four cards per row; every other card needs
+// a wider surface for its controls, status, or content. Persisted legacy
+// spans are normalized through this same rule so the editor and renderer
+// cannot diverge.
+const COMPACT_TILE_KINDS = new Set<NormalizedSectionCardKind>(['light']);
 
 export function canUseCompactSpan(kind: SectionCardKind): boolean {
   return COMPACT_TILE_KINDS.has(normalizeKind(kind));

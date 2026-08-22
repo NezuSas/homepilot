@@ -75,6 +75,8 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - [x] AC21: Tanto una tarjeta de sección como un widget del lienzo externo pueden redimensionarse arrastrando una manija en la esquina inferior derecha, además del selector categórico existente; el arrastre siempre resuelve a uno de los tamaños ya soportados (no introduce un modelo de tamaño libre nuevo).
 - [x] AC22: El catálogo de "agregar tarjeta" permite filtrar por categoría (Control, Información, Automatización, Reloj) además de la búsqueda de texto libre.
 - [x] AC23: El campo `tab.layout` ('sections'/'masonry'/'sidebar'/'panel'), que no tenía ningún lector real en el código, fue eliminado del modelo de datos (frontend y backend) en vez de dejarse como una opción que aparentaba funcionar sin hacerlo.
+- [x] AC24: In section edit mode, only light cards may use the quarter-width size (four cards per row). Every other card is constrained to medium or full width, including imported legacy configurations.
+- [x] AC25: Section cards are reordered by dragging the card surface. Editing remains directly available from a centered pencil, while the top-right overflow menu contains only Edit and Delete actions.
 
 ## 7. Notas Técnicas y Arquitectura
 

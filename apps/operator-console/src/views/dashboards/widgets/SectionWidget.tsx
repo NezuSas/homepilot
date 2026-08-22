@@ -7,11 +7,11 @@ import {
   Camera,
   Check,
   CircleAlert,
-  GripVertical,
   Home,
   Loader2,
   Maximize2,
   Monitor,
+  MoreVertical,
   Pencil,
   Plus,
   RefreshCw,
@@ -607,7 +607,7 @@ function CardPreview({
     return (
       <div
         className={cn(
-          "relative flex h-full min-h-0 w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl border p-2.5 text-center text-foreground transition-all",
+          "relative flex h-full min-h-0 w-full flex-col items-center justify-center overflow-hidden rounded-xl border p-2.5 text-center text-foreground transition-all",
           isActive
             ? isLightKind
               ? "border-light-active/45 bg-light-active/14 shadow-surface-card"
@@ -712,18 +712,20 @@ function useMasonryRowSpans() {
   return { rowSpans, registerCard };
 }
 
-// Dragging the corner handle steps through the same small/medium/full sizes
-// already offered in the card editor — a faster path to the same values,
-// not a new free-form sizing model.
-const CARD_SPAN_ORDER: SectionCardSpan[] = ['small', 'medium', 'full'];
+// Dragging the corner handle steps through the same named sizes offered in
+// the editor. Quarter-width remains a light-only choice.
+const COMPACT_CARD_SPAN_ORDER: SectionCardSpan[] = ['small', 'medium', 'full'];
+const STANDARD_CARD_SPAN_ORDER: SectionCardSpan[] = ['medium', 'full'];
 const CARD_RESIZE_STEP_PX = 64;
 
 function CardResizeHandle({
   span,
+  spanOrder,
   label,
   onResize,
 }: {
   span: SectionCardSpan;
+  spanOrder: SectionCardSpan[];
   label: string;
   onResize: (nextSpan: SectionCardSpan) => void;
 }) {
@@ -734,33 +736,33 @@ function CardResizeHandle({
       role="slider"
       aria-label={label}
       aria-valuemin={0}
-      aria-valuemax={CARD_SPAN_ORDER.length - 1}
-      aria-valuenow={CARD_SPAN_ORDER.indexOf(span)}
+      aria-valuemax={spanOrder.length - 1}
+      aria-valuenow={spanOrder.indexOf(span)}
       aria-valuetext={span}
       tabIndex={0}
       title={label}
       onClick={(event) => event.stopPropagation()}
       onKeyDown={(event) => {
-        const currentIndex = CARD_SPAN_ORDER.indexOf(span);
-        if (event.key === 'ArrowRight' && currentIndex < CARD_SPAN_ORDER.length - 1) {
+        const currentIndex = spanOrder.indexOf(span);
+        if (event.key === 'ArrowRight' && currentIndex < spanOrder.length - 1) {
           event.preventDefault();
-          onResize(CARD_SPAN_ORDER[currentIndex + 1]);
+          onResize(spanOrder[currentIndex + 1]);
         } else if (event.key === 'ArrowLeft' && currentIndex > 0) {
           event.preventDefault();
-          onResize(CARD_SPAN_ORDER[currentIndex - 1]);
+          onResize(spanOrder[currentIndex - 1]);
         }
       }}
       onPointerDown={(event) => {
         event.stopPropagation();
         event.currentTarget.setPointerCapture(event.pointerId);
-        dragStartRef.current = { x: event.clientX, index: CARD_SPAN_ORDER.indexOf(span) };
+        dragStartRef.current = { x: event.clientX, index: spanOrder.indexOf(span) };
       }}
       onPointerMove={(event) => {
         const start = dragStartRef.current;
         if (!start) return;
         const deltaSteps = Math.round((event.clientX - start.x) / CARD_RESIZE_STEP_PX);
-        const nextIndex = Math.min(CARD_SPAN_ORDER.length - 1, Math.max(0, start.index + deltaSteps));
-        const nextSpan = CARD_SPAN_ORDER[nextIndex];
+        const nextIndex = Math.min(spanOrder.length - 1, Math.max(0, start.index + deltaSteps));
+        const nextSpan = spanOrder[nextIndex];
         if (nextSpan !== span) onResize(nextSpan);
       }}
       onPointerUp={(event) => {
@@ -810,6 +812,8 @@ function SectionCardItem({
   rowSpan: number;
 }) {
   const { t } = useTranslation();
+  const [isCardMenuOpen, setIsCardMenuOpen] = useState(false);
+  const [cardMenuPosition, setCardMenuPosition] = useState<{ top: number; right: number } | null>(null);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: card.id,
     disabled: !isEditing,
@@ -829,6 +833,7 @@ function SectionCardItem({
   const isTileKind = normalizedKind === 'device' || normalizedKind === 'light';
   const isCompactDeviceCard = isTileKind && span === 'small';
   const canResize = isEditing && !isClock;
+  const spanOrder = canUseCompactSpan(card.kind) ? COMPACT_CARD_SPAN_ORDER : STANDARD_CARD_SPAN_ORDER;
   const roomDevices = normalizedKind === 'room' && card.entityId
     ? devices.filter((device) => device.roomId === card.entityId)
     : [];
@@ -842,6 +847,17 @@ function SectionCardItem({
   const isActionable = Boolean(card.entityId)
     && !isEditing
     && (normalizedKind === 'device' || normalizedKind === 'light' || normalizedKind === 'action');
+
+  useEffect(() => {
+    if (!isCardMenuOpen) return;
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsCardMenuOpen(false);
+    };
+
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [isCardMenuOpen]);
 
   return (
     <div
@@ -865,6 +881,8 @@ function SectionCardItem({
         transition: transition ?? undefined,
       }}
       onClick={isCover || normalizedKind === 'action' ? undefined : (event) => { void handleCardAction(card, event); }}
+      {...(isEditing ? attributes : {})}
+      {...(isEditing ? listeners : {})}
       className={cn(
         // `grid` here isn't for a multi-cell layout — CardPreview is the
         // only child. It's so that child fills this box automatically:
@@ -919,50 +937,89 @@ function SectionCardItem({
       ) : null}
 
       {isEditing ? (
-        <div className={cn(
-          "absolute z-20 flex items-center opacity-0 transition-opacity group-hover/card:opacity-100 [@media(hover:none)]:opacity-100",
-          isCompactDeviceCard ? "right-1 top-1 gap-0.5" : "right-2 top-2 gap-1"
-        )}>
-          <span
-            className={cn(
-              "grid cursor-grab touch-none place-items-center rounded-xl bg-background/95 text-muted-foreground shadow-lg backdrop-blur-md active:cursor-grabbing",
-              isCompactDeviceCard ? "h-6 w-6" : "h-9 w-9"
-            )}
-            title={t('dashboard.editor.sections.move_card')}
-            onClick={(event) => event.stopPropagation()}
-            {...attributes}
-            {...listeners}
+        <>
+          <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center">
+            <IconButton
+              icon={Pencil}
+              label={t('dashboard.editor.sections.edit_card')}
+              onPointerDown={(event) => event.stopPropagation()}
+              onKeyDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                openCardEditor(card);
+              }}
+              variant="default"
+              size={isCompactDeviceCard ? "sm" : "md"}
+              className="pointer-events-auto rounded-full bg-background/95 shadow-lg backdrop-blur-md hover:text-primary"
+            />
+          </div>
+          <div className={cn("absolute right-2 top-2 z-30", isCompactDeviceCard && "right-1 top-1")}>
+            <IconButton
+              icon={MoreVertical}
+              label={t('dashboard.editor.sections.card_actions')}
+              aria-haspopup="menu"
+              aria-expanded={isCardMenuOpen}
+              onPointerDown={(event) => event.stopPropagation()}
+              onKeyDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                const rect = event.currentTarget.getBoundingClientRect();
+                setCardMenuPosition({ top: rect.bottom + 8, right: Math.max(8, window.innerWidth - rect.right) });
+                setIsCardMenuOpen((isOpen) => !isOpen);
+              }}
+              variant="default"
+              size={isCompactDeviceCard ? "sm" : "md"}
+              className="rounded-full bg-background/95 shadow-lg backdrop-blur-md hover:text-primary"
+            />
+          </div>
+        </>
+      ) : null}
+
+      {isEditing && isCardMenuOpen && cardMenuPosition ? (
+        <ModalPortal>
+          <div className="fixed inset-0 z-40" aria-hidden="true" onPointerDown={() => setIsCardMenuOpen(false)} />
+          <div
+            role="menu"
+            aria-label={t('dashboard.editor.sections.card_actions')}
+            style={cardMenuPosition}
+            onPointerDown={(event) => event.stopPropagation()}
+            className="fixed z-50 min-w-36 rounded-panel border border-border/70 bg-card p-1.5 shadow-depth-3"
           >
-            <GripVertical className={isCompactDeviceCard ? "h-3 w-3" : "h-4 w-4"} />
-          </span>
-          <IconButton
-            icon={Pencil}
-            label={t('dashboard.editor.sections.edit_card')}
-            onClick={(event) => {
-              event.stopPropagation();
-              openCardEditor(card);
-            }}
-            variant="default"
-            size={isCompactDeviceCard ? "sm" : "md"}
-            className="bg-background/95 shadow-lg backdrop-blur-md hover:text-primary"
-          />
-          <IconButton
-            icon={Trash2}
-            label={t('dashboard.editor.sections.remove_card')}
-            onClick={(event) => {
-              event.stopPropagation();
-              removeCard(card.id);
-            }}
-            variant="danger"
-            size={isCompactDeviceCard ? "sm" : "md"}
-            className="bg-background/95 shadow-lg backdrop-blur-md"
-          />
-        </div>
+            <Button
+              role="menuitem"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setIsCardMenuOpen(false);
+                openCardEditor(card);
+              }}
+              className="w-full justify-start font-semibold"
+            >
+              <Pencil className="h-4 w-4" aria-hidden="true" />
+              {t('dashboard.editor.sections.edit_card')}
+            </Button>
+            <div role="separator" className="my-1 border-t border-border/65" />
+            <Button
+              role="menuitem"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setIsCardMenuOpen(false);
+                removeCard(card.id);
+              }}
+              className="w-full justify-start font-semibold text-danger hover:bg-danger/10 hover:text-danger"
+            >
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+              {t('dashboard.editor.sections.remove_card')}
+            </Button>
+          </div>
+        </ModalPortal>
       ) : null}
 
       {canResize ? (
         <CardResizeHandle
           span={span}
+          spanOrder={spanOrder}
           label={t('dashboard.editor.sections.resize_card')}
           onResize={(nextSpan) => resizeCard(card.id, nextSpan)}
         />
