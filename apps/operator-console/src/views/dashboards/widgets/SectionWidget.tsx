@@ -651,6 +651,57 @@ function ModalPortal({ children }: { children: ReactNode }) {
   return createPortal(children, document.body);
 }
 
+// Home Assistant-style dense masonry: instead of one shared row height for
+// every card (which stretches short cards up to their tallest row-mate),
+// each card measures its own rendered height and claims only the grid rows
+// it actually needs. `grid-auto-flow: dense` then lets shorter cards from
+// later in the list backfill the gaps a tall card leaves in other columns.
+const MASONRY_ROW_UNIT_PX = 20;
+const MASONRY_ROW_GAP_PX = 12;
+
+function useMasonryRowSpans() {
+  const [rowSpans, setRowSpans] = useState<Record<string, number>>({});
+  const observerRef = useRef<ResizeObserver | null>(null);
+
+  // Created eagerly (not inside an effect) so it already exists when the
+  // cards' ref callbacks fire during the same commit — effects run after
+  // ref callbacks, which would otherwise miss every card mounted up front.
+  if (observerRef.current === null && typeof ResizeObserver !== 'undefined') {
+    observerRef.current = new ResizeObserver((entries) => {
+      setRowSpans((previous) => {
+        let changed = false;
+        const next = { ...previous };
+
+        for (const entry of entries) {
+          const cardId = (entry.target as HTMLElement).dataset.cardId;
+          if (!cardId) continue;
+
+          const height = entry.contentRect.height;
+          const span = Math.max(1, Math.ceil((height + MASONRY_ROW_GAP_PX) / (MASONRY_ROW_UNIT_PX + MASONRY_ROW_GAP_PX)));
+          if (next[cardId] !== span) {
+            next[cardId] = span;
+            changed = true;
+          }
+        }
+
+        return changed ? next : previous;
+      });
+    });
+  }
+
+  useEffect(() => () => observerRef.current?.disconnect(), []);
+
+  const registerCard = useCallback((cardId: string, element: HTMLElement | null) => {
+    const observer = observerRef.current;
+    if (!observer || !element) return;
+
+    element.dataset.cardId = cardId;
+    observer.observe(element);
+  }, []);
+
+  return { rowSpans, registerCard };
+}
+
 export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProps) {
   const { t } = useTranslation();
 
@@ -671,6 +722,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const [processingCardId, setProcessingCardId] = useState<string | null>(null);
   const [actionFeedback, setActionFeedback] = useState<{ id: string; status: 'success' | 'error' } | null>(null);
   const actionFeedbackTimerRef = useRef<number | null>(null);
+  const { rowSpans, registerCard } = useMasonryRowSpans();
   const [cardDraft, setCardDraft] = useState<CardDraft>({ title: '', kind: 'device', entityId: '', span: 'small', icon: 'lightbulb' });
   const [scenes, setScenes] = useState<AssignableScene[]>([]);
   const [automations, setAutomations] = useState<AssignableAutomation[]>([]);
@@ -1060,7 +1112,8 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     return (
       <div
         key={card.id}
-        style={{ containerType: 'inline-size' }}
+        ref={(element) => registerCard(card.id, element)}
+        style={{ containerType: 'inline-size', gridRow: `span ${rowSpans[card.id] ?? 1}` }}
         draggable={isEditing}
         onDragStart={(event) => {
           event.stopPropagation();
@@ -1520,7 +1573,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         if (sourceId) moveCardToEnd(sourceId);
         setDraggingCardId(null);
       }}
-      className="grid min-h-0 flex-1 auto-rows-[minmax(4.5rem,auto)] content-start items-start gap-3 overflow-visible pr-1"
+      className="grid min-h-0 flex-1 auto-rows-[minmax(20px,auto)] grid-flow-row-dense content-start items-start gap-3 overflow-visible pr-1"
       style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 6rem), 1fr))' }}
     >
       {cards.map(renderCard)}
