@@ -93,6 +93,38 @@ export function getDefaultSpan(kind: SectionCardKind): SectionCardSpan {
   return 'medium';
 }
 
+// Groups the "add card" catalog into a few chips (Home Assistant's add-card
+// dialog groups by domain/suggestion instead of one flat list), so users
+// can narrow the picker without typing a search term.
+export type SectionCardCategory = 'control' | 'info' | 'automation' | 'clock';
+
+export function getCatalogCategory(kind: SectionCardKind): SectionCardCategory {
+  const normalized = normalizeKind(kind);
+  if (isClockKind(normalized)) return 'clock';
+
+  switch (normalized) {
+    case 'sensor':
+    case 'room':
+      return 'info';
+    case 'scene':
+      return 'automation';
+    case 'light':
+    case 'cover':
+    case 'camera':
+    case 'media':
+    case 'action':
+    default:
+      return 'control';
+  }
+}
+
+export const catalogCategories: ReadonlyArray<{ key: SectionCardCategory; labelKey: string }> = [
+  { key: 'control', labelKey: 'dashboard.editor.sections.category_control' },
+  { key: 'info', labelKey: 'dashboard.editor.sections.category_info' },
+  { key: 'automation', labelKey: 'dashboard.editor.sections.category_automation' },
+  { key: 'clock', labelKey: 'dashboard.editor.sections.category_clock' },
+];
+
 export const clockCardOptions: { kind: NormalizedSectionCardKind; style: ClockStyle; labelKey: string }[] = [
   { kind: 'clock_premium', style: 'analog-classic', labelKey: 'dashboard.editor.sections.clock_style_premium' },
   { kind: 'clock_digital', style: 'digital', labelKey: 'dashboard.editor.sections.clock_style_digital' },

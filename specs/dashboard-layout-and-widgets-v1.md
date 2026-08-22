@@ -70,6 +70,11 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - [x] AC16: Las tarjetas de sensor, clima y cortina mantienen jerarquía visual, controles táctiles y ausencia de overflow horizontal a 320px, 768px y 1440px. Las lecturas y porcentajes siguen siendo legibles sin alterar sus contratos de datos ni comandos.
 - [x] AC17: `DashboardsView` no monta el lienzo de widgets hasta que el snapshot de dispositivos (`useDeviceSnapshotStore`) tuvo su primera carga — evita que `DeviceWidget`/`RoomWidget`/`SectionWidget` muestren brevemente su estado "no configurado" antes de recibir datos reales, mostrando en su lugar el mismo `LoadingState` ya usado para la carga del propio tablero.
 - [x] AC18: Un kiosco vertical de 1080×1920 distribuye el canvas en dos columnas y mantiene controles legibles, mientras móvil, tablet y escritorio conservan sus breakpoints existentes.
+- [x] AC19: Cada tarjeta dentro de una `SectionWidget` reclama únicamente las filas de grid que necesita según su altura real medida (masonry denso), en vez de compartir la altura de la tarjeta más alta de su fila.
+- [x] AC20: Reordenar tarjetas dentro de una sección funciona igual con mouse, teclado y touch (`@dnd-kit`), igualando el soporte táctil que ya tenía el lienzo externo de widgets.
+- [x] AC21: Tanto una tarjeta de sección como un widget del lienzo externo pueden redimensionarse arrastrando una manija en la esquina inferior derecha, además del selector categórico existente; el arrastre siempre resuelve a uno de los tamaños ya soportados (no introduce un modelo de tamaño libre nuevo).
+- [x] AC22: El catálogo de "agregar tarjeta" permite filtrar por categoría (Control, Información, Automatización, Reloj) además de la búsqueda de texto libre.
+- [x] AC23: El campo `tab.layout` ('sections'/'masonry'/'sidebar'/'panel'), que no tenía ningún lector real en el código, fue eliminado del modelo de datos (frontend y backend) en vez de dejarse como una opción que aparentaba funcionar sin hacerlo.
 
 ## 7. Notas Técnicas y Arquitectura
 
@@ -84,3 +89,4 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 ## 8. Preguntas Abiertas y TODOs
 
 - El paquete de transferencia no incluye fondos locales. Estos dependen del almacenamiento de cada Edge y se vuelven a configurar después de importar.
+- Deliberadamente fuera de esta pasada de paridad con Home Assistant (2026-08-22): una barra de badges en la parte superior de una vista, y un modo de edición YAML/código por vista. El export/import de tablero completo ya cubre parte de ese caso de uso; se evaluará si vale la pena un editor granular por vista más adelante.

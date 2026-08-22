@@ -1,8 +1,10 @@
 import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core';
+import { useRef } from 'react';
 import { cn } from '../../lib/utils';
 import type { DashboardWidget, DashboardWidgetConfig } from './types';
 import { useTranslation } from 'react-i18next';
 import {
+  Maximize2,
   Pencil,
   GripVertical
 } from 'lucide-react';
@@ -94,6 +96,64 @@ export function WidgetContent({ widget, isEditing, isSelected = false, onClick, 
         </div>
       );
   }
+}
+
+const WIDGET_RESIZE_STEP_PX = 56;
+
+/** Drag-to-resize corner handle, snapping to the same 1..columns steps the segmented control offers. */
+function WidgetResizeHandle({
+  span,
+  columns,
+  label,
+  onResize,
+}: {
+  span: number;
+  columns: number;
+  label: string;
+  onResize: (nextSpan: number) => void;
+}) {
+  const dragStartRef = useRef<{ x: number; span: number } | null>(null);
+
+  return (
+    <span
+      role="slider"
+      aria-label={label}
+      aria-valuemin={1}
+      aria-valuemax={columns}
+      aria-valuenow={span}
+      tabIndex={0}
+      title={label}
+      onClick={(event) => event.stopPropagation()}
+      onKeyDown={(event) => {
+        if (event.key === 'ArrowRight' && span < columns) {
+          event.preventDefault();
+          onResize(span + 1);
+        } else if (event.key === 'ArrowLeft' && span > 1) {
+          event.preventDefault();
+          onResize(span - 1);
+        }
+      }}
+      onPointerDown={(event) => {
+        event.stopPropagation();
+        event.currentTarget.setPointerCapture(event.pointerId);
+        dragStartRef.current = { x: event.clientX, span };
+      }}
+      onPointerMove={(event) => {
+        const start = dragStartRef.current;
+        if (!start) return;
+        const deltaSteps = Math.round((event.clientX - start.x) / WIDGET_RESIZE_STEP_PX);
+        const nextSpan = Math.min(columns, Math.max(1, start.span + deltaSteps));
+        if (nextSpan !== span) onResize(nextSpan);
+      }}
+      onPointerUp={(event) => {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+        dragStartRef.current = null;
+      }}
+      className="pointer-events-auto absolute bottom-2 right-2 z-30 grid h-7 w-7 cursor-nwse-resize touch-none place-items-center rounded-lg border border-border/50 bg-background/95 text-muted-foreground opacity-0 shadow-lg backdrop-blur-md transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 [@media(hover:none)]:opacity-100"
+    >
+      <Maximize2 className="h-3.5 w-3.5 rotate-90" />
+    </span>
+  );
 }
 
 export function DashboardWidgetNode({
@@ -219,6 +279,15 @@ export function DashboardWidgetNode({
               )}
             </div>
           </div>
+
+          {!isTitleWidget && canDrag && onConfigChange && (
+            <WidgetResizeHandle
+              span={clampSectionSpan(getSectionSpan(widget), Math.max(1, columns))}
+              columns={Math.max(1, columns)}
+              label={t('dashboard.editor.sections.resize_card')}
+              onResize={(nextSpan) => onConfigChange(widget.id, { layout: { ...widget.config.layout, span: nextSpan } })}
+            />
+          )}
         </>
       )}
     </div>

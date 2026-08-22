@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import {
   Camera,
   Check,
@@ -26,7 +29,7 @@ import { CameraMediaFrame, type CameraFeedMode } from '../../../components/Camer
 import { CameraViewerModal } from '../../../components/CameraViewerModal';
 import { useDeviceSnapshotStore, type SnapshotDevice, type SnapshotRoom } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig } from '../types';
-import { cardKinds, clockCardOptions, createId, getCatalogDescriptionKey, getCatalogLabelKey, getClockKindLabelKey, getClockStyleForKind, getDefaultIcon, getDefaultSpan, getRecommendedSectionHeight, getSpanClass, getWidgetType, isBindableKind, isClockKind, normalizeCards, normalizeKind, type AssignableAutomation, type AssignableScene, type CardDraft, type NormalizedSectionCardItem, type NormalizedSectionCardKind, type SectionCardIcon, type SectionCardKind, type SectionCardSpan } from './sectionCardCatalog';
+import { cardKinds, catalogCategories, clockCardOptions, createId, getCatalogCategory, getCatalogDescriptionKey, getCatalogLabelKey, getClockKindLabelKey, getClockStyleForKind, getDefaultIcon, getDefaultSpan, getRecommendedSectionHeight, getSpanClass, getWidgetType, isBindableKind, isClockKind, normalizeCards, normalizeKind, type AssignableAutomation, type AssignableScene, type CardDraft, type NormalizedSectionCardItem, type NormalizedSectionCardKind, type SectionCardCategory, type SectionCardIcon, type SectionCardKind, type SectionCardSpan } from './sectionCardCatalog';
 import { getAssignableDevicesForSectionCard, isDeviceActive } from '../dashboardUtils';
 import { canExecuteCommand } from '../../../lib/deviceCapabilities';
 import { IconPicker, getDashboardIconComponent, needsMdiCatalog, useMdiCatalogLoaded } from '../components/IconPicker';
@@ -702,6 +705,240 @@ function useMasonryRowSpans() {
   return { rowSpans, registerCard };
 }
 
+// Dragging the corner handle steps through the same small/medium/full sizes
+// already offered in the card editor — a faster path to the same values,
+// not a new free-form sizing model.
+const CARD_SPAN_ORDER: SectionCardSpan[] = ['small', 'medium', 'full'];
+const CARD_RESIZE_STEP_PX = 64;
+
+function CardResizeHandle({
+  span,
+  label,
+  onResize,
+}: {
+  span: SectionCardSpan;
+  label: string;
+  onResize: (nextSpan: SectionCardSpan) => void;
+}) {
+  const dragStartRef = useRef<{ x: number; index: number } | null>(null);
+
+  return (
+    <span
+      role="slider"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={CARD_SPAN_ORDER.length - 1}
+      aria-valuenow={CARD_SPAN_ORDER.indexOf(span)}
+      aria-valuetext={span}
+      tabIndex={0}
+      title={label}
+      onClick={(event) => event.stopPropagation()}
+      onKeyDown={(event) => {
+        const currentIndex = CARD_SPAN_ORDER.indexOf(span);
+        if (event.key === 'ArrowRight' && currentIndex < CARD_SPAN_ORDER.length - 1) {
+          event.preventDefault();
+          onResize(CARD_SPAN_ORDER[currentIndex + 1]);
+        } else if (event.key === 'ArrowLeft' && currentIndex > 0) {
+          event.preventDefault();
+          onResize(CARD_SPAN_ORDER[currentIndex - 1]);
+        }
+      }}
+      onPointerDown={(event) => {
+        event.stopPropagation();
+        event.currentTarget.setPointerCapture(event.pointerId);
+        dragStartRef.current = { x: event.clientX, index: CARD_SPAN_ORDER.indexOf(span) };
+      }}
+      onPointerMove={(event) => {
+        const start = dragStartRef.current;
+        if (!start) return;
+        const deltaSteps = Math.round((event.clientX - start.x) / CARD_RESIZE_STEP_PX);
+        const nextIndex = Math.min(CARD_SPAN_ORDER.length - 1, Math.max(0, start.index + deltaSteps));
+        const nextSpan = CARD_SPAN_ORDER[nextIndex];
+        if (nextSpan !== span) onResize(nextSpan);
+      }}
+      onPointerUp={(event) => {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+        dragStartRef.current = null;
+      }}
+      className="absolute bottom-1 right-1 z-20 grid h-6 w-6 cursor-nwse-resize touch-none place-items-center rounded-md bg-background/95 text-muted-foreground opacity-0 shadow-md backdrop-blur-md transition-opacity group-hover/card:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 [@media(hover:none)]:opacity-100"
+    >
+      <Maximize2 className="h-3 w-3 rotate-90" />
+    </span>
+  );
+}
+
+function SectionCardItem({
+  card,
+  isEditing,
+  devices,
+  roomsByHome,
+  processingCardId,
+  actionFeedback,
+  catalogLabel,
+  handleCardAction,
+  handleMediaCardAction,
+  executeSectionDeviceCommand,
+  upsertDevice,
+  openCardEditor,
+  removeCard,
+  resizeCard,
+  registerRowSpanRef,
+  rowSpan,
+}: {
+  card: NormalizedSectionCardItem;
+  isEditing: boolean;
+  devices: SnapshotDevice[];
+  roomsByHome: Record<string, SnapshotRoom[]>;
+  processingCardId: string | null;
+  actionFeedback: { id: string; status: 'success' | 'error' } | null;
+  catalogLabel: (kind: SectionCardKind) => string;
+  handleCardAction: (card: NormalizedSectionCardItem, event?: MouseEvent) => void | Promise<void>;
+  handleMediaCardAction: (card: NormalizedSectionCardItem, command: MediaPlayerCommand, params?: Record<string, unknown>) => void | Promise<void>;
+  executeSectionDeviceCommand: (deviceId: string, command: string, params?: Record<string, unknown>) => Promise<SnapshotDevice | null>;
+  upsertDevice: (device: SnapshotDevice) => void;
+  openCardEditor: (card: NormalizedSectionCardItem) => void;
+  removeCard: (id: string) => void;
+  resizeCard: (cardId: string, nextSpan: SectionCardSpan) => void;
+  registerRowSpanRef: (cardId: string, element: HTMLElement | null) => void;
+  rowSpan: number;
+}) {
+  const { t } = useTranslation();
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: card.id,
+    disabled: !isEditing,
+  });
+
+  const span = card.span ?? getDefaultSpan(card.kind);
+  const subtitle = card.entityName || card.description;
+  const isCamera = normalizeKind(card.kind) === 'camera';
+  const isClock = isClockKind(card.kind);
+  const cameraDeviceId = isCamera && card.entityId ? card.entityId : undefined;
+  const normalizedKind = normalizeKind(card.kind);
+  const isCover = normalizedKind === 'cover';
+  const isCompactDeviceCard = (normalizedKind === 'device' || normalizedKind === 'light') && span === 'small';
+  const canResize = isEditing && !isClock;
+  const roomDevices = normalizedKind === 'room' && card.entityId
+    ? devices.filter((device) => device.roomId === card.entityId)
+    : [];
+  const assignedDevice = card.entityId
+    ? devices.find((device) => device.id === card.entityId)
+    : undefined;
+  const assignedRoomName = assignedDevice?.roomId
+    ? (roomsByHome[assignedDevice.homeId] ?? []).find((room) => room.id === assignedDevice.roomId)?.name
+    : undefined;
+  const cardIsActive = assignedDevice ? isDeviceActive(assignedDevice) : false;
+  const isActionable = Boolean(card.entityId)
+    && !isEditing
+    && (normalizedKind === 'device' || normalizedKind === 'light' || normalizedKind === 'action');
+
+  return (
+    <div
+      key={card.id}
+      ref={(element) => {
+        setNodeRef(element);
+        registerRowSpanRef(card.id, element);
+      }}
+      style={{
+        containerType: 'inline-size',
+        gridRow: `span ${rowSpan}`,
+        transform: CSS.Translate.toString(transform),
+        transition: transition ?? undefined,
+      }}
+      onClick={isCover || normalizedKind === 'action' ? undefined : (event) => { void handleCardAction(card, event); }}
+      className={cn(
+        "group/card relative overflow-hidden rounded-section shadow-sm transition-all",
+        span === 'small' && (normalizedKind === 'device' || normalizedKind === 'light' ? "min-h-device-card-compact max-w-device-card-compact w-full justify-self-start" : "min-h-section-card-sm"),
+        span === 'medium' && "min-h-section-card-md",
+        span === 'full' && "min-h-section-card-lg",
+        isCamera && "min-h-curtain-card",
+        isClock && "min-h-clock-card",
+        isCover && "w-full max-w-curtain-dashboard justify-self-start",
+        isActionable && "cursor-pointer hover:-translate-y-0.5 hover:shadow-depth-2",
+        isDragging && "z-30 opacity-45",
+        getSpanClass(span)
+      )}
+    >
+      <CardPreview
+        kind={card.kind}
+        title={card.title || catalogLabel(card.kind)}
+        subtitle={isCamera ? assignedRoomName : subtitle}
+        span={span}
+        icon={card.icon}
+        isAssigned={Boolean(card.entityId)}
+        isActive={cardIsActive}
+        deviceId={cameraDeviceId}
+        device={assignedDevice}
+        isMediaProcessing={processingCardId === card.id}
+        onMediaCommand={normalizedKind === 'media'
+          ? (command, params) => { void handleMediaCardAction(card, command, params); }
+          : undefined}
+        roomDeviceCount={roomDevices.length}
+        roomActiveCount={roomDevices.filter(isDeviceActive).length}
+        onDeviceUpdate={upsertDevice}
+        onDeviceCommand={isCover ? executeSectionDeviceCommand : undefined}
+        onAction={normalizedKind === 'action' && !isEditing ? () => { void handleCardAction(card); } : undefined}
+        actionFeedback={processingCardId === card.id ? 'pending' : actionFeedback?.id === card.id ? actionFeedback.status : undefined}
+      />
+
+      {processingCardId === card.id ? (
+        <div className="pointer-events-none absolute right-3 top-3 z-30 grid h-7 w-7 place-items-center rounded-full border border-primary/20 bg-background/80 text-primary shadow-sm">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        </div>
+      ) : null}
+
+      {isEditing ? (
+        <div className={cn(
+          "absolute z-20 flex items-center opacity-0 transition-opacity group-hover/card:opacity-100 [@media(hover:none)]:opacity-100",
+          isCompactDeviceCard ? "right-1 top-1 gap-0.5" : "right-2 top-2 gap-1"
+        )}>
+          <span
+            className={cn(
+              "grid cursor-grab touch-none place-items-center rounded-xl bg-background/95 text-muted-foreground shadow-lg backdrop-blur-md active:cursor-grabbing",
+              isCompactDeviceCard ? "h-6 w-6" : "h-9 w-9"
+            )}
+            title={t('dashboard.editor.sections.move_card')}
+            onClick={(event) => event.stopPropagation()}
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className={isCompactDeviceCard ? "h-3 w-3" : "h-4 w-4"} />
+          </span>
+          <IconButton
+            icon={Pencil}
+            label={t('dashboard.editor.sections.edit_card')}
+            onClick={(event) => {
+              event.stopPropagation();
+              openCardEditor(card);
+            }}
+            variant="default"
+            size={isCompactDeviceCard ? "sm" : "md"}
+            className="bg-background/95 shadow-lg backdrop-blur-md hover:text-primary"
+          />
+          <IconButton
+            icon={Trash2}
+            label={t('dashboard.editor.sections.remove_card')}
+            onClick={(event) => {
+              event.stopPropagation();
+              removeCard(card.id);
+            }}
+            variant="danger"
+            size={isCompactDeviceCard ? "sm" : "md"}
+            className="bg-background/95 shadow-lg backdrop-blur-md"
+          />
+        </div>
+      ) : null}
+
+      {canResize ? (
+        <CardResizeHandle
+          span={span}
+          label={t('dashboard.editor.sections.resize_card')}
+          onResize={(nextSpan) => resizeCard(card.id, nextSpan)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
 export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProps) {
   const { t } = useTranslation();
 
@@ -715,14 +952,18 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
 
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [catalogCategoryFilter, setCatalogCategoryFilter] = useState<SectionCardCategory | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [draftTitle, setDraftTitle] = useState(config.appearance?.title || '');
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
-  const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
   const [processingCardId, setProcessingCardId] = useState<string | null>(null);
   const [actionFeedback, setActionFeedback] = useState<{ id: string; status: 'success' | 'error' } | null>(null);
   const actionFeedbackTimerRef = useRef<number | null>(null);
   const { rowSpans, registerCard } = useMasonryRowSpans();
+  const cardDragSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
   const [cardDraft, setCardDraft] = useState<CardDraft>({ title: '', kind: 'device', entityId: '', span: 'small', icon: 'lightbulb' });
   const [scenes, setScenes] = useState<AssignableScene[]>([]);
   const [automations, setAutomations] = useState<AssignableAutomation[]>([]);
@@ -826,6 +1067,8 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   }));
 
   const filteredCatalog = catalogItems.filter((item) => {
+    if (catalogCategoryFilter && getCatalogCategory(item.kind) !== catalogCategoryFilter) return false;
+
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return true;
     return `${item.title} ${item.description}`.toLowerCase().includes(normalizedQuery);
@@ -858,6 +1101,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     updateCards([...cards, nextCard]);
     setIsCatalogOpen(false);
     setQuery('');
+    setCatalogCategoryFilter(null);
 
     setEditingCardId(nextCard.id);
     const nextIcon = nextCard.icon ?? getDefaultIcon(nextCard.kind);
@@ -908,32 +1152,24 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     updateCards(cards.filter((card) => card.id !== id));
   };
 
-  const moveCard = (sourceId: string, targetId: string) => {
+  const reorderCards = (sourceId: string, targetId: string) => {
     if (sourceId === targetId) return;
 
     const sourceIndex = cards.findIndex((card) => card.id === sourceId);
     const targetIndex = cards.findIndex((card) => card.id === targetId);
-
     if (sourceIndex < 0 || targetIndex < 0) return;
 
-    const nextCards = [...cards];
-    const [moved] = nextCards.splice(sourceIndex, 1);
-    if (!moved) return;
-    nextCards.splice(targetIndex, 0, moved);
-
-    updateCards(nextCards);
+    updateCards(arrayMove(cards, sourceIndex, targetIndex));
   };
 
-  const moveCardToEnd = (sourceId: string) => {
-    const sourceIndex = cards.findIndex((card) => card.id === sourceId);
-    if (sourceIndex < 0 || sourceIndex === cards.length - 1) return;
+  const resizeCard = (cardId: string, nextSpan: SectionCardSpan) => {
+    updateCards(cards.map((card) => (card.id === cardId ? { ...card, span: nextSpan } : card)));
+  };
 
-    const nextCards = [...cards];
-    const [moved] = nextCards.splice(sourceIndex, 1);
-    if (!moved) return;
-
-    nextCards.push(moved);
-    updateCards(nextCards);
+  const handleCardDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    reorderCards(String(active.id), String(over.id));
   };
 
   const saveTitle = () => {
@@ -1087,143 +1323,6 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     }
   };
 
-  const renderCard = (card: NormalizedSectionCardItem) => {
-    const span = card.span ?? getDefaultSpan(card.kind);
-    const subtitle = card.entityName || card.description;
-    const isCamera = normalizeKind(card.kind) === 'camera';
-    const isClock = isClockKind(card.kind);
-    const cameraDeviceId = isCamera && card.entityId ? card.entityId : undefined;
-    const normalizedKind = normalizeKind(card.kind);
-    const isCover = normalizedKind === 'cover';
-    const isCompactDeviceCard = (normalizedKind === 'device' || normalizedKind === 'light') && span === 'small';
-    const roomDevices = normalizedKind === 'room' && card.entityId
-      ? devices.filter((device) => device.roomId === card.entityId)
-      : [];
-    const assignedDevice = card.entityId
-      ? devices.find((device) => device.id === card.entityId)
-      : undefined;
-    const assignedRoomName = assignedDevice?.roomId
-      ? (roomsByHome[assignedDevice.homeId] ?? []).find((room) => room.id === assignedDevice.roomId)?.name
-      : undefined;
-    const cardIsActive = assignedDevice ? isDeviceActive(assignedDevice) : false;
-    const isActionable = Boolean(card.entityId)
-      && !isEditing
-      && (normalizedKind === 'device' || normalizedKind === 'light' || normalizedKind === 'action');
-    return (
-      <div
-        key={card.id}
-        ref={(element) => registerCard(card.id, element)}
-        style={{ containerType: 'inline-size', gridRow: `span ${rowSpans[card.id] ?? 1}` }}
-        draggable={isEditing}
-        onDragStart={(event) => {
-          event.stopPropagation();
-          setDraggingCardId(card.id);
-          event.dataTransfer.effectAllowed = 'move';
-          event.dataTransfer.setData('text/plain', card.id);
-        }}
-        onDragOver={(event) => {
-          if (!isEditing || !draggingCardId || draggingCardId === card.id) return;
-          event.preventDefault();
-          event.stopPropagation();
-        }}
-        onDragEnter={(event) => {
-          if (!isEditing || !draggingCardId || draggingCardId === card.id) return;
-          event.preventDefault();
-          event.stopPropagation();
-          moveCard(draggingCardId, card.id);
-        }}
-        onDrop={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          const sourceId = event.dataTransfer.getData('text/plain') || draggingCardId;
-          if (sourceId) moveCard(sourceId, card.id);
-          setDraggingCardId(null);
-        }}
-        onDragEnd={() => setDraggingCardId(null)}
-        onClick={isCover || normalizedKind === 'action' ? undefined : (event) => { void handleCardAction(card, event); }}
-        className={cn(
-          "group/card relative overflow-hidden rounded-section shadow-sm transition-all",
-          span === 'small' && (normalizedKind === 'device' || normalizedKind === 'light' ? "min-h-device-card-compact max-w-device-card-compact w-full justify-self-start" : "min-h-section-card-sm"),
-          span === 'medium' && "min-h-section-card-md",
-          span === 'full' && "min-h-section-card-lg",
-          isCamera && "min-h-curtain-card",
-          isClock && "min-h-clock-card",
-          isCover && "w-full max-w-curtain-dashboard justify-self-start",
-          isActionable && "cursor-pointer hover:-translate-y-0.5 hover:shadow-depth-2",
-          draggingCardId === card.id && "opacity-45",
-          getSpanClass(span)
-        )}
-      >
-        <CardPreview
-          kind={card.kind}
-          title={card.title || catalogLabel(card.kind)}
-          subtitle={isCamera ? assignedRoomName : subtitle}
-          span={span}
-          icon={card.icon}
-          isAssigned={Boolean(card.entityId)}
-          isActive={cardIsActive}
-          deviceId={cameraDeviceId}
-          device={assignedDevice}
-          isMediaProcessing={processingCardId === card.id}
-          onMediaCommand={normalizedKind === 'media'
-            ? (command, params) => { void handleMediaCardAction(card, command, params); }
-            : undefined}
-          roomDeviceCount={roomDevices.length}
-          roomActiveCount={roomDevices.filter(isDeviceActive).length}
-          onDeviceUpdate={upsertDevice}
-          onDeviceCommand={isCover ? executeSectionDeviceCommand : undefined}
-          onAction={normalizedKind === 'action' && !isEditing ? () => { void handleCardAction(card); } : undefined}
-          actionFeedback={processingCardId === card.id ? 'pending' : actionFeedback?.id === card.id ? actionFeedback.status : undefined}
-        />
-
-        {processingCardId === card.id ? (
-          <div className="pointer-events-none absolute right-3 top-3 z-30 grid h-7 w-7 place-items-center rounded-full border border-primary/20 bg-background/80 text-primary shadow-sm">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          </div>
-        ) : null}
-
-        {isEditing ? (
-          <div className={cn(
-            "absolute z-20 flex items-center opacity-0 transition-opacity group-hover/card:opacity-100 [@media(hover:none)]:opacity-100",
-            isCompactDeviceCard ? "right-1 top-1 gap-0.5" : "right-2 top-2 gap-1"
-          )}>
-            {isCompactDeviceCard ? null : (
-              <span
-                className="grid h-9 w-9 cursor-grab place-items-center rounded-xl bg-background/95 text-muted-foreground shadow-lg backdrop-blur-md active:cursor-grabbing"
-                title={t('dashboard.editor.sections.move_card')}
-                onClick={(event) => event.stopPropagation()}
-              >
-                <GripVertical className="h-4 w-4" />
-              </span>
-            )}
-            <IconButton
-              icon={Pencil}
-              label={t('dashboard.editor.sections.edit_card')}
-              onClick={(event) => {
-                event.stopPropagation();
-                openCardEditor(card);
-              }}
-              variant="default"
-              size={isCompactDeviceCard ? "sm" : "md"}
-              className="bg-background/95 shadow-lg backdrop-blur-md hover:text-primary"
-            />
-            <IconButton
-              icon={Trash2}
-              label={t('dashboard.editor.sections.remove_card')}
-              onClick={(event) => {
-                event.stopPropagation();
-                removeCard(card.id);
-              }}
-              variant="danger"
-              size={isCompactDeviceCard ? "sm" : "md"}
-              className="bg-background/95 shadow-lg backdrop-blur-md"
-            />
-          </div>
-        ) : null}
-      </div>
-    );
-  };
-
   const renderCatalogPreview = (
     kind: NormalizedSectionCardKind,
     titleOverride?: string,
@@ -1304,7 +1403,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
             />
           </div>
 
-          <div className="border-b border-border/40 px-6 py-4">
+          <div className="space-y-3 border-b border-border/40 px-6 py-4">
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -1312,6 +1411,29 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
               icon={<Search className="h-4 w-4" />}
               className="h-11 border-border/50 bg-background/50 font-semibold placeholder:text-muted-foreground/55"
             />
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant={catalogCategoryFilter === null ? 'primary' : 'outline'}
+                size="sm"
+                onClick={() => setCatalogCategoryFilter(null)}
+                className="h-8 rounded-full px-3 text-micro font-black uppercase tracking-control"
+              >
+                {t('dashboard.editor.sections.category_all')}
+              </Button>
+              {catalogCategories.map((category) => (
+                <Button
+                  key={category.key}
+                  type="button"
+                  variant={catalogCategoryFilter === category.key ? 'primary' : 'outline'}
+                  size="sm"
+                  onClick={() => setCatalogCategoryFilter(category.key)}
+                  className="h-8 rounded-full px-3 text-micro font-black uppercase tracking-control"
+                >
+                  {t(category.labelKey)}
+                </Button>
+              ))}
+            </div>
           </div>
 
           <div className="max-h-section-editor overflow-y-auto p-6">
@@ -1560,23 +1682,34 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
   const sectionGrid = (
     <div
       onClick={(event) => event.stopPropagation()}
-      onDragOver={(event) => {
-        if (!isEditing || !draggingCardId) return;
-        event.preventDefault();
-        event.stopPropagation();
-      }}
-      onDrop={(event) => {
-        if (!isEditing || !draggingCardId) return;
-        event.preventDefault();
-        event.stopPropagation();
-        const sourceId = event.dataTransfer.getData('text/plain') || draggingCardId;
-        if (sourceId) moveCardToEnd(sourceId);
-        setDraggingCardId(null);
-      }}
       className="grid min-h-0 flex-1 auto-rows-[minmax(20px,auto)] grid-flow-row-dense content-start items-start gap-3 overflow-visible pr-1"
       style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 6rem), 1fr))' }}
     >
-      {cards.map(renderCard)}
+      <DndContext sensors={cardDragSensors} onDragEnd={handleCardDragEnd}>
+        <SortableContext items={cards.map((card) => card.id)} strategy={rectSortingStrategy}>
+          {cards.map((card) => (
+            <SectionCardItem
+              key={card.id}
+              card={card}
+              isEditing={isEditing}
+              devices={devices}
+              roomsByHome={roomsByHome}
+              processingCardId={processingCardId}
+              actionFeedback={actionFeedback}
+              catalogLabel={catalogLabel}
+              handleCardAction={handleCardAction}
+              handleMediaCardAction={handleMediaCardAction}
+              executeSectionDeviceCommand={executeSectionDeviceCommand}
+              upsertDevice={upsertDevice}
+              openCardEditor={openCardEditor}
+              removeCard={removeCard}
+              resizeCard={resizeCard}
+              registerRowSpanRef={registerCard}
+              rowSpan={rowSpans[card.id] ?? 1}
+            />
+          ))}
+        </SortableContext>
+      </DndContext>
 
       {isEditing ? (
         <IconButton

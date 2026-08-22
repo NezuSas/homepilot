@@ -1,6 +1,8 @@
 import {
   cardKinds,
+  catalogCategories,
   clockCardOptions,
+  getCatalogCategory,
   getCatalogDescriptionKey,
   getCatalogLabelKey,
   getClockKindLabelKey,
@@ -59,5 +61,18 @@ describe('section card catalog contracts', () => {
     ] });
 
     expect(getRecommendedSectionHeight(1, cards)).toBeGreaterThanOrEqual(4);
+  });
+
+  it('groups every catalog kind into one of the known add-card categories', () => {
+    expect(getCatalogCategory('sensor')).toBe('info');
+    expect(getCatalogCategory('room')).toBe('info');
+    expect(getCatalogCategory('scene')).toBe('automation');
+    expect(getCatalogCategory('light')).toBe('control');
+    expect(getCatalogCategory('clock_premium')).toBe('clock');
+
+    const categoryKeys = catalogCategories.map((category) => category.key);
+    for (const kind of cardKinds) {
+      expect(categoryKeys).toContain(getCatalogCategory(kind));
+    }
   });
 });

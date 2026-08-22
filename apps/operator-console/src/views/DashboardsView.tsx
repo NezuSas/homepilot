@@ -356,7 +356,6 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
 
   const handleSaveTabConfig = async (tabIdx: number, fields: {
     title: string;
-    layout?: 'sections' | 'masonry' | 'sidebar' | 'panel';
     icon?: string;
     background?: string | null;
     backgroundOpacity?: number;
@@ -370,7 +369,6 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
       idx === tabIdx ? {
         ...tab,
         title: fields.title.trim(),
-        layout: fields.layout ?? tab.layout,
         icon: fields.icon,
         background: fields.background === null ? undefined : fields.background,
         backgroundOpacity: fields.backgroundOpacity,

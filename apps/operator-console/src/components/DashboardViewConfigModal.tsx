@@ -21,7 +21,6 @@ interface DashboardViewConfigModalProps {
   isOpen: boolean;
   tab: {
     title: string;
-    layout?: 'sections' | 'masonry' | 'sidebar' | 'panel';
     icon?: string;
     background?: string;
     backgroundOpacity?: number;

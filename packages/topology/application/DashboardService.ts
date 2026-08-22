@@ -64,7 +64,6 @@ export class DashboardService {
           id: tab.id,
           title: tab.title,
           widgets: tab.widgets,
-          layout: tab.layout,
           icon: tab.icon,
         })),
       },
