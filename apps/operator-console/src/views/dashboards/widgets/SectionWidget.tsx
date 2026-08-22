@@ -592,14 +592,15 @@ function CardPreview({
 
   const isLightKind = normalized === 'light';
 
-  // Compact, Home Assistant-style tile: a centered icon with the name
-  // wrapping below it (up to two lines instead of being truncated), sized
-  // smaller overall than the other card kinds.
+  // Compact, Home Assistant-style tile: a bare icon (no chip/circle behind
+  // it) with the name wrapping below (up to two lines instead of being
+  // truncated). No separate on/off text — the icon and title color already
+  // carry the active state, exactly like Home Assistant's button cards.
   if (isSmall) {
     return (
       <div
         className={cn(
-          "relative flex h-full min-h-0 w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-section border p-2 text-center text-foreground transition-all",
+          "relative flex h-full min-h-0 w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-section border p-2 text-center text-foreground transition-all",
           isActive
             ? isLightKind
               ? "border-light-active/45 bg-light-active/14 shadow-surface-card"
@@ -607,23 +608,11 @@ function CardPreview({
             : "border-border/60 bg-card/95 shadow-surface-card"
         )}
       >
-        <span
-          className={cn(
-            "grid h-10 w-10 shrink-0 place-items-center rounded-full transition-colors",
-            isActive
-              ? isLightKind ? "bg-light-active text-light-active-foreground" : "bg-primary text-primary-foreground"
-              : "bg-muted/70 text-muted-foreground"
-          )}
-        >
-          <Icon className="h-5 w-5" />
-        </span>
-        <span className="line-clamp-2 min-w-0 text-micro font-bold leading-tight text-foreground">{title}</span>
-        <span className={cn(
-          "line-clamp-1 min-w-0 text-nano font-semibold uppercase tracking-control",
+        <Icon className={cn(
+          "h-8 w-8 shrink-0 transition-colors",
           isActive ? (isLightKind ? "text-light-active" : "text-primary") : "text-muted-foreground"
-        )}>
-          {isAssigned ? (isActive ? t('common.on') : t('common.off')) : subtitle || t('dashboard.editor.sections.unassigned')}
-        </span>
+        )} />
+        <span className="line-clamp-2 min-w-0 text-micro font-bold leading-tight text-foreground">{title}</span>
       </div>
     );
   }
@@ -1526,7 +1515,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         setDraggingCardId(null);
       }}
       className="grid min-h-0 flex-1 auto-rows-[minmax(4.5rem,auto)] content-start gap-3 overflow-visible pr-1"
-      style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 8rem), 1fr))' }}
+      style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 6rem), 1fr))' }}
     >
       {cards.map(renderCard)}
 

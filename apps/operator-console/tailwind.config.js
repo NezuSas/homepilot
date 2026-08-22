@@ -148,7 +148,7 @@ export default {
         'control-icon': '1.1rem',
         'device-icon-sm': 'clamp(1.25rem, 12cqi, 1.75rem)',
         'device-icon-lg': 'clamp(2.25rem, 20cqi, 4rem)',
-        'device-card-compact': '7rem',
+        'device-card-compact': '6rem',
       },
       minHeight: {
         'onboarding': 'calc(100vh - theme(spacing.16))',
@@ -169,7 +169,7 @@ export default {
         'section-card-sm': '8.25rem',
         'section-card-md': '9.25rem',
         'section-card-lg': '10rem',
-        'device-card-compact': '7rem',
+        'device-card-compact': '6rem',
         'native-camera-card': '8.5rem',
         'camera-card': '12rem',
         'clock-card': '14rem',
@@ -212,7 +212,7 @@ export default {
         'form-md': '26rem',
         'curtain-dashboard': '23rem',
         'curtain-manager': '30rem',
-        'device-card-compact': '7.5rem',
+        'device-card-compact': '6.5rem',
       },
       minWidth: {
         'data-table': '47.5rem',
