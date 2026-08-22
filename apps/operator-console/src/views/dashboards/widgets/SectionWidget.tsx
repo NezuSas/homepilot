@@ -857,7 +857,13 @@ function SectionCardItem({
         containerType: 'inline-size',
         // card.rowSpan is a human-scale unit (1 = one compact-tile height);
         // convert to the grid's fine-grained 20px row tracks.
-        gridRow: `span ${card.rowSpan ? card.rowSpan * COMPACT_TILE_ROW_SPAN : (isTileKind ? COMPACT_TILE_ROW_SPAN : rowSpan)}`,
+        // Tile-kind cards get a fixed uniform height so identical tiles
+        // don't jitter a few pixels apart from a 1- vs 2-line title. But
+        // it's a floor, never a hard cap: Math.max against the actually
+        // measured height means content that genuinely needs more room
+        // (long titles, font differences) still gets it instead of being
+        // clipped by the card's own overflow-hidden background.
+        gridRow: `span ${card.rowSpan ? card.rowSpan * COMPACT_TILE_ROW_SPAN : (isTileKind ? Math.max(rowSpan, COMPACT_TILE_ROW_SPAN) : rowSpan)}`,
         transform: CSS.Translate.toString(transform),
         transition: transition ?? undefined,
       }}
