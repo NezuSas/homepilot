@@ -1043,6 +1043,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     const cameraDeviceId = isCamera && card.entityId ? card.entityId : undefined;
     const normalizedKind = normalizeKind(card.kind);
     const isCover = normalizedKind === 'cover';
+    const isCompactDeviceCard = (normalizedKind === 'device' || normalizedKind === 'light') && span === 'small';
     const roomDevices = normalizedKind === 'room' && card.entityId
       ? devices.filter((device) => device.roomId === card.entityId)
       : [];
@@ -1129,14 +1130,19 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         ) : null}
 
         {isEditing ? (
-          <div className="absolute right-2 top-2 z-20 flex items-center gap-1 opacity-0 transition-opacity group-hover/card:opacity-100 [@media(hover:none)]:opacity-100">
-            <span
-              className="grid h-9 w-9 cursor-grab place-items-center rounded-xl bg-background/95 text-muted-foreground shadow-lg backdrop-blur-md active:cursor-grabbing"
-              title={t('dashboard.editor.sections.move_card')}
-              onClick={(event) => event.stopPropagation()}
-            >
-              <GripVertical className="h-4 w-4" />
-            </span>
+          <div className={cn(
+            "absolute z-20 flex items-center opacity-0 transition-opacity group-hover/card:opacity-100 [@media(hover:none)]:opacity-100",
+            isCompactDeviceCard ? "right-1 top-1 gap-0.5" : "right-2 top-2 gap-1"
+          )}>
+            {isCompactDeviceCard ? null : (
+              <span
+                className="grid h-9 w-9 cursor-grab place-items-center rounded-xl bg-background/95 text-muted-foreground shadow-lg backdrop-blur-md active:cursor-grabbing"
+                title={t('dashboard.editor.sections.move_card')}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <GripVertical className="h-4 w-4" />
+              </span>
+            )}
             <IconButton
               icon={Pencil}
               label={t('dashboard.editor.sections.edit_card')}
@@ -1145,7 +1151,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                 openCardEditor(card);
               }}
               variant="default"
-              size="md"
+              size={isCompactDeviceCard ? "sm" : "md"}
               className="bg-background/95 shadow-lg backdrop-blur-md hover:text-primary"
             />
             <IconButton
@@ -1156,7 +1162,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                 removeCard(card.id);
               }}
               variant="danger"
-              size="md"
+              size={isCompactDeviceCard ? "sm" : "md"}
               className="bg-background/95 shadow-lg backdrop-blur-md"
             />
           </div>
@@ -1514,7 +1520,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         if (sourceId) moveCardToEnd(sourceId);
         setDraggingCardId(null);
       }}
-      className="grid min-h-0 flex-1 auto-rows-[minmax(4.5rem,auto)] content-start gap-3 overflow-visible pr-1"
+      className="grid min-h-0 flex-1 auto-rows-[minmax(4.5rem,auto)] content-start items-start gap-3 overflow-visible pr-1"
       style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 6rem), 1fr))' }}
     >
       {cards.map(renderCard)}
