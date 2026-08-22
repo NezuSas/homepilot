@@ -854,7 +854,7 @@ function SectionCardItem({
       onClick={isCover || normalizedKind === 'action' ? undefined : (event) => { void handleCardAction(card, event); }}
       className={cn(
         "group/card relative overflow-hidden rounded-section shadow-sm transition-all",
-        span === 'small' && (normalizedKind === 'device' || normalizedKind === 'light' ? "min-h-device-card-compact" : "min-h-section-card-sm"),
+        span === 'small' && (normalizedKind === 'device' || normalizedKind === 'light' ? "aspect-[4/3] min-h-device-card-compact" : "min-h-section-card-sm"),
         span === 'medium' && "min-h-section-card-md",
         span === 'full' && "min-h-section-card-lg",
         isCamera && "min-h-curtain-card",

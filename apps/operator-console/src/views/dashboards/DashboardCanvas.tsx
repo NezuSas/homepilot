@@ -292,7 +292,12 @@ export function DashboardCanvas({
             : "border-transparent bg-transparent p-0"
         )}
         style={{
-          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+          // Fixed-width columns (Home Assistant Sections style): each column
+          // stays 320-360px regardless of monitor width, and more columns
+          // appear side by side on wider screens instead of the same few
+          // columns stretching to fill the monitor.
+          gridTemplateColumns: 'repeat(auto-fill, minmax(20rem, 22.5rem))',
+          justifyContent: 'start',
           gridAutoRows: `${CANVAS_ROW_UNIT}px`,
           gridAutoFlow: 'row',
           alignItems: 'start',
