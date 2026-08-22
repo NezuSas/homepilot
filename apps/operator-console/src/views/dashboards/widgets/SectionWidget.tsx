@@ -1100,7 +1100,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         onClick={isCover || normalizedKind === 'action' ? undefined : (event) => { void handleCardAction(card, event); }}
         className={cn(
           "group/card relative overflow-hidden rounded-section shadow-sm transition-all",
-          span === 'small' && (normalizedKind === 'device' || normalizedKind === 'light' ? "min-h-device-card-compact" : "min-h-section-card-sm"),
+          span === 'small' && (normalizedKind === 'device' || normalizedKind === 'light' ? "min-h-device-card-compact max-w-device-card-compact w-full justify-self-start" : "min-h-section-card-sm"),
           span === 'medium' && "min-h-section-card-md",
           span === 'full' && "min-h-section-card-lg",
           isCamera && "min-h-curtain-card",
@@ -1526,7 +1526,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         setDraggingCardId(null);
       }}
       className="grid min-h-0 flex-1 auto-rows-[minmax(4.5rem,auto)] content-start gap-3 overflow-visible pr-1"
-      style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr))' }}
+      style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 8rem), 1fr))' }}
     >
       {cards.map(renderCard)}
 

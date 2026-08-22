@@ -212,6 +212,7 @@ export default {
         'form-md': '26rem',
         'curtain-dashboard': '23rem',
         'curtain-manager': '30rem',
+        'device-card-compact': '7.5rem',
       },
       minWidth: {
         'data-table': '47.5rem',
