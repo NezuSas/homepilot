@@ -101,6 +101,22 @@ export function getDefaultSpan(kind: SectionCardKind): SectionCardSpan {
   return 'medium';
 }
 
+// Only button/tile-shaped kinds render sensibly at a quarter of the
+// section's width. Media players, cameras, sensors, rooms, and scenes need
+// real room for controls/gauges/summaries and must never collapse to
+// col-span-1, even if a card was left with a stale/manually-dragged
+// 'small' span from before this kind existed or from a stray resize.
+const COMPACT_TILE_KINDS = new Set<NormalizedSectionCardKind>(['light', 'device', 'action', 'cover']);
+
+export function canUseCompactSpan(kind: SectionCardKind): boolean {
+  return COMPACT_TILE_KINDS.has(normalizeKind(kind));
+}
+
+export function getEffectiveCardSpan(kind: SectionCardKind, span: SectionCardSpan): SectionCardSpan {
+  if (span === 'small' && !canUseCompactSpan(kind)) return 'medium';
+  return span;
+}
+
 // Groups the "add card" catalog into a few chips (Home Assistant's add-card
 // dialog groups by domain/suggestion instead of one flat list), so users
 // can narrow the picker without typing a search term.
@@ -308,9 +324,12 @@ export function normalizeCards(extra?: DashboardWidgetConfig['extra']): Normaliz
       entityName: typeof card.entityName === 'string' ? card.entityName : undefined,
       span: isClockKind(kind)
         ? 'full'
-        : card.span === 'medium' || card.span === 'full' || card.span === 'small'
-          ? card.span
-          : getDefaultSpan(kind),
+        : getEffectiveCardSpan(
+            kind,
+            card.span === 'medium' || card.span === 'full' || card.span === 'small'
+              ? card.span
+              : getDefaultSpan(kind)
+          ),
       rowSpan: isClockKind(kind) || typeof card.rowSpan !== 'number' || card.rowSpan < 1
         ? undefined
         : Math.min(MAX_MANUAL_ROW_SPAN, Math.round(card.rowSpan)),

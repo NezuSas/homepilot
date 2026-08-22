@@ -1,4 +1,5 @@
 import {
+  canUseCompactSpan,
   cardKinds,
   catalogCategories,
   clockCardOptions,
@@ -9,6 +10,7 @@ import {
   getClockStyleForKind,
   getDefaultIcon,
   getDefaultSpan,
+  getEffectiveCardSpan,
   getRecommendedSectionHeight,
   getSpanClass,
   getWidgetType,
@@ -91,5 +93,31 @@ describe('section card catalog contracts', () => {
     for (const kind of cardKinds) {
       expect(categoryKeys).toContain(getCatalogCategory(kind));
     }
+  });
+
+  it('never lets a media/camera/sensor/room/scene card collapse to a quarter-width col-span-1 tile', () => {
+    expect(canUseCompactSpan('light')).toBe(true);
+    expect(canUseCompactSpan('device')).toBe(true);
+    expect(canUseCompactSpan('action')).toBe(true);
+    expect(canUseCompactSpan('cover')).toBe(true);
+    expect(canUseCompactSpan('media')).toBe(false);
+    expect(canUseCompactSpan('camera')).toBe(false);
+    expect(canUseCompactSpan('sensor')).toBe(false);
+    expect(canUseCompactSpan('room')).toBe(false);
+    expect(canUseCompactSpan('scene')).toBe(false);
+
+    expect(getEffectiveCardSpan('media', 'small')).toBe('medium');
+    expect(getEffectiveCardSpan('camera', 'small')).toBe('medium');
+    expect(getEffectiveCardSpan('sensor', 'small')).toBe('medium');
+    expect(getEffectiveCardSpan('light', 'small')).toBe('small');
+
+    // A stale/imported card with a nonsensical stored span is corrected at
+    // normalization time, not just at render time.
+    const cards = normalizeCards({ cards: [
+      { kind: 'media', span: 'small' },
+      { kind: 'camera', span: 'small' },
+      { kind: 'sensor', span: 'small' },
+    ] });
+    expect(cards.every((card) => card.span === 'medium')).toBe(true);
   });
 });

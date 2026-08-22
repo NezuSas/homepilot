@@ -29,7 +29,7 @@ import { CameraMediaFrame, type CameraFeedMode } from '../../../components/Camer
 import { CameraViewerModal } from '../../../components/CameraViewerModal';
 import { useDeviceSnapshotStore, type SnapshotDevice, type SnapshotRoom } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig } from '../types';
-import { cardKinds, catalogCategories, clockCardOptions, createId, getCatalogCategory, getCatalogDescriptionKey, getCatalogLabelKey, getClockKindLabelKey, getClockStyleForKind, getDefaultIcon, getDefaultSpan, getRecommendedSectionHeight, getSpanClass, getWidgetType, isBindableKind, isClockKind, MAX_MANUAL_ROW_SPAN, normalizeCards, normalizeKind, type AssignableAutomation, type AssignableScene, type CardDraft, type NormalizedSectionCardItem, type NormalizedSectionCardKind, type SectionCardCategory, type SectionCardIcon, type SectionCardKind, type SectionCardSpan } from './sectionCardCatalog';
+import { canUseCompactSpan, cardKinds, catalogCategories, clockCardOptions, createId, getCatalogCategory, getCatalogDescriptionKey, getCatalogLabelKey, getClockKindLabelKey, getClockStyleForKind, getDefaultIcon, getDefaultSpan, getEffectiveCardSpan, getRecommendedSectionHeight, getSpanClass, getWidgetType, isBindableKind, isClockKind, MAX_MANUAL_ROW_SPAN, normalizeCards, normalizeKind, type AssignableAutomation, type AssignableScene, type CardDraft, type NormalizedSectionCardItem, type NormalizedSectionCardKind, type SectionCardCategory, type SectionCardIcon, type SectionCardKind, type SectionCardSpan } from './sectionCardCatalog';
 import { getAssignableDevicesForSectionCard, isDeviceActive } from '../dashboardUtils';
 import { canExecuteCommand } from '../../../lib/deviceCapabilities';
 import { IconPicker, getDashboardIconComponent, needsMdiCatalog, useMdiCatalogLoaded } from '../components/IconPicker';
@@ -815,7 +815,11 @@ function SectionCardItem({
     disabled: !isEditing,
   });
 
-  const span = card.span ?? getDefaultSpan(card.kind);
+  // getEffectiveCardSpan guards against a stale/manually-dragged 'small'
+  // span on a kind that can't render as a quarter-width tile (media,
+  // camera, sensor, room, scene) — those always render at least 'medium'
+  // regardless of what's persisted.
+  const span = getEffectiveCardSpan(card.kind, card.span ?? getDefaultSpan(card.kind));
   const subtitle = card.entityName || card.description;
   const isCamera = normalizeKind(card.kind) === 'camera';
   const isClock = isClockKind(card.kind);
@@ -1139,7 +1143,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       title: card.title,
       kind: card.kind,
       entityId: card.entityId || '',
-      span: card.span ?? getDefaultSpan(card.kind),
+      span: getEffectiveCardSpan(card.kind, card.span ?? getDefaultSpan(card.kind)),
       rowSpan: card.rowSpan ?? 0,
       icon: nextIcon,
     });
@@ -1158,7 +1162,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         widgetType: getWidgetType(cardDraft.kind),
         entityId: cardDraft.entityId || undefined,
         entityName: selectedScene?.name || selectedAutomation?.name || selectedRoom?.name || selectedDevice?.name,
-        span: isClockKind(cardDraft.kind) ? 'full' : cardDraft.span,
+        span: isClockKind(cardDraft.kind) ? 'full' : getEffectiveCardSpan(cardDraft.kind, cardDraft.span),
         rowSpan: isClockKind(cardDraft.kind) || cardDraft.rowSpan < 1 ? undefined : cardDraft.rowSpan,
         icon: cardDraft.icon,
       };
@@ -1183,7 +1187,9 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
   };
 
   const resizeCard = (cardId: string, nextSpan: SectionCardSpan) => {
-    updateCards(cards.map((card) => (card.id === cardId ? { ...card, span: nextSpan } : card)));
+    updateCards(cards.map((card) => (
+      card.id === cardId ? { ...card, span: getEffectiveCardSpan(card.kind, nextSpan) } : card
+    )));
   };
 
   const handleCardDragEnd = (event: DragEndEvent) => {
@@ -1586,13 +1592,15 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
               options={isClockKind(cardDraft.kind)
                 ? [{ value: 'full', label: t('dashboard.editor.sections.card_size_full') }]
                 : [
-                  { value: 'small', label: t('dashboard.editor.sections.card_size_small', { count: innerColumns }) },
+                  ...(canUseCompactSpan(cardDraft.kind)
+                    ? [{ value: 'small', label: t('dashboard.editor.sections.card_size_small', { count: innerColumns }) }]
+                    : []),
                   { value: 'medium', label: t('dashboard.editor.sections.card_size_medium', { count: Math.max(1, Math.floor(innerColumns / 2)) }) },
                   { value: 'full', label: t('dashboard.editor.sections.card_size_full') },
                 ]}
               onChange={(value) => setCardDraft((draft) => ({
                 ...draft,
-                span: isClockKind(draft.kind) ? 'full' : value as SectionCardSpan,
+                span: isClockKind(draft.kind) ? 'full' : getEffectiveCardSpan(draft.kind, value as SectionCardSpan),
               }))}
             />
 
