@@ -1719,7 +1719,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     <div
       onClick={(event) => event.stopPropagation()}
       className="grid min-h-0 flex-1 auto-rows-[minmax(20px,auto)] grid-flow-row-dense content-start items-start gap-3 overflow-visible pr-1"
-      style={{ gridTemplateColumns: `repeat(${innerColumns}, 1fr)` }}
+      style={{ gridTemplateColumns: `repeat(${innerColumns}, minmax(0, 1fr))` }}
     >
       <DndContext sensors={cardDragSensors} onDragEnd={handleCardDragEnd}>
         <SortableContext items={cards.map((card) => card.id)} strategy={rectSortingStrategy}>
