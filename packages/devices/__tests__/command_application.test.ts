@@ -9,7 +9,7 @@ import {
   DevicePendingStateError, 
   DispatchIntegrationError 
 } from '../application/errors';
-import { InvalidDeviceCommandError } from '../domain/errors';
+import { InvalidDeviceCommandError, UnsupportedCommandError } from '../domain/errors';
 import { TopologyReferencePort } from '../application/ports/TopologyReferencePort';
 
 describe('Módulo Devices - Pruebas de Comando (Aplicación)', () => {
@@ -141,5 +141,33 @@ describe('Módulo Devices - Pruebas de Comando (Aplicación)', () => {
     await expect(executeDeviceCommandUseCase('d1', 'turn_on', 'u1', 'c1', {
       deviceRepository: repo, eventPublisher: publisherWithFailure, topologyPort, dispatcherPort: dispatcher, activityLogRepository: log, ...mockDeps
     })).rejects.toThrow(DispatchIntegrationError);
+  });
+
+  it('debe permitir "activate" en una entidad de Home Assistant "ha:scene.*" aunque el type persistido siga siendo "sensor" (clasificación previa a la corrección del importador)', async () => {
+    await repo.saveDevice({
+      ...deviceBase,
+      status: 'ASSIGNED',
+      roomId: 'r1',
+      type: 'sensor',
+      externalId: 'ha:scene.tv_input',
+    });
+
+    const dispatchSpy = jest.spyOn(dispatcher, 'dispatch');
+
+    await executeDeviceCommandUseCase('d1', 'activate', 'u1', 'c1', {
+      deviceRepository: repo, eventPublisher: publisher, topologyPort, dispatcherPort: dispatcher, activityLogRepository: log, ...mockDeps
+    });
+
+    expect(dispatchSpy).toHaveBeenCalledWith('d1', 'activate');
+    const events = publisher.getEvents();
+    expect(events[0].eventType).toBe('DeviceCommandDispatchedEvent');
+  });
+
+  it('debe seguir rechazando comandos no soportados por la capacidad resuelta del dispositivo (UnsupportedCommandError)', async () => {
+    await repo.saveDevice({ ...deviceBase, status: 'ASSIGNED', roomId: 'r1', type: 'sensor', externalId: 'ex' });
+
+    await expect(executeDeviceCommandUseCase('d1', 'turn_on', 'u1', 'c1', {
+      deviceRepository: repo, eventPublisher: publisher, topologyPort, dispatcherPort: dispatcher, activityLogRepository: log, ...mockDeps
+    })).rejects.toThrow(UnsupportedCommandError);
   });
 });

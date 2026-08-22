@@ -43,6 +43,10 @@ One button-style Section card ("Scene") that can be bound to either a HomePilot 
 - **AC6:** The existing `action` card's device picker (`getAssignableDevicesForSectionCard('action', ...)`) also includes devices exposing `activate`, and the live card dispatches `press` or `activate` depending on which the bound device actually supports.
 - **AC7:** Every scene card persisted before this change (plain, unprefixed `entityId`) keeps resolving and executing as a scene with no data migration.
 
+## Post-release fix
+
+`POST /api/v1/devices/:id/command` rejected `activate` with `INVALID_COMMAND` for a Home Assistant `scene.*` entity that had been imported (and classified as `sensor`) before AC1's profile fix existed. Root cause: `executeDeviceCommandUseCase` validated capabilities with `canDeviceExecuteCommand(device.type, commandName)`, which trusts the persisted `type` column directly — bypassing `resolveCapabilitiesForDevice`/`getDeviceProfileForDevice`, which already re-derives the correct profile from the `ha:` externalId domain regardless of stale stored `type`. `DeviceCommandService.dispatch` (used only by scene execution) already validated correctly via `validateDeviceCommand`, but that path was never reached because the use case threw first. Fixed by validating with `validateDeviceCommand` (the profile-aware validator) in `executeDeviceCommandUseCase` instead — no data migration or re-import needed for already-imported devices.
+
 ## Verification
 
 - `packages/devices/__tests__/DeviceProfiles.test.ts`, `HomeAssistantImportService.test.ts` cover AC1.

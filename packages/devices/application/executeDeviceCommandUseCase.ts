@@ -7,9 +7,9 @@ import { DeviceCommandV1, DeviceCommandRequest } from '../domain/commands';
 import {
   isValidCommand,
   InvalidDeviceCommandError,
-  canDeviceExecuteCommand,
   UnsupportedCommandError
 } from '../domain';
+import { validateDeviceCommand } from '../domain/CommandCapabilityValidator';
 import { 
   DeviceNotFoundError, 
   DevicePendingStateError, 
@@ -75,7 +75,14 @@ export async function executeDeviceCommandUseCase(
   }
 
   // 5. Validación de Capacidades (Hardware)
-  if (!canDeviceExecuteCommand(device.type, commandName)) {
+  // Usa el perfil de capacidades resuelto (deriva de externalId/dominio HA cuando aplica),
+  // no solo el campo `type` persistido, que puede quedar obsoleto para dispositivos
+  // importados antes de que su dominio fuera clasificado correctamente.
+  const capabilityValidation = validateDeviceCommand(
+    device,
+    typeof command === 'string' ? { name: command } : command
+  );
+  if (!capabilityValidation.valid) {
     throw new UnsupportedCommandError(device.type, commandName);
   }
 
