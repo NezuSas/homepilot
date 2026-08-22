@@ -21,6 +21,7 @@ remain the normative source for functional requirements and acceptance criteria.
 | `docs/design-system.md` | Design tokens, UI primitives, and visual rules. |
 | `docs/operator-console-frontend.md` | Frontend module boundaries and React/Zustand rules. |
 | `docs/operator-console-component-catalog.md` | Reusable component catalogue. |
+| `docs/dashboard-architecture-reference.md` | Dashboard hierarchy, cards, edit UX, and personalization, mapped against Home Assistant's Lovelace model. |
 | `docs/local-windows-runtime.md` | Docker Desktop runtime profile. |
 | `docs/local-wsl-workflow.md` | Windows-to-WSL deployment workflow. |
 | `docs/spec-coverage-matrix.md` | Executable SDD mapping from source surfaces to primary specs. |

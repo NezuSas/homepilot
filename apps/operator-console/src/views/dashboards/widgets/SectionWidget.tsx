@@ -662,6 +662,13 @@ function ModalPortal({ children }: { children: ReactNode }) {
 const MASONRY_ROW_UNIT_PX = 20;
 const MASONRY_ROW_GAP_PX = 12;
 
+// Compact device/light tiles use a fixed row-span instead of their own
+// measured height. A 1-line vs. 2-line title otherwise produces slightly
+// different measured heights, so visually identical tiles end up a few
+// pixels apart in height — the "collapsed/uneven tile" look. All compact
+// tiles in a section now stay perfectly uniform.
+const COMPACT_TILE_ROW_SPAN = Math.ceil((80 + MASONRY_ROW_GAP_PX) / (MASONRY_ROW_UNIT_PX + MASONRY_ROW_GAP_PX));
+
 function useMasonryRowSpans() {
   const [rowSpans, setRowSpans] = useState<Record<string, number>>({});
   const observerRef = useRef<ResizeObserver | null>(null);
@@ -840,7 +847,7 @@ function SectionCardItem({
       }}
       style={{
         containerType: 'inline-size',
-        gridRow: `span ${rowSpan}`,
+        gridRow: `span ${isCompactDeviceCard ? COMPACT_TILE_ROW_SPAN : rowSpan}`,
         transform: CSS.Translate.toString(transform),
         transition: transition ?? undefined,
       }}
@@ -1753,7 +1760,15 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
   return (
     <div
       onClick={(event) => event.stopPropagation()}
-      className="group/section relative flex min-h-fit w-full min-w-0 self-start flex-col overflow-visible rounded-field border-2 border-dashed border-border/70 bg-background/15 px-widget-pad-x py-widget-pad-y text-left transition-all duration-200 hover:border-primary/70 hover:bg-primary/5"
+      className={cn(
+        "group/section relative flex min-h-fit w-full min-w-0 self-start flex-col overflow-visible px-widget-pad-x py-widget-pad-y text-left transition-all duration-200",
+        // Home Assistant sections have no visible container in normal view —
+        // just a title with tiles below. The dashed outline is an editing
+        // affordance only, not a permanent "card" around every section.
+        isEditing
+          ? "rounded-field border-2 border-dashed border-border/70 bg-background/15 hover:border-primary/70 hover:bg-primary/5"
+          : "border-2 border-transparent bg-transparent"
+      )}
     >
       <div className="mb-4 flex min-w-0 items-center gap-2 pr-10">
         {showTitle ? (
