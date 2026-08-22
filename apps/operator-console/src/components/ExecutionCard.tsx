@@ -18,7 +18,7 @@ export const ExecutionCard: React.FC<ExecutionCardProps> = ({ record, onRetrySuc
   const statusColors = {
     success: 'border-success/30 bg-success/5 text-success',
     partial: 'border-warning/30 bg-warning/5 text-warning',
-    failed: 'border-destructive/30 bg-destructive/5 text-destructive'
+    failed: 'border-danger/30 bg-danger/5 text-danger'
   };
 
   const sourceTypeIcons = {
@@ -40,7 +40,7 @@ export const ExecutionCard: React.FC<ExecutionCardProps> = ({ record, onRetrySuc
       <div className={cn(
         "absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-48 h-48 rounded-full blur-glow opacity-20 transition-opacity duration-1000",
         record.status === 'success' ? "bg-success" :
-        record.status === 'failed' ? "bg-destructive" : "bg-warning"
+        record.status === 'failed' ? "bg-danger" : "bg-warning"
       )} />
 
       <div className="flex items-center justify-between gap-4 relative z-10">
@@ -80,7 +80,7 @@ export const ExecutionCard: React.FC<ExecutionCardProps> = ({ record, onRetrySuc
           </div>
           {record.failedCount > 0 && (
             <div className="flex flex-col items-center">
-              <span className="text-caption font-black text-destructive">
+              <span className="text-caption font-black text-danger">
                 {record.failedCount}
               </span>
               <span className="text-nano font-bold opacity-30 uppercase tracking-tighter">{t('execution_logs.failed')}</span>
@@ -111,7 +111,7 @@ export const ExecutionCard: React.FC<ExecutionCardProps> = ({ record, onRetrySuc
             <div className={cn(
               "w-1.5 h-1.5 rounded-full",
               record.status === 'success' ? "bg-success animate-pulse" :
-              record.status === 'failed' ? "bg-destructive shadow-danger-dot" : "bg-warning"
+              record.status === 'failed' ? "bg-danger shadow-danger-dot" : "bg-warning"
             )} />
           </div>
         </div>

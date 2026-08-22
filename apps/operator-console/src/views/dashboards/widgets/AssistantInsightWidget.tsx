@@ -14,7 +14,7 @@ export function AssistantInsightWidget({ config }: { config: DashboardWidgetConf
 
   const getSeverityStyles = (severity: string) => {
     switch (severity) {
-      case 'high': return 'text-destructive border-destructive/20 bg-destructive/5';
+      case 'high': return 'text-danger border-danger/20 bg-danger/5';
       case 'medium': return 'text-warning border-warning/20 bg-warning/5';
       case 'low': return 'text-primary border-primary/20 bg-primary/5';
       default: return 'text-muted-foreground border-border bg-muted/5';

@@ -91,7 +91,7 @@ export function EnergySnapshotWidget({ config, isEditing, onConfigure }: EnergyS
             </div>
           </div>
           <div className="flex flex-col items-end">
-             <div className="flex items-center gap-1 text-micro font-black text-green-500 uppercase tracking-widest">
+             <div className="flex items-center gap-1 text-micro font-black text-accent uppercase tracking-widest">
                 <AlertCircle className="w-2.5 h-2.5 rotate-180" />
                 {t('dashboards.widgets.energy_insight.sustainable')}
              </div>

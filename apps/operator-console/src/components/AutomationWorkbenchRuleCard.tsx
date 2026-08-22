@@ -83,7 +83,7 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
             onClick={() => onToggle(rule.id, rule.enabled)}
             className={cn(
               "w-full font-black uppercase tracking-widest",
-              rule.enabled && "bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive hover:text-destructive-foreground"
+              rule.enabled && "bg-danger/10 text-danger border-danger/20 hover:bg-danger hover:text-danger-foreground"
             )}
           >
             {rule.enabled ? t('common.disable') : t('common.enable')}
@@ -110,7 +110,7 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
                 variant="ghost"
                 size="xs"
                 onClick={() => onConfirmingDeleteChange(rule.id, true)}
-                className="w-full bg-muted/40 text-muted-foreground hover:bg-destructive/10 hover:text-destructive font-black uppercase"
+                className="w-full bg-muted/40 text-muted-foreground hover:bg-danger/10 hover:text-danger font-black uppercase"
               >
                 <Trash2 className="w-3.5 h-3.5" /> {t('common.delete')}
               </Button>
@@ -119,7 +119,7 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
         </div>
 
         {rule._error && (
-          <div className="absolute top-4 left-4 right-4 bg-destructive text-destructive-foreground text-micro font-black py-1.5 px-3 rounded-lg text-center animate-in fade-in slide-in-from-top-2 duration-200 shadow-xl flex items-center justify-center gap-2">
+          <div className="absolute top-4 left-4 right-4 bg-danger text-danger-foreground text-micro font-black py-1.5 px-3 rounded-lg text-center animate-in fade-in slide-in-from-top-2 duration-200 shadow-xl flex items-center justify-center gap-2">
             <AlertCircle className="w-3 h-3" /> {rule._error}
           </div>
         )}
@@ -137,7 +137,7 @@ export const AutomationWorkbenchRuleCard: React.FC<AutomationWorkbenchRuleCardPr
             <h4 className="text-panel-title font-black tracking-tight text-foreground/90 leading-tight">{rule.name}</h4>
             <div className="flex items-center gap-2 mt-0.5">
               <span className="text-micro font-mono font-bold text-muted-foreground/30 px-1.5 py-0.5 bg-muted/40 rounded uppercase tracking-tighter">ID: {rule.id}</span>
-              {!rule.enabled && <span className="text-nano font-black text-destructive/40 uppercase tracking-widest border border-destructive/20 px-1.5 rounded-full">{t('automations.rule.inactive')}</span>}
+              {!rule.enabled && <span className="text-nano font-black text-danger/40 uppercase tracking-widest border border-danger/20 px-1.5 rounded-full">{t('automations.rule.inactive')}</span>}
             </div>
           </div>
         </div>

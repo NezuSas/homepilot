@@ -116,7 +116,7 @@ export function RoomWidget({ config, isEditing, onConfigure }: { config: Dashboa
           onClick={handleToggleAll}
           isLoading={isProcessing}
           variant="danger"
-          className="relative mt-6 w-full rounded-2xl border border-destructive/20 bg-destructive/5 py-3 text-micro font-black uppercase tracking-label text-destructive hover:border-transparent hover:bg-destructive hover:text-destructive-foreground"
+          className="relative mt-6 w-full rounded-2xl border border-danger/20 bg-danger/5 py-3 text-micro font-black uppercase tracking-label text-danger hover:border-transparent hover:bg-danger hover:text-danger-foreground"
         >
           {!isProcessing && <Power className="w-4 h-4" />}
           {t('dashboards.widgets.room_summary.turn_off_all')}

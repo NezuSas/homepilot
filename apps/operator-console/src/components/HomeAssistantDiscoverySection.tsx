@@ -235,7 +235,7 @@ export const HomeAssistantDiscoverySection: React.FC<HomeAssistantDiscoverySecti
           )}
         </div>
       )}
-      {error && <p className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-center text-caption font-bold text-destructive">{error}</p>}
+      {error && <p className="rounded-lg border border-danger/20 bg-danger/5 p-3 text-center text-caption font-bold text-danger">{error}</p>}
     </section>
   );
 };

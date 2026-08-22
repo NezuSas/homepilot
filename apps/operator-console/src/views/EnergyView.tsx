@@ -1,10 +1,12 @@
 import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Zap, Cpu, TrendingDown, AlertTriangle, Leaf, ChevronRight, Activity } from 'lucide-react';
+import { Zap, TrendingDown, AlertTriangle, Leaf, ChevronRight, Activity } from 'lucide-react';
 import type { View } from '../types';
 import { useEnergyStore } from '../stores/useEnergyStore';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { SectionHeader } from '../components/ui/SectionHeader';
+import { StatusPill } from '../components/ui/StatusPill';
 
 interface EnergyViewProps {
   onNavigate?: (view: View) => void;
@@ -32,32 +34,14 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
   return (
     <div className="flex flex-col gap-0 animate-in fade-in duration-700 min-h-full">
 
-      {/* ── Identity Banner ──────────────────────────────────────────── */}
-      <div className="relative rounded-3xl overflow-hidden mb-8 border border-border/60 bg-gradient-to-br from-card via-card to-primary/5">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
-          <div className="absolute bottom-0 left-1/4 w-48 h-48 bg-primary/3 rounded-full blur-2xl translate-y-1/2" />
-        </div>
-        <div className="relative z-10 p-5 sm:p-8 flex items-center justify-between gap-4 sm:gap-6 flex-wrap">
-          <div className="flex items-center gap-4 sm:gap-5 min-w-0">
-            {/* Icon: muted card container with amber icon — consistent with widget accent pattern */}
-            <div className="w-14 h-14 rounded-2xl bg-muted border border-border/80 flex items-center justify-center shadow-depth-1 shrink-0">
-              <Zap className="w-7 h-7 text-warning/80" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-micro font-black uppercase tracking-label-wide text-warning/70 mb-1">{t('energy.category')}</p>
-              <h2 className="text-panel-title sm:text-view-title font-black text-foreground tracking-tight">{t('energy.title')}</h2>
-              <p className="text-caption text-muted-foreground mt-0.5">{t('energy.subtitle')}</p>
-            </div>
-          </div>
-          {/* Status badge — hidden on very small screens */}
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/5 border border-primary/20 shrink-0 shadow-sm">
-            <Cpu className="w-3 h-3 text-primary/60" />
-            <span className="text-micro font-black uppercase tracking-widest text-primary/80">{t('energy.status_active')}</span>
-            <div className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse premium-glow-warning" />
-          </div>
-        </div>
-      </div>
+      <SectionHeader
+        level="view"
+        icon={Zap}
+        iconClassName="text-warning"
+        title={t('energy.title')}
+        subtitle={t('energy.subtitle')}
+        action={<StatusPill variant="warning" pulse>{t('energy.status_active')}</StatusPill>}
+      />
 
       {/* ── Main Content ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 sm:gap-8">

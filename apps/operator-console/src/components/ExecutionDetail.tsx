@@ -60,7 +60,7 @@ export const ExecutionDetail: React.FC<ExecutionDetailProps> = ({ executionId, a
               <div className={cn(
                 "p-1.5 rounded-full",
                 action.status === 'success' ? "bg-success/10 text-success" :
-                action.status === 'failed' ? "bg-destructive/10 text-destructive" :
+                action.status === 'failed' ? "bg-danger/10 text-danger" :
                 "bg-muted/20 text-muted-foreground"
               )}>
                 {action.status === 'success' && <CheckCircle2 className="w-3.5 h-3.5" />}
@@ -77,7 +77,7 @@ export const ExecutionDetail: React.FC<ExecutionDetailProps> = ({ executionId, a
             
             <div className="flex items-center gap-3 shrink-0">
               {retryErrorByIndex[idx] && (
-                <span className="text-micro font-bold text-destructive animate-pulse truncate max-w-copy-2xs" title={retryErrorByIndex[idx]}>
+                <span className="text-micro font-bold text-danger animate-pulse truncate max-w-copy-2xs" title={retryErrorByIndex[idx]}>
                   {retryErrorByIndex[idx]}
                 </span>
               )}
@@ -86,7 +86,7 @@ export const ExecutionDetail: React.FC<ExecutionDetailProps> = ({ executionId, a
                 <div className="flex flex-col items-end text-right">
                   <span className={cn(
                     "text-label font-bold max-w-copy-md sm:max-w-copy-2xl truncate",
-                    action.severity === 'warning' ? "text-warning" : "text-destructive"
+                    action.severity === 'warning' ? "text-warning" : "text-danger"
                   )} title={action.userMessage || action.error}>
                     {action.userMessage || action.error}
                   </span>
@@ -120,7 +120,7 @@ export const ExecutionDetail: React.FC<ExecutionDetailProps> = ({ executionId, a
               <div className={cn(
                 "text-micro font-black uppercase tracking-tighter px-1.5 py-0.5 rounded border",
                 action.status === 'success' ? "text-success border-success/20 bg-success/5" :
-                action.status === 'failed' ? "text-destructive border-destructive/20 bg-destructive/5" :
+                action.status === 'failed' ? "text-danger border-danger/20 bg-danger/5" :
                 "text-muted-foreground border-border bg-muted/5"
               )}>
                 {action.status}

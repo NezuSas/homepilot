@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Camera, Plus, Edit2, Trash2, ShieldAlert, AlertTriangle } from 'lucide-react';
-import { PageFrame } from '../components/ui/PageFrame';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -327,20 +326,22 @@ export const NativeCamerasView: React.FC = () => {
   };
 
   return (
-    <PageFrame>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <SectionHeader 
-          title={t('native_cameras.title')} 
-          subtitle={t('native_cameras.subtitle')}
-        />
-        <Button 
-          variant="primary" 
-          onClick={handleOpenDiscoveryModal}
-          disabled={homes.length === 0}
-        >
-          <Plus size={16} /> {t('native_cameras.add_camera')}
-        </Button>
-      </div>
+    <div className="flex flex-col gap-6 sm:gap-8">
+      <SectionHeader
+        level="view"
+        icon={Camera}
+        title={t('native_cameras.title')}
+        subtitle={t('native_cameras.subtitle')}
+        action={
+          <Button
+            variant="primary"
+            onClick={handleOpenDiscoveryModal}
+            disabled={homes.length === 0}
+          >
+            <Plus size={16} /> {t('native_cameras.add_camera')}
+          </Button>
+        }
+      />
 
       <AlertBanner
         variant="info"
@@ -543,7 +544,7 @@ export const NativeCamerasView: React.FC = () => {
       >
         <form onSubmit={handleSubmit} className="space-y-6">
           {formError && (
-            <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-body">
+            <div className="p-3 bg-danger/10 border border-danger/20 text-danger rounded-lg text-body">
               {formError}
             </div>
           )}
@@ -668,6 +669,6 @@ export const NativeCamerasView: React.FC = () => {
         description={t('native_cameras.delete_confirm_description')}
         confirmText={t('common.delete', 'Eliminar')}
       />
-    </PageFrame>
+    </div>
   );
 };

@@ -359,7 +359,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
               variant="ghost"
               size="lg"
               onClick={onClose}
-              className="hover:bg-destructive/10 hover:text-destructive"
+              className="hover:bg-danger/10 hover:text-danger"
             />
           </div>
 
@@ -406,8 +406,8 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                     <span className="max-w-full break-words px-2 py-0.5 rounded-full text-nano font-black uppercase bg-muted border border-border text-muted-foreground">{device.integrationSource}</span>
                     {device.integrationSource === 'sonoff' && (
                       <div className="flex items-center gap-1 ml-auto">
-                        <div className={cn('w-1.5 h-1.5 rounded-full', isOnline ? 'bg-success animate-pulse' : 'bg-destructive')} />
-                        <span className={cn('text-nano font-black uppercase', isOnline ? 'text-success' : 'text-destructive')}>
+                        <div className={cn('w-1.5 h-1.5 rounded-full', isOnline ? 'bg-success animate-pulse' : 'bg-danger')} />
+                        <span className={cn('text-nano font-black uppercase', isOnline ? 'text-success' : 'text-danger')}>
                           {isOnline ? t('common.online') : t('common.offline')}
                         </span>
                       </div>
@@ -507,7 +507,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                       {isRefreshing ? t('inbox.discovery.importing') : t('inbox.discovery.refresh_hint')}
                     </Button>
                     {error && (
-                      <div className="flex items-center gap-2 text-destructive bg-destructive/10 p-3 rounded-xl border border-destructive/20">
+                      <div className="flex items-center gap-2 text-danger bg-danger/10 p-3 rounded-xl border border-danger/20">
                         <AlertCircle className="w-4 h-4 shrink-0" />
                         <p className="text-micro font-bold leading-tight uppercase tracking-tight">{error}</p>
                       </div>
@@ -570,7 +570,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                         size="sm"
                         onClick={() => setShowUnassignConfirm(true)}
                         disabled={isActionLoading}
-                        className="w-full bg-destructive/5 text-destructive border-destructive/10 hover:bg-destructive/10"
+                        className="w-full bg-danger/5 text-danger border-danger/10 hover:bg-danger/10"
                       >
                         <X className="w-3.5 h-3.5" />
                         {t('inbox.inspector.actions.unassign')}
@@ -592,10 +592,10 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
               </div>
 
               {device.externalId.startsWith('ha:') && (
-                <div className="rounded-panel border border-destructive/20 bg-destructive/5 p-6">
+                <div className="rounded-panel border border-danger/20 bg-danger/5 p-6">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
-                      <h3 className="text-card-title font-black text-destructive">
+                      <h3 className="text-card-title font-black text-danger">
                         {t('inbox.inspector.remove_import_title')}
                       </h3>
                       <p className="mt-1 text-body text-muted-foreground">

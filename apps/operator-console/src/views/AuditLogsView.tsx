@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ShieldAlert, Clock, Zap, Info, RefreshCw } from 'lucide-react';
+import { ShieldAlert, Clock, Zap, RefreshCw } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
@@ -9,6 +9,7 @@ import { AlertBanner } from '../components/ui/AlertBanner';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { LoadingState } from '../components/ui/LoadingState';
+import { SectionHeader } from '../components/ui/SectionHeader';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import { humanize } from '../lib/naming-utils';
 
@@ -134,17 +135,19 @@ export const AuditLogsView: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="flex items-center justify-between mb-2">
-         <div className="flex items-center gap-3">
-            <Info className="w-5 h-5 text-primary opacity-40 px-0.5" />
-            <span className="text-micro font-black text-muted-foreground uppercase tracking-label">{t('audit_logs.v1_title')}</span>
-         </div>
-         <Button variant="ghost" size="sm" onClick={fetchLogs} className="h-auto min-h-0 px-0 py-0 text-micro font-black text-muted-foreground hover:text-primary">
-            <RefreshCw className="w-3.5 h-3.5" />
-            {t('audit_logs.live_update')}
-         </Button>
-      </div>
+    <div className="flex flex-col gap-6 sm:gap-8">
+      <SectionHeader
+        level="view"
+        icon={ShieldAlert}
+        title={t('nav.system_audit')}
+        subtitle={t('audit_logs.v1_title')}
+        action={
+          <Button variant="secondary" size="sm" onClick={fetchLogs} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            {t('audit_logs.refresh')}
+          </Button>
+        }
+      />
 
       <div className="grid gap-3">
         {displayLogs.map((log, i) => (
@@ -157,7 +160,7 @@ export const AuditLogsView: React.FC = () => {
                </div>
                <div className={cn(
                  "rounded-control border px-1.5 py-0.5 text-nano font-medium uppercase leading-none tracking-micro self-start",
-                 log.type.includes('FAILED') ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-primary/5 text-primary border-primary/10"
+                 log.type.includes('FAILED') ? "bg-danger/10 text-danger border-danger/20" : "bg-primary/5 text-primary border-primary/10"
                )}>
                  {mapActivityType(log.type, t)}
                </div>

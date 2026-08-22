@@ -24,7 +24,7 @@ export const DiagnosticsIssuesList: React.FC<DiagnosticsIssuesListProps> = ({ is
       {issues.map((issue, index) => (
         <div key={`${issue.code}-${index}`} className={cn(
           "flex items-start gap-4 p-4 rounded-xl border",
-          issue.severity === 'critical' ? "border-destructive/50 bg-destructive/5 text-destructive" : "border-warning/50 bg-warning/5 text-warning"
+          issue.severity === 'critical' ? "border-danger/50 bg-danger/5 text-danger" : "border-warning/50 bg-warning/5 text-warning"
         )}>
           <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
           <div className="flex flex-col gap-1">

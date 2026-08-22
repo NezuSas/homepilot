@@ -4,6 +4,9 @@ import { Activity, CheckCircle2, Home, Router, Workflow } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
+import { Card } from '../components/ui/Card';
+import { SectionHeader } from '../components/ui/SectionHeader';
+import { StatusPill } from '../components/ui/StatusPill';
 import { LoadingState } from '../components/ui/LoadingState';
 
 export const ResilienceShowcaseView: React.FC = () => {
@@ -53,47 +56,47 @@ export const ResilienceShowcaseView: React.FC = () => {
   if (isLoading && devices.length === 0) return <LoadingState label={t('system_status.loading')} />;
 
   const cards = [
-    { icon: Router, label: t('system_status.connection'), value: isConnected ? t('system_status.connected') : t('system_status.check_required'), description: isConnected ? t('system_status.connection_ok') : t('system_status.connection_pending'), healthy: isConnected },
-    { icon: Activity, label: t('system_status.devices'), value: devices.length.toString(), description: t('system_status.devices_description'), healthy: true },
-    { icon: Home, label: t('system_status.spaces'), value: spacesCount.toString(), description: t('system_status.spaces_description', { homes: homes.length }), healthy: true },
-    { icon: Workflow, label: t('system_status.routines'), value: (scenes.length + automations.length).toString(), description: t('system_status.routines_description', { scenes: scenes.length, automations: automations.length }), healthy: true },
+    { icon: Router, label: t('system_status.connection'), value: isConnected ? t('system_status.connected') : t('system_status.check_required'), description: isConnected ? t('system_status.connection_ok') : t('system_status.connection_pending'), tone: isConnected ? 'success' as const : 'warning' as const },
+    { icon: Activity, label: t('system_status.devices'), value: devices.length.toString(), description: t('system_status.devices_description'), tone: 'success' as const },
+    { icon: Home, label: t('system_status.spaces'), value: spacesCount.toString(), description: t('system_status.spaces_description', { homes: homes.length }), tone: 'success' as const },
+    { icon: Workflow, label: t('system_status.routines'), value: (scenes.length + automations.length).toString(), description: t('system_status.routines_description', { scenes: scenes.length, automations: automations.length }), tone: 'success' as const },
   ];
 
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-      <section className="rounded-3xl border border-border/70 bg-card p-6 shadow-sm sm:p-8">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-          <div className="max-w-2xl">
-            <div className="mb-3 flex items-center gap-2 text-sm font-medium text-primary">
-              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-              {isConnected ? t('system_status.system_ready') : t('system_status.verification_in_progress')}
-            </div>
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{t('system_status.title')}</h1>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">{t('system_status.description')}</p>
+    <div className="mx-auto flex w-full max-w-content-wide flex-col gap-6 sm:gap-8">
+      <SectionHeader
+        level="view"
+        icon={CheckCircle2}
+        title={t('system_status.title')}
+        subtitle={t('system_status.description')}
+        action={
+          <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-card px-3 py-2 text-caption text-muted-foreground">
+            <StatusPill variant={isConnected ? 'success' : 'warning'}>{isConnected ? t('system_status.system_ready') : t('system_status.verification_in_progress')}</StatusPill>
+            <span>{checkedAt ? t('system_status.last_checked', { time: checkedAt }) : t('system_status.not_checked')}</span>
           </div>
-          <div className="rounded-2xl bg-muted px-4 py-3 text-sm text-muted-foreground">
-            <p className="font-medium text-foreground">{t('system_status.summary_title')}</p>
-            <p className="mt-1">{checkedAt ? t('system_status.last_checked', { time: checkedAt }) : t('system_status.not_checked')}</p>
-          </div>
-        </div>
-      </section>
-      <section aria-label={t('system_status.summary_label')} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {cards.map(({ icon: Icon, label, value, description, healthy }) => (
-          <article key={label} className="min-h-44 rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
+        }
+      />
+
+      <section aria-label={t('system_status.summary_label')} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {cards.map(({ icon: Icon, label, value, description, tone }) => (
+          <Card key={label} className="flex min-h-40 flex-col gap-5 p-5">
             <div className="flex items-start justify-between gap-3">
-              <div className={`rounded-xl p-2.5 ${healthy ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'}`}><Icon className="h-5 w-5" aria-hidden="true" /></div>
-              <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${healthy ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-amber-500/10 text-amber-700 dark:text-amber-400'}`}>{value}</span>
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted text-muted-foreground"><Icon className="h-5 w-5" aria-hidden="true" /></span>
+              <StatusPill variant={tone}>{value}</StatusPill>
             </div>
-            <h2 className="mt-5 text-base font-semibold text-foreground">{label}</h2>
-            <p className="mt-1 text-sm leading-5 text-muted-foreground">{description}</p>
-          </article>
+            <div>
+              <h2 className="text-section-title font-semibold tracking-tight text-foreground">{label}</h2>
+              <p className="mt-1 text-caption leading-relaxed text-muted-foreground">{description}</p>
+            </div>
+          </Card>
         ))}
       </section>
-      <section className="rounded-2xl border border-border/70 bg-card p-5 sm:p-6">
-        <p className="text-sm font-semibold text-foreground">{t('system_status.privacy_title')}</p>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{t('system_status.privacy_description')}</p>
-      </section>
-    </main>
+
+      <Card className="p-5 sm:p-6">
+        <h2 className="text-section-title font-semibold tracking-tight text-foreground">{t('system_status.privacy_title')}</h2>
+        <p className="mt-2 max-w-3xl text-caption leading-relaxed text-muted-foreground">{t('system_status.privacy_description')}</p>
+      </Card>
+    </div>
   );
 };
 

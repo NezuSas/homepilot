@@ -49,7 +49,7 @@ export function GlobalWakeNotice({ notice, isProcessing }: GlobalWakeNoticeProps
         'fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] left-1/2 z-[70] w-[calc(100%-1.5rem)] max-w-toast-responsive -translate-x-1/2 rounded-section border bg-card/95 p-3.5 text-card-foreground shadow-2xl shadow-black/10 backdrop-blur-xl transition-colors sm:bottom-6 sm:w-toast-responsive sm:p-4',
         notice.tone === 'success' && 'border-primary/35',
         notice.tone === 'warning' && 'border-warning/40',
-        notice.tone === 'error' && 'border-destructive/40',
+        notice.tone === 'error' && 'border-danger/40',
         notice.tone === 'info' && 'border-border'
       )}
     >

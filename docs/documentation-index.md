@@ -23,7 +23,8 @@ remain the normative source for functional requirements and acceptance criteria.
 | `docs/operator-console-component-catalog.md` | Reusable component catalogue. |
 | `docs/local-windows-runtime.md` | Docker Desktop runtime profile. |
 | `docs/local-wsl-workflow.md` | Windows-to-WSL deployment workflow. |
-| `docs/spec-coverage-matrix.md` | Executable SDD mapping from source surfaces to primary specs. |`r`n| `docs/quality/test-assurance-v1.md` | Test inventory, coverage baseline, ratchet, and required evidence. |
+| `docs/spec-coverage-matrix.md` | Executable SDD mapping from source surfaces to primary specs. |
+| `docs/quality/test-assurance-v1.md` | Test inventory, coverage baseline, ratchet, and required evidence. |
 | `specs/` | Feature specifications and acceptance criteria. |
 
 ## Reading by Change Type

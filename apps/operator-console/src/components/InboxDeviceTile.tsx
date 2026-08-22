@@ -126,7 +126,7 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
         isOn && isAssigned && !unavailable ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10 hover:shadow-primary/20' : 'border-border shadow-md',
         (!isAssigned && isSonoff) ? 'border-success/30 bg-success/5 shadow-lg shadow-success/10 animate-in fade-in zoom-in-95 duration-700' : '',
         isProcessing && 'opacity-70 scale-[0.98] bg-muted/50 hover:translate-y-0 hover:shadow-none',
-        error && 'border-destructive/40 bg-destructive/5 hover:translate-y-0',
+        error && 'border-danger/40 bg-danger/5 hover:translate-y-0',
       )}
     >
       <div className="flex justify-between items-start">
@@ -157,9 +157,9 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
       </div>
 
       {error && !isProcessing && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-destructive/10 backdrop-blur-micro rounded-2xl p-2 text-center">
-          <AlertCircle className="w-5 h-5 text-destructive mb-1" />
-          <span className="text-micro font-black uppercase text-destructive leading-tight">{error}</span>
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-danger/10 backdrop-blur-micro rounded-2xl p-2 text-center">
+          <AlertCircle className="w-5 h-5 text-danger mb-1" />
+          <span className="text-micro font-black uppercase text-danger leading-tight">{error}</span>
           <Button
             type="button"
             onClick={(e) => { e.stopPropagation(); setError(null); }}
@@ -194,7 +194,7 @@ export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
             {isSonoff && (
               <>
                 <span className="w-1 h-1 bg-border rounded-full shrink-0" />
-                <span className={cn('shrink-0 text-nano font-semibold uppercase tracking-control', isOnline ? 'text-success' : 'text-destructive opacity-80')}>
+                <span className={cn('shrink-0 text-nano font-semibold uppercase tracking-control', isOnline ? 'text-success' : 'text-danger opacity-80')}>
                   {isOnline ? t('common.online') : t('common.offline')}
                 </span>
               </>

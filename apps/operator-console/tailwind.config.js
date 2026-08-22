@@ -38,10 +38,6 @@ export default {
           DEFAULT: 'hsl(var(--accent))',
           foreground: 'hsl(var(--accent-foreground))'
         },
-        destructive: {
-          DEFAULT: 'hsl(var(--destructive))',
-          foreground: 'hsl(var(--destructive-foreground))'
-        },
         border: 'hsl(var(--border))',
         input:  'hsl(var(--input))',
         ring:   'hsl(var(--ring))',
@@ -133,7 +129,7 @@ export default {
         'atmosphere': '100vmax',
         'native-camera-toast': 'min(420px, calc(100vw - 2rem))',
         'device-icon-sm': 'clamp(1.25rem, 12cqi, 1.75rem)',
-        'device-icon-lg': 'clamp(3rem, 38cqi, 7rem)',
+        'device-icon-lg': 'clamp(2.25rem, 20cqi, 4rem)',
         'media-card-preview': '13.5rem',
         'section-card-sm': '8.25rem',
         'section-card-md': '9.25rem',
@@ -151,7 +147,7 @@ export default {
         'room-icon': '1.125rem',
         'control-icon': '1.1rem',
         'device-icon-sm': 'clamp(1.25rem, 12cqi, 1.75rem)',
-        'device-icon-lg': 'clamp(3rem, 38cqi, 7rem)',
+        'device-icon-lg': 'clamp(2.25rem, 20cqi, 4rem)',
       },
       minHeight: {
         'onboarding': 'calc(100vh - theme(spacing.16))',
@@ -317,9 +313,7 @@ export default {
         'success-beacon': '0 0 8px rgba(34, 197, 94, 0.5)',
         'success-pill': '0 0 10px rgba(34, 197, 94, 0.1)',
         'warning-soft': '0 0 18px hsl(var(--warning) / 0.18)',
-        'light-warm-sm': '0 0 8px rgba(251, 191, 36, 0.5)',
-        'light-warm-lg': '0 0 16px rgba(251, 191, 36, 0.6)',
-        'danger-dot': '0 0 8px hsl(var(--destructive))',
+        'danger-dot': '0 0 8px hsl(var(--danger))',
       },
       backgroundImage: {
         'dashboard-grid': 'radial-gradient(circle at 1px 1px, hsl(var(--foreground) / 0.05) 1px, transparent 0)',

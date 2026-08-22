@@ -133,29 +133,29 @@ function getToneClassName(category: SensorCategory, percentage: number | null, r
     if (category === 'temperature') {
       const numeric = numericValue(rawValue);
       if (numeric === null) return 'text-muted-foreground';
-      if (numeric < 15) return 'text-sky-500';
-      if (numeric > 30) return 'text-rose-500';
-      return 'text-emerald-500';
+      if (numeric < 15) return 'text-muted-foreground';
+      if (numeric > 30) return 'text-danger';
+      return 'text-success';
     }
-    if (category === 'power') return 'text-amber-500';
+    if (category === 'power') return 'text-warning';
     return 'text-primary';
   }
 
   if (category === 'memory') {
-    if (percentage >= 85) return 'text-destructive';
-    if (percentage >= 65) return 'text-amber-500';
-    return 'text-emerald-500';
+    if (percentage >= 85) return 'text-danger';
+    if (percentage >= 65) return 'text-warning';
+    return 'text-success';
   }
 
   if (category === 'humidity') {
-    if (percentage < 25 || percentage > 70) return 'text-amber-500';
-    return 'text-sky-500';
+    if (percentage < 25 || percentage > 70) return 'text-warning';
+    return 'text-muted-foreground';
   }
 
   // battery / signal: higher is better.
-  if (percentage <= 20) return 'text-destructive';
-  if (percentage < 50) return 'text-amber-500';
-  return 'text-emerald-500';
+  if (percentage <= 20) return 'text-danger';
+  if (percentage < 50) return 'text-warning';
+  return 'text-success';
 }
 
 function getCategoryLabel(category: SensorCategory, t: (key: string) => string): string {

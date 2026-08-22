@@ -8,6 +8,7 @@ import { AlertBanner } from '../components/ui/AlertBanner';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { LoadingState } from '../components/ui/LoadingState';
+import { SectionHeader } from '../components/ui/SectionHeader';
 import { useTranslation } from 'react-i18next';
 
 export const ExecutionLogsView: React.FC = () => {
@@ -73,24 +74,19 @@ export const ExecutionLogsView: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-6 duration-1000">
-      <div className="flex items-center justify-between px-4">
-         <div className="flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-            <span className="text-micro font-black text-muted-foreground uppercase tracking-label-wider">
-              {t('execution_logs.realtime_observability')}
-            </span>
-         </div>
-         <Button
-            variant="ghost"
-            size="sm"
-            onClick={fetchRecords} 
-            className="group h-auto min-h-0 px-0 py-0 text-micro font-black text-muted-foreground hover:text-primary"
-         >
-            <RefreshCw className="w-3.5 h-3.5 group-hover:rotate-180 transition-transform duration-700" />
+    <div className="flex flex-col gap-6 sm:gap-8">
+      <SectionHeader
+        level="view"
+        icon={Activity}
+        title={t('nav.system_executions')}
+        subtitle={t('execution_logs.realtime_observability')}
+        action={
+          <Button variant="secondary" size="sm" onClick={fetchRecords} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
             {t('execution_logs.sync_now')}
-         </Button>
-      </div>
+          </Button>
+        }
+      />
 
       <div className="grid gap-4">
         {records.map((record) => (
@@ -102,9 +98,9 @@ export const ExecutionLogsView: React.FC = () => {
         ))}
       </div>
       
-      <div className="py-10 flex flex-col items-center gap-4 opacity-20">
+      <div className="flex flex-col items-center gap-3 border-t border-border/50 py-8 text-muted-foreground">
          <Activity className="w-8 h-8" />
-         <p className="text-label font-black uppercase tracking-label">{t('execution_logs.end_of_records')}</p>
+         <p className="text-caption font-medium">{t('execution_logs.end_of_records')}</p>
       </div>
     </div>
   );

@@ -153,7 +153,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
     >
       <div className="space-y-5 sm:space-y-6">
           {error && (
-            <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center gap-3 text-destructive animate-shake">
+            <div className="p-4 rounded-2xl bg-danger/10 border border-danger/20 flex items-center gap-3 text-danger animate-shake">
               <X className="w-4 h-4 shrink-0" />
               <p className="text-micro font-black uppercase tracking-wider leading-none">{error}</p>
             </div>

@@ -324,7 +324,7 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
             />
 
             <DirectorySsoLinksSection />
-            {error && <p className="text-body text-destructive font-bold text-center bg-destructive/5 py-2 rounded-xl border border-destructive/10">{error}</p>}
+            {error && <p className="text-body text-danger font-bold text-center bg-danger/5 py-2 rounded-xl border border-danger/10">{error}</p>}
         </div>
       )}
     </Modal>

@@ -63,7 +63,7 @@ export const HomeClimateSummary: React.FC<HomeClimateSummaryProps> = ({ devices 
         <time className="min-w-0 truncate font-semibold tabular-nums text-foreground" dateTime={now.toISOString()}>{formattedTime}</time>
       </div>
       <div className="flex min-w-0 flex-1 items-center gap-2 rounded-card border border-border/60 bg-card/80 px-3 py-2.5 text-caption text-muted-foreground shadow-sm sm:flex-none">
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-sky-500/10 text-sky-500">
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
           <Thermometer className="h-3.5 w-3.5" />
         </span>
         <span className="min-w-0 truncate font-semibold tabular-nums text-foreground">{temperature === null ? t('dashboard.temperature_unavailable') : `${Math.round(temperature)} °C`}</span>

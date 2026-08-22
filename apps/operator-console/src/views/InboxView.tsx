@@ -135,8 +135,9 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
       {mode === 'discovery' && <HomeAssistantDiscoverySection onImported={upsertDevice} />}
 
       {/* Control Bar */}
-      <SectionHeader 
-        className="mb-4 border-b border-border/50 pb-3 sm:!flex-row sm:!items-center sm:!justify-start sm:gap-5 sm:[&>div:first-child]:flex-none sm:[&>div:last-child]:flex-1 sm:[&>div:last-child]:max-w-none"
+      <SectionHeader
+        level="view"
+        className="sm:!flex-row sm:!items-center sm:!justify-start sm:gap-5 sm:[&>div:first-child]:flex-none sm:[&>div:last-child]:flex-1 sm:[&>div:last-child]:max-w-none"
         title={mode === 'manager' ? t('nav.system_devices') : t('nav.system_inbox')}
         icon={mode === 'manager' ? Settings : Inbox}
         action={

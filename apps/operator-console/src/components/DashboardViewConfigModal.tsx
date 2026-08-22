@@ -164,7 +164,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
       contentClassName="p-0"
       footer={(
         <>
-          <Button type="button" variant="ghost" size="sm" onClick={onDelete} className="px-0 text-destructive hover:bg-transparent hover:text-destructive">
+          <Button type="button" variant="ghost" size="sm" onClick={onDelete} className="px-0 text-danger hover:bg-transparent hover:text-danger">
             <Trash2 className="h-4 w-4" />
             {t('dashboards.view_config.delete_view')}
           </Button>

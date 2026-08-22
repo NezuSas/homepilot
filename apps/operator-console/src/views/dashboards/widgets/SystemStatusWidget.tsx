@@ -59,13 +59,13 @@ export function SystemStatusWidget({ config, isEditing, onConfigure }: { config:
   };
 
   const getMetricColor = (val: number) => {
-    if (val > 85) return 'text-destructive';
+    if (val > 85) return 'text-danger';
     if (val > 60) return 'text-warning';
     return 'text-primary';
   };
 
   const getMetricBg = (val: number) => {
-    if (val > 85) return 'bg-destructive/20';
+    if (val > 85) return 'bg-danger/20';
     if (val > 60) return 'bg-warning/20';
     return 'bg-primary/20';
   };

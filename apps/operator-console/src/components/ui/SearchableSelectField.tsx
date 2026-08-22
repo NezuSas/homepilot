@@ -150,7 +150,13 @@ export function SearchableSelectField({
 
   const openDropdown = () => {
     updateDropdownPosition();
-    requestAnimationFrame(() => searchInputRef.current?.focus());
+    // Auto-focusing the search input is a nice touch for mouse/keyboard users
+    // (type immediately to filter), but on touch devices it pops the virtual
+    // keyboard on top of the option list the user just tapped to see. Only
+    // devices with a fine pointer (mouse/trackpad) get the auto-focus.
+    if (typeof window !== 'undefined' && window.matchMedia?.('(pointer: fine)').matches) {
+      requestAnimationFrame(() => searchInputRef.current?.focus());
+    }
   };
 
   const handleToggle = () => {

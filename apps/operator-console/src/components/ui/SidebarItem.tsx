@@ -22,12 +22,12 @@ export const SidebarItem = React.forwardRef<HTMLButtonElement, SidebarItemProps>
         disabled={isDisabled}
         className={cn(
           // Base
-          'control-transition relative flex w-full min-w-0 items-center justify-between rounded-xl group',
+          'control-transition group relative flex w-full min-w-0 items-center justify-between rounded-control border border-transparent',
           nested ? 'px-2 py-1.5' : 'px-3 py-2',
-          // Active state (uses sidebar-item-active from index.css for the left bar)
+          // Active state uses the shared sidebar surface treatment.
           active
-            ? 'sidebar-item-active text-primary'
-            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+            ? 'sidebar-item-active text-foreground'
+            : 'text-muted-foreground hover:border-border/60 hover:bg-muted/70 hover:text-foreground',
           // Disabled
           isDisabled
             ? 'opacity-50 cursor-not-allowed pointer-events-none'
@@ -47,7 +47,7 @@ export const SidebarItem = React.forwardRef<HTMLButtonElement, SidebarItemProps>
               'surface-transition flex items-center justify-center rounded-lg shrink-0',
               nested ? 'w-6 h-6' : 'w-7 h-7',
               active
-                ? 'bg-primary/15 text-primary'
+                ? 'bg-primary text-primary-foreground shadow-depth-1'
                 : 'text-muted-foreground/70 group-hover:text-foreground'
             )}
           >
@@ -60,7 +60,7 @@ export const SidebarItem = React.forwardRef<HTMLButtonElement, SidebarItemProps>
               'min-w-0 flex-1 break-words text-left text-caption leading-tight transition-[opacity,width,margin] duration-base',
               // Navigation hierarchy is communicated by indentation and icon size,
               // never by a different text scale.
-              active ? 'font-semibold text-primary' : 'font-medium',
+              active ? 'font-semibold text-foreground' : 'font-medium',
               collapsedOnDesktop && 'xl:hidden'
             )}
           >

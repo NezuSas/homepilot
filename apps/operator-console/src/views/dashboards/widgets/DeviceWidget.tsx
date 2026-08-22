@@ -106,7 +106,7 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
         variant="ghost"
         size="md"
         className={cn(
-          "relative h-full w-full min-w-0 min-h-0 flex flex-row items-center gap-3 px-3 py-2 @md:px-4 transition-all duration-300 select-none group focus:outline-none"
+          "relative h-full w-full min-w-0 min-h-0 flex flex-row items-center gap-3 px-3 py-2 @md:px-4 transition-all duration-300 select-none group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-background"
         )}
         onClick={handleToggle}
         disabled={isProcessing}
@@ -115,7 +115,7 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
           "flex shrink-0 items-center justify-center transition-all duration-300",
           isOn 
             ? device.type === 'light' 
-              ? "text-amber-400 drop-shadow-none shadow-light-warm-sm scale-110" 
+              ? "text-light-active drop-shadow-none shadow-[0_0_8px_hsl(var(--light-active)/0.5)] scale-110"
               : "text-primary drop-shadow-primary-beacon scale-110"
             : "text-muted-foreground/50 scale-100 group-hover:text-muted-foreground/70"
         )}>
@@ -146,22 +146,22 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
       variant="ghost"
       size="md"
       className={cn(
-        "relative h-full w-full min-w-0 min-h-0 flex flex-col items-center justify-center p-3 @md:p-4 transition-all duration-300 select-none group focus:outline-none"
+        "relative h-full w-full min-w-0 min-h-0 flex flex-col items-center justify-center p-3 @md:p-4 transition-all duration-300 select-none group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-background"
       )}
       onClick={handleToggle}
       disabled={isProcessing}
     >
       <div className={cn(
-        "flex-1 flex items-center justify-center transition-all duration-300",
-        isOn 
-          ? device.type === 'light' 
-            ? "text-amber-400 drop-shadow-none shadow-light-warm-lg scale-110" 
+        "flex items-center justify-center transition-all duration-300",
+        isOn
+          ? device.type === 'light'
+            ? "text-light-active drop-shadow-none shadow-[0_0_16px_hsl(var(--light-active)/0.6)] scale-110"
             : "text-primary drop-shadow-none shadow-primary-glow scale-110"
           : "text-muted-foreground/50 scale-100 group-hover:text-muted-foreground/70"
       )}>
         <IconComponent className="h-device-icon-lg w-device-icon-lg" />
       </div>
-      <div className="w-full min-w-0 overflow-hidden text-center mt-auto pb-1">
+      <div className="mt-2 w-full min-w-0 overflow-hidden text-center">
         <h4 className={cn(
           "text-widget-body-lg-fluid font-bold tracking-tight leading-tight truncate px-1",
           isOn ? "text-foreground" : "text-muted-foreground/80"

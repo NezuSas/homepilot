@@ -6,6 +6,7 @@ import { apiFetch } from '../lib/apiClient';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
+import { SectionHeader } from '../components/ui/SectionHeader';
 
 interface HASettingsStatus {
   baseUrl: string;
@@ -126,10 +127,11 @@ export const HomeAssistantSettingsView: React.FC = () => {
   );
 
   return (
-    <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="flex w-full flex-col gap-6 sm:gap-8">
+      <SectionHeader level="view" icon={ShieldCheck} title={t('ha_settings.title')} />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {/* Status Card */}
-        <Card variant="glass" className="md:col-span-2 rounded-2xl p-6 flex flex-col gap-4">
+        <Card className="md:col-span-2 flex flex-col gap-4 p-5 sm:p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className={`p-2 rounded-xl ${status.connectivityStatus === 'reachable' ? 'bg-success/10' : 'bg-danger/10'}`}>
@@ -140,7 +142,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
                 <p className="text-caption text-muted-foreground">{t('ha_settings.status_card.subtitle')}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 bg-background/50 px-3 py-1.5 rounded-full border border-white/5 shadow-inner">
+            <div className="flex items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-3 py-1.5">
               {getStatusIcon(status.connectivityStatus)}
               <span className="text-body font-medium capitalize">
                 {status.connectivityStatus === 'reachable' ? t('ha_settings.status.reachable') : 
@@ -151,14 +153,14 @@ export const HomeAssistantSettingsView: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-2 gap-4 pt-2">
-            <div className="bg-background/40 p-3 rounded-xl border border-white/5 space-y-1">
+            <div className="space-y-1 rounded-xl border border-border/60 bg-muted/30 p-3">
               <span className="text-micro uppercase font-bold tracking-wider text-muted-foreground">{t('ha_settings.status_card.active_source')}</span>
               <div className="flex items-center gap-2 text-body font-medium">
                 {status.activeSource === 'database' ? <Database className="w-3.5 h-3.5 text-primary" /> : <Globe className="w-3.5 h-3.5 text-warning" />}
                 <span className="capitalize">{status.activeSource.replace('-', ' ')}</span>
               </div>
             </div>
-            <div className="bg-background/40 p-3 rounded-xl border border-white/5 space-y-1">
+            <div className="space-y-1 rounded-xl border border-border/60 bg-muted/30 p-3">
               <span className="text-micro uppercase font-bold tracking-wider text-muted-foreground">{t('ha_settings.status_card.last_checked')}</span>
               <div className="text-body font-medium">
                 {status.lastCheckedAt ? new Date(status.lastCheckedAt).toLocaleTimeString() : t('common.never')}

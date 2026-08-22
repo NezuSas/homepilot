@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Home as HomeIcon, ArrowRight, Loader2, CheckCircle2, Layers3, Lightbulb, Trash2, Pencil, X, Power } from 'lucide-react';
+import { Home as HomeIcon, Loader2, CheckCircle2, Layers3, Lightbulb, Trash2, Pencil, X, Power } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { apiFetch, readApiError } from '../lib/apiClient';
@@ -9,6 +9,7 @@ import { AlertBanner } from '../components/ui/AlertBanner';
 import { Button } from '../components/ui/Button';
 import { IconButton } from '../components/ui/IconButton';
 import { Input, SearchInput } from '../components/ui/Input';
+import { SectionHeader } from '../components/ui/SectionHeader';
 import type { UserContext } from '../lib/useSession';
 
 interface Home {
@@ -31,12 +32,6 @@ interface Device {
   status: string;
   roomId: string | null;
   lastKnownState?: Record<string, unknown> | null;
-}
-
-interface HomeOwner {
-  id: string;
-  username: string;
-  displayName: string | null;
 }
 
 interface TopologyViewProps {
@@ -63,7 +58,6 @@ const getDeviceTypeTranslationKey = (device: Device) => (
 
 export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
   const { t } = useTranslation();
-  const [homes, setHomes] = useState<Home[]>([]);
   const [selectedHome, setSelectedHome] = useState<Home | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
@@ -85,47 +79,11 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
   const [deviceProcessingId, setDeviceProcessingId] = useState<string | null>(null);
   const [topologyError, setTopologyError] = useState('');
   const [roomSearch, setRoomSearch] = useState('');
-  const [ownerNames, setOwnerNames] = useState<Record<string, string>>({});
 
   const canManageHome = (home: Home | null): boolean => (
     home !== null && home.ownerId === currentUser?.id
   );
 
-  const getOwnerLabel = (home: Home): string => {
-    if (home.ownerId === currentUser?.id) return t('topology.created_by_you');
-    return t('topology.created_by', {
-      name: ownerNames[home.ownerId] || t('topology.creator_unavailable'),
-    });
-  };
-
-  useEffect(() => {
-    if (currentUser?.role !== 'admin') {
-      setOwnerNames({});
-      return;
-    }
-
-    let isMounted = true;
-    const loadOwnerNames = async () => {
-      try {
-        const response = await apiFetch(`${API_URL}/admin/users`);
-        if (!response.ok) return;
-        const users = await response.json() as HomeOwner[];
-        if (!isMounted || !Array.isArray(users)) return;
-
-        setOwnerNames(Object.fromEntries(users.map((user) => [
-          user.id,
-          user.displayName?.trim() || user.username,
-        ])));
-      } catch {
-        // The topology remains usable if the optional owner label cannot be resolved.
-      }
-    };
-
-    void loadOwnerNames();
-    return () => {
-      isMounted = false;
-    };
-  }, [currentUser?.role]);
 
   useEffect(() => {
     let isMounted = true;
@@ -144,12 +102,11 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
         if (!isMounted) return;
 
         const nextHomes = Array.isArray(homesData) ? homesData : [];
-        setHomes(nextHomes);
         setDevices(Array.isArray(deviceData) ? deviceData : []);
         setTopologyError('');
 
         if (nextHomes.length > 0) {
-          void handleSelectHome(nextHomes[0]);
+          void loadRooms(nextHomes[0]);
         }
       } catch (error_: unknown) {
         setTopologyError(error_ instanceof Error ? error_.message : t('topology.load_error'));
@@ -164,9 +121,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Home selection controls later room refreshes.
 
-  async function handleSelectHome(home: Home) {
-    if (selectedHome?.id === home.id) return;
-
+  async function loadRooms(home: Home) {
     setSelectedHome(home);
     setSelectedRoomId(null);
     setLoadingRooms(true);
@@ -305,7 +260,6 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
       });
       if (!res.ok) throw new Error(await readApiError(res, t('topology.rename_home_error')));
       const updatedHome = await res.json() as Home;
-      setHomes((currentHomes) => currentHomes.map((currentHome) => currentHome.id === updatedHome.id ? updatedHome : currentHome));
       setSelectedHome((currentHome) => currentHome?.id === updatedHome.id ? updatedHome : currentHome);
       cancelHomeRename();
     } catch (error_: unknown) {
@@ -381,147 +335,79 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
   }
 
   return (
-    <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(14rem,16rem)_minmax(0,1fr)] xl:gap-5">
+    <div className="flex flex-col gap-6 sm:gap-8">
+      <SectionHeader level="view" icon={Layers3} title={t('nav.spaces')} />
+      <div className="flex flex-col gap-5">
       {topologyError && (
-        <AlertBanner className="xl:col-span-2" variant="danger" message={topologyError} />
+        <AlertBanner variant="danger" message={topologyError} />
       )}
       
-      {/* Homes List */}
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-caption font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
-            {t('topology.homes_title')} 
-            <span className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-micro">
-              {homes.length}
-            </span>
-          </h3>
-        </div>
-
-        <div className="border border-border rounded-xl bg-card overflow-hidden shadow-sm">
-          {homes.length === 0 ? (
-            <div className="p-8 text-center text-body text-muted-foreground italic bg-muted/20">
-              {t('topology.no_homes', { defaultValue: 'No homes registered.' })}
-            </div>
-          ) : (
-            <ul className="divide-y divide-border/50">
-              {Array.isArray(homes) && homes.map((home) => {
-                const isSelected = selectedHome?.id === home.id;
-                const isHomeOwner = canManageHome(home);
-                return (
-                  <li 
-                    key={home.id}
-                    onClick={() => { void handleSelectHome(home); }}
-                    className={cn(
-                      "group flex flex-col p-4 cursor-pointer transition-all border-l-[4px] relative",
-                      isSelected 
-                        ? "bg-primary/5 border-l-primary" 
-                        : "border-l-transparent hover:bg-muted/50 border-muted/20"
-                    )}
-                  >
-                    {isSelected && loadingRooms && (
-                      <div className="absolute inset-0 bg-primary/5 animate-pulse rounded-r-xl pointer-events-none" />
-                    )}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "p-2.5 rounded-xl transition-all duration-300",
-                          isSelected ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-muted text-muted-foreground group-hover:bg-muted/80"
-                        )}>
-                          <HomeIcon className="w-4 h-4" />
-                        </div>
-                        <div className="flex flex-col">
-                          {editingHomeId === home.id ? (
-                            <form
-                              className="flex items-center gap-1"
-                              onSubmit={(event) => { void handleRenameHome(event, home); }}
-                              onClick={(event) => event.stopPropagation()}
-                            >
-                              <Input
-                                autoFocus
-                                value={homeNameDraft}
-                                onChange={(event) => setHomeNameDraft(event.target.value)}
-                                containerClassName="w-36"
-                                className="h-7 rounded-lg border-primary/40 px-2 py-1 text-caption font-bold text-foreground"
-                                aria-label={t('topology.rename_home')}
-                              />
-                              <IconButton
-                                icon={isRenamingHome ? Loader2 : CheckCircle2}
-                                label={t('common.save')}
-                                type="submit"
-                                disabled={isRenamingHome || !homeNameDraft.trim()}
-                                variant="primary"
-                                size="sm"
-                                className={cn('h-7 w-7 rounded-lg', isRenamingHome && '[&_svg]:animate-spin')}
-                              />
-                              <IconButton
-                                icon={X}
-                                label={t('common.cancel')}
-                                onClick={cancelHomeRename}
-                                disabled={isRenamingHome}
-                                variant="default"
-                                size="sm"
-                                className="h-7 w-7 rounded-lg"
-                              />
-                            </form>
-                          ) : (
-                            <span className={cn(
-                              "font-bold text-body transition-colors",
-                              isSelected ? "text-primary" : "text-foreground"
-                            )}>{home.name}</span>
-                          )}
-                          <span className="text-micro text-muted-foreground">{getOwnerLabel(home)}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {isSelected && isHomeOwner && editingHomeId !== home.id && (
-                          <IconButton
-                            icon={Pencil}
-                            label={t('topology.rename_home')}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              beginHomeRename(home);
-                            }}
-                            variant="default"
-                            size="sm"
-                            className="h-7 w-7 rounded-lg hover:text-primary"
-                          />
-                        )}
-                        {isSelected && !loadingRooms && (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-primary opacity-50" />
-                        )}
-                        <ArrowRight className={cn(
-                          "w-4 h-4 transition-all duration-300", 
-                          isSelected 
-                            ? "text-primary translate-x-0 opacity-100" 
-                            : "text-muted-foreground -translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0"
-                        )} />
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-      </div>
-
       {/* Rooms Details */}
-      <div className="flex min-w-0 flex-col gap-4">
+      <section className="flex min-w-0 flex-col gap-5 rounded-panel border border-border/80 bg-card p-4 shadow-depth-1 sm:p-6">
         {selectedHome ? (
           <>
-            <div className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <h3 className="text-caption font-bold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
-                {t('topology.rooms_in')} <span className="text-foreground normal-case font-semibold bg-muted px-2 py-0.5 rounded-md">{selectedHome.name}</span>
-              </h3>
+            <div className="flex flex-col gap-4 border-b border-border/70 pb-5 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex min-w-0 items-center gap-3.5">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10 text-primary">
+                  <HomeIcon className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  {editingHomeId === selectedHome.id ? (
+                    <form className="flex items-center gap-2" onSubmit={(event) => { void handleRenameHome(event, selectedHome); }}>
+                      <Input
+                        autoFocus
+                        value={homeNameDraft}
+                        onChange={(event) => setHomeNameDraft(event.target.value)}
+                        containerClassName="min-w-0 flex-1"
+                        className="h-9 rounded-control border-primary/40 px-3 text-body font-bold text-foreground"
+                        aria-label={t('topology.rename_home')}
+                      />
+                      <IconButton
+                        icon={isRenamingHome ? Loader2 : CheckCircle2}
+                        label={t('common.save')}
+                        type="submit"
+                        disabled={isRenamingHome || !homeNameDraft.trim()}
+                        variant="primary"
+                        size="sm"
+                        className={cn('h-9 w-9 rounded-control', isRenamingHome && '[&_svg]:animate-spin')}
+                      />
+                      <IconButton
+                        icon={X}
+                        label={t('common.cancel')}
+                        onClick={cancelHomeRename}
+                        disabled={isRenamingHome}
+                        variant="default"
+                        size="sm"
+                        className="h-9 w-9 rounded-control"
+                      />
+                    </form>
+                  ) : (
+                    <div className="flex min-w-0 items-center gap-2">
+                      <h2 className="truncate text-section-title font-bold tracking-tight text-foreground">{selectedHome.name}</h2>
+                      {canManageHome(selectedHome) && (
+                        <IconButton
+                          icon={Pencil}
+                          label={t('topology.rename_home')}
+                          onClick={() => beginHomeRename(selectedHome)}
+                          variant="default"
+                          size="sm"
+                          className="h-8 w-8 shrink-0 rounded-control hover:border-primary/30 hover:text-primary"
+                        />
+                      )}
+                    </div>
+                  )}
+                  <p className="mt-1 text-caption text-muted-foreground">{t('topology.home_workspace_description')}</p>
+                </div>
+              </div>
               {canManageHome(selectedHome) && (
-                <div className="flex w-full items-center gap-2 sm:w-auto">
+                <div className="flex w-full items-center gap-2 lg:w-auto">
                   <Input
                     type="text"
-                    containerClassName="min-w-0 flex-1 sm:w-52"
+                    containerClassName="min-w-0 flex-1 lg:w-60"
                     placeholder={t('topology.placeholder')}
                     value={newRoomName}
                     onChange={(e) => setNewRoomName(e.target.value)}
-                    className="rounded-lg px-3 py-2 text-caption focus-visible:ring-1"
+                    className="rounded-control px-3 py-2 text-caption focus-visible:ring-1"
                     onKeyDown={(e) => e.key === 'Enter' && handleAddRoom()}
                   />
                   <Button
@@ -536,13 +422,12 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                 </div>
               )}
             </div>
-
             <SearchInput
               value={roomSearch}
               onChange={(event) => setRoomSearch(event.target.value)}
               placeholder={t('topology.search_rooms')}
               aria-label={t('topology.search_rooms')}
-              className="w-full max-w-2xl xl:max-w-none"
+              className="w-full"
             />
 
             {loadingRooms ? (
@@ -783,15 +668,15 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
             )}
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center h-topology-empty border border-border border-dashed rounded-xl bg-muted/10 text-muted-foreground cursor-default">
-            <div className="p-4 bg-muted rounded-full mb-4 opacity-50">
-              <HomeIcon className="w-8 h-8" />
+          <div className="flex h-topology-empty flex-col items-center justify-center rounded-card border border-dashed border-border bg-muted/20 px-6 text-center text-muted-foreground">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-border bg-muted/60">
+              <HomeIcon className="h-5 w-5" />
             </div>
-            <p className="text-body font-medium text-foreground">{t('topology.select_home_hint')}</p>
-            <p className="text-caption mt-1.5 opacity-80 max-w-xs text-center">{t('topology.select_home')}</p>
+            <h2 className="text-section-title font-bold text-foreground">{t('topology.no_active_home_title')}</h2>
+            <p className="mt-2 max-w-md text-caption leading-relaxed">{t('topology.no_active_home_description')}</p>
           </div>
         )}
-      </div>
+      </section>
 
       <ConfirmModal
         isOpen={!!roomPendingDelete}
@@ -807,6 +692,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
         isSubmitting={isDeletingRoom}
       />
       
+    </div>
     </div>
   );
 };

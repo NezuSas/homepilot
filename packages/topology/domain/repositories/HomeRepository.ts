@@ -14,7 +14,8 @@ export interface HomeRepository {
   saveHome(home: Home): Promise<void>;
 
   /**
-   * Recupera el hogar único disponible en la instalación Edge para una sesión autenticada.`r`n   * Falla cerrada si la base contiene más de un hogar.
+   * Recupera el hogar único disponible en la instalación Edge para una sesión autenticada.
+   * Falla cerrada si la base contiene más de un hogar.
    */
   findHomesByUserId(userId: string): Promise<ReadonlyArray<Home>>;
 

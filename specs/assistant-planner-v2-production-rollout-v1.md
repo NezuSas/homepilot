@@ -56,5 +56,6 @@ Rollback is immediate: set `ASSISTANT_PLANNER_V2_EXECUTION=false` and redeploy i
 
 - `packages/assistant/application/AssistantPlannerV2ShadowService.ts` owns shadow sampling, V1/V2 comparison telemetry, and the execution circuit breaker.
 - `packages/assistant/__tests__/assistant_planner_v2_shadow.test.ts` covers disabled/shadow behavior, sampling, validation, guarded execution, and circuit-breaker fallback.
-- `docker-compose.yml`, `docker-compose.office.yml`, `.env.office.example`, and `.env.native.example` supply safe non-execution defaults across supported installations.`r`n- `scripts/check-docker-profiles.mjs` prevents a profile or installation template from re-enabling live Planner V2 execution by default.
+- `docker-compose.yml`, `docker-compose.office.yml`, `.env.office.example`, and `.env.native.example` supply safe non-execution defaults across supported installations.
+- `scripts/check-docker-profiles.mjs` prevents a profile or installation template from re-enabling live Planner V2 execution by default.
 - `scripts/review-planner-v2-shadow.mjs` aggregates only structured shadow diagnostics for an operator review.
