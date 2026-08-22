@@ -48,7 +48,7 @@ const CANVAS_ROW_UNIT = 8;
 function getCanvasGap(columns: number): number {
   if (columns === 1) return 10;
   if (columns === 2) return 12;
-  return 16;
+  return 24;
 }
 
 /** Measures an element's rendered height and derives a grid row-span from it. */

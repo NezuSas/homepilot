@@ -57,20 +57,22 @@ function createDevice(
 }
 
 describe('dashboard canvas columns', () => {
-  it('flows 1 column on mobile, 2 on tablet, 3 on desktop, by container width', () => {
+  it('derives the column count from a fixed ~350px column basis, Home Assistant Sections style, instead of a capped 1/2/3 breakpoint table', () => {
     expect(getDashboardSectionColumns(320)).toBe(1);
-    expect(getDashboardSectionColumns(639)).toBe(1);
-    expect(getDashboardSectionColumns(640)).toBe(2);
-    expect(getDashboardSectionColumns(1023)).toBe(2);
-    expect(getDashboardSectionColumns(1024)).toBe(3);
+    expect(getDashboardSectionColumns(715)).toBe(1);
+    expect(getDashboardSectionColumns(716)).toBe(2);
+    expect(getDashboardSectionColumns(1081)).toBe(2);
+    expect(getDashboardSectionColumns(1082)).toBe(3);
     expect(getDashboardSectionColumns(1440)).toBe(3);
+    // Ultra-wide canvases keep adding fixed-width columns instead of capping at 3.
+    expect(getDashboardSectionColumns(1500)).toBe(4);
   });
 
   it('uses two readable columns only on high-resolution portrait kiosks', () => {
     expect(isPortraitKioskViewport(1080, 1920)).toBe(true);
     expect(getDashboardSectionColumnsForViewport(1080, 1080, 1920)).toBe(2);
     expect(getDashboardSectionColumnsForViewport(1440, 1440, 900)).toBe(3);
-    expect(getDashboardSectionColumnsForViewport(1024, 1024, 1366)).toBe(3);
+    expect(getDashboardSectionColumnsForViewport(1024, 1024, 1366)).toBe(2);
     expect(getDashboardSectionColumnsForViewport(768, 768, 1024)).toBe(2);
     expect(isPortraitKioskViewport(768, 1024)).toBe(false);
   });

@@ -47,7 +47,7 @@ describe('section card catalog contracts', () => {
     expect(getWidgetType('energy')).toBe('energy_snapshot');
     expect(getCatalogLabelKey('cover')).toBe('dashboard.editor.sections.section_card_cover');
     expect(getCatalogDescriptionKey('sensor')).toBe('dashboard.editor.sections.section_card_sensor_desc');
-    expect(getSpanClass('medium')).toBe('col-span-1 sm:col-span-2');
+    expect(getSpanClass('medium')).toBe('col-span-2');
     expect(getClockKindLabelKey('clock_minimal')).toBe('dashboard.editor.sections.clock_style_minimal');
     expect(getClockStyleForKind('clock_premium')).toBe('analog-classic');
   });

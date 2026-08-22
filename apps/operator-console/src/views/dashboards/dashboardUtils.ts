@@ -3,9 +3,13 @@ import { canExecuteCommand } from '../../lib/deviceCapabilities';
 import type { DashboardWidget, DashboardWidgetConfig } from './types';
 import { generateId } from '../../utils/generateId';
 
-const DASHBOARD_TABLET_CANVAS_MIN_WIDTH = 640;
-const DASHBOARD_DESKTOP_CANVAS_MIN_WIDTH = 1024;
 const DASHBOARD_MAX_SECTION_SPAN = 3;
+// Home Assistant Sections view lays out fixed-width (~340-360px) columns
+// that add up across the available width, instead of stretching a small
+// fixed column count. Reproduced here as a column basis + gap so wider
+// screens get more columns rather than a few very wide ones.
+const DASHBOARD_SECTION_COLUMN_BASIS_PX = 350;
+const DASHBOARD_SECTION_COLUMN_GAP_PX = 16;
 const PORTRAIT_KIOSK_MIN_VIEWPORT_WIDTH = 1080;
 const PORTRAIT_KIOSK_MIN_VIEWPORT_HEIGHT = 1280;
 const PORTRAIT_KIOSK_MIN_ASPECT_RATIO = 1.3;
@@ -31,10 +35,12 @@ export function getDashboardUserDisplayName(value: unknown, fallback: string): s
  * into these columns by array order, Home Assistant "Sections" style, instead
  * of being positioned at absolute coordinates.
  */
-export function getDashboardSectionColumns(width: number): 1 | 2 | 3 {
-  if (width > 0 && width < DASHBOARD_TABLET_CANVAS_MIN_WIDTH) return 1;
-  if (width > 0 && width < DASHBOARD_DESKTOP_CANVAS_MIN_WIDTH) return 2;
-  return 3;
+export function getDashboardSectionColumns(width: number): number {
+  if (width <= 0) return 1;
+  const columns = Math.floor(
+    (width + DASHBOARD_SECTION_COLUMN_GAP_PX) / (DASHBOARD_SECTION_COLUMN_BASIS_PX + DASHBOARD_SECTION_COLUMN_GAP_PX)
+  );
+  return Math.max(1, columns);
 }
 
 /**
@@ -58,9 +64,9 @@ export function getDashboardSectionColumnsForViewport(
   canvasWidth: number,
   viewportWidth: number,
   viewportHeight: number,
-): 1 | 2 | 3 {
+): number {
   const columns = getDashboardSectionColumns(canvasWidth);
-  return isPortraitKioskViewport(viewportWidth, viewportHeight) && columns === 3 ? 2 : columns;
+  return isPortraitKioskViewport(viewportWidth, viewportHeight) ? Math.min(columns, 2) : columns;
 }
 
 /**
