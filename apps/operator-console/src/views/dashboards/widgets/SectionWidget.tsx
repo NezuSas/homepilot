@@ -592,14 +592,14 @@ function CardPreview({
 
   const isLightKind = normalized === 'light';
 
-  // Compact, Home Assistant-style tile: a small icon chip and two lines of
-  // text in a single row, sized for a short card instead of a large centered
-  // icon that only fits a tall one.
+  // Compact, Home Assistant-style tile: a centered icon with the name
+  // wrapping below it (up to two lines instead of being truncated), sized
+  // smaller overall than the other card kinds.
   if (isSmall) {
     return (
       <div
         className={cn(
-          "relative flex h-full min-h-0 w-full items-center gap-2.5 overflow-hidden rounded-section border px-3 py-2.5 text-left text-foreground transition-all",
+          "relative flex h-full min-h-0 w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-section border p-2 text-center text-foreground transition-all",
           isActive
             ? isLightKind
               ? "border-light-active/45 bg-light-active/14 shadow-surface-card"
@@ -609,7 +609,7 @@ function CardPreview({
       >
         <span
           className={cn(
-            "grid h-9 w-9 shrink-0 place-items-center rounded-control transition-colors",
+            "grid h-10 w-10 shrink-0 place-items-center rounded-full transition-colors",
             isActive
               ? isLightKind ? "bg-light-active text-light-active-foreground" : "bg-primary text-primary-foreground"
               : "bg-muted/70 text-muted-foreground"
@@ -617,14 +617,12 @@ function CardPreview({
         >
           <Icon className="h-5 w-5" />
         </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-caption font-black leading-tight text-foreground">{title}</span>
-          <span className={cn(
-            "mt-0.5 block truncate text-micro font-semibold",
-            isActive ? (isLightKind ? "text-light-active" : "text-primary") : "text-muted-foreground"
-          )}>
-            {isAssigned ? (isActive ? t('common.on') : t('common.off')) : subtitle || t('dashboard.editor.sections.unassigned')}
-          </span>
+        <span className="line-clamp-2 min-w-0 text-micro font-bold leading-tight text-foreground">{title}</span>
+        <span className={cn(
+          "line-clamp-1 min-w-0 text-nano font-semibold uppercase tracking-control",
+          isActive ? (isLightKind ? "text-light-active" : "text-primary") : "text-muted-foreground"
+        )}>
+          {isAssigned ? (isActive ? t('common.on') : t('common.off')) : subtitle || t('dashboard.editor.sections.unassigned')}
         </span>
       </div>
     );
