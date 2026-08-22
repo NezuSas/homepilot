@@ -255,7 +255,8 @@ describe('Feature: Device command route contract', () => {
     await routes.handle(commandRequest({ command: 'turn_off' }), res, '/api/v1/devices/light-1/command', 'POST', container);
 
     expect(container.services.homeAssistantSettingsService.updateStatusFromOperation).toHaveBeenCalledWith('unreachable');
-    expect(res.writeHead).toHaveBeenCalledWith(500, expect.any(Object));
+    expect(res.writeHead).toHaveBeenCalledWith(502, expect.any(Object));
+    expect(res.end).toHaveBeenCalledWith(expect.stringContaining('COMMAND_DISPATCH_FAILED'));
   });
 });
 

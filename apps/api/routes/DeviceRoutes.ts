@@ -7,7 +7,7 @@ import { syncDeviceStateUseCase } from '../../../packages/devices/application/sy
 import { discoverDeviceUseCase } from '../../../packages/devices/application/discoverDeviceUseCase';
 import { getDeviceStateUseCase } from '../../../packages/devices/application/getDeviceStateUseCase';
 import { getDeviceActivityHistoryUseCase } from '../../../packages/devices/application/getDeviceActivityHistoryUseCase';
-import { ForbiddenOwnershipError, TopologyResourceNotFoundError } from '../../../packages/devices/application/errors';
+import { DispatchIntegrationError, ForbiddenOwnershipError, TopologyResourceNotFoundError } from '../../../packages/devices/application/errors';
 import type { TopologyReferencePort } from '../../../packages/devices/application/ports/TopologyReferencePort';
 import { DeviceCommandV1, isValidCommand } from '../../../packages/devices/domain/commands';
 import { HomeAssistantReconciliationState } from '../../../packages/integrations/home-assistant/application/ports/HomeAssistantStateReader';
@@ -382,6 +382,9 @@ export class DeviceRoutes extends ApiRoutes {
         else if (name === 'UnsupportedCommandError' || name === 'InvalidDeviceCommandError') {
           status = 400;
           code = 'INVALID_COMMAND';
+        } else if (name === 'DispatchIntegrationError') {
+          status = 502;
+          code = 'COMMAND_DISPATCH_FAILED';
         }
 
         if (msg.includes('Home Assistant') || msg.includes('fetch')) {
