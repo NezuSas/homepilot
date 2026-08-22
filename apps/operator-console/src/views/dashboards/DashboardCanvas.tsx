@@ -292,13 +292,12 @@ export function DashboardCanvas({
             : "border-transparent bg-transparent p-0"
         )}
         style={{
-          // Fixed-width columns (20-22.5rem, Home Assistant Sections style)
-          // with auto-fit collapse unused tracks instead of stretching
-          // existing sections wider than intended. justifyContent: center
-          // then splits any leftover width evenly on both sides instead of
-          // dumping it all on the right.
-          gridTemplateColumns: 'repeat(auto-fit, minmax(20rem, 22.5rem))',
-          justifyContent: 'center',
+          // Sections stretch to fill the full canvas width (auto-fit +
+          // 1fr max): the 20rem minimum keeps a section from getting too
+          // narrow, and any extra width is distributed across existing
+          // sections instead of centering the block and leaving large
+          // blank margins on both sides when there aren't many sections.
+          gridTemplateColumns: 'repeat(auto-fit, minmax(20rem, 1fr))',
           gridAutoRows: `${CANVAS_ROW_UNIT}px`,
           gridAutoFlow: 'row',
           alignItems: 'start',
