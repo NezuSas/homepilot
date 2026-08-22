@@ -951,6 +951,14 @@ function SectionCardItem({
 export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProps) {
   const { t } = useTranslation();
 
+  // The inner card grid's column count follows the Section's own outer
+  // canvas width (Home Assistant Sections style): a 1-column-wide section
+  // fits 2 tile columns, a wider section (2+ outer columns) fits 4 — so
+  // small tiles stay a similar physical width either way instead of
+  // stretching thin across a wide section.
+  const sectionSpan = config.layout.span ?? 1;
+  const innerColumns = sectionSpan >= 2 ? 4 : 2;
+
   const catalogLabel = (kind: SectionCardKind) => t(getCatalogLabelKey(kind));
 
   const catalogDescription = (kind: SectionCardKind) => t(getCatalogDescriptionKey(kind));
@@ -1711,7 +1719,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     <div
       onClick={(event) => event.stopPropagation()}
       className="grid min-h-0 flex-1 auto-rows-[minmax(20px,auto)] grid-flow-row-dense content-start items-start gap-3 overflow-visible pr-1"
-      style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}
+      style={{ gridTemplateColumns: `repeat(${innerColumns}, 1fr)` }}
     >
       <DndContext sensors={cardDragSensors} onDragEnd={handleCardDragEnd}>
         <SortableContext items={cards.map((card) => card.id)} strategy={rectSortingStrategy}>
