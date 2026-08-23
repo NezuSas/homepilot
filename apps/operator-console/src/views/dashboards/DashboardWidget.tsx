@@ -11,6 +11,9 @@ import {
 } from 'lucide-react';
 import { useDeviceSnapshotStore } from '../../stores/useDeviceSnapshotStore';
 import { IconButton } from '../../components/ui/IconButton';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Modal } from '../../components/ui/Modal';
 import { clampSectionSpan, getSectionSpan } from './dashboardUtils';
 
 // Sub-widgets
@@ -46,7 +49,7 @@ interface DashboardWidgetNodeProps {
 }
 
 /** Pure content renderer: no DnD hooks, safe to use inside DragOverlay. */
-export function WidgetContent({ widget, isEditing, isSelected = false, onClick, onConfigChange, titleBadgeTabs, currentTabId, onSelectTab, sectionTitleEditRequest }: { widget: DashboardWidget; isEditing: boolean; isSelected?: boolean; onClick: () => void; onConfigChange?: (id: string, config: Partial<DashboardWidgetConfig>) => void; titleBadgeTabs?: Array<{ id: string; title: string; icon?: string }>; currentTabId?: string; onSelectTab?: (tabId: string) => void; sectionTitleEditRequest?: number }) {
+export function WidgetContent({ widget, isEditing, isSelected = false, onClick, onConfigChange, titleBadgeTabs, currentTabId, onSelectTab }: { widget: DashboardWidget; isEditing: boolean; isSelected?: boolean; onClick: () => void; onConfigChange?: (id: string, config: Partial<DashboardWidgetConfig>) => void; titleBadgeTabs?: Array<{ id: string; title: string; icon?: string }>; currentTabId?: string; onSelectTab?: (tabId: string) => void }) {
   const { t } = useTranslation();
 
   switch (widget.type) {
@@ -87,7 +90,6 @@ export function WidgetContent({ widget, isEditing, isSelected = false, onClick, 
           config={widget.config}
           isEditing={isEditing}
           onUpdate={(patch) => onConfigChange?.(widget.id, patch)}
-          editTitleRequest={sectionTitleEditRequest}
         />
       );
     default:
@@ -175,7 +177,9 @@ export function DashboardWidgetNode({
   onSelectTab,
 }: DashboardWidgetNodeProps) {
   const { t } = useTranslation();
-  const [sectionTitleEditRequest, setSectionTitleEditRequest] = useState(0);
+  const [isSectionEditorOpen, setIsSectionEditorOpen] = useState(false);
+  const [sectionDraftTitle, setSectionDraftTitle] = useState('');
+  const [sectionDraftSpan, setSectionDraftSpan] = useState(1);
 
   const devices = useDeviceSnapshotStore(state => state.devices);
   const boundDevice = devices.find(d => d.id === widget.config.binding.entityId);
@@ -234,15 +238,77 @@ export function DashboardWidgetNode({
           titleBadgeTabs={titleBadgeTabs}
           currentTabId={currentTabId}
           onSelectTab={onSelectTab}
-          sectionTitleEditRequest={sectionTitleEditRequest}
         />
       </div>
 
+      {isSection ? (
+        <Modal
+          isOpen={isSectionEditorOpen}
+          onClose={() => setIsSectionEditorOpen(false)}
+          title={t('dashboard.editor.sections.edit_section_title')}
+          headerAlign="start"
+          className="max-w-md"
+          footer={(
+            <div className="flex w-full justify-end gap-3 p-5 sm:p-6">
+              <Button type="button" variant="outline" size="md" onClick={() => setIsSectionEditorOpen(false)}>
+                {t('dashboard.editor.sections.cancel')}
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                size="md"
+                onClick={() => {
+                  onConfigChange?.(widget.id, {
+                    appearance: { ...widget.config.appearance, title: sectionDraftTitle.trim() },
+                    layout: { ...widget.config.layout, span: sectionDraftSpan },
+                  });
+                  setIsSectionEditorOpen(false);
+                }}
+              >
+                {t('dashboard.editor.sections.save')}
+              </Button>
+            </div>
+          )}
+        >
+          <div className="space-y-5">
+            <Input
+              autoFocus
+              label={t('dashboard.editor.sections.section_title')}
+              value={sectionDraftTitle}
+              placeholder={t('dashboard.editor.sections.section_title_placeholder')}
+              onChange={(event) => setSectionDraftTitle(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') setIsSectionEditorOpen(false);
+              }}
+            />
+            <div className="space-y-2">
+              <p className="text-micro font-black uppercase tracking-widest text-muted-foreground">
+                {t('dashboard.editor.sections.span_picker_label')}
+              </p>
+              <div className="grid grid-cols-4 gap-2" role="group" aria-label={t('dashboard.editor.sections.span_picker_label')}>
+                {Array.from({ length: 4 }, (_, index) => index + 1).map((span) => (
+                  <Button
+                    key={span}
+                    type="button"
+                    variant={sectionDraftSpan === span ? 'primary' : 'outline'}
+                    size="md"
+                    aria-pressed={sectionDraftSpan === span}
+                    onClick={() => setSectionDraftSpan(span)}
+                    className="h-10 min-w-0 px-0"
+                  >
+                    {span}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
       {/* Edit Mode Controls */}
       {isEditing && !isOverlay && (
         <>
           {/* A selected section exposes only its direct manipulation tools. */}
-          <div className="pointer-events-auto absolute right-2 top-2 z-30 flex items-center">
+          <div className={cn("pointer-events-auto absolute z-30 flex items-center", isSection ? "-top-5 right-3" : "right-2 top-2")}>
             <div className="flex items-center gap-1 rounded-xl border border-border/50 bg-background/95 p-1 shadow-lg backdrop-blur-md">
               {/* The grip reorders the section without capturing its card controls. */}
               {!isTitleWidget && canDrag && (
@@ -259,10 +325,19 @@ export function DashboardWidgetNode({
               {!isTitleWidget && canDrag && <div className="mx-0.5 h-4 w-px bg-border/40" />}
               <IconButton
                 icon={Pencil}
-                label={t('common.configure')}
+                label={isSection ? t('dashboard.editor.sections.edit_section_title') : t('common.configure')}
                 variant="ghost"
                 size="sm"
-                onClick={(e) => { e.stopPropagation(); if (isSection) { setSectionTitleEditRequest((request) => request + 1); } else { onClick(); } }}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (isSection) {
+                    setSectionDraftTitle(widget.config.appearance?.title ?? '');
+                    setSectionDraftSpan(getSectionSpan(widget));
+                    setIsSectionEditorOpen(true);
+                  } else {
+                    onClick();
+                  }
+                }}
                 className="hover:bg-primary/10 hover:text-primary"
               />
               {!isTitleWidget && onDelete && <div className="mx-0.5 h-4 w-px bg-border/40" />}
@@ -278,7 +353,7 @@ export function DashboardWidgetNode({
               )}
             </div>
           </div>
-          {!isTitleWidget && canDrag && onConfigChange && (
+          {!isTitleWidget && !isSection && canDrag && onConfigChange && (
             <WidgetResizeHandle
               span={clampSectionSpan(getSectionSpan(widget), Math.max(1, columns))}
               columns={Math.max(1, columns)}

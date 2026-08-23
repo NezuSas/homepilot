@@ -46,7 +46,6 @@ interface SectionWidgetProps {
   config: DashboardWidgetConfig;
   isEditing: boolean;
   onUpdate?: (config: Partial<DashboardWidgetConfig>) => void;
-  editTitleRequest?: number;
 }
 
 function iconForIconKey(icon: SectionCardIcon) {
@@ -611,16 +610,16 @@ function CardPreview({
           "relative flex h-full min-h-0 w-full flex-col items-center justify-center overflow-hidden rounded-xl border p-2.5 text-center text-foreground transition-all",
           isActive
             ? isLightKind
-              ? "border-light-active/45 bg-light-active/14 shadow-surface-card"
+              ? "homepilot-section-light-tile-active"
               : "border-primary/45 bg-primary/14 shadow-surface-card"
             : "border-border/60 bg-card/95 shadow-surface-card"
         )}
       >
         <Icon className={cn(
           "h-7 w-7 shrink-0 transition-colors",
-          isActive ? (isLightKind ? "text-light-active" : "text-primary") : "text-muted-foreground"
+          isActive ? (isLightKind ? "text-light-active-foreground" : "text-primary") : "text-muted-foreground"
         )} />
-        <span className="line-clamp-2 min-w-0 text-micro font-bold leading-tight text-foreground">{title}</span>
+        <span className={cn("line-clamp-2 min-w-0 text-micro font-bold leading-tight", isActive && isLightKind ? "text-light-active-foreground" : "text-foreground")}>{title}</span>
       </div>
     );
   }
@@ -1036,7 +1035,7 @@ function SectionCardItem({
   );
 }
 
-export function SectionWidget({ config, isEditing, onUpdate, editTitleRequest = 0 }: SectionWidgetProps) {
+export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProps) {
   const { t } = useTranslation();
 
   // Every section uses a strict 4-column inner grid (Home Assistant
@@ -1057,10 +1056,6 @@ export function SectionWidget({ config, isEditing, onUpdate, editTitleRequest = 
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [catalogCategoryFilter, setCatalogCategoryFilter] = useState<SectionCardCategory | null>(null);
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const lastTitleEditRequest = useRef(editTitleRequest);
-  const [draftTitle, setDraftTitle] = useState(config.appearance?.title || '');
-  useEffect(() => { if (editTitleRequest !== lastTitleEditRequest.current) { lastTitleEditRequest.current = editTitleRequest; setDraftTitle(config.appearance?.title || ''); setIsEditingTitle(true); } }, [config.appearance?.title, editTitleRequest]);
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [processingCardId, setProcessingCardId] = useState<string | null>(null);
   const [actionFeedback, setActionFeedback] = useState<{ id: string; status: 'success' | 'error' } | null>(null);
@@ -1281,17 +1276,6 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     reorderCards(String(active.id), String(over.id));
-  };
-
-  const saveTitle = () => {
-    const nextTitle = draftTitle.trim() || t('dashboard.editor.sections.new_section');
-    onUpdate?.({
-      appearance: {
-        ...config.appearance,
-        title: nextTitle,
-      },
-    });
-    setIsEditingTitle(false);
   };
 
   const handleCardAction = async (card: NormalizedSectionCardItem, event?: MouseEvent) => {
@@ -1884,43 +1868,11 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       onClick={(event) => event.stopPropagation()}
       className="group/section relative flex min-h-fit w-full min-w-0 self-start flex-col overflow-visible px-1 pb-2 pt-1 text-left"
     >
-      <div className="mb-4 flex min-w-0 items-center gap-2 pr-10">
+      <div className="mb-4 flex min-w-0 items-center gap-2">
         {showTitle ? (
-          isEditingTitle ? (
-            <Input
-              autoFocus
-              value={draftTitle}
-              onChange={(event) => setDraftTitle(event.target.value)}
-              onBlur={saveTitle}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') saveTitle();
-                if (event.key === 'Escape') {
-                  setDraftTitle(config.appearance?.title || '');
-                  setIsEditingTitle(false);
-                }
-              }}
-              containerClassName="min-w-0 flex-1"
-              className="h-10 border-primary/40 bg-background/70 text-body-lg font-black"
-              aria-label={t('dashboard.editor.sections.edit_section_title')}
-            />
-          ) : (
-            <>
-              <h2 className="min-w-0 truncate text-dashboard-section-title-fluid font-black tracking-tight text-foreground">
-                {title}
-              </h2>
-              <IconButton
-                icon={Pencil}
-                label={t('dashboard.editor.sections.edit_section_title')}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setDraftTitle(config.appearance?.title || title);
-                  setIsEditingTitle(true);
-                }}
-                variant="default"
-                size="sm"
-              />
-            </>
-          )
+          <h2 className="min-w-0 truncate text-dashboard-section-title-fluid font-black tracking-tight text-foreground">
+            {title}
+          </h2>
         ) : (
           <span className="text-body font-semibold text-muted-foreground">
             {t('dashboard.editor.sections.untitled_section')}
