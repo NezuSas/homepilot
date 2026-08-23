@@ -26,7 +26,7 @@ export const SidebarItem = React.forwardRef<HTMLButtonElement, SidebarItemProps>
           nested ? 'px-2 py-1.5' : 'px-3 py-2',
           // Active state uses the shared sidebar surface treatment.
           active
-            ? 'sidebar-item-active text-foreground'
+            ? 'sidebar-item-active text-muted-foreground'
             : 'text-muted-foreground hover:border-border/60 hover:bg-muted/70 hover:text-foreground',
           // Disabled
           isDisabled
@@ -60,8 +60,7 @@ export const SidebarItem = React.forwardRef<HTMLButtonElement, SidebarItemProps>
               'min-w-0 flex-1 break-words text-left text-caption leading-tight transition-[opacity,width,margin] duration-base',
               // Navigation hierarchy is communicated by indentation and icon size,
               // never by a different text scale.
-              'font-normal',
-              active && 'text-foreground',
+              'font-normal text-muted-foreground',
               collapsedOnDesktop && 'xl:hidden'
             )}
           >
