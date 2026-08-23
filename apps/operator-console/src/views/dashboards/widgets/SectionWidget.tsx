@@ -617,9 +617,9 @@ function CardPreview({
       >
         <Icon className={cn(
           "h-7 w-7 shrink-0 transition-colors",
-          isActive ? (isLightKind ? "text-light-active-foreground" : "text-primary") : "text-muted-foreground"
+          isActive ? (isLightKind ? "text-light-active" : "text-primary") : "text-muted-foreground"
         )} />
-        <span className={cn("line-clamp-2 min-w-0 text-micro font-bold leading-tight", isActive && isLightKind ? "text-light-active-foreground" : "text-foreground")}>{title}</span>
+        <span className="line-clamp-2 min-w-0 text-micro font-bold leading-tight text-foreground">{title}</span>
       </div>
     );
   }
