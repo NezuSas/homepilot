@@ -1522,6 +1522,26 @@
       "no_image": "No hay imagen seleccionada",
       "upload_image": "Subir imagen",
       "clear_image": "Limpiar imagen",
+      "background_presets": {
+        "title": "Fondos de HomePilot",
+        "description": "Elige una imagen local diseñada para conservar la legibilidad de tus tarjetas.",
+        "warm_graphite": {
+          "label": "Grafito cálido",
+          "description": "Superficie residencial en grafito y cobre."
+        },
+        "mineral_dawn": {
+          "label": "Amanecer mineral",
+          "description": "Piedra clara y luz cálida de mañana."
+        },
+        "copper_horizon": {
+          "label": "Horizonte cobre",
+          "description": "Ambiente de noche en grafito y cobre."
+        },
+        "quiet_atrium": {
+          "label": "Atrio sereno",
+          "description": "Formas arquitectónicas suaves en piedra."
+        }
+      },
       "background_settings": "Configuración del fondo",
       "background_opacity": "Opacidad de fondo",
       "scroll": "Desplazamiento",

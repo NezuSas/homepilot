@@ -3,6 +3,7 @@ import { Eye, Image, SlidersHorizontal, Trash2, Loader2, type LucideIcon } from 
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
+import { dashboardBackgroundPresets, getDashboardBackgroundSource } from '../lib/dashboardBackgroundPresets';
 import { IconPicker } from '../views/dashboards/components/IconPicker';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -150,6 +151,10 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
     });
   };
 
+  const backgroundPreviewSource = backgroundImg
+    ? getDashboardBackgroundSource(backgroundImg, API_BASE_URL)
+    : null;
+
   return (
     <Modal
       isOpen={isOpen}
@@ -237,7 +242,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
               <div className="rounded-xl bg-muted/35 p-4 text-center">
                 {backgroundImg ? (
                   <img
-                    src={backgroundImg.startsWith('/') ? `${API_BASE_URL}${backgroundImg}` : backgroundImg}
+                    src={backgroundPreviewSource ?? backgroundImg}
                     alt="Background Preview"
                     className="mx-auto aspect-video max-w-md rounded-lg object-cover border border-border/40 shadow-inner"
                   />
@@ -258,6 +263,44 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
                 </div>
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
               </div>
+
+              <section aria-labelledby="dashboard-background-presets" className="rounded-xl border border-border/70 bg-muted/20 p-4">
+                <div className="mb-3">
+                  <h3 id="dashboard-background-presets" className="text-body font-semibold text-foreground">
+                    {t('dashboards.view_config.background_presets.title')}
+                  </h3>
+                  <p className="mt-1 text-caption text-muted-foreground">
+                    {t('dashboards.view_config.background_presets.description')}
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" role="list">
+                  {dashboardBackgroundPresets.map((preset) => {
+                    const isSelected = backgroundImg === preset.src;
+                    return (
+                      <Button
+                        key={preset.id}
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-pressed={isSelected}
+                        onClick={() => setBackgroundImg(preset.src)}
+                        className={[
+                          'group relative aspect-video h-auto w-full overflow-hidden rounded-control border p-0 shadow-sm',
+                          isSelected
+                            ? 'border-primary ring-2 ring-primary/45 ring-offset-2 ring-offset-card'
+                            : 'border-border/65 hover:border-primary/60',
+                        ].join(' ')}
+                      >
+                        <img src={preset.src} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
+                        <span className="absolute inset-x-0 bottom-0 bg-background/78 px-2 py-1 text-left text-nano font-semibold text-foreground backdrop-blur-sm">
+                          {t(preset.labelKey)}
+                        </span>
+                        <span className="sr-only">{t(preset.descriptionKey)}</span>
+                      </Button>
+                    );
+                  })}
+                </div>
+              </section>
 
               <section className="rounded-xl border border-border/70 p-4">
                 <p className="mb-5 text-body font-semibold">{t('dashboards.view_config.background_settings')}</p>

@@ -8,6 +8,7 @@ import { DashboardTabsNav } from '../components/DashboardTabsNav';
 import { DashboardTitleBar } from '../components/DashboardTitleBar';
 import { DashboardHistoryModal, type DashboardRevisionSummary } from '../components/DashboardHistoryModal';
 import { DashboardViewConfigModal } from '../components/DashboardViewConfigModal';
+import { getDashboardBackgroundSource } from '../lib/dashboardBackgroundPresets';
 import { LoadingState } from '../components/ui/LoadingState';
 import { EmptyDashboards } from '../components/EmptyDashboards';
 import type { Dashboard, DashboardWidget, WidgetType, DashboardWidgetConfig } from './dashboards/types';
@@ -520,7 +521,7 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
       <div
         className="homepilot-dashboard-backdrop fixed inset-0 z-0 transition-all duration-700 pointer-events-none"
         style={activeTab?.background ? {
-          backgroundImage: `url(${activeTab.background.startsWith('/') ? `${API_BASE_URL}${activeTab.background}` : activeTab.background})`,
+          backgroundImage: `url(${getDashboardBackgroundSource(activeTab.background, API_BASE_URL)})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',

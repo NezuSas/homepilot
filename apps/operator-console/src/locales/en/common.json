@@ -1522,6 +1522,26 @@
       "no_image": "No image selected",
       "upload_image": "Upload image",
       "clear_image": "Clear image",
+      "background_presets": {
+        "title": "HomePilot backgrounds",
+        "description": "Choose a local image designed to preserve your cards' readability.",
+        "warm_graphite": {
+          "label": "Warm graphite",
+          "description": "Residential graphite and copper surface."
+        },
+        "mineral_dawn": {
+          "label": "Mineral dawn",
+          "description": "Light stone and warm morning light."
+        },
+        "copper_horizon": {
+          "label": "Copper horizon",
+          "description": "A graphite and copper evening atmosphere."
+        },
+        "quiet_atrium": {
+          "label": "Quiet atrium",
+          "description": "Soft architectural forms in stone."
+        }
+      },
       "background_settings": "Background configuration",
       "background_opacity": "Background opacity",
       "scroll": "Scroll",

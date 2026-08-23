@@ -30,3 +30,4 @@
       herramienta de automatización de navegador disponible en este entorno).
 - [x] AC28: Matched light and action previews to their semantic live-card surfaces in both themes, and kept the dashboard navigation trigger visible and usable at the 1080×1920 portrait-kiosk breakpoint.
 - [x] AC29: Extended action-card targets to compatible buttons, scenes, and routines; removed the manual card-height control and legacy row-span behavior; aligned action preview content to the leading edge and preserved opaque editor previews for unassigned action cards.
+- [x] AC30: Added four bundled HomePilot backgrounds with localized, accessible selection in view configuration. Bundled assets resolve from the console origin while custom uploaded backgrounds retain their API-hosted path.
