@@ -890,7 +890,11 @@ function SectionCardItem({
         // measured height means content that genuinely needs more room
         // (long titles, font differences) still gets it instead of being
         // clipped by the card's own overflow-hidden background.
-        gridRow: `span ${isTileKind ? Math.max(rowSpan, COMPACT_TILE_ROW_SPAN) : rowSpan}`,
+        // The resident view uses measured masonry rows to pack unequal cards.
+        // While editing, cards use the grid's natural row flow instead: it
+        // keeps the insertion order obvious and prevents a tall card from
+        // reserving an empty measured row before the next card.
+        gridRow: isEditing ? undefined : `span ${isTileKind ? Math.max(rowSpan, COMPACT_TILE_ROW_SPAN) : rowSpan}`,
         transform: CSS.Translate.toString(transform),
         transition: transition ?? undefined,
       }}
@@ -1840,7 +1844,12 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
   const sectionGrid = (
     <div
       onClick={(event) => event.stopPropagation()}
-      className="grid min-h-0 min-w-0 flex-1 auto-rows-[minmax(20px,auto)] grid-flow-row-dense content-start items-start gap-2 overflow-visible pr-1"
+      className={cn(
+        "grid min-h-0 min-w-0 flex-1 content-start items-start gap-2 overflow-visible pr-1",
+        isEditing
+          ? "auto-rows-auto grid-flow-row"
+          : "auto-rows-[minmax(20px,auto)] grid-flow-row-dense"
+      )}
       style={{ gridTemplateColumns: `repeat(${innerColumns}, minmax(0, 1fr))` }}
     >
       <DndContext sensors={cardDragSensors} onDragEnd={handleCardDragEnd}>
