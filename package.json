@@ -23,6 +23,8 @@
     "check:i18n": "node scripts/check-i18n-coverage.mjs",
     "check:ui-primitives": "node scripts/check-ui-primitives.mjs",
     "test:responsive": "npm run test:responsive --prefix apps/operator-console",
+    "prepare": "node scripts/install-git-hooks.mjs",
+    "verify:local-control-runtime": "node scripts/verify-local-control-runtime.mjs",
     "verify:quality": "npm run check:i18n && npm run check:assistant-response-catalog && npm run check:ui-primitives && npm run check:spec-coverage && npm run check:no-production-any && npm run check:architecture-boundaries && npm run check:bdd-traceability && npm run check:module-test-coverage && npm run check:tuya-policy && npm run check:docker-profiles && npm run test:responsive && npm run lint --prefix apps/operator-console && npm run test:coverage && npm run typecheck && npm run build && npm run build --prefix apps/operator-console",
     "start": "node dist/main.js",
     "check:no-production-any": "node scripts/check-no-production-any.mjs",

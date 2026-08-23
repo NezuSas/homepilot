@@ -57,6 +57,7 @@ Una miniPC de cliente puede contener un Home Assistant operativo, servicios Dock
 - [x] AC9: `--status` identifica en su salida los puertos de API, UI, Ollama, STT, TTS y Home Assistant.
 - [x] AC10: `bash scripts/homepilot-maintenance.sh --status` verifica API, UI, STT, TTS, contenedor Ollama y, en el perfil `bridge_ha`, el Home Assistant existente; falla de forma explícita si una comprobación requerida no es saludable. Evidencia 2026-08-12: Docker Desktop y Linux nativo respondieron saludablemente para todos los servicios y endpoints requeridos.
 - [ ] AC11: `bash scripts/homepilot-maintenance.sh --deploy --yes` ejecuta la misma verificación al finalizar el despliegue y no declara éxito si la instalación queda incompleta.
+- [x] AC12: The local Git pre-push gate verifies that the running API and UI are available and that the persisted Home Assistant endpoint accepts the configured token, without issuing a device command; a failed integration blocks the push.
 
 ## 7. Notas Tecnicas y Arquitectura
 
