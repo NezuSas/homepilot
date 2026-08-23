@@ -60,7 +60,8 @@ export const SidebarItem = React.forwardRef<HTMLButtonElement, SidebarItemProps>
               'min-w-0 flex-1 break-words text-left text-caption leading-tight transition-[opacity,width,margin] duration-base',
               // Navigation hierarchy is communicated by indentation and icon size,
               // never by a different text scale.
-              active ? 'font-semibold text-foreground' : 'font-medium',
+              'font-medium',
+              active && 'text-foreground',
               collapsedOnDesktop && 'xl:hidden'
             )}
           >
