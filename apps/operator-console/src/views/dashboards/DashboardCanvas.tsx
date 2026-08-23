@@ -107,6 +107,7 @@ function SortableCanvasWidget({
   isSelected,
   onClick,
   onConfigChange,
+  onDelete,
 }: {
   widget: DashboardWidget;
   columns: number;
@@ -116,6 +117,7 @@ function SortableCanvasWidget({
   isSelected: boolean;
   onClick: (id: string) => void;
   onConfigChange?: (id: string, config: Partial<DashboardWidgetConfig>) => void;
+  onDelete?: (id: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: widget.id,
@@ -136,7 +138,7 @@ function SortableCanvasWidget({
       }}
       className={cn(
         "min-w-0 min-h-0 select-none relative rounded-section sm:rounded-panel lg:rounded-dashboard",
-        isSelected && isEditing && "z-10 ring-4 ring-primary ring-offset-4 ring-offset-background shadow-primary-ring"
+        isSelected && isEditing && widget.type !== 'section' && "z-10 ring-4 ring-primary ring-offset-4 ring-offset-background shadow-primary-ring"
       )}
     >
       <DashboardWidgetNode
@@ -146,6 +148,7 @@ function SortableCanvasWidget({
         isSelected={isEditing && isSelected}
         onClick={() => { if (isEditing) onClick(widget.id); }}
         onConfigChange={onConfigChange}
+        onDelete={onDelete}
         dragHandleAttributes={attributes}
         dragHandleListeners={listeners}
         columns={columns}
@@ -271,7 +274,6 @@ export function DashboardCanvas({
     setActiveWidget(null);
   };
 
-  const hasSections = flowWidgets.some((widget) => widget.type === 'section');
 
   return (
     <DndContext
@@ -353,12 +355,13 @@ export function DashboardCanvas({
               isSelected={selectedWidgetId === widget.id}
               onClick={onWidgetClick}
               onConfigChange={onWidgetConfigChange}
+              onDelete={(widgetId) => onLayoutChange(widgets.filter((candidate) => candidate.id !== widgetId))}
             />
           ))}
         </SortableContext>
 
         {canEditLayout && (
-          <CanvasFlowItem span={hasSections ? columns : Math.min(2, columns)} gap={gap}>
+          <CanvasFlowItem span={1} gap={gap}>
             <Button
               type="button"
               variant="ghost"

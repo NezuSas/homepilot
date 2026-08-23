@@ -77,6 +77,8 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - [x] AC23: El campo `tab.layout` ('sections'/'masonry'/'sidebar'/'panel'), que no tenía ningún lector real en el código, fue eliminado del modelo de datos (frontend y backend) en vez de dejarse como una opción que aparentaba funcionar sin hacerlo.
 - [x] AC24: In section edit mode, only light cards may use the quarter-width size (four cards per row). Every other card is constrained to medium or full width, including imported legacy configurations.
 - [x] AC25: Section cards are reordered by dragging the card surface. Editing remains directly available from a centered pencil, while the top-right overflow menu contains only Edit and Delete actions.
+- [x] AC26: Editing preserves a section's normal spacing and dimensions. Empty-section add affordances use one compact tile cell, and card edit controls appear only on hover or keyboard focus.
+- [x] AC27: Card edit affordances use a subtle hover/focus scrim. Editing renders each section as a bounded dashed surface with direct move, edit, delete, and resize controls, without a numeric span picker; the new-section affordance occupies one canvas column.
 
 ## 7. Notas Técnicas y Arquitectura
 

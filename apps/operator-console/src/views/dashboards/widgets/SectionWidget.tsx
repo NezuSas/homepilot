@@ -930,6 +930,13 @@ function SectionCardItem({
         actionFeedback={processingCardId === card.id ? 'pending' : actionFeedback?.id === card.id ? actionFeedback.status : undefined}
       />
 
+      {isEditing ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-10 bg-background/50 opacity-0 transition-opacity duration-150 group-hover/card:opacity-100 group-focus-within/card:opacity-100"
+        />
+      ) : null}
+
       {processingCardId === card.id ? (
         <div className="pointer-events-none absolute right-3 top-3 z-30 grid h-7 w-7 place-items-center rounded-full border border-primary/20 bg-background/80 text-primary shadow-sm">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -938,10 +945,10 @@ function SectionCardItem({
 
       {isEditing ? (
         <>
-          <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center">
+          <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center opacity-0 transition-opacity duration-150 group-hover/card:opacity-100 group-focus-within/card:opacity-100">
             <IconButton
               icon={Pencil}
-              label={t('dashboard.editor.sections.edit_card')}
+              label={t('common.edit')}
               onPointerDown={(event) => event.stopPropagation()}
               onKeyDown={(event) => event.stopPropagation()}
               onClick={(event) => {
@@ -953,7 +960,7 @@ function SectionCardItem({
               className="pointer-events-auto rounded-full bg-background/95 shadow-lg backdrop-blur-md hover:text-primary"
             />
           </div>
-          <div className={cn("absolute right-2 top-2 z-30", isCompactDeviceCard && "right-1 top-1")}>
+          <div className={cn("pointer-events-none absolute right-2 top-2 z-30 opacity-0 transition-opacity duration-150 group-hover/card:pointer-events-auto group-hover/card:opacity-100 group-focus-within/card:pointer-events-auto group-focus-within/card:opacity-100", isCompactDeviceCard && "right-1 top-1")}>
             <IconButton
               icon={MoreVertical}
               label={t('dashboard.editor.sections.card_actions')}
@@ -996,7 +1003,7 @@ function SectionCardItem({
               className="w-full justify-start font-semibold"
             >
               <Pencil className="h-4 w-4" aria-hidden="true" />
-              {t('dashboard.editor.sections.edit_card')}
+              {t('common.edit')}
             </Button>
             <div role="separator" className="my-1 border-t border-border/65" />
             <Button
@@ -1010,7 +1017,7 @@ function SectionCardItem({
               className="w-full justify-start font-semibold text-danger hover:bg-danger/10 hover:text-danger"
             >
               <Trash2 className="h-4 w-4" aria-hidden="true" />
-              {t('dashboard.editor.sections.remove_card')}
+              {t('common.delete')}
             </Button>
           </div>
         </ModalPortal>
@@ -1587,7 +1594,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                 {t('dashboard.editor.sections.edit')}
               </p>
               <h3 className="text-panel-title font-black text-foreground">
-                {t('dashboard.editor.sections.edit_card')}
+                {t('common.edit')}
               </h3>
             </div>
 
@@ -1841,8 +1848,8 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
             setIsCatalogOpen(true);
           }}
           className={cn(
-            "h-auto w-auto min-h-section-card-sm rounded-section border-2 border-dashed border-primary/75 bg-background/35 px-4 text-primary hover:bg-primary/10 [&>svg]:h-6 [&>svg]:w-6",
-            cards.length === 0 ? "col-span-full" : "col-span-1"
+            "h-device-card-compact w-full rounded-section border-2 border-dashed border-primary/75 bg-background/35 text-primary hover:bg-primary/10 [&>svg]:h-5 [&>svg]:w-5",
+            "col-span-1"
           )}
         />
       ) : null}
@@ -1872,15 +1879,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
   return (
     <div
       onClick={(event) => event.stopPropagation()}
-      className={cn(
-        "group/section relative flex min-h-fit w-full min-w-0 self-start flex-col overflow-visible px-widget-pad-x py-widget-pad-y text-left transition-all duration-200",
-        // Home Assistant sections have no visible container in normal view —
-        // just a title with tiles below. The dashed outline is an editing
-        // affordance only, not a permanent "card" around every section.
-        isEditing
-          ? "rounded-field border-2 border-dashed border-border/70 bg-background/15 hover:border-primary/70 hover:bg-primary/5"
-          : "border-2 border-transparent bg-transparent"
-      )}
+      className="group/section relative flex min-h-fit w-full min-w-0 self-start flex-col overflow-visible px-1 pb-2 pt-1 text-left"
     >
       <div className="mb-4 flex min-w-0 items-center gap-2 pr-10">
         {showTitle ? (

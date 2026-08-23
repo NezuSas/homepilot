@@ -6,11 +6,11 @@ import { useTranslation } from 'react-i18next';
 import {
   Maximize2,
   Pencil,
-  GripVertical
+  GripVertical,
+  Trash2
 } from 'lucide-react';
 import { useDeviceSnapshotStore } from '../../stores/useDeviceSnapshotStore';
 import { IconButton } from '../../components/ui/IconButton';
-import { SegmentedControl } from '../../components/ui/SegmentedControl';
 import { clampSectionSpan, getSectionSpan } from './dashboardUtils';
 
 // Sub-widgets
@@ -33,10 +33,11 @@ interface DashboardWidgetNodeProps {
   isOverlay?: boolean;   // true when rendered inside DragOverlay (disables dnd registration)
   onClick: () => void;
   onConfigChange?: (id: string, config: Partial<DashboardWidgetConfig>) => void;
+  onDelete?: (id: string) => void;
   /** Sortable drag handle from the parent's useSortable(); spread onto the grip button. */
   dragHandleAttributes?: DraggableAttributes;
   dragHandleListeners?: DraggableSyntheticListeners;
-  /** Current breakpoint's column count, used to clamp the span picker. */
+  /** Current breakpoint's column count, used to constrain resize interactions. */
   columns?: number;
   /** Other tabs of this dashboard, forwarded to the title widget's tab-link badges. */
   titleBadgeTabs?: Array<{ id: string; title: string; icon?: string }>;
@@ -164,6 +165,7 @@ export function DashboardWidgetNode({
   isOverlay = false,
   onClick,
   onConfigChange,
+  onDelete,
   dragHandleAttributes,
   dragHandleListeners,
   columns = 3,
@@ -195,10 +197,14 @@ export function DashboardWidgetNode({
       style={{ ...accentStyle, containerType: 'inline-size' }}
       className={cn(
         "homepilot-dashboard-widget relative h-full w-full min-h-0 overflow-visible transition-all duration-300 group @container touch-manipulation",
-        // Section widgets and cameras are transparent shell-wise (camera handles its own rounded borders)
-        isSection || isCamera
-          ? "rounded-2xl bg-transparent border-transparent shadow-none"
-          : "rounded-section sm:rounded-panel",
+        // Editing restores the section boundary without changing its inner card grid.
+        isSection
+          ? (isEditing
+            ? "rounded-section border-2 border-dashed border-border/70 bg-background/10 p-3 shadow-sm transition-colors hover:border-primary/70"
+            : "rounded-2xl border-transparent bg-transparent shadow-none")
+          : isCamera
+            ? "rounded-2xl border-transparent bg-transparent shadow-none"
+            : "rounded-section sm:rounded-panel",
 
         // --- Variant Application (non-section, non-camera) ---
         !isSection && !isCamera && !accentColor && isDevice && "bg-card border border-border/60 shadow-xl",
@@ -211,6 +217,7 @@ export function DashboardWidgetNode({
 
         isEditing && !isSection && "ring-2 ring-transparent hover:ring-primary/20",
         isEditing && isSelected && !isSection && "ring-primary shadow-xl shadow-primary/10 scale-[1.005]",
+        isEditing && isSection && isSelected && "border-primary bg-primary/5 shadow-primary-ring",
         !isEditing && !isSection && "hover:shadow-lg hover:border-primary/20"
       )}
     >
@@ -229,43 +236,12 @@ export function DashboardWidgetNode({
       </div>
 
       {/* Edit Mode Controls */}
-      {isEditing && !isOverlay && (
+      {isEditing && isSelected && !isOverlay && (
         <>
-          {/* Floating control bar appears on hover */}
-          <div className="pointer-events-auto absolute right-2 top-2 z-30 flex items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 [@media(hover:none)]:opacity-100">
+          {/* A selected section exposes only its direct manipulation tools. */}
+          <div className="pointer-events-auto absolute right-2 top-2 z-30 flex items-center">
             <div className="flex items-center gap-1 rounded-xl border border-border/50 bg-background/95 p-1 shadow-lg backdrop-blur-md">
-              <IconButton
-                icon={Pencil}
-                label={t('common.configure')}
-                variant="ghost"
-                size="sm"
-                onClick={(e) => { e.stopPropagation(); onClick(); }}
-                className="hover:bg-primary/10 hover:text-primary"
-              />
-              {!isTitleWidget && canDrag && onConfigChange && (
-                <div className="w-px h-4 bg-border/40 mx-0.5" />
-              )}
-              {/* Discrete column-span picker: 1..N columns, Home Assistant Sections style. */}
-              {!isTitleWidget && canDrag && onConfigChange && (
-                <div onClick={(event) => event.stopPropagation()}>
-                  <SegmentedControl<string>
-                    value={String(clampSectionSpan(getSectionSpan(widget), Math.max(1, columns)))}
-                    onChange={(value) => onConfigChange(widget.id, { layout: { ...widget.config.layout, span: Number(value) } })}
-                    label={t('dashboard.editor.sections.span_picker_label')}
-                    options={Array.from({ length: Math.max(1, columns) }, (_, index) => index + 1).map((option) => ({
-                      value: String(option),
-                      label: String(option),
-                    }))}
-                    className="gap-0.5 rounded-lg border-0 bg-muted/40 p-0.5"
-                    optionClassName="min-h-8 min-w-6 flex-none rounded px-1 py-1 text-micro font-black"
-                  />
-                </div>
-              )}
-              {!isTitleWidget && canDrag && (
-                <div className="w-px h-4 bg-border/40 mx-0.5" />
-              )}
-              {/* Dedicated grip handle: reorders the zone without capturing clicks
-                  on the cards/controls rendered inside it. */}
+              {/* The grip reorders the section without capturing its card controls. */}
               {!isTitleWidget && canDrag && (
                 <IconButton
                   icon={GripVertical}
@@ -277,9 +253,28 @@ export function DashboardWidgetNode({
                   className="h-9 w-7 touch-none cursor-grab text-muted-foreground/50 active:cursor-grabbing hover:text-primary"
                 />
               )}
+              {!isTitleWidget && canDrag && <div className="mx-0.5 h-4 w-px bg-border/40" />}
+              <IconButton
+                icon={Pencil}
+                label={t('common.configure')}
+                variant="ghost"
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); onClick(); }}
+                className="hover:bg-primary/10 hover:text-primary"
+              />
+              {!isTitleWidget && onDelete && <div className="mx-0.5 h-4 w-px bg-border/40" />}
+              {!isTitleWidget && onDelete && (
+                <IconButton
+                  icon={Trash2}
+                  label={t('common.delete')}
+                  variant="ghost"
+                  size="sm"
+                  onClick={(event) => { event.stopPropagation(); onDelete(widget.id); }}
+                  className="text-danger hover:bg-danger/10 hover:text-danger"
+                />
+              )}
             </div>
           </div>
-
           {!isTitleWidget && canDrag && onConfigChange && (
             <WidgetResizeHandle
               span={clampSectionSpan(getSectionSpan(widget), Math.max(1, columns))}
