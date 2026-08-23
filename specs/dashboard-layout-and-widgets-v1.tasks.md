@@ -18,7 +18,7 @@
       prueba unitaria y prueba responsive cubren el caso 1080×1920 sin cambiar móvil, tablet ni escritorio.
 - [x] AC24–AC25: Reserved the four-per-row compact size for light cards, normalized stale compact spans for all other kinds, and simplified section-card edit controls to direct edit, overflow actions, and drag-from-card reordering.
 - [x] AC26: Removed edit-only section padding and panel borders, normalized the empty-section add tile, and made card actions contextual on hover/focus.
-- [x] AC27: Added a contextual card hover/focus scrim, bounded each editable section with a dashed Home Assistant-style surface, connected direct move, edit, delete, and drag-resize interactions, and removed the numeric span picker; the add-section affordance now consumes one column.
+- [x] AC27: Added a contextual card hover/focus scrim, bounded each editable section with a dashed Home Assistant-style surface, connected direct move, edit, delete, and drag-resize interactions, and removed the numeric span picker; the add-section affordance now consumes one column. Section deletion now opens a destructive confirmation modal before mutating the layout.
 
 ## Verificación obligatoria ante cambios
 

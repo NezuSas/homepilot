@@ -15,6 +15,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 import { Button } from '../../components/ui/Button';
+import ConfirmModal from '../../components/ConfirmModal';
 import type { DashboardWidget, DashboardWidgetConfig } from './types';
 import { DashboardWidgetNode, WidgetContent } from './DashboardWidget';
 import {
@@ -166,6 +167,7 @@ export function DashboardCanvas({
   tabs, currentTabId, onSelectTab }: DashboardCanvasProps) {
   const { t } = useTranslation();
   const [activeWidget, setActiveWidget] = useState<DashboardWidget | null>(null);
+  const [pendingDeleteWidgetId, setPendingDeleteWidgetId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const [viewportSize, setViewportSize] = useState(() => ({
@@ -355,7 +357,7 @@ export function DashboardCanvas({
               isSelected={selectedWidgetId === widget.id}
               onClick={onWidgetClick}
               onConfigChange={onWidgetConfigChange}
-              onDelete={(widgetId) => onLayoutChange(widgets.filter((candidate) => candidate.id !== widgetId))}
+              onDelete={setPendingDeleteWidgetId}
             />
           ))}
         </SortableContext>
@@ -377,6 +379,21 @@ export function DashboardCanvas({
           </CanvasFlowItem>
         )}
 
+        <ConfirmModal
+          isOpen={pendingDeleteWidgetId !== null}
+          onClose={() => setPendingDeleteWidgetId(null)}
+          onConfirm={() => {
+            if (pendingDeleteWidgetId) {
+              onLayoutChange(widgets.filter((candidate) => candidate.id !== pendingDeleteWidgetId));
+            }
+            setPendingDeleteWidgetId(null);
+          }}
+          title={t('common.delete')}
+          description={t('dashboards.delete_tab_confirm')}
+          confirmText={t('common.delete')}
+          cancelText={t('common.cancel')}
+          variant="danger"
+        />
         <DragOverlay dropAnimation={{
           sideEffects: defaultDropAnimationSideEffects({
             styles: {

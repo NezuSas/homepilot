@@ -1,5 +1,5 @@
 import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { cn } from '../../lib/utils';
 import type { DashboardWidget, DashboardWidgetConfig } from './types';
 import { useTranslation } from 'react-i18next';
@@ -46,7 +46,7 @@ interface DashboardWidgetNodeProps {
 }
 
 /** Pure content renderer: no DnD hooks, safe to use inside DragOverlay. */
-export function WidgetContent({ widget, isEditing, isSelected = false, onClick, onConfigChange, titleBadgeTabs, currentTabId, onSelectTab }: { widget: DashboardWidget; isEditing: boolean; isSelected?: boolean; onClick: () => void; onConfigChange?: (id: string, config: Partial<DashboardWidgetConfig>) => void; titleBadgeTabs?: Array<{ id: string; title: string; icon?: string }>; currentTabId?: string; onSelectTab?: (tabId: string) => void }) {
+export function WidgetContent({ widget, isEditing, isSelected = false, onClick, onConfigChange, titleBadgeTabs, currentTabId, onSelectTab, sectionTitleEditRequest }: { widget: DashboardWidget; isEditing: boolean; isSelected?: boolean; onClick: () => void; onConfigChange?: (id: string, config: Partial<DashboardWidgetConfig>) => void; titleBadgeTabs?: Array<{ id: string; title: string; icon?: string }>; currentTabId?: string; onSelectTab?: (tabId: string) => void; sectionTitleEditRequest?: number }) {
   const { t } = useTranslation();
 
   switch (widget.type) {
@@ -87,6 +87,7 @@ export function WidgetContent({ widget, isEditing, isSelected = false, onClick, 
           config={widget.config}
           isEditing={isEditing}
           onUpdate={(patch) => onConfigChange?.(widget.id, patch)}
+          editTitleRequest={sectionTitleEditRequest}
         />
       );
     default:
@@ -174,6 +175,7 @@ export function DashboardWidgetNode({
   onSelectTab,
 }: DashboardWidgetNodeProps) {
   const { t } = useTranslation();
+  const [sectionTitleEditRequest, setSectionTitleEditRequest] = useState(0);
 
   const devices = useDeviceSnapshotStore(state => state.devices);
   const boundDevice = devices.find(d => d.id === widget.config.binding.entityId);
@@ -232,6 +234,7 @@ export function DashboardWidgetNode({
           titleBadgeTabs={titleBadgeTabs}
           currentTabId={currentTabId}
           onSelectTab={onSelectTab}
+          sectionTitleEditRequest={sectionTitleEditRequest}
         />
       </div>
 
@@ -259,7 +262,7 @@ export function DashboardWidgetNode({
                 label={t('common.configure')}
                 variant="ghost"
                 size="sm"
-                onClick={(e) => { e.stopPropagation(); onClick(); }}
+                onClick={(e) => { e.stopPropagation(); if (isSection) { setSectionTitleEditRequest((request) => request + 1); } else { onClick(); } }}
                 className="hover:bg-primary/10 hover:text-primary"
               />
               {!isTitleWidget && onDelete && <div className="mx-0.5 h-4 w-px bg-border/40" />}

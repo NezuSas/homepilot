@@ -1467,6 +1467,8 @@
     "list_header": "Your Dashboards",
     "create_tab_placeholder": "Tab name...",
     "delete_tab_confirm": "Delete this tab and all its widgets?",
+    "delete_section_title": "Delete section",
+    "delete_section_description": "This section and all of its cards will be deleted.",
     "delete_tab": "Delete tab",
     "rename_tab": "Rename tab",
     "delete_tab_title": "Delete this tab?",

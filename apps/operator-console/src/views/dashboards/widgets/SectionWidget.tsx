@@ -46,6 +46,7 @@ interface SectionWidgetProps {
   config: DashboardWidgetConfig;
   isEditing: boolean;
   onUpdate?: (config: Partial<DashboardWidgetConfig>) => void;
+  editTitleRequest?: number;
 }
 
 function iconForIconKey(icon: SectionCardIcon) {
@@ -1035,7 +1036,7 @@ function SectionCardItem({
   );
 }
 
-export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProps) {
+export function SectionWidget({ config, isEditing, onUpdate, editTitleRequest = 0 }: SectionWidgetProps) {
   const { t } = useTranslation();
 
   // Every section uses a strict 4-column inner grid (Home Assistant
@@ -1057,7 +1058,9 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const [query, setQuery] = useState('');
   const [catalogCategoryFilter, setCatalogCategoryFilter] = useState<SectionCardCategory | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const lastTitleEditRequest = useRef(editTitleRequest);
   const [draftTitle, setDraftTitle] = useState(config.appearance?.title || '');
+  useEffect(() => { if (editTitleRequest !== lastTitleEditRequest.current) { lastTitleEditRequest.current = editTitleRequest; setDraftTitle(config.appearance?.title || ''); setIsEditingTitle(true); } }, [config.appearance?.title, editTitleRequest]);
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [processingCardId, setProcessingCardId] = useState<string | null>(null);
   const [actionFeedback, setActionFeedback] = useState<{ id: string; status: 'success' | 'error' } | null>(null);

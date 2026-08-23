@@ -1467,6 +1467,8 @@
     "list_header": "Tus Tableros",
     "create_tab_placeholder": "Nombre de la pestaña...",
     "delete_tab_confirm": "¿Eliminar esta pestaña y todos sus widgets?",
+    "delete_section_title": "Eliminar sección",
+    "delete_section_description": "Esta sección y todas sus tarjetas serán eliminadas.",
     "delete_tab": "Eliminar pestaña",
     "rename_tab": "Renombrar pestaña",
     "delete_tab_title": "¿Eliminar esta pestaña?",
