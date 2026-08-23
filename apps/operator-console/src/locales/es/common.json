@@ -394,6 +394,7 @@
         "clock_design": "Diseño de reloj",
         "card_type": "Tipo de tarjeta",
         "assigned_scene": "Escena asignada",
+        "assigned_action": "Acción asignada",
         "assigned_room": "Habitación asignada",
         "assigned_device": "Dispositivo asignado",
         "unassigned": "Sin asignar",

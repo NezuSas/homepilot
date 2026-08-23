@@ -79,6 +79,14 @@ describe('Feature: catálogo de tarjetas de sección', () => {
     expect(cards[2]).toMatchObject({ id: 'sensor-1', kind: 'sensor', span: 'full', widgetType: 'device_control', icon: 'Gauge' });
   });
 
+  it('Scenario: Given a legacy manual card height When normalizing Then measured masonry layout ignores it', () => {
+    const [card] = normalizeCards({
+      cards: [{ id: 'legacy-light', kind: 'light', title: 'Light', rowSpan: 6 }],
+    });
+
+    expect(card).toMatchObject({ id: 'legacy-light', kind: 'light' });
+    expect(card).not.toHaveProperty('rowSpan');
+  });
   it('Scenario: Given section cards of different spans When calculating the layout Then it returns the compact recommended height', () => {
     expect(getRecommendedSectionHeight(99, [])).toBe(3);
     expect(getRecommendedSectionHeight(1, [

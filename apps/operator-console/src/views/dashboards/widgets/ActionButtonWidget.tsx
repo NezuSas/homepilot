@@ -95,16 +95,16 @@ export function ActionButtonWidget({ config, isEditing, onConfigure }: {
         `dashboard-action-button--${status}`,
       )}
     >
-      <div className="flex min-w-0 items-start justify-between gap-3">
+      <div className="flex w-full min-w-0 items-center justify-start gap-2.5">
         <span className="dashboard-action-button__icon grid h-11 w-11 shrink-0 place-items-center rounded-control border">
           {status === 'pending' ? <Loader2 className="h-5 w-5 animate-spin" /> : status === 'success' ? <Check className="h-5 w-5" /> : status === 'error' ? <CircleAlert className="h-5 w-5" /> : <MousePointerClick className="h-5 w-5" />}
         </span>
-        <span className="dashboard-action-button__status min-w-0 max-w-[calc(100%-3.5rem)] truncate rounded-pill border px-2.5 py-1 text-widget-meta-fluid font-semibold normal-case tracking-normal">
+        <span className="dashboard-action-button__status min-w-0 truncate rounded-pill border px-2.5 py-1 text-widget-meta-fluid font-semibold normal-case tracking-normal">
           {feedbackLabel}
         </span>
       </div>
 
-      <div className="min-w-0 pt-3">
+      <div className="w-full min-w-0 pt-3">
         <h4 className="line-clamp-2 text-widget-body-lg-fluid font-black leading-tight tracking-tight text-foreground">{title}</h4>
         <p className="mt-1 line-clamp-2 text-widget-meta-fluid text-muted-foreground">
           {t('dashboards.widgets.action_button.description')}

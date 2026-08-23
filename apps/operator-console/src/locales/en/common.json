@@ -394,6 +394,7 @@
         "clock_design": "Clock design",
         "card_type": "Card type",
         "assigned_scene": "Assigned scene",
+        "assigned_action": "Assigned action",
         "assigned_room": "Assigned room",
         "assigned_device": "Assigned device",
         "unassigned": "Unassigned",

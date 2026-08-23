@@ -29,7 +29,7 @@ import { CameraMediaFrame, type CameraFeedMode } from '../../../components/Camer
 import { CameraViewerModal } from '../../../components/CameraViewerModal';
 import { useDeviceSnapshotStore, type SnapshotDevice, type SnapshotRoom } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig } from '../types';
-import { canUseCompactSpan, cardKinds, catalogCategories, clockCardOptions, createId, getCatalogCategory, getCatalogDescriptionKey, getCatalogLabelKey, getClockKindLabelKey, getClockStyleForKind, getDefaultIcon, getDefaultSpan, getEffectiveCardSpan, getRecommendedSectionHeight, getSpanClass, getWidgetType, isBindableKind, isClockKind, MAX_MANUAL_ROW_SPAN, normalizeCards, normalizeKind, type AssignableAutomation, type AssignableScene, type CardDraft, type NormalizedSectionCardItem, type NormalizedSectionCardKind, type SectionCardCategory, type SectionCardIcon, type SectionCardKind, type SectionCardSpan } from './sectionCardCatalog';
+import { canUseCompactSpan, cardKinds, catalogCategories, clockCardOptions, createId, getCatalogCategory, getCatalogDescriptionKey, getCatalogLabelKey, getClockKindLabelKey, getClockStyleForKind, getDefaultIcon, getDefaultSpan, getEffectiveCardSpan, getRecommendedSectionHeight, getSpanClass, getWidgetType, isBindableKind, isClockKind, normalizeCards, normalizeKind, type AssignableAutomation, type AssignableScene, type CardDraft, type NormalizedSectionCardItem, type NormalizedSectionCardKind, type SectionCardCategory, type SectionCardIcon, type SectionCardKind, type SectionCardSpan } from './sectionCardCatalog';
 import { getAssignableDevicesForSectionCard, isDeviceActive } from '../dashboardUtils';
 import { canExecuteCommand } from '../../../lib/deviceCapabilities';
 import { IconPicker, getDashboardIconComponent, needsMdiCatalog, useMdiCatalogLoaded } from '../components/IconPicker';
@@ -98,6 +98,14 @@ function isAutomationEntityId(entityId?: string): boolean {
 
 function stripAutomationEntityPrefix(entityId: string): string {
   return entityId.slice(AUTOMATION_ENTITY_PREFIX.length);
+}
+
+function getSceneOrRoutineUrl(entityId: string): string {
+  const isRoutine = isAutomationEntityId(entityId);
+  const targetId = isRoutine ? stripAutomationEntityPrefix(entityId) : entityId;
+  return isRoutine
+    ? `${API_BASE_URL}/api/v1/automations/${encodeURIComponent(targetId)}/run`
+    : `${API_BASE_URL}/api/v1/scenes/${encodeURIComponent(targetId)}/execute`;
 }
 
 function normalizeAssignableAutomation(rawAutomation: unknown): AssignableAutomation | null {
@@ -319,6 +327,7 @@ function CardPreview({
   deviceId,
   device,
   isPreview,
+  isEditorPreview,
   isMediaProcessing,
   onMediaCommand,
   roomDeviceCount,
@@ -338,6 +347,7 @@ function CardPreview({
   deviceId?: string;
   device?: SnapshotDevice;
   isPreview?: boolean;
+  isEditorPreview?: boolean;
   isMediaProcessing?: boolean;
   onMediaCommand?: (command: MediaPlayerCommand, params?: Record<string, unknown>) => void;
   roomDeviceCount?: number;
@@ -439,8 +449,9 @@ function CardPreview({
         : actionFeedback === 'error'
           ? t('dashboard.editor.sections.action_button_error')
           : t('dashboard.editor.sections.action_button_execute');
-    const unavailable = !isAssigned || !onAction || Boolean(isPreview);
-    const isInteractiveAction = !isPreview && !unavailable;
+    const isPresentationOnly = Boolean(isPreview || isEditorPreview);
+    const unavailable = !isAssigned || !onAction;
+    const isInteractiveAction = !isPresentationOnly && !unavailable;
 
     return (
       <Button
@@ -449,7 +460,7 @@ function CardPreview({
           event.stopPropagation();
           onAction?.();
         }}
-        disabled={!isPreview && (unavailable || actionFeedback === 'pending')}
+        disabled={!isPresentationOnly && (unavailable || actionFeedback === 'pending')}
         aria-disabled={!isInteractiveAction || actionFeedback === 'pending' || undefined}
         aria-busy={actionFeedback === 'pending' || undefined}
         aria-label={t('dashboard.editor.sections.action_button_aria', { name: title })}
@@ -457,11 +468,11 @@ function CardPreview({
         variant="ghost"
         className={cn(
           'dashboard-action-button relative flex h-full min-h-0 w-full flex-col justify-between overflow-hidden rounded-section border p-3 text-left transition-[background-color,border-color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-default disabled:opacity-65 sm:p-4',
-          isPreview && 'pointer-events-none cursor-default',
+          isPresentationOnly && 'pointer-events-none cursor-default',
           `dashboard-action-button--${actionFeedback}`,
         )}
       >
-        <div className="flex min-w-0 items-start justify-between gap-3">
+        <div className="flex w-full min-w-0 items-center justify-start gap-2.5">
           <span className="dashboard-action-button__icon grid h-10 w-10 shrink-0 place-items-center rounded-control border">
             {actionFeedback === 'pending'
               ? <Loader2 className="h-5 w-5 animate-spin" />
@@ -471,11 +482,11 @@ function CardPreview({
                   ? <CircleAlert className="h-5 w-5" />
                   : <Icon className="h-5 w-5" />}
           </span>
-          <span className="dashboard-action-button__status min-w-0 max-w-[calc(100%-3.25rem)] truncate rounded-pill border px-2.5 py-1 text-micro font-semibold normal-case tracking-normal">
+          <span className="dashboard-action-button__status min-w-0 truncate rounded-pill border px-2.5 py-1 text-micro font-semibold normal-case tracking-normal">
             {actionLabel}
           </span>
         </div>
-        <div className="min-w-0 pt-3">
+        <div className="w-full min-w-0 pt-3">
           <span className="block line-clamp-2 text-card-title font-black leading-tight text-foreground">{title}</span>
           <span className="mt-1 block line-clamp-2 text-caption font-medium text-muted-foreground">
             {subtitle || t('dashboard.editor.sections.action_button_description')}
@@ -873,15 +884,13 @@ function SectionCardItem({
       }}
       style={{
         containerType: 'inline-size',
-        // card.rowSpan is a human-scale unit (1 = one compact-tile height);
-        // convert to the grid's fine-grained 20px row tracks.
         // Tile-kind cards get a fixed uniform height so identical tiles
         // don't jitter a few pixels apart from a 1- vs 2-line title. But
         // it's a floor, never a hard cap: Math.max against the actually
         // measured height means content that genuinely needs more room
         // (long titles, font differences) still gets it instead of being
         // clipped by the card's own overflow-hidden background.
-        gridRow: `span ${card.rowSpan ? card.rowSpan * COMPACT_TILE_ROW_SPAN : (isTileKind ? Math.max(rowSpan, COMPACT_TILE_ROW_SPAN) : rowSpan)}`,
+        gridRow: `span ${isTileKind ? Math.max(rowSpan, COMPACT_TILE_ROW_SPAN) : rowSpan}`,
         transform: CSS.Translate.toString(transform),
         transition: transition ?? undefined,
       }}
@@ -924,6 +933,7 @@ function SectionCardItem({
         isActive={cardIsActive}
         deviceId={cameraDeviceId}
         device={assignedDevice}
+        isEditorPreview={isEditing}
         isMediaProcessing={processingCardId === card.id}
         onMediaCommand={normalizedKind === 'media'
           ? (command, params) => { void handleMediaCardAction(card, command, params); }
@@ -1071,7 +1081,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
-  const [cardDraft, setCardDraft] = useState<CardDraft>({ title: '', kind: 'device', entityId: '', span: 'small', rowSpan: 0, icon: 'lightbulb' });
+  const [cardDraft, setCardDraft] = useState<CardDraft>({ title: '', kind: 'device', entityId: '', span: 'small', icon: 'lightbulb' });
   const [scenes, setScenes] = useState<AssignableScene[]>([]);
   const [automations, setAutomations] = useState<AssignableAutomation[]>([]);
 
@@ -1107,7 +1117,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const editingCard = editingCardId ? cards.find((card) => card.id === editingCardId) : undefined;
 
   useEffect(() => {
-    if (!isCatalogOpen && normalizeKind(cardDraft.kind) !== 'scene') return;
+    if (!isCatalogOpen && normalizeKind(cardDraft.kind) !== 'scene' && normalizeKind(cardDraft.kind) !== 'action') return;
 
     let cancelled = false;
     void apiFetch(`${API_BASE_URL}/api/v1/scenes`)
@@ -1136,7 +1146,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   }, [cardDraft.kind, isCatalogOpen]);
 
   useEffect(() => {
-    if (!isCatalogOpen && normalizeKind(cardDraft.kind) !== 'scene') return;
+    if (!isCatalogOpen && normalizeKind(cardDraft.kind) !== 'scene' && normalizeKind(cardDraft.kind) !== 'action') return;
 
     let cancelled = false;
     void apiFetch(`${API_BASE_URL}/api/v1/automations`)
@@ -1217,7 +1227,6 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       kind: nextCard.kind,
       entityId: '',
       span: nextCard.span ?? getDefaultSpan(nextCard.kind),
-      rowSpan: nextCard.rowSpan ?? 0,
       icon: nextIcon,
     });
   };
@@ -1230,7 +1239,6 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       kind: card.kind,
       entityId: card.entityId || '',
       span: getEffectiveCardSpan(card.kind, card.span ?? getDefaultSpan(card.kind)),
-      rowSpan: card.rowSpan ?? 0,
       icon: nextIcon,
     });
   };
@@ -1249,7 +1257,6 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         entityId: cardDraft.entityId || undefined,
         entityName: selectedScene?.name || selectedAutomation?.name || selectedRoom?.name || selectedDevice?.name,
         span: isClockKind(cardDraft.kind) ? 'full' : getEffectiveCardSpan(cardDraft.kind, cardDraft.span),
-        rowSpan: isClockKind(cardDraft.kind) || cardDraft.rowSpan < 1 ? undefined : cardDraft.rowSpan,
         icon: cardDraft.icon,
       };
     });
@@ -1293,11 +1300,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       // One card, two possible targets: a HomePilot scene (plain id) or an
       // automation "routine" (id stored with the AUTOMATION_ENTITY_PREFIX).
       // Neither has an on/off state — a tap always just (re-)runs it.
-      const isRoutine = isAutomationEntityId(card.entityId);
-      const targetId = isRoutine ? stripAutomationEntityPrefix(card.entityId) : card.entityId;
-      const url = isRoutine
-        ? `${API_BASE_URL}/api/v1/automations/${encodeURIComponent(targetId)}/run`
-        : `${API_BASE_URL}/api/v1/scenes/${encodeURIComponent(targetId)}/execute`;
+      const url = getSceneOrRoutineUrl(card.entityId);
 
       setProcessingCardId(card.id);
       try {
@@ -1314,7 +1317,21 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
 
     if (normalized === 'action') {
       const device = devices.find((candidate) => candidate.id === card.entityId);
-      if (!device) return;
+      if (!device) {
+        setProcessingCardId(card.id);
+        setActionFeedback(null);
+        try {
+          const response = await apiFetch(getSceneOrRoutineUrl(card.entityId), { method: 'POST' });
+          if (!response.ok) throw new Error(`ACTION_SCENE_OR_ROUTINE_${response.status}`);
+          showActionFeedback(card.id, 'success');
+        } catch (error) {
+          console.error('[SectionWidget] Failed to execute action scene/routine:', error);
+          showActionFeedback(card.id, 'error');
+        } finally {
+          setProcessingCardId(null);
+        }
+        return;
+      }
 
       // Real Home Assistant `button` entities press; scenes imported as
       // devices (entity_id domain "scene.") activate instead — neither has
@@ -1606,7 +1623,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
               cardDraft.title || (isClockKind(cardDraft.kind) ? t(getClockKindLabelKey(cardDraft.kind)) : catalogLabel(cardDraft.kind)),
               cardDraft.span,
               cardDraft.icon,
-              normalizeKind(cardDraft.kind) === 'camera' || normalizeKind(cardDraft.kind) === 'cover' || normalizeKind(cardDraft.kind) === 'room' || normalizeKind(cardDraft.kind) === 'sensor' || normalizeKind(cardDraft.kind) === 'media' ? cardDraft.entityId : undefined,
+              normalizeKind(cardDraft.kind) === 'camera' || normalizeKind(cardDraft.kind) === 'cover' || normalizeKind(cardDraft.kind) === 'room' || normalizeKind(cardDraft.kind) === 'sensor' || normalizeKind(cardDraft.kind) === 'media' || normalizeKind(cardDraft.kind) === 'action' ? cardDraft.entityId : undefined,
             )}
 
             <Input
@@ -1679,21 +1696,6 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
               }))}
             />
 
-            {!isClockKind(cardDraft.kind) ? (
-              <SearchableSelectField
-                label={t('dashboard.editor.sections.card_height')}
-                value={String(cardDraft.rowSpan)}
-                placement="down"
-                options={[
-                  { value: '0', label: t('dashboard.editor.sections.card_height_auto') },
-                  ...Array.from({ length: MAX_MANUAL_ROW_SPAN }, (_, index) => index + 1).map((rows) => ({
-                    value: String(rows),
-                    label: t('dashboard.editor.sections.card_height_rows', { count: rows }),
-                  })),
-                ]}
-                onChange={(value) => setCardDraft((draft) => ({ ...draft, rowSpan: Number(value) }))}
-              />
-            ) : null}
 
             {(cardDraft.kind === 'light' || cardDraft.kind === 'device' || cardDraft.kind === 'cover') ? (
               <IconPicker
@@ -1751,6 +1753,43 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                         ...draft,
                         entityId: selectedId,
                         title: nextRoom?.name || draft.title,
+                      }));
+                    }}
+                  />
+                ) : normalizeKind(cardDraft.kind) === 'action' ? (
+                  <SearchableSelectField
+                    label={t('dashboard.editor.sections.assigned_action')}
+                    value={cardDraft.entityId}
+                    placeholder={t('dashboard.editor.sections.unassigned')}
+                    placement="down"
+                    options={[
+                      { value: '', label: t('dashboard.editor.sections.unassigned') },
+                      ...assignableDevices.map((device) => ({
+                        value: device.id,
+                        label: `${device.name} · ${device.type || device.semanticType || 'device'}`,
+                      })),
+                      ...scenes.map((scene) => ({
+                        value: scene.id,
+                        label: scene.name,
+                        description: t('dashboard.editor.sections.scene_option_tag'),
+                      })),
+                      ...automations.map((automation) => ({
+                        value: `${AUTOMATION_ENTITY_PREFIX}${automation.id}`,
+                        label: automation.enabled ? automation.name : `${automation.name} (${t('dashboard.editor.sections.routine_disabled')})`,
+                        description: t('dashboard.editor.sections.routine_option_tag'),
+                      })),
+                    ]}
+                    onChange={(selectedId) => {
+                      const nextDevice = devices.find((device) => device.id === selectedId);
+                      const nextName = nextDevice?.name
+                        || scenes.find((scene) => scene.id === selectedId)?.name
+                        || (isAutomationEntityId(selectedId)
+                          ? automations.find((automation) => automation.id === stripAutomationEntityPrefix(selectedId))?.name
+                          : undefined);
+                      setCardDraft((draft) => ({
+                        ...draft,
+                        entityId: selectedId,
+                        title: nextName || draft.title,
                       }));
                     }}
                   />
