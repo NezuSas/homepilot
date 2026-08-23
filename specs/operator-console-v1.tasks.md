@@ -111,4 +111,11 @@
 - **Módulos**: `/src/views/DashboardView.tsx`, `HomeClimateSummary.tsx`, `DashboardRoutinesSection.tsx`, `DashboardInsightsSection.tsx` y `/public/home-dashboard-ambient.png`.
 - **Criterio Relacionado**: Alineado con **AC25**.
 
+### [UI-09] Temperatura actual de la ciudad configurada
+- **Descripción**: El resumen de Inicio obtiene la temperatura exterior de la ciudad configurada mediante la fuente meteorológica ya utilizada por el tablero. Cuando no responde, conserva un estado explícito no disponible.
+- **Módulos**: `HomeClimateSummary.tsx`, `homeClimateWeather.ts` y su prueba unitaria.
+- **Criterio Relacionado**: Alineado con **AC22**.
+
+- [x] Integrar la lectura meteorológica existente de la ciudad configurada en `HomeClimateSummary`, para que el encabezado no dependa de que haya un sensor físico de temperatura descubierto.
+
 - [x] Aislar el listado de escenas y automatizaciones por hogar propietario; Inicio delega la selección al endpoint autorizado y la cobertura de integración rechaza hogares ajenos.

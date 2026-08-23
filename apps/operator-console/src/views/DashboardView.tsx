@@ -191,7 +191,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
           <p className="mt-3 max-w-xl text-body text-muted-foreground lg:text-card-title">{t('dashboard.home_calm')}</p>
         </div>
         <div className="relative z-10">
-          <HomeClimateSummary devices={allDevices} />
+          <HomeClimateSummary />
         </div>
       </header>
 

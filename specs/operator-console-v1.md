@@ -87,7 +87,7 @@ Se propone una consola de administración pragmática:
 - [ ] AC19: Usuarios y accesos conserva completos rol, estado y controles administrativos en tablet.
 - [ ] AC20: Las pestañas/ventanas de panel pueden renombrarse y eliminarse sin eliminar el panel completo.
 - [ ] AC21: Las cámaras importadas desde Home Assistant/ONVIF se renderizan mediante el componente modular de cámara y permanecen sin controles de toggle.
-- [ ] AC22: La shell elimina las barras horizontales superior e inferior en escritorio. El control del sidebar vive junto a la marca HomePilot Edge y el encabezado de Inicio muestra ciudad configurada, hora local y la primera temperatura local disponible sin depender de servicios cloud.
+- [ ] AC22: La shell elimina las barras horizontales superior e inferior en escritorio. El control del sidebar vive junto a la marca HomePilot Edge y el encabezado de Inicio muestra ciudad configurada, hora local y la temperatura actual de esa ciudad, con un estado explícito cuando el servicio meteorológico no está disponible.
 - [ ] AC23: Las automatizaciones pueden marcarse como favoritas y únicamente esas aparecen en Inicio. La preferencia se conserva localmente con el mismo criterio usado por escenas favoritas.
 - [ ] AC24: El Gestor de Dispositivos resuelve cada dispositivo asignado por capacidades y semántica: cámaras usan `CameraDeviceTile`, cortinas usan `CurtainDeviceTile` y luces, interruptores o sensores usan `DashDeviceTile`. `InboxDeviceTile` queda reservado para el flujo de descubrimiento y asignación.
 - [ ] AC12: La identidad visual Nezu utiliza `#D9542B` como color primario, `#C9DF38` exclusivamente para Eco/eficiencia y `#1A1A1A` como ancla neutra. El azul deja de representar marca o estado activo.

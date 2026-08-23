@@ -28,31 +28,33 @@ describe('LlmCircuitBreaker', () => {
   });
 
   it('closes automatically (half-open probe) once the cooldown elapses', () => {
-    const breaker = new LlmCircuitBreaker(1, 10);
-    breaker.recordFailure();
-    expect(breaker.isOpen()).toBe(true);
+    jest.useFakeTimers();
+    try {
+      const breaker = new LlmCircuitBreaker(1, 10);
+      breaker.recordFailure();
+      expect(breaker.isOpen()).toBe(true);
 
-    return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        expect(breaker.isOpen()).toBe(false);
-        resolve();
-      }, 20);
-    });
+      jest.advanceTimersByTime(10);
+      expect(breaker.isOpen()).toBe(false);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('reopens if the half-open probe also fails', () => {
-    const breaker = new LlmCircuitBreaker(1, 10);
-    breaker.recordFailure();
-    expect(breaker.isOpen()).toBe(true);
+    jest.useFakeTimers();
+    try {
+      const breaker = new LlmCircuitBreaker(1, 10);
+      breaker.recordFailure();
+      expect(breaker.isOpen()).toBe(true);
 
-    return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        expect(breaker.isOpen()).toBe(false); // probe allowed through
-        breaker.recordFailure();
-        expect(breaker.isOpen()).toBe(true); // reopened immediately (threshold=1)
-        resolve();
-      }, 20);
-    });
+      jest.advanceTimersByTime(10);
+      expect(breaker.isOpen()).toBe(false); // probe allowed through
+      breaker.recordFailure();
+      expect(breaker.isOpen()).toBe(true); // reopened immediately (threshold=1)
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('exposes its current state for observability', () => {
