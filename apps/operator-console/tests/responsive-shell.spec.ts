@@ -187,6 +187,14 @@ test('keeps dashboard controls readable on a high-resolution portrait kiosk', as
   expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth);
   await expect(page.getByText('Temperatura de sala').first()).toBeVisible();
   await expect(page.getByText('Cortina de sala').first()).toBeVisible();
+
+  const menuToggle = page.locator('.homepilot-dashboard-tabs').getByRole('button', { name: /show or hide menu|mostrar u ocultar menú/i });
+  await expect(menuToggle).toBeVisible();
+  await menuToggle.click();
+  await expect(page.getByTestId('mobile-sidebar-backdrop')).toBeVisible();
+  await page.getByTestId('mobile-sidebar-backdrop').click({ position: { x: portraitKioskViewport.width - 20, y: 96 } });
+  await expect(menuToggle).toBeVisible();
+
 });
 
 for (const viewport of viewports) {

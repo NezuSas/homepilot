@@ -28,3 +28,4 @@
 - [x] AC17: `npm run typecheck`/`build` en `apps/operator-console`, `check:i18n`,
       `check:ui-primitives` en verde. Verificación visual en navegador pendiente del usuario (sin
       herramienta de automatización de navegador disponible en este entorno).
+- [x] AC28: Matched light and action previews to their semantic live-card surfaces in both themes, and kept the dashboard navigation trigger visible and usable at the 1080×1920 portrait-kiosk breakpoint.

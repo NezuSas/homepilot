@@ -79,6 +79,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - [x] AC25: Section cards are reordered by dragging the card surface. Editing remains directly available from a centered pencil, while the top-right overflow menu contains only Edit and Delete actions.
 - [x] AC26: Editing preserves a section's normal spacing and dimensions. Empty-section add affordances use one compact tile cell, and card edit controls appear only on hover or keyboard focus.
 - [x] AC27: Card edit affordances use a subtle hover/focus scrim. Editing renders each section as a bounded dashed surface with direct move, edit, delete, and resize controls, with an integrated 1–4 section-width selector; the new-section affordance occupies one canvas column. Deleting a section requires an explicit destructive confirmation before the layout changes.
+- [x] AC28: Light and action-card previews use the same semantic surfaces as the live cards in light and dark themes. The dashboard navigation control remains reachable at the 1080×1920 portrait-kiosk breakpoint after the sidebar drawer is closed.
 
 ## 7. Notas Técnicas y Arquitectura
 

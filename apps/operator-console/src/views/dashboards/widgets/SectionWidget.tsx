@@ -440,6 +440,7 @@ function CardPreview({
           ? t('dashboard.editor.sections.action_button_error')
           : t('dashboard.editor.sections.action_button_execute');
     const unavailable = !isAssigned || !onAction || Boolean(isPreview);
+    const isInteractiveAction = !isPreview && !unavailable;
 
     return (
       <Button
@@ -448,13 +449,15 @@ function CardPreview({
           event.stopPropagation();
           onAction?.();
         }}
-        disabled={unavailable || actionFeedback === 'pending'}
+        disabled={!isPreview && (unavailable || actionFeedback === 'pending')}
+        aria-disabled={!isInteractiveAction || actionFeedback === 'pending' || undefined}
         aria-busy={actionFeedback === 'pending' || undefined}
         aria-label={t('dashboard.editor.sections.action_button_aria', { name: title })}
         title={unavailable ? t('dashboard.editor.sections.action_button_unavailable') : undefined}
         variant="ghost"
         className={cn(
           'dashboard-action-button relative flex h-full min-h-0 w-full flex-col justify-between overflow-hidden rounded-section border p-3 text-left transition-[background-color,border-color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-default disabled:opacity-65 sm:p-4',
+          isPreview && 'pointer-events-none cursor-default',
           `dashboard-action-button--${actionFeedback}`,
         )}
       >
@@ -610,7 +613,9 @@ function CardPreview({
           "relative flex h-full min-h-0 w-full flex-col items-center justify-center overflow-hidden rounded-xl border p-2.5 text-center text-foreground transition-all",
           isActive
             ? isLightKind
-              ? "homepilot-section-light-tile-surface"
+              ? isPreview
+                ? "homepilot-section-light-tile-active"
+                : "homepilot-section-light-tile-surface"
               : "border-primary/45 bg-primary/14 shadow-surface-card"
             : "border-border/60 bg-card/95 shadow-surface-card"
         )}
@@ -1447,7 +1452,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     return (
       <div className={cn(
         "grid overflow-hidden rounded-section bg-background/40 transition-[height,width,max-width] duration-200",
-        span === 'small' && (normalizedPreviewKind === 'device' || normalizedPreviewKind === 'light' ? "h-device-card-compact w-full max-w-[12rem] justify-self-center" : "h-section-card-sm w-full max-w-[12rem] justify-self-center"),
+        span === 'small' && (normalizedPreviewKind === 'device' || normalizedPreviewKind === 'light' ? "h-device-card-compact w-device-card-compact justify-self-center" : "h-section-card-sm w-full max-w-[12rem] justify-self-center"),
         span === 'medium' && !isCoverPreview && "h-section-card-md w-full max-w-form-md",
         span === 'medium' && isCoverPreview && "h-curtain-card w-full max-w-form-md justify-self-center",
         span === 'full' && "w-full",

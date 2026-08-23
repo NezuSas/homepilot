@@ -79,7 +79,7 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
     <div className="homepilot-dashboard-tabs min-w-0">
       <div className="flex min-h-12 min-w-0 items-center gap-0 overflow-x-auto px-3 no-scrollbar">
         {onOpenMobileMenu && (
-          <IconButton icon={Menu} label={t('shell.toggle_sidebar')} onClick={onOpenMobileMenu} variant="default" size="md" className="mr-1 rounded-full bg-card/80 shadow-sm backdrop-blur-md lg:hidden" />
+          <IconButton icon={Menu} label={t('shell.toggle_sidebar')} onClick={onOpenMobileMenu} variant="default" size="md" className="mr-1 rounded-full bg-card/90 shadow-depth-1 backdrop-blur-md xl:hidden" />
         )}
         {tabs.map((tab, index) => {
           const Icon = getTabIcon(tab, index);
