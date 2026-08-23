@@ -236,7 +236,7 @@ export function DashboardWidgetNode({
       </div>
 
       {/* Edit Mode Controls */}
-      {isEditing && isSelected && !isOverlay && (
+      {isEditing && !isOverlay && (
         <>
           {/* A selected section exposes only its direct manipulation tools. */}
           <div className="pointer-events-auto absolute right-2 top-2 z-30 flex items-center">
