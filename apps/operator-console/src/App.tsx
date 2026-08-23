@@ -807,7 +807,7 @@ function App() {
               title={t('shell.toggle_sidebar')}
               aria-label={t('shell.toggle_sidebar')}
             >
-              <img src="/nezu.png" alt="Nezu" className={cn("h-8 w-auto object-contain transition-opacity", !isSidebarContentCollapsed && "xl:opacity-100")} />
+              <img src="/logo.svg" alt="HomePilot" className={cn("h-8 w-auto object-contain transition-opacity", !isSidebarContentCollapsed && "xl:opacity-100")} />
             </Button>
             <h2 className={cn("font-black tracking-tighter text-body-lg leading-none whitespace-nowrap overflow-hidden transition-[opacity,width] duration-200", isSidebarContentCollapsed && "xl:w-0 xl:opacity-0")}>
               {t('shell.app_title')}
