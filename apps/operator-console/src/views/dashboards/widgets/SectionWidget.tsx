@@ -610,7 +610,7 @@ function CardPreview({
           "relative flex h-full min-h-0 w-full flex-col items-center justify-center overflow-hidden rounded-xl border p-2.5 text-center text-foreground transition-all",
           isActive
             ? isLightKind
-              ? "homepilot-section-light-tile-active"
+              ? "homepilot-section-light-tile-surface"
               : "border-primary/45 bg-primary/14 shadow-surface-card"
             : "border-border/60 bg-card/95 shadow-surface-card"
         )}
@@ -904,6 +904,7 @@ function SectionCardItem({
         isClock && "min-h-clock-card",
         isCover && "w-full max-w-curtain-dashboard justify-self-start",
         isActionable && "cursor-pointer hover:-translate-y-0.5 hover:shadow-depth-2",
+        normalizedKind === 'light' && cardIsActive && "homepilot-section-light-tile-active",
         isDragging && "z-30 opacity-45",
         getSpanClass(span)
       )}
