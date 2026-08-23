@@ -1460,6 +1460,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     const isScenePreview = normalizedPreviewKind === 'scene';
     const isRoomPreview = normalizedPreviewKind === 'room';
     const isCoverPreview = normalizedPreviewKind === 'cover';
+    const isLightPreview = normalizedPreviewKind === 'light';
     const roomDevices = isRoomPreview && deviceIdOverride
       ? devices.filter((device) => device.roomId === deviceIdOverride)
       : [];
@@ -1486,7 +1487,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           span={span}
           icon={iconOverride ?? getDefaultIcon(kind)}
           isAssigned={Boolean(deviceIdOverride)}
-          isActive={previewDevice ? isDeviceActive(previewDevice) : false}
+          isActive={previewDevice ? isDeviceActive(previewDevice) : isLightPreview}
           deviceId={deviceIdOverride}
           device={previewDevice}
           isPreview={true}
@@ -1577,7 +1578,11 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                         {item.description}
                       </span>
                       <span className="mt-2 inline-flex rounded-full border border-border/40 px-2 py-1 text-micro font-black uppercase tracking-control text-muted-foreground">
-                        {t(`dashboard.editor.sections.card_size_${item.span}`)}
+                        {item.span === 'full'
+                          ? t('dashboard.editor.sections.card_size_full')
+                          : t(`dashboard.editor.sections.card_size_${item.span}`, {
+                            count: item.span === 'small' ? innerColumns : Math.max(1, Math.floor(innerColumns / 2)),
+                          })}
                       </span>
                     </div>
                   </Button>

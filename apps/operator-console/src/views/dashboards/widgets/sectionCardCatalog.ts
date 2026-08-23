@@ -68,8 +68,6 @@ export const cardKinds: NormalizedSectionCardKind[] = [
   'sensor',
   'media',
   'action',
-  'room',
-  'scene',
   'clock_digital',
   'clock_analog',
   'clock_premium',
@@ -118,7 +116,7 @@ export function getEffectiveCardSpan(kind: SectionCardKind, span: SectionCardSpa
 // Groups the "add card" catalog into a few chips (Home Assistant's add-card
 // dialog groups by domain/suggestion instead of one flat list), so users
 // can narrow the picker without typing a search term.
-export type SectionCardCategory = 'control' | 'info' | 'automation' | 'clock';
+export type SectionCardCategory = 'control' | 'info' | 'clock';
 
 export function getCatalogCategory(kind: SectionCardKind): SectionCardCategory {
   const normalized = normalizeKind(kind);
@@ -126,10 +124,7 @@ export function getCatalogCategory(kind: SectionCardKind): SectionCardCategory {
 
   switch (normalized) {
     case 'sensor':
-    case 'room':
       return 'info';
-    case 'scene':
-      return 'automation';
     case 'light':
     case 'cover':
     case 'camera':
@@ -143,7 +138,6 @@ export function getCatalogCategory(kind: SectionCardKind): SectionCardCategory {
 export const catalogCategories: ReadonlyArray<{ key: SectionCardCategory; labelKey: string }> = [
   { key: 'control', labelKey: 'dashboard.editor.sections.category_control' },
   { key: 'info', labelKey: 'dashboard.editor.sections.category_info' },
-  { key: 'automation', labelKey: 'dashboard.editor.sections.category_automation' },
   { key: 'clock', labelKey: 'dashboard.editor.sections.category_clock' },
 ];
 
@@ -307,7 +301,10 @@ export function normalizeCards(extra?: DashboardWidgetConfig['extra']): Normaliz
   return rawCards.flatMap((rawCard, index) => {
     const card = rawCard as Partial<NormalizedSectionCardItem> & Record<string, unknown>;
     const legacyKind = (card.kind as LegacySectionCardKind) || 'device';
-    if (legacyKind === 'system') return [];
+    // Room summaries and standalone scene shortcuts were superseded by
+    // section grouping and the action button, respectively. Drop persisted
+    // legacy cards too, so an obsolete card cannot reappear after editing.
+    if (legacyKind === 'system' || legacyKind === 'room' || legacyKind === 'scene') return [];
     const kind = normalizeKind(legacyKind);
 
     return [{

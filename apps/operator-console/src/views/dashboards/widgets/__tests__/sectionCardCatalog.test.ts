@@ -27,9 +27,7 @@ describe('Feature: catálogo de tarjetas de sección', () => {
     expect(getDefaultSpan('light')).toBe('medium');
     expect(getDefaultSpan('camera')).toBe('full');
     expect(getSpanClass('medium')).toBe('col-span-2');
-    expect(isBindableKind('scene')).toBe(true);
     expect(isBindableKind('clock_digital')).toBe(false);
-    expect(getWidgetType('scene')).toBe('scene_shortcut');
     expect(getWidgetType('action')).toBe('action_button');
     expect(isBindableKind('action')).toBe(true);
     expect(getDefaultIcon('sensor')).toBe('Gauge');
@@ -40,8 +38,6 @@ describe('Feature: catálogo de tarjetas de sección', () => {
     expect(getCatalogLabelKey('camera')).toBe('dashboard.editor.sections.section_card_camera');
     expect(getCatalogLabelKey('sensor')).toBe('dashboard.editor.sections.section_card_sensor');
     expect(getCatalogLabelKey('media')).toBe('dashboard.editor.sections.section_card_media');
-    expect(getCatalogLabelKey('room')).toBe('dashboard.editor.sections.section_card_room');
-    expect(getCatalogLabelKey('scene')).toBe('dashboard.editor.sections.section_card_scene');
     expect(getCatalogLabelKey('action')).toBe('dashboard.editor.sections.section_card_action');
     expect(getCatalogLabelKey('energy')).toBe('dashboard.editor.sections.section_card_energy');
     expect(getCatalogLabelKey('assistant')).toBe('dashboard.editor.sections.section_card_assistant');
@@ -50,15 +46,12 @@ describe('Feature: catálogo de tarjetas de sección', () => {
     expect(getClockKindLabelKey('clock_analog')).toBe('dashboard.editor.sections.clock_style_residential');
     expect(getClockStyleForKind('clock_premium')).toBe('analog-classic');
     expect(getClockStyleForKind('clock_minimal')).toBe('analog-minimal');
-    expect(getWidgetType('room')).toBe('room_overview');
     expect(getWidgetType('energy')).toBe('energy_snapshot');
     expect(getWidgetType('assistant')).toBe('assistant_insight');
     expect(getWidgetType('clock_minimal')).toBe('clock_display');
     expect(getDefaultIcon('cover')).toBe('Blinds');
     expect(getDefaultIcon('camera')).toBe('Camera');
     expect(getDefaultIcon('media')).toBe('Music2');
-    expect(getDefaultIcon('room')).toBe('Home');
-    expect(getDefaultIcon('scene')).toBe('Sparkles');
     expect(getDefaultIcon('energy')).toBe('Zap');
     expect(getDefaultIcon('assistant')).toBe('Bot');
   });
@@ -77,6 +70,15 @@ describe('Feature: catálogo de tarjetas de sección', () => {
     expect(cards[0]).toMatchObject({ id: 'light-1', kind: 'light', span: 'medium', icon: 'Lightbulb', order: 4 });
     expect(cards[1]).toMatchObject({ id: 'clock-1', kind: 'clock_digital', span: 'full', widgetType: 'clock_display', icon: 'Clock' });
     expect(cards[2]).toMatchObject({ id: 'sensor-1', kind: 'sensor', span: 'full', widgetType: 'device_control', icon: 'Gauge' });
+  });
+
+  it('Scenario: Given obsolete room and scene cards When normalizing Then they are removed from the dashboard', () => {
+    expect(normalizeCards({
+      cards: [
+        { id: 'room-1', kind: 'room', title: 'Legacy room' },
+        { id: 'scene-1', kind: 'scene', title: 'Legacy scene' },
+      ],
+    })).toEqual([]);
   });
 
   it('Scenario: Given a legacy manual card height When normalizing Then measured masonry layout ignores it', () => {
@@ -99,6 +101,7 @@ describe('Feature: catálogo de tarjetas de sección', () => {
   });
   it('Scenario: Given the full catalog When resolving metadata Then all clock variants and defaults remain explicit', () => {
     expect(cardKinds).toEqual(expect.arrayContaining(['light', 'cover', 'camera', 'sensor', 'media', 'action', 'clock_premium', 'clock_minimal']));
+    expect(cardKinds).not.toEqual(expect.arrayContaining(['room', 'scene']));
     expect(getCatalogLabelKey('clock_analog')).toBe('dashboard.editor.sections.section_card_clock_analog');
     expect(getCatalogLabelKey('clock_premium')).toBe('dashboard.editor.sections.section_card_clock_premium');
     expect(getCatalogLabelKey('clock_minimal')).toBe('dashboard.editor.sections.section_card_clock_minimal');
@@ -108,7 +111,6 @@ describe('Feature: catálogo de tarjetas de sección', () => {
     expect(getDefaultSpan('device')).toBe('medium');
     expect(getDefaultSpan('action')).toBe('medium');
     expect(getDefaultSpan('cover')).toBe('medium');
-    expect(getDefaultSpan('room')).toBe('medium');
     expect(getWidgetType('light')).toBe('device_control');
     expect(getDefaultIcon('clock_premium')).toBe('Clock');
     expect(getDefaultIcon('device')).toBe('Power');

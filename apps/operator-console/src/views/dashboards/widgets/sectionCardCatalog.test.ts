@@ -80,8 +80,6 @@ describe('section card catalog contracts', () => {
 
   it('groups every catalog kind into one of the known add-card categories', () => {
     expect(getCatalogCategory('sensor')).toBe('info');
-    expect(getCatalogCategory('room')).toBe('info');
-    expect(getCatalogCategory('scene')).toBe('automation');
     expect(getCatalogCategory('light')).toBe('control');
     expect(getCatalogCategory('clock_premium')).toBe('clock');
 
