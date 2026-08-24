@@ -4730,15 +4730,25 @@ export class AssistantConversationService {
     originalPrompt: string,
     memory: AssistantMemoryState | null
   ): Promise<AssistantConversationResponse | null> {
-    const devices = Array.from(await this.permissionGate.getAuthorizedDevices(userId));
+    const [authorizedDevices, rooms] = await Promise.all([
+      this.permissionGate.getAuthorizedDevices(userId),
+      this.permissionGate.getAuthorizedRooms(userId)
+    ]);
+    const devices = Array.from(authorizedDevices);
     const contextualPlayer = memory?.lastQueryType === 'media_player_status' && memory.entities.length === 1
       ? devices.find((device) => device.id === memory.entities[0].id && device.type?.toLowerCase() === 'media_player')
       : undefined;
-    const resolution = this.mediaPlayerResolver.resolve(normalizedPrompt, devices, contextualPlayer);
+    const resolution = this.mediaPlayerResolver.resolve(normalizedPrompt, devices, contextualPlayer, rooms);
 
     if (resolution.type === 'not_applicable') return null;
     if (resolution.type === 'no_players') {
       return { type: 'answer', message: getAssistantResponseText('media.no_players', language, {}) };
+    }
+    if (resolution.type === 'no_players_in_room') {
+      return {
+        type: 'answer',
+        message: getAssistantResponseText('media.no_players_in_room', language, { roomName: resolution.room.name })
+      };
     }
     if (resolution.type === 'clarification') {
       return {
@@ -4775,7 +4785,7 @@ export class AssistantConversationService {
       });
       return {
         type: 'answer',
-        message: this.formatMediaPlayerStatus(resolution.players, language)
+        message: this.formatMediaPlayerStatus(resolution.players, language, rooms, resolution.room)
       };
     }
 
@@ -4854,10 +4864,19 @@ export class AssistantConversationService {
     };
   }
 
-  private formatMediaPlayerStatus(players: readonly Device[], language: string): string {
+  private formatMediaPlayerStatus(
+    players: readonly Device[],
+    language: string,
+    rooms: readonly Room[],
+    requestedRoom?: Room
+  ): string {
     const formattedPlayers = players.map((player) => this.formatSingleMediaPlayerStatus(player, language));
+    const entries = formattedPlayers.map((entry) => `• ${entry}`).join('\n');
+    if (requestedRoom) {
+      return getAssistantResponseText('media.status_in_room', language, { roomName: requestedRoom.name, entries });
+    }
     if (formattedPlayers.length === 1) return formattedPlayers[0];
-    return getAssistantResponseText('media.status_list', language, { entries: formattedPlayers.map((entry) => `• ${entry}`).join('\n') });
+    return getAssistantResponseText('media.status_list', language, { entries });
   }
 
   private formatSingleMediaPlayerStatus(player: Device, language: string): string {
@@ -4883,7 +4902,6 @@ export class AssistantConversationService {
     }
     return getAssistantResponseText('media.idle', language, { deviceName: player.name, volume });
   }
-
   private isMediaPlayerUnavailable(player: Device): boolean {
     return player.lastKnownState?.state === 'unavailable';
   }
@@ -5153,6 +5171,3 @@ export class AssistantConversationService {
   }
 
 }
-
-
-

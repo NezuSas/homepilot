@@ -16,6 +16,7 @@ import {
   createMockAutomationRuleRepository,
   createMockAssistantDraftService,
   createTestDevice,
+  createTestRoom,
   createMockSceneExecutionService,
   createMockSystemVariableService,
 } from './test_helpers';
@@ -26,19 +27,21 @@ describe('Assistant media-player control', () => {
   let sceneExecution: ReturnType<typeof createMockSceneExecutionService>;
   let intentInterpreter: ReturnType<typeof createMockIntentInterpreterPort>;
   let memory: ReturnType<typeof createMockAssistantMemory>;
+  let roomRepository: ReturnType<typeof createMockRoomRepository>;
 
   beforeEach(() => {
     deviceRepository = createMockDeviceRepository();
     sceneExecution = createMockSceneExecutionService();
     intentInterpreter = createMockIntentInterpreterPort();
     memory = createMockAssistantMemory();
+    roomRepository = createMockRoomRepository();
     service = new AssistantConversationService(
       intentInterpreter,
       createMockAssistantConfirmationPolicy(),
       sceneExecution,
       createMockDeviceCommandDispatcher(),
       deviceRepository,
-      createMockRoomRepository(),
+      roomRepository,
       createMockSceneRepository(),
       createMockAssistantSmallTalk(),
       memory,
@@ -177,6 +180,58 @@ describe('Assistant media-player control', () => {
     );
   });
 
+  it.each([
+    ['qué parlantes tengo en la sala', 'status'],
+    ['qué suena en la sala', 'status'],
+    ['sube el volumen del parlante de la sala por 10 por ciento', 'volume'],
+    ['baja el volumen del parlante de la sala en 15%', 'volume'],
+    ['pausa el parlante de la sala', 'pause'],
+  ])('understands the natural audio request %s within its HomePilot room', async (prompt, expected) => {
+    const sala = createTestRoom({ id: 'sala', name: 'Sala' });
+    const speaker = createTestDevice({
+      id: 'speaker',
+      name: 'Parlante Sala',
+      type: 'media_player',
+      roomId: sala.id,
+      lastKnownState: { state: 'playing', volume_level: 0.5, media_title: 'Noche tranquila' },
+    });
+    roomRepository.findAll.mockResolvedValue([sala]);
+    deviceRepository.findAll.mockResolvedValue([speaker]);
+    deviceRepository.findDeviceById.mockResolvedValue(speaker);
+
+    const response = await service.converse({ prompt, userId: 'u1' }, 'es');
+
+    if (expected === 'status') {
+      expect(response.type).toBe('answer');
+      expect(response.message).toContain('Sala');
+      expect(response.message).toContain('Parlante Sala');
+      return;
+    }
+
+    expect(response.type).toBe('execution');
+    const expectedCommand = expected === 'pause'
+      ? { name: 'media_pause', params: {} }
+      : { name: 'volume_set', params: { volume: prompt.startsWith('sube') ? 60 : 35 } };
+    expect(sceneExecution.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ actions: [{ deviceId: 'speaker', command: expectedCommand }] }),
+      expect.anything(),
+    );
+  });
+
+  it('states that a room has no imported audio players without querying Home Assistant entities', async () => {
+    const comedor = createTestRoom({ id: 'comedor', name: 'Comedor' });
+    roomRepository.findAll.mockResolvedValue([comedor]);
+    deviceRepository.findAll.mockResolvedValue([
+      createTestDevice({ id: 'office', name: 'Pantalla Oficina', type: 'media_player', roomId: 'oficina' }),
+    ]);
+
+    const response = await service.converse({ prompt: 'qué altavoces tengo en el comedor', userId: 'u1' }, 'es');
+
+    expect(response.type).toBe('answer');
+    expect(response.message.toLowerCase()).toContain('no tienes reproductores de audio importados en comedor');
+    expect(sceneExecution.execute).not.toHaveBeenCalled();
+    expect(intentInterpreter.interpret).not.toHaveBeenCalled();
+  });
   it('asks for the player when a volume command is ambiguous', async () => {
     deviceRepository.findAll.mockResolvedValue([
       createTestDevice({ id: 'office', name: 'Pantalla Oficina', type: 'media_player' }),

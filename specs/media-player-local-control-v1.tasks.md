@@ -8,9 +8,9 @@
 - [x] Asistente determinista para consultas de reproducción y control de volumen exacto o relativo en reproductores autorizados.
 - [x] Manejo explícito de reproductor apagado, no disponible, operación no soportada y fallo de ejecución.
 - [x] Seguimiento contextual de un único reproductor recién consultado para encendido explícito.
+- [x] Variantes naturales de consulta y control de audio, con filtrado por estancia y respuesta explícita para estancias sin reproductores importados.
 
 ## Verificación obligatoria ante cambios
 
 - [ ] Validar token vencido, artwork no disponible y reproducción sin portada.
 - [ ] Validar que los selectores no mezclen dispositivos de media con luces u otros tipos.
-

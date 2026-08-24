@@ -109,6 +109,8 @@ export type AssistantResponseCatalogParameters = {
   'media.paused': { deviceName: string; title: string | null; artist: string | null; volume: number | null };
   'media.idle': { deviceName: string; volume: number | null };
   'media.status_list': { entries: string };
+  'media.status_in_room': { roomName: string; entries: string };
+  'media.no_players_in_room': { roomName: string };
   'media.operation_not_supported': { deviceName: string; action: string };
   'media.turn_on_not_supported': { deviceName: string };
   'media.operation_failed': { deviceName: string };
@@ -574,6 +576,14 @@ const responseCatalog: AssistantResponseCatalog = {
   'media.status_list': {
     es: ({ entries }) => `Así están tus reproductores:\n${entries}`,
     en: ({ entries }) => `Here is the status of your players:\n${entries}`,
+  },
+  'media.status_in_room': {
+    es: ({ roomName, entries }) => `Reproductores de audio en ${roomName}:\n${entries}`,
+    en: ({ roomName, entries }) => `Audio players in ${roomName}:\n${entries}`,
+  },
+  'media.no_players_in_room': {
+    es: ({ roomName }) => `No tienes reproductores de audio importados en ${roomName}.`,
+    en: ({ roomName }) => `You do not have imported audio players in ${roomName}.`,
   },
   'media.operation_not_supported': {
     es: ({ deviceName }) => `${deviceName} no permite esa operación desde HomePilot.`,

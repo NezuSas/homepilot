@@ -1,3 +1,4 @@
+- [x] AC8: Consultas naturales de parlantes, sonido y reproducción resuelven solo reproductores `media_player` autorizados de HomePilot; por estancia, listan únicamente los asignados y comunican claramente cuando no hay ninguno importado. Evidencia: `assistant_media_player_control.test.ts`.
 # SPEC: Media Player Local Control V1
 
 **Estado:** Implementado  
@@ -33,6 +34,7 @@ Los reproductores importados deben operar como dispositivos locales de HomePilot
 - **REQ-07:** El asistente acepta volumen exacto entre 0 y 100, así como incrementos y reducciones porcentuales contra el volumen sincronizado localmente; no inventa valores cuando esa lectura no existe.
 - **REQ-08:** Antes de controlar un reproductor, el asistente informa si está no disponible. Si está apagado y admite encendido, lo enciende antes de completar una orden compatible; ante fallo indica revisar alimentación y conexión.
 - **REQ-09:** Tras informar exactamente un reproductor autorizado, el asistente conserva ese contexto para interpretar de forma determinista referencias inmediatas de encendido como ‘enciéndelo’ o ‘quiero usarlo’; sin un único contexto no ejecuta una orden implícita.
+- **REQ-10:** El asistente reconoce variantes naturales de consulta, pausa, encendido y ajuste de volumen para reproductores importados, y puede filtrar por una estancia autorizada. Si la estancia no tiene reproductores importados, lo informa sin consultar entidades externas.
 
 ## 5. Requisitos No Funcionales
 
