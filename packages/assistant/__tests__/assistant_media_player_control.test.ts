@@ -25,11 +25,13 @@ describe('Assistant media-player control', () => {
   let deviceRepository: ReturnType<typeof createMockDeviceRepository>;
   let sceneExecution: ReturnType<typeof createMockSceneExecutionService>;
   let intentInterpreter: ReturnType<typeof createMockIntentInterpreterPort>;
+  let memory: ReturnType<typeof createMockAssistantMemory>;
 
   beforeEach(() => {
     deviceRepository = createMockDeviceRepository();
     sceneExecution = createMockSceneExecutionService();
     intentInterpreter = createMockIntentInterpreterPort();
+    memory = createMockAssistantMemory();
     service = new AssistantConversationService(
       intentInterpreter,
       createMockAssistantConfirmationPolicy(),
@@ -39,7 +41,7 @@ describe('Assistant media-player control', () => {
       createMockRoomRepository(),
       createMockSceneRepository(),
       createMockAssistantSmallTalk(),
-      createMockAssistantMemory(),
+      memory,
       createMockFollowUpResolver(),
       createMockAssistantDraftService(),
       createMockAutomationRuleRepository(),
@@ -89,6 +91,27 @@ describe('Assistant media-player control', () => {
     expect(response.type).toBe('answer');
     expect(response.message).toContain('Pantalla Oficina');
     expect(response.message).toContain('Z.Tech Speaker');
+    expect(intentInterpreter.interpret).not.toHaveBeenCalled();
+  });
+  it.each(['enciéndelo', 'quiero usarlo'])('turns on the previously reported player for the follow-up "$prompt"', async (prompt) => {
+    const player = createTestDevice({ id: 'smart-tv', name: 'Smart TV', type: 'media_player', lastKnownState: { state: 'off', on: false } });
+    let storedMemory: Awaited<ReturnType<typeof memory.getShortTermMemory>> = null;
+    memory.getShortTermMemory.mockImplementation(async () => storedMemory);
+    memory.saveShortTermMemory.mockImplementation(async (_userId, state) => {
+      storedMemory = state;
+    });
+    deviceRepository.findAll.mockResolvedValue([player]);
+    deviceRepository.findDeviceById.mockResolvedValue(player);
+
+    await service.converse({ prompt: 'qué reproductores de audio tengo disponibles', userId: 'u1' }, 'es');
+    const response = await service.converse({ prompt, userId: 'u1' }, 'es');
+
+    expect(response.type).toBe('execution');
+    expect(response.message).toContain('Smart TV');
+    expect(sceneExecution.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ actions: [{ deviceId: 'smart-tv', command: { name: 'turn_on', params: {} } }] }),
+      expect.anything(),
+    );
     expect(intentInterpreter.interpret).not.toHaveBeenCalled();
   });
   it('explains when the requested player is unavailable instead of attempting an unsafe command', async () => {

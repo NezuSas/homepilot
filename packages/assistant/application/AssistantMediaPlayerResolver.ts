@@ -24,11 +24,15 @@ export class AssistantMediaPlayerResolver {
     'pause', 'resume', 'next track', 'previous track'
   ];
 
-  public resolve(prompt: string, devices: readonly Device[]): AssistantMediaPlayerResolution {
+  public resolve(prompt: string, devices: readonly Device[], contextualPlayer?: Device): AssistantMediaPlayerResolution {
     const normalized = normalizeAssistantPrompt(prompt);
-    if (!this.isMediaPrompt(normalized)) return { type: 'not_applicable' };
+    const players = devices.filter((device) => device.type?.toLowerCase() === 'media_player');
+    const contextualTarget = contextualPlayer && players.find((player) => player.id === contextualPlayer.id);
+    if (contextualTarget && this.isContextualTurnOnPrompt(normalized)) {
+      return { type: 'command', player: contextualTarget, command: 'turn_on' };
+    }
 
-    const players = devices.filter((device) => device.type.toLowerCase() === 'media_player');
+    if (!this.isMediaPrompt(normalized)) return { type: 'not_applicable' };
     if (players.length === 0) return { type: 'no_players' };
 
     const command = this.resolveCommand(normalized);
@@ -70,6 +74,10 @@ export class AssistantMediaPlayerResolver {
       const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       return new RegExp(`\\b${escapedKeyword}\\b`).test(prompt);
     });
+  }
+
+  private isContextualTurnOnPrompt(prompt: string): boolean {
+    return /\b(enciendelo|enciendela|prendelo|prendela|encenderlo|encenderla|usarlo|usarla|turn it on|use it)\b/.test(prompt);
   }
 
   private findNamedPlayers(prompt: string, players: Device[]): Device[] {

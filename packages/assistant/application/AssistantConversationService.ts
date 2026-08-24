@@ -442,7 +442,7 @@ export class AssistantConversationService {
       if (roomCoverResponse) return roomCoverResponse;
     }
 
-    const mediaPlayerResponse = await this.handleMediaPlayerRequest(normalized, userId, language, prompt);
+    const mediaPlayerResponse = await this.handleMediaPlayerRequest(normalized, userId, language, prompt, memory);
     if (mediaPlayerResponse) return mediaPlayerResponse;
 
     // --- 5. EXACT/STRONG FAST-PATH ---
@@ -4727,10 +4727,14 @@ export class AssistantConversationService {
     normalizedPrompt: string,
     userId: string,
     language: string,
-    originalPrompt: string
+    originalPrompt: string,
+    memory: AssistantMemoryState | null
   ): Promise<AssistantConversationResponse | null> {
     const devices = Array.from(await this.permissionGate.getAuthorizedDevices(userId));
-    const resolution = this.mediaPlayerResolver.resolve(normalizedPrompt, devices);
+    const contextualPlayer = memory?.lastQueryType === 'media_player_status' && memory.entities.length === 1
+      ? devices.find((device) => device.id === memory.entities[0].id && device.type?.toLowerCase() === 'media_player')
+      : undefined;
+    const resolution = this.mediaPlayerResolver.resolve(normalizedPrompt, devices, contextualPlayer);
 
     if (resolution.type === 'not_applicable') return null;
     if (resolution.type === 'no_players') {
@@ -4759,6 +4763,16 @@ export class AssistantConversationService {
       };
     }
     if (resolution.type === 'status') {
+      await this.memoryService.saveShortTermMemory(userId, {
+        lastQueryType: 'media_player_status',
+        entities: resolution.players.map((player) => ({
+          id: player.id,
+          name: player.name,
+          type: player.type,
+          roomId: player.roomId
+        })),
+        timestamp: new Date().toISOString()
+      });
       return {
         type: 'answer',
         message: this.formatMediaPlayerStatus(resolution.players, language)

@@ -32,6 +32,7 @@ Los reproductores importados deben operar como dispositivos locales de HomePilot
 - **REQ-06:** El asistente doméstico resuelve de forma determinista las consultas sobre reproducción, título, artista, estado y volumen de reproductores `media_player` autorizados.
 - **REQ-07:** El asistente acepta volumen exacto entre 0 y 100, así como incrementos y reducciones porcentuales contra el volumen sincronizado localmente; no inventa valores cuando esa lectura no existe.
 - **REQ-08:** Antes de controlar un reproductor, el asistente informa si está no disponible. Si está apagado y admite encendido, lo enciende antes de completar una orden compatible; ante fallo indica revisar alimentación y conexión.
+- **REQ-09:** Tras informar exactamente un reproductor autorizado, el asistente conserva ese contexto para interpretar de forma determinista referencias inmediatas de encendido como ‘enciéndelo’ o ‘quiero usarlo’; sin un único contexto no ejecuta una orden implícita.
 
 ## 5. Requisitos No Funcionales
 
