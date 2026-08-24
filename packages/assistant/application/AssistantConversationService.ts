@@ -26,6 +26,7 @@ import { AssistantMemoryPort, AssistantMemoryEntity, AssistantMemoryState } from
 import { FollowUpResolverPort, ResolvedFollowUp } from './ports/FollowUpResolverPort';
 import { AssistantPlannerV2ShadowService } from './AssistantPlannerV2ShadowService';
 import { AssistantFastPathResolver } from './AssistantFastPathResolver';
+import { AssistantMediaPlayerResolver } from './AssistantMediaPlayerResolver';
 import { JarvisResponseFormatter, type JarvisResponseStyle } from './response/JarvisResponseFormatter';
 import {
   applyAssistantResponsePreference,
@@ -162,7 +163,8 @@ export class AssistantConversationService {
     private readonly homeRepository?: HomeRepository,
     private readonly confirmationTicketRepository?: ConfirmationTicketRepository,
     domesticSkillResolver?: DomesticSkillResolver,
-    private readonly roomManagementService?: AssistantRoomManagementPort
+    private readonly roomManagementService?: AssistantRoomManagementPort,
+    private readonly mediaPlayerResolver: AssistantMediaPlayerResolver = new AssistantMediaPlayerResolver()
   ) {
     this.aliasManagementService = aliasManagementService ?? new AssistantAliasManagementService(memoryService, deviceRepository, roomRepository);
     this.permissionGate = new PermissionGate(deviceRepository, roomRepository, sceneRepository, automationRepository, homeRepository);
@@ -439,6 +441,9 @@ export class AssistantConversationService {
       const roomCoverResponse = await this.handleRoomCoverFastPath(userId, roomCover.command, roomCover.roomName, language, prompt, aliases, userName, request);
       if (roomCoverResponse) return roomCoverResponse;
     }
+
+    const mediaPlayerResponse = await this.handleMediaPlayerRequest(normalized, userId, language, prompt);
+    if (mediaPlayerResponse) return mediaPlayerResponse;
 
     // --- 5. EXACT/STRONG FAST-PATH ---
     const fastPathResponse = await this.attemptFastPathExecution(activePrompt, userId, language, userName);
@@ -4718,6 +4723,180 @@ export class AssistantConversationService {
     return null;
   }
 
+  private async handleMediaPlayerRequest(
+    normalizedPrompt: string,
+    userId: string,
+    language: string,
+    originalPrompt: string
+  ): Promise<AssistantConversationResponse | null> {
+    const devices = Array.from(await this.permissionGate.getAuthorizedDevices(userId));
+    const resolution = this.mediaPlayerResolver.resolve(normalizedPrompt, devices);
+
+    if (resolution.type === 'not_applicable') return null;
+    if (resolution.type === 'no_players') {
+      return { type: 'answer', message: getAssistantResponseText('media.no_players', language, {}) };
+    }
+    if (resolution.type === 'clarification') {
+      return {
+        type: 'clarification',
+        message: getAssistantResponseText('media.target_required', language, {}),
+        clarification: {
+          question: getAssistantResponseText('media.target_required_question', language, {}),
+          options: resolution.players.map((player) => ({ id: player.id, label: player.name, kind: 'device' }))
+        }
+      };
+    }
+    if (resolution.type === 'missing_volume_amount') {
+      return {
+        type: 'answer',
+        message: getAssistantResponseText('media.volume_amount_required', language, { deviceName: resolution.player.name })
+      };
+    }
+    if (resolution.type === 'invalid_volume') {
+      return {
+        type: 'answer',
+        message: getAssistantResponseText('media.volume_invalid', language, { deviceName: resolution.player.name })
+      };
+    }
+    if (resolution.type === 'status') {
+      return {
+        type: 'answer',
+        message: this.formatMediaPlayerStatus(resolution.players, language)
+      };
+    }
+
+    const { player, command, params } = resolution;
+    if (this.isMediaPlayerUnavailable(player)) {
+      return {
+        type: 'answer',
+        message: getAssistantResponseText('media.unavailable', language, { deviceName: player.name })
+      };
+    }
+    if (!this.scopeFilter.isControllableDevice(player, command, params)) {
+      return {
+        type: 'answer',
+        message: getAssistantResponseText('media.operation_not_supported', language, { deviceName: player.name, action: command })
+      };
+    }
+
+    const wasOff = this.isMediaPlayerOff(player);
+    if (wasOff && command !== 'turn_on') {
+      if (!this.scopeFilter.isControllableDevice(player, 'turn_on')) {
+        return {
+          type: 'answer',
+          message: getAssistantResponseText('media.turn_on_not_supported', language, { deviceName: player.name })
+        };
+      }
+
+      const powerResult = await this.executeAuthorizedCommand(
+        userId,
+        player.id,
+        'turn_on',
+        originalPrompt,
+        `media-power-${Date.now()}`,
+        undefined,
+        player
+      );
+      if (powerResult.status !== 'success') {
+        return {
+          type: 'error',
+          message: getAssistantResponseText('media.operation_failed', language, { deviceName: player.name })
+        };
+      }
+    }
+
+    const execution = await this.executeAuthorizedCommand(
+      userId,
+      player.id,
+      command,
+      originalPrompt,
+      `media-command-${Date.now()}`,
+      params,
+      player
+    );
+    if (execution.status !== 'success') {
+      return {
+        type: 'error',
+        message: getAssistantResponseText('media.operation_failed', language, { deviceName: player.name })
+      };
+    }
+
+    await this.clearPendingAction(userId);
+    await this.memoryService.saveShortTermMemory(userId, {
+      lastQueryType: 'command',
+      entities: [{ id: player.id, name: player.name, type: player.type, roomId: player.roomId }],
+      timestamp: new Date().toISOString()
+    });
+
+    return {
+      type: 'execution',
+      message: getAssistantResponseText('media.operation_completed', language, {
+        deviceName: player.name,
+        action: command,
+        volume: command === 'volume_set' && typeof params?.volume === 'number' ? params.volume : null,
+        poweredOn: wasOff
+      }),
+      execution
+    };
+  }
+
+  private formatMediaPlayerStatus(players: readonly Device[], language: string): string {
+    const formattedPlayers = players.map((player) => this.formatSingleMediaPlayerStatus(player, language));
+    if (formattedPlayers.length === 1) return formattedPlayers[0];
+    return getAssistantResponseText('media.status_list', language, { entries: formattedPlayers.map((entry) => `• ${entry}`).join('\n') });
+  }
+
+  private formatSingleMediaPlayerStatus(player: Device, language: string): string {
+    if (this.isMediaPlayerUnavailable(player)) {
+      return getAssistantResponseText('media.unavailable', language, { deviceName: player.name });
+    }
+    if (this.isMediaPlayerOff(player)) {
+      return getAssistantResponseText('media.off', language, { deviceName: player.name });
+    }
+
+    const state = this.asAssistantStateRecord(player.lastKnownState);
+    const attributes = this.asAssistantStateRecord(state.attributes);
+    const title = this.firstAssistantText(state.media_title, attributes.media_title, state.title, attributes.title);
+    const artist = this.firstAssistantText(state.media_artist, attributes.media_artist, state.media_album_artist, attributes.media_album_artist);
+    const volume = this.readMediaPlayerVolume(player);
+    const rawState = typeof state.state === 'string' ? state.state : '';
+
+    if (rawState === 'playing') {
+      return getAssistantResponseText('media.playing', language, { deviceName: player.name, title, artist, volume });
+    }
+    if (rawState === 'paused') {
+      return getAssistantResponseText('media.paused', language, { deviceName: player.name, title, artist, volume });
+    }
+    return getAssistantResponseText('media.idle', language, { deviceName: player.name, volume });
+  }
+
+  private isMediaPlayerUnavailable(player: Device): boolean {
+    return player.lastKnownState?.state === 'unavailable';
+  }
+
+  private isMediaPlayerOff(player: Device): boolean {
+    return player.lastKnownState?.state === 'off' || player.lastKnownState?.on === false;
+  }
+
+  private readMediaPlayerVolume(player: Device): number | null {
+    const state = this.asAssistantStateRecord(player.lastKnownState);
+    const attributes = this.asAssistantStateRecord(state.attributes);
+    const rawVolume = state.volume_level ?? attributes.volume_level;
+    return typeof rawVolume === 'number' && Number.isFinite(rawVolume)
+      ? Math.round(rawVolume * 100)
+      : null;
+  }
+
+  private asAssistantStateRecord(value: unknown): Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? value as Record<string, unknown>
+      : {};
+  }
+
+  private firstAssistantText(...values: unknown[]): string | null {
+    const value = values.find((candidate) => typeof candidate === 'string' && candidate.trim() !== '');
+    return typeof value === 'string' ? value.trim() : null;
+  }
   private async attemptFastPathExecution(activePrompt: string, userId: string, language: string, userName: string | null): Promise<AssistantConversationResponse | null> {
     const devices = await this.permissionGate.getAuthorizedDevices(userId);
     const result = this.fastPathResolver.resolve(activePrompt, Array.from(devices));

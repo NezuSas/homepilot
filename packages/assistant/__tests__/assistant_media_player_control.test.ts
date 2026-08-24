@@ -1,0 +1,153 @@
+import { AssistantConversationService } from '../application/AssistantConversationService';
+import {
+  createMockIntentInterpreterPort,
+  createMockAssistantSmallTalk,
+  createMockDeviceCommandDispatcher,
+  createMockSmartEntityResolver,
+  createMockAssistantMemory,
+  createMockAssistantLearningService,
+  createMockFollowUpResolver,
+  createMockAssistantConfirmationPolicy,
+  createMockAssistantSuggestionService,
+  createMockExecutionRecordRepository,
+  createMockDeviceRepository,
+  createMockRoomRepository,
+  createMockSceneRepository,
+  createMockAutomationRuleRepository,
+  createMockAssistantDraftService,
+  createTestDevice,
+  createMockSceneExecutionService,
+  createMockSystemVariableService,
+} from './test_helpers';
+
+describe('Assistant media-player control', () => {
+  let service: AssistantConversationService;
+  let deviceRepository: ReturnType<typeof createMockDeviceRepository>;
+  let sceneExecution: ReturnType<typeof createMockSceneExecutionService>;
+  let intentInterpreter: ReturnType<typeof createMockIntentInterpreterPort>;
+
+  beforeEach(() => {
+    deviceRepository = createMockDeviceRepository();
+    sceneExecution = createMockSceneExecutionService();
+    intentInterpreter = createMockIntentInterpreterPort();
+    service = new AssistantConversationService(
+      intentInterpreter,
+      createMockAssistantConfirmationPolicy(),
+      sceneExecution,
+      createMockDeviceCommandDispatcher(),
+      deviceRepository,
+      createMockRoomRepository(),
+      createMockSceneRepository(),
+      createMockAssistantSmallTalk(),
+      createMockAssistantMemory(),
+      createMockFollowUpResolver(),
+      createMockAssistantDraftService(),
+      createMockAutomationRuleRepository(),
+      createMockAssistantLearningService(),
+      createMockSmartEntityResolver(),
+      createMockAssistantSuggestionService(),
+      createMockExecutionRecordRepository(),
+      createMockSystemVariableService(),
+    );
+  });
+
+  it('reports the current title, artist and volume of an authorized player without invoking intent interpretation', async () => {
+    deviceRepository.findAll.mockResolvedValue([
+      createTestDevice({
+        id: 'speaker',
+        name: 'Z.Tech Speaker',
+        type: 'media_player',
+        lastKnownState: {
+          state: 'playing',
+          volume_level: 0.42,
+          media_title: 'Midnight City',
+          media_artist: 'M83',
+        },
+      }),
+    ]);
+
+    const response = await service.converse({ prompt: 'qué está reproduciendo Z Tech Speaker', userId: 'u1' }, 'es');
+
+    expect(response.type).toBe('answer');
+    expect(response.message).toContain('Midnight City');
+    expect(response.message).toContain('M83');
+    expect(response.message).toContain('42%');
+    expect(intentInterpreter.interpret).not.toHaveBeenCalled();
+  });
+
+  it('explains when the requested player is unavailable instead of attempting an unsafe command', async () => {
+    deviceRepository.findAll.mockResolvedValue([
+      createTestDevice({ id: 'speaker', name: 'Z.Tech Speaker', type: 'media_player', lastKnownState: { state: 'unavailable' } }),
+    ]);
+
+    const response = await service.converse({ prompt: 'pon el volumen de Z Tech Speaker a 40%', userId: 'u1' }, 'es');
+
+    expect(response.type).toBe('answer');
+    expect(response.message).toContain('no está disponible');
+    expect(sceneExecution.execute).not.toHaveBeenCalled();
+  });
+
+  it('sets an exact requested volume using the existing device command contract', async () => {
+    const speaker = createTestDevice({ id: 'speaker', name: 'Z.Tech Speaker', type: 'media_player', lastKnownState: { state: 'playing', volume_level: 0.2 } });
+    deviceRepository.findAll.mockResolvedValue([speaker]);
+    deviceRepository.findDeviceById.mockResolvedValue(speaker);
+
+    const response = await service.converse({ prompt: 'pon el volumen de Z Tech Speaker a 45%', userId: 'u1' }, 'es');
+
+    expect(response.type).toBe('execution');
+    expect(response.message).toContain('45%');
+    expect(sceneExecution.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ actions: [{ deviceId: 'speaker', command: { name: 'volume_set', params: { volume: 45 } } }] }),
+      expect.anything(),
+    );
+  });
+
+  it('adjusts volume by the requested percentage from the synchronized local state', async () => {
+    const speaker = createTestDevice({ id: 'speaker', name: 'Z.Tech Speaker', type: 'media_player', lastKnownState: { state: 'playing', volume_level: 0.55 } });
+    deviceRepository.findAll.mockResolvedValue([speaker]);
+    deviceRepository.findDeviceById.mockResolvedValue(speaker);
+
+    const response = await service.converse({ prompt: 'sube el volumen de Z Tech Speaker en 10%', userId: 'u1' }, 'es');
+
+    expect(response.type).toBe('execution');
+    expect(response.message).toContain('65%');
+    expect(sceneExecution.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ actions: [{ deviceId: 'speaker', command: { name: 'volume_set', params: { volume: 65 } } }] }),
+      expect.anything(),
+    );
+  });
+
+  it('turns on an off player before applying a supported media command', async () => {
+    const speaker = createTestDevice({ id: 'speaker', name: 'Z.Tech Speaker', type: 'media_player', lastKnownState: { state: 'off', on: false, volume_level: 0.2 } });
+    deviceRepository.findAll.mockResolvedValue([speaker]);
+    deviceRepository.findDeviceById.mockResolvedValue(speaker);
+
+    const response = await service.converse({ prompt: 'sube el volumen de Z Tech Speaker en 10%', userId: 'u1' }, 'es');
+
+    expect(response.type).toBe('execution');
+    expect(response.message).toContain('Encendí Z.Tech Speaker');
+    expect(sceneExecution.execute).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ actions: [{ deviceId: 'speaker', command: { name: 'turn_on', params: {} } }] }),
+      expect.anything(),
+    );
+    expect(sceneExecution.execute).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ actions: [{ deviceId: 'speaker', command: { name: 'volume_set', params: { volume: 30 } } }] }),
+      expect.anything(),
+    );
+  });
+
+  it('asks for the player when a volume command is ambiguous', async () => {
+    deviceRepository.findAll.mockResolvedValue([
+      createTestDevice({ id: 'office', name: 'Pantalla Oficina', type: 'media_player' }),
+      createTestDevice({ id: 'speaker', name: 'Z.Tech Speaker', type: 'media_player' }),
+    ]);
+
+    const response = await service.converse({ prompt: 'sube el volumen en 10%', userId: 'u1' }, 'es');
+
+    expect(response.type).toBe('clarification');
+    expect(response.clarification?.options.map((option) => option.label)).toEqual(['Pantalla Oficina', 'Z.Tech Speaker']);
+    expect(sceneExecution.execute).not.toHaveBeenCalled();
+  });
+});

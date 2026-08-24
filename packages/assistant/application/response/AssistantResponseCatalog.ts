@@ -98,6 +98,21 @@ export type AssistantResponseCatalogParameters = {
   'state.device_query_on': { deviceName: string; isOn: boolean };
   'state.device_query_off': { deviceName: string; isOff: boolean };
   'state.device_status': { deviceName: string; isOn: boolean };
+  'media.no_players': Record<never, never>;
+  'media.target_required': Record<never, never>;
+  'media.target_required_question': Record<never, never>;
+  'media.volume_amount_required': { deviceName: string };
+  'media.volume_invalid': { deviceName: string };
+  'media.unavailable': { deviceName: string };
+  'media.off': { deviceName: string };
+  'media.playing': { deviceName: string; title: string | null; artist: string | null; volume: number | null };
+  'media.paused': { deviceName: string; title: string | null; artist: string | null; volume: number | null };
+  'media.idle': { deviceName: string; volume: number | null };
+  'media.status_list': { entries: string };
+  'media.operation_not_supported': { deviceName: string; action: string };
+  'media.turn_on_not_supported': { deviceName: string };
+  'media.operation_failed': { deviceName: string };
+  'media.operation_completed': { deviceName: string; action: string; volume: number | null; poweredOn: boolean };
   'sensor.reading': { name: string; value: string; unit: string };
   'sensor.unavailable': { name: string };
   'sensor.not_found': Record<never, never>;
@@ -515,6 +530,76 @@ const responseCatalog: AssistantResponseCatalog = {
   'state.device_status': {
     es: ({ deviceName, isOn }) => isOn ? `${deviceName} está encendido.` : `${deviceName} está apagado.`,
     en: ({ deviceName, isOn }) => isOn ? `${deviceName} is on.` : `${deviceName} is off.`,
+  },
+  'media.no_players': {
+    es: () => 'No encontré reproductores de audio importados en esta casa.',
+    en: () => 'I could not find imported audio players in this home.',
+  },
+  'media.target_required': {
+    es: () => 'Encontré varios reproductores de audio. Indícame cuál quieres usar.',
+    en: () => 'I found several audio players. Tell me which one you want to use.',
+  },
+  'media.target_required_question': {
+    es: () => '¿Qué reproductor quieres usar?',
+    en: () => 'Which player would you like to use?',
+  },
+  'media.volume_amount_required': {
+    es: ({ deviceName }) => `Indícame cuánto deseas ajustar el volumen de ${deviceName}, por ejemplo: “sube el volumen en 10%”.`,
+    en: ({ deviceName }) => `Tell me how much to adjust ${deviceName}, for example: “increase the volume by 10%”.`,
+  },
+  'media.volume_invalid': {
+    es: ({ deviceName }) => `El volumen de ${deviceName} debe estar entre 0% y 100%.`,
+    en: ({ deviceName }) => `${deviceName}'s volume must be between 0% and 100%.`,
+  },
+  'media.unavailable': {
+    es: ({ deviceName }) => `${deviceName} no está disponible ahora. Revisa que esté encendido y conectado.`,
+    en: ({ deviceName }) => `${deviceName} is unavailable right now. Check that it is powered on and connected.`,
+  },
+  'media.off': {
+    es: ({ deviceName }) => `${deviceName} está apagado. Puedo encenderlo cuando quieras usarlo.`,
+    en: ({ deviceName }) => `${deviceName} is off. I can turn it on when you want to use it.`,
+  },
+  'media.playing': {
+    es: ({ deviceName, title, artist, volume }) => `${deviceName} está reproduciendo${title ? ` “${title}”` : ' contenido sin título disponible'}${artist ? ` de ${artist}` : ''}${volume === null ? '' : `, al ${volume}% de volumen`}.`,
+    en: ({ deviceName, title, artist, volume }) => `${deviceName} is playing${title ? ` “${title}”` : ' content with no title available'}${artist ? ` by ${artist}` : ''}${volume === null ? '' : ` at ${volume}% volume`}.`,
+  },
+  'media.paused': {
+    es: ({ deviceName, title, artist, volume }) => `${deviceName} está en pausa${title ? ` con “${title}”` : ''}${artist ? ` de ${artist}` : ''}${volume === null ? '' : `, al ${volume}% de volumen`}.`,
+    en: ({ deviceName, title, artist, volume }) => `${deviceName} is paused${title ? ` on “${title}”` : ''}${artist ? ` by ${artist}` : ''}${volume === null ? '' : ` at ${volume}% volume`}.`,
+  },
+  'media.idle': {
+    es: ({ deviceName, volume }) => `${deviceName} está encendido, pero no está reproduciendo nada${volume === null ? '' : ` y tiene el volumen al ${volume}%`}.`,
+    en: ({ deviceName, volume }) => `${deviceName} is on but is not playing anything${volume === null ? '' : ` and its volume is at ${volume}%`}.`,
+  },
+  'media.status_list': {
+    es: ({ entries }) => `Así están tus reproductores:\n${entries}`,
+    en: ({ entries }) => `Here is the status of your players:\n${entries}`,
+  },
+  'media.operation_not_supported': {
+    es: ({ deviceName }) => `${deviceName} no permite esa operación desde HomePilot.`,
+    en: ({ deviceName }) => `${deviceName} does not support that operation from HomePilot.`,
+  },
+  'media.turn_on_not_supported': {
+    es: ({ deviceName }) => `${deviceName} está apagado y no admite encendido desde HomePilot.`,
+    en: ({ deviceName }) => `${deviceName} is off and does not support being turned on from HomePilot.`,
+  },
+  'media.operation_failed': {
+    es: ({ deviceName }) => `No pude completar la operación en ${deviceName}. Revisa que siga encendido y conectado.`,
+    en: ({ deviceName }) => `I could not complete the operation on ${deviceName}. Check that it remains powered on and connected.`,
+  },
+  'media.operation_completed': {
+    es: ({ deviceName, action, volume, poweredOn }) => {
+      const prefix = poweredOn ? `Encendí ${deviceName} y ` : '';
+      if (action === 'volume_set') return `${prefix}dejé el volumen de ${deviceName} al ${volume}%.`;
+      const actionText = ({ media_play: 'reanude la reproducción en', media_pause: 'puse en pausa', media_previous_track: 'volví a la pista anterior en', media_next_track: 'pasé a la siguiente pista en' } as Record<string, string>)[action] || 'controlé';
+      return `${prefix}${actionText} ${deviceName}.`;
+    },
+    en: ({ deviceName, action, volume, poweredOn }) => {
+      const prefix = poweredOn ? `I turned on ${deviceName} and ` : '';
+      if (action === 'volume_set') return `${prefix}set ${deviceName}'s volume to ${volume}%.`;
+      const actionText = ({ media_play: 'resumed playback on', media_pause: 'paused', media_previous_track: 'went to the previous track on', media_next_track: 'went to the next track on' } as Record<string, string>)[action] || 'controlled';
+      return `${prefix}${actionText} ${deviceName}.`;
+    },
   },
   'sensor.reading': {
     es: ({ name, value, unit }) => 'La lectura de ' + name + ' es ' + value + unit + '.',

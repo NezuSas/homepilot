@@ -5,6 +5,8 @@
 - [x] Modelo importado de media player y controles por capacidad.
 - [x] Tarjeta responsive con portada mediante proxy protegido y fallback.
 - [x] Actualización de estado en tiempo real para dashboard y dispositivos.
+- [x] Asistente determinista para consultas de reproducción y control de volumen exacto o relativo en reproductores autorizados.
+- [x] Manejo explícito de reproductor apagado, no disponible, operación no soportada y fallo de ejecución.
 
 ## Verificación obligatoria ante cambios
 
