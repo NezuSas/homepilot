@@ -17,7 +17,7 @@ export class MediaRoutes implements RouteHandler {
         await fs.access(physicalPath);
         const ext = path.extname(physicalPath).toLowerCase();
         const mimeTypes: Record<string, string> = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
-        res.writeHead(200, { 'Content-Type': mimeTypes[ext] ?? 'application/octet-stream', 'Cache-Control': 'public, max-age=86400' });
+        res.writeHead(200, { 'Content-Type': mimeTypes[ext] ?? 'application/octet-stream', 'Cache-Control': 'private, max-age=86400, stale-while-revalidate=604800' });
         createReadStream(physicalPath).pipe(res);
         return true;
       } catch (error: unknown) {

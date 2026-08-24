@@ -33,3 +33,4 @@
 - [x] AC30: Added four bundled HomePilot backgrounds with localized, accessible selection in view configuration. Bundled assets resolve from the console origin while custom uploaded backgrounds retain their API-hosted path.
 - [x] AC30: Balanced light and dark dashboard veils so both themes preserve the selected image rather than replacing it with an opaque theme-colored surface; theme-specific overlays now only protect operational contrast.
 - [x] AC31: Removed the standalone Room and Scene card types from the section-card catalog and legacy normalization; scenes and routines remain available through the Action button. Light catalog previews now show an active lighting state and resolve their localized size label correctly.
+- [x] AC32: Added cache policies for versioned bundles, named console visual assets, and private local media. Home imagery is decoded asynchronously and critical above-the-fold imagery receives high fetch priority.

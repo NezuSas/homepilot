@@ -86,7 +86,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
       setScenes([]);
       setAutomations([]);
     }
-  }, [canManageAutomations, refreshFindings, refreshSnapshot]);
+  }, [canManageAutomations, homeId, refreshFindings, refreshSnapshot]);
 
   useEffect(() => {
     void fetchData();
@@ -181,6 +181,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
           src="/home-dashboard-ambient.png"
           alt=""
           aria-hidden="true"
+          decoding="async"
+          fetchPriority="high"
         />
         <div className="homepilot-home-hero-overlay" aria-hidden="true" />
         <div className="relative z-10 min-w-0">

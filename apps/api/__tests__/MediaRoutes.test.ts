@@ -54,7 +54,7 @@ describe('Feature: media route contract', () => {
 
       expect(response.writeHead).toHaveBeenCalledWith(200, {
         'Content-Type': 'image/png',
-        'Cache-Control': 'public, max-age=86400',
+        'Cache-Control': 'private, max-age=86400, stale-while-revalidate=604800',
       });
       expect(Buffer.concat(payload).toString()).toBe('png-payload');
     } finally {
@@ -77,7 +77,7 @@ describe('Feature: media route contract', () => {
 
       expect(response.writeHead).toHaveBeenCalledWith(200, {
         'Content-Type': 'application/octet-stream',
-        'Cache-Control': 'public, max-age=86400',
+        'Cache-Control': 'private, max-age=86400, stale-while-revalidate=604800',
       });
     } finally {
       fs.rmSync(tempDirectory, { recursive: true, force: true });

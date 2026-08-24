@@ -82,6 +82,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - [x] AC28: Light and action-card previews use the same semantic surfaces as the live cards in light and dark themes. The dashboard navigation control remains reachable at the 1080×1920 portrait-kiosk breakpoint after the sidebar drawer is closed.
 - [x] AC29: Action cards list and execute compatible local buttons, scenes, and routines. Their preview uses an opaque left-aligned action rail, while the editor relies on measured card height rather than a manual height control so mixed card layouts retain a consistent gap.
 - [x] AC30: The background settings offer four bundled HomePilot backgrounds that are selectable without upload, persist as local dashboard values, and resolve from the operator-console origin in both light and dark themes. Custom uploaded backgrounds retain their existing API-hosted resolution path.
+- [x] AC32: Static visual assets use URL-appropriate browser caching: fingerprinted bundles are immutable, named HomePilot visual assets are revalidated in the background, and locally stored user media remains private while replacement URLs are cache-busted.
 
 ## 7. Notas Técnicas y Arquitectura
 

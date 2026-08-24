@@ -291,7 +291,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
                             : 'border-border/65 hover:border-primary/60',
                         ].join(' ')}
                       >
-                        <img src={preset.src} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
+                        <img src={preset.src} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" decoding="async" />
                         <span className="absolute inset-x-0 bottom-0 bg-background/78 px-2 py-1 text-left text-nano font-semibold text-foreground backdrop-blur-sm">
                           {t(preset.labelKey)}
                         </span>
