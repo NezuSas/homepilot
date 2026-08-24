@@ -92,6 +92,9 @@ export class AssistantMediaPlayerResolver {
     | { kind: 'volume_relative'; delta: number }
     | { kind: 'command'; command: DeviceCommandV1; volume?: number }
     | null {
+    if (/\b(que|cuales|cual)\b.*\b(reproductores?|dispositivos?)\b.*\b(audio|musica)\b|\b(reproductores?|dispositivos?)\b.*\b(audio|musica)\b.*\b(disponibles?|tengo|hay)\b/.test(prompt)) {
+      return { kind: 'status' };
+    }
     if (/(que|cual).*(reproduciendo|sonando|suena)|what.*playing|what is playing/.test(prompt)) {
       return { kind: 'status' };
     }

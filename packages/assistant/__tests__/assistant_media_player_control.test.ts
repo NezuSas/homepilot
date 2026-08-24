@@ -75,6 +75,22 @@ describe('Assistant media-player control', () => {
     expect(intentInterpreter.interpret).not.toHaveBeenCalled();
   });
 
+  it.each([
+    'que reproductores de audio tengo disponibles',
+    '¿Qué reproductores de audio tengo disponibles?',
+  ])('lists authorized audio players for "$prompt"', async (prompt) => {
+    deviceRepository.findAll.mockResolvedValue([
+      createTestDevice({ id: 'office', name: 'Pantalla Oficina', type: 'media_player', lastKnownState: { state: 'idle' } }),
+      createTestDevice({ id: 'speaker', name: 'Z.Tech Speaker', type: 'media_player', lastKnownState: { state: 'playing', volume_level: 0.4 } }),
+    ]);
+
+    const response = await service.converse({ prompt, userId: 'u1' }, 'es');
+
+    expect(response.type).toBe('answer');
+    expect(response.message).toContain('Pantalla Oficina');
+    expect(response.message).toContain('Z.Tech Speaker');
+    expect(intentInterpreter.interpret).not.toHaveBeenCalled();
+  });
   it('explains when the requested player is unavailable instead of attempting an unsafe command', async () => {
     deviceRepository.findAll.mockResolvedValue([
       createTestDevice({ id: 'speaker', name: 'Z.Tech Speaker', type: 'media_player', lastKnownState: { state: 'unavailable' } }),
