@@ -179,19 +179,19 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
       )}
       footerClassName="justify-between px-5 py-4 sm:px-6"
     >
-        <nav className="shrink-0 border-b border-border/60 px-5 py-3">
+        <nav className="shrink-0 border-b border-border/60 px-3 py-3 sm:px-5">
           <SegmentedControl
             value={activeTab}
             options={tabs.map(({ id, label, icon }) => ({ value: id, label, icon }))}
             onChange={setActiveTab}
             label={t('dashboards.view_config.title', { title: tab.title })}
-            layout="scroll"
+            layout="wrap"
             className="w-full"
-            optionClassName="min-h-9 px-2 text-nano sm:min-h-10 sm:text-micro"
+            optionClassName="min-h-11 px-3 text-nano max-sm:[&>span]:sr-only sm:min-h-10 sm:px-2 sm:text-micro"
           />
         </nav>
 
-        <div className="p-5 sm:p-6">
+        <div className="min-w-0 p-3 sm:p-6">
           {activeTab === 'settings' && (
             <div className="space-y-5">
               <Input
@@ -239,19 +239,19 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
 
           {activeTab === 'background' && (
             <div className="space-y-5">
-              <div className="rounded-xl bg-muted/35 p-4 text-center">
+              <div className="min-w-0 rounded-xl bg-muted/35 p-3 text-center sm:p-4">
                 {backgroundImg ? (
                   <img
                     src={backgroundPreviewSource ?? backgroundImg}
                     alt="Background Preview"
-                    className="mx-auto aspect-video max-w-md rounded-lg object-cover border border-border/40 shadow-inner"
+                    className="mx-auto aspect-video w-full max-w-md rounded-lg border border-border/40 object-cover shadow-inner"
                   />
                 ) : (
-                  <div className="mx-auto aspect-video max-w-md rounded-lg bg-gradient-to-br from-muted via-card to-primary/10 opacity-70 border-2 border-dashed border-border/60 flex items-center justify-center text-muted-foreground/45 text-caption font-semibold">
+                  <div className="mx-auto flex aspect-video w-full max-w-md items-center justify-center rounded-lg border-2 border-dashed border-border/60 bg-gradient-to-br from-muted via-card to-primary/10 text-caption font-semibold text-muted-foreground/45 opacity-70">
                     {t('dashboards.view_config.no_image')}
                   </div>
                 )}
-                <div className="mt-4 flex items-center justify-center gap-3">
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
                   <Button size="sm" onClick={() => fileRef.current?.click()}>
                     {t('dashboards.view_config.upload_image')}
                   </Button>

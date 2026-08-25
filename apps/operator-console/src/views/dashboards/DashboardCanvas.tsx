@@ -298,8 +298,9 @@ export function DashboardCanvas({
             : "border-transparent bg-transparent p-0"
         )}
         style={{
-          // auto-fit + minmax(350px, 1fr): a section never shrinks below
-          // 350px (never collapses to a sliver), but — critically — has
+          // auto-fit + minmax(min(100%, 350px), 1fr): a section uses its 350px
+          // readable basis where space permits, but never exceeds the mobile
+          // canvas width after padding is included. Critically, the track has
           // NO max-width on the track itself, so with few sections on a
           // wide monitor the 1fr share stretches each one edge to edge
           // instead of leaving blank margins on the sides. Wraps to a new
@@ -310,7 +311,7 @@ export function DashboardCanvas({
           // title/add-section placeholders, and a mismatched count forces
           // CSS to add an extra implicit column, which overflows the
           // viewport instead of wrapping.
-          gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))',
           gridAutoRows: `${CANVAS_ROW_UNIT}px`,
           gridAutoFlow: 'row',
           alignItems: 'start',

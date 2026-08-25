@@ -50,6 +50,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - **NFR-11:** En edición, el lienzo ocupa como mínimo el área visible restante del viewport, incluso cuando una pestaña todavía no contiene widgets.
 - **NFR-12:** El reordenamiento de zonas funciona mediante puntero y teclado desde el control de arrastre. Si una interacción se cancela, el estado visual transitorio se limpia sin alterar el orden persistido.
 - **NFR-13:** Los kioscos verticales de alta resolución usan como máximo dos columnas en el canvas para conservar controles legibles a distancia, sin modificar los breakpoints de móvil, tablet o escritorio.
+- **NFR-14:** En teléfonos, el canvas no excede su ancho disponible y las secciones presentan dos columnas internas; desde el breakpoint sm conservan las cuatro columnas de escritorio.`r`n- **NFR-14:** En teléfonos, el canvas no excede su ancho disponible y las secciones presentan dos columnas internas; desde el breakpoint `sm` conservan las cuatro columnas de escritorio.
 
 ## 6. Criterios de Aceptación
 
@@ -85,6 +86,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - [x] AC30: The background settings offer four bundled HomePilot backgrounds that are selectable without upload, persist as local dashboard values, and resolve from the operator-console origin in both light and dark themes. Custom uploaded backgrounds retain their existing API-hosted resolution path.
 - [x] AC32: Static visual assets use URL-appropriate browser caching: fingerprinted bundles are immutable, named HomePilot visual assets are revalidated in the background, and locally stored user media remains private while replacement URLs are cache-busted.
 - [x] AC33: La pestaña activa conserva su borde completo al hover; la tarjeta multimedia y el encabezado solo muestran acciones de desborde durante edición. El encabezado ofrece lápiz centrado y menú Editar/Eliminar con confirmación antes de borrarse.
+- [x] AC34: A 320px el canvas y el modal de configuración no generan desborde horizontal; las pestañas del modal usan iconos accesibles y las tarjetas de sección conservan un ancho táctil de dos columnas.`r`n- [x] AC34: A 320px el canvas y el modal de configuración no generan desborde horizontal; las pestañas del modal usan iconos accesibles y las tarjetas de sección conservan un ancho táctil de dos columnas.
 
 ## 7. Notas Técnicas y Arquitectura
 

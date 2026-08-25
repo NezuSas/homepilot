@@ -734,6 +734,7 @@ function useMasonryRowSpans() {
 const COMPACT_CARD_SPAN_ORDER: SectionCardSpan[] = ['small', 'medium', 'full'];
 const STANDARD_CARD_SPAN_ORDER: SectionCardSpan[] = ['medium', 'full'];
 const CARD_RESIZE_STEP_PX = 64;
+const DESKTOP_SECTION_COLUMNS = 4;
 
 function CardResizeHandle({
   span,
@@ -1058,13 +1059,6 @@ function SectionCardItem({
 
 export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProps) {
   const { t } = useTranslation();
-
-  // Every section uses a strict 4-column inner grid (Home Assistant
-  // Sections style), regardless of the section's own outer canvas width —
-  // a section is capped at ~500px (see the root container below), so a
-  // wider section just means more sections fit side by side, not a wider
-  // internal grid.
-  const innerColumns = 4;
 
   const catalogLabel = (kind: SectionCardKind) => t(getCatalogLabelKey(kind));
 
@@ -1582,7 +1576,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                         {item.span === 'full'
                           ? t('dashboard.editor.sections.card_size_full')
                           : t(`dashboard.editor.sections.card_size_${item.span}`, {
-                            count: item.span === 'small' ? innerColumns : Math.max(1, Math.floor(innerColumns / 2)),
+                            count: item.span === 'small' ? DESKTOP_SECTION_COLUMNS : Math.max(1, Math.floor(DESKTOP_SECTION_COLUMNS / 2)),
                           })}
                       </span>
                     </div>
@@ -1695,9 +1689,9 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
                 ? [{ value: 'full', label: t('dashboard.editor.sections.card_size_full') }]
                 : [
                   ...(canUseCompactSpan(cardDraft.kind)
-                    ? [{ value: 'small', label: t('dashboard.editor.sections.card_size_small', { count: innerColumns }) }]
+                    ? [{ value: 'small', label: t('dashboard.editor.sections.card_size_small', { count: DESKTOP_SECTION_COLUMNS }) }]
                     : []),
-                  { value: 'medium', label: t('dashboard.editor.sections.card_size_medium', { count: Math.max(1, Math.floor(innerColumns / 2)) }) },
+                  { value: 'medium', label: t('dashboard.editor.sections.card_size_medium', { count: Math.max(1, Math.floor(DESKTOP_SECTION_COLUMNS / 2)) }) },
                   { value: 'full', label: t('dashboard.editor.sections.card_size_full') },
                 ]}
               onChange={(value) => setCardDraft((draft) => ({
@@ -1851,12 +1845,12 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     <div
       onClick={(event) => event.stopPropagation()}
       className={cn(
-        "grid min-h-0 min-w-0 flex-1 content-start items-start gap-2 overflow-visible pr-1",
+        "grid min-h-0 min-w-0 flex-1 grid-cols-2 content-start items-start gap-2 overflow-visible pr-1 sm:grid-cols-4",
         isEditing
           ? "auto-rows-auto grid-flow-row"
           : "auto-rows-[minmax(20px,auto)] grid-flow-row-dense"
       )}
-      style={{ gridTemplateColumns: `repeat(${innerColumns}, minmax(0, 1fr))` }}
+
     >
       <DndContext sensors={cardDragSensors} onDragEnd={handleCardDragEnd}>
         <SortableContext items={cards.map((card) => card.id)} strategy={rectSortingStrategy}>

@@ -26,7 +26,7 @@ describe('Feature: catálogo de tarjetas de sección', () => {
   it('Scenario: Given tarjetas configurables When se calcula su layout Then conserva tamaños y bindings compatibles', () => {
     expect(getDefaultSpan('light')).toBe('medium');
     expect(getDefaultSpan('camera')).toBe('full');
-    expect(getSpanClass('medium')).toBe('col-span-2');
+    expect(getSpanClass('medium')).toBe('col-span-1 sm:col-span-2');
     expect(isBindableKind('clock_digital')).toBe(false);
     expect(getWidgetType('action')).toBe('action_button');
     expect(isBindableKind('action')).toBe(true);

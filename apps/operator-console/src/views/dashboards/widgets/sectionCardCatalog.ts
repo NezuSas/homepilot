@@ -331,15 +331,14 @@ export function normalizeCards(extra?: DashboardWidgetConfig['extra']): Normaliz
   });
 }
 
-// The section grid is a strict 2-column grid (Home Assistant Sections
-// style): a card is either half-width (one column) or full-width (both
-// columns) — never a breakpoint-dependent in-between.
+// A section uses two columns on phones and four from the small breakpoint.
+// The named spans preserve desktop density while keeping touch-sized cards.
 export function getSpanClass(span: SectionCardSpan) {
   switch (span) {
     case 'full':
       return 'col-span-full';
     case 'medium':
-      return 'col-span-2';
+      return 'col-span-1 sm:col-span-2';
     case 'small':
     default:
       return 'col-span-1';
