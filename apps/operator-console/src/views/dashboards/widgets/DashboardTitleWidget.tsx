@@ -37,6 +37,7 @@ interface DashboardTitleWidgetProps {
   isSelected?: boolean;
   /** Monotonic request from the card chrome to reopen the title editor. */
   editRequest?: number;
+  onEditorOpenChange?: (isOpen: boolean) => void;
   onUpdate?: (config: Partial<DashboardWidgetConfig>) => void;
   /** Other tabs of this dashboard, so a badge can jump straight to one of them. */
   tabs?: DashboardTitleTabRef[];
@@ -214,7 +215,7 @@ function TitleBadgeRow({
   );
 }
 
-export function DashboardTitleWidget({ config, isEditing, isSelected = false, editRequest = 0, onUpdate, tabs = [], currentTabId, onSelectTab }: DashboardTitleWidgetProps) {
+export function DashboardTitleWidget({ config, isEditing, isSelected = false, editRequest = 0, onEditorOpenChange, onUpdate, tabs = [], currentTabId, onSelectTab }: DashboardTitleWidgetProps) {
   const { t } = useTranslation();
   const [isEditorOpen, setIsEditorOpen] = useState(false);
 
@@ -284,6 +285,10 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, ed
   useEffect(() => {
     if (isEditing && editRequest > 0) setIsEditorOpen(true);
   }, [editRequest, isEditing]);
+
+  useEffect(() => {
+    onEditorOpenChange?.(isEditorOpen);
+  }, [isEditorOpen, onEditorOpenChange]);
 
   const alignmentClass = align === 'left'
     ? 'items-start text-left'

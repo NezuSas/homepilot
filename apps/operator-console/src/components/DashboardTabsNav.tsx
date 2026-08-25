@@ -93,7 +93,7 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
                   className={cn(
                     "h-14 min-w-20 justify-center gap-2 rounded-none border px-3 text-caption font-semibold sm:min-w-28",
                     isActive
-                      ? "border-primary bg-primary/10 text-primary hover:border-primary"
+                      ? "relative border-primary bg-primary/10 text-primary hover:border-primary before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:z-10 before:h-px before:bg-primary"
                       : "border-transparent text-muted-foreground hover:bg-muted/35 hover:text-foreground"
                   )}
                 >

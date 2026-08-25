@@ -51,7 +51,7 @@ interface DashboardWidgetNodeProps {
 }
 
 /** Pure content renderer: no DnD hooks, safe to use inside DragOverlay. */
-export function WidgetContent({ widget, isEditing, isSelected = false, onClick, onConfigChange, titleBadgeTabs, currentTabId, onSelectTab, titleEditorRequest }: { widget: DashboardWidget; isEditing: boolean; isSelected?: boolean; onClick: () => void; onConfigChange?: (id: string, config: Partial<DashboardWidgetConfig>) => void; titleBadgeTabs?: Array<{ id: string; title: string; icon?: string }>; currentTabId?: string; onSelectTab?: (tabId: string) => void; titleEditorRequest?: number }) {
+export function WidgetContent({ widget, isEditing, isSelected = false, onClick, onConfigChange, titleBadgeTabs, currentTabId, onSelectTab, titleEditorRequest, onTitleEditorOpenChange }: { widget: DashboardWidget; isEditing: boolean; isSelected?: boolean; onClick: () => void; onConfigChange?: (id: string, config: Partial<DashboardWidgetConfig>) => void; titleBadgeTabs?: Array<{ id: string; title: string; icon?: string }>; currentTabId?: string; onSelectTab?: (tabId: string) => void; titleEditorRequest?: number; onTitleEditorOpenChange?: (isOpen: boolean) => void }) {
   const { t } = useTranslation();
 
   switch (widget.type) {
@@ -81,6 +81,7 @@ export function WidgetContent({ widget, isEditing, isSelected = false, onClick, 
           isEditing={isEditing}
           isSelected={isSelected}
           editRequest={titleEditorRequest}
+          onEditorOpenChange={onTitleEditorOpenChange}
           onUpdate={(config) => onConfigChange?.(widget.id, config)}
           tabs={titleBadgeTabs}
           currentTabId={currentTabId}
@@ -184,6 +185,7 @@ export function DashboardWidgetNode({
   const [sectionDraftTitle, setSectionDraftTitle] = useState('');
   const [sectionDraftSpan, setSectionDraftSpan] = useState(1);
   const [titleEditorRequest, setTitleEditorRequest] = useState(0);
+  const [isTitleEditorOpen, setIsTitleEditorOpen] = useState(false);
   const [isTitleMenuOpen, setIsTitleMenuOpen] = useState(false);
   const [titleMenuPosition, setTitleMenuPosition] = useState<{ top: number; right: number } | null>(null);
 
@@ -193,6 +195,7 @@ export function DashboardWidgetNode({
   const isDevice = (widget.type === 'device_control' || widget.type === 'action_button') && !isCamera;
   const isSection = widget.type === 'section'; const isTitleWidget = widget.type === 'dashboard_title';
   const openTitleEditor = () => {
+    setIsTitleEditorOpen(true);
     onClick();
     setTitleEditorRequest((request) => request + 1);
   };
@@ -250,6 +253,7 @@ export function DashboardWidgetNode({
           currentTabId={currentTabId}
           onSelectTab={onSelectTab}
           titleEditorRequest={titleEditorRequest}
+          onTitleEditorOpenChange={setIsTitleEditorOpen}
         />
       </div>
       {isSection ? (
@@ -315,7 +319,7 @@ export function DashboardWidgetNode({
           </div>
         </Modal>
       ) : null}
-      {isEditing && !isOverlay && isTitleWidget && (
+      {isEditing && !isOverlay && isTitleWidget && !isTitleEditorOpen && (
         <>
           <div
             aria-hidden="true"
