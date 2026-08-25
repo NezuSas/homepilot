@@ -591,7 +591,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                 </div>
               </div>
 
-              {device.externalId.startsWith('ha:') && (
+              {(device.externalId.startsWith('ha:') || device.integrationSource === 'sonoff') && (
                 <div className="rounded-panel border border-danger/20 bg-danger/5 p-6">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">

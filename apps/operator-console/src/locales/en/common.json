@@ -749,9 +749,9 @@
       "device_count": "{{count}} Units"
     },
     "inspector": {
-      "remove_import_title": "Remove local import",
-      "remove_import_description": "Removes this device from HomePilot without deleting it from Home Assistant. You can import it again later.",
-      "remove_import_confirm": "Remove {{name}} from the local inventory? This does not affect the physical device or Home Assistant.",
+      "remove_import_title": "Remove local device",
+      "remove_import_description": "Removes this device from HomePilot inventory. It does not affect the physical device or the integration that discovered it.",
+      "remove_import_confirm": "Remove {{name}} from the local inventory? It may appear again if its integration discovers it.",
       "delete_failed": "The device could not be removed. It may still be used by a scene or automation.",
       "title": "Technical Inspector",
       "no_logs": "No logs recorded",

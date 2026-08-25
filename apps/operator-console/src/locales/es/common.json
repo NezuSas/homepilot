@@ -749,9 +749,9 @@
     "edge_mode_active": "Modo Edge Activo",
     "edge_hint": "Capacidades de control local activadas. Independencia de red activa.",
     "inspector": {
-      "remove_import_title": "Eliminar importación local",
-      "remove_import_description": "Quita este dispositivo de HomePilot sin eliminarlo de Home Assistant. Podrás importarlo nuevamente.",
-      "remove_import_confirm": "¿Eliminar {{name}} del inventario local? Esta acción no afecta al dispositivo físico ni a Home Assistant.",
+      "remove_import_title": "Eliminar dispositivo local",
+      "remove_import_description": "Quita este dispositivo del inventario de HomePilot. No afecta al dispositivo físico ni a la integración que lo detectó.",
+      "remove_import_confirm": "¿Eliminar {{name}} del inventario local? Podrá aparecer nuevamente si su integración lo detecta.",
       "delete_failed": "No se pudo eliminar el dispositivo. Puede estar en uso por una escena o automatización.",
       "title": "Inspector Técnico",
       "no_logs": "No hay registros grabados",

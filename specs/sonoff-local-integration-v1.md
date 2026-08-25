@@ -23,6 +23,7 @@ Los dispositivos Sonoff compatibles deben descubrirse y controlarse localmente m
 - **REQ-01:** Un dispositivo detectado conserva identificador de integración estable para evitar duplicados.
 - **REQ-02:** Solo se exponen comandos soportados por capacidades normalizadas.
 - **REQ-03:** El estado local se sincroniza y se propaga como cualquier dispositivo HomePilot.
+- **REQ-04:** Un Sonoff pendiente puede retirarse del inventario local desde el inspector, sin alterar el equipo físico ni su integración de descubrimiento.
 
 ## 5. Requisitos No Funcionales
 
@@ -34,12 +35,13 @@ Los dispositivos Sonoff compatibles deben descubrirse y controlarse localmente m
 - [x] AC1: Una entidad Sonoff se puede descubrir e importar sin duplicarla.
 - [x] AC2: Un comando soportado actualiza el estado HomePilot visible.
 - [x] AC3: Un comando no soportado se rechaza antes de despacharse.
+- [x] AC4: Un Sonoff pendiente muestra la acción de eliminación local con confirmación; al eliminarse no se modifica el equipo físico y puede volver a descubrirse.
 
 ## 7. Notas Técnicas y Arquitectura
 
 - Implementación en `SonoffLanDiscoveryService` y `SonoffDeviceDriver`, registrado en `buildCommandRouter` como única vía de despacho Sonoff.
 - Los diagnósticos LAN se emiten mediante `logRuntimeDiagnostic`, conservando los mensajes operativos en runtime y suprimiendo el ruido durante pruebas automatizadas.
-- Sigue los contratos de `packages/devices`; no crea un flujo especial en la consola.
+- Sigue los contratos de `packages/devices`; el inspector reutiliza la eliminación local genérica y su confirmación.
 
 ## 8. Preguntas Abiertas y TODOs
 
