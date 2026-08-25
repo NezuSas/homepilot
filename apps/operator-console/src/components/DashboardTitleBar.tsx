@@ -85,7 +85,7 @@ export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
     ) : (
       <div className="group flex min-w-0 flex-1 items-center gap-2">
         <h3 className="truncate text-section-title font-semibold tracking-tight text-foreground sm:text-panel-title">{title}</h3>
-        <IconButton icon={PenLine} label={editLabel} onClick={onStartEditingTitle} variant="ghost" size="sm" className="rounded-full" />
+        <IconButton icon={PenLine} label={editLabel} onClick={onStartEditingTitle} variant="ghost" size="sm" className="hidden rounded-full sm:inline-flex" />
       </div>
     )}
     <div className="flex shrink-0 items-center gap-2">
@@ -100,21 +100,34 @@ export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
           event.target.value = '';
         }}
       />
-      <IconButton icon={Download} label={exportLabel} onClick={onExport} variant="ghost" size="md" className="rounded-full" disabled={isTransferring} />
-      <IconButton icon={Upload} label={importLabel} onClick={() => importInputRef.current?.click()} variant="ghost" size="md" className="rounded-full" disabled={isTransferring} />
+    <div className="flex shrink-0 items-center gap-2 sm:hidden">
       <IconButton icon={History} label={historyLabel} onClick={onOpenHistory} variant="ghost" size="md" className="rounded-full" disabled={isTransferring} />
+      <details className="relative">
+        <summary aria-label={moreLabel} className="grid h-10 w-10 cursor-pointer place-items-center rounded-full text-muted-foreground hover:bg-muted/50 hover:text-foreground [&::-webkit-details-marker]:hidden"><MoreVertical className="h-5 w-5" /></summary>
+        <div role="menu" className="absolute right-0 top-full z-30 mt-2 min-w-44 rounded-panel border border-border/70 bg-card p-1.5 shadow-depth-3">
+          <Button role="menuitem" variant="ghost" size="sm" onClick={onExport} className="w-full justify-start" disabled={isTransferring}><Download className="h-4 w-4" />{exportLabel}</Button>
+          <Button role="menuitem" variant="ghost" size="sm" onClick={() => importInputRef.current?.click()} className="w-full justify-start" disabled={isTransferring}><Upload className="h-4 w-4" />{importLabel}</Button>
+          <Button role="menuitem" variant="ghost" size="sm" onClick={onCreate} className="w-full justify-start"><Plus className="h-4 w-4" />{newLabel}</Button>
+          <Button role="menuitem" variant="ghost" size="sm" onClick={onToggleEditing} className="w-full justify-start"><PenLine className="h-4 w-4" />{editLabel}</Button>
+          <Button role="menuitem" variant="ghost" size="sm" onClick={onDelete} className="w-full justify-start text-danger hover:bg-danger/10 hover:text-danger"><Trash2 className="h-4 w-4" />{deleteLabel}</Button>
+        </div>
+      </details>
+      {isEditingDashboard ? <Button type="button" onClick={onToggleEditing} variant="primary" size="sm" className="hidden rounded-full sm:inline-flex">{doneLabel}</Button> : null}
+    </div>      <IconButton icon={Download} label={exportLabel} onClick={onExport} variant="ghost" size="md" className="hidden rounded-full sm:inline-flex" disabled={isTransferring} />
+      <IconButton icon={Upload} label={importLabel} onClick={() => importInputRef.current?.click()} variant="ghost" size="md" className="hidden rounded-full sm:inline-flex" disabled={isTransferring} />
+      <IconButton icon={History} label={historyLabel} onClick={onOpenHistory} variant="ghost" size="md" className="hidden rounded-full sm:inline-flex" disabled={isTransferring} />
       {isEditingDashboard ? (
         <>
-          <IconButton icon={Plus} label={newLabel} onClick={onCreate} variant="ghost" size="md" className="rounded-full" />
-          <IconButton icon={HelpCircle} label={helpLabel} variant="ghost" size="md" className="rounded-full" />
-          <IconButton icon={MoreVertical} label={moreLabel} variant="ghost" size="md" className="rounded-full" />
-          <Button type="button" onClick={onToggleEditing} variant="primary" size="sm" className="rounded-full">{doneLabel}</Button>
+          <IconButton icon={Plus} label={newLabel} onClick={onCreate} variant="ghost" size="md" className="hidden rounded-full sm:inline-flex" />
+          <IconButton icon={HelpCircle} label={helpLabel} variant="ghost" size="md" className="hidden rounded-full sm:inline-flex" />
+          <IconButton icon={MoreVertical} label={moreLabel} variant="ghost" size="md" className="hidden rounded-full sm:inline-flex" />
+          <Button type="button" onClick={onToggleEditing} variant="primary" size="sm" className="hidden rounded-full sm:inline-flex">{doneLabel}</Button>
         </>
       ) : (
         <>
-          <IconButton icon={PenLine} label={editLabel} onClick={onToggleEditing} variant="ghost" size="md" className="rounded-full" />
-          <IconButton icon={Plus} label={newLabel} onClick={onCreate} variant="ghost" size="md" className="rounded-full" />
-          <IconButton icon={Trash2} label={deleteLabel} onClick={onDelete} variant="danger" size="md" className="rounded-full" />
+          <IconButton icon={PenLine} label={editLabel} onClick={onToggleEditing} variant="ghost" size="md" className="hidden rounded-full sm:inline-flex" />
+          <IconButton icon={Plus} label={newLabel} onClick={onCreate} variant="ghost" size="md" className="hidden rounded-full sm:inline-flex" />
+          <IconButton icon={Trash2} label={deleteLabel} onClick={onDelete} variant="danger" size="md" className="hidden rounded-full sm:inline-flex" />
         </>
       )}
     </div>
