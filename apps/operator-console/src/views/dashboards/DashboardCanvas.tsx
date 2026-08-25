@@ -277,6 +277,10 @@ export function DashboardCanvas({
   };
 
 
+  const pendingDeleteWidget = pendingDeleteWidgetId
+    ? widgets.find((widget) => widget.id === pendingDeleteWidgetId) ?? null
+    : null;
+
   return (
     <DndContext
       sensors={sensors}
@@ -322,6 +326,7 @@ export function DashboardCanvas({
               isSelected={isEditing && selectedWidgetId === titleWidget.id}
               onClick={() => { if (isEditing) onWidgetClick(titleWidget.id); }}
               onConfigChange={onWidgetConfigChange}
+              onDelete={setPendingDeleteWidgetId}
               titleBadgeTabs={tabs}
               currentTabId={currentTabId}
               onSelectTab={onSelectTab}
@@ -388,8 +393,8 @@ export function DashboardCanvas({
             }
             setPendingDeleteWidgetId(null);
           }}
-          title={t('common.delete')}
-          description={t('dashboards.delete_tab_confirm')}
+          title={t(pendingDeleteWidget?.type === 'dashboard_title' ? 'dashboards.delete_title_title' : 'common.delete')}
+          description={t(pendingDeleteWidget?.type === 'dashboard_title' ? 'dashboards.delete_title_description' : 'dashboards.delete_tab_confirm')}
           confirmText={t('common.delete')}
           cancelText={t('common.cancel')}
           variant="danger"

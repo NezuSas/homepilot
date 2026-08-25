@@ -619,8 +619,6 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
                 onStartAddingTab={isOwner ? () => setAddingTab(true) : undefined}
                 onAddTab={handleAddTab}
                 onCancelAddingTab={() => setAddingTab(false)}
-                onToggleEditing={isOwner ? () => setIsEditing(!isEditing) : undefined}
-                editLabel={t('dashboards.action_edit')}
                 />
               </div>
 

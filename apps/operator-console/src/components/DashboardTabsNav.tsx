@@ -21,8 +21,6 @@ interface DashboardTabsNavProps {
   onStartAddingTab?: () => void;
   onAddTab: (title: string) => void;
   onCancelAddingTab: () => void;
-  onToggleEditing?: () => void;
-  editLabel?: string;
 }
 
 export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
@@ -38,9 +36,7 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
   onConfigureTab,
   onStartAddingTab,
   onAddTab,
-  onCancelAddingTab,
-  onToggleEditing,
-  editLabel
+  onCancelAddingTab
 }) => {
   const { t } = useTranslation();
   // Load the complete MDI catalog only when a tab needs a custom icon outside
@@ -95,9 +91,9 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
                   variant="ghost"
                   size="md"
                   className={cn(
-                    "h-14 min-w-20 justify-center gap-2 rounded-none border-b-2 px-3 text-caption font-semibold sm:min-w-28",
+                    "h-14 min-w-20 justify-center gap-2 rounded-none border px-3 text-caption font-semibold sm:min-w-28",
                     isActive
-                      ? "border-primary bg-primary/10 text-primary"
+                      ? "border-primary bg-primary/10 text-primary hover:border-primary"
                       : "border-transparent text-muted-foreground hover:bg-muted/35 hover:text-foreground"
                   )}
                 >
@@ -138,13 +134,6 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
           </Button>
         )}
         
-        {/* Fill available space to push the edit button to the right */}
-        <div className="flex-1" />
-
-        {/* Edit Button (HA Style) when not editing */}
-        {!isEditing && onToggleEditing && (
-          <IconButton icon={Pencil} label={editLabel ?? addLabel} onClick={onToggleEditing} variant="ghost" size="md" className="ml-auto mr-1 rounded-full" />
-        )}
       </div>
     </div>
   );

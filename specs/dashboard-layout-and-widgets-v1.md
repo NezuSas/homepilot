@@ -33,6 +33,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - **REQ-07:** Las variables de identidad del título se resuelven exclusivamente desde el contexto autenticado de HomePilot.
 - **REQ-08:** El propietario puede exportar un tablero como un archivo versionado e importar una copia en su propia cuenta, sin sobrescribir tableros existentes.
 - **REQ-09:** Cada actualización de tablero crea una revisión local recuperable por su propietario; la restauración debe crear otra revisión del estado actual antes de aplicar la elegida.
+- **REQ-10:** En modo edición, el encabezado de una vista usa los mismos affordances que una tarjeta: lápiz centrado al hover/foco y menú contextual con editar y eliminar; fuera de edición no expone esos controles.
 
 ## 5. Requisitos No Funcionales
 
@@ -83,6 +84,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - [x] AC29: Action cards list and execute compatible local buttons, scenes, and routines. Their preview uses an opaque left-aligned action rail, while the editor relies on measured card height rather than a manual height control so mixed card layouts retain a consistent gap.
 - [x] AC30: The background settings offer four bundled HomePilot backgrounds that are selectable without upload, persist as local dashboard values, and resolve from the operator-console origin in both light and dark themes. Custom uploaded backgrounds retain their existing API-hosted resolution path.
 - [x] AC32: Static visual assets use URL-appropriate browser caching: fingerprinted bundles are immutable, named HomePilot visual assets are revalidated in the background, and locally stored user media remains private while replacement URLs are cache-busted.
+- [x] AC33: La pestaña activa conserva su borde completo al hover; la tarjeta multimedia y el encabezado solo muestran acciones de desborde durante edición. El encabezado ofrece lápiz centrado y menú Editar/Eliminar con confirmación antes de borrarse.
 
 ## 7. Notas Técnicas y Arquitectura
 

@@ -411,6 +411,7 @@ function CardPreview({
         isProcessing={isMediaProcessing}
         onCommand={onMediaCommand}
         compact={isSmall}
+        isEditing={isEditorPreview}
       />
     );
   }

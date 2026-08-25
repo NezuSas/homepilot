@@ -21,6 +21,7 @@ interface MediaPlayerCardProps {
   isProcessing?: boolean;
   onCommand?: (command: MediaPlayerCommand, params?: Record<string, unknown>) => void;
   compact?: boolean;
+  isEditing?: boolean;
 }
 interface MediaArtworkSession {
   readonly artworkPath: string | null;
@@ -48,7 +49,7 @@ function absoluteApiUrl(path: string): string {
   return `${API_BASE_URL.replace(/\/$/, '')}${path}`;
 }
 
-export function MediaPlayerCard({ device, title, isPreview = false, isProcessing = false, onCommand, compact = false }: MediaPlayerCardProps) {
+export function MediaPlayerCard({ device, title, isPreview = false, isProcessing = false, onCommand, compact = false, isEditing = false }: MediaPlayerCardProps) {
   const { t } = useTranslation();
   const [artworkPath, setArtworkPath] = useState<string | null>(null);
   const [playbackClock, setPlaybackClock] = useState(() => Date.now());
@@ -186,7 +187,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
             <span className="truncate">{title}</span>
           </span>
         </div>
-        {!compact && <MoreVertical className="h-4 w-4 shrink-0 text-foreground/75" aria-hidden="true" />}
+        {isEditing && !compact && <MoreVertical className="h-4 w-4 shrink-0 text-foreground/75" aria-hidden="true" />}
       </div>
 
       <div className={cn('relative min-w-0', compact ? 'mt-2 px-3' : 'mt-3 px-4')}>

@@ -1,11 +1,13 @@
 import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core';
 import { useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '../../lib/utils';
 import type { DashboardWidget, DashboardWidgetConfig } from './types';
 import { useTranslation } from 'react-i18next';
 import {
   Maximize2,
   Pencil,
+  MoreVertical,
   GripVertical,
   Trash2
 } from 'lucide-react';
@@ -49,7 +51,7 @@ interface DashboardWidgetNodeProps {
 }
 
 /** Pure content renderer: no DnD hooks, safe to use inside DragOverlay. */
-export function WidgetContent({ widget, isEditing, isSelected = false, onClick, onConfigChange, titleBadgeTabs, currentTabId, onSelectTab }: { widget: DashboardWidget; isEditing: boolean; isSelected?: boolean; onClick: () => void; onConfigChange?: (id: string, config: Partial<DashboardWidgetConfig>) => void; titleBadgeTabs?: Array<{ id: string; title: string; icon?: string }>; currentTabId?: string; onSelectTab?: (tabId: string) => void }) {
+export function WidgetContent({ widget, isEditing, isSelected = false, onClick, onConfigChange, titleBadgeTabs, currentTabId, onSelectTab, titleEditorRequest }: { widget: DashboardWidget; isEditing: boolean; isSelected?: boolean; onClick: () => void; onConfigChange?: (id: string, config: Partial<DashboardWidgetConfig>) => void; titleBadgeTabs?: Array<{ id: string; title: string; icon?: string }>; currentTabId?: string; onSelectTab?: (tabId: string) => void; titleEditorRequest?: number }) {
   const { t } = useTranslation();
 
   switch (widget.type) {
@@ -78,6 +80,7 @@ export function WidgetContent({ widget, isEditing, isSelected = false, onClick, 
           config={widget.config}
           isEditing={isEditing}
           isSelected={isSelected}
+          editRequest={titleEditorRequest}
           onUpdate={(config) => onConfigChange?.(widget.id, config)}
           tabs={titleBadgeTabs}
           currentTabId={currentTabId}
@@ -180,12 +183,20 @@ export function DashboardWidgetNode({
   const [isSectionEditorOpen, setIsSectionEditorOpen] = useState(false);
   const [sectionDraftTitle, setSectionDraftTitle] = useState('');
   const [sectionDraftSpan, setSectionDraftSpan] = useState(1);
+  const [titleEditorRequest, setTitleEditorRequest] = useState(0);
+  const [isTitleMenuOpen, setIsTitleMenuOpen] = useState(false);
+  const [titleMenuPosition, setTitleMenuPosition] = useState<{ top: number; right: number } | null>(null);
 
   const devices = useDeviceSnapshotStore(state => state.devices);
   const boundDevice = devices.find(d => d.id === widget.config.binding.entityId);
   const isCamera = widget.type === 'device_control' && (boundDevice?.type === 'camera' || boundDevice?.semanticType === 'camera');
   const isDevice = (widget.type === 'device_control' || widget.type === 'action_button') && !isCamera;
   const isSection = widget.type === 'section'; const isTitleWidget = widget.type === 'dashboard_title';
+  const openTitleEditor = () => {
+    onClick();
+    setTitleEditorRequest((request) => request + 1);
+  };
+
 
   const accentColor = widget.config.appearance?.accentColor;
   const accentStyle = accentColor
@@ -238,9 +249,9 @@ export function DashboardWidgetNode({
           titleBadgeTabs={titleBadgeTabs}
           currentTabId={currentTabId}
           onSelectTab={onSelectTab}
+          titleEditorRequest={titleEditorRequest}
         />
       </div>
-
       {isSection ? (
         <Modal
           isOpen={isSectionEditorOpen}
@@ -304,8 +315,89 @@ export function DashboardWidgetNode({
           </div>
         </Modal>
       ) : null}
+      {isEditing && !isOverlay && isTitleWidget && (
+        <>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-20 rounded-section bg-background/45 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
+          />
+          <div className="pointer-events-none absolute inset-0 z-30 grid place-items-center opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
+            <IconButton
+              icon={Pencil}
+              label={t('common.edit')}
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                openTitleEditor();
+              }}
+              variant="default"
+              size="md"
+              className="pointer-events-auto rounded-full bg-background/95 shadow-lg backdrop-blur-md hover:text-primary"
+            />
+          </div>
+          <div className="pointer-events-none absolute right-2 top-2 z-30 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
+            <IconButton
+              icon={MoreVertical}
+              label={t('dashboard.editor.sections.card_actions')}
+              aria-haspopup="menu"
+              aria-expanded={isTitleMenuOpen}
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                const rect = event.currentTarget.getBoundingClientRect();
+                setTitleMenuPosition({ top: rect.bottom + 8, right: Math.max(8, window.innerWidth - rect.right) });
+                setIsTitleMenuOpen((isOpen) => !isOpen);
+              }}
+              variant="default"
+              size="md"
+              className="rounded-full bg-background/95 shadow-lg backdrop-blur-md hover:text-primary"
+            />
+          </div>
+          {isTitleMenuOpen && titleMenuPosition && createPortal(
+            <>
+              <div className="fixed inset-0 z-40" aria-hidden="true" onPointerDown={() => setIsTitleMenuOpen(false)} />
+              <div
+                role="menu"
+                aria-label={t('dashboard.editor.sections.card_actions')}
+                style={titleMenuPosition}
+                onPointerDown={(event) => event.stopPropagation()}
+                className="fixed z-50 min-w-36 rounded-panel border border-border/70 bg-card p-1.5 shadow-depth-3"
+              >
+                <Button
+                  role="menuitem"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setIsTitleMenuOpen(false);
+                    openTitleEditor();
+                  }}
+                  className="w-full justify-start font-semibold"
+                >
+                  <Pencil className="h-4 w-4" aria-hidden="true" />
+                  {t('common.edit')}
+                </Button>
+                <div role="separator" className="my-1 border-t border-border/65" />
+                <Button
+                  role="menuitem"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setIsTitleMenuOpen(false);
+                    onDelete?.(widget.id);
+                  }}
+                  className="w-full justify-start font-semibold text-danger hover:bg-danger/10 hover:text-danger"
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                  {t('common.delete')}
+                </Button>
+              </div>
+            </>,
+            document.body,
+          )}
+        </>
+      )}
       {/* Edit Mode Controls */}
-      {isEditing && !isOverlay && (
+      {isEditing && !isOverlay && !isTitleWidget && (
         <>
           {/* A selected section exposes only its direct manipulation tools. */}
           <div className={cn("pointer-events-auto absolute z-30 flex items-center", isSection ? "-top-5 right-3" : "right-2 top-2")}>
