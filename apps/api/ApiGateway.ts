@@ -21,6 +21,7 @@ const BRIDGED_EVENT_TYPES = [
   'DeviceCommandDispatchedEvent',
   'DeviceCommandFailedEvent',
   'DeviceStateUpdatedEvent',
+  'HomeAssistantStateUpdatedEvent',
 ] as const;
 
 /**

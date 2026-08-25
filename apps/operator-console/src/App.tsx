@@ -389,6 +389,7 @@ function App() {
       'DeviceDiscoveredEvent',
       'DeviceCommandDispatchedEvent',
       'DeviceStateUpdatedEvent',
+      'HomeAssistantStateUpdatedEvent',
       'HomeCreatedEvent',
       'RoomCreatedEvent',
       'DeviceAssignedToRoomEvent'

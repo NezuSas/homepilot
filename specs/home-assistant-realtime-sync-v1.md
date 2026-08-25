@@ -45,7 +45,8 @@ Cuando se recibe `type: "event", event_type: "state_changed"`:
 5. Si SÍ existe, inyectar el payload:
    - Preservar compatibilidad: setear `lastKnownState.state = new_state.state` (Como String genérico, no parseamos boolean estricto) e incluir `new_state.attributes`.
    - Alterar `device.updatedAt`.
-   - Propagar `ActivityLog`.
+   - Propagar ActivityLog.
+   - Publicar HomeAssistantStateUpdatedEvent al EventBus de HomePilot para que las consolas abiertas refresquen el snapshot compartido, sin reutilizar el evento de automatización system_event.
 
 ### 3.4. Rastreabilidad Exacta en SettingsService
 Los indicadores vitales en el Configuration Manager se enriquecerán en exactitud, modificando flag y `lastCheckedAt` en cada latido:
@@ -59,7 +60,8 @@ Los indicadores vitales en el Configuration Manager se enriquecerán en exactitu
 
 - AC3: `apps/api/__tests__/DeviceRoutes.refresh.test.ts` verifica estado, atributos y `current_position` de un `cover`.
 - AC4: la misma suite verifica `404 HA_ENTITY_NOT_FOUND` sin degradar la conectividad global.
-- AC5: `packages/integrations/home-assistant/__tests__/HomeAssistantWebSocketClient.test.ts` verifica el cierre forzado durante `CONNECTING` y que el error nativo queda manejado.
+- AC5: packages/integrations/home-assistant/__tests__/HomeAssistantWebSocketClient.test.ts verifica el cierre forzado durante CONNECTING y que el error nativo queda manejado.
+- AC6: __tests__/buildHomeAssistantModule.test.ts verifica que un cambio de estado recibido desde Home Assistant publica HomeAssistantStateUpdatedEvent para la actualización en tiempo real de la consola.
 - El bridge autenticado se validó en Docker Desktop el 2026-08-11 mediante login real y discovery resumen.
 
 ## 4. Pruebas y Validación Específicas

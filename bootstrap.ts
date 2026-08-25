@@ -180,7 +180,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     settingsRepository: repos.settingsRepository,
     deviceRepository: repos.deviceRepository,
     activityLogRepository: repos.activityLogRepository,
-    homeRepository: repos.homeRepository
+    homeRepository: repos.homeRepository,
+    eventBus,
   });
 
 

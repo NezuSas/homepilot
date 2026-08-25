@@ -15,6 +15,7 @@ import type { SQLiteSettingsRepository } from '../../packages/integrations/home-
 import type { SQLiteDeviceRepository } from '../../packages/devices/infrastructure/repositories/SQLiteDeviceRepository';
 import type { SQLiteActivityLogRepository } from '../../packages/devices/infrastructure/repositories/SQLiteActivityLogRepository';
 import type { SQLiteHomeRepository } from '../../packages/topology/infrastructure/repositories/SQLiteHomeRepository';
+import type { EventBus } from '../../packages/shared/domain/events/EventBus';
 
 export interface HomeAssistantAssembly {
   connectionProvider: HomeAssistantConnectionProvider;
@@ -29,10 +30,11 @@ export interface HomeAssistantModuleDeps {
   deviceRepository: SQLiteDeviceRepository;
   activityLogRepository: SQLiteActivityLogRepository;
   homeRepository: SQLiteHomeRepository;
+  eventBus: EventBus;
 }
 
 export async function buildHomeAssistantModule(deps: HomeAssistantModuleDeps): Promise<HomeAssistantAssembly> {
-  const { settingsRepository, deviceRepository, activityLogRepository, homeRepository } = deps;
+  const { settingsRepository, deviceRepository, activityLogRepository, homeRepository, eventBus } = deps;
 
   const connectionProvider = new HomeAssistantConnectionProvider(new HomeAssistantHttpClientFactory());
 
@@ -91,6 +93,21 @@ export async function buildHomeAssistantModule(deps: HomeAssistantModuleDeps): P
     haClientProxy
   );
   settingsService.setRealtimeSyncManager(syncManager);
+  syncManager.on('device_state_updated', (event) => {
+    void eventBus.publish({
+      eventId: event.eventId,
+      eventType: 'HomeAssistantStateUpdatedEvent',
+      schemaVersion: '1.0',
+      source: 'integration:home-assistant',
+      timestamp: event.occurredAt,
+      correlationId: event.eventId,
+      payload: {
+        deviceId: event.deviceId,
+        externalId: event.externalId,
+        newState: event.newState,
+      },
+    });
+  });
 
   // Carga inicial: DB → env fallback → sin configuración
   const dbSettings = await settingsRepository.getSettings();

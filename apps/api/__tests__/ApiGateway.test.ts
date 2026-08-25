@@ -175,7 +175,7 @@ describe('ApiGateway HTTP transport contracts', () => {
     await gateway.stop();
 
     expect(firstUnsubscribe).toHaveBeenCalledTimes(1);
-    expect(secondUnsubscribe).toHaveBeenCalledTimes(6);
+    expect(secondUnsubscribe).toHaveBeenCalledTimes(7);
     expect(closableClient.close).toHaveBeenCalledTimes(1);
     expect(failingClient.terminate).toHaveBeenCalledTimes(1);
   });

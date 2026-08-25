@@ -22,6 +22,7 @@ describe('buildHomeAssistantModule', () => {
     deviceRepository: {},
     activityLogRepository: {},
     homeRepository: {},
+    eventBus: { publish: jest.fn(), subscribe: jest.fn() },
   });
 
   it('builds a safe no-configuration proxy that returns deterministic fallbacks', async () => {
@@ -53,5 +54,29 @@ describe('buildHomeAssistantModule', () => {
     expect(assembled.connectionProvider.hasClient()).toBe(true);
     expect(reconnect).toHaveBeenCalledWith(saved.baseUrl, saved.accessToken);
     reconnect.mockRestore();
+  });
+  it('publishes Home Assistant state changes for realtime console refreshes', async () => {
+    process.env.NODE_ENV = 'coverage';
+    const eventBus = { publish: jest.fn().mockResolvedValue(undefined), subscribe: jest.fn() };
+    const assembled = await buildHomeAssistantModule({
+      ...deps(),
+      eventBus,
+    } as never);
+
+    assembled.syncManager.emit('device_state_updated', {
+      eventId: 'ha-event-1',
+      occurredAt: '2026-08-25T12:00:00.000Z',
+      deviceId: 'device-1',
+      externalId: 'ha:media_player.smart_tv',
+      newState: { state: 'playing', attributes: { media_title: 'Song' } },
+      source: 'home_assistant',
+    });
+
+    await new Promise<void>((resolve) => setImmediate(resolve));
+
+    expect(eventBus.publish).toHaveBeenCalledWith(expect.objectContaining({
+      eventType: 'HomeAssistantStateUpdatedEvent',
+      payload: expect.objectContaining({ deviceId: 'device-1' }),
+    }));
   });
 });

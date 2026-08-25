@@ -334,6 +334,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
           }
         };
 
+        this.emit('device_state_updated', systemEvent);
         this.emit('system_event', systemEvent);
 
         await this.activityLogRepository.saveActivity({
