@@ -156,8 +156,31 @@ export class HomeAssistantDeviceDriver implements DeviceDriver {
         console.debug(`[HomeAssistantDeviceDriver] callService ${domain}.${service} took ${Date.now() - t_ha}ms`);
       }
 
-      // Cálculo de estado optimista
-      const newState = this.calculateOptimisticState(device, dispatchedCommand, dispatchedParams);
+      // Los reproductores exponen metadatos dinámicos (título, artista,
+      // volumen y artwork) exclusivamente en los atributos de HA. Leerlos
+      // tras el comando evita que el snapshot optimista los descarte.
+      let stateForOptimisticUpdate = device;
+      if (haDomain === 'media_player') {
+        try {
+          const refreshedState = await this.connectionProvider.getClient().getEntityState(entityId);
+          if (refreshedState) {
+            stateForOptimisticUpdate = {
+              ...device,
+              lastKnownState: {
+                ...device.lastKnownState,
+                state: refreshedState.state,
+                attributes: refreshedState.attributes,
+              },
+            };
+          }
+        } catch {
+          // El comando ya fue aceptado por HA. Conservamos el estado
+          // optimista si la lectura posterior no está disponible.
+        }
+      }
+
+      // Cálculo de estado optimista sobre el snapshot más reciente.
+      const newState = this.calculateOptimisticState(stateForOptimisticUpdate, dispatchedCommand, dispatchedParams);
 
       return {
         success: true,

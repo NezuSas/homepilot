@@ -9,6 +9,7 @@
 - [x] Manejo explícito de reproductor apagado, no disponible, operación no soportada y fallo de ejecución.
 - [x] Seguimiento contextual de un único reproductor recién consultado para encendido explícito.
 - [x] Variantes naturales de consulta y control de audio, con filtrado por estancia y respuesta explícita para estancias sin reproductores importados.
+- [x] La importación y los comandos de reproductores conservan los atributos multimedia obtenidos de Home Assistant.
 
 ## Verificación obligatoria ante cambios
 

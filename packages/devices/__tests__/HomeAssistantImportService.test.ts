@@ -97,6 +97,33 @@ describe('Feature: Home Assistant device import', () => {
     expect(mockDeviceRepo.saveDevice).toHaveBeenCalledWith(device);
   });
 
+  it('preserves media metadata provided by Home Assistant when importing a media player', async () => {
+    mockHAClient.getEntityState.mockResolvedValue({
+      entity_id: 'media_player.youtube',
+      state: 'playing',
+      attributes: {
+        friendly_name: 'Reproductor Youtube',
+        media_title: 'Video actual',
+        media_artist: 'Canal',
+        volume_level: 0.5,
+        entity_picture: 'https://example.invalid/cover.jpg',
+      },
+      last_changed: '2026-01-01T00:00:00Z',
+      last_updated: '2026-01-01T00:00:00Z',
+    });
+
+    const device = await service.importDevice('media_player.youtube', 'user-1');
+
+    expect(device.lastKnownState).toMatchObject({
+      state: 'playing',
+      attributes: {
+        media_title: 'Video actual',
+        media_artist: 'Canal',
+        volume_level: 0.5,
+        entity_picture: 'https://example.invalid/cover.jpg',
+      },
+    });
+  });
   it('HA entity switch.sonoff_x imports as type switch and semanticType undefined (not light)', async () => {
     mockHAClient.getEntityState.mockResolvedValue({
       entity_id: 'switch.sonoff_x',

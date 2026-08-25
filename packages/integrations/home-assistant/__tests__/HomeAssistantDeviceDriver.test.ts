@@ -261,6 +261,37 @@ describe('HomeAssistantDeviceDriver', () => {
     expect(result.error).toContain('número entre 0 y 100');
   });
 
+  it('preserves refreshed media attributes after a media command', async () => {
+    mockClient.getEntityState = jest.fn().mockResolvedValue({
+      entity_id: 'media_player.z_tech_speaker',
+      state: 'paused',
+      attributes: {
+        media_title: 'Video actual',
+        media_artist: 'Canal',
+        volume_level: 0.5,
+        entity_picture: '/api/media_player_proxy/media_player.z_tech_speaker',
+      },
+    });
+    const mediaPlayer = {
+      ...mockDevice,
+      externalId: 'ha:media_player.z_tech_speaker',
+      type: 'media_player',
+      lastKnownState: { state: 'playing' },
+    };
+
+    const result = await driver.executeCommand(mediaPlayer, { name: 'media_pause' }, { userId: 'u1', correlationId: 'c1' });
+
+    expect(mockClient.getEntityState).toHaveBeenCalledWith('media_player.z_tech_speaker');
+    expect(result.newState).toMatchObject({
+      state: 'paused',
+      attributes: {
+        media_title: 'Video actual',
+        media_artist: 'Canal',
+        volume_level: 0.5,
+        entity_picture: '/api/media_player_proxy/media_player.z_tech_speaker',
+      },
+    });
+  });
   it('should return error if connection is not configured', async () => {
     mockConnectionProvider.hasClient.mockReturnValue(false);
     const result = await driver.executeCommand(mockDevice, { name: 'turn_on' }, { userId: 'u1', correlationId: 'c1' });

@@ -29,7 +29,7 @@ Los reproductores importados deben operar como dispositivos locales de HomePilot
 - **REQ-02:** Una acción no disponible no se presenta como control interactivo.
 - **REQ-03:** El proxy de artwork debe validar token, dispositivo y vencimiento antes de solicitar recursos remotos.
 - **REQ-04:** Ante falta de imagen o error del proxy, la tarjeta conserva información y muestra fallback visual sin romper el layout.
-- **REQ-05:** El estado actualizado se propaga a tablero y gestor de dispositivos.
+- **REQ-05:** El estado actualizado se propaga a tablero y gestor de dispositivos, preservando los atributos multimedia disponibles de Home Assistant (título, artista, volumen y artwork).
 - **REQ-06:** El asistente doméstico resuelve de forma determinista las consultas sobre reproducción, título, artista, estado y volumen de reproductores `media_player` autorizados.
 - **REQ-07:** El asistente acepta volumen exacto entre 0 y 100, así como incrementos y reducciones porcentuales contra el volumen sincronizado localmente; no inventa valores cuando esa lectura no existe.
 - **REQ-08:** Antes de controlar un reproductor, el asistente informa si está no disponible. Si está apagado y admite encendido, lo enciende antes de completar una orden compatible; ante fallo indica revisar alimentación y conexión.
@@ -45,7 +45,7 @@ Los reproductores importados deben operar como dispositivos locales de HomePilot
 ## 6. Criterios de Aceptación
 
 - [x] AC1: Un reproductor importado aparece como entidad seleccionable solo para tarjetas de media.
-- [x] AC2: Reproducir, pausar, avanzar y cambiar volumen actualiza su estado visible.
+- [x] AC2: Reproducir, pausar, avanzar y cambiar volumen actualiza su estado visible sin descartar los atributos multimedia ya disponibles.
 - [x] AC3: Una portada válida se muestra como fondo sin ocultar los controles.
 - [x] AC4: Un fallo de artwork no afecta los demás datos ni genera error de UI.
 - [x] AC5: El asistente informa título, artista, estado y volumen de un reproductor autorizado sin invocar interpretación no determinista. Evidencia: `assistant_media_player_control.test.ts`.

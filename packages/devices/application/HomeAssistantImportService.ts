@@ -70,6 +70,7 @@ export class HomeAssistantImportService {
       lastKnownState: {
         on: haState.state === 'on' || haState.state === 'open',
         state: haState.state,
+        attributes: haState.attributes,
         current_position: haState.attributes.current_position,
         ...(platform ? { haPlatform: platform } : {})
       },
