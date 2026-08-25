@@ -19,6 +19,7 @@ No todo cierre amerita reconexión. El gestor evaluará el motivo del desconecte
 - **Cierre por `reconfigure()`**: NO hay reconexión del remanente. Se cancela cualquier retry/delay en curso y se lanza instanciación 100% limpia bajo nuevas credenciales.
 - **Cierre por `auth_error`**: NO hay backoff. Se rompee la rutina de retries, se alerta `auth_error` a Settings y el socket queda muerto a la espera de intervención humana.
 - **Caída real de red o HA indisponible (`network/unreachable`)**: SÍ aplica reconnect con Backoff.
+  - Si el cliente informa `unreachable` y su limpieza interna impide que llegue un evento `close`, el gestor debe programar el mismo retry desde ese error de transporte.
 
 ### 3.1. Backoff Controlado (Escalón Incremental)
 El delay crece estáticamente para evitar DDOS local: `1s → 2s → 5s → 10s → 10s (fijo hasta éxito)`.
@@ -100,5 +101,5 @@ No bastan scripts visuales. El código exigirá test unitarios automatizados for
 
 - `HomeAssistantRealtimeSyncManager` aplica un único timer, backoff `1s → 2s → 5s → 10s`, cancelación por `stop()`/`reconnect()` y corte definitivo ante `auth_error`.
 - La reconciliación usa `HomeAssistantClient.getAllStates()`, persiste estados sin emitir `system_event`, conserva la escucha WebSocket ante errores y registra `HA_RESILIENCE`.
-- `packages/integrations/home-assistant/__tests__/HomeAssistantRealtimeSyncManager.test.ts` cubre reconciliación silenciosa, fallo recuperable, timer único, backoff y autenticación fatal.
+- `packages/integrations/home-assistant/__tests__/HomeAssistantRealtimeSyncManager.test.ts` cubre reconciliación silenciosa, fallo recuperable, timer único, backoff por `close` o `unreachable`, y autenticación fatal.
 - `packages/integrations/home-assistant/__tests__/HomeAssistantWebSocketClient.test.ts` cubre handshake, suscripción y clasificación segura del timeout como `unreachable`.

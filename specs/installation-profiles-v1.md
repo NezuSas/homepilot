@@ -48,6 +48,7 @@ etwork_mode: host por red Docker, publique la API local en un puerto no conflict
 - **REQ-18:** El instalador debe ofrecer --wizard para que un técnico seleccione de forma guiada la arquitectura, la acción de despliegue, la limpieza segura y la autorización opcional de HACS/SonoffLAN; antes de cualquier cambio debe mostrar un checklist resumido y requerir confirmación explícita. Sus respuestas se deben leer desde la terminal controladora para que el flujo sea fiable desde PowerShell, WSL y Linux. Los valores leídos desde `.env` deben normalizar retornos de carro de archivos CRLF para que el perfil seleccionado se interprete igual en todos los sistemas.
 - **REQ-19:** El instalador debe ofrecer un modo de mantenimiento exclusivo para HACS y SonoffLAN que detecte el entorno técnico, muestre los comandos equivalentes y modifique solo el contenedor Home Assistant autorizado. Este modo no debe ejecutar Docker Compose, reconstruir imágenes ni reiniciar HomePilot.
 - **REQ-20:** `homepilot-maintenance.sh --deploy` debe detectar Docker Desktop desde Windows o WSL y usar automáticamente `docker-compose.office.yml` junto con `docker-compose.desktop.yml`; en Linux nativo conserva solo `docker-compose.office.yml`.
+- **REQ-21:** Cuando no recibe `--profile`, `homepilot-maintenance.sh` debe usar el perfil válido persistido en `.env`, para conservar la topología instalada; `ha_companion` debe iniciar el servicio `homeassistant` incluido por su compose.
 
 ## 4. Criterios de aceptación
 
@@ -70,6 +71,7 @@ etwork_mode: host para la API y publica el puerto 13000.
 - [x] AC18: bash scripts/install-edge-office.sh --wizard presenta el checklist técnico, conserva el perfil de una instalación existente, solicita una confirmación única antes de ejecutar las acciones seleccionadas y continúa mostrando sus preguntas cuando se invoca desde PowerShell, WSL o Linux. También debe interpretar correctamente perfiles guardados en archivos `.env` con CRLF.
 - [x] AC19: `bash scripts/install-edge-office.sh --profile bridge_ha --community-integrations-only` detecta el entorno del técnico, solicita autorización y mantiene HACS/SonoffLAN sin ejecutar `docker compose`, reconstruir imágenes ni reiniciar HomePilot.
 - [x] AC20: `bash scripts/homepilot-maintenance.sh --deploy --yes` selecciona el overlay Docker Desktop automáticamente cuando el daemon informa ese entorno, sin requerir un comando distinto al usado en Linux.
+- [x] AC21: con `.env` configurado como `ha_companion`, `bash scripts/homepilot-maintenance.sh --deploy --yes` selecciona `docker-compose.yml` y el overlay de Docker Desktop, incluyendo `homeassistant`.
 - [x] AC10: La guía de onboarding identifica Docker Desktop o el appliance Linux mediante la configuración del compose, sin depender del navegador del cliente.
 - [x] AC11: La guía distingue la URL interna del bridge de la URL de navegador para crear el token y permite usar la URL interna sugerida con un solo clic.
 

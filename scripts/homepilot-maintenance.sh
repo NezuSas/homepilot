@@ -5,6 +5,7 @@ profile="bridge_ha"
 compose_file="docker-compose.office.yml"
 compose_files=()
 compose_explicit=false
+profile_explicit=false
 keep_storage="2GB"
 deploy=false
 clean_only=false
@@ -62,6 +63,27 @@ is_docker_desktop() {
   operating_system="$(docker info --format '{{.OperatingSystem}}' 2>/dev/null || true)"
   [[ "$operating_system" =~ [Dd]ocker[[:space:]][Dd]esktop ]]
 }
+load_saved_profile() {
+  if [[ "$profile_explicit" == true || ! -f .env ]]; then
+    return
+  fi
+
+  local saved_profile
+  saved_profile="$(sed -n 's/^HOMEPILOT_INSTALLATION_PROFILE=//p' .env | tail -n 1)"
+  saved_profile="${saved_profile%$'\r'}"
+
+  case "$saved_profile" in
+    bridge_ha|native_only|ha_companion)
+      profile="$saved_profile"
+      ;;
+    '')
+      ;;
+    *)
+      warn ".env declara un perfil no válido (${saved_profile}); se usará bridge_ha."
+      ;;
+  esac
+}
+
 configure_profile() {
   case "$profile" in
     bridge_ha|native_only)
@@ -361,6 +383,7 @@ while [[ $# -gt 0 ]]; do
       shift
       [[ $# -gt 0 ]] || fail "--profile requiere bridge_ha, native_only o ha_companion."
       profile="$1"
+      profile_explicit=true
       ;;
     --clean)
       clean_only=true
@@ -400,6 +423,7 @@ if [[ "$deploy" == false && "$clean_only" == false && "$status_only" == false ]]
   status_only=true
 fi
 
+load_saved_profile
 configure_profile
 banner
 check_requirements

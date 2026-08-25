@@ -181,6 +181,38 @@ describe('Feature: Home Assistant resilience and reconciliation', () => {
     }
   });
 
+  it('retries an unreachable transport error even when the socket does not emit close', () => {
+    jest.useFakeTimers();
+    const failedSocket = new FakeRealtimeSocket();
+    const retrySocket = new FakeRealtimeSocket();
+    const socketFactory = jest.fn()
+      .mockReturnValueOnce(asRealtimeSocket(failedSocket))
+      .mockReturnValueOnce(asRealtimeSocket(retrySocket));
+    const manager = new HomeAssistantRealtimeSyncManager(
+      { updateStatusFromOperation: jest.fn() } as unknown as HomeAssistantSettingsService,
+      {} as DeviceRepository,
+      { saveActivity: jest.fn().mockResolvedValue(undefined) } as unknown as ActivityLogRepository,
+      null,
+      socketFactory,
+    );
+
+    try {
+      manager.reconnect('http://ha:8123', 'token');
+      failedSocket.emit('error', 'unreachable', new Error('connection refused'));
+
+      expect(manager.getObservableState().websocketStatus).toBe('reconnecting');
+      jest.advanceTimersByTime(1000);
+      expect(socketFactory).toHaveBeenCalledTimes(2);
+
+      retrySocket.emit('ready');
+      failedSocket.emit('close');
+      jest.advanceTimersByTime(10000);
+      expect(socketFactory).toHaveBeenCalledTimes(2);
+    } finally {
+      manager.stop();
+      jest.useRealTimers();
+    }
+  });
   it('does not retry after a fatal authentication error', () => {
     jest.useFakeTimers();
     const socket = new FakeRealtimeSocket();

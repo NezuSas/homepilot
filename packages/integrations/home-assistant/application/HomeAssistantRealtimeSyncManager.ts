@@ -212,11 +212,19 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
         this._cancelRetry();
         this._destroySocket('auth_error');
         this._logResilienceEvent('auth_error', 0, 0, `Permanent authentication failure with Home Assistant.`);
+      } else if (this.client === client) {
+        // HomeAssistantWebSocketClient can tear down its underlying socket before
+        // emitting an unreachable error, so a subsequent `close` event is not
+        // guaranteed. Release this manager reference and schedule the retry here.
+        this.client = null;
+        this.lastCloseReason = 'network_drop';
+        this._scheduleReconnect();
       }
-      // 'unreachable' es manejado por onclose que se disparará también.
     });
 
     client.on('close', () => {
+      if (this.client !== client) return;
+
       // Solo reconectar si el cierre fue por caída de red, no voluntario.
       if (this.lastCloseReason !== 'stop_manual'
         && this.lastCloseReason !== 'reconfigure'

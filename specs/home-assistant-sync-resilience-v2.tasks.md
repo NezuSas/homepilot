@@ -8,3 +8,4 @@
 - [x] Preservar el WebSocket ante fallos de `/api/states` y registrar eventos `HA_RESILIENCE` estructurados.
 - [x] Actualizar la conectividad y `lastCheckedAt` mediante `HomeAssistantSettingsService`.
 - [x] Cubrir con pruebas automatizadas el timer único, backoff, reconfiguración, autenticación fatal, reconciliación silenciosa y fallo recuperable.
+- [x] Reintentar también cuando el cliente emite `unreachable` sin un `close` posterior.
