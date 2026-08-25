@@ -428,6 +428,7 @@
         "media_next": "Siguiente pista",
         "media_volume_down": "Bajar volumen",
         "media_volume_up": "Subir volumen",
+        "media_progress": "Progreso: {{current}} de {{duration}}",
         "energy_label": "Energía",
         "room_label": "Habitación",
         "room_access": "Acceso por estancia",

@@ -1,4 +1,4 @@
-import { Cast, MinusCircle, MoreVertical, Pause, Play, PlusCircle, Power, SkipBack, SkipForward, Volume1, Volume2, VolumeX } from 'lucide-react';
+import { AudioLines, Cast, MinusCircle, MoreVertical, Pause, Play, PlusCircle, Power, SkipBack, SkipForward, Volume1, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../../../config';
@@ -7,6 +7,7 @@ import { cn } from '../../../lib/utils';
 import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
 import { IconButton } from '../../../components/ui/IconButton';
 import { getMediaArtworkSourceKey } from './mediaArtwork';
+import { formatMediaTime, getDisplayedMediaPosition, getMediaPlayerPresentation } from './mediaPlayback';
 
 export type MediaPlayerCommand = 'turn_on' | 'turn_off' | 'media_play' | 'media_pause' | 'media_previous_track' | 'media_next_track' | 'volume_set';
 
@@ -21,59 +22,8 @@ interface MediaPlayerCardProps {
   onCommand?: (command: MediaPlayerCommand, params?: Record<string, unknown>) => void;
   compact?: boolean;
 }
-
-interface MediaPresentation {
-  state: string;
-  mediaTitle: string | null;
-  mediaArtist: string | null;
-  volume: number | null;
-}
-
 interface MediaArtworkSession {
   readonly artworkPath: string | null;
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : {};
-}
-
-function firstText(values: unknown[]): string | null {
-  for (const value of values) {
-    if (typeof value === 'string' && value.trim()) return value.trim();
-    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
-  }
-  return null;
-}
-
-function normalizedState(value: string | null): string {
-  return value?.trim().toLocaleLowerCase() || 'idle';
-}
-
-function numericVolume(value: unknown): number | null {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
-  return Math.min(100, Math.max(0, Math.round(value * 100)));
-}
-
-export function getMediaPlayerPresentation(device?: SnapshotDevice, isPreview = false): MediaPresentation {
-  if (!device && isPreview) {
-    return {
-      state: 'paused',
-      mediaTitle: null,
-      mediaArtist: null,
-      volume: 50,
-    };
-  }
-
-  const state = asRecord(device?.lastKnownState);
-  const attributes = asRecord(state.attributes);
-  return {
-    state: normalizedState(firstText([state.state, state.value, attributes.state])),
-    mediaTitle: firstText([state.media_title, attributes.media_title, state.title, attributes.title]),
-    mediaArtist: firstText([state.media_artist, attributes.media_artist, state.media_album_artist, attributes.media_album_artist]),
-    volume: numericVolume(state.volume_level ?? attributes.volume_level),
-  };
 }
 
 function supportedCommands(device?: SnapshotDevice): ReadonlySet<string> {
@@ -101,6 +51,7 @@ function absoluteApiUrl(path: string): string {
 export function MediaPlayerCard({ device, title, isPreview = false, isProcessing = false, onCommand, compact = false }: MediaPlayerCardProps) {
   const { t } = useTranslation();
   const [artworkPath, setArtworkPath] = useState<string | null>(null);
+  const [playbackClock, setPlaybackClock] = useState(() => Date.now());
   // Volume changes render instantly instead of waiting for the next device
   // snapshot; cleared once a fresh snapshot arrives (see effect below).
   const [optimisticVolume, setOptimisticVolume] = useState<number | null>(null);
@@ -122,6 +73,14 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
   const hasNext = commands.has('media_next_track');
   const hasVolumeControl = commands.has('volume_set');
   const currentVolume = optimisticVolume ?? presentation.volume;
+  const displayedMediaPosition = getDisplayedMediaPosition(presentation, playbackClock);
+  const playback = displayedMediaPosition !== null && presentation.mediaDuration !== null && presentation.mediaDuration > 0
+    ? {
+      position: displayedMediaPosition,
+      duration: presentation.mediaDuration,
+      progress: Math.min(100, Math.max(0, (displayedMediaPosition / presentation.mediaDuration) * 100)),
+    }
+    : null;
   // Volume has its own instant feedback, so it isn't gated by isProcessing
   // (which tracks play/pause/track changes on this same card).
   const canActVolume = Boolean(onCommand) && !unavailable && hasVolumeControl;
@@ -139,6 +98,14 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
   const VolumeIcon = currentVolume === null || currentVolume === 0
     ? VolumeX
     : currentVolume < 50 ? Volume1 : Volume2;
+
+  useEffect(() => {
+    if (!isPlaying || presentation.mediaPosition === null || presentation.mediaDuration === null) return;
+
+    setPlaybackClock(Date.now());
+    const intervalId = window.setInterval(() => setPlaybackClock(Date.now()), 1000);
+    return () => window.clearInterval(intervalId);
+  }, [isPlaying, presentation.mediaDuration, presentation.mediaPosition, presentation.mediaPositionUpdatedAt]);
 
   useEffect(() => {
     // A fresh snapshot is the source of truth; drop the optimistic override
@@ -199,6 +166,13 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
           }}
         />
       )}
+      {!artworkUrl && (
+        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+          <div className="absolute inset-y-0 right-0 w-[62%] bg-[radial-gradient(ellipse_at_85%_16%,hsl(var(--primary)/0.24),transparent_58%)]" />
+          <AudioLines className="absolute -right-8 top-1/2 h-44 w-44 -translate-y-1/2 rotate-[-12deg] text-primary/20" strokeWidth={1.1} />
+          <div className="absolute bottom-0 right-7 top-0 w-px bg-primary/20" />
+        </div>
+      )}
       <div className={cn(
         'pointer-events-none absolute inset-0',
         artworkUrl
@@ -221,6 +195,28 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
           {presentation.mediaArtist || t('dashboard.editor.sections.media_player_label')}
         </span>
       </div>
+
+      {playback && (
+        <div className={cn('relative min-w-0', compact ? 'mt-2 px-3' : 'mt-3 px-4')}>
+          <div className="mb-1 flex items-center justify-between gap-3 font-medium tabular-nums text-muted-foreground">
+            <span className={compact ? 'text-micro' : 'text-caption'}>{formatMediaTime(playback.position)}</span>
+            <span className={compact ? 'text-micro' : 'text-caption'}>{formatMediaTime(playback.duration)}</span>
+          </div>
+          <div
+            className="h-1 overflow-hidden rounded-full bg-foreground/20"
+            role="progressbar"
+            aria-label={t('dashboard.editor.sections.media_progress', {
+              current: formatMediaTime(playback.position),
+              duration: formatMediaTime(playback.duration),
+            })}
+            aria-valuemin={0}
+            aria-valuemax={Math.round(playback.duration)}
+            aria-valuenow={Math.round(playback.position)}
+          >
+            <span className="block h-full rounded-full bg-foreground/75 transition-[width] duration-1000" style={{ width: `${playback.progress}%` }} />
+          </div>
+        </div>
+      )}
 
       <div className={cn(
         'relative mt-auto min-w-0',
