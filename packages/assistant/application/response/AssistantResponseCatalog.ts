@@ -17,6 +17,7 @@ export type AssistantResponseCatalogParameters = {
   'draft.action_required': { draftType: 'scene' | 'routine' };
   'draft.time_required': Record<never, never>;
   'draft.prepared': { draftType: 'scene' | 'routine'; name: string; command: 'turn_on' | 'turn_off'; count: number; roomName: string; time?: string; schedule?: string };
+  'timer.prepared': { name: string; command: 'turn_on' | 'turn_off'; count: number; roomName: string; time: string; schedule: string };
   'draft.activation_failed': Record<never, never>;
   'draft.cancelled': { draftType?: 'scene' | 'routine' };
   'confirmation.none_pending': Record<never, never>;
@@ -220,6 +221,10 @@ const responseCatalog: AssistantResponseCatalog = {
   'draft.prepared': {
     es: ({ draftType, name, command, count, roomName, time, schedule }) => `Preparé ${draftType === 'scene' ? 'la escena' : 'la rutina'} "${name}" para ${command === 'turn_on' ? 'encender' : 'apagar'} ${count} dispositivo${count === 1 ? '' : 's'} en ${roomName}${time ? ` a las ${time}` : ''}${schedule ? ` ${schedule}` : ''}. ¿Quieres activarla ahora?`,
     en: ({ draftType, name, command, count, roomName, time, schedule }) => `I prepared the ${draftType === 'routine' ? 'routine' : 'scene'} "${name}" to ${command === 'turn_on' ? 'turn on' : 'turn off'} ${count} device${count === 1 ? '' : 's'} in ${roomName}${time ? ` at ${time}` : ''}${schedule ? ` ${schedule}` : ''}. Do you want to activate it now?`,
+  },
+  'timer.prepared': {
+    es: ({ name, command, count, roomName, time, schedule }) => `Preparé el temporizador "${name}" para ${command === 'turn_on' ? 'encender' : 'apagar'} ${count} dispositivo${count === 1 ? '' : 's'} en ${roomName} ${schedule}, a las ${time}. Se ejecutará una sola vez. ¿Quieres activarlo?`,
+    en: ({ name, command, count, roomName, time, schedule }) => `I prepared the timer "${name}" to ${command === 'turn_on' ? 'turn on' : 'turn off'} ${count} device${count === 1 ? '' : 's'} in ${roomName} ${schedule}, at ${time}. It will run once. Do you want to activate it?`,
   },
   'confirmation.none_pending': {
     es: () => '¿Confirmar qué? No tengo ninguna acción pendiente.',

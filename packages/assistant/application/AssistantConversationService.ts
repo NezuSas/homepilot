@@ -1368,7 +1368,7 @@ export class AssistantConversationService {
     });
     return {
       type: 'clarification',
-      message: getAssistantResponseText('draft.prepared', language, { draftType: 'routine', name: draftName, command, count: controllableDevices.length, roomName: selectedRoom.name, time: scheduledAt.toFormat('HH:mm'), schedule: scheduleLabel }),
+      message: getAssistantResponseText('timer.prepared', language, { name: draftName, command, count: controllableDevices.length, roomName: selectedRoom.name, time: scheduledAt.toFormat('HH:mm'), schedule: scheduleLabel }),
       clarification: {
         question: language === 'en' ? 'Do you want to activate it?' : '¿Quieres activarlo?',
         options: [

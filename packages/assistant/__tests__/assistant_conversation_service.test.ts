@@ -650,6 +650,7 @@ describe('AssistantConversationService', () => {
           'timer:timer-owner:apaga las luces de cuarto master en 30 minutos:r1'
         );
         expect(response).toEqual(expect.objectContaining({ type: 'clarification', message: expect.stringContaining('en 30 minutos') }));
+        expect(response.message).toContain('una sola vez');
         expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
       } finally {
         jest.useRealTimers();
@@ -672,6 +673,7 @@ describe('AssistantConversationService', () => {
           'timer:timer-owner-en:turn off the cuarto master lights in 1 hour:r1'
         );
         expect(response.message).toContain('in 1 hour');
+        expect(response.message).toContain('run once');
       } finally {
         jest.useRealTimers();
       }

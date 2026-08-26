@@ -869,8 +869,8 @@
     "remove_favorite": "Quitar de favoritas",
     "title": "Automatizaciones",
     "timers": {
-      "eyebrow": "CONTROL TEMPORAL",
       "title": "Temporizadores activos",
+      "description": "Se ejecutan una sola vez y no forman parte de tus rutinas.",
       "pending_count_one": "{{count}} pendiente",
       "pending_count_other": "{{count}} pendientes",
       "remaining_minutes_one": "Falta {{count}} minuto",
@@ -898,9 +898,10 @@
     "created_success": "Automatización creada exitosamente",
     "empty_state": {
       "title": "No hay reglas locales",
-      "description": "Crea tu primera automatización local para hacer tu hogar más inteligente."
-    },
-    "form": {
+      "description": "Crea tu primera automatización local para hacer tu hogar más inteligente.",
+      "timers_only_title": "No hay automatizaciones permanentes",
+      "timers_only_description": "Los temporizadores de arriba se ejecutarán una sola vez."
+    },    "form": {
       "rule_name": "Nombre de la Automatización",
       "rule_name_placeholder": "Ej: Luces noche, Auto-Ventilador...",
       "trigger_section": "CUANDO PASA ESTO (Trigger)",

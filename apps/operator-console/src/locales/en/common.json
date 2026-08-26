@@ -869,8 +869,8 @@
     "remove_favorite": "Remove from favorites",
     "title": "Automations",
     "timers": {
-      "eyebrow": "TIME CONTROL",
       "title": "Active timers",
+      "description": "They run once and are not part of your routines.",
       "pending_count_one": "{{count}} pending",
       "pending_count_other": "{{count}} pending",
       "remaining_minutes_one": "{{count}} minute remaining",
@@ -898,9 +898,10 @@
     "created_success": "Automation created successfully",
     "empty_state": {
       "title": "No local rules",
-      "description": "Create your first local automation to make your home smarter."
-    },
-    "form": {
+      "description": "Create your first local automation to make your home smarter.",
+      "timers_only_title": "No permanent automations",
+      "timers_only_description": "The timers above will run only once."
+    },    "form": {
       "rule_name": "Automation Name",
       "rule_name_placeholder": "e.g., Night Lights, Auto-Fan...",
       "trigger_section": "WHEN THIS HAPPENS (Trigger)",

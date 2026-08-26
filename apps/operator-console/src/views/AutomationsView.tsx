@@ -76,6 +76,7 @@ const AutomationsView: React.FC = () => {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>(() => readFavoriteIds(AUTOMATION_FAVORITES_STORAGE_KEY));
   const [timerReference, setTimerReference] = useState(() => DateTime.now());
+  const persistentRules = useMemo(() => rules.filter((rule) => !rule.trigger.dateLocal), [rules]);
   const activeTimers = useMemo(() => rules.flatMap((rule) => {
     if (!rule.enabled || rule.trigger.type !== 'time' || !rule.trigger.dateLocal || !rule.trigger.timeLocal) return [];
     const scheduledAt = DateTime.fromFormat(`${rule.trigger.dateLocal} ${rule.trigger.timeLocal}`, 'yyyy-MM-dd HH:mm', { zone: rule.trigger.timezone });
@@ -192,7 +193,7 @@ const AutomationsView: React.FC = () => {
   return (
     <div className="flex flex-col gap-6 pb-8 animate-in fade-in slide-in-from-bottom-2 duration-700 sm:gap-7">
       <AutomationsHeader
-        activeCount={rules.filter(r => r.enabled).length}
+        activeCount={persistentRules.filter((rule) => rule.enabled).length}
         onCreate={() => setIsBuilderOpen(true)}
       />
 
@@ -200,18 +201,18 @@ const AutomationsView: React.FC = () => {
       {activeTimers.length > 0 && (
         <section className="rounded-dashboard border border-primary/20 bg-card/70 p-5 shadow-depth-3 sm:p-6" aria-labelledby="active-timers-title">
           <div className="flex items-center justify-between gap-3 border-b border-border/60 pb-4">
-            <div className="flex items-center gap-3"><div className="flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground"><Clock3 className="size-5" /></div><div><p className="hp-type-label-accent text-primary">{t('automations.timers.eyebrow')}</p><h2 id="active-timers-title" className="text-panel-title">{t('automations.timers.title')}</h2></div></div>
+            <div className="flex items-center gap-3"><div className="flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground"><Clock3 className="size-5" /></div><div><h2 id="active-timers-title" className="text-panel-title">{t('automations.timers.title')}</h2><p className="mt-1 text-sm text-muted-foreground">{t('automations.timers.description')}</p></div></div>
             <span className="hp-type-control rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-primary">{t('automations.timers.pending_count', { count: activeTimers.length })}</span>
           </div>
           <div className="mt-4 grid gap-3 lg:grid-cols-2">{activeTimers.map(({ rule, remainingMinutes }) => <article key={rule.id} className="flex flex-col gap-4 rounded-card border border-border/70 bg-background/45 p-4 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><p className="truncate text-section-title">{rule.name}</p><p className="mt-1 text-sm text-muted-foreground">{remainingMinutes >= 60 ? t('automations.timers.remaining_hours', { count: Math.ceil(remainingMinutes / 60) }) : t('automations.timers.remaining_minutes', { count: remainingMinutes })}</p></div><Button type="button" variant="outline" size="sm" isLoading={processingId === rule.id} onClick={() => toggleRule(rule.id, true)} className="shrink-0 border-danger/30 text-danger hover:bg-danger/10">{t('automations.timers.cancel')}</Button></article>)}</div>
         </section>
       )}
 
-      {rules.length === 0 ? (
-        <AutomationsEmptyState onCreate={() => setIsBuilderOpen(true)} />
+      {persistentRules.length === 0 ? (
+        <AutomationsEmptyState onCreate={() => setIsBuilderOpen(true)} hasActiveTimers={activeTimers.length > 0} />
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {rules.map((rule) => (
+          {persistentRules.map((rule) => (
             <AutomationRuleCard
               key={rule.id}
               rule={rule}

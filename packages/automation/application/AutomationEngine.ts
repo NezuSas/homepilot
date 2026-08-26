@@ -2,6 +2,7 @@ import { DateTime } from 'luxon';
 import { AutomationRuleRepository } from '../../devices/domain/repositories/AutomationRuleRepository';
 import type { AutomationTrigger } from '../../devices/domain/automation/types';
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
+import type { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
 import { ActivityLogRepository, ActivityType } from '../../devices/domain/repositories/ActivityLogRepository';
 import { SystemStateChangeEvent } from '../../integrations/home-assistant/application/HomeAssistantRealtimeSyncManager';
 import {
@@ -48,6 +49,7 @@ export class AutomationEngine {
 
   constructor(
     private readonly ruleRepository: AutomationRuleRepository,
+    private readonly sceneRepository: Pick<SceneRepository, 'deleteScene'>,
     private readonly deviceRepository: DeviceRepository,
     private readonly commandDispatcher: AutomationCommandDispatcher,
     private readonly activityLogRepository: ActivityLogRepository,
@@ -115,7 +117,10 @@ export class AutomationEngine {
         if (this.matchTimeTrigger(trigger, baseMoment, systemTimezone)) {
           this.timeFireGuard.set(rule.id, timeSlotKey);
           await this.fireRule(rule, `auto-time-${this.idGenerator.generate()}`);
-          if (trigger.dateLocal) await this.ruleRepository.delete(rule.id);
+          if (trigger.dateLocal) {
+            await this.ruleRepository.delete(rule.id);
+            if (rule.action.type === 'execute_scene') await this.sceneRepository.deleteScene(rule.action.sceneId);
+          }
         }
       }
     }

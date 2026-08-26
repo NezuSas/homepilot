@@ -51,6 +51,7 @@ export function buildAutomationModule(deps: AutomationModuleDeps): AutomationMod
 
   const automationEngine = new AutomationEngine(
     automationRuleRepository,
+    sceneRepository,
     deviceRepository,
     {
       /**

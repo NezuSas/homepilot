@@ -64,6 +64,7 @@ function createHarness(rules: ReadonlyArray<AutomationRule>, targetDevice: Devic
   const deviceRepository = {
     findDeviceById: jest.fn().mockResolvedValue(targetDevice),
   } as unknown as DeviceRepository;
+  const sceneRepository = { deleteScene: jest.fn().mockResolvedValue(undefined) };
   const dispatcher: jest.Mocked<AutomationCommandDispatcher> = {
     dispatchCommand: jest.fn().mockResolvedValue(undefined),
     executeScene: jest.fn().mockResolvedValue(undefined),
@@ -76,11 +77,11 @@ function createHarness(rules: ReadonlyArray<AutomationRule>, targetDevice: Devic
   } as unknown as SystemVariableService;
   const idGenerator: IdGenerator = { generate: jest.fn().mockReturnValue('time-1') };
   return {
-    engine: new AutomationEngine(ruleRepository, deviceRepository, dispatcher, activityLogRepository, systemVariableService, idGenerator),
+    engine: new AutomationEngine(ruleRepository, sceneRepository, deviceRepository, dispatcher, activityLogRepository, systemVariableService, idGenerator),
     deviceRepository,
     dispatcher,
     activityLogRepository,
-    ruleRepository,  };
+    ruleRepository, sceneRepository,  };
 }
 
 describe('Feature: automation rule execution', () => {
@@ -173,6 +174,7 @@ describe('Feature: automation rule execution', () => {
 
     expect(harness.dispatcher.executeScene).toHaveBeenCalledTimes(1);
     expect((harness.ruleRepository as unknown as { delete: jest.Mock }).delete).toHaveBeenCalledWith('timer-rule');
+    expect(harness.sceneRepository.deleteScene).toHaveBeenCalledWith('scene-timer');
   });
   it('reports a failed dispatch without letting one rule break the automation pipeline', async () => {
     const harness = createHarness([createRule()]);
