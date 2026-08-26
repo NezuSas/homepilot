@@ -115,6 +115,7 @@ export class AutomationEngine {
         if (this.matchTimeTrigger(trigger, baseMoment, systemTimezone)) {
           this.timeFireGuard.set(rule.id, timeSlotKey);
           await this.fireRule(rule, `auto-time-${this.idGenerator.generate()}`);
+          if (trigger.dateLocal) await this.ruleRepository.delete(rule.id);
         }
       }
     }
@@ -189,8 +190,9 @@ export class AutomationEngine {
       const timeMatches = localMoment.toFormat('HH:mm') === trigger.timeLocal;
       const localDay = luxonToRuleDay(localMoment.weekday);
       const dayMatches = !trigger.days || trigger.days.length === 0 || trigger.days.includes(localDay);
+      const dateMatches = !trigger.dateLocal || localMoment.toISODate() === trigger.dateLocal;
       
-      return timeMatches && dayMatches;
+      return timeMatches && dayMatches && dateMatches;
     }
 
     // STRATEGY 2: UTC Rule (timeUTC)

@@ -59,6 +59,7 @@ function createHarness(rules: ReadonlyArray<AutomationRule>, targetDevice: Devic
   const ruleRepository = {
     findAll: jest.fn().mockResolvedValue(rules),
     findById: jest.fn().mockImplementation((id: string) => Promise.resolve(rules.find((rule) => rule.id === id) ?? null)),
+    delete: jest.fn().mockResolvedValue(undefined),
   } as unknown as AutomationRuleRepository;
   const deviceRepository = {
     findDeviceById: jest.fn().mockResolvedValue(targetDevice),
@@ -79,7 +80,7 @@ function createHarness(rules: ReadonlyArray<AutomationRule>, targetDevice: Devic
     deviceRepository,
     dispatcher,
     activityLogRepository,
-  };
+    ruleRepository,  };
 }
 
 describe('Feature: automation rule execution', () => {
@@ -159,6 +160,20 @@ describe('Feature: automation rule execution', () => {
     }
   });
 
+  it('executes and removes a date-restricted time rule only on its configured local date', async () => {
+    const timerRule = createRule({
+      id: 'timer-rule',
+      trigger: { type: 'time', timeLocal: '12:00', timezone: 'UTC', timeUTC: '12:00', dateLocal: '2026-08-16' },
+      action: { type: 'execute_scene', sceneId: 'scene-timer' },
+    });
+    const harness = createHarness([timerRule]);
+
+    await harness.engine.handleTimeEvent('12:00', new Date('2026-08-15T12:00:00.000Z'));
+    await harness.engine.handleTimeEvent('12:00', new Date('2026-08-16T12:00:00.000Z'));
+
+    expect(harness.dispatcher.executeScene).toHaveBeenCalledTimes(1);
+    expect((harness.ruleRepository as unknown as { delete: jest.Mock }).delete).toHaveBeenCalledWith('timer-rule');
+  });
   it('reports a failed dispatch without letting one rule break the automation pipeline', async () => {
     const harness = createHarness([createRule()]);
     harness.dispatcher.dispatchCommand.mockRejectedValueOnce(new Error('transport unavailable'));

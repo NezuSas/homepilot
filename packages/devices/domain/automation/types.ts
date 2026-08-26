@@ -19,6 +19,7 @@ export interface TimeTrigger {
   timezone: string;     // IANA Timezone, e.g. "America/Guayaquil"
   timeUTC: string;      // "HH:mm" (Server Processed)
   days?: number[];      // [0,1,2,3,4,5,6] - 0 is Sunday
+  dateLocal?: string;   // YYYY-MM-DD, restricts the rule to one local calendar date
 
   /** @deprecated use timeLocal and timeUTC */
   time?: string;

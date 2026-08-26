@@ -868,7 +868,17 @@
     "add_favorite": "Añadir a favoritas",
     "remove_favorite": "Quitar de favoritas",
     "title": "Automatizaciones",
-    "rule_updated": "Automatización actualizada",
+    "timers": {
+      "eyebrow": "CONTROL TEMPORAL",
+      "title": "Temporizadores activos",
+      "pending_count_one": "{{count}} pendiente",
+      "pending_count_other": "{{count}} pendientes",
+      "remaining_minutes_one": "Falta {{count}} minuto",
+      "remaining_minutes_other": "Faltan {{count}} minutos",
+      "remaining_hours_one": "Falta {{count}} hora",
+      "remaining_hours_other": "Faltan {{count}} horas",
+      "cancel": "Cancelar"
+    },    "rule_updated": "Automatización actualizada",
     "update_button": "Actualizar automatización",
     "save_button": "Guardar automatización",
     "header": {

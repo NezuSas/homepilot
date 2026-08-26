@@ -16,7 +16,7 @@ export type AssistantResponseCatalogParameters = {
   'draft.room_required': { draftType: 'scene' | 'routine' };
   'draft.action_required': { draftType: 'scene' | 'routine' };
   'draft.time_required': Record<never, never>;
-  'draft.prepared': { draftType: 'scene' | 'routine'; name: string; command: 'turn_on' | 'turn_off'; count: number; roomName: string; time?: string };
+  'draft.prepared': { draftType: 'scene' | 'routine'; name: string; command: 'turn_on' | 'turn_off'; count: number; roomName: string; time?: string; schedule?: string };
   'draft.activation_failed': Record<never, never>;
   'draft.cancelled': { draftType?: 'scene' | 'routine' };
   'confirmation.none_pending': Record<never, never>;
@@ -31,6 +31,9 @@ export type AssistantResponseCatalogParameters = {
   'listing.automation_status': { name: string; enabled: boolean };
   'listing.automations_empty': Record<never, never>;
   'listing.automations': { list: string };
+  'listing.timers_empty': Record<never, never>;
+  'listing.timers': { list: string };
+
   'management.scene_not_found': { name: string };
   'management.automation_not_found': { name: string };
   'management.device_not_found': { name: string };
@@ -55,6 +58,7 @@ export type AssistantResponseCatalogParameters = {
   'management.automation_toggled': { name: string; enabled: boolean };
   'management.scene_updated': { name: string };
   'management.execution_failed': Record<never, never>;
+  'management.cancel_all_timers_confirmation': { count: number };
   'confirmation.confirm': Record<never, never>;
   'confirmation.yes': Record<never, never>;
   'confirmation.no': Record<never, never>;
@@ -214,8 +218,8 @@ const responseCatalog: AssistantResponseCatalog = {
     en: () => 'To create the routine, tell me the local time, for example at 22:30.',
   },
   'draft.prepared': {
-    es: ({ draftType, name, command, count, roomName, time }) => `Preparé ${draftType === 'scene' ? 'la escena' : 'la rutina'} "${name}" para ${command === 'turn_on' ? 'encender' : 'apagar'} ${count} dispositivo${count === 1 ? '' : 's'} en ${roomName}${time ? ` a las ${time}` : ''}. ¿Quieres activarla ahora?`,
-    en: ({ draftType, name, command, count, roomName, time }) => `I prepared the ${draftType === 'routine' ? 'routine' : 'scene'} "${name}" to ${command === 'turn_on' ? 'turn on' : 'turn off'} ${count} device${count === 1 ? '' : 's'} in ${roomName}${time ? ` at ${time}` : ''}. Do you want to activate it now?`,
+    es: ({ draftType, name, command, count, roomName, time, schedule }) => `Preparé ${draftType === 'scene' ? 'la escena' : 'la rutina'} "${name}" para ${command === 'turn_on' ? 'encender' : 'apagar'} ${count} dispositivo${count === 1 ? '' : 's'} en ${roomName}${time ? ` a las ${time}` : ''}${schedule ? ` ${schedule}` : ''}. ¿Quieres activarla ahora?`,
+    en: ({ draftType, name, command, count, roomName, time, schedule }) => `I prepared the ${draftType === 'routine' ? 'routine' : 'scene'} "${name}" to ${command === 'turn_on' ? 'turn on' : 'turn off'} ${count} device${count === 1 ? '' : 's'} in ${roomName}${time ? ` at ${time}` : ''}${schedule ? ` ${schedule}` : ''}. Do you want to activate it now?`,
   },
   'confirmation.none_pending': {
     es: () => '¿Confirmar qué? No tengo ninguna acción pendiente.',
@@ -264,6 +268,14 @@ const responseCatalog: AssistantResponseCatalog = {
   'listing.automations': {
     es: ({ list }) => `Estas son tus automatizaciones:\n${list}`,
     en: ({ list }) => `These are your automations:\n${list}`,
+  },
+  'listing.timers_empty': {
+    es: () => 'No tienes temporizadores activos.',
+    en: () => "You don't have any active timers.",
+  },
+  'listing.timers': {
+    es: ({ list }) => `Estos son tus temporizadores activos:\n${list}`,
+    en: ({ list }) => `These are your active timers:\n${list}`,
   },
   'management.scene_not_found': {
     es: ({ name }) => `No encontré la escena "${name}".`,
@@ -360,6 +372,10 @@ const responseCatalog: AssistantResponseCatalog = {
   'management.execution_failed': {
     es: () => 'No se pudo ejecutar la acción de gestión.',
     en: () => 'Failed to execute management action.',
+  },
+  'management.cancel_all_timers_confirmation': {
+    es: ({ count }) => `Voy a cancelar ${count} temporizador${count === 1 ? '' : 'es'} activo${count === 1 ? '' : 's'}. ¿Confirmas?`,
+    en: ({ count }) => `I will cancel ${count} active timer${count === 1 ? '' : 's'}. Please confirm.`,
   },
   'confirmation.confirm': {
     es: () => '¿Confirmo?',

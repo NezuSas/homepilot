@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { DateTime } from 'luxon';
+import { Clock3 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_ENDPOINTS, API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
@@ -10,6 +12,7 @@ import { AutomationsHeader } from '../components/AutomationsHeader';
 import { LoadingState } from '../components/ui/LoadingState';
 import ConfirmModal from '../components/ConfirmModal';
 import { AlertBanner } from '../components/ui/AlertBanner';
+import { Button } from '../components/ui/Button';
 import { humanize } from '../lib/naming-utils';
 import {
   AUTOMATION_FAVORITES_STORAGE_KEY,
@@ -31,6 +34,7 @@ interface AutomationRule {
     timezone?: string;
     timeUTC?: string;
     days?: number[];
+    dateLocal?: string;
   };
   action: {
     type: 'device_command' | 'execute_scene';
@@ -71,10 +75,21 @@ const AutomationsView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>(() => readFavoriteIds(AUTOMATION_FAVORITES_STORAGE_KEY));
+  const [timerReference, setTimerReference] = useState(() => DateTime.now());
+  const activeTimers = useMemo(() => rules.flatMap((rule) => {
+    if (!rule.enabled || rule.trigger.type !== 'time' || !rule.trigger.dateLocal || !rule.trigger.timeLocal) return [];
+    const scheduledAt = DateTime.fromFormat(`${rule.trigger.dateLocal} ${rule.trigger.timeLocal}`, 'yyyy-MM-dd HH:mm', { zone: rule.trigger.timezone });
+    if (!scheduledAt.isValid || scheduledAt.toMillis() <= timerReference.toMillis()) return [];
+    return [{ rule, remainingMinutes: Math.max(1, Math.ceil(scheduledAt.diff(timerReference, 'minutes').minutes)) }];
+  }).sort((left, right) => left.remainingMinutes - right.remainingMinutes), [rules, timerReference]);
 
   useEffect(() => {
     writeFavoriteIds(AUTOMATION_FAVORITES_STORAGE_KEY, favoriteIds);
   }, [favoriteIds]);
+  useEffect(() => {
+    const interval = window.setInterval(() => setTimerReference(DateTime.now()), 60_000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (notification) {
@@ -182,6 +197,15 @@ const AutomationsView: React.FC = () => {
       />
 
       {error && <AlertBanner variant="danger" message={error} className="animate-shake" />}
+      {activeTimers.length > 0 && (
+        <section className="rounded-dashboard border border-primary/20 bg-card/70 p-5 shadow-depth-3 sm:p-6" aria-labelledby="active-timers-title">
+          <div className="flex items-center justify-between gap-3 border-b border-border/60 pb-4">
+            <div className="flex items-center gap-3"><div className="flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground"><Clock3 className="size-5" /></div><div><p className="hp-type-label-accent text-primary">{t('automations.timers.eyebrow')}</p><h2 id="active-timers-title" className="text-panel-title">{t('automations.timers.title')}</h2></div></div>
+            <span className="hp-type-control rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-primary">{t('automations.timers.pending_count', { count: activeTimers.length })}</span>
+          </div>
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">{activeTimers.map(({ rule, remainingMinutes }) => <article key={rule.id} className="flex flex-col gap-4 rounded-card border border-border/70 bg-background/45 p-4 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><p className="truncate text-section-title">{rule.name}</p><p className="mt-1 text-sm text-muted-foreground">{remainingMinutes >= 60 ? t('automations.timers.remaining_hours', { count: Math.ceil(remainingMinutes / 60) }) : t('automations.timers.remaining_minutes', { count: remainingMinutes })}</p></div><Button type="button" variant="outline" size="sm" isLoading={processingId === rule.id} onClick={() => toggleRule(rule.id, true)} className="shrink-0 border-danger/30 text-danger hover:bg-danger/10">{t('automations.timers.cancel')}</Button></article>)}</div>
+        </section>
+      )}
 
       {rules.length === 0 ? (
         <AutomationsEmptyState onCreate={() => setIsBuilderOpen(true)} />

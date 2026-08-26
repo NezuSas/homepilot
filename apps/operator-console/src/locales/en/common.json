@@ -868,7 +868,17 @@
     "add_favorite": "Add to favorites",
     "remove_favorite": "Remove from favorites",
     "title": "Automations",
-    "rule_updated": "Automation updated",
+    "timers": {
+      "eyebrow": "TIME CONTROL",
+      "title": "Active timers",
+      "pending_count_one": "{{count}} pending",
+      "pending_count_other": "{{count}} pending",
+      "remaining_minutes_one": "{{count}} minute remaining",
+      "remaining_minutes_other": "{{count}} minutes remaining",
+      "remaining_hours_one": "{{count}} hour remaining",
+      "remaining_hours_other": "{{count}} hours remaining",
+      "cancel": "Cancel"
+    },    "rule_updated": "Automation updated",
     "update_button": "Update automation",
     "save_button": "Save automation",
     "header": {

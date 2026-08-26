@@ -258,6 +258,7 @@ export const createMockAssistantDraftRepository = (overrides?: Partial<jest.Mock
 
 export const createMockAssistantDraftService = (overrides?: Partial<jest.Mocked<AssistantDraftService>>): jest.Mocked<AssistantDraftService> => ({
   createAutomationDraft: jest.fn().mockResolvedValue({ id: 'd1', status: 'draft' }),
+  createScheduledRoutineDraft: jest.fn().mockResolvedValue({ id: 'd1', status: 'draft' }),
   createSceneDraft: jest.fn().mockResolvedValue({ id: 'd1', status: 'draft' }),
   createDraft: jest.fn().mockResolvedValue(undefined),
   activateDraft: jest.fn().mockResolvedValue(undefined),

@@ -47,6 +47,10 @@ export function createAutomationRule(
       throw new InvalidAutomationRuleError('trigger.timeLocal (format HH:mm)');
     }
 
+    if (t.dateLocal !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(t.dateLocal)) {
+      throw new InvalidAutomationRuleError('trigger.dateLocal (format YYYY-MM-DD)');
+    }
+
     // Calcular timeUTC si no viene o para asegurar consistencia server-side
     t.timeLocal = timeToValidate;
     t.timeUTC = TimeUtils.convertLocalToUTC(timeToValidate, t.timezone);

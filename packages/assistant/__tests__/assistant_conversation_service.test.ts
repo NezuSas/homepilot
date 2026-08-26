@@ -494,11 +494,12 @@ describe('AssistantConversationService', () => {
 
       const response = await service.converse({ prompt: 'crea una rutina para apagar cuarto master', userId: 'routine-user' }, 'es');
 
-      expect(mockDraftService.createAutomationDraft).toHaveBeenCalledWith(
+      expect(mockDraftService.createScheduledRoutineDraft).toHaveBeenCalledWith(
         'h1',
+        'r1',
         'Apagar Cuarto Master',
-        { type: 'time', value: '22:00' },
-        { devices: ['light-1'], command: 'turn_off' },
+        { type: 'time', timeLocal: '22:00', timezone: 'America/Guayaquil' },
+        [{ deviceId: 'light-1', command: { name: 'turn_off', params: {} } }],
         'draft:routine-user:crea una rutina para apagar cuarto master:r1'
       );
       expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
@@ -532,11 +533,12 @@ describe('AssistantConversationService', () => {
 
       const response = await service.converse({ prompt: 'Crea una rutina llamada Buenas noches en Cuarto Master para apagar las luces a las 22:30', userId: 'routine-owner' }, 'es');
 
-      expect(mockDraftService.createAutomationDraft).toHaveBeenCalledWith(
+      expect(mockDraftService.createScheduledRoutineDraft).toHaveBeenCalledWith(
         'h1',
+        'r1',
         'Buenas noches',
-        { type: 'time', value: '22:30' },
-        { devices: ['light-1'], command: 'turn_off' },
+        { type: 'time', timeLocal: '22:30', timezone: 'America/Guayaquil' },
+        [{ deviceId: 'light-1', command: { name: 'turn_off', params: {} } }],
         'draft:routine-owner:crea una rutina llamada buenas noches en cuarto master para apagar las luces a las 22:30:r1'
       );
       expect(response).toEqual(expect.objectContaining({
@@ -546,6 +548,278 @@ describe('AssistantConversationService', () => {
       expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
     });
 
+    it('Scenario: Given an English routine at 10 PM When the room and action are valid Then uses 22:00 in the configured timezone', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-1', name: 'Bedroom Light', type: 'light', roomId: 'r1', homeId: 'h1' })
+      ]);
+
+      await service.converse({ prompt: 'Create a routine called Rest in Cuarto Master to turn off the lights at 10 PM', userId: 'routine-owner' }, 'en');
+
+      expect(mockDraftService.createScheduledRoutineDraft).toHaveBeenCalledWith(
+        'h1',
+        'r1',
+        'Rest',
+        { type: 'time', timeLocal: '22:00', timezone: 'America/Guayaquil' },
+        [{ deviceId: 'light-1', command: { name: 'turn_off', params: {} } }],
+        'draft:routine-owner:create a routine called rest in cuarto master to turn off the lights at 10 pm:r1'
+      );
+    });
+
+    it('Scenario: Given a daily Spanish routine When it is prepared Then keeps every weekday in the local rule and says so before confirmation', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-1', name: 'Luz Cuarto', type: 'light', roomId: 'r1', homeId: 'h1' })
+      ]);
+
+      const response = await service.converse({ prompt: 'Crea una rutina llamada Noche en Cuarto Master para apagar las luces todos los días a las 22:00', userId: 'daily-owner' }, 'es');
+
+      expect(mockDraftService.createScheduledRoutineDraft).toHaveBeenCalledWith(
+        'h1', 'r1', 'Noche',
+        { type: 'time', timeLocal: '22:00', timezone: 'America/Guayaquil', days: [0, 1, 2, 3, 4, 5, 6] },
+        [{ deviceId: 'light-1', command: { name: 'turn_off', params: {} } }],
+        'draft:daily-owner:crea una rutina llamada noche en cuarto master para apagar las luces todos los dias a las 22:00:r1'
+      );
+      expect(response.message).toContain('todos los días');
+    });
+
+    it('Scenario: Given an English weekday routine When it is prepared Then limits its local rule to Monday through Friday and says so before confirmation', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-1', name: 'Bedroom Light', type: 'light', roomId: 'r1', homeId: 'h1' })
+      ]);
+
+      const response = await service.converse({ prompt: 'Create a routine called Workdays in Cuarto Master to turn off the lights at 10 PM on weekdays', userId: 'weekday-owner' }, 'en');
+
+      expect(mockDraftService.createScheduledRoutineDraft).toHaveBeenCalledWith(
+        'h1', 'r1', 'Workdays',
+        { type: 'time', timeLocal: '22:00', timezone: 'America/Guayaquil', days: [1, 2, 3, 4, 5] },
+        [{ deviceId: 'light-1', command: { name: 'turn_off', params: {} } }],
+        'draft:weekday-owner:create a routine called workdays in cuarto master to turn off the lights at 10 pm on weekdays:r1'
+      );
+      expect(response.message).toContain('on weekdays');
+    });
+    it('Scenario: Given Spanish and English conditional routines When both device names are authorized Then prepares a confirmable automation draft without dispatching', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'source-light', name: 'Luz Sala', type: 'light', roomId: 'r1', homeId: 'h1' }),
+        createTestDevice({ id: 'target-light', name: 'Luz Entrada', type: 'light', roomId: 'r1', homeId: 'h1' }),
+        createTestDevice({ id: 'desk-lamp', name: 'Desk Lamp', type: 'light', roomId: 'r1', homeId: 'h1' }),
+        createTestDevice({ id: 'hall-light', name: 'Hall Light', type: 'light', roomId: 'r1', homeId: 'h1' })
+      ]);
+
+      const spanish = await service.converse({ prompt: 'Cuando se encienda Luz Sala, apaga Luz Entrada', userId: 'conditional-es' }, 'es');
+      expect(mockDraftService.createAutomationDraft).toHaveBeenLastCalledWith(
+        'h1', 'Cuando Luz Sala se encienda, apagar Luz Entrada',
+        { type: 'device_state_changed', deviceId: 'source-light', stateKey: 'state', expectedValue: 'on' },
+        { type: 'device_command', targetDeviceId: 'target-light', command: 'turn_off' },
+        'conditional:conditional-es:source-light:on:target-light:turn_off'
+      );
+      expect(spanish).toEqual(expect.objectContaining({ type: 'clarification' }));
+
+      const english = await service.converse({ prompt: 'When Desk Lamp turns off, turn on Hall Light', userId: 'conditional-en' }, 'en');
+      expect(mockDraftService.createAutomationDraft).toHaveBeenLastCalledWith(
+        'h1', 'When Desk Lamp turns off, turn on Hall Light',
+        { type: 'device_state_changed', deviceId: 'desk-lamp', stateKey: 'state', expectedValue: 'off' },
+        { type: 'device_command', targetDeviceId: 'hall-light', command: 'turn_on' },
+        'conditional:conditional-en:desk-lamp:off:hall-light:turn_on'
+      );
+      expect(english).toEqual(expect.objectContaining({ type: 'clarification' }));
+      expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('Scenario: Given the same device as condition and target When a conditional routine is requested Then rejects the unsafe loop before creating a draft', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'light-1', name: 'Luz Sala', type: 'light', roomId: 'r1', homeId: 'h1' })
+      ]);
+
+      const response = await service.converse({ prompt: 'Cuando se encienda Luz Sala, apaga Luz Sala', userId: 'conditional-loop' }, 'es');
+
+      expect(response).toEqual({ type: 'answer', message: 'El dispositivo disparador y el dispositivo objetivo deben ser distintos.' });
+      expect(mockDraftService.createAutomationDraft).not.toHaveBeenCalled();
+    });
+    it('Scenario: Given a Spanish relative timer When the room and action are valid Then prepares a one-shot local routine before activation', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-08-25T15:00:00.000Z'));
+      try {
+        mockDeviceRepo.findAll.mockResolvedValue([
+          createTestDevice({ id: 'light-1', name: 'Luz Sala', type: 'light', roomId: 'r1', homeId: 'h1' })
+        ]);
+
+        const response = await service.converse({ prompt: 'Apaga las luces de Cuarto Master en 30 minutos', userId: 'timer-owner' }, 'es');
+
+        expect(mockDraftService.createScheduledRoutineDraft).toHaveBeenCalledWith(
+          'h1', 'r1', 'Temporizador apagar Cuarto Master',
+          { type: 'time', timeLocal: '10:30', timezone: 'America/Guayaquil', dateLocal: '2026-08-25' },
+          [{ deviceId: 'light-1', command: { name: 'turn_off', params: {} } }],
+          'timer:timer-owner:apaga las luces de cuarto master en 30 minutos:r1'
+        );
+        expect(response).toEqual(expect.objectContaining({ type: 'clarification', message: expect.stringContaining('en 30 minutos') }));
+        expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('Scenario: Given an English relative timer When the room and action are valid Then prepares it in English before activation', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-08-25T15:00:00.000Z'));
+      try {
+        mockDeviceRepo.findAll.mockResolvedValue([
+          createTestDevice({ id: 'light-1', name: 'Bedroom Light', type: 'light', roomId: 'r1', homeId: 'h1' })
+        ]);
+
+        const response = await service.converse({ prompt: 'Turn off the Cuarto Master lights in 1 hour', userId: 'timer-owner-en' }, 'en');
+
+        expect(mockDraftService.createScheduledRoutineDraft).toHaveBeenCalledWith(
+          'h1', 'r1', 'Turn off Cuarto Master timer',
+          { type: 'time', timeLocal: '11:00', timezone: 'America/Guayaquil', dateLocal: '2026-08-25' },
+          [{ deviceId: 'light-1', command: { name: 'turn_off', params: {} } }],
+          'timer:timer-owner-en:turn off the cuarto master lights in 1 hour:r1'
+        );
+        expect(response.message).toContain('in 1 hour');
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+    it('Scenario: Given natural Spanish and English timer delays When the room and action are valid Then prepares the equivalent local one-shot timers', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-08-25T15:00:00.000Z'));
+      try {
+        mockDeviceRepo.findAll.mockResolvedValue([
+          createTestDevice({ id: 'light-1', name: 'Luz Sala', type: 'light', roomId: 'r1', homeId: 'h1' })
+        ]);
+
+        await service.converse({ prompt: 'Apaga las luces de Cuarto Master en media hora', userId: 'timer-natural-es' }, 'es');
+        expect(mockDraftService.createScheduledRoutineDraft).toHaveBeenLastCalledWith(
+          'h1', 'r1', 'Temporizador apagar Cuarto Master',
+          { type: 'time', timeLocal: '10:30', timezone: 'America/Guayaquil', dateLocal: '2026-08-25' },
+          [{ deviceId: 'light-1', command: { name: 'turn_off', params: {} } }],
+          'timer:timer-natural-es:apaga las luces de cuarto master en media hora:r1'
+        );
+
+        await service.converse({ prompt: 'Turn off the Cuarto Master lights in an hour', userId: 'timer-natural-en' }, 'en');
+        expect(mockDraftService.createScheduledRoutineDraft).toHaveBeenLastCalledWith(
+          'h1', 'r1', 'Turn off Cuarto Master timer',
+          { type: 'time', timeLocal: '11:00', timezone: 'America/Guayaquil', dateLocal: '2026-08-25' },
+          [{ deviceId: 'light-1', command: { name: 'turn_off', params: {} } }],
+          'timer:timer-natural-en:turn off the cuarto master lights in an hour:r1'
+        );
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+    it('Scenario: Given a single authorized device name When a relative timer is requested Then prepares a one-shot rule for only that device in both languages', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-08-25T15:00:00.000Z'));
+      try {
+        mockDeviceRepo.findAll.mockResolvedValue([
+          createTestDevice({ id: 'tv-1', name: 'TV Smart', type: 'media_player', roomId: 'r1', homeId: 'h1', capabilities: [{ type: 'media_player', name: 'Media player' }] }),
+          createTestDevice({ id: 'lamp-1', name: 'Desk Lamp', type: 'light', roomId: 'r1', homeId: 'h1' })
+        ]);
+
+        await service.converse({ prompt: 'Apaga la TV Smart en una hora', userId: 'timer-device-es' }, 'es');
+        expect(mockDraftService.createScheduledRoutineDraft).toHaveBeenLastCalledWith(
+          'h1', 'r1', 'Temporizador apagar TV Smart',
+          { type: 'time', timeLocal: '11:00', timezone: 'America/Guayaquil', dateLocal: '2026-08-25' },
+          [{ deviceId: 'tv-1', command: { name: 'turn_off', params: {} } }],
+          'timer:timer-device-es:apaga la tv smart en una hora:r1'
+        );
+
+        await service.converse({ prompt: 'Turn off the Desk Lamp in 30 minutes', userId: 'timer-device-en' }, 'en');
+        expect(mockDraftService.createScheduledRoutineDraft).toHaveBeenLastCalledWith(
+          'h1', 'r1', 'Turn off Desk Lamp timer',
+          { type: 'time', timeLocal: '10:30', timezone: 'America/Guayaquil', dateLocal: '2026-08-25' },
+          [{ deviceId: 'lamp-1', command: { name: 'turn_off', params: {} } }],
+          'timer:timer-device-en:turn off the desk lamp in 30 minutes:r1'
+        );
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+    it('Scenario: Given pending, cancelled, expired and recurring rules When timers are requested in Spanish Then lists only pending one-shot timers with their remaining time', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-08-25T15:00:00.000Z'));
+      try {
+        mockAutomationRepo.findAll.mockResolvedValue([
+          {
+            id: 'pending-timer', homeId: 'h1', userId: 'timer-owner', name: 'Temporizador apagar Sala', enabled: true,
+            trigger: { type: 'time', timeLocal: '10:30', timeUTC: '15:30', timezone: 'America/Guayaquil', dateLocal: '2026-08-25' },
+            action: { type: 'execute_scene', sceneId: 'scene-1' }
+          },
+          {
+            id: 'cancelled-timer', homeId: 'h1', userId: 'timer-owner', name: 'Temporizador cancelado', enabled: false,
+            trigger: { type: 'time', timeLocal: '10:45', timeUTC: '15:45', timezone: 'America/Guayaquil', dateLocal: '2026-08-25' },
+            action: { type: 'execute_scene', sceneId: 'scene-2' }
+          },
+          {
+            id: 'expired-timer', homeId: 'h1', userId: 'timer-owner', name: 'Temporizador vencido', enabled: true,
+            trigger: { type: 'time', timeLocal: '09:45', timeUTC: '14:45', timezone: 'America/Guayaquil', dateLocal: '2026-08-25' },
+            action: { type: 'execute_scene', sceneId: 'scene-3' }
+          },
+          {
+            id: 'daily-routine', homeId: 'h1', userId: 'timer-owner', name: 'Rutina diaria', enabled: true,
+            trigger: { type: 'time', timeLocal: '22:00', timeUTC: '03:00', timezone: 'America/Guayaquil', days: [0, 1, 2, 3, 4, 5, 6] },
+            action: { type: 'execute_scene', sceneId: 'scene-4' }
+          }
+        ]);
+
+        const response = await service.converse({ prompt: '¿Qué temporizadores tengo?', userId: 'timer-owner' }, 'es');
+
+        expect(response).toEqual(expect.objectContaining({ type: 'answer', message: expect.stringContaining('Temporizador apagar Sala') }));
+        expect(response.message).toContain('faltan 30 minutos');
+        expect(response.message).not.toContain('Temporizador cancelado');
+        expect(response.message).not.toContain('Temporizador vencido');
+        expect(response.message).not.toContain('Rutina diaria');
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('Scenario: Given a pending Spanish timer When its delay is changed and confirmed Then updates only its local schedule', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-08-25T15:00:00.000Z'));
+      try {
+        const timer = {
+          id: 'pending-timer', homeId: 'h1', userId: 'timer-reschedule', name: 'Temporizador apagar Sala', enabled: true,
+          trigger: { type: 'time' as const, timeLocal: '10:30', timeUTC: '15:30', timezone: 'America/Guayaquil', dateLocal: '2026-08-25' },
+          action: { type: 'execute_scene' as const, sceneId: 'scene-1' }
+        };
+        mockAutomationRepo.findAll.mockResolvedValue([timer]);
+
+        const clarification = await service.converse({ prompt: 'Cambia el temporizador Temporizador apagar Sala a 45 minutos', userId: 'timer-reschedule' }, 'es');
+
+        expect(clarification).toEqual(expect.objectContaining({ type: 'clarification', message: expect.stringContaining('10:45') }));
+        const pendingMemory = mockMemory.saveShortTermMemory.mock.calls.find(([savedUserId]) => savedUserId === 'timer-reschedule')?.[1];
+        expect(pendingMemory?.pendingManagementAction).toEqual(expect.objectContaining({
+          type: 'reschedule_timer', targetId: 'pending-timer', payload: expect.objectContaining({ dateLocal: '2026-08-25', timeLocal: '10:45', timeUTC: '15:45' })
+        }));
+
+        mockMemory.getShortTermMemory.mockResolvedValue(pendingMemory ?? null);
+        const completed = await service.converse({ prompt: 'sí', userId: 'timer-reschedule' }, 'es');
+
+        expect(mockAutomationRepo.save).toHaveBeenCalledWith(expect.objectContaining({
+          id: 'pending-timer', enabled: true,
+          trigger: expect.objectContaining({ dateLocal: '2026-08-25', timeLocal: '10:45', timeUTC: '15:45', timezone: 'America/Guayaquil' })
+        }));
+        expect(completed).toEqual({ type: 'answer', message: 'Temporizador "Temporizador apagar Sala" reprogramado para las 10:45.' });
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('Scenario: Given a pending English timer When it is rescheduled Then it asks for confirmation before updating it', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-08-25T15:00:00.000Z'));
+      try {
+        mockAutomationRepo.findAll.mockResolvedValue([{
+          id: 'desk-timer', homeId: 'h1', userId: 'timer-reschedule-en', name: 'Turn off Desk Lamp', enabled: true,
+          trigger: { type: 'time', timeLocal: '10:30', timeUTC: '15:30', timezone: 'America/Guayaquil', dateLocal: '2026-08-25' },
+          action: { type: 'execute_scene', sceneId: 'scene-1' }
+        }]);
+
+        const response = await service.converse({ prompt: 'Reschedule Turn off Desk Lamp timer to 1 hour', userId: 'timer-reschedule-en' }, 'en');
+
+        expect(response).toEqual(expect.objectContaining({ type: 'clarification', message: expect.stringContaining('11:00') }));
+        expect(mockAutomationRepo.save).not.toHaveBeenCalled();
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+    it('Scenario: Given no pending one-shot timers When timers are requested in English Then explains that none are active', async () => {
+      const response = await service.converse({ prompt: 'What timers do I have?', userId: 'timer-owner-en' }, 'en');
+
+      expect(response).toEqual({ type: 'answer', message: "You don't have any active timers." });
+    });
     it('Scenario: Given incomplete named requests When an action or routine time is missing Then asks for the missing safety-critical detail', async () => {
       const sceneResponse = await service.converse({ prompt: 'Crea una escena llamada Cine en Cuarto Master', userId: 'draft-owner' }, 'es');
       const routineResponse = await service.converse({ prompt: 'Crea una rutina llamada Noche en Cuarto Master para apagar las luces', userId: 'draft-owner' }, 'es');

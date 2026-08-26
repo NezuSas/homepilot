@@ -1,3 +1,4 @@
+import { DateTime } from 'luxon';
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { RoomRepository } from '../../topology/domain/repositories/RoomRepository';
 import { HomeRepository } from '../../topology/domain/repositories/HomeRepository';
@@ -442,6 +443,11 @@ export class AssistantConversationService {
       if (roomCoverResponse) return roomCoverResponse;
     }
 
+    const conditionalRoutineResponse = await this.handleConditionalRoutineRequest(normalized, language, userId, prompt);
+    if (conditionalRoutineResponse) return conditionalRoutineResponse;
+    const relativeTimerResponse = await this.handleRelativeTimerRequest(normalized, language, userId, prompt);
+    if (relativeTimerResponse) return relativeTimerResponse;
+
     const mediaPlayerResponse = await this.handleMediaPlayerRequest(normalized, userId, language, prompt, memory);
     if (mediaPlayerResponse) return mediaPlayerResponse;
 
@@ -507,6 +513,7 @@ export class AssistantConversationService {
     if (this.isStateQuery(resolvedNormalized)) return await this.handleStateQuery(resolvedNormalized, language, userName, userId, followUp.referencesMemory ? memory?.entities : undefined, request.sourceRoomId);
     if (this.isManagementIntent(resolvedNormalized)) return await this.handleManagementIntent(resolvedNormalized, userId, language);
     if (this.isListScenesIntent(resolvedNormalized)) return await this.handleListScenes(language, userId);
+    if (this.isListTimersIntent(resolvedNormalized)) return await this.handleListTimers(language, userId);
     if (this.isListAutomationsIntent(resolvedNormalized)) return await this.handleListAutomations(language, userId);
     if (this.isDetailFollowUp(resolvedNormalized) && memory?.lastQueryType === 'state_devices' && memory.entities && memory.entities.length > 0) return await this.handleDetailFollowUp(memory, language, userId);
 
@@ -1144,7 +1151,7 @@ export class AssistantConversationService {
     const draftTerm = isScene
       ? '(?:escena|modo|scene|mode)'
       : '(?:rutina|automatizacion|automation|routine)';
-    const match = new RegExp(`${draftTerm}\\s+(?:llamada|llamado|named|called)\\s+(.+?)(?=\\s+(?:en|para|a las|at)\\s+|$)`, 'i').exec(prompt);
+    const match = new RegExp(`${draftTerm}\\s+(?:llamada|llamado|named|called)\\s+(.+?)(?=\\s+(?:en|para|a las|at|in|for|to)\\s+|$)`, 'i').exec(prompt);
     if (!match) return null;
 
     const name = match[1].trim().replace(/[.?!]+$/, '').trim();
@@ -1152,12 +1159,225 @@ export class AssistantConversationService {
   }
 
   private extractRoutineTime(prompt: string): string | null {
-    const match = /(?:a las|at)\s+([01]?\d|2[0-3])(?::([0-5]\d))?\b/i.exec(prompt);
+    const match = /(?:a las|at)\s+([01]?\d|2[0-3])(?::([0-5]\d))?\s*(a\.?\s*m\.?|p\.?\s*m\.?)?\b/i.exec(prompt);
     if (!match) return null;
 
-    return `${match[1].padStart(2, '0')}:${match[2] ?? '00'}`;
+    let hour = Number(match[1]);
+    const period = match[3]?.replace(/\./g, '').replace(/\s/g, '').toLowerCase();
+    if (period === 'pm' && hour < 12) hour += 12;
+    if (period === 'am' && hour === 12) hour = 0;
+
+    return `${String(hour).padStart(2, '0')}:${match[2] ?? '00'}`;
   }
 
+  private extractRoutineDays(prompt: string): number[] | undefined {
+    if (/(?:de lunes a viernes|entre semana|dias laborables|weekdays|on weekdays)/i.test(prompt)) {
+      return [1, 2, 3, 4, 5];
+    }
+
+    if (/(?:todos los dias|cada dia|diariamente|every day|daily)/i.test(prompt)) {
+      return [0, 1, 2, 3, 4, 5, 6];
+    }
+
+    return undefined;
+  }
+
+  private getRoutineScheduleLabel(days: number[] | undefined, language: string): string | undefined {
+    if (!days) return undefined;
+    if (days.length === 5 && days.every((day, index) => day === index + 1)) {
+      return language === 'en' ? 'on weekdays' : 'de lunes a viernes';
+    }
+    if (days.length === 7 && days.every((day, index) => day === index)) {
+      return language === 'en' ? 'every day' : 'todos los días';
+    }
+    return undefined;
+  }
+  private extractConditionalRoutineRequest(normalized: string): { sourceName: string; expectedValue: 'on' | 'off'; targetName: string; command: 'turn_on' | 'turn_off' } | null {
+    const spanish = /cuando\s+se\s+(encienda|apague)\s+(.+?),?\s+(?:enciende|apaga)\s+(.+)/i.exec(normalized);
+    if (spanish) {
+      return {
+        expectedValue: spanish[1].toLowerCase() === 'encienda' ? 'on' : 'off',
+        sourceName: spanish[2].trim(),
+        command: normalized.includes(' apaga ') ? 'turn_off' : 'turn_on',
+        targetName: spanish[3].trim(),
+      };
+    }
+    const english = /when\s+(.+?)\s+turns\s+(on|off),?\s+turn\s+(on|off)\s+(.+)/i.exec(normalized);
+    if (!english) return null;
+    return {
+      sourceName: english[1].trim(),
+      expectedValue: english[2].toLowerCase() === 'on' ? 'on' : 'off',
+      command: english[3].toLowerCase() === 'on' ? 'turn_on' : 'turn_off',
+      targetName: english[4].trim(),
+    };
+  }
+
+  private normalizeConditionalDeviceReference(value: string): string {
+    return normalizeAssistantPrompt(value).replace(/^(?:la|el|los|las|the)\s+/, '').trim();
+  }
+
+  private async handleConditionalRoutineRequest(normalized: string, language: string, userId: string, originalPrompt: string): Promise<AssistantConversationResponse | null> {
+    const request = this.extractConditionalRoutineRequest(normalized);
+    if (!request) return null;
+
+    const devices = await this.permissionGate.getAuthorizedDevices(userId);
+    const sourceReference = this.normalizeConditionalDeviceReference(request.sourceName);
+    const targetReference = this.normalizeConditionalDeviceReference(request.targetName);
+    const sourceMatches = devices.filter((device) => normalizeAssistantPrompt(device.name) === sourceReference);
+    const targetMatches = devices.filter((device) => normalizeAssistantPrompt(device.name) === targetReference);
+    if (sourceMatches.length !== 1 || targetMatches.length !== 1) {
+      return { type: 'answer', message: language === 'en' ? 'Use the exact names of one trigger device and one target device for that routine.' : 'Usa los nombres exactos de un dispositivo disparador y un dispositivo objetivo para esa rutina.' };
+    }
+
+    const source = sourceMatches[0];
+    const target = targetMatches[0];
+    if (source.id === target.id) {
+      return { type: 'answer', message: language === 'en' ? 'The trigger device and target device must be different.' : 'El dispositivo disparador y el dispositivo objetivo deben ser distintos.' };
+    }
+    if (source.homeId !== target.homeId) {
+      return { type: 'answer', message: language === 'en' ? 'Both devices must belong to the same home.' : 'Los dos dispositivos deben pertenecer al mismo hogar.' };
+    }
+    if (!this.scopeFilter.isControllableDevice(target, request.command)) {
+      return { type: 'answer', message: language === 'en' ? `I cannot ${request.command === 'turn_on' ? 'turn on' : 'turn off'} "${target.name}".` : `No puedo ${request.command === 'turn_on' ? 'encender' : 'apagar'} "${target.name}".` };
+    }
+
+    const actionLabel = language === 'en'
+      ? `${request.command === 'turn_on' ? 'turn on' : 'turn off'} ${target.name}`
+      : `${request.command === 'turn_on' ? 'encender' : 'apagar'} ${target.name}`;
+    const name = language === 'en'
+      ? `When ${source.name} turns ${request.expectedValue}, ${actionLabel}`
+      : `Cuando ${source.name} se ${request.expectedValue === 'on' ? 'encienda' : 'apague'}, ${actionLabel}`;
+    const draft = await this.draftService.createAutomationDraft(
+      source.homeId,
+      name,
+      { type: 'device_state_changed', deviceId: source.id, stateKey: 'state', expectedValue: request.expectedValue },
+      { type: 'device_command', targetDeviceId: target.id, command: request.command },
+      `conditional:${userId}:${source.id}:${request.expectedValue}:${target.id}:${request.command}`,
+    );
+    await this.memoryService.saveShortTermMemory(userId, {
+      lastQueryType: 'draft_creation',
+      entities: [source, target].map((device) => ({ id: device.id, name: device.name, type: device.type, roomId: device.roomId })),
+      timestamp: new Date().toISOString(),
+      pendingDraft: { id: draft.id, type: 'automation', originalPrompt },
+    });
+    return {
+      type: 'clarification',
+      message: language === 'en' ? `I prepared the routine "${name}". Do you want to activate it?` : `Preparé la rutina "${name}". ¿Quieres activarla?`,
+      clarification: {
+        question: language === 'en' ? 'Do you want to activate it?' : '¿Quieres activarla?',
+        options: [
+          { id: 'confirm', label: language === 'en' ? 'Yes, activate' : 'Sí, activar', kind: 'scene' },
+          { id: 'cancel', label: language === 'en' ? 'No, cancel' : 'No, cancelar', kind: 'scene' },
+        ],
+      },
+    };
+  }
+  private extractRelativeTimerDelaySeconds(prompt: string): number | null {
+    const naturalDelays: Array<readonly [RegExp, number]> = [
+      [/(?:en|dentro de)\s+media\s+hora\b/i, 30 * 60],
+      [/^media\s+hora\b/i, 30 * 60],
+      [/\bin\s+(?:a\s+)?half\s+(?:an?\s+)?hour\b/i, 30 * 60],
+      [/^(?:a\s+)?half\s+(?:an?\s+)?hour\b/i, 30 * 60],
+      [/(?:en|dentro de)\s+una\s+hora\b/i, 60 * 60],
+      [/^una\s+hora\b/i, 60 * 60],
+      [/\bin\s+an?\s+hour\b/i, 60 * 60],
+      [/^an?\s+hour\b/i, 60 * 60],
+    ];
+    const naturalDelay = naturalDelays.find(([pattern]) => pattern.test(prompt));
+    if (naturalDelay) return naturalDelay[1];
+
+    const match = /(?:^|(?:en|dentro de|in)\s+)(\d+)\s*(minutos?|mins?|minutes?|hours?|horas?|hrs?)/i.exec(prompt.trim());
+    if (!match) return null;
+
+    const amount = Number(match[1]);
+    if (!Number.isInteger(amount) || amount <= 0) return null;
+    return /^(horas?|hours?|hrs?)$/.test(match[2].toLowerCase()) ? amount * 3600 : amount * 60;
+  }
+
+  private async handleRelativeTimerRequest(normalized: string, language: string, userId: string, originalPrompt: string): Promise<AssistantConversationResponse | null> {
+    const delaySeconds = this.extractRelativeTimerDelaySeconds(normalized);
+    const inferred = this.inferCommandFromPrompt(normalized);
+    const command = inferred === 'turn_on' || inferred === 'turn_off' ? inferred : null;
+    if (!delaySeconds || !command) return null;
+
+    const [devices, allRooms, aliases] = await Promise.all([
+      this.permissionGate.getAuthorizedDevices(userId),
+      this.permissionGate.getAuthorizedRooms(userId),
+      this.memoryService.getAliases(userId),
+    ]);
+    const namedDevices = devices.filter((device) => normalized.includes(normalizeAssistantPrompt(device.name)));
+    if (namedDevices.length > 1) {
+      return { type: 'answer', message: language === 'en' ? 'I found more than one device matching that timer. Please use its full name.' : 'Encontré más de un dispositivo para ese temporizador. Indícame su nombre completo.' };
+    }
+
+    let selectedRoom: Room;
+    let controllableDevices: Device[];
+    let targetName: string;
+    if (namedDevices.length === 1) {
+      const device = namedDevices[0];
+      const room = allRooms.find((candidate) => candidate.id === device.roomId);
+      if (!room) {
+        return { type: 'answer', message: language === 'en' ? `I found "${device.name}", but it must be assigned to a room before scheduling it.` : `Encontré "${device.name}", pero debe estar asignado a una estancia antes de programarlo.` };
+      }
+      if (!this.scopeFilter.isControllableDevice(device, command)) {
+        return { type: 'answer', message: language === 'en' ? `I cannot ${command === 'turn_on' ? 'turn on' : 'turn off'} "${device.name}".` : `No puedo ${command === 'turn_on' ? 'encender' : 'apagar'} "${device.name}".` };
+      }
+      selectedRoom = room;
+      controllableDevices = [device];
+      targetName = device.name;
+    } else {
+      const resolution = this.resolveRoomAlias(normalized, allRooms, devices, userId, aliases);
+      if (resolution.status !== 'resolved' || resolution.rooms.length === 0) {
+        return { type: 'answer', message: language === 'en' ? 'To create the timer, tell me which room or device it applies to.' : 'Para crear el temporizador, indícame la estancia o el dispositivo.' };
+      }
+
+      selectedRoom = resolution.rooms[0];
+      controllableDevices = devices.filter((device: Device) => device.roomId === selectedRoom.id && this.scopeFilter.isControllableDevice(device, command));
+      if (controllableDevices.length === 0) {
+        return { type: 'answer', message: language === 'en' ? `I found "${selectedRoom.name}", but it has no controllable lights, switches, or outlets.` : `Encontré "${selectedRoom.name}", pero no tiene luces, interruptores o enchufes controlables.` };
+      }
+      targetName = selectedRoom.name;
+    }
+
+    const homeId = selectedRoom.homeId || controllableDevices[0]?.homeId;
+    if (!homeId) return { type: 'answer', message: language === 'en' ? "I couldn't determine the home for the timer." : 'No pude determinar el hogar para el temporizador.' };
+
+    const timezone = await this.systemVariableService.getSystemTimezone();
+    const scheduledAt = DateTime.now().setZone(timezone).plus({ seconds: delaySeconds });
+    const dateLocal = scheduledAt.toISODate();
+    if (!scheduledAt.isValid || !dateLocal) return { type: 'error', message: language === 'en' ? 'I could not calculate the timer schedule.' : 'No pude calcular el horario del temporizador.' };
+
+    const amount = delaySeconds % 3600 === 0 ? delaySeconds / 3600 : delaySeconds / 60;
+    const isHour = delaySeconds % 3600 === 0;
+    const scheduleLabel = language === 'en'
+      ? `in ${amount} ${isHour ? (amount === 1 ? 'hour' : 'hours') : (amount === 1 ? 'minute' : 'minutes')}`
+      : `en ${amount} ${isHour ? (amount === 1 ? 'hora' : 'horas') : (amount === 1 ? 'minuto' : 'minutos')}`;
+    const draftName = language === 'en' ? `${command === 'turn_on' ? 'Turn on' : 'Turn off'} ${targetName} timer` : `Temporizador ${command === 'turn_on' ? 'encender' : 'apagar'} ${targetName}`;
+    const actions = controllableDevices.map((device: Device) => ({ deviceId: device.id, command: { name: command, params: {} } }));
+    const draft = await this.draftService.createScheduledRoutineDraft(
+      homeId, selectedRoom.id, draftName,
+      { type: 'time', timeLocal: scheduledAt.toFormat('HH:mm'), timezone, dateLocal },
+      actions, `timer:${userId}:${normalized}:${selectedRoom.id}`,
+    );
+
+    await this.memoryService.saveShortTermMemory(userId, {
+      lastQueryType: 'draft_creation',
+      entities: controllableDevices.map((device: Device) => ({ id: device.id, name: device.name, type: device.type, roomId: device.roomId })),
+      timestamp: new Date().toISOString(),
+      pendingDraft: { id: draft.id, type: 'automation', originalPrompt },
+    });
+    return {
+      type: 'clarification',
+      message: getAssistantResponseText('draft.prepared', language, { draftType: 'routine', name: draftName, command, count: controllableDevices.length, roomName: selectedRoom.name, time: scheduledAt.toFormat('HH:mm'), schedule: scheduleLabel }),
+      clarification: {
+        question: language === 'en' ? 'Do you want to activate it?' : '¿Quieres activarlo?',
+        options: [
+          { id: 'confirm', label: language === 'en' ? 'Yes, activate' : 'Sí, activar', kind: 'scene' },
+          { id: 'cancel', label: language === 'en' ? 'No, cancel' : 'No, cancelar', kind: 'scene' },
+        ],
+      },
+    };
+  }
   private async handleDraftCreation(
     normalized: string,
     language: string,
@@ -1176,6 +1396,7 @@ export class AssistantConversationService {
       }
 
       const routineTime = isScene ? null : this.extractRoutineTime(normalized);
+      const routineDays = isScene ? undefined : this.extractRoutineDays(normalized);
       if (requestedName && !isScene && !routineTime) {
         return { type: 'answer', message: getAssistantResponseText('draft.time_required', language, {}) };
       }
@@ -1249,11 +1470,17 @@ export class AssistantConversationService {
         const draft = await this.draftService.createSceneDraft(homeId, selectedRoom.id, draftName, actions, fingerprint);
         draftId = draft.id;
       } else {
-        const draft = await this.draftService.createAutomationDraft(
+        const timezone = await this.systemVariableService.getSystemTimezone();
+        const actions = controllableDevices.map((device: Device) => ({
+          deviceId: device.id,
+          command: { name: command, params: {} },
+        }));
+        const draft = await this.draftService.createScheduledRoutineDraft(
           homeId,
+          selectedRoom.id,
           draftName,
-          { type: 'time', value: routineTime ?? '22:00' },
-          { devices: controllableDevices.map((device: Device) => device.id), command },
+          { type: 'time', timeLocal: routineTime ?? '22:00', timezone, ...(routineDays ? { days: routineDays } : {}) },
+          actions,
           fingerprint,
         );
         draftId = draft.id;
@@ -1279,6 +1506,7 @@ export class AssistantConversationService {
           count: controllableDevices.length,
           roomName: selectedRoom.name,
           time: isScene ? undefined : (routineTime ?? '22:00'),
+          schedule: isScene ? undefined : this.getRoutineScheduleLabel(routineDays, language),
         }),
         clarification: {
           question: language === 'en' ? 'Do you want to activate it?' : '¿Quieres activarla?',
@@ -3317,6 +3545,51 @@ export class AssistantConversationService {
     };
   }
 
+  private isListTimersIntent(normalized: string): boolean {
+    const isTimerQuery = normalized.includes('temporizador') || normalized.includes('timer');
+    const isListQuery = ['que', 'cuales', 'lista', 'muestra', 'show', 'list', 'what'].some((keyword) => normalized.includes(keyword));
+    return isTimerQuery && isListQuery;
+  }
+
+  private formatTimerRemaining(remainingSeconds: number, language: string): string {
+    const totalMinutes = Math.max(1, Math.ceil(remainingSeconds / 60));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (language === 'en') {
+      if (hours === 0) return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
+      if (minutes === 0) return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+      return `${hours} ${hours === 1 ? 'hour' : 'hours'} and ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
+    }
+    if (hours === 0) return `${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`;
+    if (minutes === 0) return `${hours} ${hours === 1 ? 'hora' : 'horas'}`;
+    return `${hours} ${hours === 1 ? 'hora' : 'horas'} y ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`;
+  }
+
+  private async handleListTimers(language: string, userId: string): Promise<AssistantConversationResponse> {
+    const now = DateTime.now();
+    const timers = (await this.permissionGate.getAuthorizedAutomations(userId)).flatMap((automation) => {
+      if (!automation.enabled || automation.trigger.type !== 'time' || !automation.trigger.dateLocal) return [];
+      const scheduledAt = DateTime.fromFormat(
+        `${automation.trigger.dateLocal} ${automation.trigger.timeLocal}`,
+        'yyyy-MM-dd HH:mm',
+        { zone: automation.trigger.timezone }
+      );
+      if (!scheduledAt.isValid || scheduledAt.toMillis() <= now.toMillis()) return [];
+      return [{ automation, scheduledAt }];
+    });
+
+    if (timers.length === 0) {
+      return { type: 'answer', message: getAssistantResponseText('listing.timers_empty', language, {}) };
+    }
+
+    const list = timers.map(({ automation, scheduledAt }) => {
+      const remaining = this.formatTimerRemaining(scheduledAt.diff(now, 'seconds').seconds, language);
+      return language === 'en'
+        ? `• ${automation.name} — ${remaining} remaining`
+        : `• ${automation.name} — faltan ${remaining}`;
+    }).join('\n');
+    return { type: 'answer', message: getAssistantResponseText('listing.timers', language, { list }) };
+  }
   private isListAutomationsIntent(normalized: string): boolean {
     return (normalized.includes('automatizaciones') || normalized.includes('rutinas') || normalized.includes('automations')) && (normalized.includes('que') || normalized.includes('lista') || normalized.includes('muestra') || normalized.includes('what') || normalized.includes('list'));
   }
@@ -3336,12 +3609,57 @@ export class AssistantConversationService {
   // --- MANAGEMENT ---
 
   private isManagementIntent(normalized: string): boolean {
-    const managementKeywords = ['renombra', 'cambia el nombre', 'rename', 'change name', 'activa', 'desactiva', 'pausa', 'resume', 'enable', 'disable', 'agrega', 'add', 'quita', 'remove', 'crea', 'create'];
+    const managementKeywords = ['renombra', 'cambia', 'rename', 'change name', 'reschedule', 'activa', 'desactiva', 'cancela', 'cancel', 'pausa', 'resume', 'enable', 'disable', 'agrega', 'add', 'quita', 'remove', 'crea', 'create'];
     return managementKeywords.some(kw => normalized.includes(kw)) &&
-           (normalized.includes('escena') || normalized.includes('automatizacion') || normalized.includes('rutina') || normalized.includes('scene') || normalized.includes('automation') || normalized.includes('routine') || normalized.includes('estancia') || normalized.includes('habitacion') || normalized.includes('cuarto') || normalized.includes('espacio') || normalized.includes('zona') || normalized.includes('room'));
+           (normalized.includes('escena') || normalized.includes('automatizacion') || normalized.includes('rutina') || normalized.includes('scene') || normalized.includes('automation') || normalized.includes('routine') || normalized.includes('temporizador') || normalized.includes('timer') || normalized.includes('estancia') || normalized.includes('habitacion') || normalized.includes('cuarto') || normalized.includes('espacio') || normalized.includes('zona') || normalized.includes('room'));
   }
 
   private async handleManagementIntent(normalized: string, userId: string, language: string, originalPrompt: string = normalized): Promise<AssistantConversationResponse> {
+    if (/(?:cancela|cancel)\s+(?:todos los|all)\s+(?:temporizadores|timers)/i.test(normalized)) {
+      const timers = (await this.permissionGate.getAuthorizedAutomations(userId)).filter((automation) => automation.enabled && automation.trigger.type === 'time' && Boolean(automation.trigger.dateLocal));
+      if (timers.length === 0) return { type: 'answer', message: getAssistantResponseText('listing.timers_empty', language, {}) };
+      await this.memoryService.saveShortTermMemory(userId, { lastQueryType: 'management_confirm', entities: [], timestamp: new Date().toISOString(), pendingManagementAction: { type: 'cancel_timers', targetId: '', targetName: 'timers', payload: { ids: timers.map((timer) => timer.id) }, timestamp: new Date().toISOString() } });
+      return { type: 'clarification', message: getAssistantResponseText('management.cancel_all_timers_confirmation', language, { count: timers.length }), clarification: { question: getAssistantResponseText('confirmation.confirm', language, {}), options: [{ id: 'confirm', label: getAssistantResponseText('confirmation.yes', language, {}), kind: 'device' }, { id: 'cancel', label: getAssistantResponseText('confirmation.no', language, {}), kind: 'device' }] } };
+    }
+    const rescheduleMatch = /(?:cambia|cambiar|change)\s+(?:el\s+|the\s+)?(?:temporizador|timer)\s+(.+?)\s+(?:a|to|en|in)\s+(.+)|reschedule\s+(?:the\s+)?(.+?)\s+timer\s+(?:to|in)\s+(.+)/i.exec(originalPrompt);
+    if (rescheduleMatch) {
+      const timerName = (rescheduleMatch[1] || rescheduleMatch[3]).trim();
+      const delaySeconds = this.extractRelativeTimerDelaySeconds(rescheduleMatch[2] || rescheduleMatch[4]);
+      if (!delaySeconds) {
+        return { type: 'answer', message: language === 'en' ? 'Tell me the new timer delay, for example "in 30 minutes".' : 'Indícame el nuevo retraso, por ejemplo "en 30 minutos".' };
+      }
+      const timers = (await this.permissionGate.getAuthorizedAutomations(userId)).filter((automation) => automation.enabled && automation.trigger.type === 'time' && Boolean(automation.trigger.dateLocal));
+      const timer = timers.find((automation) => normalizeAssistantPrompt(automation.name) === normalizeAssistantPrompt(timerName));
+      if (!timer || timer.trigger.type !== 'time') {
+        return { type: 'answer', message: language === 'en' ? `I couldn't find an active timer named "${timerName}".` : `No encontré un temporizador activo llamado "${timerName}".` };
+      }
+      const scheduledAt = DateTime.now().setZone(timer.trigger.timezone).plus({ seconds: delaySeconds });
+      const dateLocal = scheduledAt.toISODate();
+      if (!scheduledAt.isValid || !dateLocal) {
+        return { type: 'error', message: language === 'en' ? 'I could not calculate the new timer schedule.' : 'No pude calcular el nuevo horario del temporizador.' };
+      }
+      await this.memoryService.saveShortTermMemory(userId, {
+        lastQueryType: 'management_confirm', entities: [], timestamp: new Date().toISOString(),
+        pendingManagementAction: {
+          type: 'reschedule_timer', targetId: timer.id, targetName: timer.name,
+          payload: { dateLocal, timeLocal: scheduledAt.toFormat('HH:mm'), timeUTC: scheduledAt.toUTC().toFormat('HH:mm'), timezone: timer.trigger.timezone },
+          timestamp: new Date().toISOString()
+        }
+      });
+      const schedule = scheduledAt.toFormat('HH:mm');
+      return {
+        type: 'clarification',
+        message: language === 'en' ? `I will reschedule "${timer.name}" for ${schedule}. Please confirm.` : `Reprogramaré "${timer.name}" para las ${schedule}. ¿Confirmas?`,
+        clarification: {
+          question: getAssistantResponseText('confirmation.confirm', language, {}),
+          options: [
+            { id: 'confirm', label: getAssistantResponseText('confirmation.yes', language, {}), kind: 'device' },
+            { id: 'cancel', label: getAssistantResponseText('confirmation.no', language, {}), kind: 'device' }
+          ],
+          pendingAction: { originalPrompt: normalized }
+        }
+      };
+    }
     if (this.isRoomRenameIntent(normalized)) {
       const roomRename = this.extractRoomRenameRequest(originalPrompt);
       if (!roomRename) {
@@ -3499,7 +3817,7 @@ export class AssistantConversationService {
     }
 
     // 2. Toggle Automation
-    const toggleAutoMatch = normalized.match(/(activa|desactiva|enable|disable|activate|deactivate|pausa|resume) (?:la automatizacion|the automation|la rutina|the routine)? (.+)/i);
+    const toggleAutoMatch = normalized.match(/(activa|desactiva|cancela|cancel|enable|disable|activate|deactivate|pausa|resume) (?:la automatizacion|the automation|la rutina|the routine|el temporizador|the timer)? (.+)/i);
     if (toggleAutoMatch) {
       const actionStr = toggleAutoMatch[1].trim();
       const autoName = toggleAutoMatch[2].trim();
@@ -3719,6 +4037,29 @@ export class AssistantConversationService {
         }
       }
 
+      if (type === 'cancel_timers') {
+        const ids = Array.isArray(payload['ids']) ? payload['ids'].filter((id): id is string => typeof id === 'string') : [];
+        const timers = (await this.permissionGate.getAuthorizedAutomations(userId)).filter((automation) => ids.includes(automation.id) && automation.enabled && automation.trigger.type === 'time' && Boolean(automation.trigger.dateLocal));
+        await Promise.all(timers.map((timer) => this.automationRepository.save({ ...timer, enabled: false })));
+        await this.clearPendingAction(userId);
+        return { type: 'answer', message: language === 'en' ? `${timers.length} timer${timers.length === 1 ? '' : 's'} cancelled.` : `${timers.length} temporizador${timers.length === 1 ? '' : 'es'} cancelado${timers.length === 1 ? '' : 's'}.` };
+      }
+
+      if (type === 'reschedule_timer') {
+        const dateLocal = typeof payload['dateLocal'] === 'string' ? payload['dateLocal'] : undefined;
+        const timeLocal = typeof payload['timeLocal'] === 'string' ? payload['timeLocal'] : undefined;
+        const timeUTC = typeof payload['timeUTC'] === 'string' ? payload['timeUTC'] : undefined;
+        const timezone = typeof payload['timezone'] === 'string' ? payload['timezone'] : undefined;
+        if (!dateLocal || !timeLocal || !timeUTC || !timezone) throw new Error('INVALID_PAYLOAD: timer schedule is required');
+        const timer = (await this.permissionGate.getAuthorizedAutomations(userId)).find((automation) => automation.id === targetId && automation.enabled && automation.trigger.type === 'time' && Boolean(automation.trigger.dateLocal));
+        if (!timer || timer.trigger.type !== 'time') {
+          await this.clearPendingAction(userId);
+          return { type: 'answer', message: language === 'en' ? `I couldn't find an active timer named "${action.targetName}".` : `No encontré un temporizador activo llamado "${action.targetName}".` };
+        }
+        await this.automationRepository.save({ ...timer, trigger: { ...timer.trigger, dateLocal, timeLocal, timeUTC, timezone } });
+        await this.clearPendingAction(userId);
+        return { type: 'answer', message: language === 'en' ? `Timer "${timer.name}" rescheduled for ${timeLocal}.` : `Temporizador "${timer.name}" reprogramado para las ${timeLocal}.` };
+      }
       if (type === 'toggle_automation') {
         const enabled = typeof payload['enabled'] === 'boolean' ? payload['enabled'] : undefined;
         if (enabled === undefined) throw new Error('INVALID_PAYLOAD: enabled is required');

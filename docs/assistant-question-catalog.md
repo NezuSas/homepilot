@@ -521,7 +521,7 @@ Esta sección amplía el catálogo con intenciones distintas, no solo reformulac
 - **Ahora** — `Haz [estancia] acogedora`; propone opciones reales sin ejecutarlas sola.
 - **Ahora** — `¿Qué puedo hacer esta noche?`.
 - **Ahora** — `Crea una escena [nombre] para [acción]` con estancia y acción válidas.
-- **Ahora** — `Crea una rutina [nombre] a las [hora] para [acción]` con los datos completos.
+- **Ahora** — `Crea una rutina [nombre] a las [hora] para [acción]` con los datos completos, todos los días o de lunes a viernes.
 - **Parcial** — `Modo noche`; funciona si existe una escena llamada así, pero aún no es un modo de hogar de primera clase.
 - **Parcial** — `Modo cine`; funciona si está modelado como una escena.
 - **Pendiente** — `Estoy saliendo` para activar un conjunto de acciones y verificaciones de salida.
@@ -534,10 +534,11 @@ Esta sección amplía el catálogo con intenciones distintas, no solo reformulac
 
 ### 15.5 Automatizaciones por horario, evento y condición
 
-- **Parcial** — `Crea una rutina a las 22:00`; actualmente admite una acción y hora local concretas.
-- **Pendiente** — `Todos los días a las 22:00, apaga las luces de sala`.
-- **Pendiente** — `Solo de lunes a viernes, enciende la entrada a las 18:30`.
-- **Pendiente** — `Apaga la TV en 30 minutos`.
+- **Ahora** — `Crea una rutina llamada [nombre] en [estancia] para [acción] a las [hora]`; al confirmar crea una escena interna para los dispositivos controlables de la estancia y una regla horaria local. Puedes añadir `todos los días` o `de lunes a viernes`.
+- **Ahora** — `Todos los días a las 22:00, apaga las luces de sala`, expresado como una rutina con nombre, estancia y acción.
+- **Ahora** — `Solo de lunes a viernes, enciende la entrada a las 18:30`, expresado como una rutina con nombre, estancia y acción.
+- **Ahora** — `Apaga las luces de [estancia] en 30 minutos`, `Apaga las luces de [estancia] en media hora`, `Turn off the [room] lights in 1 hour` o `Turn off the [room] lights in an hour``; prepara un temporizador local de una sola ejecución y solicita confirmación. También puedes programar un dispositivo concreto: `Apaga la TV Smart en una hora` o `Turn off the Desk Lamp in 30 minutes`. Puedes consultarlos con `¿Qué temporizadores tengo?` o `What timers do I have?`; solo muestra los pendientes y cuánto falta. Puedes cancelarlo con `cancela el temporizador [nombre]` o `cancel the timer [name]`, cancelar todos con `cancela todos los temporizadores`, y mover uno pendiente con `cambia el temporizador [nombre] a 45 minutos` o `Reschedule [name] timer to 1 hour`; cada cambio pide confirmación.
+- **Ahora** — `Cuando se encienda [dispositivo], apaga [dispositivo]` o `When [device] turns off, turn on [device]`; prepara una rutina condicionada y solicita confirmación antes de activarla.
 - **Pendiente** — `Recuérdame cerrar la cortina a las 20:00`.
 - **Pendiente** — `Cuando llegue a casa, enciende la sala`.
 - **Pendiente** — `Cuando salga el último, apaga todo`.
@@ -786,6 +787,8 @@ Expected result: a named existing scene can be run. Recommendations list only ac
 - `Delete the Storage room`
 - `Create a scene called Night Mode to turn off the living room lights`
 - `Create a routine called Rest at 10 PM to turn off the TV`
+- `Create a routine called Workdays in Main Bedroom to turn off the lights at 10 PM on weekdays`
+- `Create a routine called Nightly in Main Bedroom to turn off the lights at 10 PM every day`
 - `Rename the Movie Mode scene to Family Movie`
 - `Add Reading Light to the Night Mode scene`
 - `Remove Reading Light from the Night Mode scene`

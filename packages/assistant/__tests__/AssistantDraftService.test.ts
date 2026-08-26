@@ -39,7 +39,7 @@ describe('AssistantDraftService', () => {
   it('creates typed drafts with stable payloads when no fingerprint exists', async () => {
     const { service, draftRepository } = createService();
 
-    const automation = await service.createAutomationDraft('home-1', 'Morning', { type: 'time' }, { type: 'device_command' }, 'automation-fp');
+    const automation = await service.createScheduledRoutineDraft('home-1', 'room-1', 'Morning', { type: 'time', timeLocal: '08:00', timezone: 'UTC' }, [{ deviceId: 'light-1', command: { name: 'turn_on', params: {} } }], 'automation-fp');
     const scene = await service.createSceneDraft('home-1', 'room-1', 'Movie', [{ deviceId: 'light-1' }], 'scene-fp');
 
     expect(automation).toEqual(expect.objectContaining({ id: 'draft-1', type: 'automation', status: 'draft', fingerprint: 'automation-fp' }));
@@ -48,7 +48,7 @@ describe('AssistantDraftService', () => {
   });
 
   it('activates automation and scene drafts once, and rejects missing drafts', async () => {
-    const automationDraft = { id: 'draft-1', type: 'automation', status: 'draft', payload: { homeId: 'home-1', name: 'Morning', trigger: { type: 'time' }, action: { type: 'device_command' } }, fingerprint: 'fp', createdAt: '2026-01-01T00:00:00.000Z' } as AssistantDraft;
+    const automationDraft = { id: 'draft-1', type: 'automation', status: 'draft', payload: { homeId: 'home-1', name: 'Morning', trigger: { type: 'time', timeLocal: '08:00', timezone: 'UTC', timeUTC: '' }, action: { type: 'device_command', targetDeviceId: 'light-1', command: 'turn_on' } }, fingerprint: 'fp', createdAt: '2026-01-01T00:00:00.000Z' } as AssistantDraft;
     const automation = createService({ draft: automationDraft });
     await automation.service.activateDraft('draft-1', 'user-1');
     expect(automation.automationRepository.save).toHaveBeenCalledWith(expect.objectContaining({ id: 'draft-1', homeId: 'home-1', userId: 'user-1', enabled: true }));
@@ -60,6 +60,49 @@ describe('AssistantDraftService', () => {
     expect(scene.sceneRepository.saveScene).toHaveBeenCalledWith(expect.objectContaining({ homeId: 'home-1', roomId: null, name: 'Movie' }));
 
     await expect(createService().service.activateDraft('missing', 'user-1')).rejects.toThrow('DRAFT_NOT_FOUND');
+  });
+
+  it('activates a scheduled routine as an internal scene and a valid time rule', async () => {
+    const routineDraft = {
+      id: 'routine-draft',
+      type: 'automation',
+      status: 'draft',
+      payload: {
+        homeId: 'home-1',
+        roomId: 'room-1',
+        name: 'Buenas noches',
+        trigger: { type: 'time', timeLocal: '22:30', timezone: 'UTC', days: [1, 2, 3, 4, 5] },
+        actions: [{ deviceId: 'light-1', command: { name: 'turn_off', params: {} } }]
+      },
+      fingerprint: 'routine-fp',
+      createdAt: '2026-01-01T00:00:00.000Z'
+    } as AssistantDraft;
+    const { service, sceneRepository, automationRepository, draftRepository } = createService({ draft: routineDraft });
+
+    await service.activateDraft('routine-draft', 'user-1');
+
+    expect(sceneRepository.saveScene).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'draft-1', homeId: 'home-1', roomId: 'room-1', name: 'Buenas noches',
+      actions: [{ deviceId: 'light-1', command: { name: 'turn_off', params: {} } }]
+    }));
+    expect(automationRepository.save).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'resource-1',
+      homeId: 'home-1',
+      userId: 'user-1',
+      trigger: { type: 'time', timeLocal: '22:30', timezone: 'UTC', timeUTC: '22:30', days: [1, 2, 3, 4, 5] },
+      action: { type: 'execute_scene', sceneId: 'draft-1' }
+    }));
+    expect(draftRepository.updateStatus).toHaveBeenCalledWith('routine-draft', 'active');
+  });
+
+  it('rejects malformed automation drafts before they can be activated', async () => {
+    const malformed = { id: 'bad', type: 'automation', status: 'draft', payload: { homeId: 'home-1', name: 'Bad', trigger: { type: 'time' }, action: { type: 'device_command' } }, fingerprint: 'bad-fp', createdAt: '2026-01-01T00:00:00.000Z' } as AssistantDraft;
+    const { service, automationRepository, sceneRepository, draftRepository } = createService({ draft: malformed });
+
+    await expect(service.activateDraft('bad', 'user-1')).rejects.toThrow('INVALID_AUTOMATION_DRAFT');
+    expect(automationRepository.save).not.toHaveBeenCalled();
+    expect(sceneRepository.saveScene).not.toHaveBeenCalled();
+    expect(draftRepository.updateStatus).not.toHaveBeenCalled();
   });
 
   it('does not activate an already-active draft twice', async () => {
