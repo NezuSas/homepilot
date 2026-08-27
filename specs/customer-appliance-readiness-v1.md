@@ -1,5 +1,7 @@
 # SPEC: Customer Appliance Readiness V1
 
+**Estado:** Implementado
+
 **Status:** In progress
 **Date:** 2026-08-26
 

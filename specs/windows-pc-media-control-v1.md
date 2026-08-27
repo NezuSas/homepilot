@@ -1,12 +1,15 @@
 # Control multimedia de PC Windows v1
 
+**Estado:** Implementado
+
 ## Objetivo
 
 Exponer una PC Windows que ya ejecuta HASS.Agent como un reproductor multimedia de Home Assistant, para que HomePilot pueda importar y controlar la sesión multimedia local.
 
 ## Alcance
 
-- Instalar y configurar la integración HASS.Agent compatible con la instancia local de Home Assistant.`r`n- Ejecutar un broker MQTT local, accesible solo desde esta PC y la red interna de Docker.
+- Instalar y configurar la integración HASS.Agent compatible con la instancia local de Home Assistant.
+- Ejecutar un broker MQTT local, accesible solo desde esta PC y la red interna de Docker.
 - Descubrir la PC como entidad `media_player` a través de HASS.Agent.
 - Importar la entidad existente a HomePilot para mostrar los metadatos y controles que Home Assistant publique: encendido/apagado, reproducción, pausa, pista anterior/siguiente y volumen.
 
@@ -18,7 +21,8 @@ Exponer una PC Windows que ya ejecuta HASS.Agent como un reproductor multimedia 
 
 ## Criterios de aceptación
 
-1. Home Assistant descubre la PC de HASS.Agent como un reproductor multimedia disponible.`r`n1.1. El broker MQTT no se expone a la red LAN; HASS.Agent se conecta mediante `localhost` y Home Assistant mediante la red interna de Docker.
+1. Home Assistant descubre la PC de HASS.Agent como un reproductor multimedia disponible.
+1.1. El broker MQTT no se expone a la red LAN; HASS.Agent se conecta mediante `localhost` y Home Assistant mediante la red interna de Docker.
 2. Con una sesión de YouTube activa en Edge, Home Assistant recibe el estado y los metadatos que HASS.Agent exponga.
 3. Los controles multimedia publicados por la entidad se ejecutan desde Home Assistant.
 4. La entidad puede importarse en HomePilot sin modificar contratos de API ni crear un store global.

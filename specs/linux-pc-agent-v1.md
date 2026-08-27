@@ -1,5 +1,7 @@
 # HomePilot Linux PC Agent v1
 
+**Estado:** Implementado
+
 ## Objective
 
 Provide a Linux user-session agent that exposes one local MPRIS media session as a Home Assistant media player through the existing HASS.Agent MQTT integration.

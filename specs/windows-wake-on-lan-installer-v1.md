@@ -1,5 +1,7 @@
 # Instalador de computadoras Wake-on-LAN v1
 
+**Estado:** Implementado
+
 ## Objetivo
 
 Permitir que un técnico configure desde terminal las computadoras que una mini-PC HomePilot siempre encendida podrá encender dentro de la LAN.
