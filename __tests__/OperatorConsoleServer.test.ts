@@ -14,7 +14,7 @@ import { Scene } from '../packages/devices/domain/Scene';
 describe('OperatorConsoleServer Integration Tests', () => {
   let server: OperatorConsoleServer;
   let container: BootstrapContainer;
-  const PORT = 3001;
+  const PORT = 3101;
   const DB_PATH = path.resolve(process.cwd(), 'test.api.db');
 
   beforeAll(async () => {

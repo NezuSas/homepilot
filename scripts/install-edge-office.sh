@@ -127,7 +127,7 @@ Opciones:
   --profile PERFIL      Selección técnica opcional: bridge_ha, native_only o ha_companion.
                        En una instalación nueva e interactiva el asistente pregunta
                        si el cliente ya usa Home Assistant y recomienda el camino.
-  --clean              Limpia solamente cache de build e imagenes Docker colgantes.
+  --clean              Elimina solo contenedores HomePilot que ya estén detenidos.
   --start              Construye e inicia los servicios de HomePilot al finalizar.
   --status             Consulta el estado actual sin crear, limpiar ni iniciar servicios.
   --wizard             Abre el checklist guiado para técnicos antes de preparar el appliance.
@@ -780,17 +780,16 @@ for port in 3000 8080 8088 8090 11434; do
 done
 
 if [[ "$clean" == true ]]; then
-  section "Limpieza segura de Docker"
-  if confirm "Se eliminaran solo cache de build e imagenes colgantes. Continuar?"; then
-    docker builder prune -f
-    docker image prune -f
-    ok "Limpieza segura terminada."
+  section "Limpieza acotada a HomePilot"
+  if confirm "Se retirarán solo contenedores detenidos del proyecto HomePilot. Continuar?"; then
+    docker compose -f "$compose_file" rm --force || true
+    ok "Limpieza acotada terminada; no se ejecutó ningún prune global de Docker."
     docker system df || true
   else
     warn "Limpieza omitida por el operador."
   fi
 else
-  warn "Limpieza no ejecutada. Usa --clean para habilitarla."
+  warn "Limpieza no ejecutada. Usa --clean para retirar solo contenedores detenidos de HomePilot."
 fi
 
 section "Configuración de entorno"

@@ -78,6 +78,16 @@ services:
       retries: 5
     restart: unless-stopped
 
+  homepilot-mqtt:
+    image: eclipse-mosquitto:2
+    container_name: homepilot-mqtt
+    ports:
+      - "127.0.0.1:1883:1883"
+    volumes:
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - homepilot-mqtt-credentials:/mosquitto/credentials:ro
+    restart: unless-stopped
+
   homepilot-tts:
     build:
       context: .
@@ -129,3 +139,6 @@ services:
 volumes:
   data:
   ha-config:
+  homepilot-mqtt-credentials:
+    name: homepilot-mqtt-credentials
+    external: true

@@ -18,6 +18,7 @@ remain the normative source for functional requirements and acceptance criteria.
 | `docs/codebase-audit-v1.md` | Evidence-based SDD, SOLID, documentation, and quality audit. |
 | `docs/command-reference.md` | Installation, operation, validation, maintenance, and diagnostics commands. |
 | `docs/homepilot-technical-guide.md` | Detailed implementation and runtime guide. |
+| `docs/pc-integration-deployment-guide.md` | Technician guide for Wake-on-LAN, Windows HASS.Agent, MQTT, and computer integration boundaries. |
 | `docs/design-system.md` | Design tokens, UI primitives, and visual rules. |
 | `docs/operator-console-frontend.md` | Frontend module boundaries and React/Zustand rules. |
 | `docs/operator-console-component-catalog.md` | Reusable component catalogue. |

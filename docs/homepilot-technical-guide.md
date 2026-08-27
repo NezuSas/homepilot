@@ -273,6 +273,25 @@ It then offers deployment now, preparation without starting services, or diagnos
 
 When .env already exists, the wizard preserves and displays its saved profile. It does not migrate or replace a customer topology accidentally. Remote support and automation retain explicit --profile, --clean, --start, and --status flags.
 
+### Installation isolation and data safety
+
+Use a dedicated directory for each HomePilot appliance, for example `/opt/homepilot`. Docker Compose derives the project identity from that directory, so it must not be installed inside another customer project or a directory already named for an unrelated Compose deployment.
+
+| Customer situation | Correct profile | What HomePilot preserves |
+|---|---|---|
+| New or empty miniPC, customer wants Home Assistant | `ha_companion` | Creates and owns only the HomePilot/companion Home Assistant resources. |
+| New or empty miniPC, customer does not need Home Assistant | `native_only` | Creates and owns only HomePilot resources. |
+| MiniPC with an existing customer Home Assistant or other Docker applications | `bridge_ha` | Preserves the existing Home Assistant, `.env`, volumes, databases, images, networks, and containers outside the HomePilot Compose project. |
+
+`--clean` and `--deploy` never run global Docker prune commands. They can remove only stopped containers that belong to the selected HomePilot Compose project. Build cache, unused images, stopped containers, and networks belonging to other projects are intentionally left untouched. `--remove-orphans` is likewise limited to services with the HomePilot Compose project identity.
+
+Before any customer deployment, run the read-only diagnostic:
+
+```bash
+bash scripts/install-edge-office.sh --status
+```
+
+If the technician finds an existing unrelated Compose project named `homepilot`, they must choose a separate repository directory or resolve the project-name collision before deploying.
 #### Existing Home Assistant customer: bridge_ha
 
 The repository contains docker-compose.office.yml for customer appliances. It does not declare a homeassistant service, so it never creates, updates, or replaces the existing Home Assistant. Prepare from the mini PC repository root:
@@ -282,7 +301,7 @@ git pull --ff-only
 bash scripts/install-edge-office.sh --profile bridge_ha --clean --start
 ~~~
 
-The script shows free space and Docker usage, detects Home Assistant without mutation, checks HomePilot ports, creates .env from .env.office.example only if missing, and validates Compose. --clean removes only build cache and dangling Docker images; it never removes containers, volumes, databases, or the customer's Home Assistant. --start builds and starts HomePilot after confirmation. Controlled automation can use --clean --start --yes.
+The script shows free space and Docker usage, detects Home Assistant without mutation, checks HomePilot ports, creates .env from .env.office.example only if missing, and validates Compose. --clean removes only stopped containers belonging to the selected HomePilot Compose project. It never runs global Docker prune commands and never removes volumes, databases, other projects, or the customer's Home Assistant. --start builds and starts HomePilot after confirmation. Controlled automation can use --clean --start --yes.
 
 Legacy installations whose .env lacks HOMEPILOT_INSTALLATION_PROFILE are normalized automatically using the installer-resolved profile. No manual PowerShell, WSL, or Linux file edit is required. --status remains read-only.
 
@@ -369,7 +388,7 @@ The command:
 It preserves up to 2GB of useful cache by default:
 
 ~~~bash
-bash scripts/homepilot-maintenance.sh --profile bridge_ha --deploy --keep-storage 2GB --yes
+bash scripts/homepilot-maintenance.sh --profile bridge_ha --deploy --yes
 ~~~
 
 Clean without rebuilding:

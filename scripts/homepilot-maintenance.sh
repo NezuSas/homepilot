@@ -6,7 +6,6 @@ compose_file="docker-compose.office.yml"
 compose_files=()
 compose_explicit=false
 profile_explicit=false
-keep_storage="2GB"
 deploy=false
 clean_only=false
 status_only=false
@@ -36,24 +35,21 @@ usage() {
   cat <<'EOF'
 Uso: bash scripts/homepilot-maintenance.sh [opciones]
 
-Mantiene una instalacion HomePilot en miniPC sin dejar residuos de compilacion
-de Docker. No borra volumenes ni bases de datos.
+Mantiene una instalación HomePilot en miniPC sin tocar recursos de otros proyectos Docker.`nNo borra volúmenes ni bases de datos.
 
 Opciones:
-  --deploy                 Limpia cache, construye/inicia HomePilot y limpia otra vez.
-  --clean                  Solo limpia residuos seguros de Docker.
+  --deploy                 Construye/inicia HomePilot y retira solo contenedores detenidos del proyecto.
+  --clean                  Retira solo contenedores detenidos del proyecto HomePilot.
   --status                 Muestra espacio, contenedores y salud de servicios sin modificar nada.
   --profile PERFIL         bridge_ha (defecto), native_only o ha_companion.
   --compose FILE           Compose personalizado. Sobrescribe la selección automática de runtime.
-  --keep-storage SIZE      Cache maximo para BuildKit/buildx. Default: 2GB
-  --truncate-logs          Vacia logs json de Docker. Puede pedir sudo.
+  --truncate-logs          Vacía únicamente logs de contenedores HomePilot. Puede pedir sudo.
   --yes                    No pide confirmacion.
   --help                   Muestra esta ayuda.
 
 Ejemplos:
   bash scripts/homepilot-maintenance.sh --profile bridge_ha --deploy --yes
   bash scripts/homepilot-maintenance.sh --profile native_only --deploy --yes
-  bash scripts/homepilot-maintenance.sh --clean --keep-storage 1GB --yes
   bash scripts/homepilot-maintenance.sh --status
 EOF
 }
@@ -108,6 +104,10 @@ configure_profile() {
         ;;
     esac
   fi
+
+  if [[ "$compose_explicit" == false && "$profile" == "bridge_ha" && -f data/mqtt/passwordfile && -f docker-compose.pc-agents.yml ]]; then
+    compose_files+=("docker-compose.pc-agents.yml")
+  fi
 }
 
 banner() {
@@ -118,7 +118,7 @@ banner() {
   printf '%s\n' '  | |\  | |___ / /_ | |_| |'
   printf '%s\n' '  |_| \_|_____/____| \___/'
   printf '%b\n' "${NC}${BOLD}   H O M E P I L O T   M A I N T E N A N C E${NC}"
-  printf '%b\n' "${DIM}   Perfil ${profile} · limpieza segura de buildx, imágenes y contenedores detenidos${NC}"
+  printf '%b\n' "${DIM}   Perfil ${profile} · mantenimiento acotado al proyecto HomePilot${NC}"
   divider
 }
 
@@ -156,17 +156,6 @@ confirm() {
 
   read -r -p "${message} [y/N]: " answer
   [[ "$answer" == "y" || "$answer" == "Y" || "$answer" == "yes" || "$answer" == "YES" ]]
-}
-
-run_if_available() {
-  local label="$1"
-  shift
-
-  if "$@"; then
-    ok "$label"
-  else
-    warn "$label no se pudo completar. Revisa permisos o estado de Docker."
-  fi
 }
 
 show_disk() {
@@ -296,48 +285,34 @@ verify_runtime() {
   done
 }
 clean_docker_residue() {
-  section "Limpieza segura de residuos Docker"
-  info "BuildKit/buildx conservara hasta ${keep_storage} de cache util."
-  run_if_available "Cache de buildx/BuildKit limpiado" docker builder prune -af --keep-storage "$keep_storage"
-  run_if_available "Imagenes Docker no usadas eliminadas" docker image prune -af
-  run_if_available "Contenedores detenidos eliminados" docker container prune -f
-  run_if_available "Redes Docker no usadas eliminadas" docker network prune -f
+  local compose_command=()
+  local container_id log_path
+
+  section "Limpieza acotada a HomePilot"
+  info "No se ejecutan docker builder/image/container/network prune globales."
+  mapfile -t compose_command < <(compose_args)
+
+  if docker compose "${compose_command[@]}" rm --force; then
+    ok "Contenedores detenidos del proyecto HomePilot eliminados."
+  else
+    warn "No se pudieron eliminar contenedores detenidos del proyecto HomePilot."
+  fi
 
   if [[ "$truncate_logs" == true ]]; then
-    section "Limpieza de logs Docker"
-    if confirm "Esto vaciara logs json de Docker, sin borrar contenedores ni volumenes. Continuar?"; then
+    section "Limpieza de logs de HomePilot"
+    while IFS= read -r container_id; do
+      [[ -n "$container_id" ]] || continue
+      log_path="$(docker inspect --format '{{.LogPath}}' "$container_id" 2>/dev/null || true)"
+      [[ -n "$log_path" && -f "$log_path" ]] || continue
       if command -v sudo >/dev/null 2>&1; then
-        sudo find /var/lib/docker/containers -name '*-json.log' -type f -exec truncate -s 0 {} \; \
-          && ok "Logs json de Docker truncados"
+        sudo truncate -s 0 "$log_path"
       else
-        find /var/lib/docker/containers -name '*-json.log' -type f -exec truncate -s 0 {} \; \
-          && ok "Logs json de Docker truncados"
+        truncate -s 0 "$log_path"
       fi
-    else
-      warn "Limpieza de logs omitida."
-    fi
+    done < <(docker compose "${compose_command[@]}" ps -a -q)
+    ok "Solo los logs de contenedores HomePilot fueron truncados."
   fi
 }
-
-remove_unused_ollama_image() {
-  local image="ollama/ollama:latest"
-
-  if ! docker image inspect "$image" >/dev/null 2>&1; then
-    return
-  fi
-
-  if docker ps -a --filter "ancestor=$image" -q | grep -q '.'; then
-    warn "La imagen de Ollama se conserva porque otro contenedor aún la utiliza."
-    return
-  fi
-
-  if docker image rm "$image" >/dev/null 2>&1; then
-    ok "Imagen de Ollama sin uso eliminada."
-  else
-    warn "No se pudo eliminar la imagen de Ollama sin uso."
-  fi
-}
-
 deploy_homepilot() {
   section "Despliegue HomePilot"
   info "Compose: ${compose_files[*]}"
@@ -397,11 +372,7 @@ while [[ $# -gt 0 ]]; do
       compose_file="$1"
       compose_explicit=true
       ;;
-    --keep-storage)
-      shift
-      [[ $# -gt 0 ]] || fail "--keep-storage requiere un valor, por ejemplo 2GB."
-      keep_storage="$1"
-      ;;
+
     --truncate-logs)
       truncate_logs=true
       ;;
@@ -449,7 +420,6 @@ if [[ "$deploy" == true ]]; then
   if confirm "Limpiar, construir e iniciar HomePilot ahora?"; then
     clean_docker_residue
     deploy_homepilot
-    remove_unused_ollama_image
     clean_docker_residue
     show_disk
     verify_runtime 180

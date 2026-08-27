@@ -12,7 +12,7 @@ Una miniPC de cliente puede contener un Home Assistant operativo, servicios Dock
 
 - Compose de cliente que despliega solamente API, UI, Ollama, STT y TTS de HomePilot.
 - Script de preparacion que inspecciona requisitos, disco, Docker, puertos y Home Assistant existente.
-- Limpieza segura y opcional de cache de build e imagenes Docker colgantes.
+- Limpieza opcional y acotada a contenedores HomePilot ya detenidos.
 - Plantilla de variables de entorno completa para una instalacion de cliente.
 - Documentacion de ejecucion, acceso LAN y acceso por tunel Cloudflare SSH.
 - Salida de consola con identidad visual Nezu/HomePilot, secciones y estados legibles.
@@ -29,7 +29,7 @@ Una miniPC de cliente puede contener un Home Assistant operativo, servicios Dock
 - **REQ-01:** El compose de cliente no debe declarar un servicio `homeassistant`.
 - **REQ-02:** El script debe mostrar espacio de disco disponible y uso de Docker antes de cualquier limpieza.
 - **REQ-03:** El script debe detectar un endpoint Home Assistant en `127.0.0.1:8123` y/o un contenedor llamado `homeassistant` sin modificarlo.
-- **REQ-04:** La limpieza solo debe ejecutarse por confirmacion explicita o con `--clean`; debe limitarse a `docker builder prune` e `docker image prune`.
+- **REQ-04:** La limpieza solo debe ejecutarse por confirmación explícita o con `--clean`; no puede ejecutar ningún `docker * prune` global y solo puede remover contenedores HomePilot ya detenidos.
 - **REQ-05:** Si falta `.env`, el script debe crearla desde una plantilla de cliente sin sobrescribir una existente.
 - **REQ-06:** El script debe validar el compose, crear directorios persistentes requeridos y opcionalmente iniciar HomePilot con `--start`.
 - **REQ-07:** El script debe presentar una cabecera profesional `NEZU / HOMEPILOT EDGE` y estados visuales, sin codigos ANSI cuando la salida no sea una terminal interactiva.
@@ -49,7 +49,8 @@ Una miniPC de cliente puede contener un Home Assistant operativo, servicios Dock
 - [x] AC1: `docker-compose.office.yml` no incluye Home Assistant.
 - [x] AC2: `bash scripts/install-edge-office.sh --help` documenta limpieza, arranque y URL publica de API.
 - [x] AC3: Sin `.env`, el script crea una copia de `.env.office.example`; con `.env`, la conserva.
-- [x] AC4: Sin `--clean`, el script solicita confirmacion antes de limpiar; con `--clean --yes`, ejecuta solo la limpieza permitida.
+- [x] AC4: Sin `--clean`, el script solicita confirmación antes de limpiar; con `--clean --yes`, remueve únicamente contenedores HomePilot ya detenidos, sin tocar recursos globales de Docker.
+- [x] AC13: La guía distingue miniPC nueva, instalación con Home Assistant existente y otros proyectos Docker, e indica usar un directorio dedicado para evitar una colisión de proyecto Compose.
 - [x] AC5: El script falla antes de arrancar cuando Docker, Compose o el compose de cliente no estan disponibles.
 - [x] AC6: El script muestra la cabecera de Nezu/HomePilot y conserva salida legible si se redirige a un archivo.
 - [x] AC7: `--status` indica el estado de API, UI, Ollama, STT, TTS y Home Assistant; devuelve un codigo distinto de cero si algun componente esperado no esta sano.

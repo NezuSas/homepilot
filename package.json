@@ -36,7 +36,8 @@
     "verify:release": "ts-node scripts/verify_release_v1.ts",
     "check:assistant-response-catalog": "node scripts/check-assistant-response-catalog.mjs",
     "review:planner-v2-shadow": "node scripts/review-planner-v2-shadow.mjs",
-    "review:planner-v2-shadow:strict": "node scripts/review-planner-v2-shadow.mjs --strict"
+    "review:planner-v2-shadow:strict": "node scripts/review-planner-v2-shadow.mjs --strict",
+    "test:links": "node scripts/verify-exported-links.mjs"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
