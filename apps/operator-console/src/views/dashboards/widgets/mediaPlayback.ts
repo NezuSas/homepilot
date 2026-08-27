@@ -19,6 +19,18 @@ export interface MediaPlaybackReference extends MediaPositionReference {
   readonly sourceKey: string;
 }
 
+export function isMediaPlaybackReference(value: unknown): value is MediaPlaybackReference {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+
+  const reference = value as Record<string, unknown>;
+  return typeof reference.sourceKey === 'string'
+    && typeof reference.position === 'number'
+    && Number.isFinite(reference.position)
+    && reference.position >= 0
+    && typeof reference.referenceAt === 'number'
+    && Number.isFinite(reference.referenceAt);
+}
+
 export function shouldResyncMediaPlaybackReference(
   currentReference: MediaPlaybackReference | null,
   sourceKey: string,

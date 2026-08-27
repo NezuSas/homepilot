@@ -1,5 +1,5 @@
 import { AudioLines, Cast, MinusCircle, MoreVertical, Pause, Play, PlusCircle, Power, SkipBack, SkipForward, Volume1, Volume2, VolumeX } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../../../config';
 import { apiFetch } from '../../../lib/apiClient';
@@ -7,13 +7,14 @@ import { cn } from '../../../lib/utils';
 import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
 import { IconButton } from '../../../components/ui/IconButton';
 import { getMediaArtworkSourceKey } from './mediaArtwork';
-import { formatMediaTime, getDisplayedMediaPosition, getMediaPlayerPresentation, shouldResyncMediaPlaybackReference, type MediaPlaybackReference } from './mediaPlayback';
+import { formatMediaTime, getDisplayedMediaPosition, getMediaPlayerPresentation, isMediaPlaybackReference, shouldResyncMediaPlaybackReference, type MediaPlaybackReference } from './mediaPlayback';
 
 export type MediaPlayerCommand = 'turn_on' | 'turn_off' | 'media_play' | 'media_pause' | 'media_previous_track' | 'media_next_track' | 'volume_set';
 
 // Matches Home Assistant's default media control step (10%).
 const VOLUME_STEP = 10;
 const PLAYBACK_RESYNC_THRESHOLD_SECONDS = 2;
+const PLAYBACK_REFERENCE_STORAGE_PREFIX = 'homepilot.media-playback-reference.';
 
 interface MediaPlayerCardProps {
   device?: SnapshotDevice;
@@ -50,11 +51,44 @@ function absoluteApiUrl(path: string): string {
   return `${API_BASE_URL.replace(/\/$/, '')}${path}`;
 }
 
+function playbackReferenceStorageKey(deviceId: string): string {
+  return `${PLAYBACK_REFERENCE_STORAGE_PREFIX}${deviceId}`;
+}
+
+function readPlaybackReference(deviceId: string | undefined): MediaPlaybackReference | null {
+  if (!deviceId || typeof window === 'undefined') return null;
+
+  try {
+    const serialized = window.sessionStorage.getItem(playbackReferenceStorageKey(deviceId));
+    if (!serialized) return null;
+    const value: unknown = JSON.parse(serialized);
+    return isMediaPlaybackReference(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function writePlaybackReference(deviceId: string | undefined, reference: MediaPlaybackReference | null): void {
+  if (!deviceId || typeof window === 'undefined') return;
+
+  try {
+    const key = playbackReferenceStorageKey(deviceId);
+    if (reference === null) {
+      window.sessionStorage.removeItem(key);
+      return;
+    }
+    window.sessionStorage.setItem(key, JSON.stringify(reference));
+  } catch {
+    // Playback remains functional when browser storage is unavailable.
+  }
+}
+
 export function MediaPlayerCard({ device, title, isPreview = false, isProcessing = false, onCommand, compact = false, isEditing = false }: MediaPlayerCardProps) {
   const { t } = useTranslation();
   const [artworkPath, setArtworkPath] = useState<string | null>(null);
   const [playbackClock, setPlaybackClock] = useState(() => Date.now());
   const [positionReference, setPositionReference] = useState<MediaPlaybackReference | null>(null);
+  const positionReferenceRef = useRef<MediaPlaybackReference | null>(null);
   // Volume changes render instantly instead of waiting for the next device
   // snapshot; cleared once a fresh snapshot arrives (see effect below).
   const [optimisticVolume, setOptimisticVolume] = useState<number | null>(null);
@@ -106,30 +140,33 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
   useEffect(() => {
     const mediaPosition = presentation.mediaPosition;
     if (!isPlaying || mediaPosition === null || presentation.mediaDuration === null) {
+      positionReferenceRef.current = null;
       setPositionReference(null);
+      writePlaybackReference(device?.id, null);
       return;
     }
 
-    setPositionReference((currentReference) => {
-      const reportedReferenceAt = presentation.mediaPositionUpdatedAt
-        ? Date.parse(presentation.mediaPositionUpdatedAt)
-        : Number.NaN;
-      const shouldResync = shouldResyncMediaPlaybackReference(
-        currentReference,
-        playbackSourceKey,
-        mediaPosition,
-        PLAYBACK_RESYNC_THRESHOLD_SECONDS,
-      );
-
-      if (!shouldResync) return currentReference;
-
-      return {
+    const currentReference = positionReferenceRef.current ?? readPlaybackReference(device?.id);
+    const reportedReferenceAt = presentation.mediaPositionUpdatedAt
+      ? Date.parse(presentation.mediaPositionUpdatedAt)
+      : Number.NaN;
+    const nextReference = shouldResyncMediaPlaybackReference(
+      currentReference,
+      playbackSourceKey,
+      mediaPosition,
+      PLAYBACK_RESYNC_THRESHOLD_SECONDS,
+    )
+      ? {
         sourceKey: playbackSourceKey,
         position: mediaPosition,
         referenceAt: Number.isFinite(reportedReferenceAt) ? reportedReferenceAt : Date.now(),
-      };
-    });
-  }, [isPlaying, playbackSourceKey, presentation.mediaDuration, presentation.mediaPosition, presentation.mediaPositionUpdatedAt]);
+      }
+      : currentReference;
+
+    positionReferenceRef.current = nextReference;
+    setPositionReference(nextReference);
+    writePlaybackReference(device?.id, nextReference);
+  }, [device?.id, isPlaying, playbackSourceKey, presentation.mediaDuration, presentation.mediaPosition, presentation.mediaPositionUpdatedAt]);
 
   useEffect(() => {
     if (!isPlaying || presentation.mediaPosition === null || presentation.mediaDuration === null) return;

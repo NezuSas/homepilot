@@ -1,5 +1,5 @@
 import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
-import { formatMediaTime, getDisplayedMediaPosition, getMediaPlayerPresentation, shouldResyncMediaPlaybackReference } from './mediaPlayback';
+import { formatMediaTime, getDisplayedMediaPosition, getMediaPlayerPresentation, isMediaPlaybackReference, shouldResyncMediaPlaybackReference } from './mediaPlayback';
 import { getMediaArtworkSourceKey } from './mediaArtwork';
 
 function createMediaDevice(updatedAt: string, artworkPath: string): SnapshotDevice {
@@ -78,6 +78,16 @@ describe('MediaPlayerCard playback progress', () => {
     expect(shouldResyncMediaPlaybackReference(reference, 'same-track', 0.011388, 2)).toBe(false);
     expect(shouldResyncMediaPlaybackReference(reference, 'next-track', 0.011388, 2)).toBe(true);
     expect(shouldResyncMediaPlaybackReference(reference, 'same-track', 3.1, 2)).toBe(true);
+  });
+
+  it('accepts a persisted reference only when its stored playback data is valid', () => {
+    expect(isMediaPlaybackReference({
+      sourceKey: 'same-track',
+      position: 18.4,
+      referenceAt: Date.parse('2026-08-27T18:10:50.469Z'),
+    })).toBe(true);
+    expect(isMediaPlaybackReference({ sourceKey: 'same-track', position: -1, referenceAt: Date.now() })).toBe(false);
+    expect(isMediaPlaybackReference({ sourceKey: 'same-track', position: 18.4 })).toBe(false);
   });
 
   it('advances a playing session from its local receipt time when the integration omits the timestamp', () => {
