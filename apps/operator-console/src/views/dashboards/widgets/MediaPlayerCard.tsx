@@ -53,6 +53,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
   const { t } = useTranslation();
   const [artworkPath, setArtworkPath] = useState<string | null>(null);
   const [playbackClock, setPlaybackClock] = useState(() => Date.now());
+  const [localPositionReferenceAt, setLocalPositionReferenceAt] = useState<number | null>(null);
   // Volume changes render instantly instead of waiting for the next device
   // snapshot; cleared once a fresh snapshot arrives (see effect below).
   const [optimisticVolume, setOptimisticVolume] = useState<number | null>(null);
@@ -74,7 +75,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
   const hasNext = commands.has('media_next_track');
   const hasVolumeControl = commands.has('volume_set');
   const currentVolume = optimisticVolume ?? presentation.volume;
-  const displayedMediaPosition = getDisplayedMediaPosition(presentation, playbackClock);
+  const displayedMediaPosition = getDisplayedMediaPosition(presentation, playbackClock, localPositionReferenceAt);
   const playback = displayedMediaPosition !== null && presentation.mediaDuration !== null && presentation.mediaDuration > 0
     ? {
       position: displayedMediaPosition,
@@ -99,6 +100,15 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
   const VolumeIcon = currentVolume === null || currentVolume === 0
     ? VolumeX
     : currentVolume < 50 ? Volume1 : Volume2;
+
+  useEffect(() => {
+    if (!isPlaying || presentation.mediaPosition === null || presentation.mediaDuration === null || presentation.mediaPositionUpdatedAt) {
+      setLocalPositionReferenceAt(null);
+      return;
+    }
+
+    setLocalPositionReferenceAt(Date.now());
+  }, [isPlaying, presentation.mediaDuration, presentation.mediaPosition, presentation.mediaPositionUpdatedAt]);
 
   useEffect(() => {
     if (!isPlaying || presentation.mediaPosition === null || presentation.mediaDuration === null) return;

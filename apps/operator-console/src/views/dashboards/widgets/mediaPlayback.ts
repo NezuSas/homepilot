@@ -75,12 +75,17 @@ export function formatMediaTime(value: number): string {
     : `${minutes}:${secondsText}`;
 }
 
-export function getDisplayedMediaPosition(presentation: MediaPresentation, now = Date.now()): number | null {
+export function getDisplayedMediaPosition(
+  presentation: MediaPresentation,
+  now = Date.now(),
+  localPositionReferenceAt: number | null = null,
+): number | null {
   if (presentation.mediaPosition === null || presentation.mediaDuration === null) return null;
 
-  const updatedAt = presentation.mediaPositionUpdatedAt ? Date.parse(presentation.mediaPositionUpdatedAt) : Number.NaN;
-  const elapsedSeconds = presentation.state === 'playing' && Number.isFinite(updatedAt)
-    ? Math.max(0, (now - updatedAt) / 1000)
+  const reportedUpdatedAt = presentation.mediaPositionUpdatedAt ? Date.parse(presentation.mediaPositionUpdatedAt) : Number.NaN;
+  const referenceAt = Number.isFinite(reportedUpdatedAt) ? reportedUpdatedAt : localPositionReferenceAt;
+  const elapsedSeconds = presentation.state === 'playing' && referenceAt !== null && Number.isFinite(referenceAt)
+    ? Math.max(0, (now - referenceAt) / 1000)
     : 0;
   return Math.min(presentation.mediaDuration, presentation.mediaPosition + elapsedSeconds);
 }

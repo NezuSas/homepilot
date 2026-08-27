@@ -54,6 +54,21 @@ describe('MediaPlayerCard playback progress', () => {
     expect(formatMediaTime(3661)).toBe('1:01:01');
   });
 
+  it('advances a playing session from its local receipt time when the integration omits the timestamp', () => {
+    const presentation = getMediaPlayerPresentation({
+      ...createMediaDevice('2026-08-25T19:00:00.000Z', ''),
+      lastKnownState: {
+        state: 'playing',
+        attributes: {
+          media_position: 1,
+          media_duration: 299,
+        },
+      },
+    });
+
+    const receivedAt = Date.parse('2026-08-25T19:00:00.000Z');
+    expect(getDisplayedMediaPosition(presentation, receivedAt + 5000, receivedAt)).toBe(6);
+  });
   it('does not invent playback progress when Home Assistant omits its duration', () => {
     const presentation = getMediaPlayerPresentation({
       ...createMediaDevice('2026-08-25T19:00:00.000Z', ''),

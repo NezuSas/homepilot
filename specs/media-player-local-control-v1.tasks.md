@@ -11,6 +11,7 @@
 - [x] Variantes naturales de consulta y control de audio, con filtrado por estancia y respuesta explícita para estancias sin reproductores importados.
 - [x] La importación y los comandos de reproductores conservan los atributos multimedia obtenidos de Home Assistant.
 - [x] Mostrar progreso y duración únicamente cuando Home Assistant los reporta, con actualización visual durante reproducción.
+- [x] Mantener el reloj visual para integraciones que omiten `media_position_updated_at`, anclándolo localmente entre estados reales.
 - [x] Reemplazar el fallback plano de portada por un campo de audio estático acorde al sistema visual de HomePilot.
 
 ## Verificación obligatoria ante cambios

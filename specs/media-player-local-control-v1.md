@@ -49,6 +49,7 @@ Los reproductores importados deben operar como dispositivos locales de HomePilot
 - [x] AC3: Una portada válida se muestra como fondo sin ocultar los controles.
 - [x] AC4: Un fallo de artwork no afecta los demás datos ni genera error de UI.
 - [x] AC8: Cuando Home Assistant informa posición y duración, la tarjeta muestra el tiempo transcurrido, duración y una barra de progreso; cuando no los informa, conserva el layout sin inventar datos.
+- [x] AC10: Si una integración informa posición y duración sin `media_position_updated_at`, la tarjeta usa el instante local de recepción como referencia visual y se resincroniza con el siguiente estado real.
 - [x] AC9: Sin portada, la tarjeta muestra un campo de audio estático de grafito y cobre que conserva el contraste de controles y texto.
 - [x] AC5: El asistente informa título, artista, estado y volumen de un reproductor autorizado sin invocar interpretación no determinista. Evidencia: `assistant_media_player_control.test.ts`.
 - [x] AC6: El asistente fija y ajusta volumen porcentual mediante el contrato `volume_set`, preservando el rango 0–100. Evidencia: `assistant_media_player_control.test.ts`.
