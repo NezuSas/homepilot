@@ -68,6 +68,26 @@ describe('MediaPlayerCard playback progress', () => {
     expect(formatMediaTime(3661)).toBe('1:01:01');
   });
 
+  it('prefers the shared server reference for a newly opened browser session', () => {
+    const presentation = getMediaPlayerPresentation({
+      ...createMediaDevice('2026-08-27T19:02:00.000Z', ''),
+      lastKnownState: {
+        state: 'playing',
+        attributes: {
+          media_title: 'Canción actual',
+          media_duration: 240,
+          media_position: 0,
+          media_position_updated_at: '2026-08-27T19:02:00.000Z',
+          homepilot_media_position: 0,
+          homepilot_media_position_updated_at: '2026-08-27T19:00:00.000Z',
+        },
+      },
+    });
+
+    expect(presentation.hasAuthoritativePlaybackReference).toBe(true);
+    expect(getDisplayedMediaPosition(presentation, Date.parse('2026-08-27T19:02:00.000Z'))).toBe(120);
+  });
+
   it('keeps the local clock when a bridge refreshes its timestamp without advancing the position', () => {
     const reference = {
       sourceKey: 'same-track',

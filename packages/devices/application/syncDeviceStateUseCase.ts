@@ -3,6 +3,7 @@ import { DeviceRepository } from '../domain/repositories/DeviceRepository';
 import { DeviceEventPublisher } from '../domain/events/DeviceEventPublisher';
 import { ActivityLogRepository } from '../domain/repositories/ActivityLogRepository';
 import { isStateIdentical } from '../domain/state';
+import { normalizeMediaPlaybackState } from '../domain/MediaPlayerPlaybackState';
 import { createDeviceStateUpdatedEvent } from '../domain/events/factories';
 import { DeviceNotFoundError } from './errors';
 import { IdGenerator, Clock } from '../../shared/domain/types';
@@ -33,18 +34,19 @@ export async function syncDeviceStateUseCase(
     throw new DeviceNotFoundError(deviceId);
   }
 
+  const now = deps.clock.now();
+  const normalizedState = normalizeMediaPlaybackState(device.lastKnownState, newState, now);
+
   // 2. Evaluación de Idempotencia (V1: Flat Object Equality)
   // Si el estado reportado es idéntico al actual, abortamos sin efectos secundarios
-  if (isStateIdentical(device.lastKnownState, newState)) {
+  if (isStateIdentical(device.lastKnownState, normalizedState)) {
     return;
   }
-
-  const now = deps.clock.now();
 
   // 3. Mutación Transaccional Inmutable
   const updatedDevice: Device = {
     ...device,
-    lastKnownState: { ...newState }, // Snapshot limpio
+    lastKnownState: { ...normalizedState }, // Snapshot limpio
     entityVersion: device.entityVersion + 1,
     updatedAt: now
   };
@@ -62,7 +64,7 @@ export async function syncDeviceStateUseCase(
       { 
         deviceId: device.id, 
         homeId: device.homeId, 
-        newState: { ...newState } 
+        newState: { ...normalizedState }
       },
       correlationId,
       { idGenerator: deps.idGenerator, clock: deps.clock }
@@ -83,8 +85,8 @@ export async function syncDeviceStateUseCase(
       timestamp: now,
       deviceId: device.id,
       type: 'STATE_CHANGED',
-      description: `Device state updated to ${JSON.stringify(newState)}`,
-      data: { ...newState, state: JSON.stringify(newState) }
+      description: `Device state updated to ${JSON.stringify(normalizedState)}`,
+      data: { ...normalizedState, state: JSON.stringify(normalizedState) }
     });
     if (isDiagnosticLoggingEnabled()) {
       console.debug(`[syncDeviceStateUseCase] activityLogRepository.saveActivity took ${Date.now() - t_log}ms`);

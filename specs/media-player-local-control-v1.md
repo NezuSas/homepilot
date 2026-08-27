@@ -52,6 +52,7 @@ Los reproductores importados deben operar como dispositivos locales de HomePilot
 - [x] AC10: Si una integración informa posición y duración sin `media_position_updated_at`, la tarjeta usa el instante local de recepción como referencia visual y se resincroniza con el siguiente estado real.
 - [x] AC11: Si un bridge renueva `media_position_updated_at` sin avanzar materialmente `media_position`, la tarjeta conserva su referencia local; solo se resincroniza ante un cambio de contenido o un salto de posición de al menos dos segundos.
 - [x] AC12: Al recargar la página durante una reproducción, la tarjeta recupera la referencia local de esa sesión para el mismo dispositivo y contenido; no vuelve visualmente a cero por un timestamp reiniciado del bridge.
+- [x] AC13: HomePilot conserva en el servidor una referencia de reproducción por dispositivo y contenido cuando el bridge publica una posición estacionaria; cualquier navegador usa esa referencia compartida sin depender de su caché.
 - [x] AC9: Sin portada, la tarjeta muestra un campo de audio estático de grafito y cobre que conserva el contraste de controles y texto.
 - [x] AC5: El asistente informa título, artista, estado y volumen de un reproductor autorizado sin invocar interpretación no determinista. Evidencia: `assistant_media_player_control.test.ts`.
 - [x] AC6: El asistente fija y ajusta volumen porcentual mediante el contrato `volume_set`, preservando el rango 0–100. Evidencia: `assistant_media_player_control.test.ts`.

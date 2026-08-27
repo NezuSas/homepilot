@@ -55,6 +55,37 @@ describe('Devices: State Application', () => {
       expect(events[0].eventType).toBe('DeviceStateUpdatedEvent');
     });
 
+    it('persiste una referencia multimedia compartida cuando el bridge mantiene la posición estacionaria', async () => {
+      const device = createDiscoveredDevice({
+        homeId: 'home-1', externalId: 'ha:media_player.oscar', name: 'OSCAR', type: 'media_player', vendor: 'HASS.Agent'
+      }, { idGenerator: idGen, clock });
+      await deviceRepo.saveDevice(device);
+      const firstObservation = '2026-03-29T13:00:00.000Z';
+      const repeatedObservation = '2026-03-29T13:02:00.000Z';
+      const advancingClock: Clock = {
+        now: jest.fn()
+          .mockReturnValueOnce(firstObservation)
+          .mockReturnValueOnce(firstObservation)
+          .mockReturnValueOnce(repeatedObservation)
+          .mockReturnValueOnce(repeatedObservation),
+      };
+      const playingState = {
+        state: 'playing',
+        attributes: { media_title: 'Canción actual', media_artist: 'Artista', media_duration: 240, media_position: 0 },
+      };
+
+      await syncDeviceStateUseCase(device.id, playingState, 'media-1', {
+        deviceRepository: deviceRepo, eventPublisher: eventPub, activityLogRepository: logRepo, idGenerator: idGen, clock: advancingClock
+      });
+      await syncDeviceStateUseCase(device.id, playingState, 'media-2', {
+        deviceRepository: deviceRepo, eventPublisher: eventPub, activityLogRepository: logRepo, idGenerator: idGen, clock: advancingClock
+      });
+
+      const attributes = (await deviceRepo.findDeviceById(device.id))?.lastKnownState?.attributes as Record<string, unknown>;
+      expect(attributes.homepilot_media_position).toBe(0);
+      expect(attributes.homepilot_media_position_updated_at).toBe(firstObservation);
+    });
+
     it('IDEMPOTENCIA: no debe realizar cambios si el estado reportado es idéntico al actual', async () => {
       const device = createDiscoveredDevice({
         homeId: 'home-1', externalId: 'ext-1', name: 'Bulb', type: 'light', vendor: 'Pilot'

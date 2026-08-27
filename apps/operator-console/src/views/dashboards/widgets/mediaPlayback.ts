@@ -8,6 +8,7 @@ export interface MediaPresentation {
   mediaPosition: number | null;
   mediaDuration: number | null;
   mediaPositionUpdatedAt: string | null;
+  hasAuthoritativePlaybackReference: boolean;
 }
 
 export interface MediaPositionReference {
@@ -80,19 +81,26 @@ export function getMediaPlayerPresentation(device?: SnapshotDevice, isPreview = 
       mediaPosition: null,
       mediaDuration: null,
       mediaPositionUpdatedAt: null,
+      hasAuthoritativePlaybackReference: false,
     };
   }
 
   const state = asRecord(device?.lastKnownState);
   const attributes = asRecord(state.attributes);
+  const serverPosition = numericSeconds(attributes.homepilot_media_position);
+  const serverReferenceAt = firstText([attributes.homepilot_media_position_updated_at]);
+  const hasServerReference = serverPosition !== null && serverReferenceAt !== null;
   return {
     state: normalizedState(firstText([state.state, state.value, attributes.state])),
     mediaTitle: firstText([state.media_title, attributes.media_title, state.title, attributes.title]),
     mediaArtist: firstText([state.media_artist, attributes.media_artist, state.media_album_artist, attributes.media_album_artist]),
     volume: numericVolume(state.volume_level ?? attributes.volume_level),
-    mediaPosition: numericSeconds(state.media_position ?? attributes.media_position),
+    mediaPosition: hasServerReference ? serverPosition : numericSeconds(state.media_position ?? attributes.media_position),
     mediaDuration: numericSeconds(state.media_duration ?? attributes.media_duration),
-    mediaPositionUpdatedAt: firstText([state.media_position_updated_at, attributes.media_position_updated_at]),
+    mediaPositionUpdatedAt: hasServerReference
+      ? serverReferenceAt
+      : firstText([state.media_position_updated_at, attributes.media_position_updated_at]),
+    hasAuthoritativePlaybackReference: hasServerReference,
   };
 }
 

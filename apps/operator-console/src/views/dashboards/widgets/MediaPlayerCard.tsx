@@ -150,12 +150,13 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
     const reportedReferenceAt = presentation.mediaPositionUpdatedAt
       ? Date.parse(presentation.mediaPositionUpdatedAt)
       : Number.NaN;
-    const nextReference = shouldResyncMediaPlaybackReference(
-      currentReference,
-      playbackSourceKey,
-      mediaPosition,
-      PLAYBACK_RESYNC_THRESHOLD_SECONDS,
-    )
+    const nextReference = presentation.hasAuthoritativePlaybackReference
+      || shouldResyncMediaPlaybackReference(
+        currentReference,
+        playbackSourceKey,
+        mediaPosition,
+        PLAYBACK_RESYNC_THRESHOLD_SECONDS,
+      )
       ? {
         sourceKey: playbackSourceKey,
         position: mediaPosition,
@@ -166,7 +167,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
     positionReferenceRef.current = nextReference;
     setPositionReference(nextReference);
     writePlaybackReference(device?.id, nextReference);
-  }, [device?.id, isPlaying, playbackSourceKey, presentation.mediaDuration, presentation.mediaPosition, presentation.mediaPositionUpdatedAt]);
+  }, [device?.id, isPlaying, playbackSourceKey, presentation.hasAuthoritativePlaybackReference, presentation.mediaDuration, presentation.mediaPosition, presentation.mediaPositionUpdatedAt]);
 
   useEffect(() => {
     if (!isPlaying || presentation.mediaPosition === null || presentation.mediaDuration === null) return;
@@ -174,7 +175,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
     setPlaybackClock(Date.now());
     const intervalId = window.setInterval(() => setPlaybackClock(Date.now()), 1000);
     return () => window.clearInterval(intervalId);
-  }, [isPlaying, presentation.mediaDuration, presentation.mediaPosition, presentation.mediaPositionUpdatedAt]);
+  }, [isPlaying, presentation.hasAuthoritativePlaybackReference, presentation.mediaDuration, presentation.mediaPosition, presentation.mediaPositionUpdatedAt]);
 
   useEffect(() => {
     // A fresh snapshot is the source of truth; drop the optimistic override
