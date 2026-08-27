@@ -7,12 +7,13 @@ import { cn } from '../../../lib/utils';
 import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
 import { IconButton } from '../../../components/ui/IconButton';
 import { getMediaArtworkSourceKey } from './mediaArtwork';
-import { formatMediaTime, getDisplayedMediaPosition, getMediaPlayerPresentation } from './mediaPlayback';
+import { formatMediaTime, getDisplayedMediaPosition, getMediaPlayerPresentation, shouldResyncMediaPlaybackReference, type MediaPlaybackReference } from './mediaPlayback';
 
 export type MediaPlayerCommand = 'turn_on' | 'turn_off' | 'media_play' | 'media_pause' | 'media_previous_track' | 'media_next_track' | 'volume_set';
 
 // Matches Home Assistant's default media control step (10%).
 const VOLUME_STEP = 10;
+const PLAYBACK_RESYNC_THRESHOLD_SECONDS = 2;
 
 interface MediaPlayerCardProps {
   device?: SnapshotDevice;
@@ -53,7 +54,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
   const { t } = useTranslation();
   const [artworkPath, setArtworkPath] = useState<string | null>(null);
   const [playbackClock, setPlaybackClock] = useState(() => Date.now());
-  const [localPositionReferenceAt, setLocalPositionReferenceAt] = useState<number | null>(null);
+  const [positionReference, setPositionReference] = useState<MediaPlaybackReference | null>(null);
   // Volume changes render instantly instead of waiting for the next device
   // snapshot; cleared once a fresh snapshot arrives (see effect below).
   const [optimisticVolume, setOptimisticVolume] = useState<number | null>(null);
@@ -71,11 +72,12 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
   const canAct = Boolean(onCommand) && !isProcessing && !unavailable;
   const displayTitle = presentation.mediaTitle || title;
   const artworkSourceKey = getMediaArtworkSourceKey(device?.lastKnownState);
+  const playbackSourceKey = `${artworkSourceKey ?? ''}\u0000${presentation.mediaTitle ?? ''}\u0000${presentation.mediaArtist ?? ''}\u0000${presentation.mediaDuration ?? ''}`;
   const hasPrevious = commands.has('media_previous_track');
   const hasNext = commands.has('media_next_track');
   const hasVolumeControl = commands.has('volume_set');
   const currentVolume = optimisticVolume ?? presentation.volume;
-  const displayedMediaPosition = getDisplayedMediaPosition(presentation, playbackClock, localPositionReferenceAt);
+  const displayedMediaPosition = getDisplayedMediaPosition(presentation, playbackClock, positionReference);
   const playback = displayedMediaPosition !== null && presentation.mediaDuration !== null && presentation.mediaDuration > 0
     ? {
       position: displayedMediaPosition,
@@ -102,13 +104,32 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
     : currentVolume < 50 ? Volume1 : Volume2;
 
   useEffect(() => {
-    if (!isPlaying || presentation.mediaPosition === null || presentation.mediaDuration === null || presentation.mediaPositionUpdatedAt) {
-      setLocalPositionReferenceAt(null);
+    const mediaPosition = presentation.mediaPosition;
+    if (!isPlaying || mediaPosition === null || presentation.mediaDuration === null) {
+      setPositionReference(null);
       return;
     }
 
-    setLocalPositionReferenceAt(Date.now());
-  }, [isPlaying, presentation.mediaDuration, presentation.mediaPosition, presentation.mediaPositionUpdatedAt]);
+    setPositionReference((currentReference) => {
+      const reportedReferenceAt = presentation.mediaPositionUpdatedAt
+        ? Date.parse(presentation.mediaPositionUpdatedAt)
+        : Number.NaN;
+      const shouldResync = shouldResyncMediaPlaybackReference(
+        currentReference,
+        playbackSourceKey,
+        mediaPosition,
+        PLAYBACK_RESYNC_THRESHOLD_SECONDS,
+      );
+
+      if (!shouldResync) return currentReference;
+
+      return {
+        sourceKey: playbackSourceKey,
+        position: mediaPosition,
+        referenceAt: Number.isFinite(reportedReferenceAt) ? reportedReferenceAt : Date.now(),
+      };
+    });
+  }, [isPlaying, playbackSourceKey, presentation.mediaDuration, presentation.mediaPosition, presentation.mediaPositionUpdatedAt]);
 
   useEffect(() => {
     if (!isPlaying || presentation.mediaPosition === null || presentation.mediaDuration === null) return;
@@ -131,6 +152,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
       return () => { active = false; };
     }
 
+    setArtworkPath(null);
     void apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(device.id)}/media/session`)
       .then(async (response) => {
         if (!response.ok) throw new Error(`MEDIA_ARTWORK_SESSION_${response.status}`);

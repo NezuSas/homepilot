@@ -10,6 +10,26 @@ export interface MediaPresentation {
   mediaPositionUpdatedAt: string | null;
 }
 
+export interface MediaPositionReference {
+  readonly position: number;
+  readonly referenceAt: number;
+}
+
+export interface MediaPlaybackReference extends MediaPositionReference {
+  readonly sourceKey: string;
+}
+
+export function shouldResyncMediaPlaybackReference(
+  currentReference: MediaPlaybackReference | null,
+  sourceKey: string,
+  reportedPosition: number,
+  thresholdSeconds: number,
+): boolean {
+  return currentReference === null
+    || currentReference.sourceKey !== sourceKey
+    || Math.abs(reportedPosition - currentReference.position) >= thresholdSeconds;
+}
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
@@ -78,14 +98,15 @@ export function formatMediaTime(value: number): string {
 export function getDisplayedMediaPosition(
   presentation: MediaPresentation,
   now = Date.now(),
-  localPositionReferenceAt: number | null = null,
+  positionReference: MediaPositionReference | null = null,
 ): number | null {
   if (presentation.mediaPosition === null || presentation.mediaDuration === null) return null;
 
   const reportedUpdatedAt = presentation.mediaPositionUpdatedAt ? Date.parse(presentation.mediaPositionUpdatedAt) : Number.NaN;
-  const referenceAt = Number.isFinite(reportedUpdatedAt) ? reportedUpdatedAt : localPositionReferenceAt;
+  const referenceAt = positionReference?.referenceAt ?? (Number.isFinite(reportedUpdatedAt) ? reportedUpdatedAt : null);
+  const position = positionReference?.position ?? presentation.mediaPosition;
   const elapsedSeconds = presentation.state === 'playing' && referenceAt !== null && Number.isFinite(referenceAt)
     ? Math.max(0, (now - referenceAt) / 1000)
     : 0;
-  return Math.min(presentation.mediaDuration, presentation.mediaPosition + elapsedSeconds);
+  return Math.min(presentation.mediaDuration, position + elapsedSeconds);
 }

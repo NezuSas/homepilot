@@ -30,5 +30,17 @@ export function getMediaArtworkSourceKey(lastKnownState: Record<string, unknown>
     state.entity_picture_local,
     state.entity_picture,
   ]);
-  return source ? normalizeArtworkSource(source) : null;
+  if (!source) return null;
+
+  const mediaIdentity = firstText([
+    attributes.media_content_id,
+    state.media_content_id,
+    attributes.media_title,
+    state.media_title,
+    attributes.media_artist,
+    state.media_artist,
+  ]);
+  return mediaIdentity
+    ? `${normalizeArtworkSource(source)}::${mediaIdentity}`
+    : normalizeArtworkSource(source);
 }

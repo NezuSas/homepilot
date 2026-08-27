@@ -1,5 +1,5 @@
 import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
-import { formatMediaTime, getDisplayedMediaPosition, getMediaPlayerPresentation } from './mediaPlayback';
+import { formatMediaTime, getDisplayedMediaPosition, getMediaPlayerPresentation, shouldResyncMediaPlaybackReference } from './mediaPlayback';
 import { getMediaArtworkSourceKey } from './mediaArtwork';
 
 function createMediaDevice(updatedAt: string, artworkPath: string): SnapshotDevice {
@@ -34,6 +34,20 @@ describe('MediaPlayerCard artwork source', () => {
 
     expect(getMediaArtworkSourceKey(current.lastKnownState)).not.toBe(getMediaArtworkSourceKey(next.lastKnownState));
   });
+  it('invalidates artwork when the title changes even if the bridge reuses the same image route', () => {
+    const current = createMediaDevice('2026-08-13T22:00:00.000Z', '/api/hass_agent/media_player.oscar/thumbnail.png');
+    const next = createMediaDevice('2026-08-13T22:00:05.000Z', '/api/hass_agent/media_player.oscar/thumbnail.png');
+    current.lastKnownState = {
+      state: 'playing',
+      attributes: { entity_picture: '/api/hass_agent/media_player.oscar/thumbnail.png', media_title: 'Canción anterior' },
+    };
+    next.lastKnownState = {
+      state: 'playing',
+      attributes: { entity_picture: '/api/hass_agent/media_player.oscar/thumbnail.png', media_title: 'Canción actual' },
+    };
+
+    expect(getMediaArtworkSourceKey(current.lastKnownState)).not.toBe(getMediaArtworkSourceKey(next.lastKnownState));
+  });
 });
 describe('MediaPlayerCard playback progress', () => {
   it('reads the Home Assistant playback attributes and advances a playing session', () => {
@@ -54,6 +68,18 @@ describe('MediaPlayerCard playback progress', () => {
     expect(formatMediaTime(3661)).toBe('1:01:01');
   });
 
+  it('keeps the local clock when a bridge refreshes its timestamp without advancing the position', () => {
+    const reference = {
+      sourceKey: 'same-track',
+      position: 0.011388,
+      referenceAt: Date.parse('2026-08-27T18:10:50.469Z'),
+    };
+
+    expect(shouldResyncMediaPlaybackReference(reference, 'same-track', 0.011388, 2)).toBe(false);
+    expect(shouldResyncMediaPlaybackReference(reference, 'next-track', 0.011388, 2)).toBe(true);
+    expect(shouldResyncMediaPlaybackReference(reference, 'same-track', 3.1, 2)).toBe(true);
+  });
+
   it('advances a playing session from its local receipt time when the integration omits the timestamp', () => {
     const presentation = getMediaPlayerPresentation({
       ...createMediaDevice('2026-08-25T19:00:00.000Z', ''),
@@ -67,7 +93,7 @@ describe('MediaPlayerCard playback progress', () => {
     });
 
     const receivedAt = Date.parse('2026-08-25T19:00:00.000Z');
-    expect(getDisplayedMediaPosition(presentation, receivedAt + 5000, receivedAt)).toBe(6);
+    expect(getDisplayedMediaPosition(presentation, receivedAt + 5000, { position: 1, referenceAt: receivedAt })).toBe(6);
   });
   it('does not invent playback progress when Home Assistant omits its duration', () => {
     const presentation = getMediaPlayerPresentation({
