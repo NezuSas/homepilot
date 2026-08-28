@@ -11,3 +11,5 @@ ha-config
 apps/api/node_modules
 apps/operator-console/node_modules
 apps/operator-console/dist
+
+actions-runner/
