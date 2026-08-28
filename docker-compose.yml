@@ -76,6 +76,9 @@ services:
       interval: 60s
       timeout: 10s
       retries: 5
+    depends_on:
+      homepilot-mqtt:
+        condition: service_healthy
     restart: unless-stopped
 
   homepilot-mqtt:
@@ -84,8 +87,14 @@ services:
     ports:
       - "127.0.0.1:1883:1883"
     volumes:
-      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto/config:/mosquitto/config:ro
       - homepilot-mqtt-credentials:/mosquitto/credentials:ro
+    healthcheck:
+      test: [ "CMD-SHELL", "mosquitto_sub -h 127.0.0.1 -p 1883 -t '$$SYS/broker/version' -C 1 -W 5 >/dev/null 2>&1" ]
+      interval: 15s
+      timeout: 8s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped
 
   homepilot-tts:

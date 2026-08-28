@@ -123,6 +123,24 @@ HomePilot provides an opt-in provisioning script for LAN MQTT credentials and pe
 7. In Home Assistant, configure MQTT and add the HASS.Agent integration; then accept the discovered computer.
 8. Import the resulting `media_player` into HomePilot Discovery.
 
+### Diagnóstico y recuperación del broker local de desarrollo
+
+En una estación de desarrollo como OSCAR, HASS.Agent usa `localhost:1883` y el broker local debe ejecutarse como `homepilot-mqtt`. Si HASS.Agent muestra MQTT **conectando** y sensores/comandos detenidos, primero compruebe el servicio; no borre entidades de Home Assistant ni reconfigure credenciales:
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.ha-companion.desktop.yml ps homepilot-mqtt
+npm run verify:mqtt-runtime -- --desktop
+```
+
+Si el contenedor está detenido, recupérelo recreando únicamente el broker, con los archivos y volúmenes existentes:
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.ha-companion.desktop.yml up -d --force-recreate homepilot-mqtt
+npm run verify:mqtt-runtime -- --desktop
+```
+
+En Linux, ejecute los mismos comandos sin el segundo archivo Compose ni `--desktop`. Esta recuperación no usa `down -v`, no elimina `ha-config`, `data/`, volúmenes de credenciales ni la configuración de HASS.Agent. El broker de desarrollo permanece ligado a `127.0.0.1`; para computadores remotos de clientes se debe usar exclusivamente el perfil MQTT seguro documentado más abajo.
+
 ## Linux target computers
 
 HASS.Agent remains Windows-only. Linux media integration is provided by `agents/homepilot-linux-agent`, a systemd user service compatible with MPRIS players and PipeWire/PulseAudio volume control.

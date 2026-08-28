@@ -41,6 +41,14 @@ if (failures.length === 0) {
   if (!integrated.includes('./data:/app/data') || !office.includes('./data:/app/data')) {
     failures.push('Every primary profile must mount the canonical ./data directory');
   }
+  if (!integrated.includes('./mosquitto/config:/mosquitto/config:ro')
+    || integrated.includes('./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro')) {
+    failures.push('MQTT must mount the complete config directory, not a single config file');
+  }
+  if (!integrated.includes('mosquitto_sub -h 127.0.0.1 -p 1883')
+    || !integrated.includes('condition: service_healthy')) {
+    failures.push('MQTT must declare a local healthcheck and Home Assistant must wait for it');
+  }
   if (!integrated.includes('/app/data/homepilot.db') || !office.includes('/app/data/homepilot.db') || !desktop.includes('/app/data/homepilot.db')) {
     failures.push('Every profile must target /app/data/homepilot.db');
   }
