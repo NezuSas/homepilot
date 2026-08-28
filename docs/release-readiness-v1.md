@@ -66,4 +66,4 @@ Before dispatching it, keep the HomePilot API running on the office mini PC at `
 
 ## Runner build-context isolation
 
-Keep the GitHub Actions runner outside the repository when practical. If it is temporarily installed beneath the workspace, `actions-runner/` is excluded from the Docker build context so runner credentials and work files cannot enter build layers.
+Keep the GitHub Actions runner outside the repository when practical. If it is temporarily installed beneath the workspace, `actions-runner/` is excluded from Git and the Docker build context so runner credentials and work files cannot enter commits or build layers.

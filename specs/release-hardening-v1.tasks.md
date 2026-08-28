@@ -20,4 +20,4 @@
 - [x] Añadir workflow manual de validación de oficina con runner dedicado, checkout fijo de main, entorno protegido y secretos acotados al paso de release. Evidencia: .github/workflows/office-release-validation.yml y docs/release-readiness-v1.md. [id: 4.3]
 - [ ] Validar criterios de "Release Ready" y documentar en walkthrough. [id: 4.4]
 
-- [x] Excluir el directorio del runner local del contexto Docker para evitar que sus archivos internos entren en capas de compilación. Evidencia: `.dockerignore` y `docs/release-readiness-v1.md`. [id: 4.5]
+- [x] Excluir el directorio del runner local del contexto Docker para evitar que sus archivos internos entren en capas de compilación. Evidencia: `.gitignore`, `.dockerignore` y `docs/release-readiness-v1.md`. [id: 4.5]
