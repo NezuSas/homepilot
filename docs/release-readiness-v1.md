@@ -34,7 +34,7 @@ security, modular UI composition, and appliance runtime validation.
 
 | Endpoint class | Expected behavior |
 |---|---|
-| Protected setup status | returns a JSON authentication error without a session |
+| Protected setup status | returns `401 MISSING_TOKEN` without a session |
 | Login validation | returns a JSON client error for invalid input |
 | Authenticated unknown API route | returns a JSON not-found error |
 

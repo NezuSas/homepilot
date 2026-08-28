@@ -66,7 +66,7 @@ function assertCondition(condition: unknown, message: string): asserts condition
 function assertError(response: ApiResponse, status: number, code: string): void {
   const error = getError(response);
   assertCondition(response.status === status, `Expected HTTP ${status}, received ${response.status}.`);
-  assertCondition(error?.code === code && typeof error.message === 'string', `Expected public error ${code}.`);
+  assertCondition(error?.code === code && typeof error.message === 'string', `Expected error ${code}.`);
 }
 
 async function login(credentials: ReleaseVerificationCredentials): Promise<string> {
@@ -90,7 +90,7 @@ async function run(): Promise<void> {
   console.log('Starting HomePilot Release V1 verification.');
 
   const unauthenticatedSetup = await request('/system/setup-status');
-  assertError(unauthenticatedSetup, 401, 'UNAUTHORIZED');
+  assertError(unauthenticatedSetup, 401, 'MISSING_TOKEN');
   console.log('PASS setup-status authentication boundary');
 
   const token = await login(credentials);
@@ -133,7 +133,7 @@ async function run(): Promise<void> {
   const logout = await request('/auth/logout', { method: 'POST', headers: bearer(token) });
   assertCondition(logout.status === 200, 'Logout failed.');
   const revokedIdentity = await request('/auth/me', { headers: bearer(token) });
-  assertError(revokedIdentity, 401, 'UNAUTHORIZED');
+  assertError(revokedIdentity, 401, 'INVALID_TOKEN');
   console.log('PASS session revocation');
 
   console.log('Release V1 verification completed successfully.');

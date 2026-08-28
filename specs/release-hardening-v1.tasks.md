@@ -22,4 +22,4 @@
 
 - [x] Excluir el directorio del runner local del contexto Docker para evitar que sus archivos internos entren en capas de compilación. Evidencia: `.gitignore`, `.dockerignore` y `docs/release-readiness-v1.md`. [id: 4.5]
 
-- [x] Alinear la verificación de ruta inexistente con el límite de autenticación del API: probar `404 NOT_FOUND` con una sesión válida, manteniendo la prueba `401` no autenticada. Evidencia: `scripts/verify_release_v1.ts`. [id: 4.6]
+- [x] Alinear la verificación de ruta inexistente y autenticación con los contratos del API: probar `404 NOT_FOUND` con una sesión válida, `401 MISSING_TOKEN` sin sesión y `401 INVALID_TOKEN` tras revocación. Evidencia: `scripts/verify_release_v1.ts`. [id: 4.6]
