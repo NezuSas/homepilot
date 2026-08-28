@@ -57,3 +57,9 @@ It reads these environment variables without printing their values:
 
 It verifies API error contracts, authentication, setup, diagnostics, Home
 Assistant reachability, user-directory sanitization, and session revocation.
+
+## Office Validation Workflow
+
+`.github/workflows/office-release-validation.yml` runs only by manual dispatch on a self-hosted runner labeled `homepilot-office`. It always checks out `main`, uses the protected `office-validation` environment, and passes its four release secrets only to `npm run verify:release`.
+
+Before dispatching it, keep the HomePilot API running on the office mini PC at `http://localhost:3000/api/v1`. The runner must be dedicated to this repository and carry the `homepilot-office` label. The workflow does not deploy, modify Home Assistant configuration, or execute device commands.

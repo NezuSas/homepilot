@@ -1,0 +1,43 @@
+name: Office release validation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: office-release-validation
+  cancel-in-progress: false
+
+jobs:
+  verify-release:
+    name: Verify office release readiness
+    runs-on: [self-hosted, homepilot-office]
+    environment:
+      name: office-validation
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout protected release source
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Run authenticated release verification
+        env:
+          HOMEPILOT_RELEASE_USERNAME: ${{ secrets.HOMEPILOT_RELEASE_USERNAME }}
+          HOMEPILOT_RELEASE_PASSWORD: ${{ secrets.HOMEPILOT_RELEASE_PASSWORD }}
+          HOMEPILOT_RELEASE_HA_URL: ${{ secrets.HOMEPILOT_RELEASE_HA_URL }}
+          HOMEPILOT_RELEASE_HA_TOKEN: ${{ secrets.HOMEPILOT_RELEASE_HA_TOKEN }}
+        run: npm run verify:release

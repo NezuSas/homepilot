@@ -17,5 +17,5 @@
 ## Phase 4: Readiness
 - [x] Implementar `scripts/verify_release_v1.ts` con alcance completo definido. Evidencia: valida contrato público, autenticación, setup, diagnósticos, HA, directorio y revocación sin imprimir secretos. [id: 4.1]
 - [x] Crear `docs/release-readiness-v1.md` con checklist de producción. Evidencia: `docs/release-readiness-v1.md`. [id: 4.2]
-- [ ] Validar criterios de "Release Ready" y documentar en walkthrough. [id: 4.3]
-
+- [x] Añadir workflow manual de validación de oficina con runner dedicado, checkout fijo de main, entorno protegido y secretos acotados al paso de release. Evidencia: .github/workflows/office-release-validation.yml y docs/release-readiness-v1.md. [id: 4.3]
+- [ ] Validar criterios de "Release Ready" y documentar en walkthrough. [id: 4.4]
