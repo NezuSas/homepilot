@@ -63,7 +63,7 @@ function assertCondition(condition: unknown, message: string): asserts condition
   if (!condition) throw new Error(message);
 }
 
-function assertPublicError(response: ApiResponse, status: number, code: string): void {
+function assertError(response: ApiResponse, status: number, code: string): void {
   const error = getError(response);
   assertCondition(response.status === status, `Expected HTTP ${status}, received ${response.status}.`);
   assertCondition(error?.code === code && typeof error.message === 'string', `Expected public error ${code}.`);
@@ -89,15 +89,15 @@ async function run(): Promise<void> {
   const credentials = requireCredentials();
   console.log('Starting HomePilot Release V1 verification.');
 
-  const notFound = await request('/invalid/route');
-  assertPublicError(notFound, 404, 'NOT_FOUND');
-  console.log('PASS public error contract');
-
   const unauthenticatedSetup = await request('/system/setup-status');
-  assertPublicError(unauthenticatedSetup, 401, 'UNAUTHORIZED');
+  assertError(unauthenticatedSetup, 401, 'UNAUTHORIZED');
   console.log('PASS setup-status authentication boundary');
 
   const token = await login(credentials);
+  const notFound = await request('/invalid/route', { headers: bearer(token) });
+  assertError(notFound, 404, 'NOT_FOUND');
+  console.log('PASS authenticated not-found contract');
+
   const identity = await request('/auth/me', { headers: bearer(token) });
   const identityBody = asRecord(identity.body);
   assertCondition(identity.status === 200 && identityBody?.username === credentials.username, 'Authenticated identity does not match the login user.');
@@ -133,7 +133,7 @@ async function run(): Promise<void> {
   const logout = await request('/auth/logout', { method: 'POST', headers: bearer(token) });
   assertCondition(logout.status === 200, 'Logout failed.');
   const revokedIdentity = await request('/auth/me', { headers: bearer(token) });
-  assertPublicError(revokedIdentity, 401, 'UNAUTHORIZED');
+  assertError(revokedIdentity, 401, 'UNAUTHORIZED');
   console.log('PASS session revocation');
 
   console.log('Release V1 verification completed successfully.');

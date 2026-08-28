@@ -36,7 +36,7 @@ security, modular UI composition, and appliance runtime validation.
 |---|---|
 | Protected setup status | returns a JSON authentication error without a session |
 | Login validation | returns a JSON client error for invalid input |
-| Unknown API route | returns a JSON not-found error |
+| Authenticated unknown API route | returns a JSON not-found error |
 
 ## Known Future Work
 
