@@ -27,6 +27,31 @@ import {
   Wind,
   Zap,
 } from 'lucide-react';
+import {
+  mdiAirConditioner,
+  mdiAlarm,
+  mdiBlinds,
+  mdiCamera,
+  mdiCat,
+  mdiCeilingFan,
+  mdiDog,
+  mdiDoor,
+  mdiFan,
+  mdiFire,
+  mdiGarage,
+  mdiHome,
+  mdiLightbulb,
+  mdiLock,
+  mdiMusic,
+  mdiPower,
+  mdiPowerPlug,
+  mdiShield,
+  mdiSpeaker,
+  mdiTelevision,
+  mdiThermometer,
+  mdiWeatherWindy,
+  mdiWindowShutter,
+} from '@mdi/js';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
 import { Button } from '../../../components/ui/Button';
@@ -49,9 +74,9 @@ interface IconEntry {
 }
 
 /**
- * Common dashboard icons stay in the initial application bundle.  The full
- * Material Design Icons catalog is only necessary for a custom icon not
- * covered by this HomePilot/Home Assistant-compatible baseline.
+ * The initial dashboard bundle only contains icons that HomePilot presents in
+ * its own UI. The Material subset covers persisted Home Assistant aliases
+ * used by the shipped dashboard and keeps arbitrary user text intact.
  */
 const COMMON_ICON_COMPONENTS: Record<string, IconComponent> = {
   assistant: Bot,
@@ -104,106 +129,57 @@ function createMdiIcon(path: string): IconComponent {
   };
 }
 
-function mdiExportNameToIconName(exportName: string): string | null {
-  if (!exportName.startsWith('mdi') || exportName.length <= 3) return null;
+const MATERIAL_ICON_PATHS: Record<string, string> = {
+  'mdi:air-conditioner': mdiAirConditioner,
+  'mdi:alarm': mdiAlarm,
+  'mdi:blinds': mdiBlinds,
+  'mdi:camera': mdiCamera,
+  'mdi:cat': mdiCat,
+  'mdi:ceiling-fan': mdiCeilingFan,
+  'mdi:dog': mdiDog,
+  'mdi:door': mdiDoor,
+  'mdi:fan': mdiFan,
+  'mdi:fire': mdiFire,
+  'mdi:garage': mdiGarage,
+  'mdi:home': mdiHome,
+  'mdi:lightbulb': mdiLightbulb,
+  'mdi:lock': mdiLock,
+  'mdi:music': mdiMusic,
+  'mdi:power': mdiPower,
+  'mdi:power-plug': mdiPowerPlug,
+  'mdi:shield': mdiShield,
+  'mdi:speaker': mdiSpeaker,
+  'mdi:television': mdiTelevision,
+  'mdi:thermometer': mdiThermometer,
+  'mdi:weather-windy': mdiWeatherWindy,
+  'mdi:window-shutter': mdiWindowShutter,
+};
 
-  const rest = exportName.slice(3);
-  if (!/^[A-Z0-9]/.test(rest)) return null;
+const MATERIAL_ICON_ENTRIES: IconEntry[] = Object.entries(MATERIAL_ICON_PATHS).map(([name, path]) => ({
+  name,
+  icon: createMdiIcon(path),
+  normalized: normalizeIconName(name),
+}));
 
-  return `mdi:${rest
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1-$2')
-    .toLowerCase()}`;
-}
+const MATERIAL_ICON_COMPONENTS: Record<string, IconComponent> = Object.fromEntries(
+  MATERIAL_ICON_ENTRIES.map((entry) => [entry.normalized, entry.icon])
+);
 
-export function needsMdiCatalog(value?: string): boolean {
-  const normalized = normalizeIconName(value || '');
-  return Boolean(normalized) && !COMMON_ICON_COMPONENTS[normalized];
-}
-
-let mdiCatalog: IconEntry[] = [];
-let mdiCatalogPromise: Promise<void> | null = null;
-
-type MdiCatalogLoadStrategy = 'immediate' | 'idle';
-
-function scheduleIdleLoad(callback: () => void): () => void {
-  if (typeof window === 'undefined') return () => undefined;
-
-  const idleWindow = window as Window & {
-    requestIdleCallback?: (handler: IdleRequestCallback, options?: IdleRequestOptions) => number;
-    cancelIdleCallback?: (handle: number) => void;
-  };
-  if (typeof idleWindow.requestIdleCallback === 'function') {
-    const handle = idleWindow.requestIdleCallback(callback, { timeout: 4_000 });
-    return () => idleWindow.cancelIdleCallback?.(handle);
-  }
-
-  const timeoutId = globalThis.setTimeout(callback, 1_200);
-  return () => globalThis.clearTimeout(timeoutId);
-}
-
-function loadMdiCatalog(): Promise<void> {
-  if (mdiCatalogPromise) return mdiCatalogPromise;
-
-  mdiCatalogPromise = import('@mdi/js').then((module) => {
-    mdiCatalog = Object.entries(module)
-      .map(([exportName, path]) => {
-        const name = mdiExportNameToIconName(exportName);
-        if (!name || typeof path !== 'string') return null;
-
-        return { name, icon: createMdiIcon(path), normalized: normalizeIconName(name) };
-      })
-      .filter((entry): entry is IconEntry => entry !== null)
-      .sort((a, b) => a.name.localeCompare(b.name));
-  });
-
-  return mdiCatalogPromise;
-}
-
-/** Loads the complete Home Assistant-compatible MDI catalog once per session. */
-export function useMdiCatalogLoaded(enabled = true, strategy: MdiCatalogLoadStrategy = 'idle'): boolean {
-  const [isLoaded, setIsLoaded] = useState(mdiCatalog.length > 0);
-
-  useEffect(() => {
-    if (!enabled || mdiCatalog.length > 0) return;
-
-    let active = true;
-    const loadCatalog = () => {
-      void loadMdiCatalog().then(() => {
-        if (active) setIsLoaded(true);
-      });
-    };
-    const cancelScheduledLoad = strategy === 'immediate'
-      ? (loadCatalog(), () => undefined)
-      : scheduleIdleLoad(loadCatalog);
-
-    return () => {
-      active = false;
-      cancelScheduledLoad();
-    };
-  }, [enabled, strategy]);
-
-  return isLoaded;
-}
-
-function getIconCatalog(): IconEntry[] {
-  return mdiCatalog;
-}
+const ICON_CATALOG: IconEntry[] = [
+  ...Object.entries(COMMON_ICON_COMPONENTS).map(([name, icon]) => ({ name, icon, normalized: normalizeIconName(name) })),
+  ...MATERIAL_ICON_ENTRIES,
+].sort((left, right) => left.name.localeCompare(right.name));
 
 export function getDashboardIconComponent(value?: string): IconComponent {
-  const normalized = normalizeIconName(value || '');
+  const rawValue = value?.trim() || '';
+  const normalized = normalizeIconName(rawValue);
   if (!normalized) return CircleHelp;
 
-  const commonIcon = COMMON_ICON_COMPONENTS[normalized];
-  if (commonIcon) return commonIcon;
+  if (/^mdi[:\-_\s]/i.test(rawValue)) {
+    return MATERIAL_ICON_COMPONENTS[normalized] || CircleHelp;
+  }
 
-  const icons = getIconCatalog();
-  return (
-    icons.find((item) => item.normalized === normalized)?.icon ||
-    icons.find((item) => item.name.toLowerCase() === (value || '').trim().toLowerCase())?.icon ||
-    icons.find((item) => item.normalized.includes(normalized))?.icon ||
-    CircleHelp
-  );
+  return COMMON_ICON_COMPONENTS[normalized] || MATERIAL_ICON_COMPONENTS[normalized] || CircleHelp;
 }
 
 export function IconPicker({
@@ -218,7 +194,6 @@ export function IconPicker({
   const iconInputRef = useRef<HTMLInputElement | null>(null);
   const [iconQuery, setIconQuery] = useState(value);
   const [dropdownPos, setDropdownPos] = useState<{ left: number; top: number; width: number } | null>(null);
-  const isMdiCatalogLoaded = useMdiCatalogLoaded(Boolean(dropdownPos), 'immediate');
 
   useEffect(() => {
     setIconQuery(value);
@@ -228,19 +203,16 @@ export function IconPicker({
   const resolvedPlaceholder = placeholder ?? t('dashboard.editor.sections.icon_picker_placeholder');
   const resolvedLabel = label ?? t('dashboard.editor.sections.icon_picker_label');
 
-  const iconCatalog = getIconCatalog();
-
   const filteredIcons = useMemo(() => {
-    const icons = iconCatalog;
-    const q = normalizeIconName(iconQuery);
+    const query = normalizeIconName(iconQuery);
 
-    if (!q) return icons.slice(0, 120);
+    if (!query) return ICON_CATALOG;
 
-    const startsWith = icons.filter((item) => item.normalized.startsWith(q));
-    const includes = icons.filter((item) => !item.normalized.startsWith(q) && item.normalized.includes(q));
+    const startsWith = ICON_CATALOG.filter((item) => item.normalized.startsWith(query));
+    const includes = ICON_CATALOG.filter((item) => !item.normalized.startsWith(query) && item.normalized.includes(query));
 
-    return [...startsWith, ...includes].slice(0, 120);
-  }, [iconCatalog, iconQuery]);
+    return [...startsWith, ...includes];
+  }, [iconQuery]);
 
   const computeDropdownPos = () => {
     const rect = iconInputRef.current?.getBoundingClientRect();
@@ -283,11 +255,7 @@ export function IconPicker({
             width: dropdownPos.width,
           }}
         >
-          {!isMdiCatalogLoaded ? (
-            <div className="px-3 py-6 text-center text-body font-semibold text-muted-foreground" aria-live="polite">
-              {t('common.loading')}
-            </div>
-          ) : filteredIcons.length > 0 ? (
+          {filteredIcons.length > 0 ? (
             filteredIcons.map((item) => {
               const Icon = item.icon;
               const selected = item.normalized === normalizeIconName(iconQuery);
@@ -349,9 +317,9 @@ export function IconPicker({
           }
         }}
         onChange={(event) => {
-          const val = event.target.value;
-          setIconQuery(val);
-          onChange(val);
+          const nextValue = event.target.value;
+          setIconQuery(nextValue);
+          onChange(nextValue);
           setTimeout(computeDropdownPos, 0);
         }}
         onBlur={() => setTimeout(() => setDropdownPos(null), 200)}

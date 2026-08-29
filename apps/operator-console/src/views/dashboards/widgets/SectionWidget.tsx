@@ -32,7 +32,7 @@ import type { DashboardWidgetConfig } from '../types';
 import { canUseCompactSpan, cardKinds, catalogCategories, clockCardOptions, createId, getCatalogCategory, getCatalogDescriptionKey, getCatalogLabelKey, getClockKindLabelKey, getClockStyleForKind, getDefaultIcon, getDefaultSpan, getEffectiveCardSpan, getRecommendedSectionHeight, getSpanClass, getWidgetType, isBindableKind, isClockKind, normalizeCards, normalizeKind, type AssignableAutomation, type AssignableScene, type CardDraft, type NormalizedSectionCardItem, type NormalizedSectionCardKind, type SectionCardCategory, type SectionCardIcon, type SectionCardKind, type SectionCardSpan } from './sectionCardCatalog';
 import { getAssignableDevicesForSectionCard, isDeviceActive } from '../dashboardUtils';
 import { canExecuteCommand } from '../../../lib/deviceCapabilities';
-import { IconPicker, getDashboardIconComponent, needsMdiCatalog, useMdiCatalogLoaded } from '../components/IconPicker';
+import { IconPicker, getDashboardIconComponent } from '../components/IconPicker';
 import { SearchableSelectField } from '../../../components/ui/SearchableSelectField';
 import { Button } from '../../../components/ui/Button';
 import { IconButton } from '../../../components/ui/IconButton';
@@ -362,9 +362,7 @@ function CardPreview({
   actionFeedback?: 'pending' | 'success' | 'error';
 }) {
   const { t } = useTranslation();
-  // Default card icons resolve from the bundled baseline. Custom MDI entries
-  // still load on demand and preserve existing dashboard configurations.
-  useMdiCatalogLoaded(needsMdiCatalog(icon ?? getDefaultIcon(kind)));
+  // Default card icons resolve from the bundled baseline.
   const normalized = normalizeKind(kind);
   const Icon = iconForIconKey(icon ?? getDefaultIcon(normalized));
   const isSmall = span === 'small';

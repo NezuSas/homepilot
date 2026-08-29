@@ -9,7 +9,7 @@ import { API_BASE_URL } from '../../../config';
 import { isDeviceActive } from '../dashboardUtils';
 import { DormantWidgetPlaceholder } from '../components/DormantWidgetPlaceholder';
 import { CameraDeviceTile } from '../../../components/CameraDeviceTile';
-import { getDashboardIconComponent, needsMdiCatalog, useMdiCatalogLoaded } from '../components/IconPicker';
+import { getDashboardIconComponent } from '../components/IconPicker';
 import { Button } from '../../../components/ui/Button';
 import { getDeviceTileStateClasses } from '../../../components/ui/DeviceTileShell';
 import { createDeviceTogglePlan, executeDeviceToggle } from './deviceToggle';
@@ -18,9 +18,6 @@ const API = `${API_BASE_URL}/api/v1`;
 
 export function DeviceWidget({ config, isEditing, onConfigure }: { config: DashboardWidgetConfig; isEditing: boolean; onConfigure?: () => void }) {
   const { t } = useTranslation();
-  // A saved custom MDI icon remains supported without requesting the full
-  // catalog for the normal HomePilot icon set.
-  useMdiCatalogLoaded(needsMdiCatalog(config.appearance.icon));
   const devices = useDeviceSnapshotStore((state) => state.devices);
   const upsertDevice = useDeviceSnapshotStore((state) => state.upsertDevice);
   const device = devices.find((candidate) => candidate.id === config.binding.entityId);
