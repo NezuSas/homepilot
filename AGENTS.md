@@ -1,6 +1,8 @@
 # HomePilot — guía local para agentes
 
-HomePilot sigue [NEZU Engineering Standards](https://github.com/NezuSas/nezu-engineering-standards). Ese repositorio es la fuente de verdad para el flujo transversal, la seguridad, Git, releases y seguimiento. Este archivo solo añade reglas verificables y específicas de HomePilot.
+HomePilot sigue [NEZU Engineering Standards](https://github.com/NezuSas/nezu-engineering-standards). Ese repositorio es la fuente de verdad para el flujo transversal, la seguridad, Git, releases y seguimiento. En particular, se hereda `docs/global-workflow.md`; este archivo solo añade reglas verificables y específicas de HomePilot.
+
+Las reglas globales prevalecen para gobernanza y publicación. Esta guía no las sustituye: concreta los límites de arquitectura, calidad, integración Edge y operación local propios de HomePilot.
 
 ## Propósito y límites
 
@@ -35,6 +37,7 @@ Los roles son responsabilidades que se activan según el cambio, no agentes perm
 - Aplicar mínimo privilegio; validar autorización y pertenencia al hogar antes de leer, emitir o ejecutar comandos de dispositivos.
 - Tratar integraciones, WebSocket, tráfico de red y recursos remotos como límites de confianza; validar entradas, contratos, timeouts y fallos explícitamente.
 - Los cambios de autenticación, autorización, red, runtime, bootstrap o integraciones deben activar Seguridad/Arquitectura, QA y Releases/DevOps.
+- Los paneles locales solo pueden leer datos sanitizados y de solo lectura. Nunca pueden leer sesiones, prompts, secretos, tokens, archivos JSONL de Codex ni archivos de otros proyectos.
 
 ## Reglas de interfaz
 
@@ -60,7 +63,9 @@ Ejecutar desde la raíz del repositorio las validaciones que correspondan al ár
 
 ## Seguimiento, Git y publicación
 
-- Para trabajo trazable, crear una Issue real en `NezuSas/homepilot`, agregarla a **NEZU — Desarrollo y Releases** y completar Agente, Área, Prioridad y Versión objetivo. No usar tarjetas Draft.
-- El flujo de estado es: `Pendiente → En desarrollo → QA → Esperando tu aprobación → Listo para release → Completado`.
-- No ejecutar `commit`, `push`, release, deploy, cambios de producción ni cambios externos sin autorización explícita del usuario. No usar force push, reset destructivo ni borrado masivo.
-- Los cambios de release requieren versión, notas, artefactos verificables, workflow exitoso y plan de reversión antes de solicitar autorización.
+- GitHub Projects es la fuente oficial de seguimiento. Para trabajo trazable, crear una Issue real en `NezuSas/homepilot`, agregarla a **NEZU — Desarrollo y Releases** y completar Agente, Área, Prioridad y Versión objetivo. No usar tarjetas Draft.
+- Toda Issue relevante inicia en **Pendiente**. Solo después de clasificarla puede pasar a **En desarrollo**. El flujo único es: `Pendiente → En desarrollo → QA → Esperando tu aprobación → Listo para release → Completado`.
+- No saltar estados ni adelantar una Issue a **Listo para release** o **Completado** sin la autorización humana y la evidencia del estado anterior. Registrar en la Issue validaciones, resultados y evidencia de commit, workflow, versión, despliegue o verificación aplicable.
+- Un microajuste del mismo objetivo, alcance y resultado esperado se registra en la Issue cohesionada; abrir otra Issue solo cuando cambie el objetivo, resultado verificable o ámbito de responsabilidad.
+- No ejecutar `commit`, `push`, release, deploy, cambios de producción, cambios de permisos ni conexiones externas sin autorización explícita del usuario. No usar force push, reset destructivo ni borrado masivo.
+- Los cambios de release requieren versión, notas claras, artefactos verificables, workflow exitoso y plan de reversión antes de solicitar autorización. Una Issue se marca completada solo cuando se verifica su resultado.
