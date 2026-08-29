@@ -8,4 +8,4 @@
 - [x] Añadir verificaciones estática y de runtime sin secretos. Evidencia: `scripts/check-docker-profiles.mjs`, `scripts/verify-mqtt-runtime.mjs`, `package.json`. [id: 3.1]
 - [x] Documentar diagnóstico y recuperación segura para soporte Windows y Linux. Evidencia: `docs/pc-integration-deployment-guide.md`. [id: 4.1]
 - [x] Recuperar OSCAR y ejecutar regresiones de Docker/configuración. Evidencia: Docker Desktop: `homepilot-mqtt` saludable y `127.0.0.1:1883` accesible. [id: 5.1]
-- [ ] Ejecutar la verificación de runtime en la miniPC Linux antes de publicar. Evidencia: `npm run verify:mqtt-runtime` y estado saludable de `homepilot-mqtt`. [id: 5.2]
+- [ ] Validar el perfil seguro de agentes en una miniPC Linux limpia, sin combinar el Compose de desarrollo. Evidencia: `bash scripts/configure-pc-agent-mqtt.sh init`, `npm run verify:mqtt-runtime -- --office` y estado saludable de `homepilot-mqtt`. [id: 5.2]

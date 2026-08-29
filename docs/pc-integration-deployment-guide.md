@@ -139,7 +139,7 @@ docker compose -f docker-compose.yml -f docker-compose.ha-companion.desktop.yml 
 npm run verify:mqtt-runtime -- --desktop
 ```
 
-En Linux, ejecute los mismos comandos sin el segundo archivo Compose ni `--desktop`. Esta recuperación no usa `down -v`, no elimina `ha-config`, `data/`, volúmenes de credenciales ni la configuración de HASS.Agent. El broker de desarrollo permanece ligado a `127.0.0.1`; para computadores remotos de clientes se debe usar exclusivamente el perfil MQTT seguro documentado más abajo.
+En Linux, este perfil local de desarrollo no se combina con `docker-compose.office.yml`. Una miniPC nueva que deba integrar computadores remotos usa exclusivamente el perfil MQTT seguro: ejecute `bash scripts/configure-pc-agent-mqtt.sh init --ha-username USUARIO` y luego `npm run verify:mqtt-runtime -- --office`. Esta recuperación no usa `down -v`, no elimina `ha-config`, `data/` ni la configuración de HASS.Agent. El broker de desarrollo permanece ligado a `127.0.0.1`; el perfil seguro se provisiona con credenciales y ACL por instalación.
 
 ## Linux target computers
 

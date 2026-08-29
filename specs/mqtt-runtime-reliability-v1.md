@@ -34,9 +34,9 @@ La configuración local de desarrollo usa MQTT anónimo limitado a `127.0.0.1`. 
 2. `homepilot-mqtt` declara healthcheck que verifica una suscripción local al broker sin revelar ni requerir secretos.
 3. Home Assistant espera un broker saludable en un arranque limpio de Compose, sin depender de un volumen externo no usado por el perfil local.
 4. `npm run check:docker-profiles` falla si se pierde cualquiera de estas garantías.
-5. `npm run verify:mqtt-runtime -- --desktop` comprueba que el contenedor está saludable y que `127.0.0.1:1883` acepta TCP; el modo Linux usa el Compose base.
+5. `npm run verify:mqtt-runtime -- --desktop` comprueba el perfil de desarrollo; `npm run verify:mqtt-runtime -- --office` verifica el perfil seguro de agentes para una miniPC limpia. Ambos validan TCP sin imprimir secretos.
 6. La guía de soporte identifica el síntoma HASS.Agent `conectando`, conserva la configuración existente y da un comando de recuperación no destructivo.
-7. La recuperación del incidente de OSCAR deja MQTT saludable y HASS.Agent puede reconectar sin reconfigurar sus credenciales.
+7. La recuperación del incidente de OSCAR deja MQTT saludable y HASS.Agent puede reconectar sin reconfigurar sus credenciales. El perfil Office no combina el Compose de desarrollo con instalaciones heredadas.
 
 ## Seguridad y reversión
 

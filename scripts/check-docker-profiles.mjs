@@ -5,6 +5,8 @@ const requiredFiles = [
   'docker-compose.office.yml',
   'docker-compose.desktop.yml',
   'docker-compose.ha-companion.desktop.yml',
+  'docker-compose.pc-agents.yml',
+  'mosquitto/config/mosquitto.secure.conf',
   'docker/ui/nginx.conf',
   'docker/ui/nginx.desktop.conf',
   'scripts/homepilot-maintenance.sh',
@@ -25,6 +27,8 @@ if (failures.length === 0) {
   const office = read('docker-compose.office.yml');
   const desktop = read('docker-compose.desktop.yml');
   const haCompanionDesktop = read('docker-compose.ha-companion.desktop.yml');
+  const pcAgents = read('docker-compose.pc-agents.yml');
+  const secureMqtt = read('mosquitto/config/mosquitto.secure.conf');
   const nginx = read('docker/ui/nginx.conf');
   const desktopNginx = read('docker/ui/nginx.desktop.conf');
   const maintenance = read('scripts/homepilot-maintenance.sh');
@@ -50,6 +54,9 @@ if (failures.length === 0) {
     failures.push('MQTT must declare a local healthcheck and Home Assistant must wait for it');
   }  if (integrated.includes('homepilot-mqtt-credentials')) {
     failures.push('Local MQTT must not require an external credentials volume that is unused by its anonymous loopback profile');
+  }  if (!pcAgents.includes('mosquitto.secure.conf') || !pcAgents.includes('./data/mqtt:/mosquitto/config/credentials:ro')
+    || !secureMqtt.includes('allow_anonymous false') || !secureMqtt.includes('acl_file')) {
+    failures.push('Office PC-agent MQTT must use the secure credentials and ACL profile');
   }
   if (!integrated.includes('/app/data/homepilot.db') || !office.includes('/app/data/homepilot.db') || !desktop.includes('/app/data/homepilot.db')) {
     failures.push('Every profile must target /app/data/homepilot.db');

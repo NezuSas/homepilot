@@ -3,21 +3,36 @@ import { execFileSync } from 'node:child_process';
 import net from 'node:net';
 
 const args = process.argv.slice(2);
-const desktop = args.includes('--desktop');
+const mode = args[0] === '--desktop' ? 'desktop' : args[0] === '--office' ? 'office' : 'base';
 
-if (args.length > 1 || (args.length === 1 && !desktop)) {
-  console.error('Usage: npm run verify:mqtt-runtime [-- --desktop]');
+if (args.length > 1 || (args.length === 1 && mode === 'base')) {
+  console.error('Usage: npm run verify:mqtt-runtime [-- --desktop|--office]');
   process.exit(2);
 }
 
-const composeFiles = desktop
-  ? ['-f', 'docker-compose.yml', '-f', 'docker-compose.ha-companion.desktop.yml']
-  : ['-f', 'docker-compose.yml'];
-const requiredFiles = desktop
-  ? ['docker-compose.yml', 'docker-compose.ha-companion.desktop.yml']
-  : ['docker-compose.yml'];
+const configurations = {
+  base: {
+    composeFiles: ['-f', 'docker-compose.yml'],
+    requiredFiles: ['docker-compose.yml'],
+    requiresHealthcheck: true,
+    label: 'Linux base',
+  },
+  desktop: {
+    composeFiles: ['-f', 'docker-compose.yml', '-f', 'docker-compose.ha-companion.desktop.yml'],
+    requiredFiles: ['docker-compose.yml', 'docker-compose.ha-companion.desktop.yml'],
+    requiresHealthcheck: true,
+    label: 'Docker Desktop',
+  },
+  office: {
+    composeFiles: ['-f', 'docker-compose.office.yml', '-f', 'docker-compose.pc-agents.yml'],
+    requiredFiles: ['docker-compose.office.yml', 'docker-compose.pc-agents.yml'],
+    requiresHealthcheck: false,
+    label: 'Office secure-agent profile',
+  },
+};
+const configuration = configurations[mode];
 
-for (const file of requiredFiles) {
+for (const file of configuration.requiredFiles) {
   if (!existsSync(file)) {
     console.error(`MQTT runtime verification failed: missing ${file}.`);
     process.exit(1);
@@ -41,22 +56,25 @@ const canConnect = () => new Promise((resolve) => {
 });
 
 try {
-  const containerId = docker(['compose', ...composeFiles, 'ps', '-q', 'homepilot-mqtt']);
-  if (!containerId) throw new Error('homepilot-mqtt is not created. Start only that service before verifying it.');
+  const containerId = docker(['compose', ...configuration.composeFiles, 'ps', '-q', 'homepilot-mqtt']);
+  if (!containerId) throw new Error('homepilot-mqtt is not created. Provision the matching MQTT profile before verifying it.');
 
   const deadline = Date.now() + 45_000;
-  let health = 'unknown';
+  let state = 'unknown';
   while (Date.now() < deadline) {
     const [container] = JSON.parse(docker(['inspect', containerId]));
-    health = container.State.Health?.Status ?? container.State.Status;
-    if (health === 'healthy' && await canConnect()) {
-      console.log(`MQTT runtime verification passed (${desktop ? 'Docker Desktop' : 'Linux'}): broker is healthy and 127.0.0.1:1883 accepts TCP.`);
+    state = container.State.Health?.Status ?? container.State.Status;
+    const ready = configuration.requiresHealthcheck
+      ? container.State.Health?.Status === 'healthy'
+      : container.State.Status === 'running';
+    if (ready && await canConnect()) {
+      console.log(`MQTT runtime verification passed (${configuration.label}): broker is ready and 127.0.0.1:1883 accepts TCP.`);
       process.exit(0);
     }
     if (container.State.Status !== 'running') break;
     await delay(1500);
   }
-  throw new Error(`homepilot-mqtt did not become healthy (last state: ${health}).`);
+  throw new Error(`homepilot-mqtt did not become ready (last state: ${state}).`);
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
   console.error(`MQTT runtime verification failed: ${message}`);
