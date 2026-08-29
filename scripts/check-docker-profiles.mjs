@@ -48,6 +48,8 @@ if (failures.length === 0) {
   if (!integrated.includes('mosquitto_sub -h 127.0.0.1 -p 1883')
     || !integrated.includes('condition: service_healthy')) {
     failures.push('MQTT must declare a local healthcheck and Home Assistant must wait for it');
+  }  if (integrated.includes('homepilot-mqtt-credentials')) {
+    failures.push('Local MQTT must not require an external credentials volume that is unused by its anonymous loopback profile');
   }
   if (!integrated.includes('/app/data/homepilot.db') || !office.includes('/app/data/homepilot.db') || !desktop.includes('/app/data/homepilot.db')) {
     failures.push('Every profile must target /app/data/homepilot.db');

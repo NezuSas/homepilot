@@ -32,7 +32,7 @@ La configuración local de desarrollo usa MQTT anónimo limitado a `127.0.0.1`. 
 
 1. El perfil base monta `./mosquitto/config` como directorio de solo lectura y no monta `mosquitto.conf` como archivo individual.
 2. `homepilot-mqtt` declara healthcheck que verifica una suscripción local al broker sin revelar ni requerir secretos.
-3. Home Assistant espera un broker saludable en un arranque limpio de Compose.
+3. Home Assistant espera un broker saludable en un arranque limpio de Compose, sin depender de un volumen externo no usado por el perfil local.
 4. `npm run check:docker-profiles` falla si se pierde cualquiera de estas garantías.
 5. `npm run verify:mqtt-runtime -- --desktop` comprueba que el contenedor está saludable y que `127.0.0.1:1883` acepta TCP; el modo Linux usa el Compose base.
 6. La guía de soporte identifica el síntoma HASS.Agent `conectando`, conserva la configuración existente y da un comando de recuperación no destructivo.
@@ -42,4 +42,4 @@ La configuración local de desarrollo usa MQTT anónimo limitado a `127.0.0.1`. 
 
 - No se modifican secretos ni volúmenes de credenciales.
 - El broker local continúa enlazado exclusivamente a `127.0.0.1`.
-- Para revertir el cambio de código se restaura la revisión anterior y se recrea solamente `homepilot-mqtt`; nunca se usan `down -v` ni borrado de `ha-config`, `data/` o `homepilot-mqtt-credentials`.
+- Para revertir el cambio de código se restaura la revisión anterior y se recrea solamente `homepilot-mqtt`; nunca se usan `down -v` ni borrado de `ha-config`, `data/` o volúmenes de credenciales usados por perfiles seguros.

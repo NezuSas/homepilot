@@ -88,7 +88,6 @@ services:
       - "127.0.0.1:1883:1883"
     volumes:
       - ./mosquitto/config:/mosquitto/config:ro
-      - homepilot-mqtt-credentials:/mosquitto/credentials:ro
     healthcheck:
       test: [ "CMD-SHELL", "mosquitto_sub -h 127.0.0.1 -p 1883 -t '$$SYS/broker/version' -C 1 -W 5 >/dev/null 2>&1" ]
       interval: 15s
@@ -148,6 +147,3 @@ services:
 volumes:
   data:
   ha-config:
-  homepilot-mqtt-credentials:
-    name: homepilot-mqtt-credentials
-    external: true
