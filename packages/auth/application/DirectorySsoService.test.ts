@@ -106,4 +106,18 @@ describe('DirectorySsoVerifier structural security contracts', () => {
     await expect(verifier.verify(token({ jti: undefined }))).rejects.toMatchObject({ code: 'SSO_TOKEN_INVALID' });
     await expect(verifier.verify(token({ iat: 'not-an-epoch' }))).rejects.toMatchObject({ code: 'SSO_TOKEN_INVALID' });
   });
+
+  it('Scenario: Given an Edge bound to a Directory home When a signed token for another home is presented Then it is rejected before replay state is changed', async () => {
+    const repository = new MemorySsoRepository();
+    const verifier = new DirectorySsoVerifier(repository, publicKey, { homeId: 'home-oscar' });
+
+    await expect(verifier.verify(token({ homeId: 'home-other' }))).rejects.toMatchObject({ code: 'SSO_TOKEN_HOME_MISMATCH' });
+    expect(repository.used.size).toBe(0);
+  });
+
+  it('Scenario: Given an Edge bound to a Directory home When a signed token for that home is presented Then it remains valid for the existing SSO flow', async () => {
+    const verifier = new DirectorySsoVerifier(new MemorySsoRepository(), publicKey, { homeId: 'home-oscar' });
+
+    await expect(verifier.verify(token({ homeId: 'home-oscar' }))).resolves.toMatchObject({ homeId: 'home-oscar' });
+  });
 });

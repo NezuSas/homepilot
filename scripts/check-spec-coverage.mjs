@@ -34,6 +34,7 @@ const rules = [
   ['device-command-execution.md', /(?:packages\/devices|DeviceRoutes|Device[A-Z]|Inbox|Curtain|CoverPosition|ManagedDevice|DashDevice|device[A-Z])/i],
   ['edge-platform-foundations-v1.md', /(?:apps\/api\/(?:ApiGateway|RouteHandler|OperatorConsoleServer)|apps\/api\/__tests__\/ApiGateway|apps\/api\/routes\/ApiRoutes|packages\/shared)/i],
   ['release-hardening-v1.md', /(?:ApiRoutes\.error-sanitization|release-hardening)/i],
+  ['cloud-gateway-edge-connector-v1.md', /(?:packages\/cloud-gateway|CloudGateway)/i],
   ['operator-console-modular-components-v1.md', /(?:apps\/operator-console\/src\/(?:components\/ui|design-system)|apps\/operator-console\/src\/components\/(?:ConfirmModal|CoverPositionControl|AudioInputPicker|InlineTabCreator|DatabaseBackupsCard)|apps\/operator-console\/src\/(?:config|i18n|types|utils)\.ts)/i],
   ['operator-console-v1.md', /(?:apps\/operator-console)/i],
 ];

@@ -3,6 +3,8 @@ import * as path from 'path';
 import { bootstrap } from './bootstrap';
 import { OperatorConsoleServer } from './apps/api/OperatorConsoleServer';
 import { getDatabasePath } from './packages/shared/config/getDatabasePath';
+import { CloudGatewayConnector } from './packages/cloud-gateway/infrastructure/CloudGatewayConnector';
+import { EdgeGatewayRelayExecutor } from './packages/cloud-gateway/application/EdgeGatewayRelayExecutor';
 
 /**
  * Punto de entrada principal (Entrypoint Edge) 

@@ -1,6 +1,7 @@
 # SPEC: Vinculación SSO Directorio↔Edge (Directory-Edge SSO Linking) V1
 
-**Estado:** Aprobado
+**Estado:** Implementado
+**Nota de evolución:** Para nuevas implementaciones, usar directory-home-bound-access-v2.md; esta V1 queda como compatibilidad de enlaces locales.
 **Autor:** Claude (análisis solicitado por Oscar)
 **Fecha:** 2026-08-15
 
