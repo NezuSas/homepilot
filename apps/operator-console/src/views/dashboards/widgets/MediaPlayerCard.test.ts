@@ -1,5 +1,5 @@
 import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
-import { formatMediaTime, getDisplayedMediaPosition, getMediaPlayerPresentation, isMediaPlaybackReference, shouldResyncMediaPlaybackReference } from './mediaPlayback';
+import { formatMediaTime, getDisplayedMediaPosition, getMediaPlayerPresentation, hasActiveMediaSession, isMediaPlaybackReference, shouldResyncMediaPlaybackReference } from './mediaPlayback';
 import { getMediaArtworkSourceKey } from './mediaArtwork';
 
 function createMediaDevice(updatedAt: string, artworkPath: string): SnapshotDevice {
@@ -50,6 +50,40 @@ describe('MediaPlayerCard artwork source', () => {
   });
 });
 describe('MediaPlayerCard playback progress', () => {
+  it('hides inherited media session metadata after Home Assistant reports idle', () => {
+    const presentation = getMediaPlayerPresentation({
+      ...createMediaDevice('2026-08-31T12:54:09.723Z', '/api/hass_agent/media_player.oscar/thumbnail.png'),
+      lastKnownState: {
+        state: 'idle',
+        attributes: {
+          media_title: 'Previous session',
+          media_artist: 'Previous artist',
+          media_position: 42,
+          media_duration: 210,
+          entity_picture: '/api/hass_agent/media_player.oscar/thumbnail.png',
+        },
+      },
+    });
+
+    expect(hasActiveMediaSession(presentation.state)).toBe(false);
+    expect(presentation.mediaTitle).toBeNull();
+    expect(presentation.mediaArtist).toBeNull();
+    expect(getDisplayedMediaPosition(presentation)).toBeNull();
+  });
+
+  it('keeps a paused session visible when Home Assistant still publishes it', () => {
+    const presentation = getMediaPlayerPresentation({
+      ...createMediaDevice('2026-08-31T12:54:09.723Z', ''),
+      lastKnownState: {
+        state: 'paused',
+        attributes: { media_title: 'Paused session', media_artist: 'Artist', media_position: 42, media_duration: 210 },
+      },
+    });
+
+    expect(hasActiveMediaSession(presentation.state)).toBe(true);
+    expect(presentation.mediaTitle).toBe('Paused session');
+    expect(getDisplayedMediaPosition(presentation)).toBe(42);
+  });
   it('reads the Home Assistant playback attributes and advances a playing session', () => {
     const presentation = getMediaPlayerPresentation({
       ...createMediaDevice('2026-08-25T19:00:00.000Z', ''),

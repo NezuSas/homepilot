@@ -61,6 +61,15 @@ function normalizedState(value: string | null): string {
   return value?.trim().toLocaleLowerCase() || 'idle';
 }
 
+/**
+ * Home Assistant integrations may retain the attributes from the last media
+ * session after reporting an inactive state. Those attributes are useful for
+ * the source snapshot, but must not be presented as an active session.
+ */
+export function hasActiveMediaSession(state: string): boolean {
+  return state === 'playing' || state === 'paused';
+}
+
 function numericVolume(value: unknown): number | null {
   if (typeof value !== 'number' || !Number.isFinite(value)) return null;
   return Math.min(100, Math.max(0, Math.round(value * 100)));
@@ -87,19 +96,23 @@ export function getMediaPlayerPresentation(device?: SnapshotDevice, isPreview = 
 
   const state = asRecord(device?.lastKnownState);
   const attributes = asRecord(state.attributes);
+  const playbackState = normalizedState(firstText([state.state, state.value, attributes.state]));
+  const hasActiveSession = hasActiveMediaSession(playbackState);
   const serverPosition = numericSeconds(attributes.homepilot_media_position);
   const serverReferenceAt = firstText([attributes.homepilot_media_position_updated_at]);
-  const hasServerReference = serverPosition !== null && serverReferenceAt !== null;
+  const hasServerReference = hasActiveSession && serverPosition !== null && serverReferenceAt !== null;
   return {
-    state: normalizedState(firstText([state.state, state.value, attributes.state])),
-    mediaTitle: firstText([state.media_title, attributes.media_title, state.title, attributes.title]),
-    mediaArtist: firstText([state.media_artist, attributes.media_artist, state.media_album_artist, attributes.media_album_artist]),
+    state: playbackState,
+    mediaTitle: hasActiveSession ? firstText([state.media_title, attributes.media_title, state.title, attributes.title]) : null,
+    mediaArtist: hasActiveSession ? firstText([state.media_artist, attributes.media_artist, state.media_album_artist, attributes.media_album_artist]) : null,
     volume: numericVolume(state.volume_level ?? attributes.volume_level),
-    mediaPosition: hasServerReference ? serverPosition : numericSeconds(state.media_position ?? attributes.media_position),
-    mediaDuration: numericSeconds(state.media_duration ?? attributes.media_duration),
+    mediaPosition: hasActiveSession
+      ? (hasServerReference ? serverPosition : numericSeconds(state.media_position ?? attributes.media_position))
+      : null,
+    mediaDuration: hasActiveSession ? numericSeconds(state.media_duration ?? attributes.media_duration) : null,
     mediaPositionUpdatedAt: hasServerReference
       ? serverReferenceAt
-      : firstText([state.media_position_updated_at, attributes.media_position_updated_at]),
+      : hasActiveSession ? firstText([state.media_position_updated_at, attributes.media_position_updated_at]) : null,
     hasAuthoritativePlaybackReference: hasServerReference,
   };
 }

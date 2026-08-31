@@ -7,7 +7,7 @@ import { cn } from '../../../lib/utils';
 import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
 import { IconButton } from '../../../components/ui/IconButton';
 import { getMediaArtworkSourceKey } from './mediaArtwork';
-import { formatMediaTime, getDisplayedMediaPosition, getMediaPlayerPresentation, isMediaPlaybackReference, shouldResyncMediaPlaybackReference, type MediaPlaybackReference } from './mediaPlayback';
+import { formatMediaTime, getDisplayedMediaPosition, getMediaPlayerPresentation, hasActiveMediaSession, isMediaPlaybackReference, shouldResyncMediaPlaybackReference, type MediaPlaybackReference } from './mediaPlayback';
 
 export type MediaPlayerCommand = 'turn_on' | 'turn_off' | 'media_play' | 'media_pause' | 'media_previous_track' | 'media_next_track' | 'volume_set';
 
@@ -97,6 +97,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
   const isPlaying = presentation.state === 'playing';
   const isOff = presentation.state === 'off';
   const unavailable = isUnavailable(presentation.state);
+  const hasActiveSession = hasActiveMediaSession(presentation.state);
   const playPauseCommand: MediaPlayerCommand | null = isPlaying
     ? 'media_pause'
     : commands.has('media_play') ? 'media_play' : null;
@@ -105,7 +106,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
     : commands.has('turn_off') ? 'turn_off' : null;
   const canAct = Boolean(onCommand) && !isProcessing && !unavailable;
   const displayTitle = presentation.mediaTitle || title;
-  const artworkSourceKey = getMediaArtworkSourceKey(device?.lastKnownState);
+  const artworkSourceKey = hasActiveSession ? getMediaArtworkSourceKey(device?.lastKnownState) : null;
   const playbackSourceKey = `${artworkSourceKey ?? ''}\u0000${presentation.mediaTitle ?? ''}\u0000${presentation.mediaArtist ?? ''}\u0000${presentation.mediaDuration ?? ''}`;
   const hasPrevious = commands.has('media_previous_track');
   const hasNext = commands.has('media_next_track');

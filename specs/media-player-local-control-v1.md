@@ -35,6 +35,7 @@ Los reproductores importados deben operar como dispositivos locales de HomePilot
 - **REQ-08:** Antes de controlar un reproductor, el asistente informa si está no disponible. Si está apagado y admite encendido, lo enciende antes de completar una orden compatible; ante fallo indica revisar alimentación y conexión.
 - **REQ-09:** Tras informar exactamente un reproductor autorizado, el asistente conserva ese contexto para interpretar de forma determinista referencias inmediatas de encendido como ‘enciéndelo’ o ‘quiero usarlo’; sin un único contexto no ejecuta una orden implícita.
 - **REQ-10:** El asistente reconoce variantes naturales de consulta, pausa, encendido y ajuste de volumen para reproductores importados, y puede filtrar por una estancia autorizada. Si la estancia no tiene reproductores importados, lo informa sin consultar entidades externas.
+- **REQ-11:** La interfaz solo presenta título, artista, progreso y portada como una sesión multimedia cuando el estado es `playing` o `paused`. Si una integración conserva atributos anteriores al pasar a `idle`, `off`, `unavailable`, `unknown` o `none`, esos atributos no se muestran como una sesión activa.
 
 ## 5. Requisitos No Funcionales
 
@@ -57,6 +58,7 @@ Los reproductores importados deben operar como dispositivos locales de HomePilot
 - [x] AC5: El asistente informa título, artista, estado y volumen de un reproductor autorizado sin invocar interpretación no determinista. Evidencia: `assistant_media_player_control.test.ts`.
 - [x] AC6: El asistente fija y ajusta volumen porcentual mediante el contrato `volume_set`, preservando el rango 0–100. Evidencia: `assistant_media_player_control.test.ts`.
 - [x] AC7: Un reproductor no disponible no recibe comandos; un reproductor apagado se enciende antes de un comando compatible y un fallo informa revisar conexión. Evidencia: `assistant_media_player_control.test.ts`.
+- [x] AC14: Dado un reproductor que pasa a `idle` conservando atributos de una sesión anterior, el tablero no muestra título, artista, progreso ni portada heredados; `paused` conserva los metadatos publicados. Evidencia: `MediaPlayerCard.test.ts` y `npm run verify:quality`.
 
 ## 7. Notas Técnicas y Arquitectura
 
