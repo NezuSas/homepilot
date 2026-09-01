@@ -29,9 +29,6 @@ async function main(): Promise<void> {
       new EdgeGatewayRelayExecutor({
         homes: container.repositories.homeRepository,        devices: container.repositories.deviceRepository,
         dispatcher: container.adapters.commandDispatcher,
-        directoryLinks: container.repositories.directorySsoRepository,
-        users: container.repositories.userRepository,
-        dashboards: container.services.dashboardService,
       }),
     );
     cloudGatewayConnector?.start();

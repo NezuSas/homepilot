@@ -214,35 +214,24 @@ function App() {
   const [directorySsoToken, setDirectorySsoToken] = useState<string | null>(null);
 
   useEffect(() => {
-    if (location.pathname !== '/sso/directory') return;
-    const token = new URLSearchParams(location.search).get('token');
-    window.history.replaceState(null, '', '/sso/directory');
-    if (!token) {
-      navigate('/', { replace: true });
-      return;
-    }
     let active = true;
-    void fetch(`${API_BASE_URL}/api/v1/auth/sso/directory`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token })
-    }).then(async (response) => {
-      const result = await response.json() as { linked?: boolean; token?: string; user?: UserContext };
-      if (!response.ok) throw new Error('No se pudo validar el acceso del Directorio.');
-      if (!active) return;
-      if (result.linked && result.token && result.user) {
-        setDirectorySsoToken(null);
-        handleLoginSuccess(result.token, result.user);
-        navigate('/', { replace: true });
-        return;
-      }
-      setDirectorySsoToken(token);
-      navigate('/', { replace: true });
-    }).catch(() => {
-      if (active) navigate('/', { replace: true });
-    });
+    void fetch(`${API_BASE_URL}/api/v1/auth/sso/directory/consume-browser`, { method: 'POST' })
+      .then(async (response) => {
+        if (response.status === 404) return null;
+        const result = await response.json() as { linked?: boolean; token?: string; user?: UserContext };
+        if (!response.ok || !active) return null;
+        if (result.linked && result.token && result.user) {
+          setDirectorySsoToken(null);
+          handleLoginSuccess(result.token, result.user);
+          navigate('/', { replace: true });
+          return null;
+        }
+        if (result.token) setDirectorySsoToken(result.token);
+        return null;
+      })
+      .catch(() => undefined);
     return () => { active = false; };
-  }, [handleLoginSuccess, location.pathname, location.search, navigate]);
+  }, [handleLoginSuccess, navigate]);
 
   // ─── Verification Orchestration ───────────────────────────────────────
   useEffect(() => {

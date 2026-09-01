@@ -3,9 +3,6 @@ import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
 export default defineConfig({
-  // Local keeps the root path; Cloud builds use a relative asset base so the
-  // identical console bundle can be served below /homes/:homeId/.
-  base: process.env.VITE_PUBLIC_BASE?.trim() || '/',
   plugins: [react()],
   build: {
     rollupOptions: {

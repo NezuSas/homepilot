@@ -11,11 +11,8 @@ interface DeviceReader {
   findDeviceById(deviceId: string): Promise<unknown | null>;
 }
 interface DeviceDispatcher { dispatch(deviceId: string, command: DeviceCommandRequest): Promise<void>; }
-interface DirectoryAccountLinks { findByDirectoryAccountId(accountId: string): Promise<{ localUserId: string } | null>; }
-interface LocalUsers { findById(userId: string): Promise<{ role: string; isActive: boolean } | null>; }
-interface DashboardReader { getDashboardsForUser(userId: string, role: string): Promise<unknown[]>; }
 
-export interface EdgeGatewayRelayDependencies { homes: LocalHomeResolver; devices: DeviceReader; dispatcher: DeviceDispatcher; directoryLinks?: DirectoryAccountLinks; users?: LocalUsers; dashboards?: DashboardReader; }
+export interface EdgeGatewayRelayDependencies { homes: LocalHomeResolver; devices: DeviceReader; dispatcher: DeviceDispatcher; }
 
 /** Cloud membership is authorized by Directory and never maps to an Edge user's session. */
 export class EdgeGatewayRelayExecutor implements EdgeRelayExecutor {
@@ -24,7 +21,7 @@ export class EdgeGatewayRelayExecutor implements EdgeRelayExecutor {
   async execute(request: EdgeRelayRequest): Promise<{ status: number; payload?: unknown }> {
     const localHomeId = await this.resolveSingleLocalHomeId();
     if (!localHomeId) return { status: 503 };
-    if (request.operation === 'dashboard.read') return { status: 200, payload: sanitizeDashboardPayload(await this.readDashboardsForLinkedUser(request.principal.accountId)) };
+    if (request.operation === 'dashboard.read') return { status: 200, payload: sanitizeDashboardPayload([]) };
     if (request.operation === 'devices.read') return { status: 200, payload: sanitizeDevicePayload(await this.deps.devices.findAllByHomeId(localHomeId)) };
     if (request.principal.role !== 'owner') return { status: 403 };
 
@@ -38,14 +35,6 @@ export class EdgeGatewayRelayExecutor implements EdgeRelayExecutor {
     } catch { return { status: 502 }; }
   }
 
-  private async readDashboardsForLinkedUser(directoryAccountId: string): Promise<unknown[]> {
-    if (!this.deps.directoryLinks || !this.deps.users || !this.deps.dashboards) return [];
-    const link = await this.deps.directoryLinks.findByDirectoryAccountId(directoryAccountId);
-    if (!link) return [];
-    const user = await this.deps.users.findById(link.localUserId);
-    if (!user?.isActive) return [];
-    return this.deps.dashboards.getDashboardsForUser(link.localUserId, user.role);
-  }
   private async resolveSingleLocalHomeId(): Promise<string | null> {
     const homes = await this.deps.homes.findAll();
     return homes.length === 1 ? homes[0].id : null;

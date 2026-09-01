@@ -24,11 +24,51 @@ export class AuthRoutes extends ApiRoutes {
     method: string,
     container: BootstrapContainer
   ): Promise<boolean> {
-    if (!pathname.startsWith('/api/v1/auth/')) return false;
+    const isDirectoryBrowserEntry = pathname === '/sso/directory';
+    if (!pathname.startsWith('/api/v1/auth/') && !isDirectoryBrowserEntry) return false;
 
     // Authentication responses can contain session material and must never be stored by browsers or intermediaries.
     res.setHeader('Cache-Control', 'no-store');
 
+    // Browser-only SSO entry. Directory submits the short-lived assertion in a
+    // top-level POST body, so it never reaches a URL, history, Referer or log.
+    if (isDirectoryBrowserEntry) {
+      if (method !== 'POST') return this.sendError(res, 405, 'METHOD_NOT_ALLOWED', 'Method not allowed'), true;
+      try {
+        const rawBody = req._fastifyParsedBody ?? '';
+        const token = new URLSearchParams(rawBody).get('token');
+        if (!token || token.length > 4096) return this.sendError(res, 400, 'INVALID_INPUT', 'Missing SSO token'), true;
+        const result = await container.services.directorySsoService.prepareBrowserHandoff(token);
+        const handoff = result.linked ? { sessionToken: result.token } : { directoryToken: token };
+        res.setHeader('Set-Cookie', `__Host-hp-directory-sso=${encodeURIComponent(JSON.stringify(handoff))}; Max-Age=60; Path=/; HttpOnly; Secure; SameSite=Lax`);
+        res.writeHead(303, { Location: '/' });
+        res.end();
+      } catch (error: unknown) {
+        this.sendDirectorySsoError(res, error);
+      }
+      return true;
+    }
+
+    // POST /api/v1/auth/sso/directory/consume-browser (public, one-time browser handoff)
+    if (method === 'POST' && pathname === '/api/v1/auth/sso/directory/consume-browser') {
+      const rawCookie = readCookie(req.headers.cookie, '__Host-hp-directory-sso');
+      res.setHeader('Set-Cookie', '__Host-hp-directory-sso=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax');
+      if (!rawCookie) return this.sendError(res, 404, 'SSO_HANDOFF_NOT_FOUND', 'SSO handoff not found'), true;
+      try {
+        const handoff = JSON.parse(decodeURIComponent(rawCookie)) as { sessionToken?: unknown; directoryToken?: unknown };
+        if (typeof handoff.sessionToken === 'string') {
+          const session = await container.services.authService.verifyToken(handoff.sessionToken);
+          if (!session.isValid || !session.user) return this.sendError(res, 401, 'SSO_HANDOFF_INVALID', 'SSO handoff invalid'), true;
+          this.sendJson(res, { linked: true, token: handoff.sessionToken, user: this.serializeUser(session.user) });
+          return true;
+        }
+        if (typeof handoff.directoryToken === 'string') {
+          this.sendJson(res, { linked: false, token: handoff.directoryToken });
+          return true;
+        }
+      } catch { /* return a non-enumerating error below */ }
+      return this.sendError(res, 401, 'SSO_HANDOFF_INVALID', 'SSO handoff invalid'), true;
+    }
     // POST /api/v1/auth/sso/directory (public)
     if (method === 'POST' && pathname === '/api/v1/auth/sso/directory') {
       try {
@@ -230,4 +270,14 @@ export class AuthRoutes extends ApiRoutes {
     const clientAddress = req.socket.remoteAddress ?? 'unknown';
     return `${normalizedUsername}|${clientAddress}`;
   }
+}
+
+function readCookie(header: string | undefined, name: string): string | null {
+  if (!header) return null;
+  const prefix = `${name}=`;
+  for (const item of header.split(';')) {
+    const value = item.trim();
+    if (value.startsWith(prefix)) return value.slice(prefix.length);
+  }
+  return null;
 }

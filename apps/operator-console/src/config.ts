@@ -3,23 +3,8 @@
  * Uses an explicit VITE_API_URL when configured. Production defaults to the
  * current origin so Nginx can proxy API and WebSocket traffic internally.
  */
-declare global {
-  interface Window {
-    /** Set by the Cloud host before the shared console bundle loads. */
-    __HOMEPILOT_API_BASE_URL__?: string;
-  }
-}
-
 const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
-const cloudHomeMatch = typeof window === 'undefined' ? null : window.location.pathname.match(/^\/homes\/([^/]+)\/console(?:\/|$)/);
-const cloudApiUrl = typeof window === 'undefined' ? undefined : window.__HOMEPILOT_API_BASE_URL__?.trim() || (cloudHomeMatch ? '/homes/' + encodeURIComponent(cloudHomeMatch[1]) : undefined);
-
-/**
- * The Operator Console is intentionally a single application. Its local build
- * talks to the Edge on the current origin; HomePilot Cloud supplies a scoped
- * gateway prefix at runtime, without forking the UI or exposing an Edge host.
- */
-export const API_BASE_URL = cloudApiUrl || configuredApiUrl || (import.meta.env.DEV ? 'http://localhost:3000' : '');
+export const API_BASE_URL = configuredApiUrl || (import.meta.env.DEV ? 'http://localhost:3000' : '');
 
 export const API_ENDPOINTS = {
   auth: {

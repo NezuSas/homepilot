@@ -22,12 +22,18 @@ export class DirectorySsoService {
       throw error;
     }
     if (!link) return { linked: false };
-
-    const result = await this.authService.createSessionForUserId(link.localUserId);
+const result = await this.authService.createSessionForUserId(link.localUserId);
     if (!result) throw new DirectorySsoError('SSO_TOKEN_INVALID');
     return { linked: true, ...result };
   }
 
+  /** Validates a browser handoff without consuming an assertion for an unlinked account. */
+  async prepareBrowserHandoff(token: string): Promise<DirectorySsoLoginResult> {
+    const payload = await this.verifier.verify(token);
+    const link = await this.links.findByDirectoryAccountId(payload.directoryAccountId);
+    if (!link) return { linked: false };
+    return this.login(token);
+  }
   async linkAfterLocalLogin(token: string, localUserId: string): Promise<void> {
     const payload = await this.verifier.verify(token);
     try {
