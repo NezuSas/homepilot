@@ -12,7 +12,10 @@ export function sanitizeDashboardPayload(value: unknown): { dashboards: Array<{ 
 export function sanitizeDevicePayload(value: unknown): { devices: Array<{ id: string; name: string; type: string; state: unknown; roomId: string | null; isOnline: boolean }> } {
   const devices = Array.isArray(value) ? value.flatMap((item) => {
     if (!isRecord(item) || typeof item.id !== 'string' || typeof item.name !== 'string' || typeof item.type !== 'string') return [];
-    return [{ id: item.id, name: item.name, type: item.type, state: item.state ?? null, roomId: typeof item.roomId === 'string' ? item.roomId : null, isOnline: item.isOnline === true }];
+    const state = isRecord(item.lastKnownState) ? item.lastKnownState : item.state ?? null;
+    const reportedState = isRecord(state) && typeof state.state === 'string' ? state.state.toLowerCase() : null;
+    const isOnline = item.isOnline === true || (item.isOnline !== false && reportedState !== 'unavailable' && reportedState !== 'unknown');
+    return [{ id: item.id, name: item.name, type: item.type, state, roomId: typeof item.roomId === 'string' ? item.roomId : null, isOnline }];
   }) : [];
   return { devices };
 }

@@ -8,3 +8,6 @@ describe('sanitizeCloudPayload', () => {
     expect(sanitizeDevicePayload([{ id:'x',name:'Luz',type:'light',state:{on:true},roomId:'r1',isOnline:true,token:'x',cameraUrl:'x' }])).toEqual({ devices:[{id:'x',name:'Luz',type:'light',state:{on:true},roomId:'r1',isOnline:true}] });
   });
 });
+  it('derives availability from the persisted local lastKnownState', () => {
+    expect(sanitizeDevicePayload([{ id:'online',name:'Luz',type:'light',lastKnownState:{state:'on'},roomId:null }, { id:'offline',name:'Sensor',type:'sensor',lastKnownState:{state:'unavailable'},roomId:null }])).toEqual({ devices:[{id:'online',name:'Luz',type:'light',state:{state:'on'},roomId:null,isOnline:true},{id:'offline',name:'Sensor',type:'sensor',state:{state:'unavailable'},roomId:null,isOnline:false}] });
+  });
