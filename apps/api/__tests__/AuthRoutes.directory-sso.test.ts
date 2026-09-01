@@ -77,7 +77,7 @@ describe('POST /api/v1/auth/sso/directory replay', () => {
     db.close();
   });
 });
-describe('POST /sso/directory browser handoff', () => {
+describe('POST /api/v1/auth/sso/directory/browser handoff', () => {
   it('keeps the Directory assertion out of the redirect URL and stores only a short HttpOnly handoff', async () => {
     const routes = new AuthRoutes(new MediaService(), new LoginAttemptRateLimiter());
     const response = new MockResponse();
@@ -89,7 +89,7 @@ describe('POST /sso/directory browser handoff', () => {
       services: { directorySsoService: { prepareBrowserHandoff: jest.fn().mockResolvedValue({ linked: false }) } },
     } as unknown as BootstrapContainer;
 
-    await routes.handle(request, response as unknown as http.ServerResponse, '/sso/directory', 'POST', container);
+    await routes.handle(request, response as unknown as http.ServerResponse, '/api/v1/auth/sso/directory/browser', 'POST', container);
 
     expect(response.writeHead).toHaveBeenCalledWith(303, { Location: '/' });
     expect(response.setHeader).toHaveBeenCalledWith('Set-Cookie', expect.stringContaining('HttpOnly; Secure; SameSite=Lax'));

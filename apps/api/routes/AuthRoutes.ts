@@ -24,7 +24,7 @@ export class AuthRoutes extends ApiRoutes {
     method: string,
     container: BootstrapContainer
   ): Promise<boolean> {
-    const isDirectoryBrowserEntry = pathname === '/sso/directory';
+    const isDirectoryBrowserEntry = pathname === '/api/v1/auth/sso/directory/browser';
     if (!pathname.startsWith('/api/v1/auth/') && !isDirectoryBrowserEntry) return false;
 
     // Authentication responses can contain session material and must never be stored by browsers or intermediaries.

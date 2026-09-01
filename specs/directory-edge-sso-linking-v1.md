@@ -34,7 +34,7 @@ Esta spec afecta **dos repositorios**:
 
 ### 4.1 Lado Directorio (`nezu-homepilot-directory`)
 - **REQ-D01:** Al elegir una casa en el selector, el Directorio debe generar un token firmado (JWT o equivalente) con: `{ directoryAccountId, homeId, iat, exp (60s), jti (nonce único) }`, firmado con una clave privada Ed25519 (o RS256) propia del Directorio.
-- **REQ-D02:** Al elegir una casa, el Directorio debe entregar el token mediante un formulario HTML de nivel superior, `POST ${edgeHostname}/sso/directory`, con el token en el cuerpo. Nunca debe hacer un `fetch` hacia el Edge ni poner el token en URL, historial, `Referer` o logs de proxy.
+- **REQ-D02:** Al elegir una casa, el Directorio debe entregar el token mediante un formulario HTML de nivel superior, `POST ${edgeHostname}/api/v1/auth/sso/directory/browser`, con el token en el cuerpo. Nunca debe hacer un `fetch` hacia el Edge ni poner el token en URL, historial, `Referer` o logs de proxy.
 - **REQ-D03:** El Directorio debe exponer su llave pública en un endpoint estable y sin autenticación, p. ej. `GET /directory/sso/public-key`, para que cada Edge pueda obtenerla al aprovisionarse (una vez, manualmente o vía script) y guardarla localmente — el Edge no debe consultar este endpoint en cada verificación de token (debe funcionar aunque el Directorio esté caído en ese instante, cumpliendo NFR-01 de la spec base).
 
 ### 4.2 Lado Edge (`homepilot`)
@@ -85,7 +85,12 @@ CREATE TABLE directory_sso_used_tokens (
 ```
 
 ### 7.2 Flujo end-to-end
-1. Usuario elige "Casa Oscar" en el Directorio → Directorio firma token (REQ-D01) → envía un formulario de nivel superior `POST` a `https://homepilot-oscar.nezuecuador.com/sso/directory`. El token nunca aparece en la URL.`n2. El borde recibe el formulario, verifica firma + expiración + anti-replay (REQ-E02/E03) y deposita solamente una aserción efímera en una cookie `HttpOnly`, `Secure`, `SameSite=Lax`, con `Path=/` y vida máxima de 60 segundos. Luego responde `303 /`.`n3. El frontend existente consume esa aserción mediante el endpoint same-origin y limpia la cookie.`n4. Si hay vínculo (REQ-E04): recibe una sesión local normal y navega a la misma plataforma Edge existente.`n5. Si no hay vínculo (REQ-E05): el frontend muestra el login local normal y retiene la aserción solamente en memoria; no usa `localStorage`, `sessionStorage` ni URL.`n6. Al loguearse manualmente con éxito, el frontend reenvía esa misma aserción para que el backend cree el vínculo atómicamente con el login (REQ-E06) y marque el `jti` como usado.
+1. Usuario elige 'Casa Oscar' en el Directorio → Directorio firma token (REQ-D01) → envía un formulario de nivel superior POST a https://homepilot-oscar.nezuecuador.com/api/v1/auth/sso/directory/browser. El token nunca aparece en la URL.
+2. El borde recibe el formulario, verifica firma + expiración + anti-replay (REQ-E02/E03) y deposita solamente una aserción efímera en una cookie HttpOnly, Secure, SameSite=Lax, con Path=/ y vida máxima de 60 segundos. Luego responde 303 /.
+3. El frontend existente consume esa aserción mediante el endpoint same-origin y limpia la cookie.
+4. Si hay vínculo (REQ-E04): recibe una sesión local normal y navega a la misma plataforma Edge existente.
+5. Si no hay vínculo (REQ-E05): el frontend muestra el login local normal y retiene la aserción solamente en memoria; no usa localStorage, sessionStorage ni URL.
+6. Al loguearse manualmente con éxito, el frontend reenvía esa misma aserción para que el backend cree el vínculo atómicamente con el login (REQ-E06) y marque el jti como usado.
 7. La llave pública del Directorio se configura en el Edge vía variable de entorno `DIRECTORY_SSO_PUBLIC_KEY` (o archivo), aprovisionada una vez manualmente — no hay descubrimiento automático en runtime (cumple NFR-02).
 
 ### 7.3 Elección de algoritmo de firma
