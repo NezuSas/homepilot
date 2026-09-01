@@ -2,29 +2,47 @@ import type { DeviceCommandRequest, DeviceCommandV1 } from '../../devices/domain
 import { sanitizeDashboardPayload, sanitizeDevicePayload } from './sanitizeCloudPayload';
 import { isAllowedCloudDeviceCommand } from './CloudGatewayAuthorizationPolicy';
 import type { EdgeRelayRequest } from './EdgeRelayProtocol';
+
 export interface EdgeRelayExecutor { execute(request: EdgeRelayRequest): Promise<{ status: number; payload?: unknown }>; }
 
-interface DirectoryLinkResolver { findByDirectoryAccountId(accountId: string): Promise<{ localUserId: string } | null>; }
-interface LocalUserResolver { findById(userId: string): Promise<{ id: string; isActive: boolean } | null>; }
-interface DashboardReader { getDashboardsForUser(userId: string, role: string): Promise<unknown[]>; }
-interface DeviceReader { findAll(): Promise<ReadonlyArray<unknown>>; }
+interface LocalHomeResolver { findAll(): Promise<ReadonlyArray<{ id: string }>>; }
+interface DeviceReader {
+  findAllByHomeId(homeId: string): Promise<ReadonlyArray<unknown>>;
+  findDeviceById(deviceId: string): Promise<unknown | null>;
+}
 interface DeviceDispatcher { dispatch(deviceId: string, command: DeviceCommandRequest): Promise<void>; }
 
-export interface EdgeGatewayRelayDependencies { directoryLinks: DirectoryLinkResolver; users: LocalUserResolver; dashboards: DashboardReader; devices: DeviceReader; dispatcher: DeviceDispatcher; }
+export interface EdgeGatewayRelayDependencies { homes: LocalHomeResolver; devices: DeviceReader; dispatcher: DeviceDispatcher; }
 
+/** Cloud membership is authorized by Directory and never maps to an Edge user's session. */
 export class EdgeGatewayRelayExecutor implements EdgeRelayExecutor {
   constructor(private readonly deps: EdgeGatewayRelayDependencies) {}
+
   async execute(request: EdgeRelayRequest): Promise<{ status: number; payload?: unknown }> {
-    const user = await this.resolveActiveLocalUser(request.principal.accountId);
-    if (!user) return { status: 403 };
-    if (request.operation === 'dashboard.read') { const dashboards=await this.deps.dashboards.getDashboardsForUser(user.id, request.principal.role === 'owner' ? 'parent' : 'guest'); return { status: 200, payload: sanitizeDashboardPayload(dashboards) }; }
-    if (request.operation === 'devices.read') { await this.deps.devices.findAll(); return { status: 200, payload: { dashboards: [] } }; }
+    const localHomeId = await this.resolveSingleLocalHomeId();
+    if (!localHomeId) return { status: 503 };
+    if (request.operation === 'dashboard.read') return { status: 200, payload: sanitizeDashboardPayload([]) };
+    if (request.operation === 'devices.read') return { status: 200, payload: sanitizeDevicePayload(await this.deps.devices.findAllByHomeId(localHomeId)) };
+    if (request.principal.role !== 'owner') return { status: 403 };
+
     const command = parseCommand(request.input);
     if (!command) return { status: 400 };
-    try { await this.deps.dispatcher.dispatch(command.deviceId, { name: command.command as DeviceCommandV1, params: command.params, metadata: { userId: user.id, correlationId: `cloud-gateway:${request.requestId}` } }); return { status: 204 }; }
-    catch { return { status: 502 }; }
+    const device = await this.deps.devices.findDeviceById(command.deviceId);
+    if (!belongsToHome(device, localHomeId)) return { status: 404 };
+    try {
+      await this.deps.dispatcher.dispatch(command.deviceId, { name: command.command as DeviceCommandV1, params: command.params, metadata: { userId: 'cloud-gateway', correlationId: `cloud-gateway:${request.requestId}` } });
+      return { status: 204 };
+    } catch { return { status: 502 }; }
   }
-  private async resolveActiveLocalUser(directoryAccountId: string): Promise<{ id: string } | null> { const link = await this.deps.directoryLinks.findByDirectoryAccountId(directoryAccountId); if (!link) return null; const user = await this.deps.users.findById(link.localUserId); return user?.isActive ? { id: user.id } : null; }
+
+  private async resolveSingleLocalHomeId(): Promise<string | null> {
+    const homes = await this.deps.homes.findAll();
+    return homes.length === 1 ? homes[0].id : null;
+  }
+}
+
+function belongsToHome(value: unknown, homeId: string): boolean {
+  return Boolean(value && typeof value === 'object' && (value as { homeId?: unknown }).homeId === homeId);
 }
 
 function parseCommand(input: unknown): { deviceId: string; command: string; params: Record<string, unknown> } | null {

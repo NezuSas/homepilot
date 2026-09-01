@@ -25,6 +25,20 @@ async function main(): Promise<void> {
     const server = new OperatorConsoleServer(container, dbPath, 3000);
     server.start();
 
+    const cloudGatewayConnector = CloudGatewayConnector.fromEnvironment(
+      new EdgeGatewayRelayExecutor({
+        homes: container.repositories.homeRepository,        devices: container.repositories.deviceRepository,
+        dispatcher: container.adapters.commandDispatcher,
+      }),
+    );
+    cloudGatewayConnector?.start();
+    if (cloudGatewayConnector) {
+      console.log('[Main] Conector Cloud Edge iniciado.');
+      const stopCloudGatewayConnector = (): void => cloudGatewayConnector.stop();
+      process.once('SIGINT', stopCloudGatewayConnector);
+      process.once('SIGTERM', stopCloudGatewayConnector);
+    }
+
     console.log('[Main] El sistema se encuentra preparado para operar.');
     
   } catch (error: unknown) {
