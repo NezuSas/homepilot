@@ -50,8 +50,9 @@ Home Assistant ni puertos de la red del cliente al Internet.
   administración y shell quedan prohibidos.
 ## Emparejamiento y rotación
 
-El instalador genera un código corto de un uso en el Edge. Al reclamarlo en Cloud,
-ambas partes intercambian identificadores opacos y credenciales de canal. El secreto
+El propietario autenticado genera en Cloud un código corto de un uso para su Casa. El
+instalador lo reclama desde la MiniPC; Cloud consume el verificador hashado de forma
+atómica y entrega únicamente la identidad opaca y credencial de canal necesarias. El secreto
 de Edge se almacena solo en el runtime protegido de la MiniPC y Cloud persiste un
 verificador hashado. Se admite rotación con dos credenciales válidas durante una
 ventana limitada; una revocación corta el canal y exige nuevo pairing.

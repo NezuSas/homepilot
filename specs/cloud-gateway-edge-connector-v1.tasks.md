@@ -6,7 +6,7 @@
 ## 1. Dominio y seguridad
 
 - [ ] Definir contrato versionado de mensajes relay y allowlist de operaciones.
-- [ ] Modelar identidad local de Edge, pairing, rotación y deduplicación de `requestId`.
+- [x] Modelar identidad local de Edge, pairing de un uso, revocación y deduplicación de `requestId`.
 - [ ] Definir principal gateway de mínimo privilegio sin mezclar sesiones locales.
 
 ## 2. Red e integración local

@@ -1,4 +1,5 @@
 import WebSocket from 'ws';
+import { readFileSync } from 'node:fs';
 import { EdgeRelayProtocolError, type EdgeRelayRequest, parseEdgeRelayRequest } from '../application/EdgeRelayProtocol';
 import type { EdgeRelayExecutor } from '../application/EdgeGatewayRelayExecutor';
 
@@ -30,10 +31,11 @@ export class CloudGatewayConnector {
   ) {}
 
   static fromEnvironment(relayExecutor: EdgeRelayExecutor = unavailableExecutor): CloudGatewayConnector | null {
-    const url = process.env.HOMEPILOT_CLOUD_GATEWAY_URL?.trim();
-    const token = process.env.HOMEPILOT_CLOUD_EDGE_TOKEN?.trim();
-    const homeId = process.env.HOMEPILOT_CLOUD_HOME_ID?.trim();
-    const edgeId = process.env.HOMEPILOT_CLOUD_EDGE_ID?.trim();
+    const provisioned = readProvisionedConfig();
+    const url = provisioned?.url ?? process.env.HOMEPILOT_CLOUD_GATEWAY_URL?.trim();
+    const token = provisioned?.token ?? process.env.HOMEPILOT_CLOUD_EDGE_TOKEN?.trim();
+    const homeId = provisioned?.homeId ?? process.env.HOMEPILOT_CLOUD_HOME_ID?.trim();
+    const edgeId = provisioned?.edgeId ?? process.env.HOMEPILOT_CLOUD_EDGE_ID?.trim();
     if (!url || !token || !homeId || !edgeId || !isSecureGatewayUrl(url)) return null;
     return new CloudGatewayConnector({ url, token, homeId, edgeId }, 5_000, (gatewayUrl, options) => new WebSocket(gatewayUrl, options), relayExecutor);
   }
@@ -132,5 +134,12 @@ export class CloudGatewayConnector {
     url.pathname = '/gateway/edge/response';
     await fetch(url, { method: 'POST', headers: { Authorization: `Bearer ${this.config.token}`, 'content-type': 'application/json' }, body: JSON.stringify(message) });
   }}
+
+function readProvisionedConfig(): CloudGatewayConnectorConfig | null {
+  try {
+    const raw = JSON.parse(readFileSync(process.env.HOMEPILOT_CLOUD_CONFIG_PATH ?? './data/cloud-gateway.json', 'utf8')) as Partial<CloudGatewayConnectorConfig>;
+    return typeof raw.url === 'string' && typeof raw.token === 'string' && typeof raw.homeId === 'string' && typeof raw.edgeId === 'string' ? raw as CloudGatewayConnectorConfig : null;
+  } catch { return null; }
+}
 
 export function isSecureGatewayUrl(value: string): boolean { try { return new URL(value).protocol === 'wss:'; } catch { return false; } }

@@ -13,6 +13,8 @@ clean=false
 start=false
 assume_yes=false
 api_url=""
+cloud_url=""
+pairing_code=""
 status_only=false
 install_community_integrations=false
 community_integrations_only=false
@@ -137,6 +139,8 @@ Opciones:
                        Mantiene HACS y SonoffLAN sin reconstruir ni reiniciar HomePilot.
                        Detecta el entorno del tÃ©cnico y usa el Home Assistant existente.
   --api-url URL        Configuracion avanzada para una API en otro origen.
+  --cloud-url URL      URL pública de HomePilot Cloud para emparejar esta MiniPC.
+  --pairing-code CODE  Código temporal mostrado por el propietario.
                        Por defecto se deja vacia y UI/API usan el mismo dominio.
   --yes                No pide confirmacion para --clean o --start.
   --help               Muestra esta ayuda.
@@ -823,6 +827,12 @@ if [[ "$profile" == bridge_ha ]]; then
 fi
 
 mkdir -p data backups
+if [[ -n "$cloud_url" || -n "$pairing_code" ]]; then
+  [[ -n "$cloud_url" && -n "$pairing_code" ]] || fail "Usa --cloud-url y --pairing-code juntos."
+  command -v node >/dev/null 2>&1 || fail "Node.js es necesario para reclamar el código de HomePilot Cloud."
+  node scripts/claim-cloud-pairing.mjs "$cloud_url" "$pairing_code" || fail "No se pudo reclamar el código de emparejamiento."
+  ok "HomePilot Cloud quedó configurado sin variables .env."
+fi
 docker compose -f "$compose_file" config --quiet
 if [[ "$profile" == ha_companion ]]; then
   ok "Compose companion vÃ¡lido: administra Home Assistant junto a HomePilot."
