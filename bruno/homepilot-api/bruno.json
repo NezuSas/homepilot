@@ -1,4 +1,9 @@
 {
   "version": "1",
-  "name": "HomePilot API"
+  "name": "HomePilot API",
+  "type": "collection",
+  "ignore": [
+    ".git",
+    "node_modules"
+  ]
 }
