@@ -15,7 +15,7 @@ auth:bearer {
 }
 
 body:json {
-  {}
+  {"name":"Synthetic automation — DO NOT RUN","trigger":{"type":"device_state","deviceId":"{{deviceId}}","state":"on"},"action":{"type":"device_command","deviceId":"{{deviceId}}","command":"turn_off"}}
 }
 
 docs {
