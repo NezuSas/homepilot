@@ -15,7 +15,15 @@ auth:bearer {
 }
 
 body:json {
-  {}
+  {
+    "name": "Synthetic scene — DO NOT RUN",
+    "homeId": "{{homeId}}",
+    "roomId": null,
+    "actions": [
+      { "deviceId": "{{deviceId}}", "command": "turn_off" }
+    ],
+    "executionMode": "sequential"
+  }
 }
 
 docs {
