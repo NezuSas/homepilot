@@ -2,6 +2,10 @@ meta {
   name: Setup status
   type: http
   seq: 2
+  tags: [
+    read-only
+    smoke
+  ]
 }
 
 get {
@@ -16,4 +20,11 @@ auth:bearer {
 
 docs {
   Consulta el estado de configuración inicial. No modifica el sistema.
+}
+
+tests {
+  test("returns setup status", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body).to.be.an("object");
+  });
 }
