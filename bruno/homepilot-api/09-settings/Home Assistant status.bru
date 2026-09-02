@@ -1,0 +1,19 @@
+meta {
+  name: Home Assistant status
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/settings/home-assistant/status
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  La respuesta es segura para inspección, pero no guardar valores de configuración ni diagnósticos de una instalación real.
+}

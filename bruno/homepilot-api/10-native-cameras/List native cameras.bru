@@ -1,0 +1,19 @@
+meta {
+  name: List native cameras
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/native-cameras
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  No guardar la respuesta: puede revelar topología y metadatos de cámaras.
+}

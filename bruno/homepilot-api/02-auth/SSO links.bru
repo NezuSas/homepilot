@@ -1,0 +1,3 @@
+meta { name: SSO links type: http seq: 4 }
+get { url: {{baseUrl}}/api/v1/auth/sso/links body: none auth: bearer }
+auth:bearer { token: {{sessionToken}} }

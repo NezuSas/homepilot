@@ -1,0 +1,19 @@
+meta {
+  name: Refresh device - MUTANTE
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/api/v1/devices/{{deviceId}}/refresh
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  Solicita sincronización desde la integración. Puede producir tráfico Edge; no ejecutar en lote.
+}

@@ -1,0 +1,19 @@
+meta {
+  name: Assign device - MUTANTE
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/api/v1/devices/{{deviceId}}/assign
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+body:json {
+  { "roomId": "{{roomId}}" }
+}

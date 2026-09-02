@@ -1,0 +1,19 @@
+meta {
+  name: Camera session
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/devices/{{deviceId}}/camera/session?includeHls=false
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  Crea una sesión efímera de cámara y devuelve rutas con token. No guarde ni copie ese token al entorno versionado.
+}

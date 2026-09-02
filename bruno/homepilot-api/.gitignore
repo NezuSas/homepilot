@@ -1,0 +1,3 @@
+# Los entornos que contienen sesiones, credenciales o tokens efímeros son solo locales.
+environments/*.bru
+!environments/*.example.bru

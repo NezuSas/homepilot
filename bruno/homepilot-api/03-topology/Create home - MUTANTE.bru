@@ -1,0 +1,23 @@
+meta {
+  name: Create home - MUTANTE
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/api/v1/homes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+body:json {
+  { "name": "Example home - DO NOT USE IN PRODUCTION" }
+}
+
+docs {
+  Crea topología. Ejecutar exclusivamente en una instalación de prueba autorizada.
+}

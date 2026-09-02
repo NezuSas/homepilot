@@ -1,0 +1,23 @@
+meta {
+  name: Test Home Assistant connection - MUTANTE
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/api/v1/settings/home-assistant/test
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+body:json {
+  { "baseUrl": "http://HOME_ASSISTANT_TEST_HOST:8123", "accessToken": "SET_ONLY_IN_LOCAL_ENV" }
+}
+
+docs {
+  El token de Home Assistant nunca se guarda en la colección ni en el historial de Bruno.
+}

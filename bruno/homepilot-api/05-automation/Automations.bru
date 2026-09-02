@@ -1,0 +1,15 @@
+meta {
+  name: Automations
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/automations
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}

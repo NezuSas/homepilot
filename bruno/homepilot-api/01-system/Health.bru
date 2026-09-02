@@ -1,0 +1,15 @@
+meta {
+  name: Health
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/health
+  body: none
+  auth: none
+}
+
+docs {
+  Ruta de salud sin autenticación. Es la única solicitud apta para una comprobación de conectividad automatizada.
+}

@@ -1,0 +1,19 @@
+meta {
+  name: Run automation - MUTANTE
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/api/v1/automations/{{automationId}}/run
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  Puede desencadenar acciones físicas. Prohibido ejecutar contra un hogar real sin aprobación.
+}

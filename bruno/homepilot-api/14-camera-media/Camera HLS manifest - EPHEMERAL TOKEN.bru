@@ -1,0 +1,14 @@
+meta {
+  name: Camera HLS manifest - EPHEMERAL TOKEN
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/devices/{{deviceId}}/camera/hls/master.m3u8?token={{cameraProxyToken}}
+  body: none
+}
+
+docs {
+  Primero solicite "Camera session" con includeHls=true. No guarde el manifiesto ni el token de sesión.
+}

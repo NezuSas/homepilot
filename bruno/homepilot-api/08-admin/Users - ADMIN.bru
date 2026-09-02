@@ -1,0 +1,19 @@
+meta {
+  name: Users - ADMIN
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/admin/users
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  Requiere rol administrador. La respuesta puede contener datos personales: no guardarla ni compartirla.
+}

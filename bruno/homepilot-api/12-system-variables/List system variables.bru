@@ -1,0 +1,19 @@
+meta {
+  name: List system variables
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/system-variables
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  Puede contener valores operativos; no guardar ni exportar respuestas de una instalación real.
+}

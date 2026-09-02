@@ -1,0 +1,19 @@
+meta {
+  name: Execute scene - MUTANTE - PHYSICAL
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/api/v1/scenes/{{sceneId}}/execute
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  Una escena puede emitir varios comandos físicos. No automatizar esta solicitud.
+}

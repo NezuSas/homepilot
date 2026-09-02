@@ -1,0 +1,3 @@
+meta { name: Device history type: http seq: 3 }
+get { url: {{baseUrl}}/api/v1/devices/{{deviceId}}/history body: none auth: bearer }
+auth:bearer { token: {{sessionToken}} }

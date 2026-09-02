@@ -1,0 +1,3 @@
+meta { name: Enable automation - MUTANTE type: http seq: 11 }
+patch { url: {{baseUrl}}/api/v1/automations/{{automationId}}/enable body: none auth: bearer }
+auth:bearer { token: {{sessionToken}} }

@@ -1,0 +1,19 @@
+meta {
+  name: Media player session
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/devices/{{deviceId}}/media/session
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  Devuelve una ruta de portada efímera cuando el reproductor la expone. No guarde la URL ni su token.
+}

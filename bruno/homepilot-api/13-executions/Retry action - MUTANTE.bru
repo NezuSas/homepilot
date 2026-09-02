@@ -1,0 +1,4 @@
+meta { name: Retry action - MUTANTE type: http seq: 10 }
+post { url: {{baseUrl}}/api/v1/executions/example-execution-id/actions/0/retry body: none auth: bearer }
+auth:bearer { token: {{sessionToken}} }
+docs { Reintenta una acción previamente registrada; puede volver a emitir un comando. }

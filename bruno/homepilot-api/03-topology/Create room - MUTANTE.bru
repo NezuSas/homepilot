@@ -1,0 +1,19 @@
+meta {
+  name: Create room - MUTANTE
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/api/v1/homes/{{homeId}}/rooms
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+body:json {
+  { "name": "Example room - DO NOT USE IN PRODUCTION" }
+}

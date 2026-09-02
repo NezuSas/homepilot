@@ -1,0 +1,4 @@
+meta { name: Create dashboard - MUTANTE type: http seq: 10 }
+post { url: {{baseUrl}}/api/v1/dashboards body: json auth: bearer }
+auth:bearer { token: {{sessionToken}} }
+body:json { { "title": "Example dashboard - DO NOT USE IN PRODUCTION" } }

@@ -1,0 +1,23 @@
+meta {
+  name: Converse - MUTANTE
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/api/v1/assistant/converse
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+body:json {
+  { "message": "Consulta de ejemplo sin acciones" }
+}
+
+docs {
+  Revisar el contrato AssistantConverseRequest antes de utilizar campos opcionales. No incluir transcripciones ni datos personales reales.
+}

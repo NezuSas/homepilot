@@ -1,0 +1,23 @@
+meta {
+  name: Command device - MUTANTE - PHYSICAL
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/api/v1/devices/{{deviceId}}/command
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+body:json {
+  { "command": { "name": "SET_A_VALID_COMMAND_ONLY_IN_TEST", "params": {} } }
+}
+
+docs {
+  Puede controlar un dispositivo físico. El nombre de comando se valida contra sus capacidades; mantener este marcador sin un valor válido evita ejecución accidental.
+}

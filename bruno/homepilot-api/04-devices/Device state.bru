@@ -1,0 +1,19 @@
+meta {
+  name: Device state
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/devices/{{deviceId}}/state
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  Sustituir deviceId por un valor sintético o de una instalación de prueba autorizada.
+}

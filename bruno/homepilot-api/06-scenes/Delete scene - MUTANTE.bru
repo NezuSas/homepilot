@@ -1,0 +1,4 @@
+meta { name: Delete scene - MUTANTE type: http seq: 11 }
+delete { url: {{baseUrl}}/api/v1/scenes/{{sceneId}} body: none auth: bearer }
+auth:bearer { token: {{sessionToken}} }
+docs { Operación irreversible. Utilizar solo en una instalación de prueba. }

@@ -1,0 +1,14 @@
+meta {
+  name: Camera stream - EPHEMERAL TOKEN
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/devices/{{deviceId}}/camera/stream?token={{cameraProxyToken}}
+  body: none
+}
+
+docs {
+  Flujo MJPEG de cámara; no ejecutar en lote o CI. Use solamente un token efímero creado por la sesión de cámara.
+}

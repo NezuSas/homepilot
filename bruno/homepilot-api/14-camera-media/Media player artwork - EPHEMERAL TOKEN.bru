@@ -1,0 +1,14 @@
+meta {
+  name: Media player artwork - EPHEMERAL TOKEN
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/v1/devices/{{deviceId}}/media/artwork?token={{mediaArtworkToken}}
+  body: none
+}
+
+docs {
+  Use solamente el token efímero devuelto por "Media player session". No guardar respuestas ni la URL generada.
+}

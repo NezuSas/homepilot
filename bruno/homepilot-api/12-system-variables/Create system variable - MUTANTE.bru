@@ -1,0 +1,4 @@
+meta { name: Create system variable - MUTANTE type: http seq: 10 }
+post { url: {{baseUrl}}/api/v1/system-variables body: json auth: bearer }
+auth:bearer { token: {{sessionToken}} }
+body:json { { "key": "example.variable", "value": "example-value" } }

@@ -1,0 +1,15 @@
+meta {
+  name: Setup status
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/system/setup-status
+  body: none
+  auth: none
+}
+
+docs {
+  Consulta el estado de configuración inicial. No modifica el sistema.
+}

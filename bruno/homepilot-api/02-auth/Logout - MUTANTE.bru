@@ -1,0 +1,4 @@
+meta { name: Logout - MUTANTE type: http seq: 3 }
+post { url: {{baseUrl}}/api/v1/auth/logout body: none auth: bearer }
+auth:bearer { token: {{sessionToken}} }
+docs { Invalida la sesión configurada en sessionToken. No usar en ejecuciones por lote. }
