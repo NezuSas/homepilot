@@ -1,0 +1,23 @@
+meta {
+  name: Complete setup - MUTANTE
+  type: http
+  seq: 101
+}
+
+post {
+  url: {{baseUrl}}/api/v1/system/setup-status/complete
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+body:json {
+  {}
+}
+
+docs {
+  Cobertura de ruta con muestra sintética. No ejecutar mutaciones, integraciones Edge o acciones físicas sin autorización explícita.
+}

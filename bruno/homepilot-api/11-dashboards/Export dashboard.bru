@@ -1,0 +1,19 @@
+meta {
+  name: Export dashboard
+  type: http
+  seq: 139
+}
+
+get {
+  url: {{baseUrl}}/api/v1/dashboards/{{dashboardId}}/export
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  Cobertura de ruta con muestra sintética. No ejecutar mutaciones, integraciones Edge o acciones físicas sin autorización explícita.
+}

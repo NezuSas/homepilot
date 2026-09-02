@@ -1,0 +1,15 @@
+meta {
+  name: Camera HLS resource - EPHEMERAL TOKEN
+  type: http
+  seq: 146
+}
+
+get {
+  url: {{baseUrl}}/api/v1/devices/{{deviceId}}/camera/hls/resource/{{hlsResourceId}}?token={{cameraProxyToken}}
+  body: none
+  auth: none
+}
+
+docs {
+  Cobertura de ruta con muestra sintética. No ejecutar mutaciones, integraciones Edge o acciones físicas sin autorización explícita.
+}

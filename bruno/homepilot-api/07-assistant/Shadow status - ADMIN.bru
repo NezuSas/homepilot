@@ -1,0 +1,19 @@
+meta {
+  name: Shadow status - ADMIN
+  type: http
+  seq: 124
+}
+
+get {
+  url: {{baseUrl}}/api/v1/assistant/shadow/status
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  Cobertura de ruta con muestra sintética. No ejecutar mutaciones, integraciones Edge o acciones físicas sin autorización explícita.
+}

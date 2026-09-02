@@ -1,0 +1,19 @@
+meta {
+  name: Consume directory browser SSO - MUTANTE
+  type: http
+  seq: 106
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/sso/directory/consume-browser
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}
+
+docs {
+  Cobertura de ruta con muestra sintética. No ejecutar mutaciones, integraciones Edge o acciones físicas sin autorización explícita.
+}

@@ -1,0 +1,19 @@
+meta {
+  name: Directory browser SSO handoff - MUTANTE
+  type: http
+  seq: 150
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/sso/directory/browser
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}
+
+docs {
+  Handoff público de SSO. Requiere un token Directory válido y no se ejecuta automáticamente.
+}

@@ -1,0 +1,19 @@
+meta {
+  name: All activity logs
+  type: http
+  seq: 115
+}
+
+get {
+  url: {{baseUrl}}/api/v1/activity-logs
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  Cobertura de ruta con muestra sintética. No ejecutar mutaciones, integraciones Edge o acciones físicas sin autorización explícita.
+}

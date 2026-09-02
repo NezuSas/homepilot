@@ -1,0 +1,23 @@
+meta {
+  name: Save Home Assistant settings - MUTANTE
+  type: http
+  seq: 135
+}
+
+post {
+  url: {{baseUrl}}/api/v1/settings/home-assistant
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+body:json {
+  {}
+}
+
+docs {
+  Cobertura de ruta con muestra sintética. No ejecutar mutaciones, integraciones Edge o acciones físicas sin autorización explícita.
+}

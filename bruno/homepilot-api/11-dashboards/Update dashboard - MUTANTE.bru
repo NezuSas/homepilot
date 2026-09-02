@@ -1,0 +1,23 @@
+meta {
+  name: Update dashboard - MUTANTE
+  type: http
+  seq: 142
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/dashboards/{{dashboardId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+body:json {
+  {}
+}
+
+docs {
+  Cobertura de ruta con muestra sintética. No ejecutar mutaciones, integraciones Edge o acciones físicas sin autorización explícita.
+}

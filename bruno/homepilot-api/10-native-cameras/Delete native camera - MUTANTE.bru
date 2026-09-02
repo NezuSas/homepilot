@@ -1,0 +1,23 @@
+meta {
+  name: Delete native camera - MUTANTE
+  type: http
+  seq: 138
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/native-cameras/{{cameraId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+body:json {
+  {}
+}
+
+docs {
+  Cobertura de ruta con muestra sintética. No ejecutar mutaciones, integraciones Edge o acciones físicas sin autorización explícita.
+}

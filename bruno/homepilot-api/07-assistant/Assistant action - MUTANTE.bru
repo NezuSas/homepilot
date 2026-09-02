@@ -1,0 +1,23 @@
+meta {
+  name: Assistant action - MUTANTE
+  type: http
+  seq: 128
+}
+
+post {
+  url: {{baseUrl}}/api/v1/assistant/actions
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+body:json {
+  {}
+}
+
+docs {
+  Cobertura de ruta con muestra sintética. No ejecutar mutaciones, integraciones Edge o acciones físicas sin autorización explícita.
+}

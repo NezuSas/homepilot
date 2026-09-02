@@ -1,0 +1,23 @@
+meta {
+  name: Change user role - MUTANTE
+  type: http
+  seq: 131
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/admin/users/{{userId}}/role
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+body:json {
+  {}
+}
+
+docs {
+  Cobertura de ruta con muestra sintética. No ejecutar mutaciones, integraciones Edge o acciones físicas sin autorización explícita.
+}

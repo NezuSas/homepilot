@@ -1,0 +1,19 @@
+meta {
+  name: Home Assistant settings
+  type: http
+  seq: 134
+}
+
+get {
+  url: {{baseUrl}}/api/v1/settings/home-assistant
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  Cobertura de ruta con muestra sintética. No ejecutar mutaciones, integraciones Edge o acciones físicas sin autorización explícita.
+}

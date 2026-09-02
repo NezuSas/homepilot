@@ -1,0 +1,19 @@
+meta {
+  name: Directory SSO login - MUTANTE
+  type: http
+  seq: 105
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/sso/directory
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}
+
+docs {
+  Cobertura de ruta con muestra sintética. No ejecutar mutaciones, integraciones Edge o acciones físicas sin autorización explícita.
+}

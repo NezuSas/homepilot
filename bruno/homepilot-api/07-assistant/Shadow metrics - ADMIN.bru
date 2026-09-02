@@ -1,0 +1,19 @@
+meta {
+  name: Shadow metrics - ADMIN
+  type: http
+  seq: 125
+}
+
+get {
+  url: {{baseUrl}}/api/v1/assistant/shadow/metrics
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  Cobertura de ruta con muestra sintética. No ejecutar mutaciones, integraciones Edge o acciones físicas sin autorización explícita.
+}
