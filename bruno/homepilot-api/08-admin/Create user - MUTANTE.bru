@@ -1,5 +1,23 @@
-meta { name: Create user - MUTANTE type: http seq: 2 }
-post { url: {{baseUrl}}/api/v1/admin/users body: json auth: bearer }
-auth:bearer { token: {{sessionToken}} }
-body:json { { "username": "example-user", "password": "SET_ONLY_IN_LOCAL_ENV", "role": "operator" } }
-docs { No versionar una contraseña real. Revisar CreateUserPayload para los campos válidos. }
+meta {
+  name: Create user - MUTANTE
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/admin/users
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+body:json {
+  { "username": "example-user", "password": "SET_ONLY_IN_LOCAL_ENV", "role": "operator" }
+}
+
+docs {
+  No versionar una contraseña real. Revisar CreateUserPayload para los campos válidos.
+}

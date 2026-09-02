@@ -1,4 +1,19 @@
-meta { name: Set timezone - MUTANTE type: http seq: 10 }
-post { url: {{baseUrl}}/api/v1/system/timezone body: json auth: bearer }
-auth:bearer { token: {{sessionToken}} }
-body:json { { "timezone": "America/Guayaquil" } }
+meta {
+  name: Set timezone - MUTANTE
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/api/v1/system/timezone
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+body:json {
+  { "timezone": "America/Guayaquil" }
+}

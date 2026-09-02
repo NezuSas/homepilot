@@ -1,3 +1,15 @@
-meta { name: Dashboard history type: http seq: 2 }
-get { url: {{baseUrl}}/api/v1/dashboards/{{dashboardId}}/history body: none auth: bearer }
-auth:bearer { token: {{sessionToken}} }
+meta {
+  name: Dashboard history
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/dashboards/{{dashboardId}}/history
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}

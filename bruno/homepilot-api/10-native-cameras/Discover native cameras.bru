@@ -1,4 +1,19 @@
-meta { name: Discover native cameras type: http seq: 2 }
-get { url: {{baseUrl}}/api/v1/native-cameras/discover body: none auth: bearer }
-auth:bearer { token: {{sessionToken}} }
-docs { Escanea la red local. No ejecutar fuera de un entorno autorizado. }
+meta {
+  name: Discover native cameras
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/native-cameras/discover
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+docs {
+  Escanea la red local. No ejecutar fuera de un entorno autorizado.
+}

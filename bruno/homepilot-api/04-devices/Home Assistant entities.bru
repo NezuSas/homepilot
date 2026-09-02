@@ -1,3 +1,15 @@
-meta { name: Home Assistant entities type: http seq: 5 }
-get { url: {{baseUrl}}/api/v1/ha/entities body: none auth: bearer }
-auth:bearer { token: {{sessionToken}} }
+meta {
+  name: Home Assistant entities
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/ha/entities
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}

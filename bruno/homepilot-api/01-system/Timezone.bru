@@ -1,3 +1,15 @@
-meta { name: Timezone type: http seq: 4 }
-get { url: {{baseUrl}}/api/v1/system/timezone body: none auth: bearer }
-auth:bearer { token: {{sessionToken}} }
+meta {
+  name: Timezone
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/system/timezone
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}

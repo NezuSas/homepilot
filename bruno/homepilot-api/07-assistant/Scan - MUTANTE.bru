@@ -1,3 +1,15 @@
-meta { name: Scan - MUTANTE type: http seq: 11 }
-post { url: {{baseUrl}}/api/v1/assistant/scan body: none auth: bearer }
-auth:bearer { token: {{sessionToken}} }
+meta {
+  name: Scan - MUTANTE
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/api/v1/assistant/scan
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}

@@ -1,3 +1,15 @@
-meta { name: Home rooms type: http seq: 3 }
-get { url: {{baseUrl}}/api/v1/homes/{{homeId}}/rooms body: none auth: bearer }
-auth:bearer { token: {{sessionToken}} }
+meta {
+  name: Home rooms
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/homes/{{homeId}}/rooms
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}

@@ -1,5 +1,23 @@
-meta { name: Room action - MUTANTE - PHYSICAL type: http seq: 13 }
-post { url: {{baseUrl}}/api/v1/rooms/{{roomId}}/action body: json auth: bearer }
-auth:bearer { token: {{sessionToken}} }
-body:json { { "action": "SET_A_VALID_ACTION_ONLY_IN_TEST" } }
-docs { Puede comandar los dispositivos de una habitación. }
+meta {
+  name: Room action - MUTANTE - PHYSICAL
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/api/v1/rooms/{{roomId}}/action
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+body:json {
+  { "action": "SET_A_VALID_ACTION_ONLY_IN_TEST" }
+}
+
+docs {
+  Puede comandar los dispositivos de una habitación.
+}

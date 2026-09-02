@@ -1,3 +1,15 @@
-meta { name: Diagnostics type: http seq: 3 }
-get { url: {{baseUrl}}/api/v1/system/diagnostics body: none auth: bearer }
-auth:bearer { token: {{sessionToken}} }
+meta {
+  name: Diagnostics
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/system/diagnostics
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}

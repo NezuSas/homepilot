@@ -1,4 +1,19 @@
-meta { name: Import HA entity - MUTANTE type: http seq: 13 }
-post { url: {{baseUrl}}/api/v1/ha/import body: json auth: bearer }
-auth:bearer { token: {{sessionToken}} }
-body:json { { "entityId": "example.entity_id", "name": "Example imported device" } }
+meta {
+  name: Import HA entity - MUTANTE
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/api/v1/ha/import
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
+}
+
+body:json {
+  { "entityId": "example.entity_id", "name": "Example imported device" }
+}
