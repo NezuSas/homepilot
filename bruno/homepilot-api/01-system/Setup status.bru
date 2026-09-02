@@ -7,7 +7,11 @@ meta {
 get {
   url: {{baseUrl}}/api/v1/system/setup-status
   body: none
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{sessionToken}}
 }
 
 docs {
