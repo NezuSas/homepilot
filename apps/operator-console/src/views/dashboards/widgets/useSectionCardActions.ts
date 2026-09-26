@@ -28,7 +28,7 @@ export function useSectionCardActions({ devices, isEditing, upsertDevice }: Sect
     actionFeedbackTimerRef.current = window.setTimeout(() => {
       setActionFeedback((current) => current?.id === id ? null : current);
       actionFeedbackTimerRef.current = null;
-    }, 2800);
+    }, status === 'success' ? 1800 : 4000);
   };
 
   const handleCardAction = async (card: NormalizedSectionCardItem, event?: MouseEvent) => {

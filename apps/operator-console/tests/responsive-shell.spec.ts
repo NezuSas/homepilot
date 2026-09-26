@@ -285,7 +285,7 @@ test('Feature: Media card width — Scenario: A player occupies the full section
   await expect(mediaCard.getByRole('slider', { name: /resize card|redimensionar tarjeta/i })).toHaveCount(0);
 });
 
-test('Feature: Unified control tile — Scenario: A scene uses the light-sized tile without a separate action catalog item', async ({ page }) => {
+test('Feature: Button card — Scenario: A scene briefly lights its icon without pretending to stay on', async ({ page }) => {
   await prepareAuthenticatedDashboard(page);
   let savedDashboard = responsiveDashboard;
   let sceneExecutions = 0;
@@ -309,18 +309,25 @@ test('Feature: Unified control tile — Scenario: A scene uses the light-sized t
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
   await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
   await page.getByRole('button', { name: /^(Add card|Añadir tarjeta)$/i }).click();
-  await expect(page.getByRole('button', { name: /^(Action button|Botón de acción)$/i })).toHaveCount(0);
-  await page.getByRole('button', { name: /^(Light or trigger|Luz o activador)$/i }).click();
+  await expect(page.getByRole('button', { name: /^(Button|Botón)$/i })).toHaveCount(1);
+  await page.getByRole('button', { name: /^(Button|Botón)$/i }).click();
   await page.getByText(/^(Light, scene, routine, or button|Luz, escena, rutina o botón)$/i).locator('..').getByRole('button').click();
   await page.getByRole('option', { name: /Cena/ }).click();
   await page.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
 
   const sceneTile = page.locator('[class*="group/card"]').filter({ hasText: 'Cena' });
   await expect(sceneTile).toBeVisible();
-  expect(await sceneTile.getByRole('button', { name: /Cena/i }).getAttribute('aria-pressed')).toBeNull();
+  const sceneButton = sceneTile.getByRole('button', { name: /Cena/i });
+  expect(await sceneButton.getAttribute('aria-pressed')).toBeNull();
   await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Done|Listo)$/i }).click();
-  await sceneTile.getByRole('button', { name: /Cena/i }).click();
+  await sceneButton.click();
   await expect.poll(() => sceneExecutions).toBe(1);
+  await expect(sceneButton).toHaveAttribute('data-action-state', 'success');
+  await expect(sceneButton.locator('svg').first()).toHaveClass(/text-primary/);
+  await expect(sceneButton.locator('svg.lucide-check')).toHaveCount(0);
+  await expect(sceneButton.getByText(/^(Done|Listo)$/i)).toHaveCount(0);
+  await expect(sceneButton).toHaveAttribute('data-action-state', 'idle', { timeout: 4000 });
+  await expect(sceneButton.locator('svg').first()).toHaveClass(/text-muted-foreground/);
 });
 
 test('Feature: Unified control tile — Scenario: Selecting a light still sends an on/off command', async ({ page }) => {
@@ -351,13 +358,15 @@ test('Feature: Unified control tile — Scenario: Selecting a light still sends 
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
   await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
   await page.getByRole('button', { name: /^(Add card|Añadir tarjeta)$/i }).click();
-  await page.getByRole('button', { name: /^(Light or trigger|Luz o activador)$/i }).click();
+  await page.getByRole('button', { name: /^(Button|Botón)$/i }).click();
   await page.getByText(/^(Light, scene, routine, or button|Luz, escena, rutina o botón)$/i).locator('..').getByRole('button').click();
   await page.getByRole('option', { name: /Luz de sala/ }).click();
   await page.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
   await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Done|Listo)$/i }).click();
-  await page.locator('[class*="group/card"]').filter({ hasText: 'Luz de sala' }).click();
+  const lightTile = page.locator('[class*="group/card"]').filter({ hasText: 'Luz de sala' });
+  await lightTile.click();
   await expect.poll(() => issuedCommand).toBe('turn_on');
+  await expect(lightTile).toHaveClass(/homepilot-section-light-tile-active/);
 });
 
 test('Feature: Dashboard title editing — Scenario: An owner edits title content and returns to the canvas', async ({ page }) => {

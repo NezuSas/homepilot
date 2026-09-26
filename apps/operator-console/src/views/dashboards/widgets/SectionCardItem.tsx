@@ -188,7 +188,7 @@ export function SectionCardItem({
         />
       ) : null}
 
-      {processingCardId === card.id ? (
+      {processingCardId === card.id && normalizedKind !== 'action' ? (
         <div className="pointer-events-none absolute right-3 top-3 z-30 grid h-7 w-7 place-items-center rounded-full border border-primary/20 bg-background/80 text-primary shadow-sm">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
         </div>
