@@ -283,7 +283,7 @@ Use a dedicated directory for each HomePilot appliance, for example `/opt/homepi
 | New or empty miniPC, customer does not need Home Assistant | `native_only` | Creates and owns only HomePilot resources. |
 | MiniPC with an existing customer Home Assistant or other Docker applications | `bridge_ha` | Preserves the existing Home Assistant, `.env`, volumes, databases, images, networks, and containers outside the HomePilot Compose project. |
 
-`--clean` and `--deploy` never run global Docker prune commands. They can remove only stopped containers that belong to the selected HomePilot Compose project. Build cache, unused images, stopped containers, and networks belonging to other projects are intentionally left untouched. `--remove-orphans` is likewise limited to services with the HomePilot Compose project identity.
+`--clean` and `--deploy` never run global Docker prune commands. They remove stopped containers belonging to the selected HomePilot Compose project, not BuildKit cache, images, networks, volumes, or data. `--deploy` also uses `--remove-orphans`, limited to containers with the same Compose project identity; verify the profile before switching Compose files because `ha_companion` includes Home Assistant in that project. Resources of unrelated projects remain outside this scope.
 
 Before any customer deployment, run the read-only diagnostic:
 
@@ -378,14 +378,13 @@ bash scripts/homepilot-maintenance.sh --profile bridge_ha --deploy --yes
 The command:
 
 1. Shows available space and current Docker usage.
-2. Cleans BuildKit/buildx cache while retaining a configurable maximum.
-3. Removes unused images, stopped containers, and unused networks.
-4. Builds and starts HomePilot with docker-compose.office.yml.
-5. Repeats safe cleanup after the build.
-6. Shows final available space.
-7. Verifies API, UI, STT, TTS, and the Home Assistant bridge before declaring the installation healthy.
+2. Reports the filesystem usage and warns at 75% (warning) or 85% (critical, non-blocking).
+3. Shows Docker's daemon-wide `RECLAIMABLE` figures, which are not necessarily HomePilot-owned or safely reclaimable.
+4. Removes only stopped containers in the selected HomePilot Compose project.
+5. Builds and starts HomePilot with the Compose files selected for the saved profile, then repeats the same container cleanup.
+6. Shows final usage and verifies API, UI, STT, TTS, and the Home Assistant bridge where required.
 
-It preserves up to 2GB of useful cache by default:
+It does **not** impose a BuildKit cache limit or remove images, dangling images, networks, or volumes. The normal deployment command is:
 
 ~~~bash
 bash scripts/homepilot-maintenance.sh --profile bridge_ha --deploy --yes
@@ -403,13 +402,21 @@ Diagnose without making changes:
 bash scripts/homepilot-maintenance.sh --profile bridge_ha --status
 ~~~
 
-The script never runs docker volume prune and never deletes databases or volumes. To explicitly truncate oversized Docker logs:
+The script never runs Docker system/builder/image/volume prune and never deletes databases or volumes. To explicitly truncate oversized Docker logs:
 
 ~~~bash
 bash scripts/homepilot-maintenance.sh --profile bridge_ha --clean --truncate-logs --yes
 ~~~
 
 The truncate-logs command affects only *-json.log files, not containers or persistent data.
+
+The camera acceleration probe builds the tagged `homepilot-camera-probe:local` image and uses `docker run --rm` for the temporary test container. The image tag is retained between deployments. Its actual size on an appliance must be measured there with a read-only image inspection; do not infer it from Docker's daemon-wide reclaimable figure. Keeping the tag may reuse API image layers and build cache on later probes, so phase 1 does not change this behavior.
+
+#### Planned phase 2: isolated HomePilot builder (not implemented)
+
+Evaluate a named BuildKit builder dedicated to this HomePilot installation, independent of installation profile. Route **all** HomePilot builds through it, including Compose services and the VAAPI probe; otherwise the shared builder would keep accumulating HomePilot cache. Validate image loading, camera fallback, rollback, and rebuild times on `bridge_ha`, `native_only`, and `ha_companion` before changing deployment commands.
+
+Only after confirming builder isolation, define HomePilot-only GC with an age limit and capacity budget calibrated against appliance disk size and measured rebuild cost. Retain recently used cache and never run GC against the existing shared builder or during an active build. Treat image retention separately from builder cache: preserve the current image set and one verified previous release for rollback, including any images required by the selected profile. Report disk usage before and after; do not delete volumes, `data/`, `backups/`, `ha-config/`, SQLite, credentials, or artifacts of other projects. A warning is not permission to delete anything automatically. No builder or GC policy is activated in phase 1.
 
 | Variable | Installation check |
 |---|---|

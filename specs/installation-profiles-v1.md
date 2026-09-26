@@ -53,6 +53,7 @@ etwork_mode: host por red Docker, publique la API local en un puerto no conflict
 - **REQ-23:** Las imágenes nunca reciben backups, archivos `.env` locales ni otros datos persistentes en el contexto de build. Los puertos auxiliares de voz se publican solo en loopback; la UI mantiene la exposición LAN elegida para el cliente y la API en red del host exige una política de firewall documentada.
 - **REQ-24:** Los servicios Compose limitan la retención de logs del driver local. Un checklist de entrega debe verificar perfil, conectividad de build/modelos, espacio, puertos, reinicio, backup y restauración en la MiniPC objetivo antes de aprobar el release.
 - **REQ-25:** Los diagnósticos de instalación no incluyen direcciones, usuarios, claves SSH ni rutas de un appliance de desarrollo concreto, ni dejan respuestas HTTP en archivos temporales globales.
+- **REQ-26:** El mantenimiento informa el uso del filesystem de HomePilot y el espacio reclamable global de Docker sin atribuirlo al proyecto; advierte sin bloquear a partir de 75% y eleva el aviso a crítico a partir de 85%. `--clean` y `--deploy` siguen sin eliminar imágenes, caché BuildKit, redes, volúmenes ni datos.
 
 ## 4. Criterios de aceptación
 
@@ -78,6 +79,7 @@ etwork_mode: host para la API y publica el puerto 13000.
 - [x] AC21: con `.env` configurado como `ha_companion`, `bash scripts/homepilot-maintenance.sh --deploy --yes` selecciona `docker-compose.yml` y el overlay de Docker Desktop, incluyendo `homeassistant`.
 - [x] AC10: La guía de onboarding identifica Docker Desktop o el appliance Linux mediante la configuración del compose, sin depender del navegador del cliente.
 - [x] AC11: La guía distingue la URL interna del bridge de la URL de navegador para crear el token y permite usar la URL interna sugerida con un solo clic.
+- [x] AC26: El informe de mantenimiento distingue uso normal (<75%), advertencia (75–84%) y advertencia crítica (>=85%) sin alterar el resultado del despliegue. El texto de `--clean` describe únicamente la retirada de contenedores detenidos y la documentación deja el builder exclusivo con GC como fase futura, sin implementarlo.
 
 ## 5. Límites
 

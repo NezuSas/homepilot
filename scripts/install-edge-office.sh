@@ -290,7 +290,7 @@ show_technician_checklist() {
   fi
 
   cleanup_label="No"
-  [[ "$clean" == true ]] && cleanup_label="Sí, solo cache de build e imágenes colgantes"
+  [[ "$clean" == true ]] && cleanup_label="Sí, solo contenedores HomePilot detenidos"
 
   community_label="No aplica"
   if [[ "$profile" == "ha_companion" ]]; then
@@ -321,7 +321,7 @@ run_technician_wizard() {
   choose_technician_action
 
   if [[ "$status_only" == false && "$community_integrations_only" == false ]]; then
-    if ask_technician_yes_no "¿Ejecutar limpieza segura de Docker antes de continuar?"; then
+    if ask_technician_yes_no "¿Retirar contenedores HomePilot detenidos antes de continuar?"; then
       clean=true
     fi
 

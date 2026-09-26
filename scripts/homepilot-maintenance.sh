@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib/camera-acceleration.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/appliance-storage-report.sh"
 
 profile="bridge_ha"
 compose_file="docker-compose.office.yml"
@@ -36,12 +37,13 @@ usage() {
   cat <<'EOF'
 Uso: bash scripts/homepilot-maintenance.sh [opciones]
 
-Mantiene una instalación HomePilot en miniPC sin tocar recursos de otros proyectos Docker.`nNo borra volúmenes ni bases de datos.
+Mantiene una instalación HomePilot en miniPC sin tocar recursos de otros proyectos Docker.
+No borra volúmenes ni bases de datos. RECLAIMABLE es una cifra global de Docker.
 
 Opciones:
   --deploy                 Construye/inicia HomePilot y retira solo contenedores detenidos del proyecto.
   --clean                  Retira solo contenedores detenidos del proyecto HomePilot.
-  --status                 Muestra espacio, contenedores y salud de servicios sin modificar nada.
+  --status                 Muestra uso del filesystem y Docker, contenedores y salud sin modificar nada.
   --profile PERFIL         bridge_ha (defecto), native_only o ha_companion.
   --compose FILE           Compose personalizado. Sobrescribe la selección automática de runtime.
   --truncate-logs          Vacía únicamente logs de contenedores HomePilot. Puede pedir sudo.
@@ -160,13 +162,7 @@ confirm() {
 }
 
 show_disk() {
-  section "Espacio disponible"
-  df -h .
-
-  if command -v docker >/dev/null 2>&1; then
-    section "Uso de Docker"
-    docker system df || warn "Docker no respondio a docker system df."
-  fi
+  storage_report
 }
 
 check_requirements() {
@@ -290,7 +286,7 @@ clean_docker_residue() {
   local container_id log_path
 
   section "Limpieza acotada a HomePilot"
-  info "No se ejecutan docker builder/image/container/network prune globales."
+    info "No se ejecutan limpiezas globales de Docker (system, builder, image, container, network o volume)."
   mapfile -t compose_command < <(compose_args)
 
   if docker compose "${compose_command[@]}" rm --force; then
