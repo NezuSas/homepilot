@@ -12,6 +12,7 @@ interface RoutinesViewProps {
   canManageAutomations: boolean;
   onSectionChange: (section: RoutineSection) => void;
   onSceneActionExecute: (label: string) => void;
+  currentUserId: string | null;
 }
 
 export default function RoutinesView({
@@ -19,6 +20,7 @@ export default function RoutinesView({
   canManageAutomations,
   onSectionChange,
   onSceneActionExecute,
+  currentUserId,
 }: RoutinesViewProps) {
   const { t } = useTranslation();
   const activeSection = canManageAutomations ? section : 'scenes';
@@ -50,7 +52,7 @@ export default function RoutinesView({
       />
 
       {activeSection === 'scenes' ? (
-        <ScenesView onActionExecute={onSceneActionExecute} />
+        <ScenesView onActionExecute={onSceneActionExecute} currentUserId={currentUserId} />
       ) : (
         <AutomationsView />
       )}

@@ -39,7 +39,7 @@ export function AppViewRouter(props: AppViewRouterProps) {
   return <PageFrame immersive={layout.immersive} className={layout.pageClassName}><Suspense fallback={fallback}>
     {props.currentView === 'dashboard' && <DashboardView onActionExecute={props.onDeviceAction} onNavigate={props.onNavigate} displayName={props.displayName} canManageAutomations={props.canManageAutomations} />}
     {props.currentView === 'spaces' && <TopologyView currentUser={props.user} />}
-    {props.currentView === 'routines' && <RoutinesView section={getRoutineSection(props.currentPath, props.canManageAutomations)} canManageAutomations={props.canManageAutomations} onSectionChange={props.onRoutineSectionChange} onSceneActionExecute={props.onDeviceAction} />}
+    {props.currentView === 'routines' && <RoutinesView section={getRoutineSection(props.currentPath, props.canManageAutomations)} canManageAutomations={props.canManageAutomations} onSectionChange={props.onRoutineSectionChange} onSceneActionExecute={props.onDeviceAction} currentUserId={props.user?.id ?? null} />}
     {props.currentView === 'assistant' && <AssistantView onNavigate={props.onNavigate} />}
     {props.currentView === 'resilience-showcase' && <ResilienceShowcaseView />}
     {props.currentView === 'dashboards' && <DashboardsView initialDashboardId={props.dashboardId} initialTabId={props.tabId} onOpenMobileMenu={props.onOpenMobileMenu} onDashboardCatalogChange={props.onDashboardCatalogChange} />}

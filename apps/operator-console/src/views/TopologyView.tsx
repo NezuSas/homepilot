@@ -11,6 +11,7 @@ import { IconButton } from '../components/ui/IconButton';
 import { Input, SearchInput } from '../components/ui/Input';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import type { UserContext } from '../lib/useSession';
+import { useDeviceSnapshotStore, type SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 import {
   filterTopologyRooms,
   isActiveTopologyDevice,
@@ -36,7 +37,6 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
   const [devices, setDevices] = useState<Device[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [loadingHomes, setLoadingHomes] = useState(true);
-  const [loadingRooms, setLoadingRooms] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [roomPendingDelete, setRoomPendingDelete] = useState<Room | null>(null);
@@ -52,6 +52,8 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
   const [deviceProcessingId, setDeviceProcessingId] = useState<string | null>(null);
   const [topologyError, setTopologyError] = useState('');
   const [roomSearch, setRoomSearch] = useState('');
+  const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
+  const upsertDevice = useDeviceSnapshotStore((state) => state.upsertDevice);
 
   const canManageHome = (home: Home | null): boolean => (
     home !== null && home.ownerId === currentUser?.id
@@ -63,26 +65,31 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
 
     const loadInitialData = async () => {
       try {
-        const [homesRes, devicesRes] = await Promise.all([
-          apiFetch(`${API_URL}/homes`),
-          apiFetch(`${API_URL}/devices`),
-        ]);
-
-        if (!homesRes.ok) throw new Error(await readApiError(homesRes, t('topology.load_error')));
-        const homesData = await homesRes.json();
-        if (!devicesRes.ok) throw new Error(await readApiError(devicesRes, t('topology.load_error')));
-        const deviceData = await devicesRes.json();
+        await refreshSnapshot();
         if (!isMounted) return;
-
-        const nextHomes = Array.isArray(homesData) ? homesData : [];
-        setDevices(Array.isArray(deviceData) ? deviceData : []);
+        const snapshot = useDeviceSnapshotStore.getState();
+        if (snapshot.lastUpdatedAt === null) throw new Error(t('topology.load_error'));
+        const home = snapshot.homes.find((candidate): candidate is Home => (
+          typeof candidate.id === 'string'
+          && typeof candidate.name === 'string'
+          && typeof candidate.ownerId === 'string'
+        ));
+        setDevices(snapshot.devices);
         setTopologyError('');
-
-        if (nextHomes.length > 0) {
-          void loadRooms(nextHomes[0]);
+        if (home) {
+          setSelectedHome(home);
+          if (home.ownerId === currentUser?.id) {
+            setRooms(snapshot.roomsByHome[home.id] ?? []);
+          } else {
+            // Preserve the per-home endpoint's ownership check for shared topologies.
+            const response = await apiFetch(`${API_URL}/homes/${home.id}/rooms`);
+            if (!response.ok) throw new Error(await readApiError(response, t('topology.load_error')));
+            const roomData = await response.json();
+            if (isMounted) setRooms(Array.isArray(roomData) ? roomData : []);
+          }
         }
       } catch (error_: unknown) {
-        setTopologyError(error_ instanceof Error ? error_.message : t('topology.load_error'));
+        if (isMounted) setTopologyError(error_ instanceof Error ? error_.message : t('topology.load_error'));
       } finally {
         if (isMounted) setLoadingHomes(false);
       }
@@ -92,27 +99,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
     return () => {
       isMounted = false;
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Home selection controls later room refreshes.
-
-  async function loadRooms(home: Home) {
-    setSelectedHome(home);
-    setSelectedRoomId(null);
-    setLoadingRooms(true);
-    try {
-      const res = await apiFetch(`${API_URL}/homes/${home.id}/rooms`);
-      if (!res.ok) throw new Error(await readApiError(res, t('topology.load_error')));
-      const data = await res.json();
-      const nextRooms = Array.isArray(data) ? data : [];
-      setRooms(nextRooms);
-      setSelectedRoomId(null);
-      setDeviceSearch('');
-      setTopologyError('');
-    } catch (error_: unknown) {
-      setTopologyError(error_ instanceof Error ? error_.message : t('topology.load_error'));
-    } finally {
-      setLoadingRooms(false);
-    }
-  };
+  }, [currentUser?.id, refreshSnapshot, t]);
 
   const handleAddRoom = async () => {
     const home = selectedHome;
@@ -130,6 +117,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
       setRooms((currentRooms) => [...currentRooms, room]);
       setSelectedRoomId(room.id);
       setNewRoomName('');
+      void refreshSnapshot({ force: true });
     } catch (error_: unknown) {
       setTopologyError(error_ instanceof Error ? error_.message : t('topology.create_room_error'));
     } finally {
@@ -158,6 +146,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
         currentRoomId === deletedRoomId ? null : currentRoomId
       ));
       setRoomPendingDelete(null);
+      void refreshSnapshot({ force: true });
     } catch (err) {
       console.error('Error deleting room:', err);
     } finally {
@@ -201,6 +190,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
       setEditingRoomId(null);
       setRoomNameDraft('');
       setRoomRenameError('');
+      void refreshSnapshot({ force: true });
     } catch (error_: unknown) {
       setRoomRenameError(error_ instanceof Error ? error_.message : t('topology.rename_room_error'));
     } finally {
@@ -235,6 +225,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
       const updatedHome = await res.json() as Home;
       setSelectedHome((currentHome) => currentHome?.id === updatedHome.id ? updatedHome : currentHome);
       cancelHomeRename();
+      void refreshSnapshot({ force: true });
     } catch (error_: unknown) {
       setTopologyError(error_ instanceof Error ? error_.message : t('topology.rename_home_error'));
     } finally {
@@ -255,8 +246,9 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
         body: JSON.stringify({ command: isActiveTopologyDevice(device) ? 'turn_off' : 'turn_on' }),
       });
       if (!res.ok) throw new Error(await readApiError(res, t('common.errors.operation_failed')));
-      const updatedDevice = await res.json() as Device;
+      const updatedDevice = await res.json() as SnapshotDevice;
       setDevices((currentDevices) => currentDevices.map((currentDevice) => currentDevice.id === updatedDevice.id ? updatedDevice : currentDevice));
+      upsertDevice(updatedDevice);
     } catch (error_: unknown) {
       setTopologyError(error_ instanceof Error ? error_.message : t('common.errors.operation_failed'));
     } finally {
@@ -392,12 +384,6 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
               className="w-full"
             />
 
-            {loadingRooms ? (
-              <div className="flex flex-col items-center justify-center p-16 border border-border border-dashed rounded-xl bg-card/30 text-muted-foreground">
-                <Loader2 className="w-6 h-6 animate-spin mb-3" />
-                <p className="text-body">{t('common.loading')}</p>
-              </div>
-            ) : (
               <div className={cn(
                 "grid grid-cols-1 items-start gap-4",
               )}>
@@ -459,7 +445,6 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                   </>
                 )}
               </div>
-            )}
           </>
         ) : (
           <div className="flex h-topology-empty flex-col items-center justify-center rounded-card border border-dashed border-border bg-muted/20 px-6 text-center text-muted-foreground">

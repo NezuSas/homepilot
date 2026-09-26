@@ -126,3 +126,8 @@
 - [x] Integrar la lectura meteorológica existente de la ciudad configurada en `HomeClimateSummary`, para que el encabezado no dependa de que haya un sensor físico de temperatura descubierto.
 
 - [x] Aislar el listado de escenas y automatizaciones por hogar propietario; Inicio delega la selección al endpoint autorizado y la cobertura de integración rechaza hogares ajenos.
+
+### [UI-10] Reutilizar topología entre Espacios y Rutinas
+- **Descripción**: Consumir el snapshot compartido de hogares, dispositivos y habitaciones en ambas vistas, refrescarlo después de mutaciones de topología y evitar mostrar habitaciones de hogares no autorizados. Verificar la navegación con una prueba de solicitudes duplicadas.
+- **Módulos**: `TopologyView.tsx`, `ScenesView.tsx`, `AutomationsView.tsx`, `RoutinesView.tsx`, `AppViewRouter.tsx` y prueba responsive.
+- **Criterio Relacionado**: Alineado con **AC30**.

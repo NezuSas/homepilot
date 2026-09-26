@@ -10,7 +10,7 @@ import { ScenesEmptyState } from '../components/ScenesEmptyState';
 import { ScenesGroup } from '../components/ScenesGroup';
 import { ScenesHeader } from '../components/ScenesHeader';
 import { AlertBanner } from '../components/ui/AlertBanner';
-import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
+import { useDeviceSnapshotStore, type SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 
 interface Room {
   id: string;
@@ -33,7 +33,8 @@ interface Scene {
 
 const ScenesView: React.FC<{
   onActionExecute?: (label: string) => void;
-}> = ({ onActionExecute }) => {
+  currentUserId: string | null;
+}> = ({ onActionExecute, currentUserId }) => {
   const { t } = useTranslation();
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -47,6 +48,7 @@ const ScenesView: React.FC<{
   const [successId, setSuccessId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const dataRequest = useRef<AbortController | null>(null);
+  const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
   
   // Local Stats
   const [favorites, setFavorites] = useState<string[]>(() => {
@@ -85,28 +87,32 @@ const ScenesView: React.FC<{
     dataRequest.current = controller;
     const fetchData = async () => {
       try {
-        const homesRes = await apiFetch(`${API_BASE_URL}/api/v1/homes`, { signal: controller.signal });
-        if (!homesRes.ok) throw new Error(await readApiError(homesRes, t('scenes.errors.load_failed')));
-        const homes = await homesRes.json();
+        await refreshSnapshot();
         if (controller.signal.aborted) return;
-        if (Array.isArray(homes) && homes.length > 0) {
-          const hId = homes[0].id;
+        const snapshot = useDeviceSnapshotStore.getState();
+        if (snapshot.lastUpdatedAt === null) throw new Error(t('scenes.errors.load_failed'));
+        const home = snapshot.homes[0];
+        if (home) {
+          const hId = home.id;
           setHomeId(hId);
 
-          const [scenesRes, roomsRes, devicesRes] = await Promise.all([
+          const [scenesRes, roomsRes] = await Promise.all([
             fetchDiagnosticResource(`${API_BASE_URL}/api/v1/scenes`, controller.signal),
-            apiFetch(`${API_BASE_URL}/api/v1/homes/${hId}/rooms`, { signal: controller.signal }),
-            apiFetch(`${API_BASE_URL}/api/v1/devices`, { signal: controller.signal })
+            home.ownerId === currentUserId
+              ? Promise.resolve(null)
+              : apiFetch(`${API_BASE_URL}/api/v1/homes/${hId}/rooms`, { signal: controller.signal }),
           ]);
 
           if (!scenesRes.ok) throw new Error(await readApiError(scenesRes, t('scenes.errors.load_failed')));
-          if (!roomsRes.ok) throw new Error(await readApiError(roomsRes, t('scenes.errors.load_failed')));
-          if (!devicesRes.ok) throw new Error(await readApiError(devicesRes, t('scenes.errors.load_failed')));
-          const [sceneData, roomData, deviceData] = await Promise.all([scenesRes.json(), roomsRes.json(), devicesRes.json()]);
+          if (roomsRes && !roomsRes.ok) throw new Error(await readApiError(roomsRes, t('scenes.errors.load_failed')));
+          const [sceneData, roomData] = await Promise.all([
+            scenesRes.json(),
+            roomsRes ? roomsRes.json() : Promise.resolve(snapshot.roomsByHome[hId] ?? []),
+          ]);
           if (controller.signal.aborted) return;
           if (Array.isArray(sceneData)) setScenes(sceneData);
           if (Array.isArray(roomData)) setRooms(roomData);
-          if (Array.isArray(deviceData)) setDevices(deviceData);
+          setDevices(snapshot.devices);
           setError('');
         } else {
           setError(t('scenes.errors.no_home'));
@@ -120,7 +126,7 @@ const ScenesView: React.FC<{
 
     void fetchData();
     return () => dataRequest.current?.abort();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Mutations refresh local scene state.
+  }, [currentUserId, refreshSnapshot, t]);
 
   const handleExecute = async (scene: Scene) => {
     setExecutingId(scene.id);

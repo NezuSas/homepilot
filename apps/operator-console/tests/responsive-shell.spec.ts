@@ -1348,6 +1348,46 @@ test('Feature: Home conversation continuity — Scenario: Given a local transcri
   await expect(page.locator('.home-conversation-empty-state')).toBeVisible();
 });
 
+test('Espacios y Rutinas comparten la topología sin repetir sus lecturas al navegar', async ({ page }) => {
+  await page.setViewportSize(viewports[2]);
+  await prepareAuthenticatedDashboard(page);
+  const counts = { homes: 0, rooms: 0, devices: 0, homeRooms: 0 };
+  const home = { id: 'responsive-home', name: 'Casa de prueba', ownerId: dashboardUser.id };
+  const room = { id: 'responsive-room', homeId: home.id, name: 'Sala de prueba' };
+  await page.route('**/api/v1/homes', async route => {
+    counts.homes += 1;
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([home]) });
+  });
+  await page.route('**/api/v1/rooms', async route => {
+    counts.rooms += 1;
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([room]) });
+  });
+  await page.route('**/api/v1/devices', async route => {
+    counts.devices += 1;
+    await route.fulfill({ contentType: 'application/json', body: '[]' });
+  });
+  await page.route('**/api/v1/homes/responsive-home/rooms', async route => {
+    counts.homeRooms += 1;
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([room]) });
+  });
+  await page.route('**/api/v1/scenes', async route => {
+    await route.fulfill({ contentType: 'application/json', body: '[]' });
+  });
+  await page.route('**/api/v1/automations', async route => {
+    await route.fulfill({ contentType: 'application/json', body: '[]' });
+  });
+
+  await page.goto('/spaces');
+  await expect(page.getByRole('button', { name: /Sala de prueba/ })).toBeVisible();
+  await page.getByRole('button', { name: /Rutinas|Routines/i }).click();
+  await expect(page).toHaveURL(/\/routines/);
+  await expect(page.getByText(/No hay escenas|No scenes/i).first()).toBeVisible();
+  await page.getByRole('radio', { name: /Automatizaciones|Automations/i }).click();
+  await expect(page).toHaveURL(/\/routines\/automations/);
+  await expect(page.getByRole('button', { name: /Crear Regla|Create Rule/i }).first()).toBeVisible();
+  expect(counts).toEqual({ homes: 1, rooms: 1, devices: 1, homeRooms: 0 });
+});
+
 test('Feature: Room details — Scenario: A home owner selects a room, controls a light, renames the room and closes its details', async ({ page }) => {
   await page.setViewportSize(viewports[1]);
   await prepareAuthenticatedDashboard(page);
@@ -1364,6 +1404,9 @@ test('Feature: Room details — Scenario: A home owner selects a room, controls 
     ]) });
   });
   await page.route('**/api/v1/homes/responsive-home/rooms', async route => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([room]) });
+  });
+  await page.route('**/api/v1/rooms', async route => {
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify([room]) });
   });
   await page.route('**/api/v1/devices', async route => {

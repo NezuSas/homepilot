@@ -15,6 +15,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { Button } from '../components/ui/Button';
 import { humanize } from '../lib/naming-utils';
+import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import {
   AUTOMATION_FAVORITES_STORAGE_KEY,
   readFavoriteIds,
@@ -78,6 +79,7 @@ const AutomationsView: React.FC = () => {
   const [favoriteIds, setFavoriteIds] = useState<string[]>(() => readFavoriteIds(AUTOMATION_FAVORITES_STORAGE_KEY));
   const [timerReference, setTimerReference] = useState(() => DateTime.now());
   const dataRequest = useRef<AbortController | null>(null);
+  const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
   const persistentRules = useMemo(() => rules.filter((rule) => !rule.trigger.dateLocal), [rules]);
   const activeTimers = useMemo(() => rules.flatMap((rule) => {
     if (!rule.enabled || rule.trigger.type !== 'time' || !rule.trigger.dateLocal || !rule.trigger.timeLocal) return [];
@@ -125,14 +127,16 @@ const AutomationsView: React.FC = () => {
     dataRequest.current = controller;
     setIsLoading(true);
     try {
-      const [rulesData, devicesData, scenesData] = await Promise.all([
+      const [rulesData, scenesData] = await Promise.all([
         fetchJSON(API_ENDPOINTS.automations.list, { signal: controller.signal }),
-        fetchJSON(API_ENDPOINTS.devices.list, { signal: controller.signal }),
-        fetchJSON(API_ENDPOINTS.scenes.list, { signal: controller.signal })
+        fetchJSON(API_ENDPOINTS.scenes.list, { signal: controller.signal }),
+        refreshSnapshot(),
       ]);
       if (controller.signal.aborted) return;
+      const snapshot = useDeviceSnapshotStore.getState();
+      if (snapshot.lastUpdatedAt === null) throw new Error(t('common.errors.connection_error'));
       if (Array.isArray(rulesData)) setRules(rulesData);
-      if (Array.isArray(devicesData)) setDevices(devicesData);
+      setDevices(snapshot.devices);
       if (Array.isArray(scenesData)) setScenes(scenesData);
       setError(null);
     } catch (error: unknown) {

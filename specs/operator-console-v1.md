@@ -99,6 +99,7 @@ Se propone una consola de administración pragmática:
 - [x] AC27: Al abrir Tableros mientras el sidebar carga el mismo catálogo, ambos consumidores comparten una sola lectura; regresar durante la ventana corta de frescura reutiliza el resultado, una edición lo invalida y cambiar de sesión nunca reutiliza datos anteriores.
 - [x] AC28: Entrar o regresar al Asistente no dispara `POST /assistant/scan`; el botón de escaneo manual sigue funcionando y los hallazgos existentes se consultan al abrir la vista.
 - [x] AC29: Las lecturas de escenas y automatizaciones se comparten entre vistas durante un intervalo breve sin reutilizar datos entre sesiones; las ediciones invalidan la respuesta y una solicitud previa no puede reponer datos obsoletos en la caché.
+- [x] AC30: Al navegar de Espacios a Rutinas, hogares, dispositivos y habitaciones ya obtenidos se reutilizan durante la ventana de frescura del snapshot sin repetir sus solicitudes; las mutaciones de topología actualizan el snapshot y solo se muestran habitaciones del hogar autorizado.
 
 ## 9. Notas Técnicas y Arquitectura
 - El backend actual debe exponer (si no lo hace aún) los endpoints mínimos para soportar estas vistas (ej. REST V1 `GET /api/devices/inbox`, `POST /api/devices/{id}/assign`, etc.).
