@@ -26,7 +26,8 @@ function runBuilder(mode: string, action = 'homepilot_builder_ensure') {
         return 0
       fi
       if [[ "$1" == exec && "$2" == buildx_buildkit_homepilot-builder0 ]]; then
-        if [[ "$MODE" == old_gc ]]; then printf '%s\\n' '[worker.oci]'; else cat "$HOMEPILOT_BUILDKIT_CONFIG"; fi
+        # BuildKit's canonicalized TOML is not byte-identical to the source.
+        printf '%s\\n' '[worker]' '[worker.oci]' '  gc = true' '  [[worker.oci.gcpolicy]]' '    maxUsedSpace = "1GiB"'
         return 0
       fi
       if [[ "$1" == buildx && "$2" == inspect ]]; then
@@ -40,12 +41,38 @@ function runBuilder(mode: string, action = 'homepilot_builder_ensure') {
         else
           printf 'Name: homepilot-builder\\nDriver: docker-container\\nDriver Options: default-load="true"\\nStatus: running\\n'
         fi
+        if [[ "$MODE" != stopped && "$MODE" != missing_gc ]]; then
+          printf '%s\\n' \
+            'GC Policy rule#0:' \
+            ' All: false' \
+            " Filters: type==source.local,type==exec.cachemount,type==$([[ \"$MODE\" == bad_filter ]] && printf 'source.http' || printf 'source.git.checkout')" \
+            ' Keep Duration: 48h0m0s' \
+            ' Max Used Space: 1GiB' \
+            'GC Policy rule#1:' \
+            ' All: false' \
+            ' Keep Duration: 720h0m0s' \
+            ' Reserved Space: 8GiB' \
+            " Max Used Space: $([[ \"$MODE\" == old_gc ]] && printf '12GiB' || printf '11GiB')" \
+            ' Min Free Space: 25GiB' \
+            'GC Policy rule#2:' \
+            ' All: false' \
+            ' Reserved Space: 8GiB' \
+            ' Max Used Space: 11GiB' \
+            ' Min Free Space: 25GiB' \
+            'GC Policy rule#3:' \
+            " All: $([[ \"$MODE\" == bad_all ]] && printf 'false' || printf 'true')" \
+            ' Reserved Space: 8GiB' \
+            ' Max Used Space: 11GiB' \
+            ' Min Free Space: 25GiB'
+        fi
         return 0
       fi
       if [[ "$1" == buildx && "$2" == du ]]; then
         [[ "$MODE" != stopped ]] || return 2
         if [[ "$MODE" == cache_large ]]; then
           printf 'Shared: 1GB\\nPrivate: 11GB\\nReclaimable: 12GB\\nTotal: 12GB\\n'
+        elif [[ "$MODE" == cache_under_binary ]]; then
+          printf 'Shared: 1GB\\nPrivate: 10.5GB\\nReclaimable: 11.5GB\\nTotal: 11.5GB\\n'
         else
           printf 'Shared: 1GB\\nPrivate: 2GB\\nReclaimable: 2GB\\nTotal: 3GB\\n'
         fi
@@ -77,7 +104,13 @@ describe('dedicated HomePilot builder', () => {
     expect(result.stdout).toContain('Se reutiliza');
   });
 
-  it.each(['wrong_driver', 'no_load', 'old_compose', 'old_gc'])('fails closed for %s', (mode) => {
+  it('accepts the effective policy despite BuildKit canonicalizing its TOML', () => {
+    const result = runBuilder('existing');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('Builder dedicado homepilot-builder listo');
+  });
+
+  it.each(['wrong_driver', 'no_load', 'old_compose', 'old_gc', 'missing_gc', 'bad_filter', 'bad_all'])('fails closed for %s', (mode) => {
     const result = runBuilder(mode);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('FAIL');
@@ -112,16 +145,23 @@ describe('dedicated HomePilot builder', () => {
   it('warns when builder cache exceeds the configured maximum', () => {
     const result = runBuilder('cache_large', 'homepilot_builder_report');
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain('supera 11GB');
+    expect(result.stdout).toContain('supera 11GiB');
+  });
+
+  it('compares Docker decimal cache totals against the effective binary 11 GiB limit', () => {
+    const result = runBuilder('cache_under_binary', 'homepilot_builder_report');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('Total: 11.5GB');
+    expect(result.stdout).not.toContain('supera 11GiB');
   });
 
   it('configures ordered GC policies without pruning images or volumes', () => {
     const config = readFileSync('docker/buildkit/homepilot-buildkitd.toml', 'utf8');
     expect(config).toMatch(/\[worker\.oci\]\s+gc = true/);
     expect(config.match(/\[\[worker\.oci\.gcpolicy\]\]/g)).toHaveLength(4);
-    expect(config).toContain('reservedSpace = "8GB"');
-    expect(config).toContain('maxUsedSpace = "11GB"');
-    expect(config).toContain('minFreeSpace = "25GB"');
+    expect(config).toContain('reservedSpace = "8GiB"');
+    expect(config).toContain('maxUsedSpace = "11GiB"');
+    expect(config).toContain('minFreeSpace = "25GiB"');
     expect(config).toContain('keepDuration = "720h"');
   });
 

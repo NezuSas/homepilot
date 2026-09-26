@@ -5,16 +5,15 @@
 readonly HOMEPILOT_BUILDER_NAME='homepilot-builder'
 readonly HOMEPILOT_BUILDER_CONTAINER="buildx_buildkit_${HOMEPILOT_BUILDER_NAME}0"
 readonly HOMEPILOT_BUILDKIT_CONFIG="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/docker/buildkit/homepilot-buildkitd.toml"
-readonly HOMEPILOT_GC_RESERVED='8GB'
-readonly HOMEPILOT_GC_MAX_USED='11GB'
-readonly HOMEPILOT_GC_MIN_FREE='25GB'
+readonly HOMEPILOT_BUILDER_POLICY_CHECK="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/homepilot-builder-policy.awk"
+readonly HOMEPILOT_GC_RESERVED='8GiB'
+readonly HOMEPILOT_GC_MAX_USED='11GiB'
+readonly HOMEPILOT_GC_MIN_FREE='25GiB'
 
 homepilot_builder_policy_matches() {
-  local expected actual
-  [[ -f "$HOMEPILOT_BUILDKIT_CONFIG" ]] || return 1
-  expected="$(< "$HOMEPILOT_BUILDKIT_CONFIG")"
-  actual="$(docker exec "$HOMEPILOT_BUILDER_CONTAINER" cat /etc/buildkit/buildkitd.toml 2>/dev/null)" || return 1
-  [[ "$actual" == "$expected" ]]
+  local details="$1"
+  [[ -f "$HOMEPILOT_BUILDKIT_CONFIG" && -f "$HOMEPILOT_BUILDER_POLICY_CHECK" ]] || return 1
+  printf '%s\n' "$details" | awk -f "$HOMEPILOT_BUILDER_POLICY_CHECK"
 }
 
 homepilot_builder_size_bytes() {
@@ -66,7 +65,7 @@ homepilot_builder_ensure() {
     || fail "${HOMEPILOT_BUILDER_NAME} no utiliza el driver aislado docker-container."
   [[ "$details" =~ default-load=\"?true\"? ]] \
     || fail "${HOMEPILOT_BUILDER_NAME} no garantiza la carga local de imágenes."
-  homepilot_builder_policy_matches \
+  homepilot_builder_policy_matches "$details" \
     || fail "${HOMEPILOT_BUILDER_NAME} conserva una política GC anterior o no verificable. No se modifica ni se reconstruye automáticamente; consulta la migración manual en docs/homepilot-technical-guide.md."
   ok "Builder dedicado ${HOMEPILOT_BUILDER_NAME} listo para los builds de HomePilot."
 }
@@ -86,7 +85,7 @@ homepilot_builder_report() {
     info 'Política activa y caché no verificables porque el builder está detenido; el reporte no lo inicia.'
     return 0
   fi
-  if homepilot_builder_policy_matches; then
+  if homepilot_builder_policy_matches "$details"; then
     ok 'Política GC de HomePilot verificada en el builder activo.'
   else
     warn 'El builder activo usa una política GC anterior o no verificable. Requiere migración manual; no se modifica automáticamente.'

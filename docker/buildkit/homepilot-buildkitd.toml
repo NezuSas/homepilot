@@ -9,24 +9,24 @@
   [[worker.oci.gcpolicy]]
     filters = ["type==source.local", "type==exec.cachemount", "type==source.git.checkout"]
     keepDuration = "48h"
-    maxUsedSpace = "1GB"
+    maxUsedSpace = "1GiB"
 
   # Prefer cache untouched for 30 days when pressure allows it.
   [[worker.oci.gcpolicy]]
     keepDuration = "720h"
-    reservedSpace = "8GB"
-    maxUsedSpace = "11GB"
-    minFreeSpace = "25GB"
+    reservedSpace = "8GiB"
+    maxUsedSpace = "11GiB"
+    minFreeSpace = "25GiB"
 
   # Under pressure, unshared records may be collected even when recent.
   [[worker.oci.gcpolicy]]
-    reservedSpace = "8GB"
-    maxUsedSpace = "11GB"
-    minFreeSpace = "25GB"
+    reservedSpace = "8GiB"
+    maxUsedSpace = "11GiB"
+    minFreeSpace = "25GiB"
 
   # Last resort: shared/internal cache records, never runtime images or data.
   [[worker.oci.gcpolicy]]
     all = true
-    reservedSpace = "8GB"
-    maxUsedSpace = "11GB"
-    minFreeSpace = "25GB"
+    reservedSpace = "8GiB"
+    maxUsedSpace = "11GiB"
+    minFreeSpace = "25GiB"

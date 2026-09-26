@@ -119,9 +119,9 @@ if (failures.length === 0) {
   }
   if (!builderHelper.includes('--buildkitd-config "$HOMEPILOT_BUILDKIT_CONFIG"')
     || !builderHelper.includes('homepilot_builder_policy_matches')
-    || !builderGc.includes('reservedSpace = "8GB"')
-    || !builderGc.includes('maxUsedSpace = "11GB"')
-    || !builderGc.includes('minFreeSpace = "25GB"')) {
+    || !builderGc.includes('reservedSpace = "8GiB"')
+    || !builderGc.includes('maxUsedSpace = "11GiB"')
+    || !builderGc.includes('minFreeSpace = "25GiB"')) {
     failures.push('HomePilot builder must load its versioned, bounded GC policy and reject unverified existing builders');
   }
   if (maintenance.includes('docker builder prune')
