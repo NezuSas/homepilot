@@ -1,0 +1,8 @@
+# Optional overlay for Intel VAAPI camera encoding on hosts with /dev/dri.
+# Use together with the selected base compose file after verifying playback.
+services:
+  homepilot-api:
+    devices:
+      - /dev/dri:/dev/dri
+    environment:
+      HOMEPILOT_CAMERA_HLS_ENCODER: auto
