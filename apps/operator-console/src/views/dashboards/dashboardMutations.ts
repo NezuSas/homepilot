@@ -1,0 +1,82 @@
+import type { DashboardTab, DashboardWidget, DashboardWidgetConfig, WidgetType } from './types';
+
+interface WidgetLabels {
+  titleArea: string;
+  newSection: string;
+  titlePlaceholder: string;
+  subtitlePlaceholder: string;
+}
+
+export interface TabConfigFields {
+  title: string;
+  icon?: string;
+  background?: string | null;
+  backgroundOpacity?: number;
+  visibility?: { users: string[] };
+  isDefault?: boolean;
+}
+
+export function createDefaultWidgetConfig(type: WidgetType, size: { w: number; h: number } | undefined, labels: WidgetLabels): DashboardWidgetConfig {
+  const isDashboardTitle = type === 'dashboard_title';
+  const isSection = type === 'section';
+
+  // Legacy coordinates remain persisted, but the canvas uses array order and span.
+  return {
+    layout: {
+      x: 0,
+      y: 0,
+      w: isDashboardTitle ? 12 : isSection ? 4 : (size?.w ?? 4),
+      h: isDashboardTitle ? 2 : isSection ? 2 : (size?.h ?? 4),
+      span: isDashboardTitle ? undefined : 1,
+    },
+    binding: { entityId: '', entityType: 'system' },
+    visibility: { rules: [], defaultState: 'show' },
+    appearance: {
+      variant: 'glass',
+      title: isDashboardTitle ? labels.titleArea : isSection ? labels.newSection : '',
+      showTitle: true,
+    },
+    extra: isDashboardTitle
+      ? { markdown: `# ${labels.titlePlaceholder}\n${labels.subtitlePlaceholder}`, align: 'center' }
+      : {},
+  };
+}
+
+export function insertWidget(tabs: DashboardTab[], tabIndex: number, widget: DashboardWidget): DashboardTab[] {
+  return tabs.map((tab, index) => index !== tabIndex ? tab : {
+    ...tab,
+    widgets: widget.type === 'dashboard_title'
+      ? [widget, ...tab.widgets]
+      : [...tab.widgets, widget],
+  });
+}
+
+export function configureTab(tabs: DashboardTab[], tabIndex: number, fields: TabConfigFields): DashboardTab[] {
+  return tabs.map((tab, index) => index === tabIndex ? {
+    ...tab,
+    title: fields.title.trim(),
+    icon: fields.icon,
+    background: fields.background === null ? undefined : fields.background,
+    backgroundOpacity: fields.backgroundOpacity,
+    visibility: fields.visibility,
+    isDefault: fields.isDefault ?? false,
+  } : (fields.isDefault ? { ...tab, isDefault: false } : tab));
+}
+
+export function updateWidgetConfig(tabs: DashboardTab[], tabIndex: number, widgetId: string, newConfig: Partial<DashboardWidgetConfig>): DashboardTab[] {
+  return tabs.map((tab, index) => index !== tabIndex ? tab : {
+    ...tab,
+    widgets: tab.widgets.map((widget) => widget.id !== widgetId ? widget : {
+      ...widget,
+      config: {
+        ...widget.config,
+        ...newConfig,
+        appearance: { ...widget.config.appearance, ...(newConfig.appearance || {}) },
+        visibility: { ...widget.config.visibility, ...(newConfig.visibility || {}) },
+        binding: { ...widget.config.binding, ...(newConfig.binding || {}) },
+        layout: { ...widget.config.layout, ...(newConfig.layout || {}) },
+        extra: { ...widget.config.extra, ...(newConfig.extra || {}) },
+      },
+    }),
+  });
+}

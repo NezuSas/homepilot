@@ -1,29 +1,8 @@
-import { Suspense, lazy, useState, useEffect, useCallback, useMemo, useRef, type PointerEvent as ReactPointerEvent } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, type PointerEvent as ReactPointerEvent } from 'react';
 import { matchPath, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  Home,
-  BarChart2,
-  Zap,
-  Sparkles,
-  Settings,
-  ShieldAlert,
-  ShieldCheck,
-  Activity,
-  KeyRound,
   Monitor,
-  Users,
-  Menu,
-  Globe,
-  Network,
-  Server,
-  ChevronDown,
-  ChevronRight,
-  LogOut,
-  Sun,
-  Moon,
-  MessageSquare,
-  Camera,
+  Sparkles,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from './lib/utils';
@@ -34,17 +13,12 @@ import { createSpeechAudioUrl } from './lib/audioRecording';
 import { AssistantTurnCoordinator, type AssistantTurn } from './lib/assistantTurnCoordinator';
 import { HOME_CONVERSATION_CONFIRMATION_LISTEN_EVENT, HOME_CONVERSATION_SPEECH_ACTIVITY_EVENT, HOME_CONVERSATION_STOP_SPEECH_EVENT, isSilenceVoiceCommand } from './lib/homeConversationVoice';
 import { recordHomeConversationTelemetry } from './lib/homeConversationTelemetry';
+import { getAppAccessControl } from './lib/accessControl';
 import { useSession, type UserContext } from './lib/useSession';
 import { LoginView } from './views/LoginView';
 import { FirstAdminSetupView } from './views/FirstAdminSetupView';
-import { ChangePasswordModal } from './views/ChangePasswordModal';
 import { OnboardingView } from './views/OnboardingView';
-import { AlertBanner } from './components/ui/AlertBanner';
 import { Button } from './components/ui/Button';
-import { IconButton } from './components/ui/IconButton';
-import { LoadingState } from './components/ui/LoadingState';
-import { PageFrame } from './components/ui/PageFrame';
-import { SidebarItem } from './components/ui/SidebarItem';
 import type { View } from './types';
 import type { AssistantConversationResponse } from './types/assistantConversation';
 import { DASHBOARDS_ONE_PATTERN, DASHBOARDS_TAB_PATTERN, isSystemView, pathToView, resolveView, viewToPath } from './lib/viewNavigation';
@@ -54,30 +28,18 @@ import { useAssistantStore } from './stores/useAssistantStore';
 import { useDeviceSnapshotStore } from './stores/useDeviceSnapshotStore';
 import { useDemoGuideStore } from './stores/useDemoGuideStore';
 import { APP_DEMO_STEPS } from './config/appDemoSteps';
-import { DemoGuideOverlay } from './components/DemoGuideOverlay';
-import { UserProfileModal } from './components/UserProfileModal';
-import { GlobalWakeListener } from './components/GlobalWakeListener';
-import { GlobalWakeNotice, type GlobalWakeNoticeModel, type GlobalWakeStatus } from './components/GlobalWakeNotice';
+import type { GlobalWakeNoticeModel, GlobalWakeStatus } from './components/GlobalWakeNotice';
+import { AppSidebarFooter } from './components/AppSidebarFooter';
+import { MobileSidebarToggle } from './components/MobileSidebarToggle';
+import { AppOfflineBanner } from './components/AppOfflineBanner';
+import { MobileSidebarBackdrop } from './components/MobileSidebarBackdrop';
+import { AppViewRouter } from './components/AppViewRouter';
+import { AppGlobalOverlays } from './components/AppGlobalOverlays';
+import { AppSidebarShell } from './components/AppSidebarShell';
+import { AppSidebarNavigation } from './components/AppSidebarNavigation';
+import { AppSidebarPrimaryNavigation } from './components/AppSidebarPrimaryNavigation';
+import type { SetupStatus } from './appShellTypes';
 
-const DashboardView = lazy(() => import('./views/DashboardView').then(module => ({ default: module.DashboardView })));
-const TopologyView = lazy(() => import('./views/TopologyView').then(module => ({ default: module.TopologyView })));
-const InboxView = lazy(() => import('./views/InboxView').then(module => ({ default: module.InboxView })));
-const AuditLogsView = lazy(() => import('./views/AuditLogsView').then(module => ({ default: module.AuditLogsView })));
-const HomeAssistantSettingsView = lazy(() => import('./views/HomeAssistantSettingsView').then(module => ({ default: module.HomeAssistantSettingsView })));
-const DiagnosticsView = lazy(() => import('./views/DiagnosticsView').then(module => ({ default: module.DiagnosticsView })));
-const UsersView = lazy(() => import('./views/UsersView').then(module => ({ default: module.UsersView })));
-const RoutinesView = lazy(() => import('./views/RoutinesView'));
-const AssistantView = lazy(() => import('./views/AssistantView').then(module => ({ default: module.AssistantView })));
-const DashboardsView = lazy(() => import('./views/DashboardsView').then(module => ({ default: module.DashboardsView })));
-const ResilienceShowcaseView = lazy(() => import('./views/ResilienceShowcaseView'));
-const EnergyView = lazy(() => import('./views/EnergyView').then(module => ({ default: module.EnergyView })));
-const ExecutionLogsView = lazy(() => import('./views/ExecutionLogsView').then(module => ({ default: module.ExecutionLogsView })));
-const HomeConversationView = lazy(() => import('./views/HomeConversationView').then(module => ({ default: module.HomeConversationView })));
-const NativeCamerasView = lazy(() => import('./views/NativeCamerasView').then(module => ({ default: module.NativeCamerasView })));
-const BASIC_HOME_ROLES = new Set(['admin', 'operator', 'parent', 'child', 'guest']);
-const FAMILY_CONTROL_ROLES = new Set(['admin', 'operator', 'parent', 'child']);
-const ADMIN_CONTROL_ROLES = new Set(['admin', 'operator', 'parent']);
-const SYSTEM_ROLES = new Set(['admin', 'operator']);
 const REALTIME_REFRESH_DEBOUNCE_MS = 300;
 
 function requiresVoiceConfirmation(response: AssistantConversationResponse): boolean {
@@ -85,14 +47,6 @@ function requiresVoiceConfirmation(response: AssistantConversationResponse): boo
 
   const optionIds = new Set(response.clarification?.options.map(option => option.id));
   return optionIds.has('confirm') && optionIds.has('cancel');
-}
-
-function ViewLoadingState() {
-  const { t } = useTranslation();
-
-  return (
-    <LoadingState label={t('common.loading')} className="min-h-screen-half" size="md" />
-  );
 }
 
 /**
@@ -113,19 +67,6 @@ function ViewLoadingState() {
  */
 
 /** Shape returned by /api/v1/system/setup-status — mirrors OnboardingView.SetupStatus */
-interface SetupStatus {
-  isInitialized: boolean;
-  requiresOnboarding: boolean;
-  hasAdminUser: boolean;
-  hasHAConfig: boolean;
-  haConnectionValid: boolean;
-  installationProfile: 'bridge_ha' | 'native_only' | 'ha_companion';
-  requiresHomeAssistant: boolean;
-  runtimeTarget: 'linux_edge' | 'docker_desktop' | 'unknown';
-  homeAssistantBridgeUrl: string | null;
-  homeAssistantSetupUrl: string | null;
-}
-
 function App() {
   const { t, i18n } = useTranslation();
   const location = useLocation();
@@ -254,11 +195,12 @@ function App() {
     i18n.changeLanguage(nextLang);
   };
 
-  const canAccessBasicHomeViews = user?.role ? BASIC_HOME_ROLES.has(user.role) : false;
-  const canAccessFamilyControl = user?.role ? FAMILY_CONTROL_ROLES.has(user.role) : false;
-  const canAccessAdminControl = user?.role ? ADMIN_CONTROL_ROLES.has(user.role) : false;
-  const canAccessDashboards = canAccessBasicHomeViews;
-  const canAccessSystem = user?.role ? SYSTEM_ROLES.has(user.role) : false;
+  const {
+    canAccessFamilyControl,
+    canAccessAdminControl,
+    canAccessDashboards,
+    canAccessSystem,
+  } = getAppAccessControl(user?.role);
 
   // Only fetches the list for the sidebar's nested menu — no navigation side
   // effects here. Kept deliberately stable (deps: just canAccessDashboards)
@@ -747,8 +689,6 @@ function App() {
     });
   };
 
-  const activeSystemSection = isSystemView(currentView);
-  const activeDashboardsSection = currentView === 'dashboards';
   const isDesktopSidebarCollapsed = !isDesktopSidebarOpen;
   const isSidebarContentCollapsed = isDesktopSidebarCollapsed && !isSidebarOpen;
 
@@ -758,27 +698,10 @@ function App() {
     >
       
       {/* Mobile Drawer Backdrop */}
-      {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[40] xl:hidden animate-in fade-in duration-300"
-          data-testid="mobile-sidebar-backdrop"
-          aria-hidden="true"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
+      {isSidebarOpen && <MobileSidebarBackdrop onDismiss={() => setIsSidebarOpen(false)} />}
 
       {/* Sidebar (Responsive Drawer on Mobile, Collapsible on Desktop) */}
-      <aside className={cn(
-        "fixed inset-y-0 left-0 z-[50] border-r border-border/60 bg-card flex flex-col transition-all duration-300 ease-in-out shrink-0",
-        isSidebarOpen ? "w-72 translate-x-0 shadow-sidebar-open" : "w-72 -translate-x-full",
-        // Desktop override:
-        "xl:relative",
-        isDesktopSidebarOpen ? "xl:w-sidebar-expanded xl:translate-x-0" : "xl:w-sidebar-collapsed xl:translate-x-0 xl:overflow-hidden"
-      )}
-        onPointerDown={handleMobileSidebarPointerDown}
-        onPointerUp={handleMobileSidebarPointerUp}
-        onPointerCancel={() => { mobileSidebarPointerStartRef.current = null; }}
-      >
+      <AppSidebarShell isOpen={isSidebarOpen} isDesktopOpen={isDesktopSidebarOpen} onPointerDown={handleMobileSidebarPointerDown} onPointerUp={handleMobileSidebarPointerUp} onPointerCancel={() => { mobileSidebarPointerStartRef.current = null; }}>
         {/* Brand and desktop sidebar toggle. The redundant local-control label was removed to preserve navigation space. */}
         <div className={cn("border-b border-border/40 px-4 py-3 shrink-0 transition-all duration-300", isSidebarContentCollapsed && "xl:px-3")}>
           <div className={cn("flex items-center gap-2.5", isSidebarContentCollapsed && "xl:justify-center")}>
@@ -805,359 +728,52 @@ function App() {
           </div>
         </div>
         
-        <nav className={cn("flex-1 overflow-y-auto py-3 px-2.5 flex flex-col gap-0.5 custom-scrollbar transition-all duration-300", isSidebarContentCollapsed && "sidebar-collapsed-rail xl:gap-1 xl:px-2 xl:py-2")}>
-
-          {/* ── PRIMARY ─────────────────────────────────────────────── */}
-          <div className="flex flex-col gap-0.5">
-             <SidebarItem 
-               icon={Home} 
-               label={t('nav.dashboard')} 
-               active={currentView === 'dashboard'} 
-               onClick={() => navigateTo('dashboard')} 
-               id="demo-nav-dashboard"
-               data-demo="nav-dashboard"
-               collapsedOnDesktop={isSidebarContentCollapsed}
-             />
-             {canAccessDashboards && (
-               <>
-                 <Button
-                    type="button"
-                    onClick={() => {
-                      if (isSidebarContentCollapsed) {
-                        void refreshSidebarDashboards();
-                        navigateTo('dashboards');
-                        return;
-                      }
-                      setIsDashboardsExpanded(prev => {
-                        const next = !prev;
-                        if (next) void refreshSidebarDashboards();
-                        return next;
-                      });
-                    }}
-                    aria-expanded={isDashboardsExpanded}
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "group relative h-auto w-full justify-start gap-2.5 rounded-xl px-3 py-2 text-left text-body-compact",
-                      activeDashboardsSection && !isSidebarContentCollapsed
-                        ? 'sidebar-item-active text-primary'
-                        : 'interactive-lift text-muted-foreground hover:bg-muted/50 hover:text-foreground',
-                      isSidebarContentCollapsed && "xl:h-11 xl:flex-none xl:justify-center xl:px-2 xl:py-2"
-                    )}
-                    title={isSidebarContentCollapsed ? t('nav.dashboards') : undefined}
-                  >
-                    <div className={cn("surface-transition flex h-7 w-7 shrink-0 items-center justify-center rounded-lg", activeDashboardsSection && !isSidebarContentCollapsed ? "bg-primary/15 text-primary" : "text-muted-foreground/70 group-hover:text-foreground")}>
-                        <BarChart2 className="h-4 w-4 shrink-0" />
-                    </div>
-                    <span className={cn("sidebar-nav-label flex-1 min-w-0 overflow-hidden text-left tracking-tight transition-[opacity,width] duration-200", activeDashboardsSection && !isSidebarContentCollapsed && "text-primary", isSidebarContentCollapsed && "xl:hidden")}>{t('nav.dashboards')}</span>
-                    {!isSidebarContentCollapsed && (isDashboardsExpanded
-                      ? <ChevronDown className="w-4 h-4 opacity-60" />
-                      : <ChevronRight className="w-4 h-4 opacity-60" />
-                    )}
-                 </Button>
-                 {(isDashboardsExpanded || isSidebarContentCollapsed) && (
-                   <div className={cn("mt-1 ml-5 pl-2 border-l-2 border-border/40 flex flex-col gap-1", isSidebarContentCollapsed && "xl:mt-0 xl:ml-1 xl:border-l xl:pl-1 xl:gap-0.5")}>
-                     {sidebarDashboards.length === 0 ? (
-                       !isSidebarContentCollapsed && <span className="px-3 py-2 text-caption font-semibold text-muted-foreground/60">{t('dashboards.sidebar_empty')}</span>
-                     ) : sidebarDashboards.map(dashboard => (
-                       <SidebarItem
-                         key={dashboard.id}
-                         icon={LayoutDashboard}
-                         label={dashboard.title}
-                         active={currentView === 'dashboards' && selectedSidebarDashboardId === dashboard.id}
-                         onClick={() => {
-                           // Re-clicking the same dashboard you were just on
-                           // (e.g. after visiting another sidebar section)
-                           // returns to the exact tab, not the default one.
-                           const remembered = lastDashboardTabRef.current;
-                           const path = remembered && remembered.dashboardId === dashboard.id
-                             ? `/dashboards/${remembered.dashboardId}/${remembered.tabId}`
-                             : `/dashboards/${dashboard.id}`;
-                           navigate(path);
-                           setIsSidebarOpen(false);
-                           setIsDashboardsExpanded(true);
-                         }}
-                         nested
-                         collapsedOnDesktop={isSidebarContentCollapsed}
-                       />
-                     ))}
-                   </div>
-                 )}
-               </>
-             )}
-             <SidebarItem 
-               icon={LayoutDashboard} 
-               label={t('nav.spaces')} 
-               active={currentView === 'spaces'} 
-               onClick={() => navigateTo('spaces')} 
-               collapsedOnDesktop={isSidebarContentCollapsed}
-             />
-             {canAccessFamilyControl && (
-               <SidebarItem
-                 icon={Zap}
-                 label={t('nav.routines')}
-                 active={currentView === 'routines'}
-                 onClick={() => navigateTo('routines')}
-                 data-demo="nav-routines"
-                 collapsedOnDesktop={isSidebarContentCollapsed}
-               />
-             )}
-             <SidebarItem
-               icon={MessageSquare}
-               label={t('nav.talk_to_home')}
-               active={currentView === 'home-conversation'}
-               onClick={() => navigateTo('home-conversation')}
-               collapsedOnDesktop={isSidebarContentCollapsed}
-               data-demo="nav-home-conversation"
-             />
-             {canAccessFamilyControl && (
-               <SidebarItem
-                 icon={Sparkles}
-                 label={t('nav.assistant')}
-                 active={currentView === 'assistant'}
-                 onClick={() => navigateTo('assistant')}
-                 badge={assistantSummary?.totalOpen && assistantSummary.totalOpen > 0
-                    ? <span className="bg-primary text-primary-foreground px-1.5 py-0.5 rounded text-micro font-black">{assistantSummary.totalOpen}</span>
-                    : undefined}
-                 collapsedOnDesktop={isSidebarContentCollapsed}
-               />
-             )}
-          </div>
-
-          {canAccessAdminControl && (
-            <SidebarItem
-              icon={Zap}
-              label={t('nav.energy')}
-              active={currentView === 'energy'}
-              onClick={() => navigateTo('energy')}
-              collapsedOnDesktop={isSidebarContentCollapsed}
-            />
-          )}
-
-          <SidebarItem
-            icon={ShieldCheck}
-            label={t('nav.resilience_showcase')}
-            active={currentView === 'resilience-showcase'}
-            onClick={() => navigateTo('resilience-showcase')}
-            data-demo="nav-resilience"
-            collapsedOnDesktop={isSidebarContentCollapsed}
+        <AppSidebarNavigation collapsed={isSidebarContentCollapsed} dashboards={sidebarDashboards}>
+          <AppSidebarPrimaryNavigation
+            currentView={currentView}
+            collapsed={isSidebarContentCollapsed}
+            dashboards={sidebarDashboards}
+            selectedDashboardId={selectedSidebarDashboardId}
+            isDashboardsExpanded={isDashboardsExpanded}
+            isSystemExpanded={isSystemExpanded}
+            isCollapsedSystemSubmenuHidden={isCollapsedSystemSubmenuHidden}
+            canAccessDashboards={canAccessDashboards}
+            canAccessFamilyControl={canAccessFamilyControl}
+            canAccessAdminControl={canAccessAdminControl}
+            canAccessSystem={canAccessSystem}
+            isAdmin={user?.role === 'admin'}
+            assistantOpenCount={assistantSummary?.totalOpen ?? 0}
+            translate={t}
+            onNavigate={navigateTo}
+            onNavigatePath={(path) => navigate(path)}
+            onRefreshDashboards={() => { void refreshSidebarDashboards(); }}
+            onDashboardsExpandedChange={setIsDashboardsExpanded}
+            onSystemExpandedChange={setIsSystemExpanded}
+            onCollapsedSystemSubmenuHiddenChange={setIsCollapsedSystemSubmenuHidden}
+            onCloseMobileSidebar={() => setIsSidebarOpen(false)}
+            getDashboardPath={(dashboardId) => {
+              const remembered = lastDashboardTabRef.current;
+              return remembered && remembered.dashboardId === dashboardId
+                ? `/dashboards/${remembered.dashboardId}/${remembered.tabId}`
+                : `/dashboards/${dashboardId}`;
+            }}
           />
-
-          {canAccessSystem && (
-            <>
-              <div className="flex flex-col gap-0.5">
-                <Button
-                    type="button"
-                    onClick={() => {
-                      if (isSidebarContentCollapsed) {
-                        setIsCollapsedSystemSubmenuHidden((hidden) => !hidden);
-                        return;
-                      }
-                      setIsSystemExpanded(prev => !prev);
-                    }}
-                    aria-expanded={isSidebarContentCollapsed ? !isCollapsedSystemSubmenuHidden : isSystemExpanded}
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "group relative h-auto w-full justify-start gap-2.5 rounded-xl px-3 py-2 text-left text-body-compact",
-                      activeSystemSection && !isSidebarContentCollapsed
-                        ? 'sidebar-item-active text-primary'
-                        : 'interactive-lift text-muted-foreground hover:bg-muted/50 hover:text-foreground',
-                      isSidebarContentCollapsed && "xl:h-11 xl:flex-none xl:justify-center xl:px-2 xl:py-2"
-                    )}
-                    title={isSidebarContentCollapsed ? t('nav.system') : undefined}
-                  >
-                    <div className={cn("surface-transition flex h-7 w-7 shrink-0 items-center justify-center rounded-lg", activeSystemSection && !isSidebarContentCollapsed ? "bg-primary/15 text-primary" : "text-muted-foreground/70 group-hover:text-foreground")}>
-                        <Settings className="h-4 w-4 shrink-0" />
-                    </div>
-                    <span className={cn("sidebar-nav-label flex-1 min-w-0 overflow-hidden text-left tracking-tight transition-[opacity,width] duration-200", activeSystemSection && !isSidebarContentCollapsed && "text-primary", isSidebarContentCollapsed && "xl:hidden")}>{t('nav.system')}</span>
-                    {!isSidebarContentCollapsed && (isSystemExpanded
-                      ? <ChevronDown className="w-4 h-4 opacity-60" />
-                      : <ChevronRight className="w-4 h-4 opacity-60" />
-                    )
-                    }
-                </Button>
-
-                {/* System sub-items — inline collapsible */}
-                {(isSidebarContentCollapsed ? !isCollapsedSystemSubmenuHidden : isSystemExpanded) && (
-                  <div className={cn("mt-1 ml-5 pl-2 border-l-2 border-border/40 flex flex-col gap-1", isSidebarContentCollapsed && "xl:mt-0 xl:ml-1 xl:border-l xl:pl-1 xl:gap-0.5")}>
-                     <SidebarItem
-                        icon={Network}
-                        label={t('nav.system_devices')}
-                        active={currentView === 'system-devices'}
-                        onClick={() => navigateTo('system-devices')}
-                        nested
-                         collapsedOnDesktop={isSidebarContentCollapsed}
-                      />
-                      <SidebarItem
-                        icon={Server}
-                        label={t('nav.system_inbox')}
-                        active={currentView === 'system-inbox'}
-                        onClick={() => navigateTo('system-inbox')}
-                        nested
-                         collapsedOnDesktop={isSidebarContentCollapsed}
-                      />
-                      <SidebarItem
-                        icon={Activity}
-                        label={t('nav.system_diagnostics')}
-                        active={currentView === 'system-diagnostics'}
-                        onClick={() => navigateTo('system-diagnostics')}
-                        nested
-                         collapsedOnDesktop={isSidebarContentCollapsed}
-                      />
-                      <SidebarItem
-                        icon={ShieldAlert}
-                        label={t('nav.system_audit')}
-                        active={currentView === 'system-audit'}
-                        onClick={() => navigateTo('system-audit')}
-                        nested
-                         collapsedOnDesktop={isSidebarContentCollapsed}
-                      />
-                      <SidebarItem
-                        icon={Activity}
-                        label={t('nav.system_executions')}
-                        active={currentView === 'system-executions'}
-                        onClick={() => navigateTo('system-executions')}
-                        nested
-                         collapsedOnDesktop={isSidebarContentCollapsed}
-                      />
-                      {user?.role === 'admin' && (
-                        <SidebarItem
-                          icon={Users}
-                          label={t('nav.system_users')}
-                          active={currentView === 'system-users'}
-                          onClick={() => navigateTo('system-users')}
-                          nested
-                         collapsedOnDesktop={isSidebarContentCollapsed}
-                        />
-                      )}
-                      <SidebarItem
-                        icon={Settings}
-                        label={t('nav.system_ha')}
-                        active={currentView === 'system-ha'}
-                        onClick={() => navigateTo('system-ha')}
-                        nested
-                         collapsedOnDesktop={isSidebarContentCollapsed}
-                      />
-                      <SidebarItem
-                        icon={Camera}
-                        label={t('nav.system_cameras')}
-                        active={currentView === 'system-cameras'}
-                        onClick={() => navigateTo('system-cameras')}
-                        nested
-                         collapsedOnDesktop={isSidebarContentCollapsed}
-                      />
-                      <SidebarItem
-                        icon={Monitor}
-                        label={t('nav.system_onboarding')}
-                        active={currentView === 'system-onboarding'}
-                        onClick={() => navigateTo('system-onboarding')}
-                        nested
-                         collapsedOnDesktop={isSidebarContentCollapsed}
-                      />
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </nav>
+        </AppSidebarNavigation>
         
-        <div className={cn("p-4 border-t mt-auto flex flex-col gap-4 bg-background/40 transition-all duration-300", isSidebarContentCollapsed ? "xl:gap-0 xl:border-t-0 xl:bg-transparent xl:p-3" : "xl:px-2 xl:py-3")}>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => startDemo(APP_DEMO_STEPS)}
-            className={cn(
-              "hidden xl:flex h-auto items-center gap-3 w-full rounded-2xl border border-primary/20 bg-primary/10 px-3 py-3 text-primary shadow-sm shadow-primary/5 group",
-              "hover:bg-primary/15 hover:border-primary/30",
-              isSidebarContentCollapsed && "xl:hidden"
-            )}
-            title={!isSidebarContentCollapsed ? t('demo.start_button') : undefined}
-          >
-            <div className="p-2 bg-primary rounded-xl text-primary-foreground group-hover:scale-105 transition-transform shadow-sm shadow-primary/20">
-              <Sparkles className="w-3.5 h-3.5" />
-            </div>
-            <div className={cn("flex min-w-0 flex-1 flex-col text-left overflow-hidden transition-[opacity,width] duration-200", isSidebarContentCollapsed && "xl:w-0 xl:opacity-0 xl:flex-none")}>
-              <span className="text-micro font-semibold uppercase tracking-control whitespace-nowrap">
-                {t('demo.start_button')}
-              </span>
-              <span className="mt-0.5 truncate text-nano font-semibold uppercase tracking-normal text-primary/70">
-                {t('demo.sidebar_summary', { count: APP_DEMO_STEPS.length })}
-              </span>
-            </div>
-          </Button>
-
-          <div className="flex flex-col gap-3">
-            {/* User Profile Card */}
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowProfileModal(true)}
-              className={cn(
-                "h-auto flex items-center gap-3 w-full p-2 rounded-2xl bg-muted/30 hover:bg-muted/80 border border-border/40 group",
-                isSidebarContentCollapsed && "xl:h-12 xl:w-12 xl:justify-center xl:rounded-full xl:border-0 xl:bg-transparent xl:p-1"
-              )}
-              title={t('users.profile.title', 'Mi Perfil')}
-            >
-              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 border-2 border-background shadow-md overflow-hidden group-hover:border-primary/30 transition-all">
-                {localProfile.avatarDataUri
-                  ? <img 
-                      src={localProfile.avatarDataUri.startsWith('/') ? `${API_BASE_URL}${localProfile.avatarDataUri}` : localProfile.avatarDataUri} 
-                      alt="avatar" 
-                      className="w-full h-full object-cover shadow-inner" 
-                    />
-                  : <span className="font-black text-caption uppercase">{(user?.username || '?').substring(0, 2)}</span>
-                }
-              </div>
-              <div className={cn("flex flex-col min-w-0 text-left overflow-hidden transition-[opacity,width] duration-200", isSidebarContentCollapsed && "xl:w-0 xl:opacity-0")}>
-                <span className="text-caption font-semibold tracking-tight truncate">{localProfile.displayName || user?.username || t('common.unknown')}</span>
-                <span className="text-nano text-muted-foreground truncate uppercase font-semibold tracking-normal opacity-70">
-                   {user?.role ? t(`shell.compact_roles.${user.role}`) : t('common.roles.guest')}
-                </span>
-              </div>
-              <ChevronRight className={cn("w-4 h-4 ml-auto text-muted-foreground/40 group-hover:text-primary transition-colors", isSidebarContentCollapsed && "xl:hidden")} />
-            </Button>
-
-            {/* Quick Actions Row */}
-            <div className={cn(
-              "flex items-center justify-around px-1 py-1 bg-muted/20 rounded-xl border border-border/30 transition-all duration-300",
-              isSidebarContentCollapsed && "xl:hidden"
-            )}>
-              <IconButton
-                icon={theme === 'dark' ? Sun : Moon}
-                label={theme === 'dark' ? t('shell.tooltips.light_mode', 'Modo Claro') : t('shell.tooltips.dark_mode', 'Modo Oscuro')}
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                variant="ghost"
-                size="sm"
-              />
-              <IconButton
-                icon={Globe}
-                label={t('shell.tooltips.switch_language')}
-                onClick={toggleLanguage}
-                variant="ghost"
-                size="sm"
-              />
-              <IconButton
-                icon={KeyRound}
-                label={t('shell.tooltips.change_password')}
-                onClick={() => setShowPwdModal(true)}
-                variant="ghost"
-                size="sm"
-              />
-              <div className={cn("w-px h-4 bg-border/40 mx-0.5", isSidebarContentCollapsed && "xl:w-4 xl:h-px xl:mx-0 xl:my-0.5")} />
-              <IconButton
-                icon={LogOut}
-                label={t('nav.logout')}
-                onClick={onLogout}
-                variant="danger"
-                size="sm"
-              />
-            </div>
-          </div>
-        </div>
-      </aside>
+        <AppSidebarFooter
+          collapsed={isSidebarContentCollapsed}
+          user={user}
+          profile={localProfile}
+          theme={theme}
+          demoStepCount={APP_DEMO_STEPS.length}
+          onStartDemo={() => startDemo(APP_DEMO_STEPS)}
+          onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          onToggleLanguage={toggleLanguage}
+          onChangePassword={() => setShowPwdModal(true)}
+          onLogout={onLogout}
+          onOpenProfile={() => setShowProfileModal(true)}
+        />
+      </AppSidebarShell>
 
       {/* Main Content Area */}
       <main className={cn(
@@ -1168,14 +784,7 @@ function App() {
       )}>
         
         {currentView !== 'dashboards' && (
-          <IconButton
-            icon={Menu}
-            label={t('shell.toggle_sidebar')}
-            variant="default"
-            size="lg"
-            onClick={() => setIsSidebarOpen(true)}
-            className="fixed left-3 top-3 z-[35] h-10 w-10 rounded-xl border-border/70 bg-card/90 text-muted-foreground shadow-depth-1 backdrop-blur-md hover:text-foreground xl:hidden"
-          />
+          <MobileSidebarToggle onOpen={() => setIsSidebarOpen(true)} />
         )}
         
         <section className={cn(
@@ -1186,132 +795,49 @@ function App() {
               ? "overflow-visible xl:overflow-y-auto"
               : "overflow-visible pt-14 xl:overflow-y-auto xl:pt-0"
         )}>
-           {isBackendOffline && (
-             <PageFrame className="pb-0 animate-in fade-in slide-in-from-top-4 duration-500">
-               <AlertBanner
-                 variant="danger"
-                 icon={ShieldAlert}
-                 title={t('system.connection_lost')}
-                 message={t('system.unreachable_msg')}
-                 action={
-                   <Button variant="danger" size="sm" onClick={() => window.location.reload()}>
-                     {t('system.retry')}
-                   </Button>
-                 }
+           {isBackendOffline && <AppOfflineBanner onRetry={() => window.location.reload()} />}
+               <AppViewRouter
+                 currentView={currentView}
+                 currentPath={location.pathname}
+                 user={user}
+                 displayName={localProfile.displayName || user?.username || null}
+                 canManageAutomations={canAccessAdminControl}
+                 dashboardId={selectedSidebarDashboardId}
+                 tabId={urlTabId}
+                 setupStatus={setupStatus}
+                 pendingPrompt={pendingHomeConversationPrompt}
+                 assistantTurnCoordinator={assistantTurnCoordinator}
+                 onNavigate={navigateTo}
+                 onRoutineSectionChange={(section) => navigate(`/routines/${section}`)}
+                 onOpenMobileMenu={() => setIsSidebarOpen(true)}
+                 onDashboardCatalogChange={(dashboards) => setSidebarDashboards(dashboards)}
+                 onDeviceAction={() => { pulseSyncStatus(); void refreshDeviceSnapshot(); }}
+                 onOnboardingCompleted={() => setSetupStatus((previous) => previous ? { ...previous, requiresOnboarding: false } : null)}
+                 onPendingPromptConsumed={(id) => setPendingHomeConversationPrompt((current) => current?.id === id ? null : current)}
                />
-             </PageFrame>
-           )}
-           <PageFrame
-             immersive={currentView === 'home-conversation' || currentView === 'dashboards'}
-             className={currentView === 'home-conversation' ? 'h-full' : undefined}
-           >
-             <Suspense fallback={<ViewLoadingState />}>
-               {currentView === 'dashboard' && (
-                  <DashboardView
-                    onActionExecute={() => {
-                      pulseSyncStatus();
-                      void refreshDeviceSnapshot();
-                    }}
-                    onNavigate={navigateTo}
-                    displayName={localProfile.displayName || user?.username || null}
-                    canManageAutomations={canAccessAdminControl}
-                  />
-                )}
-               {/* Spaces = TopologyView (user-facing room management) */}
-               {currentView === 'spaces' && <TopologyView currentUser={user} />}
-               {currentView === 'routines' && (
-                 <RoutinesView
-                   section={canAccessAdminControl && (location.pathname === '/automations' || location.pathname === '/routines/automations')
-                     ? 'automations'
-                     : 'scenes'}
-                   canManageAutomations={canAccessAdminControl}
-                   onSectionChange={(section) => navigate(`/routines/${section}`)}
-                   onSceneActionExecute={() => {
-                     pulseSyncStatus();
-                     void refreshDeviceSnapshot();
-                   }}
-                 />
-               )}
-               {currentView === 'assistant' && <AssistantView onNavigate={navigateTo} />}
-               {currentView === 'resilience-showcase' && <ResilienceShowcaseView />}
-
-                {/* Custom Dashboards */}
-                 {currentView === 'dashboards' && (
-                  <DashboardsView
-                    initialDashboardId={selectedSidebarDashboardId}
-                    initialTabId={urlTabId}
-                    onOpenMobileMenu={() => setIsSidebarOpen(true)}
-                    onDashboardCatalogChange={(dashboards) => {
-                      // Just updates the list; the dedicated effect above
-                      // (gated on currentView === 'dashboards') handles
-                      // redirecting to a fallback when needed.
-                      setSidebarDashboards(dashboards.map(dashboard => ({
-                        id: dashboard.id,
-                        ownerId: dashboard.ownerId,
-                        title: dashboard.title
-                      })));
-                    }}
-                  />
-                )}
-
-                {currentView === 'energy' && (
-                  <EnergyView onNavigate={navigateTo} />
-                )}
-
-               {/* System section views */}
-               {currentView === 'system-devices' && <InboxView mode="manager" />}
-               {currentView === 'system-inbox' && <InboxView mode="discovery" />}
-               {currentView === 'system-diagnostics' && <DiagnosticsView />}
-               {currentView === 'system-audit' && <AuditLogsView />}
-               {currentView === 'system-executions' && <ExecutionLogsView />}
-               {currentView === 'system-ha' && <HomeAssistantSettingsView />}
-               {currentView === 'system-cameras' && <NativeCamerasView />}
-               {currentView === 'system-onboarding' && setupStatus && (
-                 <OnboardingView
-                   statusProvider={setupStatus}
-                   userContext={user}
-                   onCompleted={() => setSetupStatus((prev) => prev ? { ...prev, requiresOnboarding: false } : null)}
-                 />
-               )}
-               {currentView === 'system-users' && <UsersView currentUserId={user?.id ?? null} />}
-               {currentView === 'home-conversation' && (
-                 <HomeConversationView
-                   pendingPrompt={pendingHomeConversationPrompt}
-                   assistantTurnCoordinator={assistantTurnCoordinator}
-                   onPendingPromptConsumed={(id) => {
-                     setPendingHomeConversationPrompt(current => current?.id === id ? null : current);
-                   }}
-                 />
-               )}
-             </Suspense>
-           </PageFrame>
         </section>
 
       </main>
 
-      <ChangePasswordModal 
-        isOpen={showPwdModal} 
-        onClose={() => setShowPwdModal(false)}
-        onSuccess={handlePasswordChanged}
-      />
-      <DemoGuideOverlay onNavigate={navigateTo} />
-      {globalWakeNotice && (
-        <GlobalWakeNotice notice={globalWakeNotice} isProcessing={isGlobalWakeProcessing} />
-      )}
-      <GlobalWakeListener
-        enabled={status === 'authenticated' && !loadingSetup && !setupStatus?.requiresOnboarding}
-        interruptOnly={isGlobalWakeProcessing || isGlobalWakeSpeaking}
-        onCommand={handleGlobalWakeCommand}
+      <AppGlobalOverlays
+        authenticated={status === 'authenticated'}
+        loadingSetup={loadingSetup}
+        requiresOnboarding={Boolean(setupStatus?.requiresOnboarding)}
+        showPasswordModal={showPwdModal}
+        showProfileModal={showProfileModal}
+        user={user}
+        globalWakeNotice={globalWakeNotice}
+        isGlobalWakeProcessing={isGlobalWakeProcessing}
+        isGlobalWakeSpeaking={isGlobalWakeSpeaking}
+        onNavigate={navigateTo}
+        onClosePasswordModal={() => setShowPwdModal(false)}
+        onPasswordChanged={handlePasswordChanged}
+        onCloseProfileModal={() => setShowProfileModal(false)}
+        onProfileSaved={setLocalProfile}
+        onWakeCommand={handleGlobalWakeCommand}
         onWakeInterrupt={handleGlobalWakeInterrupt}
-        onStatusChange={handleGlobalWakeStatusChange}
+        onWakeStatusChange={handleGlobalWakeStatusChange}
       />
-      {showProfileModal && user && (
-        <UserProfileModal
-          user={user}
-          onClose={() => setShowProfileModal(false)}
-          onSaved={(profile) => setLocalProfile(profile)}
-        />
-      )}
     </div>
   );
 }

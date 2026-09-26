@@ -100,8 +100,8 @@ describe('Feature: catálogo de tarjetas de sección', () => {
     expect(getSpanClass('small')).toBe('col-span-1');
   });
   it('Scenario: Given the full catalog When resolving metadata Then all clock variants and defaults remain explicit', () => {
-    expect(cardKinds).toEqual(expect.arrayContaining(['light', 'cover', 'camera', 'sensor', 'media', 'action', 'clock_premium', 'clock_minimal']));
-    expect(cardKinds).not.toEqual(expect.arrayContaining(['room', 'scene']));
+    expect(cardKinds).toEqual(expect.arrayContaining(['light', 'cover', 'camera', 'sensor', 'media', 'clock_premium', 'clock_minimal']));
+    expect(cardKinds).not.toEqual(expect.arrayContaining(['room', 'scene', 'action']));
     expect(getCatalogLabelKey('clock_analog')).toBe('dashboard.editor.sections.section_card_clock_analog');
     expect(getCatalogLabelKey('clock_premium')).toBe('dashboard.editor.sections.section_card_clock_premium');
     expect(getCatalogLabelKey('clock_minimal')).toBe('dashboard.editor.sections.section_card_clock_minimal');

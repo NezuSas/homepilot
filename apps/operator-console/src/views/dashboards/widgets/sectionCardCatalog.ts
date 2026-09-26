@@ -67,7 +67,6 @@ export const cardKinds: NormalizedSectionCardKind[] = [
   'camera',
   'sensor',
   'media',
-  'action',
   'clock_digital',
   'clock_analog',
   'clock_premium',
@@ -97,18 +96,18 @@ export function getDefaultSpan(kind: SectionCardKind): SectionCardSpan {
   return 'medium';
 }
 
-// Quarter-width cards are deliberately exclusive to lights. A light keeps
-// its simple on/off affordance at four cards per row; every other card needs
-// a wider surface for its controls, status, or content. Persisted legacy
+// Quarter-width cards are reserved for the shared light/activator tile.
+// Every other card needs a wider surface for its controls or content. Persisted legacy
 // spans are normalized through this same rule so the editor and renderer
-// cannot diverge.
-const COMPACT_TILE_KINDS = new Set<NormalizedSectionCardKind>(['light']);
+// cannot diverge. Media players always need the full section width.
+const COMPACT_TILE_KINDS = new Set<NormalizedSectionCardKind>(['light', 'action']);
 
 export function canUseCompactSpan(kind: SectionCardKind): boolean {
   return COMPACT_TILE_KINDS.has(normalizeKind(kind));
 }
 
 export function getEffectiveCardSpan(kind: SectionCardKind, span: SectionCardSpan): SectionCardSpan {
+  if (normalizeKind(kind) === 'media') return 'full';
   if (span === 'small' && !canUseCompactSpan(kind)) return 'medium';
   return span;
 }

@@ -1,0 +1,337 @@
+import { useTranslation } from 'react-i18next';
+import {
+  Activity,
+  AlertCircle,
+  Box,
+  Clock,
+  Cpu,
+  Database,
+  RefreshCw,
+  Settings,
+  Terminal,
+  Trash2,
+  X,
+  Zap,
+} from 'lucide-react';
+import { cn } from '../lib/utils';
+import type { SnapshotDevice as Device, SnapshotRoom as Room } from '../stores/useDeviceSnapshotStore';
+import { Button } from './ui/Button';
+import { SearchableSelectField } from './ui/SearchableSelectField';
+import { ToggleSwitch } from './ui/ToggleSwitch';
+
+export type InspectableDevice = Device & { externalId: string };
+export type DeviceCommand = 'turn_on' | 'turn_off' | 'toggle' | 'open' | 'close' | 'stop';
+
+export interface ActivityLog {
+  timestamp: string;
+  deviceId: string;
+  type: string;
+  description: string;
+  data: Record<string, unknown>;
+}
+
+interface InfoTabProps {
+  device: InspectableDevice;
+  rooms: Room[];
+  unavailable: boolean;
+  isOnline: boolean;
+  isActionLoading: boolean;
+  isRefreshing: boolean;
+  error: string | null;
+  onSemanticTypeChange: (semanticType: string) => void;
+  onInvertStateChange: (invertState: boolean) => void;
+  onCommand: (command: DeviceCommand) => void;
+  onRefresh: () => void;
+  onMove: (roomId: string) => void;
+  onUnassign: () => void;
+  onDelete: () => void;
+}
+
+export function DeviceInspectorInfoTab({
+  device, rooms, unavailable, isOnline, isActionLoading, isRefreshing, error,
+  onSemanticTypeChange, onInvertStateChange, onCommand, onRefresh, onMove, onUnassign, onDelete,
+}: InfoTabProps) {
+  const { t } = useTranslation();
+  const assignedRoom = rooms.find((room) => room.id === device.roomId);
+  return (
+    <div className="flex flex-col gap-8 animate-in slide-in-from-bottom-4 duration-500">
+      {unavailable && (
+        <div className="flex items-start gap-3 rounded-panel border border-danger/30 bg-danger/10 p-4 text-danger">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+          <div>
+            <p className="text-label font-black uppercase tracking-widest">{t('common.unavailable')}</p>
+            <p className="mt-1 text-caption text-foreground/75">{t('common.device_unavailable_hint')}</p>
+          </div>
+        </div>
+      )}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="p-5 bg-muted/20 border border-border rounded-section flex flex-col gap-2 shadow-inner">
+          <div className="flex items-center justify-between">
+            <span className="text-micro font-black uppercase tracking-widest opacity-50 flex items-center gap-1.5">
+              <Database className="w-3 h-3" /> {t('inbox.device_inspector.entity_id')}
+            </span>
+          </div>
+          <span className="font-mono text-caption font-bold break-all">{device.externalId || device.id}</span>
+        </div>
+        <div className="p-5 bg-muted/20 border border-border rounded-section flex flex-col gap-2 shadow-inner">
+          <span className="text-micro font-black uppercase tracking-widest opacity-50 flex items-center gap-1.5">
+            <Settings className="w-3 h-3" /> {t('inbox.device_inspector.technical_origin')}
+          </span>
+          <div className="flex min-w-0 flex-wrap items-center gap-2 mt-1">
+            <span className="min-w-0 break-words text-caption font-bold uppercase">{device.type}</span>
+            <span className="max-w-full break-words px-2 py-0.5 rounded-full text-nano font-black uppercase bg-muted border border-border text-muted-foreground">{device.integrationSource}</span>
+            {device.integrationSource === 'sonoff' && (
+              <div className="flex items-center gap-1 ml-auto">
+                <div className={cn('w-1.5 h-1.5 rounded-full', isOnline ? 'bg-success animate-pulse' : 'bg-danger')} />
+                <span className={cn('text-nano font-black uppercase', isOnline ? 'text-success' : 'text-danger')}>
+                  {isOnline ? t('common.online') : t('common.offline')}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="p-5 bg-muted/20 border border-border rounded-section flex flex-col gap-2 shadow-inner relative">
+          <span className="text-micro font-black uppercase tracking-widest flex items-center gap-1.5 text-primary">
+            <Zap className="w-3 h-3" /> {t('inbox.device_inspector.device_function')}
+          </span>
+          <SearchableSelectField
+            disabled={isActionLoading}
+            loading={isActionLoading}
+            value={device.semanticType || 'automatic'}
+            onChange={onSemanticTypeChange}
+            options={[
+              { value: 'automatic', label: t('inbox.device_inspector.semantic.automatic') },
+              { value: 'light', label: t('inbox.device_inspector.semantic.light') },
+              { value: 'switch', label: t('inbox.device_inspector.semantic.switch') },
+              { value: 'outlet', label: t('inbox.device_inspector.semantic.outlet') },
+              { value: 'cover', label: t('inbox.device_inspector.semantic.cover') },
+              { value: 'camera', label: t('inbox.device_inspector.semantic.camera') },
+              { value: 'sensor', label: t('inbox.device_inspector.semantic.sensor') },
+              { value: 'unknown', label: t('inbox.device_inspector.semantic.unknown') },
+            ]}
+          />
+          <p className="text-nano text-muted-foreground/50 px-2 leading-relaxed">
+            {t('inbox.device_inspector.semantic_hint')}
+          </p>
+        </div>
+
+        {device.type === 'cover' && (
+          <div className="p-5 bg-muted/20 border border-border rounded-section flex flex-col gap-3 shadow-inner">
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <span className="text-micro font-black uppercase tracking-widest text-primary">
+                  {t('inbox.device_inspector.cover_inverted')}
+                </span>
+                <p className="mt-1 text-nano text-muted-foreground/50 leading-relaxed">
+                  {t('inbox.device_inspector.cover_inverted_hint')}
+                </p>
+              </div>
+              <ToggleSwitch
+                checked={device.invertState === true}
+                onCheckedChange={onInvertStateChange}
+                label={t('inbox.device_inspector.cover_inverted')}
+                disabled={isActionLoading}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-4 p-8 bg-black/5 border-2 border-dashed border-border/50 rounded-dashboard flex flex-col gap-6">
+        <div className="flex items-center justify-between">
+          <span className="text-micro font-black uppercase tracking-widest opacity-50">{t('inbox.inspector.actions_header')}</span>
+          <Activity className="w-4 h-4 opacity-20" />
+        </div>
+
+        {(device.type === 'light' || device.type === 'switch') && (
+          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+            <Button disabled={unavailable || isActionLoading} onClick={() => onCommand('turn_on')} className="flex-1 h-12 text-micro font-black uppercase tracking-widest">
+              {t('inbox.inspector.actions.force_on')}
+            </Button>
+            <Button disabled={unavailable || isActionLoading} variant="secondary" onClick={() => onCommand('turn_off')} className="flex-1 h-12 text-micro font-black uppercase tracking-widest">
+              {t('inbox.inspector.actions.force_off')}
+            </Button>
+            <Button disabled={unavailable || isActionLoading} variant="outline" onClick={() => onCommand('toggle')} className="flex-1 h-12 text-micro font-black uppercase tracking-widest">
+              {t('inbox.inspector.actions.toggle')}
+            </Button>
+          </div>
+        )}
+
+        {device.type === 'cover' && (
+          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+            <Button disabled={unavailable || isActionLoading} onClick={() => onCommand('open')} className="flex-1 h-12 text-label font-black uppercase tracking-widest">
+              {t('inbox.inspector.actions.open')}
+            </Button>
+            <Button disabled={unavailable || isActionLoading} variant="secondary" onClick={() => onCommand('stop')} className="flex-1 h-12 text-label font-black uppercase tracking-widest">
+              {t('inbox.inspector.actions.stop')}
+            </Button>
+            <Button disabled={unavailable || isActionLoading} variant="outline" onClick={() => onCommand('close')} className="flex-1 h-12 text-label font-black uppercase tracking-widest">
+              {t('inbox.inspector.actions.close')}
+            </Button>
+          </div>
+        )}
+
+        {device.externalId.startsWith('ha:') && (
+          <div className="pt-6 border-t border-border/20 flex flex-col gap-4">
+            <Button
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              variant="secondary"
+              className="w-full h-12 text-micro font-black uppercase tracking-widest"
+            >
+              <RefreshCw className={cn('w-4 h-4', isRefreshing && 'animate-spin')} />
+              {isRefreshing ? t('inbox.discovery.importing') : t('inbox.discovery.refresh_hint')}
+            </Button>
+            {error && (
+              <div className="flex items-center gap-2 text-danger bg-danger/10 p-3 rounded-xl border border-danger/20">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <p className="text-micro font-bold leading-tight uppercase tracking-tight">{error}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {device.integrationSource === 'sonoff' && (
+          <div className="pt-6 border-t border-border/20 flex flex-col gap-4">
+            <div className="flex items-center justify-between px-2">
+              <div className="flex items-center gap-2">
+                <Cpu className="w-4 h-4 text-success" />
+                <span className="text-micro font-black uppercase tracking-widest text-success">{t('inbox.inspector.edge_active')}</span>
+              </div>
+              <div className="flex items-center gap-2 opacity-40">
+                <Clock className="w-3 h-3" />
+                <span className="text-nano font-black uppercase tracking-tighter">
+                  {device.updatedAt ? new Date(device.updatedAt).toLocaleTimeString() : t('common.not_available')}
+                </span>
+              </div>
+            </div>
+            <div className="p-4 bg-success/5 border border-success/10 rounded-2xl">
+              <p className="text-micro font-bold leading-relaxed text-success/70 uppercase tracking-tight">
+                {t('inbox.inspector.edge_description')}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="p-6 border border-border rounded-2xl bg-card flex flex-col gap-3 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <Box className="w-4 h-4 opacity-40 text-primary" />
+                <span className="text-micro font-black uppercase tracking-widest opacity-40">{t('inbox.inspector.placement')}</span>
+              </div>
+              <span className="text-body font-bold break-words">{assignedRoom?.name ?? t('common.unassigned')}</span>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-border/10 flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <SearchableSelectField
+                size="small"
+                fullWidth
+                value={device.roomId || ''}
+                onChange={onMove}
+                disabled={isActionLoading}
+                loading={isActionLoading}
+                options={Array.isArray(rooms) ? rooms.map((room) => ({ value: room.id, label: room.name })) : []}
+                placeholder={t('common.unassigned')}
+              />
+            </div>
+
+            {device.status === 'ASSIGNED' && (
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => onUnassign()}
+                disabled={isActionLoading}
+                className="w-full bg-danger/5 text-danger border-danger/10 hover:bg-danger/10"
+              >
+                <X className="w-3.5 h-3.5" />
+                {t('inbox.inspector.actions.unassign')}
+              </Button>
+            )}
+          </div>
+        </div>
+        <div className="p-6 border border-border rounded-2xl bg-card flex flex-col gap-1 shadow-sm">
+          <div className="flex items-center gap-2 mb-2 text-primary">
+            <Cpu className="w-4 h-4 opacity-40" />
+          </div>
+          <span className="text-body font-bold truncate">{device.homeId}</span>
+          <div className="mt-auto pt-4 text-micro text-muted-foreground opacity-30 italic leading-snug">
+            {device.integrationSource === 'sonoff'
+              ? t('inbox.inspector.edge_node_info')
+              : t('inbox.inspector.cluster_info')}
+          </div>
+        </div>
+      </div>
+
+      {(device.externalId.startsWith('ha:') || device.integrationSource === 'sonoff') && (
+        <div className="rounded-panel border border-danger/20 bg-danger/5 p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <h3 className="text-card-title font-black text-danger">
+                {t('inbox.inspector.remove_import_title')}
+              </h3>
+              <p className="mt-1 text-body text-muted-foreground">
+                {t('inbox.inspector.remove_import_description')}
+              </p>
+            </div>
+            <Button
+              variant="danger"
+              onClick={() => onDelete()}
+              disabled={isActionLoading}
+              className="shrink-0"
+            >
+              <Trash2 className="h-4 w-4" />
+              {t('common.delete')}
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function DeviceInspectorLogsTab({ logs }: { logs: ActivityLog[] }) {
+  const { t } = useTranslation();
+  return (
+    <div className="flex flex-col gap-3 animate-in slide-in-from-bottom-4 duration-500">
+      {Array.isArray(logs) && logs.map((log, index) => (
+        <div key={index} className="p-5 bg-muted/10 border border-border/20 rounded-section flex flex-col gap-2 group hover:bg-muted/20 transition-colors">
+          <div className="flex justify-between items-center">
+            <span className="text-micro font-black px-2 py-0.5 rounded bg-primary/10 text-primary uppercase tracking-tighter">
+              {log.type}
+            </span>
+            <span className="text-micro font-mono opacity-40 flex items-center gap-1">
+              <Clock className="w-3 h-3" /> {new Date(log.timestamp).toLocaleTimeString()}
+            </span>
+          </div>
+          <p className="text-caption font-bold leading-tight mt-1 text-card-foreground/80">{log.description}</p>
+        </div>
+      ))}
+      {logs.length === 0 && (
+        <div className="text-center py-20 flex flex-col items-center justify-center opacity-10">
+          <Terminal className="w-12 h-12 mb-4" />
+          <div className="text-caption font-black uppercase tracking-label">{t('inbox.inspector.no_logs')}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function DeviceInspectorStateTab({ device }: { device: InspectableDevice }) {
+  const { t } = useTranslation();
+  return (
+    <div className="flex flex-col gap-4 animate-in slide-in-from-bottom-4 duration-500 h-full">
+      <div className="flex-1 rounded-dashboard border border-white/5 bg-background p-8 shadow-2xl relative overflow-hidden group">
+        <div className="absolute top-4 right-8 text-micro font-black font-mono opacity-20 tracking-widest group-hover:opacity-40 transition-opacity">{t('inbox.inspector.json_parser_hint')}</div>
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
+        <pre className="text-label font-mono text-success overflow-auto h-full leading-relaxed custom-scrollbar relative z-10 selection:bg-primary/30">
+          {JSON.stringify(device.lastKnownState, null, 4)}
+        </pre>
+      </div>
+    </div>
+  );
+}

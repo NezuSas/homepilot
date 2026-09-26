@@ -89,10 +89,10 @@ describe('section card catalog contracts', () => {
     }
   });
 
-  it('reserves the quarter-width layout for light cards and normalizes every other kind to medium', () => {
+  it('reserves quarter width for light and activator tiles and full width for media players', () => {
     expect(canUseCompactSpan('light')).toBe(true);
     expect(canUseCompactSpan('device')).toBe(false);
-    expect(canUseCompactSpan('action')).toBe(false);
+    expect(canUseCompactSpan('action')).toBe(true);
     expect(canUseCompactSpan('cover')).toBe(false);
     expect(canUseCompactSpan('media')).toBe(false);
     expect(canUseCompactSpan('camera')).toBe(false);
@@ -100,11 +100,13 @@ describe('section card catalog contracts', () => {
     expect(canUseCompactSpan('room')).toBe(false);
     expect(canUseCompactSpan('scene')).toBe(false);
 
-    expect(getEffectiveCardSpan('media', 'small')).toBe('medium');
+    expect(getEffectiveCardSpan('media', 'small')).toBe('full');
+    expect(getEffectiveCardSpan('media', 'medium')).toBe('full');
+    expect(getEffectiveCardSpan('media', 'full')).toBe('full');
     expect(getEffectiveCardSpan('camera', 'small')).toBe('medium');
     expect(getEffectiveCardSpan('sensor', 'small')).toBe('medium');
     expect(getEffectiveCardSpan('device', 'small')).toBe('medium');
-    expect(getEffectiveCardSpan('action', 'small')).toBe('medium');
+    expect(getEffectiveCardSpan('action', 'small')).toBe('small');
     expect(getEffectiveCardSpan('cover', 'small')).toBe('medium');
     expect(getEffectiveCardSpan('light', 'small')).toBe('small');
 
@@ -118,6 +120,10 @@ describe('section card catalog contracts', () => {
       { kind: 'action', span: 'small' },
       { kind: 'cover', span: 'small' },
     ] });
-    expect(cards.every((card) => card.span === 'medium')).toBe(true);
+    expect(cards[0].span).toBe('full');
+    expect(cards[4].span).toBe('small');
+    expect([cards[1], cards[2], cards[3], cards[5]].every((card) => card.span === 'medium')).toBe(true);
+    expect(normalizeCards({ cards: [{ kind: 'media', span: 'medium' }] })[0].span).toBe('full');
+    expect(cardKinds).not.toContain('action');
   });
 });

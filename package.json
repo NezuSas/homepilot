@@ -22,7 +22,7 @@
     "check:spec-coverage": "node scripts/check-spec-coverage.mjs",
     "check:i18n": "node scripts/check-i18n-coverage.mjs",
     "check:ui-primitives": "node scripts/check-ui-primitives.mjs",
-    "test:responsive": "npm run test:responsive --prefix apps/operator-console",
+    "test:responsive": "node scripts/run-responsive-tests.mjs",
     "prepare": "node scripts/install-git-hooks.mjs",
     "verify:local-control-runtime": "node scripts/verify-local-control-runtime.mjs",
     "verify:mqtt-runtime": "node scripts/verify-mqtt-runtime.mjs",

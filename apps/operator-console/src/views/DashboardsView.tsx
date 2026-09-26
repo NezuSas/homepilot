@@ -1,26 +1,25 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
-import { apiFetch, readApiError } from '../lib/apiClient';
 import { DashboardCreateForm } from '../components/DashboardCreateForm';
-import { DashboardTabsNav } from '../components/DashboardTabsNav';
-import { DashboardTitleBar } from '../components/DashboardTitleBar';
-import { DashboardHistoryModal, type DashboardRevisionSummary } from '../components/DashboardHistoryModal';
-import { DashboardViewConfigModal } from '../components/DashboardViewConfigModal';
 import { getDashboardBackgroundSource } from '../lib/dashboardBackgroundPresets';
 import { LoadingState } from '../components/ui/LoadingState';
 import { EmptyDashboards } from '../components/EmptyDashboards';
 import type { Dashboard, DashboardWidget, WidgetType, DashboardWidgetConfig } from './dashboards/types';
-import { DashboardCanvas } from './dashboards/DashboardCanvas';
+import { DashboardActiveWorkspace } from './dashboards/DashboardActiveWorkspace';
+import { DashboardViewOverlays } from './dashboards/DashboardViewOverlays';
+import { configureTab, createDefaultWidgetConfig, insertWidget, updateWidgetConfig, type TabConfigFields } from './dashboards/dashboardMutations';
+import {
+  createDashboard,
+  deleteDashboard,
+  loadDashboards,
+  saveDashboard,
+} from './dashboards/dashboardOperations';
+import { useDashboardTransferHistory } from './dashboards/useDashboardTransferHistory';
 import { generateId } from '../utils/generateId';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import { AlertBanner } from '../components/ui/AlertBanner';
-import ConfirmModal from '../components/ConfirmModal';
-import { Button } from '../components/ui/Button';
-import { cn } from '../lib/utils';
-
-const API = `${API_BASE_URL}/api/v1`;
 
 // Main dashboard view
 
@@ -52,6 +51,14 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
   const location = useLocation();
   const navigate = useNavigate();
   const [dashboards, setDashboards]     = useState<Dashboard[]>([]);
+  const dashboardsRef = useRef(dashboards);
+  const publishDashboards = (update: (current: Dashboard[]) => Dashboard[]) => {
+    const next = update(dashboardsRef.current);
+    dashboardsRef.current = next;
+    setDashboards(next);
+    onDashboardCatalogChange?.(next);
+    return next;
+  };
   const [active, setActive]             = useState<Dashboard | null>(null);
   const [activeTabIdx, setActiveTabIdx] = useState(0);
   const [loading, setLoading]           = useState(true);
@@ -73,15 +80,16 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
   const [tabPendingDelete, setTabPendingDelete] = useState<number | null>(null);
   const [tabConfigIdx, setTabConfigIdx] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isTransferring, setIsTransferring] = useState(false);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
-  const [revisions, setRevisions] = useState<DashboardRevisionSummary[]>([]);
-  const [revisionPendingRestore, setRevisionPendingRestore] = useState<DashboardRevisionSummary | null>(null);
-  const [isRestoringRevision, setIsRestoringRevision] = useState(false);
-
   const [isEditing, setIsEditing] = useState(false);
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
+  const {
+    isTransferring, handleExport, handleImport, isHistoryOpen, setIsHistoryOpen,
+    isHistoryLoading, revisions, revisionPendingRestore, setRevisionPendingRestore,
+    isRestoringRevision, handleOpenHistory, handleRestoreRevision,
+  } = useDashboardTransferHistory({
+    active, t, setError, publishDashboards,
+    setActive, setActiveTabIdx, setIsEditing, getDefaultTabIndex,
+  });
 
   const currentUser = useMemo(() => {
     try {
@@ -121,11 +129,10 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
 
   const fetchDashboards = useCallback(async (isInitial = false) => {
     try {
-      const res = await apiFetch(`${API}/dashboards`);
-      if (!res.ok) throw new Error(await readApiError(res, t('dashboards.error_load')));
-      const data = await res.json();
-      if (Array.isArray(data)) {
+      const data = await loadDashboards(t('dashboards.error_load'));
+      {
         setDashboards(data);
+        dashboardsRef.current = data;
         onDashboardCatalogChange?.(data);
         setError('');
         if (data.length > 0) {
@@ -184,18 +191,8 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
 
   const patch = async (id: string, body: Partial<Dashboard>) => {
     try {
-      const res = await apiFetch(`${API}/dashboards/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      if (!res.ok) throw new Error(await readApiError(res, t('dashboards.error_save')));
-      const updated: Dashboard = await res.json();
-      setDashboards(prev => {
-        const next = prev.map(d => d.id === updated.id ? updated : d);
-        onDashboardCatalogChange?.(next);
-        return next;
-      });
+      const updated = await saveDashboard(id, body, t('dashboards.error_save'));
+      publishDashboards((current) => current.map((dashboard) => dashboard.id === updated.id ? updated : dashboard));
       setActive(updated);
       setError('');
       return true;
@@ -210,18 +207,8 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
     setSubmittingCreate(true);
     setError('');
     try {
-      const res = await apiFetch(`${API}/dashboards`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newTitle.trim() })
-      });
-      if (!res.ok) throw new Error(await readApiError(res, t('dashboards.error_create')));
-      const created: Dashboard = await res.json();
-      setDashboards(prev => {
-        const next = [...prev, created];
-        onDashboardCatalogChange?.(next);
-        return next;
-      });
+      const created = await createDashboard(newTitle.trim(), t('dashboards.error_create'));
+      publishDashboards((current) => [...current, created]);
       setActive(created);
       setActiveTabIdx(0);
       setNewTitle('');
@@ -240,109 +227,6 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
     setEditingTitle(false);
   };
 
-  const handleExport = async () => {
-    if (!active || isTransferring) return;
-    setIsTransferring(true);
-    setError('');
-    try {
-      const response = await apiFetch(`${API}/dashboards/${active.id}/export`);
-      if (!response.ok) throw new Error(await readApiError(response, t('dashboards.transfer.error_export')));
-      const transfer = await response.json();
-      const file = new Blob([JSON.stringify(transfer, null, 2)], { type: 'application/json' });
-      const objectUrl = URL.createObjectURL(file);
-      const link = document.createElement('a');
-      const fileTitle = active.title.trim().replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'dashboard';
-      link.href = objectUrl;
-      link.download = `${fileTitle}.homepilot-dashboard.json`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(objectUrl);
-    } catch (error_: unknown) {
-      setError(error_ instanceof Error ? error_.message : t('dashboards.transfer.error_export'));
-    } finally {
-      setIsTransferring(false);
-    }
-  };
-
-  const handleImport = async (file: File) => {
-    if (isTransferring) return;
-    setIsTransferring(true);
-    setError('');
-    try {
-      let transfer: unknown;
-      try {
-        transfer = JSON.parse(await file.text());
-      } catch {
-        throw new Error(t('dashboards.transfer.error_import'));
-      }
-      const response = await apiFetch(`${API}/dashboards/import`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(transfer),
-      });
-      if (!response.ok) throw new Error(await readApiError(response, t('dashboards.transfer.error_import')));
-      const imported: Dashboard = await response.json();
-      setDashboards((current) => {
-        const next = [...current, imported];
-        onDashboardCatalogChange?.(next);
-        return next;
-      });
-      setActive(imported);
-      setActiveTabIdx(0);
-      setIsEditing(true);
-    } catch (error_: unknown) {
-      setError(error_ instanceof Error ? error_.message : t('dashboards.transfer.error_import'));
-    } finally {
-      setIsTransferring(false);
-    }
-  };
-
-  const handleOpenHistory = async () => {
-    if (!active) return;
-    setIsHistoryOpen(true);
-    setIsHistoryLoading(true);
-    setError('');
-    try {
-      const response = await apiFetch(`${API}/dashboards/${active.id}/history`);
-      if (!response.ok) throw new Error(await readApiError(response, t('dashboards.history.error_load')));
-      const history: DashboardRevisionSummary[] = await response.json();
-      setRevisions(history);
-    } catch (error_: unknown) {
-      setError(error_ instanceof Error ? error_.message : t('dashboards.history.error_load'));
-      setIsHistoryOpen(false);
-    } finally {
-      setIsHistoryLoading(false);
-    }
-  };
-
-  const handleRestoreRevision = async () => {
-    if (!active || !revisionPendingRestore) return;
-    setIsRestoringRevision(true);
-    setError('');
-    try {
-      const response = await apiFetch(`${API}/dashboards/${active.id}/history/${revisionPendingRestore.id}/restore`, {
-        method: 'POST',
-      });
-      if (!response.ok) throw new Error(await readApiError(response, t('dashboards.history.error_restore')));
-      const restored: Dashboard = await response.json();
-      setDashboards((current) => {
-        const next = current.map((dashboard) => dashboard.id === restored.id ? restored : dashboard);
-        onDashboardCatalogChange?.(next);
-        return next;
-      });
-      setActive(restored);
-      setActiveTabIdx(getDefaultTabIndex(restored));
-      setRevisionPendingRestore(null);
-      setIsHistoryOpen(false);
-      setIsEditing(false);
-    } catch (error_: unknown) {
-      setError(error_ instanceof Error ? error_.message : t('dashboards.history.error_restore'));
-    } finally {
-      setIsRestoringRevision(false);
-    }
-  };
-
   const handleAddTab = async (title: string) => {
     if (!active || !title.trim()) return;
     setAddingTab(false);
@@ -355,29 +239,9 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
   };
 
 
-  const handleSaveTabConfig = async (tabIdx: number, fields: {
-    title: string;
-    icon?: string;
-    background?: string | null;
-    backgroundOpacity?: number;
-    visibility?: { users: string[] };
-    isDefault?: boolean;
-  }) => {
+  const handleSaveTabConfig = async (tabIdx: number, fields: TabConfigFields) => {
     if (!active) return;
-    // Only one tab can be default at a time: setting it here clears the flag
-    // on every other tab of this dashboard.
-    const updatedTabs = active.tabs.map((tab, idx) => (
-      idx === tabIdx ? {
-        ...tab,
-        title: fields.title.trim(),
-        icon: fields.icon,
-        background: fields.background === null ? undefined : fields.background,
-        backgroundOpacity: fields.backgroundOpacity,
-        visibility: fields.visibility,
-        isDefault: fields.isDefault ?? false,
-      } : (fields.isDefault ? { ...tab, isDefault: false } : tab)
-    ));
-    await patch(active.id, { tabs: updatedTabs });
+    await patch(active.id, { tabs: configureTab(active.tabs, tabIdx, fields) });
   };
 
   const handleDeleteTab = async (tabIdx: number) => {
@@ -404,57 +268,23 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
       return;
     }
 
-    // Legacy x/y/w/h are kept for backward compatibility with older data, but
-    // positioning on the canvas is now driven by array order + `span`
-    // (Home Assistant "Sections" style flow), not by these coordinates.
-    const widgetW = isDashboardTitle ? 12 : isSection ? 4 : (size?.w ?? 4);
-    const widgetH = isDashboardTitle ? 2 : isSection ? 2 : (size?.h ?? 4);
-    const widgetSpan = isDashboardTitle ? undefined : 1;
-
-    const defaultConfig: DashboardWidgetConfig = {
-      layout: { x: 0, y: 0, w: widgetW, h: widgetH, span: widgetSpan },
-      binding: { entityId: '', entityType: 'system' },
-      visibility: { rules: [], defaultState: 'show' },
-      appearance: {
-        variant: 'glass',
-        title: isDashboardTitle
-          ? t('dashboard.editor.sections.title_area')
-          : isSection
-            ? t('dashboard.editor.sections.new_section')
-            : '',
-        showTitle: true,
-      },
-      extra: isDashboardTitle
-        ? {
-            markdown: `# ${t('dashboard.editor.sections.title_placeholder')}\n${t('dashboard.editor.sections.subtitle_placeholder')}`,
-            align: 'center',
-          }
-        : {},
-    };
+    const defaultConfig = createDefaultWidgetConfig(type, size, {
+      titleArea: t('dashboard.editor.sections.title_area'),
+      newSection: t('dashboard.editor.sections.new_section'),
+      titlePlaceholder: t('dashboard.editor.sections.title_placeholder'),
+      subtitlePlaceholder: t('dashboard.editor.sections.subtitle_placeholder'),
+    });
 
     const widgetId = generateId();
 
-    // The new title is pinned first; new zones/widgets append to the end of
-    // the flow, matching where the add-section placeholder is rendered.
-    const updatedTabs = active.tabs.map((tab, idx) => {
-      if (idx !== activeTabIdx) return tab;
-
-      const newWidget = { id: widgetId, type, config: defaultConfig };
-      const nextWidgets = isDashboardTitle
-        ? [newWidget, ...tab.widgets]
-        : [...tab.widgets, newWidget];
-
-      return { ...tab, widgets: nextWidgets };
-    });
-
-    const saved = await patch(active.id, { tabs: updatedTabs });
+    const saved = await patch(active.id, { tabs: insertWidget(active.tabs, activeTabIdx, { id: widgetId, type, config: defaultConfig }) });
 
     if (saved && !isSection) {
       setSelectedWidgetId(widgetId);
     }
   };
 
-const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
+  const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
     if (!active) return;
     const updatedTabs = active.tabs.map((tab, idx) =>
       idx !== activeTabIdx ? tab : { ...tab, widgets: updatedWidgets }
@@ -464,39 +294,15 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
 
   const handleUpdateWidgetConfig = async (widgetId: string, newConfig: Partial<DashboardWidgetConfig>) => {
     if (!active) return;
-    const updatedTabs = active.tabs.map((tab, idx) => {
-      if (idx !== activeTabIdx) return tab;
-      return {
-        ...tab,
-        widgets: tab.widgets.map(w => {
-          if (w.id !== widgetId) return w;
-          return {
-            ...w,
-            config: {
-              ...w.config,
-              ...newConfig,
-              appearance: { ...w.config.appearance, ...(newConfig.appearance || {}) },
-              visibility: { ...w.config.visibility, ...(newConfig.visibility || {}) },
-              binding: { ...w.config.binding, ...(newConfig.binding || {}) },
-              layout: { ...w.config.layout, ...(newConfig.layout || {}) },
-              extra: { ...w.config.extra, ...(newConfig.extra || {}) }
-            }
-          };
-        })
-      };
-    });
-    await patch(active.id, { tabs: updatedTabs });
+    await patch(active.id, { tabs: updateWidgetConfig(active.tabs, activeTabIdx, widgetId, newConfig) });
   };
 
   const handleDelete = async () => {
     if (!dashboardPendingDelete) return;
     setIsDeleting(true);
     try {
-      const res = await apiFetch(`${API}/dashboards/${dashboardPendingDelete.id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error(await readApiError(res, t('dashboards.error_delete')));
-      const remaining = dashboards.filter(d => d.id !== dashboardPendingDelete.id);
-      setDashboards(remaining);
-      onDashboardCatalogChange?.(remaining);
+      await deleteDashboard(dashboardPendingDelete.id, t('dashboards.error_delete'));
+      const remaining = publishDashboards((current) => current.filter((dashboard) => dashboard.id !== dashboardPendingDelete.id));
       setActive(remaining.length > 0 ? remaining[0] : null);
       setActiveTabIdx(0);
       setDashboardPendingDelete(null);
@@ -551,181 +357,89 @@ const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
         <EmptyDashboards onCreate={() => setCreating(true)} />
       ) : (
         <div className="grid grid-cols-1 relative z-10">
-          {/* Dashboard Area */}
           {active && (
-            <div className="flex min-w-0 flex-col">
-              <div className="homepilot-dashboard-chrome sticky top-0 z-40">
-                {isOwner && (
-                  <DashboardTitleBar
-                  title={active.title}
-                  draftTitle={draftTitle}
-                  isEditingTitle={editingTitle}
-                  isEditingDashboard={isEditing}
-                  onDraftTitleChange={setDraftTitle}
-                  onStartEditingTitle={() => { setDraftTitle(active.title); setEditingTitle(true); }}
-                  onCancelEditingTitle={() => setEditingTitle(false)}
-                  onConfirmTitle={handleRenameConfirm}
-                  onDelete={() => setDashboardPendingDelete(active)}
-                  deleteLabel={t('dashboards.delete')}
-                  editLabel={t('dashboards.action_edit')}
-                  doneLabel={t('common.done')}
-                  newLabel={t('dashboards.action_new')}
-                  helpLabel={t('common.help')}
-                  moreLabel={t('common.more')}
-                  confirmLabel={t('common.confirm')}
-                  cancelLabel={t('common.cancel')}
-                  onToggleEditing={() => {
-                    setIsEditing(!isEditing);
-                    if (isEditing) {
-                      setSelectedWidgetId(null);
-                      setTabConfigIdx(null);
-                    }
-                  }}
-                  onCreate={() => setCreating(true)}
-                  onExport={() => { void handleExport(); }}
-                  onImport={(file) => { void handleImport(file); }}
-                  exportLabel={t('dashboards.transfer.export')}
-                  importLabel={t('dashboards.transfer.import')}
-                  historyLabel={t('dashboards.history.action')}
-                  onOpenHistory={() => { void handleOpenHistory(); }}
-                  isTransferring={isTransferring}
-                  />
-                )}
-
-                <DashboardTabsNav
-                tabs={visibleTabs}
-                activeTabIdx={visibleTabs.findIndex(t => t.id === activeTab?.id)}
-                onOpenMobileMenu={onOpenMobileMenu}
-                isEditing={isEditing && isOwner}
-                isAddingTab={addingTab}
-                placeholder={t('dashboards.placeholder_tab_title')}
-                addLabel={t('dashboards.action_add_tab')}
-                configureLabel={t('dashboards.view_config.configure_view')}
-                onSelectTab={(index) => {
-                  const targetTab = visibleTabs[index];
-                  if (targetTab) {
-                    const originalIdx = active.tabs.findIndex(t => t.id === targetTab.id);
-                    setActiveTabIdx(originalIdx >= 0 ? originalIdx : 0);
-                  }
+            <DashboardActiveWorkspace
+              active={active}
+              activeTab={activeTab}
+              visibleTabs={visibleTabs}
+              isOwner={isOwner}
+              isEditing={isEditing}
+              editingTitle={editingTitle}
+              draftTitle={draftTitle}
+              isAddingTab={addingTab}
+              selectedWidgetId={selectedWidgetId}
+              isTransferring={isTransferring}
+              t={t}
+              onOpenMobileMenu={onOpenMobileMenu}
+              onDraftTitleChange={setDraftTitle}
+              onStartEditingTitle={() => { setDraftTitle(active.title); setEditingTitle(true); }}
+              onCancelEditingTitle={() => setEditingTitle(false)}
+              onConfirmTitle={() => { void handleRenameConfirm(); }}
+              onDeleteDashboard={() => setDashboardPendingDelete(active)}
+              onToggleEditing={() => {
+                setIsEditing(!isEditing);
+                if (isEditing) {
                   setSelectedWidgetId(null);
-                }}
-                onConfigureTab={(index) => {
-                  const targetTab = visibleTabs[index];
-                  if (targetTab) {
-                    const originalIdx = active.tabs.findIndex(t => t.id === targetTab.id);
-                    setTabConfigIdx(originalIdx >= 0 ? originalIdx : 0);
-                  }
-                }}
-                onStartAddingTab={isOwner ? () => setAddingTab(true) : undefined}
-                onAddTab={handleAddTab}
-                onCancelAddingTab={() => setAddingTab(false)}
-                />
-              </div>
-
-              {/* Canvas Area */}
-              {activeTab ? (
-                <div className={cn("homepilot-dashboard-content relative flex w-full min-w-0 flex-col gap-5", (isEditing && isOwner) ? "p-3 sm:p-4" : "px-2 py-4 sm:px-3 sm:py-6 md:px-4")}>
-                   {activeTab.widgets.length === 0 && !(isEditing && isOwner) ? (
-                     <div className="flex min-h-64 flex-col items-center justify-center rounded-panel border border-dashed border-primary/25 bg-primary/[0.03] p-8 text-center">
-                       <p className="text-section-title font-semibold text-foreground">{t('dashboards.widgets_empty')}</p>
-                       <p className="mt-2 max-w-lg text-caption text-muted-foreground">{t('dashboards.widgets_empty_hint')}</p>
-                       {isOwner && (
-                         <Button className="mt-5" onClick={() => setIsEditing(true)}>{t('dashboards.add_first_widget')}</Button>
-                       )}
-                     </div>
-                   ) : (
-                   <DashboardCanvas
-                      widgets={activeTab.widgets}
-                      isEditing={isEditing && isOwner}
-                      onAddTitleClick={() => { void handleAddWidget('dashboard_title'); }} selectedWidgetId={selectedWidgetId}
-                      onWidgetClick={(id) => { 
-                        if (!isOwner) return;
-                        if (!isEditing) return;
-                        setSelectedWidgetId(id); 
-                      }}
-                      onLayoutChange={handleLayoutChange} onWidgetConfigChange={handleUpdateWidgetConfig}
-                      onAddSectionClick={() => {
-                         void handleAddWidget('section');
-                      }}
-                      tabs={visibleTabs.map(vt => ({ id: vt.id, title: vt.title, icon: vt.icon }))}
-                      currentTabId={activeTab.id}
-                      onSelectTab={(tabId) => {
-                        const targetIdx = active.tabs.findIndex(t => t.id === tabId);
-                        if (targetIdx < 0) return;
-                        setActiveTabIdx(targetIdx);
-                        setSelectedWidgetId(null);
-                      }}
-                   />
-                   )}
-                </div>
-              ) : (
-                <div className="flex min-h-64 flex-col items-center justify-center rounded-panel border border-dashed border-primary/25 bg-primary/[0.03] p-8 text-center">
-                   <p className="text-section-title font-semibold text-foreground">{t('common.no_content_yet')}</p>
-                </div>
-              )}
-            </div>
+                  setTabConfigIdx(null);
+                }
+              }}
+              onCreateDashboard={() => setCreating(true)}
+              onExport={() => { void handleExport(); }}
+              onImport={(file) => { void handleImport(file); }}
+              onOpenHistory={() => { void handleOpenHistory(); }}
+              onSelectTab={(index) => {
+                const targetTab = visibleTabs[index];
+                if (targetTab) {
+                  const originalIdx = active.tabs.findIndex(tab => tab.id === targetTab.id);
+                  setActiveTabIdx(originalIdx >= 0 ? originalIdx : 0);
+                }
+                setSelectedWidgetId(null);
+              }}
+              onConfigureTab={(index) => {
+                const targetTab = visibleTabs[index];
+                if (targetTab) {
+                  const originalIdx = active.tabs.findIndex(tab => tab.id === targetTab.id);
+                  setTabConfigIdx(originalIdx >= 0 ? originalIdx : 0);
+                }
+              }}
+              onStartAddingTab={() => setAddingTab(true)}
+              onAddTab={(title) => { void handleAddTab(title); }}
+              onCancelAddingTab={() => setAddingTab(false)}
+              onAddWidget={(type, size) => { void handleAddWidget(type, size); }}
+              onSelectWidget={setSelectedWidgetId}
+              onLayoutChange={(widgets) => { void handleLayoutChange(widgets); }}
+              onWidgetConfigChange={(widgetId, config) => { void handleUpdateWidgetConfig(widgetId, config); }}
+              onSelectCanvasTab={(tabId) => {
+                const targetIdx = active.tabs.findIndex(tab => tab.id === tabId);
+                if (targetIdx < 0) return;
+                setActiveTabIdx(targetIdx);
+                setSelectedWidgetId(null);
+              }}
+            />
           )}
         </div>
       )}
 
-      <DashboardViewConfigModal
-        isOpen={tabConfigIdx !== null && Boolean(active?.tabs[tabConfigIdx ?? 0])}
-        tab={active?.tabs[tabConfigIdx ?? 0] ?? { title: '' }}
-        onClose={() => setTabConfigIdx(null)}
-        onSave={(fields) => {
-          if (tabConfigIdx === null) return;
-          void handleSaveTabConfig(tabConfigIdx, fields);
-          setTabConfigIdx(null);
-        }}
-        onDelete={() => {
-          if (tabConfigIdx === null) return;
-          setTabPendingDelete(tabConfigIdx);
-          setTabConfigIdx(null);
-        }}
-      />
-
-      <ConfirmModal
-        isOpen={dashboardPendingDelete !== null}
-        onClose={() => { if (!isDeleting) setDashboardPendingDelete(null); }}
-        onConfirm={handleDelete}
-        title={t('dashboards.delete_dashboard_title')}
-        description={t('dashboards.delete_dashboard_description', { title: dashboardPendingDelete?.title || '' })}
-        confirmText={t('dashboards.delete')}
-        cancelText={t('common.cancel')}
-        variant="danger"
-        isSubmitting={isDeleting}
-      />
-
-      <ConfirmModal
-        isOpen={tabPendingDelete !== null}
-        onClose={() => { if (!isDeleting) setTabPendingDelete(null); }}
-        onConfirm={() => { if (tabPendingDelete !== null) void handleDeleteTab(tabPendingDelete); }}
-        title={t('dashboards.delete_tab_title')}
-        description={t('dashboards.delete_tab_confirm')}
-        confirmText={t('common.delete')}
-        cancelText={t('common.cancel')}
-        variant="danger"
-        isSubmitting={isDeleting}
-      />
-
-      <DashboardHistoryModal
-        isOpen={isHistoryOpen}
+      <DashboardViewOverlays
+        active={active}
+        tabConfigIdx={tabConfigIdx}
+        setTabConfigIdx={setTabConfigIdx}
+        tabPendingDelete={tabPendingDelete}
+        setTabPendingDelete={setTabPendingDelete}
+        dashboardPendingDelete={dashboardPendingDelete}
+        setDashboardPendingDelete={setDashboardPendingDelete}
+        isDeleting={isDeleting}
+        isHistoryOpen={isHistoryOpen}
+        setIsHistoryOpen={setIsHistoryOpen}
+        isHistoryLoading={isHistoryLoading}
         revisions={revisions}
-        isLoading={isHistoryLoading}
-        onClose={() => { if (!isHistoryLoading) setIsHistoryOpen(false); }}
-        onRestore={setRevisionPendingRestore}
-      />
-
-      <ConfirmModal
-        isOpen={revisionPendingRestore !== null}
-        onClose={() => { if (!isRestoringRevision) setRevisionPendingRestore(null); }}
-        onConfirm={() => { void handleRestoreRevision(); }}
-        title={t('dashboards.history.restore_title')}
-        description={t('dashboards.history.restore_description', { title: revisionPendingRestore?.snapshot.title ?? '' })}
-        confirmText={t('dashboards.history.restore')}
-        cancelText={t('common.cancel')}
-        variant="warning"
-        isSubmitting={isRestoringRevision}
+        revisionPendingRestore={revisionPendingRestore}
+        setRevisionPendingRestore={setRevisionPendingRestore}
+        isRestoringRevision={isRestoringRevision}
+        handleSaveTabConfig={handleSaveTabConfig}
+        handleDeleteTab={handleDeleteTab}
+        handleDelete={handleDelete}
+        handleRestoreRevision={handleRestoreRevision}
       />
       </div>
     </div>

@@ -5,56 +5,15 @@ import { SectionHeader } from '../components/ui/SectionHeader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { IconButton } from '../components/ui/IconButton';
-import { Modal } from '../components/ui/Modal';
-import { Input } from '../components/ui/Input';
-import { SearchableSelectField } from '../components/ui/SearchableSelectField';
-import { SelectableOptionCard } from '../components/ui/SelectableOptionCard';
 import { StatusPill } from '../components/ui/StatusPill';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import ConfirmModal from '../components/ConfirmModal';
-
-interface NativeCamera {
-  deviceId: string;
-  homeId: string;
-  sourceType: NativeCameraSourceType;
-  name: string;
-  host: string;
-  onvifPort: number;
-  rtspPort: number;
-  rtspPath: string;
-  enabled: boolean;
-  createdAt: string;
-}
-
-type NativeCameraSourceType = 'onvif-ptz' | 'rtsp-dvr' | 'sonoff-rtsp';
-
-interface DiscoveredCamera {
-  urn: string;
-  name: string;
-  host: string;
-  onvifPort: number;
-}
-
-interface NativeCameraPayload {
-  sourceType: NativeCameraSourceType;
-  name: string;
-  host: string;
-  rtspPort: number;
-  onvifPort: number;
-  rtspPath: string;
-  username?: string;
-  password?: string;
-  homeId?: string;
-}
-
-const sourceTypeDefaults: Record<NativeCameraSourceType, { rtspPort: number; onvifPort: number; rtspPath: string }> = {
-  'onvif-ptz': { rtspPort: 554, onvifPort: 8000, rtspPath: '' },
-  'rtsp-dvr': { rtspPort: 554, onvifPort: 80, rtspPath: '' },
-  'sonoff-rtsp': { rtspPort: 554, onvifPort: 80, rtspPath: '/av_stream/ch0' },
-};
+import { sourceTypeDefaults, type DiscoveredCamera, type NativeCamera, type NativeCameraFormData, type NativeCameraPayload, type NativeCameraSourceType } from './nativeCameras/types';
+import { NativeCameraDiscoveryModal } from './nativeCameras/NativeCameraDiscoveryModal';
+import { NativeCameraFormModal } from './nativeCameras/NativeCameraFormModal';
 
 export const NativeCamerasView: React.FC = () => {
   const { t } = useTranslation();
@@ -76,8 +35,8 @@ export const NativeCamerasView: React.FC = () => {
   const [editingDevice, setEditingDevice] = useState<string | null>(null);
   
   // Form state
-  const [formData, setFormData] = useState({
-    sourceType: 'onvif-ptz' as NativeCameraSourceType,
+  const [formData, setFormData] = useState<NativeCameraFormData>({
+    sourceType: 'onvif-ptz',
     name: '',
     host: '',
     rtspPort: 554,
@@ -90,7 +49,6 @@ export const NativeCamerasView: React.FC = () => {
 
   const [formError, setFormError] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ variant: 'success' | 'warning' | 'danger'; message: string } | null>(null);
-  const needsManualRtspPath = formData.sourceType !== 'onvif-ptz';
 
   useEffect(() => {
     if (homes.length > 0 && !formData.homeId) {
@@ -449,217 +407,30 @@ export const NativeCamerasView: React.FC = () => {
         </div>
       )}
 
-      <Modal
-        isOpen={isDiscoveryModalOpen}
-        onClose={() => !isDiscovering && setIsDiscoveryModalOpen(false)}
-        title={t('native_cameras.discovery.title')}
-        description={t('native_cameras.discovery.subtitle')}
-        className="max-w-native-camera-modal"
-      >
-        {isDiscovering ? (
-          <div className="flex flex-col items-center justify-center p-8 space-y-4">
-            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-body text-muted-foreground">{t('native_cameras.discovery.searching', 'Buscando dispositivos ONVIF...')}</p>
-          </div>
-        ) : (
-          <form onSubmit={handleDiscoverySubmit} className="space-y-6">
-            <div
-              role="radiogroup"
-              aria-label={t('native_cameras.form.field_source_type')}
-              className="grid gap-3 md:grid-cols-3"
-            >
-              {(['onvif-ptz', 'rtsp-dvr', 'sonoff-rtsp'] as NativeCameraSourceType[]).map(sourceType => (
-                <SelectableOptionCard
-                  key={sourceType}
-                  checked={selectedSourceType === sourceType}
-                  title={t(`native_cameras.source_types.${sourceType}`)}
-                  description={t(`native_cameras.discovery.profile_hints.${sourceType}`)}
-                  onClick={() => {
-                      setSelectedSourceType(sourceType);
-                      setSelectedDiscoveredCamera('manual');
-                  }}
-                  className="min-h-native-camera-card items-start p-4"
-                />
-              ))}
-            </div>
+      <NativeCameraDiscoveryModal
+        isDiscoveryModalOpen={isDiscoveryModalOpen}
+        isDiscovering={isDiscovering}
+        discoveredCameras={discoveredCameras}
+        selectedDiscoveredCamera={selectedDiscoveredCamera}
+        selectedSourceType={selectedSourceType}
+        setIsDiscoveryModalOpen={setIsDiscoveryModalOpen}
+        setSelectedDiscoveredCamera={setSelectedDiscoveredCamera}
+        setSelectedSourceType={setSelectedSourceType}
+        handleDiscoverySubmit={handleDiscoverySubmit}
+      />
 
-            <div className="space-y-3">
-              {selectedSourceType !== 'onvif-ptz' && (
-                <AlertBanner
-                  variant="info"
-                  message={t(`native_cameras.discovery.manual_profile_notes.${selectedSourceType}`)}
-                />
-              )}
-
-              <div
-                role="radiogroup"
-                aria-label={t('native_cameras.discovery.title')}
-                className="grid max-h-camera-list gap-3 overflow-y-auto pr-1 custom-scrollbar lg:grid-cols-2"
-              >
-                  <SelectableOptionCard
-                    checked={selectedDiscoveredCamera === 'manual' || discoveredCameras.length === 0}
-                    title={selectedSourceType === 'onvif-ptz'
-                      ? t('native_cameras.discovery.manual')
-                      : t('native_cameras.discovery.manual_rtsp')}
-                    description={selectedSourceType !== 'onvif-ptz'
-                      ? t(`native_cameras.discovery.manual_rtsp_hints.${selectedSourceType}`)
-                      : undefined}
-                    onClick={() => setSelectedDiscoveredCamera('manual')}
-                  />
-
-                  {discoveredCameras.map(cam => (
-                    <SelectableOptionCard
-                      key={cam.urn}
-                      checked={selectedDiscoveredCamera === cam.urn}
-                      title={cam.name}
-                      description={selectedSourceType === 'onvif-ptz'
-                        ? `${cam.host}:${cam.onvifPort}`
-                        : `${cam.host} · ${t('native_cameras.discovery.detected_by_onvif')}`}
-                      descriptionClassName="font-mono text-muted-foreground/80"
-                      onClick={() => setSelectedDiscoveredCamera(cam.urn)}
-                    />
-                  ))}
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 pt-4 border-t border-border/40">
-              <Button 
-                type="submit" 
-                variant="primary"
-                disabled={!selectedDiscoveredCamera && discoveredCameras.length > 0}
-              >
-                {t('native_cameras.discovery.submit')}
-              </Button>
-            </div>
-          </form>
-        )}
-      </Modal>
-
-      <Modal 
-        isOpen={isModalOpen}
-        onClose={() => !isSubmitting && setIsModalOpen(false)}
-        title={editingDevice ? t('native_cameras.form.title_edit') : t('native_cameras.form.title_create')}
-        description={t('native_cameras.form.subtitle')}
-        className="max-w-native-camera-form"
-      >
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {formError && (
-            <div className="p-3 bg-danger/10 border border-danger/20 text-danger rounded-lg text-body">
-              {formError}
-            </div>
-          )}
-
-          {!editingDevice && (
-            <SearchableSelectField
-              label={t('native_cameras.form.field_home')}
-              value={formData.homeId}
-              onChange={(value) => setFormData({...formData, homeId: value})}
-              options={homes.map(h => ({ value: h.id, label: h.name || h.id }))}
-            />
-          )}
-
-          <SearchableSelectField
-            label={t('native_cameras.form.field_source_type')}
-            value={formData.sourceType}
-            onChange={handleSourceTypeChange}
-            options={[
-              { value: 'onvif-ptz', label: t('native_cameras.source_types.onvif-ptz') },
-              { value: 'rtsp-dvr', label: t('native_cameras.source_types.rtsp-dvr') },
-              { value: 'sonoff-rtsp', label: t('native_cameras.source_types.sonoff-rtsp') },
-            ]}
-            helperText={t(`native_cameras.source_type_hints.${formData.sourceType}`)}
-          />
-
-          <Input
-            label={t('native_cameras.form.field_name')}
-            value={formData.name}
-            onChange={(e) => setFormData({...formData, name: e.target.value})}
-            placeholder={t('native_cameras.form.field_name_placeholder')}
-            required
-          />
-
-          <Input
-            label={t('native_cameras.form.field_host')}
-            value={formData.host}
-            onChange={(e) => setFormData({...formData, host: e.target.value})}
-            placeholder={t('native_cameras.form.field_host_placeholder')}
-            helperText={t(`native_cameras.form.field_host_hints.${formData.sourceType}`)}
-            required
-          />
-
-          {formData.sourceType === 'onvif-ptz' && (
-            <Input
-              label={t('native_cameras.form.field_onvif_port')}
-              value={formData.onvifPort}
-              onChange={(e) => setFormData({...formData, onvifPort: parseInt(e.target.value, 10) || 8000})}
-              type="number"
-              min="1"
-              max="65535"
-              required
-            />
-          )}
-
-          {needsManualRtspPath && (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Input
-                label={t('native_cameras.form.field_rtsp_port')}
-                value={formData.rtspPort}
-                onChange={(e) => setFormData({...formData, rtspPort: parseInt(e.target.value, 10) || 554})}
-                type="number"
-                min="1"
-                max="65535"
-                helperText={t('native_cameras.form.field_rtsp_port_hint')}
-                required
-              />
-              <Input
-                label={t('native_cameras.form.field_rtsp_path')}
-                value={formData.rtspPath}
-                onChange={(e) => setFormData({...formData, rtspPath: e.target.value})}
-                placeholder={t(`native_cameras.form.field_rtsp_path_placeholders.${formData.sourceType}`)}
-                helperText={t(`native_cameras.form.field_rtsp_path_hints.${formData.sourceType}`)}
-                required
-              />
-            </div>
-          )}
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Input
-              label={t('native_cameras.form.field_username')}
-              value={formData.username}
-              onChange={(e) => setFormData({...formData, username: e.target.value})}
-              placeholder={t('native_cameras.form.field_username_placeholder')}
-              required={!editingDevice}
-            />
-            <Input
-              label={t('native_cameras.form.field_password')}
-              value={formData.password}
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
-              placeholder={editingDevice ? '••••••••' : t('native_cameras.form.field_password_placeholder')}
-              type="password"
-              required={!editingDevice}
-            />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-border/40">
-            <Button 
-              type="button" 
-              variant="secondary" 
-              onClick={() => setIsModalOpen(false)}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              variant="primary"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? t('native_cameras.form.saving') : 
-                (editingDevice ? t('native_cameras.form.submit_edit') : t('native_cameras.form.submit_create'))}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+      <NativeCameraFormModal
+        isModalOpen={isModalOpen}
+        isSubmitting={isSubmitting}
+        editingDevice={editingDevice}
+        formError={formError}
+        formData={formData}
+        setFormData={setFormData}
+        homes={homes}
+        handleSourceTypeChange={handleSourceTypeChange}
+        handleSubmit={handleSubmit}
+        setIsModalOpen={setIsModalOpen}
+      />
 
       <ConfirmModal
         isOpen={!!deviceToDelete}

@@ -167,6 +167,33 @@ async function prepareAuthenticatedDashboard(page: import('@playwright/test').Pa
   });
 }
 
+test('Feature: Device inspector — Scenario: Operator switches between device information, activity and state', async ({ page }) => {
+  await prepareAuthenticatedDashboard(page);
+  const cover = { ...responsiveDevices.find((device) => device.id === 'cover-living'), externalId: 'ha:cover.living' };
+  await page.route('**/api/v1/rooms', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([{ id: 'responsive-room', homeId: 'responsive-home', name: 'Sala' }]) });
+  });
+  await page.route('**/api/v1/devices/cover-living', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(cover) });
+  });
+  await page.route('**/api/v1/devices/cover-living/activity-logs', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([{
+      timestamp: '2026-01-01T12:00:00.000Z', deviceId: 'cover-living', type: 'state',
+      description: 'Cortina actualizada', data: {},
+    }]) });
+  });
+
+  await page.goto('/system/devices');
+  await page.getByRole('article').filter({ hasText: 'Cortina de sala' }).getByRole('button', { name: /gestionar dispositivo|manage device/i }).click();
+  const inspector = page.getByRole('dialog', { name: /inspector técnico|technical inspector/i });
+  await expect(inspector).toBeVisible();
+  await expect(inspector).toContainText('ha:cover.living');
+  await inspector.getByRole('radio', { name: /registros|logs/i }).click();
+  await expect(inspector).toContainText('Cortina actualizada');
+  await inspector.getByRole('radio', { name: /estado|state/i }).click();
+  await expect(inspector.locator('pre')).toContainText('current_position');
+});
+
 test('keeps dashboard controls readable on a high-resolution portrait kiosk', async ({ page }) => {
   await page.setViewportSize(portraitKioskViewport);
   await prepareAuthenticatedDashboard(page);
@@ -195,6 +222,184 @@ test('keeps dashboard controls readable on a high-resolution portrait kiosk', as
   await page.getByTestId('mobile-sidebar-backdrop').click({ position: { x: portraitKioskViewport.width - 20, y: 96 } });
   await expect(menuToggle).toBeVisible();
 
+});
+
+test('Feature: Section card editing — Scenario: An owner adds and configures a card without losing the dashboard', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await prepareAuthenticatedDashboard(page);
+  let savedDashboard = responsiveDashboard;
+  await page.route('**/api/v1/dashboards/responsive-dashboard', async (route) => {
+    if (route.request().method() !== 'PATCH') return route.continue();
+    const changes = route.request().postDataJSON() as Partial<typeof responsiveDashboard>;
+    savedDashboard = { ...savedDashboard, ...changes };
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(savedDashboard) });
+  });
+  await page.route('**/api/v1/scenes', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: '[]' });
+  });
+  await page.route('**/api/v1/automations', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: '[]' });
+  });
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+
+  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
+  const originalCardCount = await page.locator('[class*="group/card"]').count();
+  await page.getByRole('button', { name: /^(Add card|Añadir tarjeta)$/i }).click();
+  await expect(page.getByRole('heading', { name: /Add card to section|Añadir tarjeta a la sección/i })).toBeVisible();
+
+  await page.locator('.max-h-section-editor > div > div > button').first().click();
+  await expect(page.getByRole('heading', { name: /^(Edit|Editar)$/i })).toBeVisible();
+  await page.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
+
+  await expect(page.getByRole('heading', { name: /Add card to section|Añadir tarjeta a la sección/i })).toHaveCount(0);
+  await expect(page.locator('[class*="group/card"]')).toHaveCount(originalCardCount + 1);
+  await expect(page.getByText('Lecturas del hogar')).toBeVisible();
+});
+
+test('Feature: Media card width — Scenario: A player occupies the full section without a redundant width control', async ({ page }) => {
+  await prepareAuthenticatedDashboard(page);
+  let savedDashboard = responsiveDashboard;
+  await page.route('**/api/v1/dashboards/responsive-dashboard', async (route) => {
+    if (route.request().method() !== 'PATCH') return route.continue();
+    const changes = route.request().postDataJSON() as Partial<typeof responsiveDashboard>;
+    savedDashboard = { ...savedDashboard, ...changes };
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(savedDashboard) });
+  });
+  await page.route('**/api/v1/scenes', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: '[]' });
+  });
+  await page.route('**/api/v1/automations', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: '[]' });
+  });
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
+  await page.getByRole('button', { name: /^(Add card|Añadir tarjeta)$/i }).click();
+  await page.getByRole('button', { name: /^(Reproductor|Media player)$/i }).click();
+
+  await expect(page.getByRole('heading', { name: /^(Edit|Editar)$/i })).toBeVisible();
+  await expect(page.getByText(/^(Card width|Ancho de tarjeta)$/i)).toHaveCount(0);
+  await page.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
+
+  const mediaCard = page.locator('[class*="group/card"]').filter({ hasText: /Reproductor|Media player/i });
+  await expect(mediaCard).toHaveClass(/col-span-full/);
+  await expect(mediaCard.getByRole('slider', { name: /resize card|redimensionar tarjeta/i })).toHaveCount(0);
+});
+
+test('Feature: Unified control tile — Scenario: A scene uses the light-sized tile without a separate action catalog item', async ({ page }) => {
+  await prepareAuthenticatedDashboard(page);
+  let savedDashboard = responsiveDashboard;
+  let sceneExecutions = 0;
+  await page.route('**/api/v1/dashboards/responsive-dashboard', async (route) => {
+    if (route.request().method() !== 'PATCH') return route.continue();
+    const changes = route.request().postDataJSON() as Partial<typeof responsiveDashboard>;
+    savedDashboard = { ...savedDashboard, ...changes };
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(savedDashboard) });
+  });
+  await page.route('**/api/v1/scenes', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([{ id: 'scene-dinner', name: 'Cena' }]) });
+  });
+  await page.route('**/api/v1/automations', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: '[]' });
+  });
+  await page.route('**/api/v1/scenes/scene-dinner/execute', async (route) => {
+    sceneExecutions += 1;
+    await route.fulfill({ contentType: 'application/json', body: '{}' });
+  });
+
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
+  await page.getByRole('button', { name: /^(Add card|Añadir tarjeta)$/i }).click();
+  await expect(page.getByRole('button', { name: /^(Action button|Botón de acción)$/i })).toHaveCount(0);
+  await page.getByRole('button', { name: /^(Light or trigger|Luz o activador)$/i }).click();
+  await page.getByText(/^(Light, scene, routine, or button|Luz, escena, rutina o botón)$/i).locator('..').getByRole('button').click();
+  await page.getByRole('option', { name: /Cena/ }).click();
+  await page.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
+
+  const sceneTile = page.locator('[class*="group/card"]').filter({ hasText: 'Cena' });
+  await expect(sceneTile).toBeVisible();
+  expect(await sceneTile.getByRole('button', { name: /Cena/i }).getAttribute('aria-pressed')).toBeNull();
+  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Done|Listo)$/i }).click();
+  await sceneTile.getByRole('button', { name: /Cena/i }).click();
+  await expect.poll(() => sceneExecutions).toBe(1);
+});
+
+test('Feature: Unified control tile — Scenario: Selecting a light still sends an on/off command', async ({ page }) => {
+  await prepareAuthenticatedDashboard(page);
+  const light = { id: 'living-light', homeId: 'responsive-home', roomId: 'responsive-room', name: 'Luz de sala', type: 'light', semanticType: 'light', status: 'ASSIGNED', lastKnownState: { state: 'off' } };
+  let savedDashboard = responsiveDashboard;
+  let issuedCommand = '';
+  await page.route('**/api/v1/devices', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([...responsiveDevices, light]) });
+  });
+  await page.route('**/api/v1/dashboards/responsive-dashboard', async (route) => {
+    if (route.request().method() !== 'PATCH') return route.continue();
+    const changes = route.request().postDataJSON() as Partial<typeof responsiveDashboard>;
+    savedDashboard = { ...savedDashboard, ...changes };
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(savedDashboard) });
+  });
+  await page.route('**/api/v1/scenes', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: '[]' });
+  });
+  await page.route('**/api/v1/automations', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: '[]' });
+  });
+  await page.route('**/api/v1/devices/living-light/command', async (route) => {
+    issuedCommand = (route.request().postDataJSON() as { command: string }).command;
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ...light, lastKnownState: { state: 'on' } }) });
+  });
+
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
+  await page.getByRole('button', { name: /^(Add card|Añadir tarjeta)$/i }).click();
+  await page.getByRole('button', { name: /^(Light or trigger|Luz o activador)$/i }).click();
+  await page.getByText(/^(Light, scene, routine, or button|Luz, escena, rutina o botón)$/i).locator('..').getByRole('button').click();
+  await page.getByRole('option', { name: /Luz de sala/ }).click();
+  await page.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
+  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Done|Listo)$/i }).click();
+  await page.locator('[class*="group/card"]').filter({ hasText: 'Luz de sala' }).click();
+  await expect.poll(() => issuedCommand).toBe('turn_on');
+});
+
+test('Feature: Dashboard title editing — Scenario: An owner edits title content and returns to the canvas', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await prepareAuthenticatedDashboard(page);
+  await page.route('**/api/v1/dashboards/responsive-dashboard', async (route) => {
+    if (route.request().method() !== 'PATCH') return route.continue();
+    const changes = route.request().postDataJSON() as Partial<typeof responsiveDashboard>;
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ...responsiveDashboard, ...changes }) });
+  });
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
+
+  const titleWidget = page.locator('.homepilot-dashboard-widget').filter({ has: page.locator('.homepilot-dashboard-title') });
+  await titleWidget.hover();
+  await titleWidget.getByRole('button', { name: /^(Edit|Editar)$/i }).click();
+  const editor = page.locator('#dashboard-title-markdown');
+  await expect(editor).toBeVisible();
+  await editor.fill('# Título renovado');
+  await editor.locator('xpath=ancestor::form').getByRole('button', { name: /^(Save|Guardar)$/i }).click();
+  await expect(editor).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Título renovado' })).toBeVisible();
+});
+
+test('Feature: Native camera setup — Scenario: An owner opens discovery and manual configuration', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await prepareAuthenticatedDashboard(page);
+  await page.route('**/api/v1/homes', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([{ id: 'test-home', name: 'Test home' }]) });
+  });
+  await page.route('**/api/v1/native-cameras?*', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ cameras: [] }) });
+  });
+  await page.route('**/api/v1/native-cameras/discover', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ devices: [] }) });
+  });
+  await page.goto('/system/cameras');
+  await page.getByRole('button', { name: /Add camera|Añadir cámara/i }).first().click();
+  await expect(page.getByText(/Configure ONVIF device manually|Configurar dispositivo ONVIF manualmente/i)).toBeVisible();
+  await page.getByRole('button', { name: /^(Continue|Continuar)$/i }).click();
+  await expect(page.getByText(/Add IP Camera|Añadir cámara IP/i)).toBeVisible();
+  await expect(page.getByRole('textbox', { name: /Camera name|Nombre de la cámara/i })).toBeVisible();
 });
 
 for (const viewport of viewports) {
@@ -1081,4 +1286,59 @@ test('Feature: Home conversation continuity — Scenario: Given a local transcri
   await expect(page.getByText(/no hay luces encendidas/i)).toBeVisible();
   await page.getByRole('button', { name: /nueva conversación|new conversation/i }).click();
   await expect(page.locator('.home-conversation-empty-state')).toBeVisible();
+});
+
+test('Feature: Room details — Scenario: A home owner selects a room, controls a light, renames the room and closes its details', async ({ page }) => {
+  await page.setViewportSize(viewports[1]);
+  await prepareAuthenticatedDashboard(page);
+
+  const room = { id: 'responsive-room', homeId: 'responsive-home', name: 'Sala de prueba' };
+  const light = {
+    id: 'responsive-light', name: 'Lámpara central', type: 'light', semanticType: 'light',
+    status: 'ASSIGNED', roomId: room.id, lastKnownState: { on: false },
+  };
+  let commandCount = 0;
+  await page.route('**/api/v1/homes', async route => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([
+      { id: 'responsive-home', name: 'Casa de prueba', ownerId: dashboardUser.id },
+    ]) });
+  });
+  await page.route('**/api/v1/homes/responsive-home/rooms', async route => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([room]) });
+  });
+  await page.route('**/api/v1/devices', async route => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([light]) });
+  });
+  await page.route('**/api/v1/devices/responsive-light/command', async route => {
+    commandCount += 1;
+    expect(route.request().postDataJSON()).toEqual({ command: 'turn_on' });
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+      ...light, lastKnownState: { on: true },
+    }) });
+  });
+  await page.route('**/api/v1/rooms/responsive-room', async route => {
+    expect(route.request().method()).toBe('PATCH');
+    expect(route.request().postDataJSON()).toEqual({ name: 'Sala principal' });
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+      ...room, name: 'Sala principal',
+    }) });
+  });
+
+  await page.goto('/spaces');
+  await page.getByRole('button', { name: /Sala de prueba/ }).click();
+  const detail = page.locator('aside.self-start');
+  await expect(detail).toContainText('Lámpara central');
+  await expect(detail).toContainText(/Encendidas|On/i);
+
+  await detail.getByRole('button', { name: /Encender dispositivo|Turn on device/i }).click();
+  await expect(detail.getByRole('button', { name: /Apagar dispositivo|Turn off device/i })).toBeVisible();
+  expect(commandCount).toBe(1);
+
+  await detail.getByRole('button', { name: /Renombrar estancia|Rename room/i }).click();
+  await detail.getByRole('textbox', { name: /Editar nombre|Edit name/i }).fill('Sala principal');
+  await detail.getByRole('button', { name: /Guardar nombre|Save name/i }).click();
+  await expect(detail).toContainText('Sala principal');
+
+  await detail.getByRole('button', { name: /Cerrar detalle de estancia|Close room details/i }).click();
+  await expect(detail).toHaveCount(0);
 });

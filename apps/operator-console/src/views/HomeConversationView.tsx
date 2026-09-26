@@ -1,18 +1,14 @@
-import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS, converseWithAssistant, synthesizeAssistantSpeech, transcribeAssistantSpeech } from '../lib/assistantApi';
-import { blobToBase64, canUseLocalSpeechRecording, createSpeechAudioUrl, getPreferredAudioMimeType } from '../lib/audioRecording';
+import { blobToBase64, createSpeechAudioUrl } from '../lib/audioRecording';
 import { useSession } from '../lib/useSession';
 import { generateId } from '../utils/generateId';
 import { AssistantTurnCoordinator, type AssistantTurn } from '../lib/assistantTurnCoordinator';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import type { AssistantConversationResponse, ChatMessage } from '../types/assistantConversation';
 import { HomeConversationComposer } from '../components/HomeConversationComposer';
-import { HomeConversationMessageBubble } from '../components/HomeConversationMessageBubble';
-import { HomeConversationTypingIndicator } from '../components/HomeConversationTypingIndicator';
-import { HomeConversationEmptyState } from '../components/HomeConversationEmptyState';
-import { Button } from '../components/ui/Button';
-import { MessageSquarePlus } from 'lucide-react';
+import { HomeConversationThread } from '../components/HomeConversationThread';
 import {
   HOME_CONVERSATION_CONFIRMATION_LISTEN_EVENT,
   HOME_CONVERSATION_SPEECH_ACTIVITY_EVENT,
@@ -20,58 +16,11 @@ import {
   isUsableVoiceTranscript,
   normalizeVoiceTranscript
 } from '../lib/homeConversationVoice';
+import { getConversationStorageKey, readSpeechEnabledPreference, readStoredConversationMessages, storeConversationMessages, storeSpeechEnabledPreference } from './homeConversationPersistence';
+import { requiresVoiceConfirmation, type ConversationActivity } from './homeConversationPresentation';
+import { useHomeConversationVoiceCapture } from './useHomeConversationVoiceCapture';
 
 const noopSessionCleared = () => {};
-
-const MAX_RECORDING_MS = 8000;
-const MIN_RECORDING_MS = 700;
-const STOP_AFTER_SILENCE_MS = 900;
-const SPEECH_LEVEL_THRESHOLD = 0.018;
-const HOME_CONVERSATION_STORAGE_PREFIX = 'hp_home_conversation_v1';
-const HOME_CONVERSATION_SPEECH_ENABLED_STORAGE_KEY = 'hp_home_conversation_speech_enabled';
-const MAX_PERSISTED_MESSAGES = 80;
-
-type ConversationActivity = 'ready' | 'listening' | 'transcribing' | 'consulting' | 'notice';
-
-function requiresVoiceConfirmation(response: AssistantConversationResponse): boolean {
-  if (response.type !== 'clarification') return false;
-
-  const optionIds = new Set(response.clarification?.options.map(option => option.id));
-  return optionIds.has('confirm') && optionIds.has('cancel');
-}
-
-function readStoredMessages(storageKey: string | null): ChatMessage[] {
-  if (!storageKey) return [];
-  try {
-    const parsed: unknown = JSON.parse(sessionStorage.getItem(storageKey) ?? '[]');
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter((value): value is ChatMessage => typeof value === 'object' && value !== null
-        && typeof value.id === 'string'
-        && (value.role === 'user' || value.role === 'assistant')
-        && typeof value.content === 'string'
-        && typeof value.timestamp === 'string')
-      .slice(-MAX_PERSISTED_MESSAGES);
-  } catch {
-    return [];
-  }
-}
-
-function readSpeechEnabledPreference(): boolean {
-  try {
-    return localStorage.getItem(HOME_CONVERSATION_SPEECH_ENABLED_STORAGE_KEY) !== 'false';
-  } catch {
-    return true;
-  }
-}
-
-function storeSpeechEnabledPreference(enabled: boolean): void {
-  try {
-    localStorage.setItem(HOME_CONVERSATION_SPEECH_ENABLED_STORAGE_KEY, String(enabled));
-  } catch {
-    // The conversation remains usable when browser storage is unavailable.
-  }
-}
 
 interface HomeConversationViewProps {
   pendingPrompt?: { id: string; text: string; interactionMode: 'voice' } | null;
@@ -82,32 +31,19 @@ interface HomeConversationViewProps {
 export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pendingPrompt, onPendingPromptConsumed, assistantTurnCoordinator }) => {
   const { t } = useTranslation();
   const { user } = useSession(noopSessionCleared);
-  const conversationStorageKey = user ? HOME_CONVERSATION_STORAGE_PREFIX + ':' + user.id : null;
-  const [messages, setMessages] = useState<ChatMessage[]>(() => readStoredMessages(conversationStorageKey));
+  const conversationStorageKey = getConversationStorageKey(user?.id);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => readStoredConversationMessages(conversationStorageKey));
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [conversationActivity, setConversationActivity] = useState<ConversationActivity>('ready');
-  const [isListening, setIsListening] = useState(false);
   const initialSpeechEnabledRef = useRef(readSpeechEnabledPreference());
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(initialSpeechEnabledRef.current);
   const [speechNotice, setSpeechNotice] = useState('');
   const [keyboardInset, setKeyboardInset] = useState(0);
-  const [speechSupport, setSpeechSupport] = useState({
-    recording: false,
-    synthesis: false
-  });
-  const [audioInputDevices, setAudioInputDevices] = useState<MediaDeviceInfo[]>([]);
-  const [selectedAudioInputId, setSelectedAudioInputId] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
-  const mediaChunksRef = useRef<Blob[]>([]);
-  const recordingTimeoutRef = useRef<number | null>(null);
-  const recordingStartedAtRef = useRef(0);
-  const silenceStartedAtRef = useRef<number | null>(null);
-  const speechDetectedRef = useRef(false);
-  const silenceAnimationFrameRef = useRef<number | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
+  const handleScrollContainerReady = useCallback((element: HTMLDivElement | null) => {
+    scrollRef.current = element;
+  }, []);
   const speechEnabledRef = useRef(initialSpeechEnabledRef.current);
   const speechAudioRef = useRef<HTMLAudioElement | null>(null);
   const speechAudioUrlRef = useRef<string | null>(null);
@@ -138,34 +74,6 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
   }, []);
   const refreshDeviceSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
 
-  useEffect(() => {
-    setSpeechSupport({
-      recording: canUseLocalSpeechRecording(),
-      synthesis: 'Audio' in window
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!canUseLocalSpeechRecording()) return;
-
-    let isMounted = true;
-    const loadAudioInputs = async () => {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      if (!isMounted) return;
-      const audioInputs = devices.filter(device => device.kind === 'audioinput');
-      setAudioInputDevices(audioInputs);
-      setSelectedAudioInputId(current => audioInputs.some(device => device.deviceId === current) ? current : audioInputs[0]?.deviceId || '');
-    };
-
-    void loadAudioInputs();
-    navigator.mediaDevices.addEventListener?.('devicechange', loadAudioInputs);
-
-    return () => {
-      isMounted = false;
-      navigator.mediaDevices.removeEventListener?.('devicechange', loadAudioInputs);
-    };
-  }, []);
-
   useLayoutEffect(() => {
     const feed = scrollRef.current;
     if (!feed) return;
@@ -178,21 +86,10 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
 
   useEffect(() => {
     if (!conversationStorageKey) return;
-    const safeMessages = messages.slice(-MAX_PERSISTED_MESSAGES);
-    sessionStorage.setItem(conversationStorageKey, JSON.stringify(safeMessages));
+    storeConversationMessages(conversationStorageKey, messages);
   }, [conversationStorageKey, messages]);
 
   useEffect(() => () => {
-    if (recordingTimeoutRef.current !== null) {
-      window.clearTimeout(recordingTimeoutRef.current);
-      recordingTimeoutRef.current = null;
-    }
-    stopSilenceDetection();
-    if (mediaRecorderRef.current?.state === 'recording') {
-      mediaRecorderRef.current.stop();
-    }
-    mediaStreamRef.current?.getTracks().forEach(track => track.stop());
-    mediaStreamRef.current = null;
     speechRequestIdRef.current += 1;
     conversationRequestIdRef.current += 1;
     assistantTurnCoordinator.cancel(activeConversationTurnRef.current ?? undefined);
@@ -385,101 +282,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     });
   }, [pendingPrompt, onPendingPromptConsumed]); // eslint-disable-line react-hooks/exhaustive-deps -- Consume each routed prompt exactly once.
 
-  function stopSilenceDetection() {
-    if (silenceAnimationFrameRef.current !== null) {
-      window.cancelAnimationFrame(silenceAnimationFrameRef.current);
-      silenceAnimationFrameRef.current = null;
-    }
-    void audioContextRef.current?.close();
-    audioContextRef.current = null;
-    silenceStartedAtRef.current = null;
-    speechDetectedRef.current = false;
-  };
-
-  const stopMediaStream = () => {
-    mediaStreamRef.current?.getTracks().forEach(track => track.stop());
-    mediaStreamRef.current = null;
-  };
-
-  const clearRecordingTimeout = () => {
-    if (recordingTimeoutRef.current !== null) {
-      window.clearTimeout(recordingTimeoutRef.current);
-      recordingTimeoutRef.current = null;
-    }
-  };
-
-  const stopLocalRecording = () => {
-    clearRecordingTimeout();
-    stopSilenceDetection();
-    if (mediaRecorderRef.current?.state === 'recording') {
-      mediaRecorderRef.current.stop();
-      return;
-    }
-
-    stopMediaStream();
-    setIsListening(false);
-  };
-
-  const resolveRecordingError = (error?: string): string => {
-    if (error === 'NotAllowedError' || error === 'SecurityError') {
-      return t('assistant.conversation.voice_permission_error');
-    }
-
-    if (error === 'NotFoundError' || error === 'NotReadableError') {
-      return t('assistant.conversation.voice_capture_error');
-    }
-
-    return t('assistant.conversation.voice_start_error');
-  };
-
-  const startSilenceDetection = (stream: MediaStream) => {
-    stopSilenceDetection();
-
-    const browserWindow = window as Window & { webkitAudioContext?: typeof AudioContext };
-    const AudioContextConstructor = window.AudioContext || browserWindow.webkitAudioContext;
-    if (!AudioContextConstructor) return;
-
-    const audioContext = new AudioContextConstructor();
-    const analyser = audioContext.createAnalyser();
-    analyser.fftSize = 1024;
-    const source = audioContext.createMediaStreamSource(stream);
-    source.connect(analyser);
-    audioContextRef.current = audioContext;
-
-    const samples = new Uint8Array(analyser.fftSize);
-    const detectSilence = () => {
-      analyser.getByteTimeDomainData(samples);
-      let sum = 0;
-      for (const sample of samples) {
-        const value = (sample - 128) / 128;
-        sum += value * value;
-      }
-
-      const volume = Math.sqrt(sum / samples.length);
-      const now = Date.now();
-      const elapsed = now - recordingStartedAtRef.current;
-
-      if (volume >= SPEECH_LEVEL_THRESHOLD) {
-        speechDetectedRef.current = true;
-        silenceStartedAtRef.current = null;
-      } else if (speechDetectedRef.current && elapsed >= MIN_RECORDING_MS) {
-        silenceStartedAtRef.current ??= now;
-        if (now - silenceStartedAtRef.current >= STOP_AFTER_SILENCE_MS) {
-          stopLocalRecording();
-          return;
-        }
-      }
-
-      silenceAnimationFrameRef.current = window.requestAnimationFrame(detectSilence);
-    };
-
-    silenceAnimationFrameRef.current = window.requestAnimationFrame(detectSilence);
-  };
-
   const handleRecordingComplete = async (audioBlob: Blob) => {
-    stopMediaStream();
-    setIsListening(false);
-
     if (audioBlob.size === 0) {
       setSpeechNotice(t('assistant.conversation.voice_no_speech'));
       return;
@@ -520,83 +323,30 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
     }
   };
 
-  const startLocalRecording = async () => {
-    if (isLoading) return;
-
-    if (!speechSupport.recording) {
-      setSpeechNotice(t('assistant.conversation.voice_unavailable_error'));
-      return;
-    }
-
-    if (isListening) {
-      stopLocalRecording();
-      return;
-    }
-
-    try {
-      const audioConstraints: MediaTrackConstraints = {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true
-      };
-      if (selectedAudioInputId) {
-        audioConstraints.deviceId = { exact: selectedAudioInputId };
-      }
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: audioConstraints
-      });
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const audioInputs = devices.filter(device => device.kind === 'audioinput');
-      setAudioInputDevices(audioInputs);
-      setSelectedAudioInputId(current => audioInputs.some(device => device.deviceId === current) ? current : audioInputs[0]?.deviceId || '');
-      const mimeType = getPreferredAudioMimeType();
-      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-      mediaChunksRef.current = [];
-      mediaStreamRef.current = stream;
-      mediaRecorderRef.current = recorder;
-
-      recorder.ondataavailable = event => {
-        if (event.data.size > 0) {
-          mediaChunksRef.current.push(event.data);
-        }
-      };
-      recorder.onerror = () => {
-        setSpeechNotice(t('assistant.conversation.voice_start_error'));
-        stopLocalRecording();
-      };
-      recorder.onstop = () => {
-        clearRecordingTimeout();
-        const audioBlob = new Blob(mediaChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
-        mediaChunksRef.current = [];
-        void handleRecordingComplete(audioBlob);
-      };
-
-      setSpeechNotice('');
-      setConversationActivity('listening');
-      setIsListening(true);
-      recordingStartedAtRef.current = Date.now();
-      silenceStartedAtRef.current = null;
-      speechDetectedRef.current = false;
-      if (speechSupport.synthesis) {
-        speechEnabledRef.current = true;
-        setIsSpeechEnabled(true);
-      }
-      recorder.start();
-      startSilenceDetection(stream);
-      recordingTimeoutRef.current = window.setTimeout(() => stopLocalRecording(), MAX_RECORDING_MS);
-    } catch (error) {
-      const errorName = error instanceof DOMException ? error.name : undefined;
-      setSpeechNotice(resolveRecordingError(errorName));
-      setConversationActivity('notice');
-      stopMediaStream();
-      setIsListening(false);
-    }
-  };
-
-  const handleToggleListening = async () => {
-    await startLocalRecording();
-  };
+  const {
+    isListening,
+    speechSupport,
+    audioInputDevices,
+    selectedAudioInputId,
+    setSelectedAudioInputId,
+    toggleRecording
+  } = useHomeConversationVoiceCapture({
+    disabled: isLoading,
+    onRecordingComplete: audioBlob => { void handleRecordingComplete(audioBlob); },
+    onActivityChange: setConversationActivity,
+    onNotice: setSpeechNotice,
+    onRecordingStarted: synthesisSupported => {
+      if (!synthesisSupported) return;
+      speechEnabledRef.current = true;
+      setIsSpeechEnabled(true);
+    },
+    getErrorMessage: kind => {
+      if (kind === 'permission') return t('assistant.conversation.voice_permission_error');
+      if (kind === 'capture') return t('assistant.conversation.voice_capture_error');
+      return t('assistant.conversation.voice_start_error');
+    },
+    getUnavailableMessage: () => t('assistant.conversation.voice_unavailable_error')
+  });
 
   const handleToggleSpeech = () => {
     const nextSpeechEnabled = !speechEnabledRef.current;
@@ -684,62 +434,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
       style={{ height: keyboardInset > 0 ? `calc(100% - ${keyboardInset}px)` : '100%' }}
     >
 
-      <div
-        ref={scrollRef}
-        className="home-conversation-feed custom-scrollbar flex-1 overflow-y-auto px-3 py-4 sm:px-4 md:px-6 lg:px-8 xl:px-10 xl:py-8"
-      >
-        <div
-          role="log"
-          aria-live="polite"
-          aria-relevant="additions text"
-          className="home-conversation-thread mx-auto flex w-full max-w-6xl flex-col gap-4 md:gap-5"
-        >
-
-          {messages.length > 0 && (
-            <p className="home-conversation-thread-status text-xs font-medium text-muted-foreground">
-              {t('assistant.conversation.conversation_active')}
-            </p>
-          )}
-
-          {messages.length === 0 && !isLoading && (
-            <HomeConversationEmptyState
-              title={t('assistant.conversation.empty_title')}
-              description={t('assistant.conversation.empty_description')}
-              suggestionsLabel={t('assistant.conversation.suggestions_label')}
-              suggestions={suggestions}
-              confirmationRequiredLabel={t('assistant.conversation.confirmation_required')}
-              onSuggestionClick={handleSend}
-            />
-          )}
-
-
-          {messages.map(message => (
-            <HomeConversationMessageBubble
-              key={message.id}
-              message={message}
-              user={user}
-              onOptionClick={handleOptionClick}
-            />
-          ))}
-
-          {messages.length > 0 && !isLoading && (
-            <div className="home-conversation-thread-actions">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={clearConversation}
-                className="home-conversation-new-thread"
-              >
-                <MessageSquarePlus className="h-4 w-4" aria-hidden="true" />
-                <span>{t('assistant.conversation.new_conversation')}</span>
-              </Button>
-            </div>
-          )}
-
-          {isLoading && <HomeConversationTypingIndicator />}
-        </div>
-      </div>
+      <HomeConversationThread onScrollContainerReady={handleScrollContainerReady} messages={messages} isLoading={isLoading} user={user} conversationActiveLabel={t('assistant.conversation.conversation_active')} emptyTitle={t('assistant.conversation.empty_title')} emptyDescription={t('assistant.conversation.empty_description')} suggestionsLabel={t('assistant.conversation.suggestions_label')} confirmationRequiredLabel={t('assistant.conversation.confirmation_required')} suggestions={suggestions} newConversationLabel={t('assistant.conversation.new_conversation')} onSuggestionClick={handleSend} onOptionClick={handleOptionClick} onClearConversation={clearConversation} />
 
       <HomeConversationComposer
         input={input}
@@ -765,7 +460,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
         onAudioInputChange={setSelectedAudioInputId}
         onSend={() => handleSend()}
         onKeyDown={handleKeyDown}
-        onToggleListening={() => void handleToggleListening()}
+        onToggleListening={() => void toggleRecording()}
         onToggleSpeech={handleToggleSpeech}
         onCancelRequest={handleCancelRequest}
       />
