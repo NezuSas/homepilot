@@ -3,6 +3,7 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib/camera-acceleration.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/appliance-storage-report.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-builder.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-images.sh"
 
 profile="bridge_ha"
 compose_file="docker-compose.office.yml"
@@ -12,6 +13,7 @@ profile_explicit=false
 deploy=false
 clean_only=false
 status_only=false
+gc_homepilot=false
 assume_yes=false
 truncate_logs=false
 runtime_failures=0
@@ -45,6 +47,7 @@ Opciones:
   --deploy                 Construye/inicia HomePilot y retira solo contenedores detenidos del proyecto.
   --clean                  Retira solo contenedores detenidos del proyecto HomePilot.
   --status                 Muestra uso del filesystem y Docker, contenedores y salud sin modificar nada.
+  --gc-homepilot           Previsualiza y, tras confirmar, elimina solo imágenes antiguas HomePilot verificadas.
   --profile PERFIL         bridge_ha (defecto), native_only o ha_companion.
   --compose FILE           Compose personalizado. Sobrescribe la selección automática de runtime.
   --truncate-logs          Vacía únicamente logs de contenedores HomePilot. Puede pedir sudo.
@@ -399,6 +402,9 @@ while [[ $# -gt 0 ]]; do
     --status)
       status_only=true
       ;;
+    --gc-homepilot)
+      gc_homepilot=true
+      ;;
     --compose)
       shift
       [[ $# -gt 0 ]] || fail "--compose requiere un archivo."
@@ -423,7 +429,11 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-if [[ "$deploy" == false && "$clean_only" == false && "$status_only" == false ]]; then
+if [[ "$gc_homepilot" == true && ( "$deploy" == true || "$clean_only" == true || "$status_only" == true || "$truncate_logs" == true ) ]]; then
+  fail '--gc-homepilot debe ejecutarse solo; no se combina con deploy, clean, status ni truncate-logs.'
+fi
+
+if [[ "$deploy" == false && "$clean_only" == false && "$status_only" == false && "$gc_homepilot" == false ]]; then
   status_only=true
 fi
 
@@ -433,6 +443,22 @@ banner
 check_requirements
 validate_profile_environment
 show_disk
+
+if [[ "$gc_homepilot" == true ]]; then
+  section 'Imágenes HomePilot · limpieza explícita'
+  homepilot_image_gc_scan
+  homepilot_image_gc_report
+  if (( ${#HOMEPILOT_GC_CANDIDATES[@]} == 0 )); then
+    exit 0
+  fi
+  if confirm 'Eliminar solo las imágenes candidatas verificadas arriba?'; then
+    homepilot_image_gc_remove
+    ok 'Limpieza de imágenes HomePilot terminada sin prune global.'
+  else
+    warn 'Limpieza de imágenes cancelada.'
+  fi
+  exit 0
+fi
 
 if [[ "$status_only" == true ]]; then
   section 'Aceleración HLS de cámaras'
@@ -453,14 +479,19 @@ fi
 
 if [[ "$deploy" == true ]]; then
   if confirm "Limpiar, construir e iniciar HomePilot ahora?"; then
+    export HOMEPILOT_BUILD_REVISION="$(homepilot_image_revision)"
     section 'Builder de HomePilot'
     homepilot_builder_ensure
     select_camera_acceleration_for_deploy
+    mapfile -t image_compose_args < <(compose_args)
+    homepilot_image_prepare_rollback "${image_compose_args[@]}"
     clean_docker_residue
     deploy_homepilot
     clean_docker_residue
     show_disk
     verify_runtime 180
+    mapfile -t image_compose_args < <(compose_args)
+    homepilot_image_finalize_rollback "${image_compose_args[@]}"
   else
     warn "Despliegue cancelado."
   fi

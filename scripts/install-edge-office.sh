@@ -2,6 +2,7 @@
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib/camera-acceleration.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-builder.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-images.sh"
 
 readonly ENV_FILE=".env"
 profile=""
@@ -841,6 +842,7 @@ if [[ -n "$cloud_url" || -n "$pairing_code" ]]; then
 fi
 camera_compose_args=(-f "$compose_file")
 if [[ "$start" == true ]]; then
+  export HOMEPILOT_BUILD_REVISION="$(homepilot_image_revision)"
   section 'Builder de HomePilot'
   homepilot_builder_ensure
   section 'Aceleración HLS de cámaras'
@@ -860,6 +862,7 @@ fi
 if [[ "$start" == true ]]; then
   section "Inicio de HomePilot"
   if confirm "Se construiran e iniciaran los servicios HomePilot de este compose. Continuar?"; then
+    homepilot_image_prepare_rollback "${camera_compose_args[@]}"
     if ! (COMPOSE_BAKE=false docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" \
       && docker compose "${camera_compose_args[@]}" up --no-build -d); then
       if [[ -z "$camera_acceleration_overlay" ]]; then
@@ -887,6 +890,9 @@ fi
 show_runtime_status
 provision_home_assistant_community_integrations
 show_home_assistant_community_status
+if [[ "$start" == true && "$startup_failed" == false && "$runtime_failures" -eq 0 ]]; then
+  homepilot_image_finalize_rollback "${camera_compose_args[@]}"
+fi
 
 section "Instalación preparada"
 ui_port="$(env_value HOMEPILOT_UI_PORT 8080)"

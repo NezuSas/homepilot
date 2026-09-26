@@ -24,12 +24,17 @@ RUN npm run build --workspace=apps/operator-console
 
 # Stage 2: Serve with Nginx
 FROM nginx:alpine
+ARG HOMEPILOT_BUILD_REVISION=unknown
 
 # Copy custom nginx config
 COPY docker/ui/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy build artifacts
 COPY --from=builder /app/apps/operator-console/dist /usr/share/nginx/html
+LABEL io.nezu.homepilot.managed="v1" \
+      io.nezu.homepilot.service="ui" \
+      io.nezu.homepilot.role="runtime" \
+      io.nezu.homepilot.revision="${HOMEPILOT_BUILD_REVISION}"
 
 EXPOSE 80
 

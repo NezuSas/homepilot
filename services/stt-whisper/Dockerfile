@@ -1,4 +1,5 @@
 FROM python:3.12-slim-bookworm
+ARG HOMEPILOT_BUILD_REVISION=unknown
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -50,6 +51,10 @@ WhisperModel(
 PY
 
 COPY services/stt-whisper/app.py ./app.py
+LABEL io.nezu.homepilot.managed="v1" \
+      io.nezu.homepilot.service="stt" \
+      io.nezu.homepilot.role="runtime" \
+      io.nezu.homepilot.revision="${HOMEPILOT_BUILD_REVISION}"
 
 EXPOSE 8090
 

@@ -9,6 +9,8 @@ services:
     build:
       context: .
       dockerfile: docker/api/Dockerfile
+      args:
+        HOMEPILOT_BUILD_REVISION: ${HOMEPILOT_BUILD_REVISION:-unknown}
     container_name: homepilot-api
     network_mode: host
     volumes:
@@ -59,6 +61,7 @@ services:
       args:
         VITE_API_URL: "${VITE_API_URL:-}"
         VITE_HOME_CITY: "${VITE_HOME_CITY:-Cuenca}"
+        HOMEPILOT_BUILD_REVISION: ${HOMEPILOT_BUILD_REVISION:-unknown}
     container_name: homepilot-ui
     ports:
       - "${HOMEPILOT_UI_PORT:-8080}:80"
@@ -73,6 +76,8 @@ services:
     build:
       context: .
       dockerfile: services/tts-piper/Dockerfile
+      args:
+        HOMEPILOT_BUILD_REVISION: ${HOMEPILOT_BUILD_REVISION:-unknown}
     container_name: homepilot-tts
     environment:
       PIPER_VOICE_ES: ${PIPER_VOICE_ES:-es_MX-claude-high}
@@ -96,6 +101,7 @@ services:
       args:
         WHISPER_MODEL: ${WHISPER_MODEL:-small}
         WHISPER_COMPUTE_TYPE: ${WHISPER_COMPUTE_TYPE:-int8}
+        HOMEPILOT_BUILD_REVISION: ${HOMEPILOT_BUILD_REVISION:-unknown}
     container_name: homepilot-stt
     environment:
       WHISPER_MODEL: ${WHISPER_MODEL:-small}

@@ -1,4 +1,5 @@
 FROM python:3.12-slim
+ARG HOMEPILOT_BUILD_REVISION=unknown
 
 WORKDIR /app
 
@@ -42,6 +43,10 @@ for language, voice, text in (
 PY
 
 COPY services/tts-piper/app.py ./app.py
+LABEL io.nezu.homepilot.managed="v1" \
+      io.nezu.homepilot.service="tts" \
+      io.nezu.homepilot.role="runtime" \
+      io.nezu.homepilot.revision="${HOMEPILOT_BUILD_REVISION}"
 
 EXPOSE 8088
 

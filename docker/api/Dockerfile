@@ -20,6 +20,8 @@ RUN npm run build
 FROM node:20-slim
 
 WORKDIR /app
+ARG HOMEPILOT_BUILD_REVISION=unknown
+ARG HOMEPILOT_IMAGE_ROLE=runtime
 
 # Install curl for healthchecks and ffmpeg for native camera HLS transcoding
 RUN apt-get update && apt-get install -y curl ffmpeg && rm -rf /var/lib/apt/lists/*
@@ -40,6 +42,10 @@ EXPOSE 3000
 
 # Directory for persistent data
 RUN mkdir -p /app/data
+LABEL io.nezu.homepilot.managed="v1" \
+      io.nezu.homepilot.service="api" \
+      io.nezu.homepilot.role="${HOMEPILOT_IMAGE_ROLE}" \
+      io.nezu.homepilot.revision="${HOMEPILOT_BUILD_REVISION}"
 
 # Start using the compiled entrypoint
 CMD ["node", "dist/main.js"]

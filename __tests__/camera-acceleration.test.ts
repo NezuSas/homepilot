@@ -16,6 +16,7 @@ function selectCameraAcceleration(mode: string): string {
       if [[ "$1" == 600s && "$2" == docker && "$3" == buildx && "$4" == build ]]; then
         [[ " $* " == *' --builder homepilot-builder '* ]] || return 1
         [[ " $* " == *' --load '* ]] || return 1
+        [[ " $* " == *' --build-arg HOMEPILOT_IMAGE_ROLE=probe '* ]] || return 1
         [[ "$MODE" != build_failed ]]
         return
       fi

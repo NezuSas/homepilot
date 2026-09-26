@@ -45,7 +45,10 @@ camera_acceleration_select() {
     return 0
   fi
   # Probe the same runtime Dockerfile as the API, not an unrelated host FFmpeg.
-  if ! timeout 600s docker buildx build --builder "${HOMEPILOT_BUILDER_NAME:?}" --load --quiet --tag "$image" -f docker/api/Dockerfile . >/dev/null 2>&1; then
+  if ! timeout 600s docker buildx build --builder "${HOMEPILOT_BUILDER_NAME:?}" --load --quiet \
+    --build-arg HOMEPILOT_IMAGE_ROLE=probe \
+    --build-arg "HOMEPILOT_BUILD_REVISION=${HOMEPILOT_BUILD_REVISION:-unknown}" \
+    --tag "$image" -f docker/api/Dockerfile . >/dev/null 2>&1; then
     camera_acceleration_reason='no se pudo preparar la imagen de prueba'
     return 0
   fi

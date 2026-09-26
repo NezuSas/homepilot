@@ -11,6 +11,7 @@ const requiredFiles = [
   'docker/ui/nginx.desktop.conf',
   'scripts/homepilot-maintenance.sh',
   'scripts/lib/homepilot-builder.sh',
+  'scripts/lib/homepilot-images.sh',
   'docker/buildkit/homepilot-buildkitd.toml',
   '.dockerignore',
   '.env.office.example',
@@ -36,6 +37,7 @@ if (failures.length === 0) {
   const desktopNginx = read('docker/ui/nginx.desktop.conf');
   const maintenance = read('scripts/homepilot-maintenance.sh');
   const builderHelper = read('scripts/lib/homepilot-builder.sh');
+  const imageHelper = read('scripts/lib/homepilot-images.sh');
   const builderGc = read('docker/buildkit/homepilot-buildkitd.toml');
   const dockerignore = read('.dockerignore');
   const officeEnvironmentTemplate = read('.env.office.example');
@@ -129,6 +131,26 @@ if (failures.length === 0) {
     || maintenance.includes('docker container prune')
     || maintenance.includes('docker network prune')) {
     failures.push('Maintenance must not run global Docker prune commands');
+  }
+  if (!maintenance.includes('homepilot_image_prepare_rollback')
+    || !maintenance.includes('homepilot_image_finalize_rollback')
+    || !maintenance.includes('--gc-homepilot')
+    || !imageHelper.includes('io.nezu.homepilot.managed=v1')
+    || !imageHelper.includes('docker image rm "$image_id"')
+    || /docker (?:system|image|builder|volume) prune/.test(imageHelper)) {
+    failures.push('HomePilot image lifecycle must remain explicit, label-scoped and free of global prune');
+  }
+  for (const [name, content] of [
+    ['API', read('docker/api/Dockerfile')],
+    ['UI', read('docker/ui/Dockerfile')],
+    ['STT', read('services/stt-whisper/Dockerfile')],
+    ['TTS', read('services/tts-piper/Dockerfile')],
+  ]) {
+    if (!content.includes('io.nezu.homepilot.managed="v1"')
+      || !content.includes('io.nezu.homepilot.service=')
+      || !content.includes('io.nezu.homepilot.revision=')) {
+      failures.push(`${name} runtime image must carry versioned HomePilot ownership labels`);
+    }
   }
   for (const entry of [['office nginx', nginx], ['desktop nginx', desktopNginx]]) {
     const name = entry[0];
