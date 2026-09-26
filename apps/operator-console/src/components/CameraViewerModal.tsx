@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Camera, Maximize2, VideoOff, X } from 'lucide-react';
+import { Camera, VideoOff, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import { CameraMediaFrame, type CameraFeedMode } from './CameraMediaFrame';
@@ -53,35 +53,12 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
       closeLabel={t('camera.viewer_label', { name })}
       hideCloseButton
       layerClassName="z-[120] !items-center !overflow-hidden bg-background/95 p-0 backdrop-blur-xl"
-      className="!h-[100dvh] !w-full !max-w-none rounded-none border-border/70 sm:!h-[calc(100dvh-2rem)] sm:!max-w-[min(96vw,1440px)] sm:rounded-modal"
+      className="!h-[100dvh] !w-full !max-w-none !rounded-none !border-0 sm:!h-[calc(100dvh-2rem)] sm:!max-w-[min(96vw,1440px)] sm:!rounded-modal"
       bodyClassName="!flex !flex-1 !overflow-hidden"
-      contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden p-0"
-      footer={(
-        <div className="flex w-full shrink-0 items-center justify-center gap-2 px-4 py-2.5 text-caption text-muted-foreground sm:justify-start sm:px-6 sm:py-3">
-          <Maximize2 className="h-3.5 w-3.5 shrink-0" />
-          <span className="hidden sm:inline">{t('camera.fullscreen_hint')}</span>
-          <span className="sm:hidden">{t('camera.close_viewer')}</span>
-        </div>
-      )}
+      contentClassName="relative flex min-h-0 flex-1 overflow-hidden !p-0"
     >
-      <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-border/60 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <div className="min-w-0">
-              <h2 className="truncate text-section-title font-semibold tracking-tight text-foreground">{name}</h2>
-              {roomName && <p className="truncate text-caption text-muted-foreground">{roomName}</p>}
-            </div>
-            {hasLoaded && !hasError && (
-              <div className="hidden shrink-0 items-center gap-1.5 rounded-pill border border-border/60 bg-muted/60 px-2.5 py-1 text-micro font-semibold uppercase tracking-wide text-foreground sm:flex">
-                <StatusPill variant="danger" dot pulse dotLabel={t('camera.live')} />
-                {t('camera.live')}
-              </div>
-            )}
-          </div>
-          <IconButton icon={X} label={t('camera.close_viewer')} onClick={onClose} variant="ghost" size="lg" className="shrink-0 rounded-pill border border-border/60 bg-muted/60" />
-        </header>
-
-        <div className="relative flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden bg-black">
+      <section className="relative h-full min-h-0 w-full overflow-hidden bg-black">
+        <div className="absolute inset-0 overflow-hidden">
           {!hasLoaded && !hasError && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black text-muted-foreground">
               <div className="grid h-12 w-12 place-items-center rounded-full border border-white/15 bg-white/5">
@@ -91,7 +68,7 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
             </div>
           )}
           {hasError ? (
-            <div className="flex flex-col items-center gap-3 px-6 text-center text-white/70">
+            <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-white/70">
               <div className="grid h-14 w-14 place-items-center rounded-full border border-danger/25 bg-danger/10 text-danger">
                 <VideoOff className="h-7 w-7" />
               </div>
@@ -105,7 +82,7 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
               snapshotUrl={snapshotUrl}
               preferredMode={preferredMode}
               alt={t('camera.feed_alt', { name })}
-              className={cn('h-full w-full object-contain transition-opacity duration-base', hasLoaded ? 'opacity-100' : 'opacity-0')}
+              className={cn('absolute inset-0 h-full w-full object-cover transition-opacity duration-base', hasLoaded ? 'opacity-100' : 'opacity-0')}
               onModeChange={() => {
                 setHasLoaded(false);
                 setHasError(false);
@@ -117,13 +94,25 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
               onFailure={() => setHasError(true)}
             />
           )}
-          {ptzSupported && deviceId && !hasError && (
-            <div className="absolute bottom-3 right-3 rounded-modal border border-border/60 bg-background/85 p-1.5 shadow-depth-2 backdrop-blur sm:bottom-4 sm:right-4 sm:p-2">
-              <CameraPtzControl deviceId={deviceId} />
-            </div>
-          )}
         </div>
-
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/65 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/80 to-transparent" />
+        {hasLoaded && !hasError && (
+          <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-pill border border-white/20 bg-black/60 px-3 py-1.5 text-micro font-semibold uppercase tracking-wide text-white sm:left-5 sm:top-5">
+            <StatusPill variant="danger" dot pulse dotLabel={t('camera.live')} />
+            {t('camera.live')}
+          </div>
+        )}
+        <IconButton icon={X} label={t('camera.close_viewer')} onClick={onClose} variant="ghost" size="lg" className="absolute right-3 top-3 rounded-pill border border-white/20 bg-black/60 text-white hover:bg-black/80 hover:text-white sm:right-5 sm:top-5" />
+        <div className="absolute bottom-4 left-4 min-w-0 max-w-[calc(100%-5rem)] text-white sm:bottom-6 sm:left-6">
+          <h2 className="line-clamp-2 text-section-title font-bold leading-tight drop-shadow">{name}</h2>
+          {roomName && <p className="mt-1 truncate text-caption font-semibold text-white/80">{roomName}</p>}
+        </div>
+        {ptzSupported && deviceId && !hasError && (
+          <div className="absolute bottom-3 right-3 rounded-modal border border-white/20 bg-black/70 p-1.5 text-white backdrop-blur sm:bottom-4 sm:right-4 sm:p-2">
+            <CameraPtzControl deviceId={deviceId} />
+          </div>
+        )}
       </section>
     </Modal>
   );

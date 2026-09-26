@@ -530,6 +530,17 @@ test('Las cámaras cargan el primer fotograma y conservan la tarjeta de imagen d
   expect(cardBox!.height).toBeGreaterThanOrEqual(imageBox!.height - 1);
   expect(titleBox!.y).toBeGreaterThan(imageBox!.y);
   expect(titleBox!.y + titleBox!.height).toBeLessThanOrEqual(imageBox!.y + imageBox!.height + 1);
+  await managedCamera.getByRole('button', { name: /pantalla completa|full screen/i }).click();
+  const desktopViewer = page.getByRole('dialog');
+  await expect(desktopViewer.getByText(/En vivo|Live/i)).toBeVisible();
+  const desktopViewerBox = await desktopViewer.boundingBox();
+  const desktopFeedBox = await desktopViewer.locator('img[alt*="Cámara patio"]').first().boundingBox();
+  expect(desktopViewerBox).not.toBeNull();
+  expect(desktopFeedBox).not.toBeNull();
+  expect(desktopFeedBox!.width).toBeGreaterThanOrEqual(desktopViewerBox!.width - 2);
+  expect(desktopFeedBox!.height).toBeGreaterThanOrEqual(desktopViewerBox!.height - 2);
+  await page.keyboard.press('Escape');
+  await expect(desktopViewer).toHaveCount(0);
 
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
   await expect(page.getByRole('button', { name: /pantalla completa|full screen/i })).toHaveCount(2);
@@ -546,6 +557,17 @@ test('Las cámaras cargan el primer fotograma y conservan la tarjeta de imagen d
   await page.setViewportSize(viewports[0]);
   await page.reload();
   await expect(page.getByRole('button', { name: /pantalla completa|full screen/i })).toHaveCount(2);
+  await page.getByRole('button', { name: /pantalla completa|full screen/i }).first().click();
+  const mobileViewer = page.getByRole('dialog');
+  await expect(mobileViewer.getByText(/En vivo|Live/i)).toBeVisible();
+  const mobileViewerBox = await mobileViewer.boundingBox();
+  const mobileFeedBox = await mobileViewer.locator('img[alt*="Cámara patio"]').first().boundingBox();
+  expect(mobileViewerBox).not.toBeNull();
+  expect(mobileFeedBox).not.toBeNull();
+  expect(mobileFeedBox!.width).toBeGreaterThanOrEqual(mobileViewerBox!.width - 2);
+  expect(mobileFeedBox!.height).toBeGreaterThanOrEqual(mobileViewerBox!.height - 2);
+  await mobileViewer.getByRole('button', { name: /cerrar|close/i }).click();
+  await expect(mobileViewer).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewports[0].width + 1);
 });
 
