@@ -82,6 +82,7 @@ Auth events logged:
 ## 7. Security Acceptance Criteria
 - **AC1**: After the configured failed-login threshold, the same username/source pair receives `429` with `Retry-After`; a successful login clears pending failures.
 - **AC2**: API and UI responses include `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` and `Permissions-Policy` headers.
+- Para respuestas directas, el API es responsable de esas cabeceras y `Cross-Origin-Resource-Policy`. Para respuestas servidas o proxificadas por Nginx, Nginx mantiene una sola copia efectiva de cada una: oculta únicamente las copias del upstream y añade sus propias cabeceras también a SPA, assets y errores del proxy. El API no pierde protección cuando se accede sin Nginx.
 - **AC3**: Unsupported, malformed, signature-mismatched or oversized avatar/background uploads are rejected before being written to disk, and media paths cannot escape the local media directory.
 - **AC4**: Authentication responses use `Cache-Control: no-store`.
 

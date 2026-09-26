@@ -98,6 +98,7 @@ CREATE TABLE directory_sso_used_tokens (
 - El formulario de Directory también puede dirigirse a `/sso/directory`. Nginx traduce explícitamente ese POST a `/api/v1/auth/sso/directory/browser`, preservando el cuerpo; no se añade una ruta de dominio ni se acepta el token en la URL.
 - La entrada prepara la cookie `__Host-hp-directory-sso` HttpOnly/Secure y responde `303 /` como antes.
 - `POST /api/v1/auth/sso/directory/consume-browser` responde `204` sin cuerpo cuando no hay cookie, que es el arranque ordinario. Una cookie presente pero inválida mantiene `401`; en ambos casos el servidor emite la eliminación de la cookie. El cliente no interpreta `204` como JSON ni oculta errores HTTP reales.
+- Los errores de acceso del Directorio conservan sus códigos y estados HTTP: token inválido, expirado, reutilizado o ajeno al hogar (`401`), SSO no configurado (`503`) y handoff inválido (`401`). Cada uno devuelve un mensaje público comprensible sin exponer token, firma, identificadores internos ni detalles criptográficos. La ausencia normal de handoff sigue siendo `204`, no `SSO_HANDOFF_NOT_FOUND`.
 - Compatibilidad: clientes anteriores que esperaban `404` ignoran la respuesta vacía y siguen con login local. Si se revierte solo el backend, el cliente nuevo muestra un error SSO recuperable y conserva login local; el proxy puede revertirse independientemente.
 
 ### 7.3 Elección de algoritmo de firma

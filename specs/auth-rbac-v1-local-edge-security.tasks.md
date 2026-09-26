@@ -9,6 +9,7 @@
 - [x] Primer uso: `SystemRoutes` expone setup-status y bootstrap-admin de forma pública solo mientras no hay usuarios; el perfil de desarrollo `HOMEPILOT_DEV_BOOTSTRAP=true` mantiene `admin/admin` limitado a desarrollo.
 - [x] Consola: `LoginView`, `useSession`, navegación y perfil permiten login local, persistencia del token, logout, identidad del usuario y cambio de contraseña/perfil.
 - [x] Hardening: respuestas de auth sin caché, cabeceras de seguridad, rate limiting y validación de imágenes/medios se mantienen en rutas y servicios dedicados.
+- [x] Responsabilidad de cabeceras: API directo conserva las cinco cabeceras de seguridad; Nginx oculta las copias del upstream y emite una sola copia efectiva en respuestas proxificadas, SPA y assets, en todos los perfiles UI.
 
 ## Evidencia automatizada
 

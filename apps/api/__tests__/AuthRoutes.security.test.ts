@@ -239,6 +239,59 @@ describe('Feature: authentication route resilience contracts', () => {
   });
 });
 describe('Feature: directory SSO response contracts', () => {
+  it.each([
+    ['SSO_TOKEN_INVALID', 401, 'No se pudo validar el acceso desde el Directorio. Solicita uno nuevo.'],
+    ['SSO_TOKEN_EXPIRED', 401, 'El acceso desde el Directorio expiró. Vuelve a iniciarlo.'],
+    ['SSO_TOKEN_REPLAYED', 401, 'Este acceso desde el Directorio ya fue utilizado. Solicita uno nuevo.'],
+    ['SSO_TOKEN_HOME_MISMATCH', 401, 'Este acceso desde el Directorio no corresponde a este hogar.'],
+    ['SSO_NOT_CONFIGURED', 503, 'El acceso desde el Directorio no está disponible en este hogar.'],
+  ] as const)('Scenario: Given %s When exchanging a token Then it returns a safe public message', async (code, status, message) => {
+    const previousEnvironment = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      const routes = new AuthRoutes(new MediaService(), new LoginAttemptRateLimiter());
+      const request = createRequest();
+      request._fastifyParsedBody = JSON.stringify({ token: 'test-token' });
+      const response = new MockResponse();
+      const container = {
+        services: { directorySsoService: { login: jest.fn().mockRejectedValue(new DirectorySsoError(code)) } },
+      } as unknown as BootstrapContainer;
+
+      await routes.handle(request, response as unknown as http.ServerResponse, '/api/v1/auth/sso/directory', 'POST', container);
+
+      expect(response.writeHead).toHaveBeenCalledWith(status, expect.any(Object));
+      const body = JSON.parse(response.end.mock.calls[0][0]) as { error: { code: string; message: string } };
+      expect(body.error).toEqual(expect.objectContaining({ code, message }));
+      expect(body.error.message).not.toContain('Error interno');
+    } finally {
+      process.env.NODE_ENV = previousEnvironment;
+    }
+  });
+
+  it('Scenario: Given an invalid browser handoff When consuming it Then it returns a safe 401 without exposing cookie data', async () => {
+    const previousEnvironment = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      const routes = new AuthRoutes(new MediaService(), new LoginAttemptRateLimiter());
+      const request = createRequest();
+      request.headers.cookie = '__Host-hp-directory-sso=broken-cookie-data';
+      const response = new MockResponse();
+
+      await routes.handle(request, response as unknown as http.ServerResponse, '/api/v1/auth/sso/directory/consume-browser', 'POST', {} as BootstrapContainer);
+
+      expect(response.writeHead).toHaveBeenCalledWith(401, expect.any(Object));
+      const body = JSON.parse(response.end.mock.calls[0][0]) as { error: { code: string; message: string } };
+      expect(body.error).toEqual(expect.objectContaining({
+        code: 'SSO_HANDOFF_INVALID',
+        message: 'No se pudo completar el acceso desde el Directorio. Vuelve a iniciarlo.',
+      }));
+      expect(response.headers.get('Set-Cookie')).toContain('Max-Age=0');
+      expect(response.end.mock.calls[0][0]).not.toContain('broken-cookie-data');
+    } finally {
+      process.env.NODE_ENV = previousEnvironment;
+    }
+  });
+
   it('Scenario: Given an unlinked or linked directory token When it is exchanged Then only linked identities receive session material', async () => {
     const routes = new AuthRoutes(new MediaService(), new LoginAttemptRateLimiter());
     const unlinkedRequest = createRequest();

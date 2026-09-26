@@ -12,6 +12,12 @@ import { ActivityType } from '../../../packages/devices/domain/repositories/Acti
 const SAFE_MESSAGES: Record<string, string> = {
   'AUTH_FAILED': 'Credenciales inválidas o cuenta desactivada.',
   'AUTH_RATE_LIMITED': 'Demasiados intentos. Espere unos minutos antes de volver a intentarlo.',
+  'SSO_TOKEN_INVALID': 'No se pudo validar el acceso desde el Directorio. Solicita uno nuevo.',
+  'SSO_TOKEN_EXPIRED': 'El acceso desde el Directorio expiró. Vuelve a iniciarlo.',
+  'SSO_TOKEN_REPLAYED': 'Este acceso desde el Directorio ya fue utilizado. Solicita uno nuevo.',
+  'SSO_TOKEN_HOME_MISMATCH': 'Este acceso desde el Directorio no corresponde a este hogar.',
+  'SSO_NOT_CONFIGURED': 'El acceso desde el Directorio no está disponible en este hogar.',
+  'SSO_HANDOFF_INVALID': 'No se pudo completar el acceso desde el Directorio. Vuelve a iniciarlo.',
   'UNAUTHORIZED': 'Sesión inválida o expirada.',
   'FORBIDDEN': 'No tiene permisos para realizar esta acción.',
   'NOT_FOUND': 'El recurso solicitado no existe.',
