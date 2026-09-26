@@ -38,6 +38,7 @@ export const ManagedDeviceTile: React.FC<ManagedDeviceTileProps> = ({
       className={cn(
         'flex min-w-0 flex-col gap-2',
         kind === 'cover' && 'w-full max-w-curtain-manager justify-self-start',
+        kind === 'camera' && 'w-full max-w-[25rem] justify-self-start',
       )}
     >
       {kind === 'camera' ? (

@@ -20,7 +20,6 @@ interface SectionCardContentProps {
   icon?: SectionCardIcon;
   isAssigned?: boolean;
   isActive?: boolean;
-  deviceId?: string;
   device?: SnapshotDevice;
   isPreview?: boolean;
   isEditorPreview?: boolean;
@@ -42,7 +41,6 @@ export function SectionCardContent({
   icon,
   isAssigned,
   isActive,
-  deviceId,
   device,
   isPreview,
   isEditorPreview,
@@ -59,7 +57,7 @@ export function SectionCardContent({
   const isSmall = span === 'small';
 
   if (isClockKind(normalized)) return <SectionClockPreview kind={normalized} title={title} />;
-  if (normalized === 'camera') return <SectionCameraPreview deviceId={deviceId} title={title} subtitle={subtitle} />;
+  if (normalized === 'camera') return <SectionCameraPreview device={device} title={title} subtitle={subtitle} />;
   if (normalized === 'sensor') return <SensorMetricCard device={device} title={title} isPreview={isPreview} />;
   if (normalized === 'media') return <MediaPlayerCard device={device} title={title} isPreview={isPreview} isProcessing={isMediaProcessing} onCommand={onMediaCommand} compact={isSmall} isEditing={isEditorPreview} />;
   if (normalized === 'cover') {

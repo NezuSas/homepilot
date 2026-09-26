@@ -285,7 +285,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         span === 'medium' && !isCoverPreview && "h-section-card-md w-full max-w-form-md",
         span === 'medium' && isCoverPreview && "h-curtain-card w-full max-w-form-md justify-self-center",
         span === 'full' && "w-full",
-        isCameraPreview ? 'h-60' : isClockPreview ? 'h-56' : isRoomPreview ? 'h-52' : isScenePreview ? 'h-44' : isCoverPreview && span === 'full' ? 'h-curtain-card-lg' : normalizedPreviewKind === 'media' ? 'h-media-card-preview' : span === 'full' ? 'h-40' : ''
+        isCameraPreview ? 'min-h-60' : isClockPreview ? 'h-56' : isRoomPreview ? 'h-52' : isScenePreview ? 'h-44' : isCoverPreview && span === 'full' ? 'h-curtain-card-lg' : normalizedPreviewKind === 'media' ? 'h-media-card-preview' : span === 'full' ? 'h-40' : ''
       )}>
         <SectionCardContent
           kind={kind}
@@ -295,7 +295,6 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           icon={iconOverride ?? getDefaultIcon(kind)}
           isAssigned={Boolean(deviceIdOverride)}
           isActive={previewDevice ? isDeviceActive(previewDevice) : isLightPreview}
-          deviceId={deviceIdOverride}
           device={previewDevice}
           isPreview={true}
           roomDeviceCount={roomDevices.length}

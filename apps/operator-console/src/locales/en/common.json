@@ -1023,7 +1023,6 @@
   },
   "camera": {
     "live": "Live",
-    "snapshot": "Updated image",
     "connecting": "Connecting camera",
     "unavailable": "Camera unavailable",
     "connection_error": "Video could not be loaded",

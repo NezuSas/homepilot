@@ -1023,7 +1023,6 @@
   },
   "camera": {
     "live": "En vivo",
-    "snapshot": "Imagen actualizada",
     "connecting": "Conectando cámara",
     "unavailable": "Cámara no disponible",
     "connection_error": "No se pudo cargar el video",

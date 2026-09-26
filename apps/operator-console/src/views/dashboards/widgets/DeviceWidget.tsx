@@ -19,6 +19,7 @@ const API = `${API_BASE_URL}/api/v1`;
 export function DeviceWidget({ config, isEditing, onConfigure }: { config: DashboardWidgetConfig; isEditing: boolean; onConfigure?: () => void }) {
   const { t } = useTranslation();
   const devices = useDeviceSnapshotStore((state) => state.devices);
+  const roomsByHome = useDeviceSnapshotStore((state) => state.roomsByHome);
   const upsertDevice = useDeviceSnapshotStore((state) => state.upsertDevice);
   const device = devices.find((candidate) => candidate.id === config.binding.entityId);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -38,11 +39,10 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
   }
 
   if (device.type === 'camera' || device.semanticType === 'camera') {
-    return (
-      <div className="h-full w-full overflow-hidden rounded-panel">
-        <CameraDeviceTile device={device} />
-      </div>
-    );
+    const roomName = device.roomId
+      ? (roomsByHome[device.homeId] ?? []).find((room) => room.id === device.roomId)?.name
+      : undefined;
+    return <CameraDeviceTile device={device} title={config.appearance.title} roomName={roomName} dashboard />;
   }
 
   const isOn = isDeviceActive(device);

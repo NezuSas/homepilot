@@ -35,3 +35,5 @@
 - [x] AC30: Balanced light and dark dashboard veils so both themes preserve the selected image rather than replacing it with an opaque theme-colored surface; theme-specific overlays now only protect operational contrast.
 - [x] AC31: Removed standalone Room and Scene catalog types and hid the redundant Action button option while keeping persisted action cards compatible. Light/activator catalog previews resolve their localized size label correctly.
 - [x] AC32: Added cache policies for versioned bundles, named console visual assets, and private local media. Home imagery is decoded asynchronously and critical above-the-fold imagery receives high fetch priority.
+
+- [x] AC35: Unificar las tarjetas de cámara del Dashboard y Gestor mediante `CameraDeviceTile`; mostrar carga inicial hasta el primer fotograma, retirar «Imagen actualizada» y sacar Ampliar de la imagen. Cubrir los tres contextos con pruebas responsive.

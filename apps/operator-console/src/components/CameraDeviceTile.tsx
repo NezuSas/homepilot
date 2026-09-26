@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Camera, Maximize2, MoveDiagonal, RefreshCw, VideoOff } from 'lucide-react';
+import { Loader2, Maximize2, MoveDiagonal, RefreshCw, VideoOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
@@ -17,6 +17,8 @@ interface CameraDeviceTileProps {
   device: SnapshotDevice;
   roomName?: string;
   isDuplicateName?: boolean;
+  title?: string;
+  dashboard?: boolean;
 }
 
 interface CameraMediaSession {
@@ -37,24 +39,32 @@ function isCameraMediaSession(value: unknown): value is CameraMediaSession {
     && (session.hlsPath === undefined || typeof session.hlsPath === 'string');
 }
 
-export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, roomName, isDuplicateName }) => {
+export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, roomName, isDuplicateName, title, dashboard = false }) => {
   const { t } = useTranslation();
   const reportedUnavailable = isDeviceUnavailable(device);
   const [media, setMedia] = useState<CameraMediaSession | null>(null);
   const mediaRef = useRef<CameraMediaSession | null>(null);
+  const mediaDeviceIdRef = useRef(device.id);
   const [isConnecting, setIsConnecting] = useState(!reportedUnavailable);
+  const [hasRenderedFrame, setHasRenderedFrame] = useState(false);
   const [hasFeedError, setHasFeedError] = useState(false);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [viewerMedia, setViewerMedia] = useState<CameraMediaSession | null>(null);
   const viewerSessionControllerRef = useRef<AbortController | null>(null);
   const [retryVersion, setRetryVersion] = useState(0);
   const [feedMode, setFeedMode] = useState<CameraFeedMode>(device.integrationSource === 'native-camera' ? 'snapshot' : 'stream');
-  const displayName = isDuplicateName
+  const displayName = title?.trim() || (isDuplicateName
     ? disambiguate(humanize(device.id, device.name), roomName)
-    : humanize(device.id, device.name);
+    : humanize(device.id, device.name));
 
   useEffect(() => {
     const controller = new AbortController();
+    if (mediaDeviceIdRef.current !== device.id) {
+      mediaDeviceIdRef.current = device.id;
+      mediaRef.current = null;
+      setMedia(null);
+      setHasRenderedFrame(false);
+    }
     const isInitialLoad = mediaRef.current === null;
     let sessionReady = false;
     if (isInitialLoad) {
@@ -148,6 +158,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
     setHasFeedError(false);
   }, []);
   const handleFeedReady = useCallback(() => {
+    setHasRenderedFrame(true);
     setIsConnecting(false);
     setHasFeedError(false);
   }, []);
@@ -173,18 +184,16 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
       ? t('camera.connection_error')
       : isConnecting || !media
         ? t('camera.connecting')
-        : t(device.integrationSource === 'native-camera' ? 'camera.snapshot' : 'camera.live');
+        : '';
 
   return (
     <>
       <DeviceTileShell
         active={Boolean(media) && !unavailable && !hasFeedError}
-        interactive={Boolean(media) && !unavailable && !hasFeedError}
-        onClick={openViewer}
-        aria-label={t('camera.open_viewer', { name: displayName })}
+        aria-busy={isConnecting && !hasRenderedFrame || undefined}
         className="min-h-0 p-0"
       >
-        <div className="relative aspect-video w-full overflow-hidden bg-muted/70">
+        <div className={cn('relative aspect-video w-full overflow-hidden bg-muted/70', dashboard && 'max-h-[22rem]')}>
           {media && !hasFeedError && !unavailable && (
             <CameraMediaFrame
               active={!isViewerOpen}
@@ -194,41 +203,17 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
               preferredMode={feedMode}
               snapshotIntervalMs={15_000}
               alt={t('camera.feed_alt', { name: displayName })}
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+              className="absolute inset-0 block h-full w-full object-cover"
               onModeChange={handleFeedModeChange}
               onReady={handleFeedReady}
               onFailure={handleFeedFailure}
             />
           )}
-          {(!media || hasFeedError || unavailable) && (
-            <div className="absolute inset-0 flex h-full w-full flex-col items-center justify-center gap-2.5 bg-muted/70 text-muted-foreground pointer-events-none">
-              <div className={cn(
-                'grid h-11 w-11 place-items-center rounded-full border',
-                isConnecting ? 'border-border/50 bg-background/40' : 'border-danger/25 bg-danger/10 text-danger'
-              )}>
-                {isConnecting ? <Camera className="h-5 w-5 animate-pulse" /> : <VideoOff className="h-5 w-5" />}
-              </div>
-              <span className="text-caption font-medium">{statusLabel}</span>
-            </div>
-          )}
-
-          {/* Bottom vignette: keeps the maximize affordance legible against
-              bright/high-contrast footage without a solid backdrop that
-              would hide the feed. */}
-          {isLive && (
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/45 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
-          )}
-
-          {isLive && (
-            <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-pill border border-white/15 bg-black/60 px-2.5 py-1 text-micro font-semibold uppercase tracking-wide text-white backdrop-blur-md">
-              <StatusPill variant={device.integrationSource === 'native-camera' ? 'primary' : 'danger'} dot pulse={device.integrationSource !== 'native-camera'} dotLabel={statusLabel} />
-              {statusLabel}
-            </div>
-          )}
-
-          {(unavailable || hasFeedError) && (
-            <div className="absolute left-3 top-3 flex items-center gap-2 rounded-pill border border-white/15 bg-black/65 px-2.5 py-1 text-micro font-semibold text-white backdrop-blur-md">
-              <span className={cn('h-1.5 w-1.5 rounded-full bg-danger')} />
+          {(isConnecting && !hasRenderedFrame || !media || hasFeedError || unavailable) && (
+            <div className="absolute inset-0 flex h-full w-full flex-col items-center justify-center gap-2.5 bg-muted text-muted-foreground" role="status" aria-live="polite">
+              {isConnecting && !hasFeedError && !unavailable
+                ? <Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden="true" />
+                : <VideoOff className="h-6 w-6 text-danger" aria-hidden="true" />}
               {statusLabel}
             </div>
           )}
@@ -239,11 +224,6 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
             </div>
           )}
 
-          {media && !unavailable && !hasFeedError && (
-            <span className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-pill border border-white/15 bg-black/65 text-white backdrop-blur-md transition-transform duration-200 group-hover:scale-110">
-              <Maximize2 className="h-4 w-4" />
-            </span>
-          )}
         </div>
 
         <div className="flex items-center justify-between gap-3 border-t border-border/50 p-3 sm:p-4">
@@ -254,6 +234,11 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
             </div>
             <span className="mt-1 block truncate text-caption text-muted-foreground">{roomName || t('common.unassigned')}</span>
           </div>
+          {isLive && (
+            <Button type="button" size="icon" variant="ghost" onClick={(event) => { event.stopPropagation(); openViewer(); }} aria-label={t('camera.open_viewer', { name: displayName })} className="h-10 w-10 shrink-0 rounded-control text-muted-foreground hover:text-primary">
+              <Maximize2 className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          )}
           {(hasFeedError || unavailable) && (
             <Button size="icon" variant="outline" onClick={retry} aria-label={t('camera.retry')} className="shrink-0 rounded-pill">
               <RefreshCw className="h-4 w-4" />

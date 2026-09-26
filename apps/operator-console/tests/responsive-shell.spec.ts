@@ -462,6 +462,87 @@ test('Feature: Native camera setup — Scenario: An owner opens discovery and ma
   await expect(page.getByRole('textbox', { name: /Camera name|Nombre de la cámara/i })).toBeVisible();
 });
 
+test('Las cámaras cargan el primer fotograma y comparten tarjeta sin controles sobre la imagen', async ({ page }) => {
+  await page.setViewportSize(viewports[2]);
+  await prepareAuthenticatedDashboard(page);
+  const camera = {
+    id: 'camera-patio', homeId: 'responsive-home', roomId: 'responsive-room',
+    name: 'Cámara patio', type: 'camera', semanticType: 'camera',
+    integrationSource: 'native-camera', status: 'ASSIGNED', lastKnownState: null,
+  };
+  const dashboard = {
+    id: 'responsive-dashboard', ownerId: dashboardUser.id, title: 'Hogar de prueba',
+    visibility: { roles: [], users: [], homes: [] },
+    tabs: [{
+      id: 'responsive-tab', title: 'Principal', isDefault: true,
+      widgets: [
+        {
+          id: 'camera-section', type: 'section',
+          config: {
+            layout: { x: 0, y: 0, w: 3, h: 4, span: 3 },
+            binding: { entityId: 'camera-section', entityType: 'system', entityName: 'Cámaras' },
+            visibility: { rules: [], defaultState: 'show' },
+            appearance: { title: 'Cámaras', showTitle: true },
+            extra: { cards: [{ id: 'camera-card', kind: 'camera', title: 'Cámara patio', entityId: camera.id, span: 'full', icon: 'Camera' }] },
+          },
+        },
+        {
+          id: 'camera-widget', type: 'device_control',
+          config: {
+            layout: { x: 0, y: 4, w: 3, h: 4, span: 3 },
+            binding: { entityId: camera.id, entityType: 'device', entityName: camera.name },
+            visibility: { rules: [], defaultState: 'show' },
+            appearance: { title: camera.name },
+          },
+        },
+      ],
+    }],
+  };
+  await page.route('**/api/v1/devices', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([camera]) });
+  });
+  await page.route('**/api/v1/rooms', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([{ id: 'responsive-room', homeId: camera.homeId, name: 'Patio' }]) });
+  });
+  await page.route('**/api/v1/dashboards', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([dashboard]) });
+  });
+  await page.route('**/api/v1/devices/camera-patio/camera/session*', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ snapshotPath: '/camera-preview.png', streamPath: '/camera-stream' }) });
+  });
+  await page.route('**/camera-preview.png*', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await route.fulfill({ contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==', 'base64') });
+  });
+
+  await page.goto('/system/devices');
+  const managedCamera = page.getByRole('article').filter({ hasText: camera.name });
+  await expect(managedCamera.getByRole('status')).toBeVisible();
+  await expect(managedCamera.getByRole('status')).toHaveCount(0);
+  await expect(managedCamera.getByRole('button', { name: /pantalla completa|full screen/i })).toBeVisible();
+  await expect(managedCamera).not.toContainText(/Imagen actualizada|Image updated/i);
+  const imageBox = await managedCamera.locator('img').first().boundingBox();
+  const expandBox = await managedCamera.getByRole('button', { name: /pantalla completa|full screen/i }).boundingBox();
+  expect(imageBox).not.toBeNull();
+  expect(expandBox).not.toBeNull();
+  expect(expandBox!.y).toBeGreaterThanOrEqual(imageBox!.y + imageBox!.height - 1);
+
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  await expect(page.getByRole('button', { name: /pantalla completa|full screen/i })).toHaveCount(2);
+  await expect(page.getByText(/Imagen actualizada|Image updated/i)).toHaveCount(0);
+  const dashboardFrames = page.locator('img[alt*="Cámara patio"]');
+  await expect(dashboardFrames).toHaveCount(2);
+  for (const frame of await dashboardFrames.all()) {
+    const box = await frame.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.height).toBeLessThanOrEqual(353);
+  }
+  await page.setViewportSize(viewports[0]);
+  await page.reload();
+  await expect(page.getByRole('button', { name: /pantalla completa|full screen/i })).toHaveCount(2);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewports[0].width + 1);
+});
+
 for (const viewport of viewports) {
   test(`keeps the login shell responsive on ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize(viewport);

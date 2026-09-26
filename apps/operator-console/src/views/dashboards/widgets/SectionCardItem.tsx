@@ -74,7 +74,6 @@ export function SectionCardItem({
   const subtitle = card.entityName || card.description;
   const isCamera = normalizeKind(card.kind) === 'camera';
   const isClock = isClockKind(card.kind);
-  const cameraDeviceId = isCamera && card.entityId ? card.entityId : undefined;
   const normalizedKind = normalizeKind(card.kind);
   const isCover = normalizedKind === 'cover';
   const isTileKind = normalizedKind === 'device' || normalizedKind === 'light' || normalizedKind === 'action';
@@ -168,7 +167,6 @@ export function SectionCardItem({
         icon={card.icon}
         isAssigned={Boolean(card.entityId)}
         isActive={tileIsActive}
-        deviceId={cameraDeviceId}
         device={assignedDevice}
         isEditorPreview={isEditing}
         isMediaProcessing={processingCardId === card.id}
