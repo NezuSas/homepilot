@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/lib/camera-acceleration.sh"
 
 profile="bridge_ha"
 compose_file="docker-compose.office.yml"
@@ -313,6 +314,19 @@ clean_docker_residue() {
     ok "Solo los logs de contenedores HomePilot fueron truncados."
   fi
 }
+select_camera_acceleration_for_deploy() {
+  section 'Aceleración HLS de cámaras'
+  if [[ "$compose_explicit" == true ]]; then
+    info 'Compose personalizado: se conserva sin overrides automáticos de cámara.'
+    return
+  fi
+  camera_acceleration_select
+  if [[ -n "$camera_acceleration_overlay" ]]; then
+    compose_files+=("$camera_acceleration_overlay")
+  fi
+  camera_acceleration_report
+}
+
 deploy_homepilot() {
   section "Despliegue HomePilot"
   info "Compose: ${compose_files[*]}"
@@ -334,6 +348,24 @@ deploy_homepilot() {
     if COMPOSE_BAKE=false docker compose "${compose_args[@]}" up -d --build --remove-orphans; then
       ok "HomePilot construido e iniciado."
       break
+    fi
+
+    if [[ -n "${camera_acceleration_overlay:-}" ]]; then
+      warn 'El inicio con VAAPI falló; se reintentará inmediatamente con libx264.'
+      unset "compose_files[$((${#compose_files[@]} - 1))]"
+      camera_acceleration_overlay=''
+      camera_acceleration_encoder='libx264'
+      camera_acceleration_fallback='software (libx264)'
+      camera_acceleration_reason='falló el inicio con el override VAAPI'
+      camera_acceleration_report
+      compose_args=()
+      for file in "${compose_files[@]}"; do
+        compose_args+=( -f "$file" )
+      done
+      if COMPOSE_BAKE=false docker compose "${compose_args[@]}" up -d --build --remove-orphans; then
+        ok 'HomePilot construido e iniciado con codificación por software.'
+        break
+      fi
     fi
 
     if (( attempt == max_attempts )); then
@@ -402,6 +434,8 @@ validate_profile_environment
 show_disk
 
 if [[ "$status_only" == true ]]; then
+  section 'Aceleración HLS de cámaras'
+  camera_acceleration_report_running
   verify_runtime
   exit 0
 fi
@@ -418,6 +452,7 @@ fi
 
 if [[ "$deploy" == true ]]; then
   if confirm "Limpiar, construir e iniciar HomePilot ahora?"; then
+    select_camera_acceleration_for_deploy
     clean_docker_residue
     deploy_homepilot
     clean_docker_residue

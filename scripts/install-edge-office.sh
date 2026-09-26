@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/lib/camera-acceleration.sh"
 
 readonly ENV_FILE=".env"
 profile=""
@@ -139,8 +140,8 @@ Opciones:
                        Mantiene HACS y SonoffLAN sin reconstruir ni reiniciar HomePilot.
                        Detecta el entorno del técnico y usa el Home Assistant existente.
   --api-url URL        Configuracion avanzada para una API en otro origen.
-  --cloud-url URL      URL p�blica de HomePilot Cloud para emparejar esta MiniPC.
-  --pairing-code CODE  C�digo temporal mostrado por el propietario.
+  --cloud-url URL      URL pública de HomePilot Cloud para emparejar esta MiniPC.
+  --pairing-code CODE  Código temporal mostrado por el propietario.
                        Por defecto se deja vacia y UI/API usan el mismo dominio.
   --yes                No pide confirmacion para --clean o --start.
   --help               Muestra esta ayuda.
@@ -741,6 +742,8 @@ info "Directorio de instalación: $(pwd)"
 info "Compose: $compose_file · Home Assistant: $ha_management_label"
 
 if [[ "$status_only" == true ]]; then
+  section 'Aceleración HLS de cámaras'
+  camera_acceleration_report_running
   show_runtime_status
   show_home_assistant_community_status
   if (( runtime_failures > 0 )); then
@@ -829,11 +832,20 @@ fi
 mkdir -p data backups
 if [[ -n "$cloud_url" || -n "$pairing_code" ]]; then
   [[ -n "$cloud_url" && -n "$pairing_code" ]] || fail "Usa --cloud-url y --pairing-code juntos."
-  command -v node >/dev/null 2>&1 || fail "Node.js es necesario para reclamar el c�digo de HomePilot Cloud."
-  node scripts/claim-cloud-pairing.mjs "$cloud_url" "$pairing_code" || fail "No se pudo reclamar el c�digo de emparejamiento."
-  ok "HomePilot Cloud qued� configurado sin variables .env."
+  command -v node >/dev/null 2>&1 || fail "Node.js es necesario para reclamar el código de HomePilot Cloud."
+  node scripts/claim-cloud-pairing.mjs "$cloud_url" "$pairing_code" || fail "No se pudo reclamar el código de emparejamiento."
+  ok "HomePilot Cloud quedó configurado sin variables .env."
 fi
-docker compose -f "$compose_file" config --quiet
+camera_compose_args=(-f "$compose_file")
+if [[ "$start" == true ]]; then
+  section 'Aceleración HLS de cámaras'
+  camera_acceleration_select
+  if [[ -n "$camera_acceleration_overlay" ]]; then
+    camera_compose_args+=(-f "$camera_acceleration_overlay")
+  fi
+  camera_acceleration_report
+fi
+docker compose "${camera_compose_args[@]}" config --quiet
 if [[ "$profile" == ha_companion ]]; then
   ok "Compose companion válido: administra Home Assistant junto a HomePilot."
 else
@@ -843,8 +855,20 @@ fi
 if [[ "$start" == true ]]; then
   section "Inicio de HomePilot"
   if confirm "Se construiran e iniciaran los servicios HomePilot de este compose. Continuar?"; then
-    docker compose -f "$compose_file" up --build -d
-    docker compose -f "$compose_file" ps
+    if ! docker compose "${camera_compose_args[@]}" up --build -d; then
+      if [[ -z "$camera_acceleration_overlay" ]]; then
+        fail 'No se pudo iniciar HomePilot.'
+      fi
+      warn 'El inicio con VAAPI falló; se reintentará con libx264.'
+      camera_compose_args=(-f "$compose_file")
+      camera_acceleration_overlay=''
+      camera_acceleration_encoder='libx264'
+      camera_acceleration_fallback='software (libx264)'
+      camera_acceleration_reason='falló el inicio con el override VAAPI'
+      camera_acceleration_report
+      docker compose "${camera_compose_args[@]}" up --build -d
+    fi
+    docker compose "${camera_compose_args[@]}" ps
     if ! wait_for_runtime_ready; then
       startup_failed=true
     fi
@@ -868,7 +892,7 @@ else
   printf '%b\n' "${BOLD}  Home Assistant${NC}     ${DIM}(no requerido por native_only)${NC}"
 fi
 printf '%b\n' "${BOLD}  Compose${NC}            ${compose_file} ${DIM}(${profile})${NC}"
-printf '%b\n' "${DIM}  Inicio manual: docker compose -f ${compose_file} up --build -d${NC}"
+printf '%b\n' "${DIM}  Despliegues siguientes: bash scripts/homepilot-maintenance.sh --deploy (selecciona aceleración automáticamente)${NC}"
 divider
 
 if [[ "$start" == true && ( "$startup_failed" == true || "$runtime_failures" -gt 0 ) ]]; then
