@@ -21,8 +21,12 @@ function runBuilder(mode: string, action = 'homepilot_builder_ensure') {
       fi
       if [[ "$1" == buildx && "$2" == version ]]; then return 0; fi
       if [[ "$1" == buildx && "$2" == create ]]; then
-        [[ " $* " == *' --name homepilot-builder '* && " $* " == *' --driver docker-container '* && " $* " == *' --driver-opt default-load=true '* ]] || return 1
+        [[ " $* " == *' --name homepilot-builder '* && " $* " == *' --driver docker-container '* && " $* " == *' --driver-opt default-load=true '* && " $* " == *' --buildkitd-config '* ]] || return 1
         created=true
+        return 0
+      fi
+      if [[ "$1" == exec && "$2" == buildx_buildkit_homepilot-builder0 ]]; then
+        if [[ "$MODE" == old_gc ]]; then printf '%s\\n' '[worker.oci]'; else cat "$HOMEPILOT_BUILDKIT_CONFIG"; fi
         return 0
       fi
       if [[ "$1" == buildx && "$2" == inspect ]]; then
@@ -40,7 +44,11 @@ function runBuilder(mode: string, action = 'homepilot_builder_ensure') {
       fi
       if [[ "$1" == buildx && "$2" == du ]]; then
         [[ "$MODE" != stopped ]] || return 2
-        printf 'Shared: 1GB\\nPrivate: 2GB\\nReclaimable: 2GB\\nTotal: 3GB\\n'
+        if [[ "$MODE" == cache_large ]]; then
+          printf 'Shared: 1GB\\nPrivate: 11GB\\nReclaimable: 12GB\\nTotal: 12GB\\n'
+        else
+          printf 'Shared: 1GB\\nPrivate: 2GB\\nReclaimable: 2GB\\nTotal: 3GB\\n'
+        fi
         return 0
       fi
       return 1
@@ -69,11 +77,18 @@ describe('dedicated HomePilot builder', () => {
     expect(result.stdout).toContain('Se reutiliza');
   });
 
-  it.each(['wrong_driver', 'no_load', 'old_compose'])('fails closed for %s', (mode) => {
+  it.each(['wrong_driver', 'no_load', 'old_compose', 'old_gc'])('fails closed for %s', (mode) => {
     const result = runBuilder(mode);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('FAIL');
     expect(result.stdout).not.toContain('CREATED=true');
+  });
+
+  it('does not recreate or delete an existing builder with an old GC policy', () => {
+    const result = runBuilder('old_gc');
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('No se modifica ni se reconstruye automáticamente');
+    expect(result.stdout).toContain('Se reutiliza');
   });
 
   it('reports isolated cache without claiming all bytes can be freed', () => {
@@ -81,6 +96,8 @@ describe('dedicated HomePilot builder', () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('Driver: docker-container');
     expect(result.stdout).toContain('Reclaimable: 2GB');
+    expect(result.stdout).toContain('Política GC de HomePilot verificada');
+    expect(result.stdout).toContain('buildx_buildkit_homepilot-builder0_state');
     expect(result.stdout).toContain('no espacio íntegramente liberable');
     expect(result.stdout).toContain('CREATED=false');
   });
@@ -88,8 +105,24 @@ describe('dedicated HomePilot builder', () => {
   it('does not bootstrap a stopped builder just to report status', () => {
     const result = runBuilder('stopped', 'homepilot_builder_report');
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain('Caché: no consultada');
+    expect(result.stdout).toContain('caché no verificables');
     expect(result.stdout).toContain('CREATED=false');
+  });
+
+  it('warns when builder cache exceeds the configured maximum', () => {
+    const result = runBuilder('cache_large', 'homepilot_builder_report');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('supera 11GB');
+  });
+
+  it('configures ordered GC policies without pruning images or volumes', () => {
+    const config = readFileSync('docker/buildkit/homepilot-buildkitd.toml', 'utf8');
+    expect(config).toMatch(/\[worker\.oci\]\s+gc = true/);
+    expect(config.match(/\[\[worker\.oci\.gcpolicy\]\]/g)).toHaveLength(4);
+    expect(config).toContain('reservedSpace = "8GB"');
+    expect(config).toContain('maxUsedSpace = "11GB"');
+    expect(config).toContain('minFreeSpace = "25GB"');
+    expect(config).toContain('keepDuration = "720h"');
   });
 
   it('routes Compose and the camera probe explicitly and contains no prune path', () => {

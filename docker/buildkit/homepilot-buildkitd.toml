@@ -1,0 +1,32 @@
+# HomePilot appliance GC policy v1. Applies only to homepilot-builder.
+# Calibrated against a ~100 GB appliance and a 10.07 GB first-build cache.
+# BuildKit GC is periodic and these are targets, not a hard disk quota.
+[worker.oci]
+  gc = true
+
+  # Drop only old local contexts/cache mounts first; do not sacrifice fresh
+  # API/UI/STT/TTS layers to keep copies of the build context.
+  [[worker.oci.gcpolicy]]
+    filters = ["type==source.local", "type==exec.cachemount", "type==source.git.checkout"]
+    keepDuration = "48h"
+    maxUsedSpace = "1GB"
+
+  # Prefer cache untouched for 30 days when pressure allows it.
+  [[worker.oci.gcpolicy]]
+    keepDuration = "720h"
+    reservedSpace = "8GB"
+    maxUsedSpace = "11GB"
+    minFreeSpace = "25GB"
+
+  # Under pressure, unshared records may be collected even when recent.
+  [[worker.oci.gcpolicy]]
+    reservedSpace = "8GB"
+    maxUsedSpace = "11GB"
+    minFreeSpace = "25GB"
+
+  # Last resort: shared/internal cache records, never runtime images or data.
+  [[worker.oci.gcpolicy]]
+    all = true
+    reservedSpace = "8GB"
+    maxUsedSpace = "11GB"
+    minFreeSpace = "25GB"

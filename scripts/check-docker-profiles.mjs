@@ -10,6 +10,8 @@ const requiredFiles = [
   'docker/ui/nginx.conf',
   'docker/ui/nginx.desktop.conf',
   'scripts/homepilot-maintenance.sh',
+  'scripts/lib/homepilot-builder.sh',
+  'docker/buildkit/homepilot-buildkitd.toml',
   '.dockerignore',
   '.env.office.example',
   '.env.native.example',
@@ -33,6 +35,8 @@ if (failures.length === 0) {
   const nginx = read('docker/ui/nginx.conf');
   const desktopNginx = read('docker/ui/nginx.desktop.conf');
   const maintenance = read('scripts/homepilot-maintenance.sh');
+  const builderHelper = read('scripts/lib/homepilot-builder.sh');
+  const builderGc = read('docker/buildkit/homepilot-buildkitd.toml');
   const dockerignore = read('.dockerignore');
   const officeEnvironmentTemplate = read('.env.office.example');
   const nativeEnvironmentTemplate = read('.env.native.example');
@@ -112,6 +116,13 @@ if (failures.length === 0) {
     || !maintenance.includes('docker compose "${compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME"')
     || !maintenance.includes('docker compose "${compose_args[@]}" up -d --no-build --remove-orphans')) {
     failures.push('Maintenance deploy must select the Docker Desktop overlay, build with the dedicated builder, then start without rebuilding');
+  }
+  if (!builderHelper.includes('--buildkitd-config "$HOMEPILOT_BUILDKIT_CONFIG"')
+    || !builderHelper.includes('homepilot_builder_policy_matches')
+    || !builderGc.includes('reservedSpace = "8GB"')
+    || !builderGc.includes('maxUsedSpace = "11GB"')
+    || !builderGc.includes('minFreeSpace = "25GB"')) {
+    failures.push('HomePilot builder must load its versioned, bounded GC policy and reject unverified existing builders');
   }
   if (maintenance.includes('docker builder prune')
     || maintenance.includes('docker image prune')

@@ -13,3 +13,4 @@
 - [ ] Ejecutar el checklist de entrega en la MiniPC y red reales del primer cliente, incluida una restauración aislada y captura de digests/versiones de imágenes.
 - [x] AC26: Corregir textos de limpieza, reportar filesystem y RECLAIMABLE global con umbrales 75%/85% no bloqueantes y cubrirlos con pruebas; documentar builder dedicado y retención de rollback como fase 2 no implementada.
 - [x] AC27: Aislar los builds del instalador, mantenimiento y probe VAAPI en `homepilot-builder`, verificar carga local, informar uso por builder y documentar GC futuro sin activarlo.
+- [x] AC28: Configurar GC solo en builders nuevos HomePilot, detectar configuración heredada sin recrearla, ampliar reportes/alertas y documentar retención, volumen BuildKit y acción manual futura sin ejecutar prune.
