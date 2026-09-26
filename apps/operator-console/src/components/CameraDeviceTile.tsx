@@ -10,7 +10,6 @@ import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 import { CameraMediaFrame, type CameraFeedMode } from './CameraMediaFrame';
 import { CameraViewerModal } from './CameraViewerModal';
 import { Button } from './ui/Button';
-import { DeviceTileShell } from './ui/DeviceTileShell';
 import { StatusPill } from './ui/StatusPill';
 
 interface CameraDeviceTileProps {
@@ -188,12 +187,26 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
 
   return (
     <>
-      <DeviceTileShell
-        active={Boolean(media) && !unavailable && !hasFeedError}
+      <div
+        role={isLive ? 'button' : undefined}
+        tabIndex={isLive ? 0 : undefined}
+        aria-label={isLive ? t('camera.open_viewer', { name: displayName }) : undefined}
         aria-busy={isConnecting && !hasRenderedFrame || undefined}
-        className="min-h-0 p-0"
+        onClick={(event) => { if (isLive) { event.stopPropagation(); openViewer(); } }}
+        onKeyDown={(event) => {
+          if (!isLive || event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) return;
+          event.preventDefault();
+          event.stopPropagation();
+          openViewer();
+        }}
+        className={cn(
+          'group relative min-h-curtain-card w-full overflow-hidden rounded-section border border-border/40 bg-card',
+          'aspect-[4/3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+          isLive && 'cursor-pointer touch-manipulation',
+          dashboard && 'max-h-[22rem]'
+        )}
       >
-        <div className={cn('relative aspect-video w-full overflow-hidden bg-muted/70', dashboard && 'max-h-[22rem]')}>
+        <div className="absolute inset-0 overflow-hidden bg-muted/70">
           {media && !hasFeedError && !unavailable && (
             <CameraMediaFrame
               active={!isViewerOpen}
@@ -218,34 +231,25 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
             </div>
           )}
 
-          {ptzSupported && isLive && (
-            <div className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-pill border border-white/15 bg-black/60 text-white backdrop-blur-md" title={t('camera.ptz.badge')}>
-              <MoveDiagonal className="h-3.5 w-3.5" />
-            </div>
-          )}
-
         </div>
-
-        <div className="flex items-center justify-between gap-3 border-t border-border/50 p-3 sm:p-4">
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="truncate text-card-title font-semibold tracking-tight text-foreground">{displayName}</span>
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-3 sm:p-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <span className="line-clamp-2 text-card-title font-bold leading-tight text-white drop-shadow">{displayName}</span>
               {device.vendor === 'matter' && <StatusPill variant="primary">{t('camera.matter_badge')}</StatusPill>}
             </div>
-            <span className="mt-1 block truncate text-caption text-muted-foreground">{roomName || t('common.unassigned')}</span>
+            <span className="mt-1 block truncate text-caption font-semibold text-white/80">{roomName || t('common.unassigned')}</span>
           </div>
-          {isLive && (
-            <Button type="button" size="icon" variant="ghost" onClick={(event) => { event.stopPropagation(); openViewer(); }} aria-label={t('camera.open_viewer', { name: displayName })} className="h-10 w-10 shrink-0 rounded-control text-muted-foreground hover:text-primary">
-              <Maximize2 className="h-4 w-4" aria-hidden="true" />
-            </Button>
-          )}
+          {isLive && <Maximize2 className="mb-0.5 h-4 w-4 shrink-0 text-white/85 transition-transform group-hover:scale-110" aria-hidden="true" />}
+          {ptzSupported && isLive && <MoveDiagonal className="mb-0.5 h-4 w-4 shrink-0 text-white/85" aria-label={t('camera.ptz.badge')} />}
           {(hasFeedError || unavailable) && (
             <Button size="icon" variant="outline" onClick={retry} aria-label={t('camera.retry')} className="shrink-0 rounded-pill">
               <RefreshCw className="h-4 w-4" />
             </Button>
           )}
         </div>
-      </DeviceTileShell>
+      </div>
 
       {viewerMedia && (
         <CameraViewerModal

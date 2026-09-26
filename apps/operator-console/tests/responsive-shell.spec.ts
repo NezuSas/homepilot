@@ -462,7 +462,7 @@ test('Feature: Native camera setup — Scenario: An owner opens discovery and ma
   await expect(page.getByRole('textbox', { name: /Camera name|Nombre de la cámara/i })).toBeVisible();
 });
 
-test('Las cámaras cargan el primer fotograma y comparten tarjeta sin controles sobre la imagen', async ({ page }) => {
+test('Las cámaras cargan el primer fotograma y conservan la tarjeta de imagen del Dashboard', async ({ page }) => {
   await page.setViewportSize(viewports[2]);
   await prepareAuthenticatedDashboard(page);
   const camera = {
@@ -522,10 +522,14 @@ test('Las cámaras cargan el primer fotograma y comparten tarjeta sin controles 
   await expect(managedCamera.getByRole('button', { name: /pantalla completa|full screen/i })).toBeVisible();
   await expect(managedCamera).not.toContainText(/Imagen actualizada|Image updated/i);
   const imageBox = await managedCamera.locator('img').first().boundingBox();
-  const expandBox = await managedCamera.getByRole('button', { name: /pantalla completa|full screen/i }).boundingBox();
+  const cardBox = await managedCamera.getByRole('button', { name: /pantalla completa|full screen/i }).boundingBox();
+  const titleBox = await managedCamera.getByText(camera.name).first().boundingBox();
   expect(imageBox).not.toBeNull();
-  expect(expandBox).not.toBeNull();
-  expect(expandBox!.y).toBeGreaterThanOrEqual(imageBox!.y + imageBox!.height - 1);
+  expect(cardBox).not.toBeNull();
+  expect(titleBox).not.toBeNull();
+  expect(cardBox!.height).toBeGreaterThanOrEqual(imageBox!.height - 1);
+  expect(titleBox!.y).toBeGreaterThan(imageBox!.y);
+  expect(titleBox!.y + titleBox!.height).toBeLessThanOrEqual(imageBox!.y + imageBox!.height + 1);
 
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
   await expect(page.getByRole('button', { name: /pantalla completa|full screen/i })).toHaveCount(2);
@@ -536,6 +540,8 @@ test('Las cámaras cargan el primer fotograma y comparten tarjeta sin controles 
     const box = await frame.boundingBox();
     expect(box).not.toBeNull();
     expect(box!.height).toBeLessThanOrEqual(353);
+    const parentCard = frame.locator('xpath=ancestor::*[@role="button"][1]');
+    await expect(parentCard.getByText(camera.name)).toBeVisible();
   }
   await page.setViewportSize(viewports[0]);
   await page.reload();
