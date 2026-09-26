@@ -36,6 +36,7 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
   const { t } = useTranslation();
   const [hasLoaded, setHasLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [aspectRatio, setAspectRatio] = useState(16 / 9);
 
   useEffect(() => {
     if (!isOpen) {
@@ -53,11 +54,17 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
       closeLabel={t('camera.viewer_label', { name })}
       hideCloseButton
       layerClassName="z-[120] !items-center !overflow-hidden bg-background/95 p-0 backdrop-blur-xl"
-      className="!h-[100dvh] !w-full !max-w-none !rounded-none !border-0 sm:!h-[calc(100dvh-2rem)] sm:!max-w-[min(96vw,1440px)] sm:!rounded-modal"
-      bodyClassName="!flex !flex-1 !overflow-hidden"
-      contentClassName="relative flex min-h-0 flex-1 overflow-hidden !p-0"
+      className="!h-auto !w-fit !max-h-none !max-w-none !rounded-modal !border-0"
+      bodyClassName="!w-auto !overflow-hidden"
+      contentClassName="!p-0"
     >
-      <section className="relative h-full min-h-0 w-full overflow-hidden bg-black">
+      <section
+        className="relative overflow-hidden bg-black"
+        style={{
+          aspectRatio,
+          width: `min(96vw, 1440px, calc((100dvh - 2rem) * ${aspectRatio}))`,
+        }}
+      >
         <div className="absolute inset-0 overflow-hidden">
           {!hasLoaded && !hasError && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black text-muted-foreground">
@@ -82,12 +89,13 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
               snapshotUrl={snapshotUrl}
               preferredMode={preferredMode}
               alt={t('camera.feed_alt', { name })}
-              className={cn('absolute inset-0 h-full w-full object-cover transition-opacity duration-base', hasLoaded ? 'opacity-100' : 'opacity-0')}
+              className={cn('absolute inset-0 h-full w-full object-contain transition-opacity duration-base', hasLoaded ? 'opacity-100' : 'opacity-0')}
               onModeChange={() => {
                 setHasLoaded(false);
                 setHasError(false);
               }}
-              onReady={() => {
+              onReady={({ width, height }) => {
+                if (width > 0 && height > 0) setAspectRatio(width / height);
                 setHasLoaded(true);
                 setHasError(false);
               }}

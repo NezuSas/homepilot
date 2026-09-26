@@ -12,7 +12,7 @@ interface CameraMediaFrameProps {
   className?: string;
   snapshotIntervalMs?: number;
   onModeChange: (mode: CameraFeedMode) => void;
-  onReady: () => void;
+  onReady: (dimensions: { width: number; height: number }) => void;
   onFailure: () => void;
 }
 
@@ -339,9 +339,9 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
         autoPlay
         muted
         playsInline
-        onCanPlay={() => {
+        onCanPlay={(event) => {
           hasReadyFrameRef.current = true;
-          onReadyRef.current();
+          onReadyRef.current({ width: event.currentTarget.videoWidth, height: event.currentTarget.videoHeight });
         }}
       />
     );
@@ -356,9 +356,9 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
             alt={alt}
             className={className}
             referrerPolicy="no-referrer"
-            onLoad={() => {
+            onLoad={(event) => {
               hasReadyFrameRef.current = true;
-              onReadyRef.current();
+              onReadyRef.current({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight });
             }}
             onError={() => {
               // The direct stream can still complete successfully. A snapshot
@@ -372,10 +372,10 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
           aria-hidden="true"
           className={`${className ?? ''} absolute inset-0 transition-opacity duration-200 ${streamReady ? 'opacity-100' : 'opacity-0'}`}
           referrerPolicy="no-referrer"
-          onLoad={() => {
+          onLoad={(event) => {
             hasReadyFrameRef.current = true;
             setStreamReady(true);
-            onReadyRef.current();
+            onReadyRef.current({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight });
           }}
           onError={() => {
             if (streamReady) return;
@@ -398,13 +398,13 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
       alt={alt}
       className={className}
       referrerPolicy="no-referrer"
-      onLoad={() => {
+      onLoad={(event) => {
         hasReadyFrameRef.current = true;
         if (staleObjectUrlRef.current) {
           URL.revokeObjectURL(staleObjectUrlRef.current);
           staleObjectUrlRef.current = null;
         }
-        onReadyRef.current();
+        onReadyRef.current({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight });
       }}
       onError={() => {
         if (mode === 'stream') {

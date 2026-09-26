@@ -539,6 +539,8 @@ test('Las cámaras cargan el primer fotograma y conservan la tarjeta de imagen d
   expect(desktopFeedBox).not.toBeNull();
   expect(desktopFeedBox!.width).toBeGreaterThanOrEqual(desktopViewerBox!.width - 2);
   expect(desktopFeedBox!.height).toBeGreaterThanOrEqual(desktopViewerBox!.height - 2);
+  expect(desktopViewerBox!.width / desktopViewerBox!.height).toBeCloseTo(1, 1);
+  expect(await desktopViewer.locator('img[alt*="Cámara patio"]').first().evaluate((image) => getComputedStyle(image).objectFit)).toBe('contain');
   await page.keyboard.press('Escape');
   await expect(desktopViewer).toHaveCount(0);
 
@@ -566,6 +568,7 @@ test('Las cámaras cargan el primer fotograma y conservan la tarjeta de imagen d
   expect(mobileFeedBox).not.toBeNull();
   expect(mobileFeedBox!.width).toBeGreaterThanOrEqual(mobileViewerBox!.width - 2);
   expect(mobileFeedBox!.height).toBeGreaterThanOrEqual(mobileViewerBox!.height - 2);
+  expect(mobileViewerBox!.width / mobileViewerBox!.height).toBeCloseTo(1, 1);
   await mobileViewer.getByRole('button', { name: /cerrar|close/i }).click();
   await expect(mobileViewer).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewports[0].width + 1);
