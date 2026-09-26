@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib/camera-acceleration.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-builder.sh"
 
 readonly ENV_FILE=".env"
 profile=""
@@ -742,6 +743,8 @@ info "Directorio de instalación: $(pwd)"
 info "Compose: $compose_file · Home Assistant: $ha_management_label"
 
 if [[ "$status_only" == true ]]; then
+  section 'Builder de HomePilot'
+  homepilot_builder_report
   section 'Aceleración HLS de cámaras'
   camera_acceleration_report_running
   show_runtime_status
@@ -838,6 +841,8 @@ if [[ -n "$cloud_url" || -n "$pairing_code" ]]; then
 fi
 camera_compose_args=(-f "$compose_file")
 if [[ "$start" == true ]]; then
+  section 'Builder de HomePilot'
+  homepilot_builder_ensure
   section 'Aceleración HLS de cámaras'
   camera_acceleration_select
   if [[ -n "$camera_acceleration_overlay" ]]; then
@@ -855,7 +860,8 @@ fi
 if [[ "$start" == true ]]; then
   section "Inicio de HomePilot"
   if confirm "Se construiran e iniciaran los servicios HomePilot de este compose. Continuar?"; then
-    if ! docker compose "${camera_compose_args[@]}" up --build -d; then
+    if ! (COMPOSE_BAKE=false docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" \
+      && docker compose "${camera_compose_args[@]}" up --no-build -d); then
       if [[ -z "$camera_acceleration_overlay" ]]; then
         fail 'No se pudo iniciar HomePilot.'
       fi
@@ -866,7 +872,8 @@ if [[ "$start" == true ]]; then
       camera_acceleration_fallback='software (libx264)'
       camera_acceleration_reason='falló el inicio con el override VAAPI'
       camera_acceleration_report
-      docker compose "${camera_compose_args[@]}" up --build -d
+      COMPOSE_BAKE=false docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME"
+      docker compose "${camera_compose_args[@]}" up --no-build -d
     fi
     docker compose "${camera_compose_args[@]}" ps
     if ! wait_for_runtime_ready; then

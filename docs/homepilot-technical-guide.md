@@ -381,8 +381,8 @@ The command:
 2. Reports the filesystem usage and warns at 75% (warning) or 85% (critical, non-blocking).
 3. Shows Docker's daemon-wide `RECLAIMABLE` figures, which are not necessarily HomePilot-owned or safely reclaimable.
 4. Removes only stopped containers in the selected HomePilot Compose project.
-5. Builds and starts HomePilot with the Compose files selected for the saved profile, then repeats the same container cleanup.
-6. Shows final usage and verifies API, UI, STT, TTS, and the Home Assistant bridge where required.
+5. Creates or reuses the dedicated `homepilot-builder` (`docker-container`, `default-load=true`). It builds API, UI, STT, and TTS with `docker compose build --builder homepilot-builder`, then starts the selected Compose profile with `up --no-build`; no global builder selection is changed. The VAAPI probe uses `docker buildx build --builder homepilot-builder --load`.
+6. Repeats the same container cleanup, shows final usage and verifies API, UI, STT, TTS, and the Home Assistant bridge where required.
 
 It does **not** impose a BuildKit cache limit or remove images, dangling images, networks, or volumes. The normal deployment command is:
 
@@ -410,13 +410,19 @@ bash scripts/homepilot-maintenance.sh --profile bridge_ha --clean --truncate-log
 
 The truncate-logs command affects only *-json.log files, not containers or persistent data.
 
-The camera acceleration probe builds the tagged `homepilot-camera-probe:local` image and uses `docker run --rm` for the temporary test container. The image tag is retained between deployments. Its actual size on an appliance must be measured there with a read-only image inspection; do not infer it from Docker's daemon-wide reclaimable figure. Keeping the tag may reuse API image layers and build cache on later probes, so phase 1 does not change this behavior.
+The camera acceleration probe builds the tagged `homepilot-camera-probe:local` image and uses `docker run --rm` for the temporary test container. The image tag remains between deployments; its size must be inspected on the appliance rather than inferred from daemon-wide `RECLAIMABLE`. The dedicated builder keeps new cache separate, but neither the probe image nor legacy shared-builder cache is deleted or migrated.
 
-#### Planned phase 2: isolated HomePilot builder (not implemented)
+#### Phase 2: isolated builds, no automatic GC
 
-Evaluate a named BuildKit builder dedicated to this HomePilot installation, independent of installation profile. Route **all** HomePilot builds through it, including Compose services and the VAAPI probe; otherwise the shared builder would keep accumulating HomePilot cache. Validate image loading, camera fallback, rollback, and rebuild times on `bridge_ha`, `native_only`, and `ha_companion` before changing deployment commands.
+`homepilot-builder` is created only for an authorized install/start or deploy, never by `--status` or `--clean`. Existing builders with another driver or without `default-load=true` are not changed; an incompatible Docker/Buildx/Compose version fails before starting rather than using the shared builder. The `docker-container` driver stores BuildKit cache in its own Docker volume and `default-load=true` makes Compose-built images available to `up --no-build`. The installer and maintenance script use the same path for `bridge_ha`, `native_only`, `ha_companion`, and their Docker Desktop overlays. This changes no Compose profile or persistent application volume. [Compose build supports `--builder`](https://docs.docker.com/reference/cli/docker/compose/build/); [the container driver supports `default-load`](https://docs.docker.com/build/builders/drivers/docker-container/).
 
-Only after confirming builder isolation, define HomePilot-only GC with an age limit and capacity budget calibrated against appliance disk size and measured rebuild cost. Retain recently used cache and never run GC against the existing shared builder or during an active build. Treat image retention separately from builder cache: preserve the current image set and one verified previous release for rollback, including any images required by the selected profile. Report disk usage before and after; do not delete volumes, `data/`, `backups/`, `ha-config/`, SQLite, credentials, or artifacts of other projects. A warning is not permission to delete anything automatically. No builder or GC policy is activated in phase 1.
+The maintenance report uses `docker buildx inspect homepilot-builder` for driver and status, and `docker buildx du --builder homepilot-builder` only while running. Its Shared/Private/Reclaimable/Total values are *builder cache records*, not the entire Docker disk footprint or a promise that all bytes could be freed; shared image layers can remain in use. If Buildx cannot provide a summary, the report states that rather than fabricating a number. `--status` does not bootstrap the builder. [Buildx cache measurement](https://docs.docker.com/reference/cli/docker/buildx/du/).
+
+Validate image availability, camera fallback, rollback, and rebuild times on a Linux MiniPC and Docker Desktop for all three profiles before approving release. In particular, Buildx/Compose must support the explicit builder and automatic local load; the deployment intentionally has no shared-builder fallback.
+
+#### Future GC policy (documented, not active)
+
+After measuring real rebuild times and disk growth, define a retention window for recently used cache and a maximum cache budget proportional to appliance capacity. Consider old, unused HomePilot-builder records first; never run GC on the shared builder or during an active build. At 75% filesystem usage, warn and schedule a review; at 85%, warn critically and review capacity before prolonged maintenance. Neither threshold authorizes automatic deletion. Treat image retention separately: preserve the current image set and one verified previous release for rollback, including images required by the selected profile. Never delete volumes, `data/`, `backups/`, `ha-config/`, SQLite, credentials, or artifacts of other projects. No GC or image deletion is activated in phase 2.
 
 | Variable | Installation check |
 |---|---|

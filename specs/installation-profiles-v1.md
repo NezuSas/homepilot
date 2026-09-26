@@ -54,6 +54,7 @@ etwork_mode: host por red Docker, publique la API local en un puerto no conflict
 - **REQ-24:** Los servicios Compose limitan la retención de logs del driver local. Un checklist de entrega debe verificar perfil, conectividad de build/modelos, espacio, puertos, reinicio, backup y restauración en la MiniPC objetivo antes de aprobar el release.
 - **REQ-25:** Los diagnósticos de instalación no incluyen direcciones, usuarios, claves SSH ni rutas de un appliance de desarrollo concreto, ni dejan respuestas HTTP en archivos temporales globales.
 - **REQ-26:** El mantenimiento informa el uso del filesystem de HomePilot y el espacio reclamable global de Docker sin atribuirlo al proyecto; advierte sin bloquear a partir de 75% y eleva el aviso a crítico a partir de 85%. `--clean` y `--deploy` siguen sin eliminar imágenes, caché BuildKit, redes, volúmenes ni datos.
+- **REQ-27:** El instalador y mantenimiento crean o reutilizan un builder BuildKit `docker-container` exclusivo de HomePilot, con carga de imágenes al daemon local. Compose construye explícitamente con ese builder y arranca sin reconstruir; el probe VAAPI usa el mismo builder. Un builder existente incompatible o una versión de Docker sin soporte requerido provoca un fallo claro, nunca fallback al builder compartido. `--status` solo informa driver, estado y caché atribuible cuando Buildx puede medirla sin arrancar el builder. No se activa GC ni borrado de imágenes.
 
 ## 4. Criterios de aceptación
 
@@ -80,6 +81,7 @@ etwork_mode: host para la API y publica el puerto 13000.
 - [x] AC10: La guía de onboarding identifica Docker Desktop o el appliance Linux mediante la configuración del compose, sin depender del navegador del cliente.
 - [x] AC11: La guía distingue la URL interna del bridge de la URL de navegador para crear el token y permite usar la URL interna sugerida con un solo clic.
 - [x] AC26: El informe de mantenimiento distingue uso normal (<75%), advertencia (75–84%) y advertencia crítica (>=85%) sin alterar el resultado del despliegue. El texto de `--clean` describe únicamente la retirada de contenedores detenidos y la documentación deja el builder exclusivo con GC como fase futura, sin implementarlo.
+- [x] AC27: El código dirige las construcciones de los tres perfiles, Desktop y probe de cámaras a `homepilot-builder`; reutiliza un builder compatible, no cambia otros ni el builder global, informa su caché sin atribuirle la del daemon y no añade comandos de prune. Se cubren con pruebas los caminos de creación, reutilización, incompatibilidad y reporte.
 
 ## 5. Límites
 

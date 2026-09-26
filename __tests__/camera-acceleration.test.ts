@@ -8,11 +8,14 @@ const bash = process.platform === 'win32' && existsSync('C:/Program Files/Git/bi
 function selectCameraAcceleration(mode: string): string {
   const script = `
     set -euo pipefail
+    source scripts/lib/homepilot-builder.sh
     source scripts/lib/camera-acceleration.sh
     OSTYPE=linux-gnu
     camera_acceleration_device_available() { [[ "$MODE" != no_device ]]; }
     timeout() {
-      if [[ "$1" == 600s && "$2" == docker && "$3" == build ]]; then
+      if [[ "$1" == 600s && "$2" == docker && "$3" == buildx && "$4" == build ]]; then
+        [[ " $* " == *' --builder homepilot-builder '* ]] || return 1
+        [[ " $* " == *' --load '* ]] || return 1
         [[ "$MODE" != build_failed ]]
         return
       fi

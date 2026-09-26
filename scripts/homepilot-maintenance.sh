@@ -2,6 +2,7 @@
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib/camera-acceleration.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/appliance-storage-report.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-builder.sh"
 
 profile="bridge_ha"
 compose_file="docker-compose.office.yml"
@@ -163,6 +164,8 @@ confirm() {
 
 show_disk() {
   storage_report
+  section 'Builder de HomePilot'
+  homepilot_builder_report
 }
 
 check_requirements() {
@@ -286,7 +289,7 @@ clean_docker_residue() {
   local container_id log_path
 
   section "Limpieza acotada a HomePilot"
-    info "No se ejecutan limpiezas globales de Docker (system, builder, image, container, network o volume)."
+  info "No se ejecutan limpiezas globales de Docker (system, builder, image, container, network o volume)."
   mapfile -t compose_command < <(compose_args)
 
   if docker compose "${compose_command[@]}" rm --force; then
@@ -327,7 +330,7 @@ deploy_homepilot() {
   section "Despliegue HomePilot"
   info "Compose: ${compose_files[*]}"
   info "Perfil: ${profile}"
-  info "COMPOSE_BAKE=false evita que Compose use bake si no hace falta."
+  info "Los servicios se construyen con ${HOMEPILOT_BUILDER_NAME}; Compose los inicia sin reconstruir."
 
   local max_attempts=3
   local attempt=1
@@ -341,7 +344,8 @@ deploy_homepilot() {
 
   while (( attempt <= max_attempts )); do
     info "Construcción e inicio: intento ${attempt}/${max_attempts}."
-    if COMPOSE_BAKE=false docker compose "${compose_args[@]}" up -d --build --remove-orphans; then
+    if COMPOSE_BAKE=false docker compose "${compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" \
+      && docker compose "${compose_args[@]}" up -d --no-build --remove-orphans; then
       ok "HomePilot construido e iniciado."
       break
     fi
@@ -358,7 +362,8 @@ deploy_homepilot() {
       for file in "${compose_files[@]}"; do
         compose_args+=( -f "$file" )
       done
-      if COMPOSE_BAKE=false docker compose "${compose_args[@]}" up -d --build --remove-orphans; then
+      if COMPOSE_BAKE=false docker compose "${compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" \
+        && docker compose "${compose_args[@]}" up -d --no-build --remove-orphans; then
         ok 'HomePilot construido e iniciado con codificación por software.'
         break
       fi
@@ -448,6 +453,8 @@ fi
 
 if [[ "$deploy" == true ]]; then
   if confirm "Limpiar, construir e iniciar HomePilot ahora?"; then
+    section 'Builder de HomePilot'
+    homepilot_builder_ensure
     select_camera_acceleration_for_deploy
     clean_docker_residue
     deploy_homepilot

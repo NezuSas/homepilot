@@ -109,8 +109,9 @@ if (failures.length === 0) {
   }
   if (!maintenance.includes('is_docker_desktop')
     || !maintenance.includes('docker-compose.desktop.yml')
-    || !maintenance.includes('docker compose ' + String.fromCharCode(34) + '${compose_args[@]}' + String.fromCharCode(34) + ' up -d --build --remove-orphans')) {
-    failures.push('Maintenance deploy must select the Docker Desktop overlay, pass every selected compose file, and remove stale Compose services');
+    || !maintenance.includes('docker compose "${compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME"')
+    || !maintenance.includes('docker compose "${compose_args[@]}" up -d --no-build --remove-orphans')) {
+    failures.push('Maintenance deploy must select the Docker Desktop overlay, build with the dedicated builder, then start without rebuilding');
   }
   if (maintenance.includes('docker builder prune')
     || maintenance.includes('docker image prune')
