@@ -32,6 +32,10 @@ function runBuilder(mode: string, action = 'homepilot_builder_ensure') {
       fi
       if [[ "$1" == buildx && "$2" == inspect ]]; then
         if [[ "$MODE" == missing && "$created" == false ]]; then return 1; fi
+        if [[ "$MODE" == real_file_section ]]; then
+          cat __tests__/fixtures/homepilot-buildx-inspect-v0.32.2.txt
+          return 0
+        fi
         if [[ "$MODE" == wrong_driver ]]; then
           printf 'Name: homepilot-builder\\nDriver: docker\\nStatus: running\\n'
         elif [[ "$MODE" == no_load ]]; then
@@ -50,6 +54,8 @@ function runBuilder(mode: string, action = 'homepilot_builder_ensure') {
             duplicate_filter) filter_line=' Filters: type==source.local type==exec.cachemount type==exec.cachemount' ;;
             *) filter_line=' Filters: type==source.local,type==exec.cachemount,type==source.git.checkout' ;;
           esac
+          local final_min_free=' Min Free Space: 25GiB'
+          [[ "$MODE" != incomplete_before_file ]] || final_min_free=''
           printf '%s\\n' \
             'GC Policy rule#0:' \
             ' All: false' \
@@ -71,7 +77,11 @@ function runBuilder(mode: string, action = 'homepilot_builder_ensure') {
             " All: $([[ \"$MODE\" == bad_all ]] && printf 'false' || printf 'true')" \
             ' Reserved Space: 8GiB' \
             ' Max Used Space: 11GiB' \
-            ' Min Free Space: 25GiB'
+            "$final_min_free"
+          if [[ "$MODE" == extra_rule_field ]]; then printf '%s\\n' ' Unexpected GC: value'; fi
+          if [[ "$MODE" == incomplete_before_file || "$MODE" == extra_rule_field ]]; then
+            printf '%s\\n' 'File#buildkitd.toml:' '[worker]' '  [worker.oci]' '    gc = true' ' Min Free Space: 25GiB'
+          fi
         fi
         return 0
       fi
@@ -134,7 +144,18 @@ describe('dedicated HomePilot builder', () => {
     expect(result.stdout).toContain('Builder dedicado homepilot-builder listo');
   });
 
-  it.each(['wrong_driver', 'no_load', 'old_compose', 'old_gc', 'missing_gc', 'bad_filter', 'fourth_filter', 'duplicate_filter', 'bad_all'])('fails closed for %s', (mode) => {
+  it('accepts the MiniPC inspect section followed by canonicalized buildkitd.toml', () => {
+    const fixture = readFileSync('__tests__/fixtures/homepilot-buildx-inspect-v0.32.2.txt', 'utf8');
+    expect(fixture).toContain('Filters:        type==source.local type==exec.cachemount type==source.git.checkout');
+    expect(fixture).toContain('File#buildkitd.toml:');
+    const result = runBuilder('real_file_section');
+    expect(result.status).toBe(0);
+    const status = runBuilder('real_file_section', 'homepilot_builder_report');
+    expect(status.status).toBe(0);
+    expect(status.stdout).toContain('Política GC de HomePilot verificada');
+  });
+
+  it.each(['wrong_driver', 'no_load', 'old_compose', 'old_gc', 'missing_gc', 'bad_filter', 'fourth_filter', 'duplicate_filter', 'bad_all', 'incomplete_before_file', 'extra_rule_field'])('fails closed for %s', (mode) => {
     const result = runBuilder(mode);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('FAIL');

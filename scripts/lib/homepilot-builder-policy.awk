@@ -55,6 +55,7 @@ function valid_rule(rule_index, prefix) {
 
 {
   line = trim($0)
+  if (after_gc) next
   if (line ~ /^Driver:[[:space:]]*/) {
     if (++drivers != 1 || line !~ /^Driver:[[:space:]]*docker-container$/) invalid = 1
   } else if (line ~ /^Driver Options:/) {
@@ -68,7 +69,16 @@ function valid_rule(rule_index, prefix) {
     if (rule_index + 0 != rules + 0 || rules >= 4) invalid = 1
     rules++
     in_rule = 1
-  } else if (in_rule && line != "" && line ~ /^[^:]+:[[:space:]]*/) {
+  } else if (in_rule && $0 ~ /^[^[:space:]][^:]*:[[:space:]]*$/) {
+    # A new top-level section (for example File#buildkitd.toml:) ends the
+    # GC listing. Never use the following section to fill missing rule fields.
+    in_rule = 0
+    after_gc = 1
+  } else if (in_rule && line != "") {
+    if ($0 !~ /^[[:space:]]/ || line !~ /^[^:]+:[[:space:]]*/) {
+      invalid = 1
+      next
+    }
     key = line
     sub(/:.*/, "", key)
     value = line
