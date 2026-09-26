@@ -1,5 +1,5 @@
 import { apiFetch, getApiRequestScope } from '../apiClient';
-import { fetchDiagnosticResource, startSequentialPolling } from '../diagnosticResourceRequests';
+import { fetchDiagnosticResource, invalidateDiagnosticCatalog, startSequentialPolling } from '../diagnosticResourceRequests';
 
 jest.mock('../apiClient', () => ({ apiFetch: jest.fn(), getApiRequestScope: jest.fn(() => 'session-es') }));
 
@@ -11,6 +11,7 @@ beforeEach(() => {
   jest.useFakeTimers();
   mockFetch.mockReset();
   mockScope.mockReturnValue('session-es');
+  invalidateDiagnosticCatalog();
 });
 
 afterEach(() => {
@@ -116,4 +117,49 @@ it('never delivers a response across a session change', async () => {
   await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
   controller.abort();
   expect(jest.getTimerCount()).toBe(0);
+});
+
+it('reuses scene and automation lists briefly without caching live diagnostics', async () => {
+  mockFetch.mockResolvedValue(new Response('[]', { status: 200 }));
+  const signal = new AbortController().signal;
+
+  await fetchDiagnosticResource('/api/v1/scenes', signal);
+  await fetchDiagnosticResource('/api/v1/scenes', signal);
+  await fetchDiagnosticResource('/api/v1/automations', signal);
+  await fetchDiagnosticResource('/api/v1/automations', signal);
+  expect(mockFetch).toHaveBeenCalledTimes(2);
+
+  await fetchDiagnosticResource(URL, signal);
+  await fetchDiagnosticResource(URL, signal);
+  expect(mockFetch).toHaveBeenCalledTimes(4);
+
+  jest.advanceTimersByTime(10_001);
+  await fetchDiagnosticResource('/api/v1/scenes', signal);
+  expect(mockFetch).toHaveBeenCalledTimes(5);
+});
+
+it('invalidates catalog reads after edits and does not cache an older in-flight answer', async () => {
+  let finishOld: ((response: Response) => void) | undefined;
+  mockFetch.mockImplementationOnce(() => new Promise<Response>((resolve) => { finishOld = resolve; }));
+  mockFetch.mockResolvedValue(new Response('[{"id":"new"}]'));
+  const signal = new AbortController().signal;
+
+  const old = fetchDiagnosticResource('/api/v1/scenes', signal);
+  invalidateDiagnosticCatalog();
+  await expect(fetchDiagnosticResource('/api/v1/scenes', signal).then((response) => response.json())).resolves.toEqual([{ id: 'new' }]);
+  finishOld?.(new Response('[{"id":"old"}]'));
+  await old;
+  await expect(fetchDiagnosticResource('/api/v1/scenes', signal).then((response) => response.json())).resolves.toEqual([{ id: 'new' }]);
+  expect(mockFetch).toHaveBeenCalledTimes(2);
+});
+
+it('does not reuse a catalog response after the session changes', async () => {
+  mockFetch.mockResolvedValueOnce(new Response('[{"id":"first"}]'));
+  mockFetch.mockResolvedValueOnce(new Response('[{"id":"second"}]'));
+  const signal = new AbortController().signal;
+
+  await fetchDiagnosticResource('/api/v1/automations', signal);
+  mockScope.mockReturnValue('session-other');
+  await expect(fetchDiagnosticResource('/api/v1/automations', signal).then((response) => response.json())).resolves.toEqual([{ id: 'second' }]);
+  expect(mockFetch).toHaveBeenCalledTimes(2);
 });

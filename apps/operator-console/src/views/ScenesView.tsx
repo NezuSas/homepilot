@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Clock, LayoutGrid, Loader2, Star } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { apiFetch, readApiError } from '../lib/apiClient';
-import { fetchDiagnosticResource } from '../lib/diagnosticResourceRequests';
+import { fetchDiagnosticResource, invalidateDiagnosticCatalog } from '../lib/diagnosticResourceRequests';
 import { SceneBuilderModal } from './SceneBuilderModal';
 import ConfirmModal from '../components/ConfirmModal';
 import { ScenesEmptyState } from '../components/ScenesEmptyState';
@@ -143,6 +143,7 @@ const ScenesView: React.FC<{
     try {
       const res = await apiFetch(`${API_BASE_URL}/api/v1/scenes/${id}`, { method: 'DELETE' });
       if (res.status === 204 || res.ok) {
+        invalidateDiagnosticCatalog();
         setScenes(prev => prev.filter(s => s.id !== id));
       }
     } catch (e) {

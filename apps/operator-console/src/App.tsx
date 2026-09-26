@@ -39,6 +39,8 @@ import { AppGlobalOverlays } from './components/AppGlobalOverlays';
 import { AppSidebarShell } from './components/AppSidebarShell';
 import { AppSidebarNavigation } from './components/AppSidebarNavigation';
 import { AppSidebarPrimaryNavigation } from './components/AppSidebarPrimaryNavigation';
+import { invalidateDashboardCatalog, loadDashboards } from './views/dashboards/dashboardOperations';
+import { invalidateDiagnosticCatalog } from './lib/diagnosticResourceRequests';
 import type { SetupStatus } from './appShellTypes';
 
 const REALTIME_REFRESH_DEBOUNCE_MS = 300;
@@ -150,6 +152,8 @@ function App() {
     resetAppShellState();
     resetAssistantState();
     resetSnapshotState();
+    invalidateDashboardCatalog();
+    invalidateDiagnosticCatalog();
   }, [resetAppShellState, resetAssistantState, resetSnapshotState]);
 
   const { status, user, handleLoginSuccess, handleLogout, clearSession, validateSession } = useSession(onSessionCleared);
@@ -220,10 +224,7 @@ function App() {
     }
 
     try {
-      const response = await apiFetch(`${API_BASE_URL}/api/v1/dashboards`);
-      if (!response.ok) return;
-      const data = await response.json() as Array<{ id: string; ownerId: string; title: string }>;
-      if (!Array.isArray(data)) return;
+      const data = await loadDashboards('No se pudieron cargar los tableros.');
       setSidebarDashboards(data.map(dashboard => ({
         id: dashboard.id,
         ownerId: dashboard.ownerId,
@@ -601,10 +602,7 @@ function App() {
     if (isSystemView(resolved)) {
       setIsSystemExpanded(true);
     }
-    if (resolved === 'dashboards') {
-      setIsDashboardsExpanded(true);
-      void refreshSidebarDashboards();
-    }
+    if (resolved === 'dashboards') setIsDashboardsExpanded(true);
   };
 
   const handleGlobalWakeCommand = (command: string) => {

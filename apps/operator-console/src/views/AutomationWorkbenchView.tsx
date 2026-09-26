@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Zap, Plus, X } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
+import { invalidateDiagnosticCatalog } from '../lib/diagnosticResourceRequests';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { Button } from '../components/ui/Button';
 import { AutomationWorkbenchEmptyState } from '../components/AutomationWorkbenchEmptyState';
@@ -142,6 +143,7 @@ export const AutomationWorkbenchView: React.FC = () => {
 
       if (!res.ok) throw new Error('error' in data ? data.error : t('common.errors.operation_failed'));
       
+      invalidateDiagnosticCatalog();
       const updated = data as AutomationRule;
       setRules(prev => prev.map(r => r.id === id ? { ...updated, _processing: false, _error: null } : r));
     } catch (err: unknown) {
@@ -158,6 +160,7 @@ export const AutomationWorkbenchView: React.FC = () => {
         const data = (await res.json()) as { error: string };
         throw new Error(data.error || t('common.errors.operation_failed'));
       }
+      invalidateDiagnosticCatalog();
       setRules(prev => prev.filter(r => r.id !== id));
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : t('common.errors.operation_failed');
@@ -219,6 +222,7 @@ export const AutomationWorkbenchView: React.FC = () => {
 
       if (!res.ok) throw new Error('error' in data ? data.error : t('common.errors.operation_failed'));
 
+      invalidateDiagnosticCatalog();
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);

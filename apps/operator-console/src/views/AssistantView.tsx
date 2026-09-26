@@ -44,22 +44,9 @@ export const AssistantView: React.FC<{
   const dismissFinding = useAssistantStore((state) => state.dismissFinding);
   
 
-  const [initialLoadDone, setInitialLoadDone] = useState(false);
-
   useEffect(() => {
-    if (!initialLoadDone && !loading) {
-      setInitialLoadDone(true);
-    }
-  }, [loading, initialLoadDone]);
-
-  useEffect(() => {
-    if (!initialLoadDone) {
-      refreshFindings().then(() => {
-        // Auto-scan to resolve stale findings (e.g. fixed duplicate names in Inbox)
-        scanFindings();
-      });
-    }
-  }, [initialLoadDone, refreshFindings, scanFindings]);
+    void refreshFindings();
+  }, [refreshFindings]);
 
   const handleScan = async () => {
     await scanFindings();

@@ -190,6 +190,23 @@ test('an invalid Directory handoff remains visible while local login stays avail
   await expect(page.getByRole('button', { name: /iniciar sesión|log in/i })).toBeVisible();
 });
 
+test('opening Assistant reads findings without an automatic scan; manual scan still works', async ({ page }) => {
+  await prepareAuthenticatedDashboard(page);
+  let scans = 0;
+  await page.route('**/api/v1/assistant/scan', async (route) => {
+    scans += 1;
+    await route.fulfill({ contentType: 'application/json', body: '{"success":true}' });
+  });
+
+  await page.goto('/assistant');
+  const scanButton = page.getByRole('button', { name: /Escanear Sistema|Scan System/i });
+  await expect(scanButton).toBeVisible();
+  expect(scans).toBe(0);
+
+  await scanButton.click();
+  await expect.poll(() => scans).toBe(1);
+});
+
 test('Feature: Device inspector — Scenario: Operator switches between device information, activity and state', async ({ page }) => {
   await prepareAuthenticatedDashboard(page);
   const cover = { ...responsiveDevices.find((device) => device.id === 'cover-living'), externalId: 'ha:cover.living' };

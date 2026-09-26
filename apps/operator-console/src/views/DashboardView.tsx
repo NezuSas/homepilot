@@ -16,7 +16,7 @@ import {
   SCENE_FAVORITES_STORAGE_KEY,
 } from '../lib/favorites';
 import { apiFetch } from '../lib/apiClient';
-import { fetchDiagnosticResource } from '../lib/diagnosticResourceRequests';
+import { fetchDiagnosticResource, invalidateDiagnosticCatalog } from '../lib/diagnosticResourceRequests';
 import type { View } from '../types';
 import { useAssistantStore } from '../stores/useAssistantStore';
 import type { AssistantFinding, AssistantFindingAction } from '../stores/useAssistantStore';
@@ -135,6 +135,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
       const action = automation.enabled ? 'disable' : 'enable';
       const response = await apiFetch(`${API_URL}/automations/${automation.id}/${action}`, { method: 'PATCH' });
       if (response.ok) {
+        invalidateDiagnosticCatalog();
         setAutomations((current) => current.map((item) => item.id === automation.id ? { ...item, enabled: !item.enabled } : item));
         onActionExecute?.(automation.name);
       }

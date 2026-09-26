@@ -7,6 +7,13 @@
 4. **Fase 4: Ejecución y Operatividad técnica (Escritura)** - Asignar dispositivos, disparar comandos y alternar reglas.
 5. **Fase 5: Delivery Edge** - Distribución y empaquetado del bundle estático dentro del bootstrap del Edge.
 
+## Optimización de llamadas al navegar
+
+- [x] Compartir la lectura del catálogo de tableros entre sidebar y vista, con frescura breve, aislamiento por sesión e invalidación tras mutaciones.
+- [x] Abrir Asistente sin escaneo completo automático; mantener la consulta de hallazgos y el escaneo manual.
+- [x] Probar concurrencia, navegación repetida, cambio de sesión y actualización tras edición; `verify:quality` pasa, incluidas 47 pruebas responsive.
+- [x] Reutilizar brevemente escenas y automatizaciones entre vistas, invalidar después de escrituras y cubrir concurrencia, cambio de sesión y solicitudes antiguas; `verify:quality` pasa.
+
 ---
 
 ## 1. Tareas de Ajustes Backend (API Layer)

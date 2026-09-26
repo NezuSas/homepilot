@@ -4,6 +4,7 @@ import { X, Save, PlayCircle, List, Settings } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
 import { apiFetch, readApiError } from '../lib/apiClient';
+import { invalidateDiagnosticCatalog } from '../lib/diagnosticResourceRequests';
 import { humanize } from '../lib/naming-utils';
 import { SearchableSelectField } from '../components/ui/SearchableSelectField';
 import { Button } from '../components/ui/Button';
@@ -117,6 +118,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
       });
 
       if (!res.ok) throw new Error(await readApiError(res, t('scenes.builder.errors.sync_failed')));
+      invalidateDiagnosticCatalog();
       onSaved();
     } catch (error_: unknown) {
       setError(error_ instanceof Error ? error_.message : t('common.errors.operation_failed'));

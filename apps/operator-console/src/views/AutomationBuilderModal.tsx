@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { API_ENDPOINTS } from '../config';
 import { apiFetch, readApiError } from '../lib/apiClient';
+import { invalidateDiagnosticCatalog } from '../lib/diagnosticResourceRequests';
 import { AutomationBuilderActionSection } from '../components/AutomationBuilderActionSection';
 import { AutomationBuilderError } from '../components/AutomationBuilderError';
 import { AutomationBuilderIdentityField } from '../components/AutomationBuilderIdentityField';
@@ -122,6 +123,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
 
       if (res.ok) {
         const result = await res.json();
+        invalidateDiagnosticCatalog();
         onCreated(result);
       } else {
         setError(await readApiError(res, t('automations.builder.errors.sync_failed')));

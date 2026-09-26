@@ -1,8 +1,10 @@
 import { apiFetch, getApiRequestScope } from './apiClient';
 
-// Only the four read-only resources used by diagnostics and dashboard widgets
-// share requests. This is deliberately not a global HTTP/polling policy.
+// Only these read-only resources share requests. Diagnostics stay uncached;
+// scene and automation catalogs may be reused briefly across view changes.
 const REQUEST_TIMEOUT_MS = 10_000;
+const CATALOG_FRESHNESS_MS = 10_000;
+const isCatalogUrl = (url: string) => /\/api\/v1\/(?:scenes|automations)(?:\?.*)?$/.test(url);
 
 type Subscriber = {
   signal: AbortSignal;
@@ -18,6 +20,14 @@ type InFlight = {
 };
 
 const inFlight = new Map<string, InFlight>();
+const catalogCache = new Map<string, { response: Response; expiresAt: number }>();
+let catalogScope: string | null = null;
+let catalogVersion = 0;
+
+export function invalidateDiagnosticCatalog(): void {
+  catalogVersion += 1;
+  catalogCache.clear();
+}
 
 export function isCancelledRequest(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError';
@@ -27,7 +37,18 @@ export function fetchDiagnosticResource(url: string, signal: AbortSignal): Promi
   if (signal.aborted) return Promise.reject(signal.reason ?? new DOMException('Aborted', 'AbortError'));
 
   const scope = getApiRequestScope();
-  const key = `${scope}\n${url}`;
+  const isCatalog = isCatalogUrl(url);
+  if (isCatalog && catalogScope !== scope) {
+    catalogCache.clear();
+    catalogScope = scope;
+  }
+  const cacheKey = `${scope}\n${url}`;
+  if (isCatalog) {
+    const cached = catalogCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return Promise.resolve(cached.response.clone());
+  }
+  const version = catalogVersion;
+  const key = `${cacheKey}\n${isCatalog ? version : 0}`;
   let entry = inFlight.get(key);
   if (!entry) {
     const controller = new AbortController();
@@ -50,6 +71,9 @@ export function fetchDiagnosticResource(url: string, signal: AbortSignal): Promi
       if (request.subscribers.size === 0) return;
       clearTimeout(request.timeout);
       if (inFlight.get(key) === request) inFlight.delete(key);
+      if (isCatalog && response?.ok && catalogVersion === version && getApiRequestScope() === scope) {
+        catalogCache.set(cacheKey, { response: response.clone(), expiresAt: Date.now() + CATALOG_FRESHNESS_MS });
+      }
       for (const subscriber of request.subscribers) {
         subscriber.signal.removeEventListener('abort', subscriber.onAbort);
         if (getApiRequestScope() !== scope) subscriber.reject(new DOMException('Session changed', 'AbortError'));

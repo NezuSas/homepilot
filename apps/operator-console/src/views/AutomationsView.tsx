@@ -4,7 +4,7 @@ import { Clock3 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_ENDPOINTS, API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
-import { fetchDiagnosticResource } from '../lib/diagnosticResourceRequests';
+import { fetchDiagnosticResource, invalidateDiagnosticCatalog } from '../lib/diagnosticResourceRequests';
 import AutomationBuilderModal from './AutomationBuilderModal.tsx';
 import { AutomationNotification } from '../components/AutomationNotification';
 import { AutomationRuleCard } from '../components/AutomationRuleCard';
@@ -156,6 +156,7 @@ const AutomationsView: React.FC = () => {
     const action = currentlyEnabled ? 'disable' : 'enable';
     try {
       await fetchJSON(`${API_BASE_URL}/api/v1/automations/${id}/${action}`, { method: 'PATCH' });
+      invalidateDiagnosticCatalog();
       setRules(rules.map(r => r.id === id ? { ...r, enabled: !currentlyEnabled } : r));
     } catch (error: unknown) {
       setError(getErrorMessage(error, t('common.errors.operation_failed')));
@@ -170,6 +171,7 @@ const AutomationsView: React.FC = () => {
     setIsDeleting(true);
     try {
       await fetchJSON(`${API_BASE_URL}/api/v1/automations/${id}`, { method: 'DELETE' });
+      invalidateDiagnosticCatalog();
       setRules(prev => prev.filter(r => r.id !== id));
       setFavoriteIds((current) => current.filter((favoriteId) => favoriteId !== id));
       setConfirmDeleteId(null);

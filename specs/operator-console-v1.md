@@ -50,6 +50,7 @@ Quedan estrictamente excluidos de esta iteración:
 - **NFR-01 (Local-First)**: La interfaz Web debe ser servida de manera local por la propia miniPC al estar en la misma red de área local (LAN).
 - **NFR-02 (Validación de Backend)**: El frontend debe consumir exactamente las mismas operaciones documentadas en el backend (zero bypass); el Frontend oficia de "test de validación visual" del servicio construido.
 - **NFR-03 (Pragmatismo UI)**: Priorizar visibilidad técnica y operación rápida. Diseños tabulares simples y coherentes son preferibles a estéticas caprichosas o animaciones pesadas.
+- **NFR-04 (Navegación sin ráfagas)**: Los catálogos de Tableros, escenas y automatizaciones compartidos entre vistas conservan una ventana breve de frescura, separan sesiones y se invalidan tras escrituras; no se altera el polling de diagnósticos. Abrir Asistente consulta hallazgos, pero un escaneo completo solo se ejecuta por acción explícita.
 
 ## 6. Navegación / Pantallas Principales
 Se proyecta un diseño de consola clásica (Sidebar izquierdo + Main View):
@@ -95,6 +96,9 @@ Se propone una consola de administración pragmática:
 - [ ] AC14: Inicio evita analítica decorativa, microtexto técnico y efectos visuales excesivos. La información operativa existente permanece disponible mediante composición clara y controles con contraste equivalente en modo claro y oscuro.
 - [x] AC25: Inicio usa una imagen ambiental residencial local, no dependiente de red, como contexto visual del saludo. Mantiene legibles ciudad, hora, temperatura, rutinas y sugerencias, y conserva sus acciones, contratos y comportamiento responsive.
 - [x] AC26: Inicio y Rutinas solo reciben escenas y automatizaciones pertenecientes al hogar del usuario autenticado; solicitar explícitamente un hogar ajeno es rechazado por la API.
+- [x] AC27: Al abrir Tableros mientras el sidebar carga el mismo catálogo, ambos consumidores comparten una sola lectura; regresar durante la ventana corta de frescura reutiliza el resultado, una edición lo invalida y cambiar de sesión nunca reutiliza datos anteriores.
+- [x] AC28: Entrar o regresar al Asistente no dispara `POST /assistant/scan`; el botón de escaneo manual sigue funcionando y los hallazgos existentes se consultan al abrir la vista.
+- [x] AC29: Las lecturas de escenas y automatizaciones se comparten entre vistas durante un intervalo breve sin reutilizar datos entre sesiones; las ediciones invalidan la respuesta y una solicitud previa no puede reponer datos obsoletos en la caché.
 
 ## 9. Notas Técnicas y Arquitectura
 - El backend actual debe exponer (si no lo hace aún) los endpoints mínimos para soportar estas vistas (ej. REST V1 `GET /api/devices/inbox`, `POST /api/devices/{id}/assign`, etc.).
