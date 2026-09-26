@@ -42,10 +42,18 @@ function runBuilder(mode: string, action = 'homepilot_builder_ensure') {
           printf 'Name: homepilot-builder\\nDriver: docker-container\\nDriver Options: default-load="true"\\nStatus: running\\n'
         fi
         if [[ "$MODE" != stopped && "$MODE" != missing_gc ]]; then
+          local filter_line
+          case "$MODE" in
+            real_filters) filter_line=' Filters: type==source.local type==exec.cachemount type==source.git.checkout' ;;
+            bad_filter) filter_line=' Filters: type==source.local type==exec.cachemount type==source.http' ;;
+            fourth_filter) filter_line=' Filters: type==source.local type==exec.cachemount type==source.git.checkout type==source.http' ;;
+            duplicate_filter) filter_line=' Filters: type==source.local type==exec.cachemount type==exec.cachemount' ;;
+            *) filter_line=' Filters: type==source.local,type==exec.cachemount,type==source.git.checkout' ;;
+          esac
           printf '%s\\n' \
             'GC Policy rule#0:' \
             ' All: false' \
-            " Filters: type==source.local,type==exec.cachemount,type==$([[ \"$MODE\" == bad_filter ]] && printf 'source.http' || printf 'source.git.checkout')" \
+            "$filter_line" \
             ' Keep Duration: 48h0m0s' \
             ' Max Used Space: 1GiB' \
             'GC Policy rule#1:' \
@@ -110,7 +118,23 @@ describe('dedicated HomePilot builder', () => {
     expect(result.stdout).toContain('Builder dedicado homepilot-builder listo');
   });
 
-  it.each(['wrong_driver', 'no_load', 'old_compose', 'old_gc', 'missing_gc', 'bad_filter', 'bad_all'])('fails closed for %s', (mode) => {
+  it('accepts the literal space-separated filters from Buildx v0.32.2 on the MiniPC', () => {
+    const result = runBuilder('real_filters');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('Builder dedicado homepilot-builder listo');
+    const status = runBuilder('real_filters', 'homepilot_builder_report');
+    expect(status.status).toBe(0);
+    expect(status.stdout).toContain('Política GC de HomePilot verificada');
+    expect(status.stdout).not.toContain('política GC anterior o no verificable');
+  });
+
+  it('accepts the comma-separated filters documented by Buildx', () => {
+    const result = runBuilder('existing');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('Builder dedicado homepilot-builder listo');
+  });
+
+  it.each(['wrong_driver', 'no_load', 'old_compose', 'old_gc', 'missing_gc', 'bad_filter', 'fourth_filter', 'duplicate_filter', 'bad_all'])('fails closed for %s', (mode) => {
     const result = runBuilder(mode);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('FAIL');

@@ -20,7 +20,12 @@ function bytes(value, amount, unit) {
 }
 
 function valid_filters(value, items, seen, count, i) {
-  count = split(value, items, ",")
+  value = trim(value)
+  # Buildx versions render the same filter list with commas or spaces.
+  # Reject malformed comma lists before normalizing their separators.
+  if (value ~ /^,/ || value ~ /,$/ || value ~ /,[[:space:]]*,/) return 0
+  gsub(/[[:space:]]*,[[:space:]]*/, " ", value)
+  count = split(value, items, /[[:space:]]+/)
   if (count != 3) return 0
   for (i = 1; i <= count; i++) {
     items[i] = trim(items[i])
