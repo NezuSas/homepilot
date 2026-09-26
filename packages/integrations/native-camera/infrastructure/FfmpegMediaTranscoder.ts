@@ -44,6 +44,8 @@ function buildRtspUrl(endpoint: NativeCameraRtspEndpoint): string {
  */
 export class FfmpegMediaTranscoder implements MediaTranscoderPort {
   private readonly runtimes = new Map<string, NativeHlsRuntime>();
+  private readonly startsInFlight = new Map<string, Promise<string>>();
+  private readonly stopsInFlight = new Map<string, Promise<void>>();
   private readonly restartsInFlight = new Set<string>();
 
   public async ensureHlsRuntime(deviceId: string, endpoint: NativeCameraRtspEndpoint): Promise<NativeCameraHlsRuntimeHandle> {
@@ -56,7 +58,15 @@ export class FfmpegMediaTranscoder implements MediaTranscoderPort {
     // spawnRuntime looks up and properly awaits termination of any existing
     // runtime for this device itself — don't race it by tearing the old one
     // down here first (stopHlsRuntime's process kill is fire-and-forget).
-    const directory = await this.spawnRuntime(deviceId, endpoint);
+    let start = this.startsInFlight.get(deviceId);
+    if (!start) {
+      start = this.spawnRuntime(deviceId, endpoint);
+      this.startsInFlight.set(deviceId, start);
+      void start.finally(() => {
+        if (this.startsInFlight.get(deviceId) === start) this.startsInFlight.delete(deviceId);
+      }).catch(() => undefined);
+    }
+    const directory = await start;
     return { directory };
   }
 
@@ -65,7 +75,11 @@ export class FfmpegMediaTranscoder implements MediaTranscoderPort {
     if (!runtime) return;
     clearInterval(runtime.healthTimer);
     this.runtimes.delete(deviceId);
-    void this.terminateProcess(runtime.process);
+    const stopping = this.terminateProcess(runtime.process);
+    this.stopsInFlight.set(deviceId, stopping);
+    void stopping.finally(() => {
+      if (this.stopsInFlight.get(deviceId) === stopping) this.stopsInFlight.delete(deviceId);
+    });
   }
 
   // ffmpeg can be blocked in a network read against an unresponsive RTSP
@@ -125,7 +139,9 @@ export class FfmpegMediaTranscoder implements MediaTranscoderPort {
     }, HEALTH_CHECK_INTERVAL_MS);
   }
 
-  private async spawnRuntime(deviceId: string, endpoint: NativeCameraRtspEndpoint): Promise<string> {
+  private async spawnRuntime(deviceId: string, endpoint: NativeCameraRtspEndpoint, encoder?: 'software' | 'vaapi'): Promise<string> {
+    const stopping = this.stopsInFlight.get(deviceId);
+    if (stopping) await stopping;
     const previous = this.runtimes.get(deviceId);
     if (previous) {
       clearInterval(previous.healthTimer);
@@ -139,6 +155,7 @@ export class FfmpegMediaTranscoder implements MediaTranscoderPort {
       fs.unlinkSync(path.join(directory, file));
     }
 
+    const useVaapi = (encoder ?? (process.env.HOMEPILOT_CAMERA_HLS_ENCODER === 'auto' && fs.existsSync('/dev/dri/renderD128') ? 'vaapi' : 'software')) === 'vaapi';
     const ffmpegProcess = spawn('ffmpeg', [
       '-hide_banner',
       '-loglevel',
@@ -149,21 +166,14 @@ export class FfmpegMediaTranscoder implements MediaTranscoderPort {
       '32768',
       '-analyzeduration',
       '100000',
+      ...(useVaapi ? ['-vaapi_device', '/dev/dri/renderD128'] : []),
       '-i',
       buildRtspUrl(endpoint),
       '-an',
+      ...(useVaapi ? ['-vf', 'format=nv12,hwupload'] : []),
       '-c:v',
-      'libx264',
-      '-preset',
-      'veryfast',
-      '-tune',
-      'zerolatency',
-      '-profile:v',
-      'baseline',
-      '-level',
-      '3.1',
-      '-pix_fmt',
-      'yuv420p',
+      useVaapi ? 'h264_vaapi' : 'libx264',
+      ...(useVaapi ? ['-qp', '24'] : ['-preset', 'veryfast', '-tune', 'zerolatency', '-profile:v', 'baseline', '-level', '3.1', '-pix_fmt', 'yuv420p']),
       '-r',
       '15',
       '-g',
@@ -206,6 +216,10 @@ export class FfmpegMediaTranscoder implements MediaTranscoderPort {
       await this.waitForFile(path.join(directory, 'index.m3u8'), 8000);
     } catch (err) {
       await this.terminateProcess(ffmpegProcess);
+      if (useVaapi) {
+        console.warn(`[FfmpegMediaTranscoder] VAAPI unavailable for device ${deviceId}; falling back to software encoding.`);
+        return this.spawnRuntime(deviceId, endpoint, 'software');
+      }
       if (ffmpegStderr.includes('401') || ffmpegStderr.toLowerCase().includes('unauthorized') || ffmpegStderr.toLowerCase().includes('authorization failed')) {
         console.error(`[FfmpegMediaTranscoder] ffmpeg 401 Unauthorized for device ${deviceId}. Check camera credentials.`);
         throw new Error('NATIVE_CAMERA_AUTH_FAILED');
@@ -246,6 +260,7 @@ export class FfmpegMediaTranscoder implements MediaTranscoderPort {
     });
 
     ffmpegProcess.stdout.pipe(res);
+    res.on('close', () => ffmpegProcess.kill('SIGTERM'));
     ffmpegProcess.on('exit', (code) => {
       if (code !== 0) {
         console.error(`[FfmpegMediaTranscoder] ffmpeg snapshot exit code ${code}`);

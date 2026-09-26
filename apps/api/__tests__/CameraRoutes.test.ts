@@ -120,7 +120,7 @@ describe('CameraRoutes', () => {
     expect(container.adapters.homeAssistantClient.getCameraHlsStreamPath).not.toHaveBeenCalled();
   });
 
-  it('creates an HLS session by default for a native camera', async () => {
+  it('keeps a native camera preview lightweight and starts HLS only for its viewer', async () => {
     const response = new MockResponse();
     const nativeCamera: Device = {
       ...cameraDevice,
@@ -163,8 +163,19 @@ describe('CameraRoutes', () => {
     (container.repositories.deviceRepository.findDeviceById as jest.Mock).mockResolvedValue(nativeCamera);
     const routes = new CameraRoutes(nativeCameraSourceRepository, nativeCameraStreamingService);
 
+    const previewResponse = new MockResponse();
     await routes.handle(
       createRequest('/api/v1/devices/camera-1/camera/session'),
+      previewResponse as unknown as http.ServerResponse,
+      '/api/v1/devices/camera-1/camera/session', 'GET', container,
+    );
+    const preview = JSON.parse(previewResponse.end.mock.calls[0][0] as string) as Record<string, string>;
+    expect(preview.snapshotPath).toContain('/camera/snapshot?token=');
+    expect(preview.hlsPath).toBeUndefined();
+    expect(mediaTranscoder.ensureHlsRuntime).not.toHaveBeenCalled();
+
+    await routes.handle(
+      createRequest('/api/v1/devices/camera-1/camera/session?includeHls=true'),
       response as unknown as http.ServerResponse,
       '/api/v1/devices/camera-1/camera/session',
       'GET',
@@ -180,6 +191,24 @@ describe('CameraRoutes', () => {
       username: nativeSource.username,
       password: nativeSource.password,
     });
+
+    const secondViewer = new MockResponse();
+    await routes.handle(
+      createRequest('/api/v1/devices/camera-1/camera/session?includeHls=true'),
+      secondViewer as unknown as http.ServerResponse,
+      '/api/v1/devices/camera-1/camera/session', 'GET', container,
+    );
+    const internals = routes as unknown as {
+      hlsSessions: Map<string, { lastAccessAt: number }>;
+      reapInactiveNativeHls(): void;
+    };
+    const sessions = [...internals.hlsSessions.values()];
+    sessions[0].lastAccessAt = Date.now() - 100_000;
+    internals.reapInactiveNativeHls();
+    expect(mediaTranscoder.stopHlsRuntime).not.toHaveBeenCalled();
+    sessions[1].lastAccessAt = Date.now() - 100_000;
+    internals.reapInactiveNativeHls();
+    expect(mediaTranscoder.stopHlsRuntime).toHaveBeenCalledWith('camera-1');
   });
   it('includes proxied HLS only when the viewer explicitly requests it', async () => {
     const response = new MockResponse();
@@ -695,7 +724,7 @@ describe('CameraRoutes', () => {
       const nativeRoutes = new CameraRoutes(sourceRepository, streaming);
 
       await nativeRoutes.handle(
-        createRequest('/api/v1/devices/camera-1/camera/session'), response as unknown as http.ServerResponse,
+        createRequest('/api/v1/devices/camera-1/camera/session?includeHls=true'), response as unknown as http.ServerResponse,
         '/api/v1/devices/camera-1/camera/session', 'GET', container,
       );
 

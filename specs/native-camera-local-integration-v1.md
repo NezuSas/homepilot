@@ -60,7 +60,7 @@ No se permite registrar dos cámaras nativas con el mismo `home_id`, `host`, `rt
 ## Restricciones y Acceptance Criteria
 1. El usuario debe poder registrar una cámara nativa proveyendo IP, puertos, y credenciales.
 2. Al registrarse, la cámara debe aparecer en el sistema como un dispositivo con tipo `camera`.
-3. Al visualizar la cámara en la UI (ej. desde Dashboard o Inbox), el backend debe spawnear ffmpeg y servir video (siempre y cuando ffmpeg esté disponible y la cámara sea accesible).
+3. Las miniaturas de cámaras nativas (Dashboard y listados) deben mostrar snapshots periódicos sin iniciar un runtime HLS persistente. Al abrir el visor, el backend debe iniciar HLS y servir video continuo si ffmpeg y la cámara están disponibles.
 4. Al eliminar la cámara nativa, su registro en `devices` debe eliminarse, al igual que su fuente.
 5. `ffmpeg` debe estar presente en la imagen Docker del backend.
 6. El usuario debe poder seleccionar el perfil de cámara nativa antes de guardar: ONVIF/PTZ, RTSP/DVR o Sonoff/RTSP.
@@ -70,4 +70,6 @@ No se permite registrar dos cámaras nativas con el mismo `home_id`, `host`, `rt
 10. En el alta de cámaras, el usuario debe poder seleccionar ONVIF/PTZ, RTSP/DVR o Sonoff/RTSP antes del formulario de conexión. Los resultados descubiertos por ONVIF pueden mostrarse también en RTSP/DVR y Sonoff/RTSP solo como ayuda para prellenar datos.
 11. Para `rtsp-dvr` y `sonoff-rtsp`, el formulario y el backend deben exigir una ruta RTSP explícita; para `onvif-ptz`, el formulario debe priorizar el puerto ONVIF y ocultar la ruta RTSP manual.
 12. Al abrir la sección de cámaras nativas, la consola debe refrescar el snapshot de topología y solicitar `GET /api/v1/native-cameras` solo después de resolver el `homeId` activo, incluso si el usuario entra directamente a la sección.
-13. Una sesión de cámara nativa debe incluir siempre una ruta HLS firmada y reproducir video continuo; no debe degradarse silenciosamente a una imagen estática o a un stream MJPEG cuando HLS está disponible.
+13. La sesión de miniatura de una cámara nativa debe entregar una ruta de snapshot firmada sin iniciar HLS; una sesión solicitada explícitamente para el visor debe incluir una ruta HLS firmada y reproducir video continuo, sin degradarse silenciosamente a una imagen estática o MJPEG cuando HLS está disponible.
+14. Varios visores simultáneos de la misma cámara deben compartir un único runtime HLS. La ausencia de solicitudes HLS durante un plazo de inactividad configurable debe detener ese runtime sin interrumpir a otros espectadores activos; el watchdog no debe reiniciarlo después.
+15. La selección de codificador debe conservar `libx264` como respaldo. La aceleración por VAAPI solo se activa cuando el dispositivo de video está disponible y la reproducción se ha validado; no se debe presumir compatibilidad de stream-copy sin comprobar el origen RTSP.

@@ -20,11 +20,13 @@ interface CameraSessionResponse {
 interface CameraProxyTokenPayload {
   readonly deviceId: string;
   readonly expiresAt: number;
+  readonly nonce: string;
 }
 
 interface CameraHlsProxySession {
   readonly deviceId: string;
   expiresAt: number;
+  lastAccessAt: number;
   readonly source: 'home-assistant' | 'native';
   readonly masterPath: string;
   readonly resourcesById: Map<string, string>;
@@ -33,15 +35,27 @@ interface CameraHlsProxySession {
 }
 
 const CAMERA_PROXY_TOKEN_TTL_MS = 30 * 60 * 1000;
+const DEFAULT_NATIVE_HLS_IDLE_MS = 90_000;
+const NATIVE_HLS_REAPER_INTERVAL_MS = 15_000;
+
+function nativeHlsIdleMs(): number {
+  const configured = Number(process.env.HOMEPILOT_NATIVE_HLS_IDLE_MS);
+  return Number.isFinite(configured) && configured >= 15_000 ? configured : DEFAULT_NATIVE_HLS_IDLE_MS;
+}
 
 export class CameraRoutes extends ApiRoutes {
   private readonly hlsSessions = new Map<string, CameraHlsProxySession>();
+  private readonly nativeHlsStarts = new Map<string, number>();
+  private readonly nativeHlsDevices = new Set<string>();
+  private readonly nativeIdleMs = nativeHlsIdleMs();
 
   constructor(
     private readonly nativeCameraSourceRepository?: NativeCameraSourceRepository,
     private readonly nativeCameraStreamingService?: NativeCameraStreamingService,
   ) {
     super();
+    const reaper = setInterval(() => this.reapInactiveNativeHls(), NATIVE_HLS_REAPER_INTERVAL_MS);
+    reaper.unref?.();
   }
 
   async handle(
@@ -98,12 +112,19 @@ export class CameraRoutes extends ApiRoutes {
         const encodedDeviceId = encodeURIComponent(device.id);
         const cameraProxyToken = this.createCameraProxyToken(device.id);
         const encodedToken = encodeURIComponent(cameraProxyToken);
-        // Native RTSP feeds are browser-incompatible by themselves. Always
-        // establish their HLS session so every consumer receives a continuous
-        // stream instead of falling back to a one-shot snapshot or MJPEG.
-        const runtime = await this.nativeCameraStreamingService!.ensureHlsRuntime(device.id, nativeSource);
-        this.registerHlsSession(cameraProxyToken, device.id, path.join(runtime.directory, 'index.m3u8'), 'native', runtime.directory);
-        const hlsPath = `/api/v1/devices/${encodedDeviceId}/camera/hls/master.m3u8?token=${encodedToken}`;
+        let hlsPath: string | undefined;
+        if (includeHls) {
+          this.nativeHlsStarts.set(device.id, (this.nativeHlsStarts.get(device.id) ?? 0) + 1);
+          try {
+            const runtime = await this.nativeCameraStreamingService!.ensureHlsRuntime(device.id, nativeSource);
+            this.registerHlsSession(cameraProxyToken, device.id, path.join(runtime.directory, 'index.m3u8'), 'native', runtime.directory);
+            hlsPath = `/api/v1/devices/${encodedDeviceId}/camera/hls/master.m3u8?token=${encodedToken}`;
+          } finally {
+            const remaining = (this.nativeHlsStarts.get(device.id) ?? 1) - 1;
+            if (remaining > 0) this.nativeHlsStarts.set(device.id, remaining);
+            else this.nativeHlsStarts.delete(device.id);
+          }
+        }
         this.sendJson(res, {
           snapshotPath: `/api/v1/devices/${encodedDeviceId}/camera/snapshot?token=${encodedToken}`,
           streamPath: `/api/v1/devices/${encodedDeviceId}/camera/stream?token=${encodedToken}`,
@@ -179,6 +200,7 @@ export class CameraRoutes extends ApiRoutes {
     // segment requests keep arriving) must never expire mid-stream. Only a
     // session left idle for the full TTL gets reaped by removeExpiredHlsSessions.
     session.expiresAt = Date.now() + CAMERA_PROXY_TOKEN_TTL_MS;
+    session.lastAccessAt = Date.now();
 
     const upstreamPath = resourceId ? session.resourcesById.get(resourceId) : session.masterPath;
     if (!upstreamPath) {
@@ -358,6 +380,7 @@ export class CameraRoutes extends ApiRoutes {
     const payload: CameraProxyTokenPayload = {
       deviceId,
       expiresAt: Date.now() + CAMERA_PROXY_TOKEN_TTL_MS,
+      nonce: crypto.randomUUID(),
     };
     const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64url');
     const signature = this.signCameraProxyPayload(encodedPayload);
@@ -372,9 +395,11 @@ export class CameraRoutes extends ApiRoutes {
     nativeDirectory?: string,
   ): void {
     this.removeExpiredHlsSessions();
+    if (source === 'native') this.nativeHlsDevices.add(deviceId);
     this.hlsSessions.set(token, {
       deviceId,
       expiresAt: Date.now() + CAMERA_PROXY_TOKEN_TTL_MS,
+      lastAccessAt: Date.now(),
       source,
       masterPath,
       resourcesById: new Map<string, string>(),
@@ -482,6 +507,24 @@ export class CameraRoutes extends ApiRoutes {
     const now = Date.now();
     for (const [token, session] of this.hlsSessions) {
       if (session.expiresAt <= now) this.hlsSessions.delete(token);
+    }
+  }
+
+  private reapInactiveNativeHls(): void {
+    const now = Date.now();
+    for (const [token, session] of this.hlsSessions) {
+      if (session.source !== 'native') continue;
+      if (session.expiresAt > now && now - session.lastAccessAt < this.nativeIdleMs) continue;
+      this.hlsSessions.delete(token);
+    }
+    for (const deviceId of this.nativeHlsDevices) {
+      if (this.nativeHlsStarts.has(deviceId)) continue;
+      const hasViewer = [...this.hlsSessions.values()].some((session) =>
+        session.source === 'native' && session.deviceId === deviceId && session.expiresAt > now && now - session.lastAccessAt < this.nativeIdleMs);
+      if (!hasViewer) {
+        this.nativeCameraStreamingService?.stopHlsRuntime(deviceId);
+        this.nativeHlsDevices.delete(deviceId);
+      }
     }
   }
 

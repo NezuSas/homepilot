@@ -78,6 +78,55 @@ describe('FfmpegMediaTranscoder', () => {
     expect(process.kill).toHaveBeenCalledWith('SIGTERM');
   });
 
+  it('shares a startup already in flight between simultaneous viewers', async () => {
+    spawnMock.mockReturnValue(processStub());
+    const transcoder = new FfmpegMediaTranscoder();
+    const [first, second] = await Promise.all([
+      transcoder.ensureHlsRuntime('camera-shared', endpoint),
+      transcoder.ensureHlsRuntime('camera-shared', endpoint),
+    ]);
+    expect(first).toEqual(second);
+    expect(spawnMock).toHaveBeenCalledTimes(1);
+    transcoder.stopHlsRuntime('camera-shared');
+  });
+
+  it('waits for the previous writer to exit before reopening an idle camera', async () => {
+    const oldProcess = processStub();
+    spawnMock.mockReturnValueOnce(oldProcess).mockReturnValueOnce(processStub());
+    const transcoder = new FfmpegMediaTranscoder();
+    await transcoder.ensureHlsRuntime('camera-reopen', endpoint);
+    transcoder.stopHlsRuntime('camera-reopen');
+    const reopened = transcoder.ensureHlsRuntime('camera-reopen', endpoint);
+    await Promise.resolve();
+    expect(spawnMock).toHaveBeenCalledTimes(1);
+    oldProcess.exitCode = 0;
+    oldProcess.emit('exit', 0, null);
+    await reopened;
+    expect(spawnMock).toHaveBeenCalledTimes(2);
+    transcoder.stopHlsRuntime('camera-reopen');
+  });
+
+  it('falls back to software if an enabled VAAPI startup fails', async () => {
+    const previousEncoder = process.env.HOMEPILOT_CAMERA_HLS_ENCODER;
+    process.env.HOMEPILOT_CAMERA_HLS_ENCODER = 'auto';
+    const failedGpuProcess = processStub();
+    failedGpuProcess.killed = true;
+    spawnMock.mockReturnValueOnce(failedGpuProcess).mockReturnValueOnce(processStub());
+    const transcoder = new FfmpegMediaTranscoder();
+    const internals = transcoder as unknown as { waitForFile(filePath: string, timeoutMs: number): Promise<void> };
+    jest.spyOn(internals, 'waitForFile').mockRejectedValueOnce(new Error('GPU unavailable')).mockResolvedValueOnce(undefined);
+    jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      await transcoder.ensureHlsRuntime('camera-gpu', endpoint);
+      expect(spawnMock).toHaveBeenNthCalledWith(1, 'ffmpeg', expect.arrayContaining(['-c:v', 'h264_vaapi']));
+      expect(spawnMock).toHaveBeenNthCalledWith(2, 'ffmpeg', expect.arrayContaining(['-c:v', 'libx264']));
+      transcoder.stopHlsRuntime('camera-gpu');
+    } finally {
+      if (previousEncoder === undefined) delete process.env.HOMEPILOT_CAMERA_HLS_ENCODER;
+      else process.env.HOMEPILOT_CAMERA_HLS_ENCODER = previousEncoder;
+    }
+  });
+
   it('builds snapshot and MJPEG processes with browser-safe response headers and closes streams', () => {
     const snapshotProcess = processStub();
     const mjpegProcess = processStub();

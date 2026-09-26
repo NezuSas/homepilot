@@ -27,10 +27,9 @@ function absoluteSessionUrl(path: string): string {
 export function SectionCameraCard({ deviceId, title }: { deviceId: string; title: string }) {
   const { t } = useTranslation();
   const [session, setSession] = useState<CameraMediaSession | null>(null);
-  const sessionRef = useRef<CameraMediaSession | null>(null);
   const [hasFeedError, setHasFeedError] = useState(false);
   const [isConnecting, setIsConnecting] = useState(true);
-  const [feedMode, setFeedMode] = useState<CameraFeedMode>('stream');
+  const [feedMode, setFeedMode] = useState<CameraFeedMode>('snapshot');
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [viewerSession, setViewerSession] = useState<CameraMediaSession | null>(null);
   const viewerSessionControllerRef = useRef<AbortController | null>(null);
@@ -47,9 +46,8 @@ export function SectionCameraCard({ deviceId, title }: { deviceId: string; title
       if (!response.ok) throw new Error(`SESSION_${response.status}`);
       const payload: unknown = await response.json();
       if (!isCameraMediaSession(payload)) throw new Error('INVALID_SESSION');
-      sessionRef.current = payload;
       setSession(payload);
-      setFeedMode(payload.hlsPath ? 'hls' : 'stream');
+      setFeedMode('snapshot');
       setIsConnecting(false);
     }).catch((error: unknown) => {
       if (error instanceof DOMException && error.name === 'AbortError') return;
@@ -68,9 +66,25 @@ export function SectionCameraCard({ deviceId, title }: { deviceId: string; title
 
   useEffect(() => () => viewerSessionControllerRef.current?.abort(), []);
 
+  useEffect(() => {
+    if (!isViewerOpen) return;
+    const controller = new AbortController();
+    const timer = window.setInterval(() => {
+      void apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(deviceId)}/camera/session?includeHls=true`, {
+        signal: controller.signal,
+      }).then(async (response) => {
+        if (!response.ok) throw new Error(`VIEWER_SESSION_RENEWAL_${response.status}`);
+        const payload: unknown = await response.json();
+        if (!isCameraMediaSession(payload)) throw new Error('INVALID_VIEWER_SESSION');
+        if (!controller.signal.aborted) setViewerSession(payload);
+      }).catch(() => undefined);
+    }, 25 * 60 * 1000);
+    return () => { window.clearInterval(timer); controller.abort(); };
+  }, [deviceId, isViewerOpen]);
+
   const retry = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    setFeedMode(sessionRef.current?.hlsPath ? 'hls' : 'stream');
+    setFeedMode('snapshot');
     setIsConnecting(true);
     setHasFeedError(false);
     setRetryVersion((version) => version + 1);
@@ -90,7 +104,7 @@ export function SectionCameraCard({ deviceId, title }: { deviceId: string; title
     viewerSessionControllerRef.current = controller;
     setViewerSession(session);
     setIsViewerOpen(true);
-    void apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(deviceId)}/camera/session`, { signal: controller.signal }).then(async (response) => {
+    void apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(deviceId)}/camera/session?includeHls=true`, { signal: controller.signal }).then(async (response) => {
       if (!response.ok) throw new Error(`VIEWER_SESSION_${response.status}`);
       const payload: unknown = await response.json();
       if (!isCameraMediaSession(payload)) throw new Error('INVALID_VIEWER_SESSION');
@@ -104,5 +118,17 @@ export function SectionCameraCard({ deviceId, title }: { deviceId: string; title
   const snapshotUrl = absoluteSessionUrl(session.snapshotPath);
   const hlsUrl = session.hlsPath ? absoluteSessionUrl(session.hlsPath) : undefined;
 
-  return <><Button type="button" variant="ghost" size="md" className="group relative h-full w-full overflow-hidden text-left" onClick={(event) => { event.stopPropagation(); if (!hasFeedError) openViewer(); }} aria-label={t('camera.open_viewer', { name: title })}><CameraMediaFrame active={!isViewerOpen} hlsUrl={hlsUrl} streamUrl={streamUrl} snapshotUrl={snapshotUrl} preferredMode={feedMode} alt={title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" onModeChange={setFeedMode} onReady={() => {}} onFailure={() => setHasFeedError(true)} /><div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/45 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100" /><div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-pill border border-white/15 bg-black/60 px-2.5 py-1 text-micro font-semibold uppercase tracking-wide text-white backdrop-blur-md"><StatusPill variant="danger" dot pulse dotLabel={t('camera.live')} />{t('camera.live')}</div><span className="absolute bottom-3 right-3 grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-black/65 text-white shadow-lg backdrop-blur-md transition-transform duration-200 group-hover:scale-110"><Maximize2 className="h-4 w-4" /></span></Button>{viewerSession && <CameraViewerModal isOpen={isViewerOpen} name={title} streamUrl={absoluteSessionUrl(viewerSession.streamPath)} hlsUrl={viewerSession.hlsPath ? absoluteSessionUrl(viewerSession.hlsPath) : undefined} snapshotUrl={absoluteSessionUrl(viewerSession.snapshotPath)} preferredMode={viewerSession.hlsPath ? 'hls' : 'stream'} onClose={closeViewer} />}</>;
+  return (
+    <>
+      <Button type="button" variant="ghost" size="md" className="group relative h-full w-full overflow-hidden text-left" onClick={(event) => { event.stopPropagation(); if (!hasFeedError) openViewer(); }} aria-label={t('camera.open_viewer', { name: title })}>
+        <CameraMediaFrame active={!isViewerOpen} hlsUrl={hlsUrl} streamUrl={streamUrl} snapshotUrl={snapshotUrl} preferredMode={feedMode} snapshotIntervalMs={15_000} alt={title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" onModeChange={setFeedMode} onReady={() => {}} onFailure={() => setHasFeedError(true)} />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/45 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+        <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-pill border border-white/15 bg-black/60 px-2.5 py-1 text-micro font-semibold uppercase tracking-wide text-white backdrop-blur-md">
+          <StatusPill variant="primary" dot dotLabel={t('camera.snapshot')} />{t('camera.snapshot')}
+        </div>
+        <span className="absolute bottom-3 right-3 grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-black/65 text-white shadow-lg backdrop-blur-md transition-transform duration-200 group-hover:scale-110"><Maximize2 className="h-4 w-4" /></span>
+      </Button>
+      {viewerSession && <CameraViewerModal isOpen={isViewerOpen} name={title} streamUrl={absoluteSessionUrl(viewerSession.streamPath)} hlsUrl={viewerSession.hlsPath ? absoluteSessionUrl(viewerSession.hlsPath) : undefined} snapshotUrl={absoluteSessionUrl(viewerSession.snapshotPath)} preferredMode={viewerSession.hlsPath ? 'hls' : 'snapshot'} onClose={closeViewer} />}
+    </>
+  );
 }

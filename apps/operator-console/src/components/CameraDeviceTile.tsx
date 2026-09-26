@@ -48,7 +48,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
   const [viewerMedia, setViewerMedia] = useState<CameraMediaSession | null>(null);
   const viewerSessionControllerRef = useRef<AbortController | null>(null);
   const [retryVersion, setRetryVersion] = useState(0);
-  const [feedMode, setFeedMode] = useState<CameraFeedMode>('stream');
+  const [feedMode, setFeedMode] = useState<CameraFeedMode>(device.integrationSource === 'native-camera' ? 'snapshot' : 'stream');
   const displayName = isDuplicateName
     ? disambiguate(humanize(device.id, device.name), roomName)
     : humanize(device.id, device.name);
@@ -70,7 +70,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
       if (!isCameraMediaSession(payload)) throw new Error('INVALID_CAMERA_SESSION');
       mediaRef.current = payload;
       setMedia(payload);
-      if (isInitialLoad) setFeedMode(payload.hlsPath ? 'hls' : 'stream');
+      if (isInitialLoad) setFeedMode(device.integrationSource === 'native-camera' ? 'snapshot' : 'stream');
       sessionReady = true;
     }).catch((error: unknown) => {
       if (error instanceof DOMException && error.name === 'AbortError') return;
@@ -81,7 +81,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
     });
 
     return () => controller.abort();
-  }, [device.id, reportedUnavailable, retryVersion]);
+  }, [device.id, device.integrationSource, reportedUnavailable, retryVersion]);
 
   useEffect(() => {
     if (!media) return;
@@ -90,6 +90,22 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
   }, [media]);
 
   useEffect(() => () => viewerSessionControllerRef.current?.abort(), []);
+
+  useEffect(() => {
+    if (!isViewerOpen) return;
+    const controller = new AbortController();
+    const timer = window.setInterval(() => {
+      void apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(device.id)}/camera/session?includeHls=true`, {
+        signal: controller.signal,
+      }).then(async (response) => {
+        if (!response.ok) throw new Error(`CAMERA_VIEWER_RENEWAL_${response.status}`);
+        const payload: unknown = await response.json();
+        if (!isCameraMediaSession(payload)) throw new Error('INVALID_CAMERA_VIEWER_SESSION');
+        if (!controller.signal.aborted) setViewerMedia(payload);
+      }).catch(() => undefined);
+    }, 25 * 60 * 1000);
+    return () => { window.clearInterval(timer); controller.abort(); };
+  }, [device.id, isViewerOpen]);
 
   const unavailable = reportedUnavailable && !media;
   const ptzSupported = useMemo(
@@ -106,7 +122,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
     setViewerMedia(media);
     setIsViewerOpen(true);
 
-    void apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(device.id)}/camera/session`, {
+    void apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(device.id)}/camera/session?includeHls=true`, {
       signal: controller.signal,
     }).then(async (response) => {
       if (!response.ok) throw new Error(`CAMERA_VIEWER_SESSION_${response.status}`);
@@ -141,7 +157,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
   }, []);
   const retry = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    setFeedMode(mediaRef.current?.hlsPath ? 'hls' : 'stream');
+    setFeedMode(device.integrationSource === 'native-camera' ? 'snapshot' : 'stream');
     setIsConnecting(true);
     setHasFeedError(false);
     setRetryVersion((version) => version + 1);
@@ -157,7 +173,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
       ? t('camera.connection_error')
       : isConnecting || !media
         ? t('camera.connecting')
-        : t('camera.live');
+        : t(device.integrationSource === 'native-camera' ? 'camera.snapshot' : 'camera.live');
 
   return (
     <>
@@ -176,6 +192,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
               streamUrl={streamUrl}
               snapshotUrl={snapshotUrl}
               preferredMode={feedMode}
+              snapshotIntervalMs={15_000}
               alt={t('camera.feed_alt', { name: displayName })}
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
               onModeChange={handleFeedModeChange}
@@ -204,8 +221,8 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
 
           {isLive && (
             <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-pill border border-white/15 bg-black/60 px-2.5 py-1 text-micro font-semibold uppercase tracking-wide text-white backdrop-blur-md">
-              <StatusPill variant="danger" dot pulse dotLabel={statusLabel} />
-              {t('camera.live')}
+              <StatusPill variant={device.integrationSource === 'native-camera' ? 'primary' : 'danger'} dot pulse={device.integrationSource !== 'native-camera'} dotLabel={statusLabel} />
+              {statusLabel}
             </div>
           )}
 
@@ -253,7 +270,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
           streamUrl={absoluteApiUrl(viewerMedia.streamPath)}
           hlsUrl={viewerMedia.hlsPath ? absoluteApiUrl(viewerMedia.hlsPath) : undefined}
           snapshotUrl={absoluteApiUrl(viewerMedia.snapshotPath)}
-          preferredMode={viewerMedia.hlsPath ? 'hls' : 'stream'}
+          preferredMode={viewerMedia.hlsPath ? 'hls' : device.integrationSource === 'native-camera' ? 'snapshot' : 'stream'}
           onClose={closeViewer}
           deviceId={device.id}
           ptzSupported={ptzSupported}

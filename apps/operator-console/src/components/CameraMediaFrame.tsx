@@ -286,6 +286,10 @@ export const CameraMediaFrame: React.FC<CameraMediaFrameProps> = ({
     };
 
     const refresh = async () => {
+      if (document.hidden) {
+        schedule();
+        return;
+      }
       controller = new AbortController();
       try {
         const response = await fetch(withRefreshMarker(snapshotUrl), {
