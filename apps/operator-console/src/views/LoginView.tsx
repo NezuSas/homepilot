@@ -9,6 +9,7 @@ import { Input } from '../components/ui/Input';
 interface LoginViewProps {
   onLoginSuccess: (token: string, user: UserContext) => void;
   ssoLinkToken?: string | null;
+  ssoError?: boolean;
 }
 
 interface LoginResponse {
@@ -16,7 +17,7 @@ interface LoginResponse {
   user: UserContext;
 }
 
-export function LoginView({ onLoginSuccess, ssoLinkToken = null }: LoginViewProps) {
+export function LoginView({ onLoginSuccess, ssoLinkToken = null, ssoError = false }: LoginViewProps) {
   const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -64,6 +65,11 @@ export function LoginView({ onLoginSuccess, ssoLinkToken = null }: LoginViewProp
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4 pt-4">
+          {ssoError && (
+            <div role="alert" className="rounded-lg border border-danger/50 bg-danger/10 p-3 text-body text-danger">
+              {t('login.sso_error')}
+            </div>
+          )}
           {error && (
             <div role="alert" aria-live="assertive" className="p-3 bg-danger/10 border border-danger/50 rounded-lg text-body font-medium text-danger flex items-center gap-2">
               <Lock className="w-4 h-4" />

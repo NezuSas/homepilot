@@ -96,3 +96,53 @@ describe('POST /api/v1/auth/sso/directory/browser handoff', () => {
     expect(response.writeHead.mock.calls[0][1].Location).not.toContain('directory-assertion');
   });
 });
+
+describe('POST /api/v1/auth/sso/directory/consume-browser', () => {
+  const routes = new AuthRoutes(new MediaService(), new LoginAttemptRateLimiter());
+  const pathname = '/api/v1/auth/sso/directory/consume-browser';
+  const browserRequest = (cookie?: string): HomePilotRequest => {
+    const req = new EventEmitter() as HomePilotRequest;
+    req.headers = cookie ? { cookie } : {};
+    req.socket = { remoteAddress: '127.0.0.1' } as HomePilotRequest['socket'];
+    return req;
+  };
+
+  it('treats a normal startup without a handoff as empty 204, never 404', async () => {
+    const response = new MockResponse();
+    await routes.handle(browserRequest(), response as unknown as http.ServerResponse, pathname, 'POST', {} as BootstrapContainer);
+    expect(response.writeHead).toHaveBeenCalledWith(204);
+    expect(response.end).toHaveBeenCalledWith();
+    expect(response.setHeader).toHaveBeenCalledWith('Set-Cookie', expect.stringContaining('Max-Age=0'));
+  });
+
+  it('returns a linked handoff once and clears its HttpOnly cookie', async () => {
+    const sessionUser = { id: 'local-user', username: 'owner', role: 'admin', displayName: 'Owner', avatarDataUri: null, isActive: true };
+    const verifyToken = jest.fn().mockResolvedValue({ isValid: true, user: sessionUser });
+    const container = { services: { authService: { verifyToken } } } as unknown as BootstrapContainer;
+    const cookie = `__Host-hp-directory-sso=${encodeURIComponent(JSON.stringify({ sessionToken: 'local-session' }))}`;
+    const first = new MockResponse();
+    await routes.handle(browserRequest(cookie), first as unknown as http.ServerResponse, pathname, 'POST', container);
+    expect(first.writeHead).toHaveBeenCalledWith(200, { 'Content-Type': 'application/json' });
+    expect(JSON.parse(first.end.mock.calls[0][0])).toMatchObject({ linked: true, token: 'local-session', user: { id: 'local-user' } });
+    expect(first.setHeader).toHaveBeenCalledWith('Set-Cookie', expect.stringContaining('HttpOnly; Secure; SameSite=Lax'));
+    expect(first.setHeader).toHaveBeenCalledWith('Set-Cookie', expect.stringContaining('Max-Age=0'));
+
+    const second = new MockResponse();
+    await routes.handle(browserRequest(), second as unknown as http.ServerResponse, pathname, 'POST', container);
+    expect(second.writeHead).toHaveBeenCalledWith(204);
+    expect(verifyToken).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps 401 for a present but corrupt or expired handoff', async () => {
+    const invalid = new MockResponse();
+    await routes.handle(browserRequest('__Host-hp-directory-sso=not-json'), invalid as unknown as http.ServerResponse, pathname, 'POST', {} as BootstrapContainer);
+    expect(invalid.writeHead).toHaveBeenCalledWith(401, { 'Content-Type': 'application/json' });
+    expect(invalid.setHeader).toHaveBeenCalledWith('Set-Cookie', expect.stringContaining('Max-Age=0'));
+
+    const expired = new MockResponse();
+    const cookie = `__Host-hp-directory-sso=${encodeURIComponent(JSON.stringify({ sessionToken: 'expired' }))}`;
+    const container = { services: { authService: { verifyToken: jest.fn().mockResolvedValue({ isValid: false }) } } } as unknown as BootstrapContainer;
+    await routes.handle(browserRequest(cookie), expired as unknown as http.ServerResponse, pathname, 'POST', container);
+    expect(expired.writeHead).toHaveBeenCalledWith(401, { 'Content-Type': 'application/json' });
+  });
+});

@@ -1290,6 +1290,7 @@
     "password": "Password",
     "button": "Log in",
     "error_credentials": "Invalid credentials",
+    "sso_error": "Directory sign-in could not be completed. You can still sign in locally.",
     "error_failed": "Login failed. Please verify your credentials."
   },
   "onboarding": {

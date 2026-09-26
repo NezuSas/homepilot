@@ -1290,6 +1290,7 @@
     "password": "Contraseña",
     "button": "Iniciar sesión",
     "error_credentials": "Credenciales inválidas",
+    "sso_error": "No se pudo completar el acceso desde el Directorio. Puedes iniciar sesión localmente.",
     "error_failed": "Fallo al iniciar sesión. Por favor verifica tus credenciales."
   },
   "onboarding": {

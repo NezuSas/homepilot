@@ -167,6 +167,29 @@ async function prepareAuthenticatedDashboard(page: import('@playwright/test').Pa
   });
 }
 
+test('normal Operator Console startup consumes no Directory handoff without a 404 or duplicate request', async ({ page }) => {
+  await prepareLoginShell(page);
+  const statuses: number[] = [];
+  await page.route('**/api/v1/auth/sso/directory/consume-browser', async (route) => {
+    statuses.push(204);
+    await route.fulfill({ status: 204 });
+  });
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: /iniciar sesión|log in/i })).toBeVisible();
+  expect(statuses).toEqual([204]);
+  await expect(page.getByText(/No se pudo completar el acceso|Directory sign-in could not/i)).toHaveCount(0);
+});
+
+test('an invalid Directory handoff remains visible while local login stays available', async ({ page }) => {
+  await prepareLoginShell(page);
+  await page.route('**/api/v1/auth/sso/directory/consume-browser', async (route) => {
+    await route.fulfill({ status: 401, contentType: 'application/json', body: '{"error":{"code":"SSO_HANDOFF_INVALID"}}' });
+  });
+  await page.goto('/');
+  await expect(page.getByRole('alert')).toContainText(/No se pudo completar el acceso|Directory sign-in could not/i);
+  await expect(page.getByRole('button', { name: /iniciar sesión|log in/i })).toBeVisible();
+});
+
 test('Feature: Device inspector — Scenario: Operator switches between device information, activity and state', async ({ page }) => {
   await prepareAuthenticatedDashboard(page);
   const cover = { ...responsiveDevices.find((device) => device.id === 'cover-living'), externalId: 'ha:cover.living' };

@@ -70,6 +70,10 @@
 
 ## 5. CAPA: Pruebas End-to-End
 
+- [x] Reparar el proxy exacto `/sso/directory` en los perfiles Nginx sin llevar el token a la URL.
+- [x] Responder `204` por ausencia ordinaria de handoff, conservar `401` por cookie inválida y limpiar la cookie tras el consumo.
+- [x] Cubrir entrada, consumo válido y one-shot, ausencia, corrupción y arranque normal de la consola.
+
 ### 5.1 E2E primer acceso (AC1, AC2)
 Cuenta sin vínculo llega con token SSO válido → ve login local → login manual exitoso → vínculo creado → segunda visita con nuevo token SSO entra sin pedir contraseña.
 

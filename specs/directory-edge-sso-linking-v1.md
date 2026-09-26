@@ -93,6 +93,13 @@ CREATE TABLE directory_sso_used_tokens (
 6. Al loguearse manualmente con éxito, el frontend reenvía esa misma aserción para que el backend cree el vínculo atómicamente con el login (REQ-E06) y marque el jti como usado.
 7. La llave pública del Directorio se configura en el Edge vía variable de entorno `DIRECTORY_SSO_PUBLIC_KEY` (o archivo), aprovisionada una vez manualmente — no hay descubrimiento automático en runtime (cumple NFR-02).
 
+### 7.2.1 Entrada web y consumo sin handoff
+
+- El formulario de Directory también puede dirigirse a `/sso/directory`. Nginx traduce explícitamente ese POST a `/api/v1/auth/sso/directory/browser`, preservando el cuerpo; no se añade una ruta de dominio ni se acepta el token en la URL.
+- La entrada prepara la cookie `__Host-hp-directory-sso` HttpOnly/Secure y responde `303 /` como antes.
+- `POST /api/v1/auth/sso/directory/consume-browser` responde `204` sin cuerpo cuando no hay cookie, que es el arranque ordinario. Una cookie presente pero inválida mantiene `401`; en ambos casos el servidor emite la eliminación de la cookie. El cliente no interpreta `204` como JSON ni oculta errores HTTP reales.
+- Compatibilidad: clientes anteriores que esperaban `404` ignoran la respuesta vacía y siguen con login local. Si se revierte solo el backend, el cliente nuevo muestra un error SSO recuperable y conserva login local; el proxy puede revertirse independientemente.
+
 ### 7.3 Elección de algoritmo de firma
 Ed25519 (vía `crypto` de Node, ya disponible sin dependencias nuevas) es preferible a HMAC compartido: la llave pública puede vivir en texto plano en la config de cada Edge sin riesgo, y el compromiso de un Edge no permite forjar tokens para otros Edges ni para el propio Directorio.
 

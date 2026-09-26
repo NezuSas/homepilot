@@ -8,13 +8,14 @@ import { useTranslation } from 'react-i18next';
 import { cn } from './lib/utils';
 import { API_ENDPOINTS, API_BASE_URL } from './config';
 import { apiFetch } from './lib/apiClient';
+import { consumeBrowserDirectoryHandoff, type BrowserDirectoryHandoff } from './lib/browserDirectoryHandoff';
 import { ASSISTANT_VOICE_RESPONSE_TIMEOUT_MS, converseWithAssistant, synthesizeAssistantSpeech } from './lib/assistantApi';
 import { createSpeechAudioUrl } from './lib/audioRecording';
 import { AssistantTurnCoordinator, type AssistantTurn } from './lib/assistantTurnCoordinator';
 import { HOME_CONVERSATION_CONFIRMATION_LISTEN_EVENT, HOME_CONVERSATION_SPEECH_ACTIVITY_EVENT, HOME_CONVERSATION_STOP_SPEECH_EVENT, isSilenceVoiceCommand } from './lib/homeConversationVoice';
 import { recordHomeConversationTelemetry } from './lib/homeConversationTelemetry';
 import { getAppAccessControl } from './lib/accessControl';
-import { useSession, type UserContext } from './lib/useSession';
+import { useSession } from './lib/useSession';
 import { LoginView } from './views/LoginView';
 import { FirstAdminSetupView } from './views/FirstAdminSetupView';
 import { OnboardingView } from './views/OnboardingView';
@@ -153,24 +154,26 @@ function App() {
 
   const { status, user, handleLoginSuccess, handleLogout, clearSession, validateSession } = useSession(onSessionCleared);
   const [directorySsoToken, setDirectorySsoToken] = useState<string | null>(null);
+  const [directorySsoError, setDirectorySsoError] = useState(false);
+  const directoryHandoffRef = useRef<Promise<BrowserDirectoryHandoff | null> | null>(null);
 
   useEffect(() => {
     let active = true;
-    void fetch(`${API_BASE_URL}/api/v1/auth/sso/directory/consume-browser`, { method: 'POST' })
-      .then(async (response) => {
-        if (response.status === 404) return null;
-        const result = await response.json() as { linked?: boolean; token?: string; user?: UserContext };
-        if (!response.ok || !active) return null;
+    directoryHandoffRef.current ??= consumeBrowserDirectoryHandoff(`${API_BASE_URL}/api/v1/auth/sso/directory/consume-browser`);
+    void directoryHandoffRef.current
+      .then((result) => {
+        if (!result || !active) return;
         if (result.linked && result.token && result.user) {
           setDirectorySsoToken(null);
           handleLoginSuccess(result.token, result.user);
           navigate('/', { replace: true });
-          return null;
+          return;
         }
-        if (result.token) setDirectorySsoToken(result.token);
-        return null;
+        setDirectorySsoToken(result.token);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (active) setDirectorySsoError(true);
+      });
     return () => { active = false; };
   }, [handleLoginSuccess, navigate]);
 
@@ -543,7 +546,7 @@ function App() {
       return <FirstAdminSetupView onCompleted={handleLoginSuccess} />;
     }
 
-    return <LoginView onLoginSuccess={handleLoginSuccess} ssoLinkToken={directorySsoToken} />;
+    return <LoginView onLoginSuccess={handleLoginSuccess} ssoLinkToken={directorySsoToken} ssoError={directorySsoError} />;
   }
 
   if (loadingSetup) {

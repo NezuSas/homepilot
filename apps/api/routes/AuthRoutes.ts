@@ -53,7 +53,11 @@ export class AuthRoutes extends ApiRoutes {
     if (method === 'POST' && pathname === '/api/v1/auth/sso/directory/consume-browser') {
       const rawCookie = readCookie(req.headers.cookie, '__Host-hp-directory-sso');
       res.setHeader('Set-Cookie', '__Host-hp-directory-sso=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax');
-      if (!rawCookie) return this.sendError(res, 404, 'SSO_HANDOFF_NOT_FOUND', 'SSO handoff not found'), true;
+      if (!rawCookie) {
+        res.writeHead(204);
+        res.end();
+        return true;
+      }
       try {
         const handoff = JSON.parse(decodeURIComponent(rawCookie)) as { sessionToken?: unknown; directoryToken?: unknown };
         if (typeof handoff.sessionToken === 'string') {
