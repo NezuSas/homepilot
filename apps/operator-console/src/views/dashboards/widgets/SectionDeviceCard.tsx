@@ -6,6 +6,16 @@ import { getDefaultIcon, normalizeKind, type SectionCardIcon, type SectionCardKi
 export const SECTION_COMPACT_TILE_CLASSES = 'relative flex h-full min-h-0 w-full flex-col items-center justify-center overflow-hidden rounded-xl border p-2.5 text-center text-foreground transition-all';
 export const SECTION_COMPACT_TILE_INACTIVE_CLASSES = 'border-border/60 bg-card/95 shadow-surface-card';
 
+export function getLightTileSurfaceClasses(isActive: boolean, isPreview = false) {
+  return isActive
+    ? isPreview ? 'homepilot-section-light-tile-active' : 'homepilot-section-light-tile-surface'
+    : SECTION_COMPACT_TILE_INACTIVE_CLASSES;
+}
+
+export function getLightTileIconClasses(isActive: boolean) {
+  return cn('h-7 w-7 shrink-0 transition-colors', isActive ? 'text-light-active' : 'text-muted-foreground');
+}
+
 interface SectionDeviceCardProps {
   kind: SectionCardKind;
   title: string;
@@ -25,8 +35,8 @@ export function SectionDeviceCard({ kind, title, subtitle, icon, isAssigned, isA
 
   if (isTileKind) {
     return (
-      <div className={cn(SECTION_COMPACT_TILE_CLASSES, isActive ? isLightKind ? isPreview ? 'homepilot-section-light-tile-active' : 'homepilot-section-light-tile-surface' : 'border-primary/45 bg-primary/14 shadow-surface-card' : SECTION_COMPACT_TILE_INACTIVE_CLASSES)}>
-        <Icon className={cn('h-7 w-7 shrink-0 transition-colors', isActive ? isLightKind ? 'text-light-active' : 'text-primary' : 'text-muted-foreground')} />
+      <div className={cn(SECTION_COMPACT_TILE_CLASSES, isLightKind ? getLightTileSurfaceClasses(Boolean(isActive), isPreview) : isActive ? 'border-primary/45 bg-primary/14 shadow-surface-card' : SECTION_COMPACT_TILE_INACTIVE_CLASSES)}>
+        <Icon className={isLightKind ? getLightTileIconClasses(Boolean(isActive)) : cn('h-7 w-7 shrink-0 transition-colors', isActive ? 'text-primary' : 'text-muted-foreground')} />
         <span className="line-clamp-2 min-w-0 text-micro font-bold leading-tight text-foreground">{title}</span>
       </div>
     );

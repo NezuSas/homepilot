@@ -68,7 +68,7 @@ export function SectionCardContent({
       ? <CurtainDeviceTile device={device} roomName={subtitle} onUpdate={onDeviceUpdate} onCommand={onDeviceCommand} layout="dashboard" density={density} />
       : <CurtainDeviceTilePreview title={title} roomName={subtitle} layout="dashboard" density={density} />;
   }
-  if (normalized === 'action') return <SectionActionCard kind={kind} title={title} subtitle={subtitle} icon={icon} isAssigned={isAssigned} isPreview={isPreview} isEditorPreview={isEditorPreview} onAction={onAction} actionFeedback={actionFeedback} />;
+  if (normalized === 'action') return <SectionActionCard kind={kind} title={title} subtitle={subtitle} icon={icon} isAssigned={isAssigned} isActive={isActive} isPreview={isPreview} isEditorPreview={isEditorPreview} onAction={onAction} actionFeedback={actionFeedback} />;
   if (normalized === 'energy') return <SectionEnergyCard />;
   if (normalized === 'room') return <SectionRoomCard title={title} roomDeviceCount={roomDeviceCount} roomActiveCount={roomActiveCount} />;
   if (normalized === 'scene') return <SectionSceneCard title={title} subtitle={subtitle} />;

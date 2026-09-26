@@ -1,10 +1,9 @@
-import { CircleAlert, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../../components/ui/Button';
 import { cn } from '../../../lib/utils';
 import { getDashboardIconComponent } from '../components/IconPicker';
 import { getDefaultIcon, normalizeKind, type SectionCardIcon, type SectionCardKind } from './sectionCardCatalog';
-import { SECTION_COMPACT_TILE_CLASSES, SECTION_COMPACT_TILE_INACTIVE_CLASSES } from './SectionDeviceCard';
+import { getLightTileIconClasses, getLightTileSurfaceClasses, SECTION_COMPACT_TILE_CLASSES } from './SectionDeviceCard';
 
 interface SectionActionCardProps {
   kind: SectionCardKind;
@@ -12,6 +11,7 @@ interface SectionActionCardProps {
   subtitle?: string;
   icon?: SectionCardIcon;
   isAssigned?: boolean;
+  isActive?: boolean;
   isPreview?: boolean;
   isEditorPreview?: boolean;
   onAction?: () => void;
@@ -24,6 +24,7 @@ export function SectionActionCard({
   subtitle,
   icon,
   isAssigned,
+  isActive,
   isPreview,
   isEditorPreview,
   onAction,
@@ -44,25 +45,20 @@ export function SectionActionCard({
       aria-busy={actionFeedback === 'pending' || undefined}
       aria-label={t('dashboard.editor.sections.action_button_aria', { name: title })}
       data-action-state={actionFeedback ?? 'idle'}
-      title={unavailable ? t('dashboard.editor.sections.action_button_unavailable') : subtitle}
+      title={actionFeedback === 'error' ? t('dashboard.editor.sections.action_button_error') : unavailable ? t('dashboard.editor.sections.action_button_unavailable') : subtitle}
       variant="ghost"
       className={cn(
         SECTION_COMPACT_TILE_CLASSES,
-        SECTION_COMPACT_TILE_INACTIVE_CLASSES,
-        'gap-1 px-2.5 py-2.5 transition-colors duration-200 hover:border-primary/40 hover:bg-card focus-visible:ring-primary/70 disabled:cursor-default disabled:opacity-65',
+        getLightTileSurfaceClasses(Boolean(isActive)),
+        '!transform-none gap-0 px-2.5 py-2.5 focus-visible:ring-primary/70 disabled:cursor-default disabled:opacity-100',
+        isActive ? 'hover:bg-transparent' : 'hover:bg-card/95',
         isPresentationOnly && 'pointer-events-none cursor-default',
-        actionFeedback === 'pending' && 'border-primary/50',
-        actionFeedback === 'success' && 'border-primary/55 bg-primary/14 ring-1 ring-primary/25',
-        actionFeedback === 'error' && 'border-danger/50',
       )}
     >
-      {actionFeedback === 'pending' ? <Loader2 aria-hidden="true" className="h-7 w-7 shrink-0 animate-spin text-primary" />
-        : actionFeedback === 'error' ? <CircleAlert aria-hidden="true" className="h-7 w-7 shrink-0 text-danger" />
-          : <Icon aria-hidden="true" className={cn('h-7 w-7 shrink-0 transition-colors duration-200', actionFeedback === 'success' ? 'text-primary' : 'text-muted-foreground')} />}
+      <Icon aria-hidden="true" className={getLightTileIconClasses(Boolean(isActive))} />
       <span className="line-clamp-2 min-w-0 text-micro font-bold leading-tight text-foreground">{title}</span>
       {actionFeedback === 'success' && <span role="status" className="sr-only">{t('dashboard.editor.sections.action_button_success')}</span>}
-      {actionFeedback === 'pending' && <span role="status" className="line-clamp-1 text-nano font-semibold text-primary">{t('dashboard.editor.sections.action_button_pending')}</span>}
-      {actionFeedback === 'error' && <span role="status" className="line-clamp-1 text-nano font-semibold text-danger">{t('dashboard.editor.sections.action_button_error')}</span>}
+      {actionFeedback === 'error' && <span role="alert" className="sr-only">{t('dashboard.editor.sections.action_button_error')}</span>}
     </Button>
   );
 }

@@ -30,7 +30,7 @@
       `check:ui-primitives` en verde. Verificación visual en navegador pendiente del usuario (sin
       herramienta de automatización de navegador disponible en este entorno).
 - [x] AC28: Matched light and action previews to their semantic live-card surfaces in both themes, and kept the dashboard navigation trigger visible and usable at the 1080×1920 portrait-kiosk breakpoint.
-- [x] AC29: Named the unified catalog card Button, retained light toggles, and made one-shot buttons, scenes, and routines illuminate their own icon briefly before returning to idle; existing action cards stay compatible and errors remain visible.
+- [x] AC29: Named the unified catalog card Button, retained light toggles, and made one-shot buttons, scenes, and routines use the same light-tile on/off appearance, switching on during execution and briefly after success before returning to off; existing action cards stay compatible and failures are announced accessibly.
 - [x] AC30: Added four bundled HomePilot backgrounds with localized, accessible selection in view configuration. Bundled assets resolve from the console origin while custom uploaded backgrounds retain their API-hosted path.
 - [x] AC30: Balanced light and dark dashboard veils so both themes preserve the selected image rather than replacing it with an opaque theme-colored surface; theme-specific overlays now only protect operational contrast.
 - [x] AC31: Removed standalone Room and Scene catalog types and hid the redundant Action button option while keeping persisted action cards compatible. Light/activator catalog previews resolve their localized size label correctly.

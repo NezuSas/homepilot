@@ -289,6 +289,8 @@ test('Feature: Button card — Scenario: A scene briefly lights its icon without
   await prepareAuthenticatedDashboard(page);
   let savedDashboard = responsiveDashboard;
   let sceneExecutions = 0;
+  let finishSceneExecution: (() => void) | undefined;
+  const sceneExecutionGate = new Promise<void>((resolve) => { finishSceneExecution = resolve; });
   await page.route('**/api/v1/dashboards/responsive-dashboard', async (route) => {
     if (route.request().method() !== 'PATCH') return route.continue();
     const changes = route.request().postDataJSON() as Partial<typeof responsiveDashboard>;
@@ -303,6 +305,7 @@ test('Feature: Button card — Scenario: A scene briefly lights its icon without
   });
   await page.route('**/api/v1/scenes/scene-dinner/execute', async (route) => {
     sceneExecutions += 1;
+    await sceneExecutionGate;
     await route.fulfill({ contentType: 'application/json', body: '{}' });
   });
 
@@ -322,11 +325,19 @@ test('Feature: Button card — Scenario: A scene briefly lights its icon without
   await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Done|Listo)$/i }).click();
   await sceneButton.click();
   await expect.poll(() => sceneExecutions).toBe(1);
+  await expect(sceneButton).toHaveAttribute('data-action-state', 'pending');
+  await expect(sceneTile).toHaveClass(/homepilot-section-light-tile-active/);
+  await expect(sceneButton).toHaveClass(/homepilot-section-light-tile-surface/);
+  await expect(sceneButton.locator('svg').first()).toHaveClass(/text-light-active/);
+  await expect(sceneTile.locator('svg.lucide-loader-circle')).toHaveCount(0);
+  finishSceneExecution?.();
   await expect(sceneButton).toHaveAttribute('data-action-state', 'success');
-  await expect(sceneButton.locator('svg').first()).toHaveClass(/text-primary/);
+  await expect(sceneTile).toHaveClass(/homepilot-section-light-tile-active/);
+  await expect(sceneButton.locator('svg').first()).toHaveClass(/text-light-active/);
   await expect(sceneButton.locator('svg.lucide-check')).toHaveCount(0);
   await expect(sceneButton.getByText(/^(Done|Listo)$/i)).toHaveCount(0);
   await expect(sceneButton).toHaveAttribute('data-action-state', 'idle', { timeout: 4000 });
+  await expect(sceneTile).not.toHaveClass(/homepilot-section-light-tile-active/);
   await expect(sceneButton.locator('svg').first()).toHaveClass(/text-muted-foreground/);
 });
 

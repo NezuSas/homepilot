@@ -91,6 +91,8 @@ export function SectionCardItem({
     ? (roomsByHome[assignedDevice.homeId] ?? []).find((room) => room.id === assignedDevice.roomId)?.name
     : undefined;
   const cardIsActive = assignedDevice ? isDeviceActive(assignedDevice) : false;
+  const actionIsActive = normalizedKind === 'action' && (processingCardId === card.id || (actionFeedback?.id === card.id && actionFeedback.status === 'success'));
+  const tileIsActive = normalizedKind === 'action' ? actionIsActive : cardIsActive;
   const isActionable = Boolean(card.entityId)
     && !isEditing
     && (normalizedKind === 'device' || normalizedKind === 'light' || normalizedKind === 'action');
@@ -153,7 +155,7 @@ export function SectionCardItem({
         isClock && "min-h-clock-card",
         isCover && "w-full max-w-curtain-dashboard justify-self-start",
         isActionable && "cursor-pointer hover:-translate-y-0.5 hover:shadow-depth-2",
-        normalizedKind === 'light' && cardIsActive && "homepilot-section-light-tile-active",
+        (normalizedKind === 'light' || normalizedKind === 'action') && tileIsActive && "homepilot-section-light-tile-active",
         isDragging && "z-30 opacity-45",
         getSpanClass(span)
       )}
@@ -165,7 +167,7 @@ export function SectionCardItem({
         span={span}
         icon={card.icon}
         isAssigned={Boolean(card.entityId)}
-        isActive={cardIsActive}
+        isActive={tileIsActive}
         deviceId={cameraDeviceId}
         device={assignedDevice}
         isEditorPreview={isEditing}
