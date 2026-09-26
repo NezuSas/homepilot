@@ -1,4 +1,4 @@
-import { apiFetch, configureApiClient, readApiError } from '../apiClient';
+import { apiFetch, configureApiClient, getApiRequestScope, readApiError } from '../apiClient';
 
 const dispatchEvent = jest.fn();
 const getItem = jest.fn();
@@ -15,6 +15,15 @@ beforeEach(() => {
 });
 
 describe('apiFetch', () => {
+  it('separates shared reads by session and language', () => {
+    configureApiClient({ getToken: () => 'first-session', onUnauthorized: jest.fn() });
+    const first = getApiRequestScope();
+    getItem.mockReturnValue('en');
+    expect(getApiRequestScope()).not.toBe(first);
+    configureApiClient({ getToken: () => 'second-session', onUnauthorized: jest.fn() });
+    expect(getApiRequestScope()).not.toBe(first);
+  });
+
   it('adds language and bearer token for protected requests', async () => {
     const unauthorized = jest.fn();
     configureApiClient({ getToken: () => 'token-1', onUnauthorized: unauthorized });

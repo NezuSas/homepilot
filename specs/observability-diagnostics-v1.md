@@ -162,6 +162,13 @@ Estos datos se mantienen en variables privadas actualizadas en cada operación r
 
 ## 9. UI del Operator Console
 
+### Fiabilidad de las lecturas periódicas
+
+- Diagnóstico solicita snapshot, eventos, escenas y automatizaciones al abrirse y vuelve a solicitarlos cinco segundos después de completar cada ciclo. El widget de estado conserva el intervalo de cinco segundos y el de actividad, treinta segundos.
+- Las lecturas GET simultáneas del mismo recurso en estas superficies comparten una única petición HTTP. Cada vista cancela su suscripción al desmontarse; la petición se aborta cuando ya no quedan consumidores.
+- Una respuesta que no termina se limita a diez segundos y permite reintentar en el siguiente ciclo. Un fallo temporal conserva el último dato válido y no multiplica peticiones pendientes.
+- El cambio de zona horaria sustituye el ciclo anterior por una lectura nueva. No se modifica el polling global, WebSocket ni el contrato de los endpoints.
+
 Añadir vista "Sistema" o tab "Diagnóstico" en el Operator Console con:
 - Tarjeta de estado general (HealthBadge: healthy/degraded/offline)
 - Estado de HA Connection y WebSocket

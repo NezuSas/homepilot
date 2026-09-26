@@ -62,6 +62,11 @@ function getSelectedLanguage(): 'es' | 'en' {
   return selectedLanguage.toLowerCase().startsWith('en') ? 'en' : 'es';
 }
 
+/** Internal identity for sharing only requests made under the same session and locale. */
+export function getApiRequestScope(): string {
+  return JSON.stringify([config?.getToken() ?? null, getSelectedLanguage()]);
+}
+
 /**
  * Cliente HTTP autenticado. Sustituye a `fetch` en toda la aplicación.
  *

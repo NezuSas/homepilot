@@ -1,10 +1,10 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
 import type { DashboardWidgetConfig } from '../types';
 import { Activity, Clock, Shield, Cpu, Zap } from 'lucide-react';
-import { apiFetch } from '../../../lib/apiClient';
 import { API_BASE_URL } from '../../../config';
+import { fetchDiagnosticResource, startSequentialPolling } from '../../../lib/diagnosticResourceRequests';
 
 const API = `${API_BASE_URL}/api/v1`;
 
@@ -24,27 +24,21 @@ export function ActivityFeedWidget({ config, isEditing, onConfigure }: { config:
   const [events, setEvents] = useState<SystemEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchEvents = useCallback(async () => {
-    try {
-      const res = await apiFetch(`${API}/system/diagnostics/events`);
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setEvents(data.slice(0, 10)); // Top 10
-        }
-      }
-    } catch (err) {
-      console.error('Failed to fetch activity feed:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    fetchEvents();
-    const interval = setInterval(fetchEvents, 30000); // Poll every 30s
-    return () => clearInterval(interval);
-  }, [fetchEvents]);
+    return startSequentialPolling(async (signal) => {
+      try {
+        const res = await fetchDiagnosticResource(`${API}/system/diagnostics/events`, signal);
+        if (res.ok) {
+          const data: unknown = await res.json();
+          if (!signal.aborted && Array.isArray(data)) setEvents(data.slice(0, 10));
+        }
+      } catch {
+        // Preserve the last activity feed while the next poll retries.
+      } finally {
+        if (!signal.aborted) setLoading(false);
+      }
+    }, 30_000);
+  }, []);
 
   const getEventIcon = (category: SystemEventCategory, eventType: string) => {
     if (eventType === 'AUTH_FAILED') return <Shield className="h-3 w-3 text-danger" />;

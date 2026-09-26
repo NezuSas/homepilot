@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Clock, LayoutGrid, Loader2, Star } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { apiFetch, readApiError } from '../lib/apiClient';
+import { fetchDiagnosticResource } from '../lib/diagnosticResourceRequests';
 import { SceneBuilderModal } from './SceneBuilderModal';
 import ConfirmModal from '../components/ConfirmModal';
 import { ScenesEmptyState } from '../components/ScenesEmptyState';
@@ -45,6 +46,7 @@ const ScenesView: React.FC<{
   const [homeId, setHomeId] = useState<string | null>(null);
   const [successId, setSuccessId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const dataRequest = useRef<AbortController | null>(null);
   
   // Local Stats
   const [favorites, setFavorites] = useState<string[]>(() => {
@@ -79,25 +81,29 @@ const ScenesView: React.FC<{
 
   // Fetch initial data
   useEffect(() => {
+    const controller = new AbortController();
+    dataRequest.current = controller;
     const fetchData = async () => {
       try {
-        const homesRes = await apiFetch(`${API_BASE_URL}/api/v1/homes`);
+        const homesRes = await apiFetch(`${API_BASE_URL}/api/v1/homes`, { signal: controller.signal });
         if (!homesRes.ok) throw new Error(await readApiError(homesRes, t('scenes.errors.load_failed')));
         const homes = await homesRes.json();
+        if (controller.signal.aborted) return;
         if (Array.isArray(homes) && homes.length > 0) {
           const hId = homes[0].id;
           setHomeId(hId);
 
           const [scenesRes, roomsRes, devicesRes] = await Promise.all([
-            apiFetch(`${API_BASE_URL}/api/v1/scenes`),
-            apiFetch(`${API_BASE_URL}/api/v1/homes/${hId}/rooms`),
-            apiFetch(`${API_BASE_URL}/api/v1/devices`)
+            fetchDiagnosticResource(`${API_BASE_URL}/api/v1/scenes`, controller.signal),
+            apiFetch(`${API_BASE_URL}/api/v1/homes/${hId}/rooms`, { signal: controller.signal }),
+            apiFetch(`${API_BASE_URL}/api/v1/devices`, { signal: controller.signal })
           ]);
 
           if (!scenesRes.ok) throw new Error(await readApiError(scenesRes, t('scenes.errors.load_failed')));
           if (!roomsRes.ok) throw new Error(await readApiError(roomsRes, t('scenes.errors.load_failed')));
           if (!devicesRes.ok) throw new Error(await readApiError(devicesRes, t('scenes.errors.load_failed')));
           const [sceneData, roomData, deviceData] = await Promise.all([scenesRes.json(), roomsRes.json(), devicesRes.json()]);
+          if (controller.signal.aborted) return;
           if (Array.isArray(sceneData)) setScenes(sceneData);
           if (Array.isArray(roomData)) setRooms(roomData);
           if (Array.isArray(deviceData)) setDevices(deviceData);
@@ -106,13 +112,14 @@ const ScenesView: React.FC<{
           setError(t('scenes.errors.no_home'));
         }
       } catch (error_: unknown) {
-        setError(error_ instanceof Error ? error_.message : t('scenes.errors.load_failed'));
+        if (!controller.signal.aborted) setError(error_ instanceof Error ? error_.message : t('scenes.errors.load_failed'));
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
-    fetchData();
+    void fetchData();
+    return () => dataRequest.current?.abort();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Mutations refresh local scene state.
 
   const handleExecute = async (scene: Scene) => {
@@ -148,13 +155,18 @@ const ScenesView: React.FC<{
   const handleSaved = () => {
     setShowBuilder(false);
     setEditingScene(null);
-    apiFetch(`${API_BASE_URL}/api/v1/scenes`)
+    dataRequest.current?.abort();
+    const controller = new AbortController();
+    dataRequest.current = controller;
+    fetchDiagnosticResource(`${API_BASE_URL}/api/v1/scenes`, controller.signal)
       .then(async res => {
         if (!res.ok) throw new Error(await readApiError(res, t('scenes.errors.load_failed')));
         return res.json();
       })
-      .then(data => { if (Array.isArray(data)) setScenes(data); })
-      .catch((error_: unknown) => setError(error_ instanceof Error ? error_.message : t('scenes.errors.load_failed')));
+      .then(data => { if (!controller.signal.aborted && Array.isArray(data)) setScenes(data); })
+      .catch((error_: unknown) => {
+        if (!controller.signal.aborted) setError(error_ instanceof Error ? error_.message : t('scenes.errors.load_failed'));
+      });
   };
 
   if (loading) {

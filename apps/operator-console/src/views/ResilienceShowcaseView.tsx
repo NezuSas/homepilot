@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Activity, CheckCircle2, Home, Router, Workflow } from 'lucide-react';
 import { API_BASE_URL } from '../config';
-import { apiFetch } from '../lib/apiClient';
+import { fetchDiagnosticResource } from '../lib/diagnosticResourceRequests';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import { Card } from '../components/ui/Card';
 import { SectionHeader } from '../components/ui/SectionHeader';
@@ -22,27 +22,29 @@ export const ResilienceShowcaseView: React.FC = () => {
   const [lastCheckedAt, setLastCheckedAt] = useState<Date | null>(null);
 
   useEffect(() => {
-    let isMounted = true;
+    const controller = new AbortController();
     const loadSystemStatus = async () => {
       try {
-        const [sceneData, automationData] = await Promise.all([
-          apiFetch(`${API_BASE_URL}/api/v1/scenes`),
-          apiFetch(`${API_BASE_URL}/api/v1/automations`),
+        const [sceneResponse, automationResponse] = await Promise.all([
+          fetchDiagnosticResource(`${API_BASE_URL}/api/v1/scenes`, controller.signal),
+          fetchDiagnosticResource(`${API_BASE_URL}/api/v1/automations`, controller.signal),
           refreshSnapshot(),
         ]);
-        if (!isMounted) return;
+        if (!sceneResponse.ok || !automationResponse.ok) throw new Error('SYSTEM_STATUS_ERROR');
+        const [sceneData, automationData] = await Promise.all([sceneResponse.json(), automationResponse.json()]);
+        if (controller.signal.aborted) return;
         setScenes(Array.isArray(sceneData) ? sceneData : []);
         setAutomations(Array.isArray(automationData) ? automationData : []);
         setIsConnected(true);
         setLastCheckedAt(new Date());
       } catch {
-        if (isMounted) setIsConnected(false);
+        if (!controller.signal.aborted) setIsConnected(false);
       } finally {
-        if (isMounted) setIsLoading(false);
+        if (!controller.signal.aborted) setIsLoading(false);
       }
     };
     void loadSystemStatus();
-    return () => { isMounted = false; };
+    return () => controller.abort();
   }, [refreshSnapshot]);
 
   const spacesCount = useMemo(

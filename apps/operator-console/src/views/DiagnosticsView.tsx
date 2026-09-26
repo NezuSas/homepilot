@@ -11,6 +11,7 @@ import { DiagnosticsTimeline } from '../components/DiagnosticsTimeline';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import { DatabaseBackupsCard, type DatabaseBackupSummary } from '../components/DatabaseBackupsCard';
+import { fetchDiagnosticResource, isCancelledRequest, startSequentialPolling } from '../lib/diagnosticResourceRequests';
 
 interface DiagnosticsCounters {
   recentReconnects: number;
@@ -152,29 +153,7 @@ export function DiagnosticsView() {
     });
   };
 
-  const fetchDiagnostics = async () => {
-    try {
-      const [snapshotRes, eventsRes, scenesRes, automationsRes] = await Promise.all([
-        apiFetch(`${API_BASE_URL}/api/v1/system/diagnostics`),
-        apiFetch(`${API_BASE_URL}/api/v1/system/diagnostics/events`),
-        apiFetch(`${API_BASE_URL}/api/v1/scenes`),
-        apiFetch(`${API_BASE_URL}/api/v1/automations`)
-      ]);
-
-      if (!snapshotRes.ok || !eventsRes.ok) throw new Error(t('common.errors.api_failed'));
-
-      setSnapshot(await snapshotRes.json());
-      setEvents(await eventsRes.json());
-      if (scenesRes.ok) setScenes(await scenesRes.json());
-      if (automationsRes.ok) setAutomations(await automationsRes.json());
-      await refreshSnapshot();
-      setError(null);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t('common.errors.unknown'));
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [refreshVersion, setRefreshVersion] = useState(0);
 
   const handleTimezoneChange = async (newTz: string) => {
     setUpdatingTz(true);
@@ -187,7 +166,7 @@ export function DiagnosticsView() {
 
       if (!res.ok) throw new Error(t('diagnostics.update_failed'));
       
-      await fetchDiagnostics();
+      setRefreshVersion((version) => version + 1);
     } catch (err: unknown) {
       console.error('Timezone update failed:', err);
     } finally {
@@ -196,10 +175,36 @@ export function DiagnosticsView() {
   };
 
   useEffect(() => {
-    fetchDiagnostics();
-    const interval = setInterval(fetchDiagnostics, 5000);
-    return () => clearInterval(interval);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Keep one polling subscription for this screen lifecycle.
+    return startSequentialPolling(async (signal) => {
+      try {
+        const [snapshotRes, eventsRes, scenesRes, automationsRes] = await Promise.all([
+          fetchDiagnosticResource(`${API_BASE_URL}/api/v1/system/diagnostics`, signal),
+          fetchDiagnosticResource(`${API_BASE_URL}/api/v1/system/diagnostics/events`, signal),
+          fetchDiagnosticResource(`${API_BASE_URL}/api/v1/scenes`, signal),
+          fetchDiagnosticResource(`${API_BASE_URL}/api/v1/automations`, signal),
+        ]);
+        if (!snapshotRes.ok || !eventsRes.ok) throw new Error(t('common.errors.api_failed'));
+        const [nextSnapshot, nextEvents, nextScenes, nextAutomations] = await Promise.all([
+          snapshotRes.json(), eventsRes.json(),
+          scenesRes.ok ? scenesRes.json() : null,
+          automationsRes.ok ? automationsRes.json() : null,
+        ]);
+        if (signal.aborted) return;
+        setSnapshot(nextSnapshot);
+        setEvents(nextEvents);
+        if (nextScenes) setScenes(nextScenes);
+        if (nextAutomations) setAutomations(nextAutomations);
+        void refreshSnapshot();
+        setError(null);
+      } catch (err: unknown) {
+        if (!signal.aborted && !isCancelledRequest(err)) {
+          setError(err instanceof Error ? err.message : t('common.errors.unknown'));
+        }
+      } finally {
+        if (!signal.aborted) setLoading(false);
+      }
+    }, 5000);
+  }, [refreshSnapshot, refreshVersion, t]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -210,7 +215,7 @@ export function DiagnosticsView() {
     return <LoadingState label={t('diagnostics.loading')} className="h-64" size="md" />;
   }
 
-  if (error || !snapshot) {
+  if (!snapshot) {
     return <AlertBanner variant="danger" title={t('diagnostics.error_loading')} message={error || t('common.errors.unknown')} />;
   }
 
@@ -219,6 +224,8 @@ export function DiagnosticsView() {
 
   return (
     <div className="space-y-6 pb-10 sm:space-y-8">
+
+      {error && <AlertBanner variant="danger" title={t('diagnostics.error_loading')} message={error} />}
 
       <DiagnosticsResilienceSummary
         devices={devices}

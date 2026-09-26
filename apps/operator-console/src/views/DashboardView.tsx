@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AssistantActionModal } from '../components/AssistantActionModal';
 import { DashboardAtmosphereRipple } from '../components/DashboardAtmosphereRipple';
@@ -16,6 +16,7 @@ import {
   SCENE_FAVORITES_STORAGE_KEY,
 } from '../lib/favorites';
 import { apiFetch } from '../lib/apiClient';
+import { fetchDiagnosticResource } from '../lib/diagnosticResourceRequests';
 import type { View } from '../types';
 import { useAssistantStore } from '../stores/useAssistantStore';
 import type { AssistantFinding, AssistantFindingAction } from '../stores/useAssistantStore';
@@ -68,28 +69,40 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
   const resolveFinding = useAssistantStore((state) => state.resolveFinding);
 
   const homeId = homes[0]?.id || null;
+  const dataRequest = useRef<AbortController | null>(null);
   const fetchData = useCallback(async () => {
+    dataRequest.current?.abort();
+    const controller = new AbortController();
+    dataRequest.current = controller;
     try {
       await Promise.all([refreshSnapshot(), refreshFindings()]);
-      if (!homeId) return;
+      if (!homeId || controller.signal.aborted) return;
 
-      const scenesResponse = await apiFetch(`${API_URL}/scenes`);
-      if (scenesResponse.ok) setScenes(await scenesResponse.json() as Scene[]);
+      const scenesResponse = await fetchDiagnosticResource(`${API_URL}/scenes`, controller.signal);
+      if (scenesResponse.ok) {
+        const nextScenes = await scenesResponse.json() as Scene[];
+        if (!controller.signal.aborted) setScenes(nextScenes);
+      }
       if (!canManageAutomations) {
-        setAutomations([]);
+        if (!controller.signal.aborted) setAutomations([]);
         return;
       }
 
-      const automationsResponse = await apiFetch(`${API_URL}/automations`);
-      if (automationsResponse.ok) setAutomations(await automationsResponse.json() as DashboardRoutineAutomation[]);
+      const automationsResponse = await fetchDiagnosticResource(`${API_URL}/automations`, controller.signal);
+      if (automationsResponse.ok) {
+        const nextAutomations = await automationsResponse.json() as DashboardRoutineAutomation[];
+        if (!controller.signal.aborted) setAutomations(nextAutomations);
+      }
     } catch {
-      setScenes([]);
-      setAutomations([]);
+      // Preserve the previous routine list during a slow or failed refresh.
+    } finally {
+      if (dataRequest.current === controller) dataRequest.current = null;
     }
   }, [canManageAutomations, homeId, refreshFindings, refreshSnapshot]);
 
   useEffect(() => {
     void fetchData();
+    return () => dataRequest.current?.abort();
   }, [fetchData]);
 
   const executeDeviceCommand = useCallback(async (deviceId: string, command: string): Promise<SnapshotDevice | null> => {

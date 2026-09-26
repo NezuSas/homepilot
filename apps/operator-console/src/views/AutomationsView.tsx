@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { DateTime } from 'luxon';
 import { Clock3 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_ENDPOINTS, API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
+import { fetchDiagnosticResource } from '../lib/diagnosticResourceRequests';
 import AutomationBuilderModal from './AutomationBuilderModal.tsx';
 import { AutomationNotification } from '../components/AutomationNotification';
 import { AutomationRuleCard } from '../components/AutomationRuleCard';
@@ -76,6 +77,7 @@ const AutomationsView: React.FC = () => {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>(() => readFavoriteIds(AUTOMATION_FAVORITES_STORAGE_KEY));
   const [timerReference, setTimerReference] = useState(() => DateTime.now());
+  const dataRequest = useRef<AbortController | null>(null);
   const persistentRules = useMemo(() => rules.filter((rule) => !rule.trigger.dateLocal), [rules]);
   const activeTimers = useMemo(() => rules.flatMap((rule) => {
     if (!rule.enabled || rule.trigger.type !== 'time' || !rule.trigger.dateLocal || !rule.trigger.timeLocal) return [];
@@ -100,7 +102,10 @@ const AutomationsView: React.FC = () => {
   }, [notification]);
 
   const fetchJSON = async (url: string, options?: RequestInit) => {
-    const res = await apiFetch(url, options);
+    const res = options?.signal && (!options.method || options.method === 'GET')
+      && (url === API_ENDPOINTS.automations.list || url === API_ENDPOINTS.scenes.list)
+      ? await fetchDiagnosticResource(url, options.signal)
+      : await apiFetch(url, options);
     if (res.status === 204) return null;
     const contentType = res.headers.get('content-type');
     if (!res.ok) {
@@ -115,27 +120,35 @@ const AutomationsView: React.FC = () => {
   };
 
   const fetchData = async () => {
+    dataRequest.current?.abort();
+    const controller = new AbortController();
+    dataRequest.current = controller;
     setIsLoading(true);
     try {
       const [rulesData, devicesData, scenesData] = await Promise.all([
-        fetchJSON(API_ENDPOINTS.automations.list),
-        fetchJSON(API_ENDPOINTS.devices.list),
-        fetchJSON(API_ENDPOINTS.scenes.list)
+        fetchJSON(API_ENDPOINTS.automations.list, { signal: controller.signal }),
+        fetchJSON(API_ENDPOINTS.devices.list, { signal: controller.signal }),
+        fetchJSON(API_ENDPOINTS.scenes.list, { signal: controller.signal })
       ]);
+      if (controller.signal.aborted) return;
       if (Array.isArray(rulesData)) setRules(rulesData);
       if (Array.isArray(devicesData)) setDevices(devicesData);
       if (Array.isArray(scenesData)) setScenes(scenesData);
       setError(null);
     } catch (error: unknown) {
-      setError(getErrorMessage(error, t('common.errors.connection_error')));
+      if (!controller.signal.aborted) setError(getErrorMessage(error, t('common.errors.connection_error')));
     } finally {
-      setIsLoading(false);
+      if (!controller.signal.aborted) setIsLoading(false);
+      if (dataRequest.current === controller) dataRequest.current = null;
     }
   };
 
   // Initial load only; interaction handlers update the local rule list afterwards.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { void fetchData(); }, []);
+  useEffect(() => {
+    void fetchData();
+    return () => dataRequest.current?.abort();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Initial subscription; action handlers trigger later refreshes.
+  }, []);
 
   const toggleRule = async (id: string, currentlyEnabled: boolean) => {
     if (processingId) return;

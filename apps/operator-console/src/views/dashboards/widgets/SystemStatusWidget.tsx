@@ -1,10 +1,10 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
 import type { DashboardWidgetConfig } from '../types';
 import { Cpu, Zap, Timer, HardDrive, AlertCircle } from 'lucide-react';
-import { apiFetch } from '../../../lib/apiClient';
 import { API_BASE_URL } from '../../../config';
+import { fetchDiagnosticResource, startSequentialPolling } from '../../../lib/diagnosticResourceRequests';
 
 const API = `${API_BASE_URL}/api/v1`;
 
@@ -30,25 +30,21 @@ export function SystemStatusWidget({ config, isEditing, onConfigure }: { config:
   const [snapshot, setSnapshot] = useState<SystemSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchStatus = useCallback(async () => {
-    try {
-      const res = await apiFetch(`${API}/system/diagnostics`);
-      if (res.ok) {
-        const data = await res.json();
-        setSnapshot(data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch system status:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    fetchStatus();
-    const interval = setInterval(fetchStatus, 5000); // Poll every 5s for health metrics
-    return () => clearInterval(interval);
-  }, [fetchStatus]);
+    return startSequentialPolling(async (signal) => {
+      try {
+        const res = await fetchDiagnosticResource(`${API}/system/diagnostics`, signal);
+        if (res.ok) {
+          const data = await res.json() as SystemSnapshot;
+          if (!signal.aborted) setSnapshot(data);
+        }
+      } catch {
+        // Keep the last known metrics; the next poll retries after five seconds.
+      } finally {
+        if (!signal.aborted) setLoading(false);
+      }
+    }, 5000);
+  }, []);
 
   const formatUptime = (seconds: number) => {
     const d = Math.floor(seconds / (3600 * 24));

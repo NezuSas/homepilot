@@ -44,3 +44,5 @@
     - [x] `DiagnosticsService.test.ts` cubre los códigos restantes (`HA_NOT_CONFIGURED`, `HA_UNREACHABLE`, `RECONCILIATION_FAILED`) y la condición saludable explícita.
     - [x] SystemRoutes.diagnostics.test.ts verifica autenticación y delegación de snapshot/timeline HTTP.
 - [x] Compactar badges operativos y reforzar el contraste del payload de Resilience en claro, oscuro y móvil.
+- [x] Evitar solapamiento del polling de diagnósticos y widgets, compartir lecturas idénticas y cancelar al desmontar.
+- [x] Acotar peticiones estancadas y probar dos minutos de sondeo, deduplicación, recuperación y remontajes.

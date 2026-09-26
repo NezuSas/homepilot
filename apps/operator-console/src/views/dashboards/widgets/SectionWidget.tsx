@@ -4,8 +4,8 @@ import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordi
 import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
-import { apiFetch } from '../../../lib/apiClient';
 import { API_BASE_URL } from '../../../config';
+import { fetchDiagnosticResource } from '../../../lib/diagnosticResourceRequests';
 import { useDeviceSnapshotStore } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig } from '../types';
 import { cardKinds, createId, getCatalogCategory, getCatalogDescriptionKey, getCatalogLabelKey, getDefaultIcon, getDefaultSpan, getEffectiveCardSpan, getRecommendedSectionHeight, getWidgetType, isClockKind, normalizeCards, normalizeKind, type AssignableAutomation, type AssignableScene, type CardDraft, type NormalizedSectionCardItem, type NormalizedSectionCardKind, type SectionCardCategory, type SectionCardIcon, type SectionCardKind, type SectionCardSpan } from './sectionCardCatalog';
@@ -78,10 +78,10 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const editingCard = editingCardId ? cards.find((card) => card.id === editingCardId) : undefined;
 
   useEffect(() => {
-    if (!isCatalogOpen && normalizeKind(cardDraft.kind) !== 'scene' && normalizeKind(cardDraft.kind) !== 'action' && normalizeKind(cardDraft.kind) !== 'light') return;
+    if (!isCatalogOpen && (!editingCardId || (normalizeKind(cardDraft.kind) !== 'scene' && normalizeKind(cardDraft.kind) !== 'action' && normalizeKind(cardDraft.kind) !== 'light'))) return;
 
-    let cancelled = false;
-    void apiFetch(`${API_BASE_URL}/api/v1/scenes`)
+    const controller = new AbortController();
+    void fetchDiagnosticResource(`${API_BASE_URL}/api/v1/scenes`, controller.signal)
       .then(async (response) => {
         if (!response.ok) throw new Error(`SCENES_${response.status}`);
         const payload: unknown = await response.json();
@@ -92,25 +92,25 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
           .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }));
       })
       .then((nextScenes) => {
-        if (!cancelled) setScenes(nextScenes);
+        if (!controller.signal.aborted) setScenes(nextScenes);
       })
       .catch((error: unknown) => {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           console.error('[SectionWidget] Failed to load scenes:', error);
           setScenes([]);
         }
       });
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
-  }, [cardDraft.kind, isCatalogOpen]);
+  }, [cardDraft.kind, editingCardId, isCatalogOpen]);
 
   useEffect(() => {
-    if (!isCatalogOpen && normalizeKind(cardDraft.kind) !== 'scene' && normalizeKind(cardDraft.kind) !== 'action' && normalizeKind(cardDraft.kind) !== 'light') return;
+    if (!isCatalogOpen && (!editingCardId || (normalizeKind(cardDraft.kind) !== 'scene' && normalizeKind(cardDraft.kind) !== 'action' && normalizeKind(cardDraft.kind) !== 'light'))) return;
 
-    let cancelled = false;
-    void apiFetch(`${API_BASE_URL}/api/v1/automations`)
+    const controller = new AbortController();
+    void fetchDiagnosticResource(`${API_BASE_URL}/api/v1/automations`, controller.signal)
       .then(async (response) => {
         if (!response.ok) throw new Error(`AUTOMATIONS_${response.status}`);
         const payload: unknown = await response.json();
@@ -121,19 +121,19 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
           .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }));
       })
       .then((nextAutomations) => {
-        if (!cancelled) setAutomations(nextAutomations);
+        if (!controller.signal.aborted) setAutomations(nextAutomations);
       })
       .catch((error: unknown) => {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           console.error('[SectionWidget] Failed to load automations:', error);
           setAutomations([]);
         }
       });
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
-  }, [cardDraft.kind, isCatalogOpen]);
+  }, [cardDraft.kind, editingCardId, isCatalogOpen]);
 
   const catalogItems = cardKinds.map((kind) => ({
     kind,
