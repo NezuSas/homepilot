@@ -42,12 +42,22 @@ describe('DatabaseBackupService', () => {
     fs.readdirSync(testBackupDir).forEach(f => fs.unlinkSync(path.join(testBackupDir, f)));
   });
 
+  function expectOnlyFinalBackup(filename: string): void {
+    // Assert before opening the WAL-mode backup: the test itself may create sidecars.
+    expect(fs.readdirSync(testBackupDir)).toEqual([filename]);
+    const partialPath = path.join(testBackupDir, `${filename}.partial`);
+    expect(fs.existsSync(partialPath)).toBe(false);
+    expect(fs.existsSync(`${partialPath}-wal`)).toBe(false);
+    expect(fs.existsSync(`${partialPath}-shm`)).toBe(false);
+  }
+
   it('should create a backup file', async () => {
     const result = await service.createBackup();
     expect(result.success).toBe(true);
     expect(result.backup).toBeDefined();
     expect(fs.existsSync(result.backup!.path)).toBe(true);
     expect(result.backup!.filename).toMatch(/^homepilot-backup-.*\.db$/);
+    expectOnlyFinalBackup(result.backup!.filename);
     const restored = new Database(result.backup!.path, { readonly: true });
     try {
       expect(restored.pragma('integrity_check', { simple: true })).toBe('ok');
@@ -59,8 +69,11 @@ describe('DatabaseBackupService', () => {
 
   it('includes committed rows still in the live WAL', async () => {
     source.prepare('INSERT INTO backup_check (value) VALUES (?)').run('in-wal');
+    expect(fs.existsSync(`${testDbPath}-wal`)).toBe(true);
+    expect(fs.statSync(`${testDbPath}-wal`).size).toBeGreaterThan(0);
     const result = await service.createBackup();
     expect(result.success).toBe(true);
+    expectOnlyFinalBackup(result.backup!.filename);
     const restored = new Database(result.backup!.path, { readonly: true });
     try {
       expect(restored.prepare('SELECT value FROM backup_check WHERE value = ?').get('in-wal'))
@@ -97,6 +110,30 @@ describe('DatabaseBackupService', () => {
     expect(result.success).toBe(false);
     expect(fs.readdirSync(testBackupDir)).toEqual([]);
     (getDbPathModule.getDatabasePath as jest.Mock).mockReturnValue(testDbPath);
+  });
+
+  it('fails visibly instead of publishing a backup if sidecar cleanup fails', async () => {
+    const remove = fs.rmSync.bind(fs);
+    let failedOnce = false;
+    const removeSpy = jest.spyOn(fs, 'rmSync').mockImplementation((file, options) => {
+      if (!failedOnce && String(file).endsWith('.partial-wal')) {
+        failedOnce = true;
+        throw new Error('simulated sidecar cleanup failure');
+      }
+      return remove(file, options);
+    });
+
+    let result;
+    try {
+      result = await service.createBackup();
+    } finally {
+      removeSpy.mockRestore();
+    }
+
+    expect(failedOnce).toBe(true);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Failed to remove temporary SQLite backup artifacts');
+    expect(fs.readdirSync(testBackupDir)).toEqual([]);
   });
 
   it('ignores non-backup files and returns an empty list when listing fails', async () => {

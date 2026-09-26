@@ -37,6 +37,26 @@ export class DatabaseBackupService {
       : path.resolve(process.cwd(), 'backups');
   }
 
+  private removePartialArtifacts(partialPath: string, includeDatabase: boolean): void {
+    const paths = includeDatabase
+      ? [partialPath, `${partialPath}-wal`, `${partialPath}-shm`]
+      : [`${partialPath}-wal`, `${partialPath}-shm`];
+    const failures: string[] = [];
+
+    for (const artifact of paths) {
+      try {
+        fs.rmSync(artifact, { force: true });
+      } catch (error: unknown) {
+        logRuntimeDiagnostic('error', '[DatabaseBackupService] Error removing temporary backup artifact:', error);
+        failures.push(path.basename(artifact));
+      }
+    }
+
+    if (failures.length > 0) {
+      throw new Error(`Failed to remove temporary SQLite backup artifacts: ${failures.join(', ')}`);
+    }
+  }
+
   /**
    * Crea un backup manual de la base de datos actual.
    */
@@ -70,6 +90,7 @@ export class DatabaseBackupService {
       } finally {
         verification.close();
       }
+      this.removePartialArtifacts(partialPath, false);
       fs.renameSync(partialPath, targetPath);
       partialPath = undefined;
 
@@ -85,15 +106,15 @@ export class DatabaseBackupService {
         }
       };
     } catch (error: unknown) {
+      let message = error instanceof Error ? error.message : String(error);
       if (partialPath) {
         try {
-          fs.rmSync(partialPath, { force: true });
+          this.removePartialArtifacts(partialPath, true);
         } catch (cleanupError: unknown) {
-          logRuntimeDiagnostic('error', '[DatabaseBackupService] Error removing partial backup:', cleanupError);
+          message += `; ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`;
         }
       }
       logRuntimeDiagnostic('error', '[DatabaseBackupService] Error creating backup:', error);
-      const message = error instanceof Error ? error.message : String(error);
       return { success: false, error: message };
     } finally {
       source?.close();
