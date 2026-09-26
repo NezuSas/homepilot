@@ -13,6 +13,8 @@ services:
         HOMEPILOT_BUILD_REVISION: ${HOMEPILOT_BUILD_REVISION:-unknown}
     container_name: homepilot-api
     network_mode: host
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./data:/app/data
       - ./backups:/app/backups
@@ -20,6 +22,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
+      HOMEPILOT_API_BIND_HOST: ${HOMEPILOT_API_BIND_HOST:-host.docker.internal}
       HOMEPILOT_DB_PATH: ${HOMEPILOT_DB_PATH:-/app/data/homepilot.db}
       HOMEPILOT_SQLITE_JOURNAL_MODE: ${HOMEPILOT_SQLITE_JOURNAL_MODE:-WAL}
       HOMEPILOT_BACKUP_DIR: ${HOMEPILOT_BACKUP_DIR:-/app/backups}
@@ -42,7 +45,7 @@ services:
       STT_BASE_URL: http://127.0.0.1:${HOMEPILOT_STT_PORT:-8090}
       STT_TIMEOUT_MS: ${STT_TIMEOUT_MS:-60000}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD-SHELL", "bind=\"$${HOMEPILOT_API_BIND_HOST:-0.0.0.0}\"; [ \"$$bind\" != '0.0.0.0' ] || bind=127.0.0.1; curl -f \"http://$$bind:3000/health\""]
       interval: 30s
       timeout: 10s
       retries: 3

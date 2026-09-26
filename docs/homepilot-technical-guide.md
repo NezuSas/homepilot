@@ -17,7 +17,7 @@ The current product objective is local, modular, and maintainable home control:
 
 | Service | Container | Host port | Role |
 |---|---:|---:|---|
-| HomePilot API | homepilot-api | 3000 | HTTP API, WebSocket, auth, devices, scenes, automations, assistant |
+| HomePilot API | homepilot-api | 3000 (Docker gateway on Linux) | HTTP API, WebSocket, auth, devices, scenes, automations, assistant |
 | HomePilot UI | homepilot-ui | 80 | Operator web console |
 | Home Assistant | homeassistant | 18123 | Local bridge to physical devices |
 | Kokoro TTS + Piper fallback | homepilot-tts | 8088 | Local voice synthesis |
@@ -27,7 +27,7 @@ Useful local URLs:
 
 ~~~bash
 http://localhost
-http://localhost:3000/health
+http://localhost/health
 http://localhost:18123
 http://localhost:8088/health
 http://localhost:8090/health
@@ -195,7 +195,7 @@ Recommended tunnel ports:
 | Remote service | Remote port | Recommended local port | Installer local URL |
 |---|---:|---:|---|
 | HomePilot UI | 8080 | 8080 | http://localhost:8080 |
-| Direct HomePilot API, diagnostics only | 3000 | 13000 | http://localhost:13000 |
+| HomePilot API health via UI proxy | 8080 | 8080 | http://localhost:8080/health |
 | Existing Home Assistant | 8123 | 18123 | http://localhost:18123 |
 
 Recommended HomePilot tunnel:
@@ -221,6 +221,8 @@ Production UI uses one origin for UI, API, and WebSocket. Nginx forwards /api/*,
 ~~~bash
 VITE_API_URL=
 ~~~
+
+On Linux appliances, API keeps host networking for LAN discovery but binds `3000` to Docker's host-gateway IP, not `0.0.0.0` or the LAN address. Both Linux Compose profiles add `host.docker.internal:host-gateway` to API and UI; Nginx reaches that address. The API container's healthcheck and maintenance/installer checks query its configured bind address from inside the API container. A host-side `curl 127.0.0.1:3000/health` is therefore not a valid appliance check; use `http://127.0.0.1:8080/health` through the UI proxy. Docker Desktop overlays retain the previous wildcard bind for their bridge-network service routing. A custom `HOMEPILOT_API_BIND_HOST` may override the Linux default and must be reviewed for LAN exposure. Verify actual bind and UI proxy reachability on the target appliance before release.
 
 #### Publishing HomePilot through Cloudflare Tunnel
 
@@ -708,7 +710,7 @@ cd /home/oscar/homepilot
 git pull --ff-only
 docker compose up --build -d
 docker compose ps
-curl -fsS http://localhost:3000/health
+curl -fsS http://localhost/health
 ~~~
 
 Documentation-only changes do not require a runtime rebuild:
@@ -787,7 +789,7 @@ docker compose logs homeassistant
 ### Validate API
 
 ~~~bash
-curl -fsS http://localhost:3000/health
+curl -fsS http://localhost/health
 ~~~
 
 ## Troubleshooting
@@ -800,7 +802,7 @@ curl -fsS http://localhost:3000/health
 | Device does not change on home view | Inspect state refresh, realtime events, and persisted last_known_state |
 | admin/admin login does not work | Confirm the database was empty at startup and HOMEPILOT_DEV_BOOTSTRAP=true was active |
 | STT returns an empty transcript | Inspect sent audio, homepilot-stt health, and concurrent calls blocking its queue |
-| UI cannot connect to API | Confirm VITE_API_URL= and inspect http://localhost:8080/health; Nginx must reach homepilot-api:3000 |
+| UI cannot connect to API | Confirm VITE_API_URL= and inspect http://localhost:8080/health; Nginx must reach host.docker.internal:3000 on Linux or homepilot-api:3000 on Docker Desktop |
 | Public UI tries to connect to localhost | Rebuild homepilot-ui with VITE_API_URL= and publish only 127.0.0.1:8080 through Cloudflare Tunnel |
 | Changes do not appear in WSL | Run git pull --ff-only inside /home/oscar/homepilot |
 

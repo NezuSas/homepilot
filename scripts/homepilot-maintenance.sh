@@ -4,6 +4,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib/camera-acceleration.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/appliance-storage-report.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-builder.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-images.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/api-health.sh"
 
 profile="bridge_ha"
 compose_file="docker-compose.office.yml"
@@ -237,13 +238,20 @@ check_endpoint() {
   fi
 }
 
-verify_runtime_once() {
-  local api_port ui_port stt_port tts_port ha_port
-
-  api_port="$(env_value HOMEPILOT_API_PORT 3000)"
-  if is_docker_desktop && [[ "$api_port" == "3000" ]]; then
-    api_port="13000"
+check_api_health() {
+  local status_code
+  status_code="$(homepilot_api_health_status || true)"
+  if [[ "$status_code" == "200" ]]; then
+    ok "API HomePilot responde desde el contenedor (HTTP 200)."
+  else
+    warn "API HomePilot no responde desde el contenedor (HTTP ${status_code:-000})."
+    runtime_failures=$((runtime_failures + 1))
   fi
+}
+
+verify_runtime_once() {
+  local ui_port stt_port tts_port ha_port
+
   ui_port="$(env_value HOMEPILOT_UI_PORT 8080)"
   stt_port="$(env_value HOMEPILOT_STT_PORT 8090)"
   tts_port="$(env_value HOMEPILOT_TTS_PORT 8088)"
@@ -254,7 +262,7 @@ verify_runtime_once() {
   check_container "homepilot-ui" "UI HomePilot"
   check_container "homepilot-stt" "STT Whisper"
   check_container "homepilot-tts" "TTS Piper"
-  check_endpoint "API HomePilot · puerto ${api_port}" "http://127.0.0.1:${api_port}/health" "200"
+  check_api_health
   check_endpoint "UI HomePilot · puerto ${ui_port}" "http://127.0.0.1:${ui_port}" "200"
   check_endpoint "STT Whisper · puerto ${stt_port}" "http://127.0.0.1:${stt_port}/health" "200"
   check_endpoint "TTS Piper · puerto ${tts_port}" "http://127.0.0.1:${tts_port}/health" "200"

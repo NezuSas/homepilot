@@ -28,12 +28,36 @@ function createContainer(): BootstrapContainer {
 describe('ApiGateway HTTP transport contracts', () => {
   const originalNodeEnv = process.env.NODE_ENV;
   const originalCorsOrigin = process.env.CORS_ORIGIN;
+  const originalBindHost = process.env.HOMEPILOT_API_BIND_HOST;
 
   afterEach(() => {
     if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
     else process.env.NODE_ENV = originalNodeEnv;
     if (originalCorsOrigin === undefined) delete process.env.CORS_ORIGIN;
     else process.env.CORS_ORIGIN = originalCorsOrigin;
+    if (originalBindHost === undefined) delete process.env.HOMEPILOT_API_BIND_HOST;
+    else process.env.HOMEPILOT_API_BIND_HOST = originalBindHost;
+  });
+
+  it.each([
+    ['host.docker.internal', 'host.docker.internal'],
+    [undefined, '0.0.0.0'],
+    ['   ', '0.0.0.0'],
+  ])('uses %s and binds to %s', (configuredHost, expectedHost) => {
+    if (configuredHost === undefined) delete process.env.HOMEPILOT_API_BIND_HOST;
+    else process.env.HOMEPILOT_API_BIND_HOST = configuredHost;
+    const gateway = new ApiGateway(createContainer(), ':memory:', [], 3000);
+    const fastify = (gateway as unknown as { fastify: {
+      listen(options: { port: number; host: string }): Promise<string>;
+      close(): Promise<void>;
+    } }).fastify;
+    const listen = jest.spyOn(fastify, 'listen').mockResolvedValue('http://127.0.0.1:3000');
+
+    gateway.start();
+
+    expect(listen).toHaveBeenCalledWith({ port: 3000, host: expectedHost });
+    listen.mockRestore();
+    return fastify.close();
   });
 
   it('returns a CORS preflight response with security headers before handlers execute', async () => {

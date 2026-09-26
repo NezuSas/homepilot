@@ -64,10 +64,11 @@ export class ApiGateway {
   }
 
   public start(): void {
+    const bindHost = process.env.HOMEPILOT_API_BIND_HOST?.trim() || '0.0.0.0';
     this.fastify
-      .listen({ port: this.port, host: '0.0.0.0' })
+      .listen({ port: this.port, host: bindHost })
       .then(() => {
-        logRuntimeDiagnostic('log', `[ApiGateway] API local en http://localhost:${this.port}`);
+        logRuntimeDiagnostic('log', `[ApiGateway] API local en http://${bindHost}:${this.port}`);
       })
       .catch((error: unknown) => {
         logRuntimeDiagnostic('error', '[ApiGateway] Failed to start server:', error);

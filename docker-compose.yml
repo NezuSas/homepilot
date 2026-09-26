@@ -20,6 +20,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - HOMEPILOT_API_BIND_HOST=${HOMEPILOT_API_BIND_HOST:-host.docker.internal}
       - HOMEPILOT_DB_PATH=/app/data/homepilot.db
       - HOMEPILOT_BACKUP_DIR=/app/backups
       - INTERNAL_HA_URL=${INTERNAL_HA_URL:-http://127.0.0.1:18123}
@@ -47,7 +48,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:3000/health" ]
+      test: ["CMD-SHELL", "bind=\"$${HOMEPILOT_API_BIND_HOST:-0.0.0.0}\"; [ \"$$bind\" != '0.0.0.0' ] || bind=127.0.0.1; curl -f \"http://$$bind:3000/health\""]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -74,6 +75,8 @@ services:
       - "80:80"
     restart: unless-stopped
     logging: *homepilot-logging
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - homepilot-api
 

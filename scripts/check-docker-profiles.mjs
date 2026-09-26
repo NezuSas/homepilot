@@ -10,6 +10,7 @@ const requiredFiles = [
   'docker/ui/nginx.conf',
   'docker/ui/nginx.desktop.conf',
   'scripts/homepilot-maintenance.sh',
+  'scripts/lib/api-health.sh',
   'scripts/lib/homepilot-builder.sh',
   'scripts/lib/homepilot-images.sh',
   'docker/buildkit/homepilot-buildkitd.toml',
@@ -36,6 +37,8 @@ if (failures.length === 0) {
   const nginx = read('docker/ui/nginx.conf');
   const desktopNginx = read('docker/ui/nginx.desktop.conf');
   const maintenance = read('scripts/homepilot-maintenance.sh');
+  const installer = read('scripts/install-edge-office.sh');
+  const apiHealth = read('scripts/lib/api-health.sh');
   const builderHelper = read('scripts/lib/homepilot-builder.sh');
   const imageHelper = read('scripts/lib/homepilot-images.sh');
   const builderGc = read('docker/buildkit/homepilot-buildkitd.toml');
@@ -94,6 +97,22 @@ if (failures.length === 0) {
   }
   if (!desktop.includes('HOMEPILOT_API_PORT:-13000') || !office.includes('HOMEPILOT_UI_PORT:-8080')) {
     failures.push('Desktop profile must expose API 13000 and UI 8080 defaults');
+  }
+  for (const [name, content] of [['office', office], ['integrated', integrated]]) {
+    if (!content.includes('HOMEPILOT_API_BIND_HOST=${HOMEPILOT_API_BIND_HOST:-host.docker.internal}')
+      && !content.includes('HOMEPILOT_API_BIND_HOST: ${HOMEPILOT_API_BIND_HOST:-host.docker.internal}')) {
+      failures.push(`${name} Linux profile must default the API bind to Docker host-gateway`);
+    }
+    if ((content.match(/host\.docker\.internal:host-gateway/g) || []).length < 2) {
+      failures.push(`${name} Linux profile must map host-gateway for both API and UI`);
+    }
+  }
+  if (!desktop.includes('HOMEPILOT_API_BIND_HOST: 0.0.0.0')
+    || !haCompanionDesktop.includes('HOMEPILOT_API_BIND_HOST: 0.0.0.0')
+    || !apiHealth.includes('docker exec homepilot-api sh -c')
+    || !maintenance.includes('homepilot_api_health_status')
+    || !installer.includes('homepilot_api_health_status')) {
+    failures.push('Desktop must retain bridge-network API bind and runtime checks must use the container health path');
   }
   if (!office.includes('TTS_BASE_URL: http://127.0.0.1:${HOMEPILOT_TTS_PORT:-8088}')
     || !office.includes('STT_BASE_URL: http://127.0.0.1:${HOMEPILOT_STT_PORT:-8090}')

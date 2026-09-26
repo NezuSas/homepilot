@@ -5,6 +5,7 @@ services:
       - "${HOMEPILOT_API_PORT:-13000}:3000"
     environment:
       HOMEPILOT_DB_PATH: /app/data/homepilot.db
+      HOMEPILOT_API_BIND_HOST: 0.0.0.0
       HOMEPILOT_DEV_BOOTSTRAP: "false"
       INTERNAL_HA_URL: ${INTERNAL_HA_URL:-http://host.docker.internal:18123}
       HOMEPILOT_RUNTIME_TARGET: docker_desktop

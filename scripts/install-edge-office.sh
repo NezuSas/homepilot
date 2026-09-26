@@ -3,6 +3,7 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib/camera-acceleration.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-builder.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-images.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/api-health.sh"
 
 readonly ENV_FILE=".env"
 profile=""
@@ -632,21 +633,26 @@ provision_home_assistant_community_integrations() {
   restart_home_assistant_after_community_install "$container"
 }
 show_runtime_status() {
-  local api_port ui_port tts_port stt_port
-  api_port="$(env_value HOMEPILOT_API_PORT 3000)"
+  local ui_port tts_port stt_port api_status
   ui_port="$(env_value HOMEPILOT_UI_PORT 8080)"
   tts_port="$(env_value HOMEPILOT_TTS_PORT 8088)"
   stt_port="$(env_value HOMEPILOT_STT_PORT 8090)"
 
   runtime_failures=0
   section "Estado operativo de servicios"
-  check_container "homepilot-api" "API HomePilot · puerto ${api_port}" true
+  check_container "homepilot-api" "API HomePilot" true
   check_container "homepilot-ui" "UI HomePilot · puerto ${ui_port}" false
   check_container "homepilot-stt" "STT Whisper · puerto ${stt_port}" true
   check_container "homepilot-tts" "TTS Piper · puerto ${tts_port}" true
 
   section "Conectividad de servicios"
-  check_endpoint "API HomePilot · puerto ${api_port}" "http://127.0.0.1:${api_port}/health" "200"
+  api_status="$(homepilot_api_health_status || true)"
+  if [[ "$api_status" == "200" ]]; then
+    ok "API HomePilot: responde desde el contenedor (HTTP 200)."
+  else
+    warn "API HomePilot: sin respuesta desde el contenedor (HTTP ${api_status:-000})."
+    runtime_failures=$((runtime_failures + 1))
+  fi
   check_endpoint "UI HomePilot · puerto ${ui_port}" "http://127.0.0.1:${ui_port}" "200"
   check_endpoint "STT Whisper · puerto ${stt_port}" "http://127.0.0.1:${stt_port}/health" "200"
   check_endpoint "TTS Piper · puerto ${tts_port}" "http://127.0.0.1:${tts_port}/health" "200"
@@ -896,9 +902,8 @@ fi
 
 section "Instalación preparada"
 ui_port="$(env_value HOMEPILOT_UI_PORT 8080)"
-api_port="$(env_value HOMEPILOT_API_PORT 3000)"
 printf '%b\n' "${BOLD}  HomePilot UI${NC}       http://127.0.0.1:${ui_port}"
-printf '%b\n' "${BOLD}  HomePilot API${NC}      http://127.0.0.1:${api_port}/health"
+printf '%b\n' "${BOLD}  HomePilot API${NC}      http://127.0.0.1:${ui_port}/health ${DIM}(vía UI)${NC}"
 if [[ "$requires_home_assistant" == true ]]; then
   printf '%b\n' "${BOLD}  Home Assistant${NC}     http://127.0.0.1:${ha_port} ${DIM}(${ha_management_label})${NC}"
 else
