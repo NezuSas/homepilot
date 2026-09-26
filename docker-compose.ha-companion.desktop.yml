@@ -5,6 +5,7 @@ services:
       - "${HOMEPILOT_API_PORT:-13000}:3000"
     environment:
       HOMEPILOT_RUNTIME_TARGET: docker_desktop
+      INTERNAL_HA_URL: http://homeassistant:8123
       TTS_BASE_URL: http://homepilot-tts:8088
       STT_BASE_URL: http://homepilot-stt:8090
     extra_hosts:

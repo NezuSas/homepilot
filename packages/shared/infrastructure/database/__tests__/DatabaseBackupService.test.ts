@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import Database from 'better-sqlite3';
 import { DatabaseBackupService } from '../DatabaseBackupService';
 import * as getDbPathModule from '../../../config/getDatabasePath';
 
@@ -8,21 +9,31 @@ jest.mock('../../../config/getDatabasePath');
 describe('DatabaseBackupService', () => {
   const testBackupDir = path.resolve(__dirname, 'tmp-backups');
   const testDbPath = path.resolve(__dirname, 'tmp-test.db');
+  const invalidDbPath = path.resolve(__dirname, 'tmp-invalid.db');
   let service: DatabaseBackupService;
+  let source: Database.Database;
 
   beforeAll(() => {
     process.env.HOMEPILOT_BACKUP_DIR = testBackupDir;
     if (!fs.existsSync(testBackupDir)) fs.mkdirSync(testBackupDir, { recursive: true });
-    fs.writeFileSync(testDbPath, 'dummy sqlite data');
+    source = new Database(testDbPath);
+    source.pragma('journal_mode = WAL');
+    source.exec('CREATE TABLE backup_check (value TEXT NOT NULL)');
+    source.prepare('INSERT INTO backup_check (value) VALUES (?)').run('before-backup');
     (getDbPathModule.getDatabasePath as jest.Mock).mockReturnValue(testDbPath);
   });
 
   afterAll(() => {
+    source.close();
     if (fs.existsSync(testBackupDir)) {
       fs.readdirSync(testBackupDir).forEach(f => fs.unlinkSync(path.join(testBackupDir, f)));
       fs.rmdirSync(testBackupDir);
     }
     if (fs.existsSync(testDbPath)) fs.unlinkSync(testDbPath);
+    for (const file of [`${testDbPath}-wal`, `${testDbPath}-shm`, invalidDbPath]) {
+      if (fs.existsSync(file)) fs.unlinkSync(file);
+    }
+    delete process.env.HOMEPILOT_BACKUP_DIR;
   });
 
   beforeEach(() => {
@@ -37,6 +48,26 @@ describe('DatabaseBackupService', () => {
     expect(result.backup).toBeDefined();
     expect(fs.existsSync(result.backup!.path)).toBe(true);
     expect(result.backup!.filename).toMatch(/^homepilot-backup-.*\.db$/);
+    const restored = new Database(result.backup!.path, { readonly: true });
+    try {
+      expect(restored.pragma('integrity_check', { simple: true })).toBe('ok');
+      expect(restored.prepare('SELECT value FROM backup_check').get()).toEqual({ value: 'before-backup' });
+    } finally {
+      restored.close();
+    }
+  });
+
+  it('includes committed rows still in the live WAL', async () => {
+    source.prepare('INSERT INTO backup_check (value) VALUES (?)').run('in-wal');
+    const result = await service.createBackup();
+    expect(result.success).toBe(true);
+    const restored = new Database(result.backup!.path, { readonly: true });
+    try {
+      expect(restored.prepare('SELECT value FROM backup_check WHERE value = ?').get('in-wal'))
+        .toEqual({ value: 'in-wal' });
+    } finally {
+      restored.close();
+    }
   });
 
   it('should list backups ordered by date desc', async () => {
@@ -59,15 +90,13 @@ describe('DatabaseBackupService', () => {
     expect(result.error).toContain('Source database not found');
     (getDbPathModule.getDatabasePath as jest.Mock).mockReturnValue(testDbPath);
   });
-  it('returns the copy failure without leaving a successful backup result', async () => {
-    const copyFileSync = jest.spyOn(fs, 'copyFileSync').mockImplementation(() => {
-      throw new Error('disk unavailable');
-    });
-
+  it('does not expose a partial backup when the source is invalid', async () => {
+    fs.writeFileSync(invalidDbPath, 'not a SQLite database');
+    (getDbPathModule.getDatabasePath as jest.Mock).mockReturnValue(invalidDbPath);
     const result = await service.createBackup();
-
-    expect(result).toEqual({ success: false, error: 'disk unavailable' });
-    copyFileSync.mockRestore();
+    expect(result.success).toBe(false);
+    expect(fs.readdirSync(testBackupDir)).toEqual([]);
+    (getDbPathModule.getDatabasePath as jest.Mock).mockReturnValue(testDbPath);
   });
 
   it('ignores non-backup files and returns an empty list when listing fails', async () => {

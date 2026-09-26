@@ -49,6 +49,10 @@ etwork_mode: host por red Docker, publique la API local en un puerto no conflict
 - **REQ-19:** El instalador debe ofrecer un modo de mantenimiento exclusivo para HACS y SonoffLAN que detecte el entorno técnico, muestre los comandos equivalentes y modifique solo el contenedor Home Assistant autorizado. Este modo no debe ejecutar Docker Compose, reconstruir imágenes ni reiniciar HomePilot.
 - **REQ-20:** `homepilot-maintenance.sh --deploy` debe detectar Docker Desktop desde Windows o WSL y usar automáticamente `docker-compose.office.yml` junto con `docker-compose.desktop.yml`; en Linux nativo conserva solo `docker-compose.office.yml`.
 - **REQ-21:** Cuando no recibe `--profile`, `homepilot-maintenance.sh` debe usar el perfil válido persistido en `.env`, para conservar la topología instalada; `ha_companion` debe iniciar el servicio `homeassistant` incluido por su compose.
+- **REQ-22:** En Linux con `ha_companion`, la API con red del host accede al Home Assistant incluido por el puerto publicado en loopback; el overlay de Docker Desktop conserva la resolución por nombre de servicio. El valor por defecto no depende del DNS interno de Docker desde `network_mode: host`.
+- **REQ-23:** Las imágenes nunca reciben backups, archivos `.env` locales ni otros datos persistentes en el contexto de build. Los puertos auxiliares de voz se publican solo en loopback; la UI mantiene la exposición LAN elegida para el cliente y la API en red del host exige una política de firewall documentada.
+- **REQ-24:** Los servicios Compose limitan la retención de logs del driver local. Un checklist de entrega debe verificar perfil, conectividad de build/modelos, espacio, puertos, reinicio, backup y restauración en la MiniPC objetivo antes de aprobar el release.
+- **REQ-25:** Los diagnósticos de instalación no incluyen direcciones, usuarios, claves SSH ni rutas de un appliance de desarrollo concreto, ni dejan respuestas HTTP en archivos temporales globales.
 
 ## 4. Criterios de aceptación
 

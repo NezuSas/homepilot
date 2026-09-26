@@ -1,5 +1,7 @@
 import fs from 'fs';
 import path from 'path';
+import { randomUUID } from 'crypto';
+import Database, { Database as SqliteDatabase } from 'better-sqlite3';
 import { getDatabasePath } from '../../config/getDatabasePath';
 import { logRuntimeDiagnostic } from '../../config/runtimeEnvironment';
 
@@ -39,6 +41,8 @@ export class DatabaseBackupService {
    * Crea un backup manual de la base de datos actual.
    */
   public async createBackup(): Promise<BackupResult> {
+    let source: SqliteDatabase | undefined;
+    let partialPath: string | undefined;
     try {
       const dbPath = getDatabasePath();
       
@@ -51,10 +55,23 @@ export class DatabaseBackupService {
       }
 
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '-').split('Z')[0];
-      const filename = `homepilot-backup-${timestamp}.db`;
+      const filename = `homepilot-backup-${timestamp}-${randomUUID()}.db`;
       const targetPath = path.join(this.backupDir, filename);
+      partialPath = `${targetPath}.partial`;
 
-      fs.copyFileSync(dbPath, targetPath);
+      source = new Database(dbPath, { readonly: true, fileMustExist: true });
+      await source.backup(partialPath);
+
+      const verification = new Database(partialPath, { readonly: true, fileMustExist: true });
+      try {
+        if (verification.pragma('integrity_check', { simple: true }) !== 'ok') {
+          throw new Error('SQLite backup integrity check failed');
+        }
+      } finally {
+        verification.close();
+      }
+      fs.renameSync(partialPath, targetPath);
+      partialPath = undefined;
 
       const stats = fs.statSync(targetPath);
 
@@ -68,9 +85,18 @@ export class DatabaseBackupService {
         }
       };
     } catch (error: unknown) {
+      if (partialPath) {
+        try {
+          fs.rmSync(partialPath, { force: true });
+        } catch (cleanupError: unknown) {
+          logRuntimeDiagnostic('error', '[DatabaseBackupService] Error removing partial backup:', cleanupError);
+        }
+      }
       logRuntimeDiagnostic('error', '[DatabaseBackupService] Error creating backup:', error);
       const message = error instanceof Error ? error.message : String(error);
       return { success: false, error: message };
+    } finally {
+      source?.close();
     }
   }
 

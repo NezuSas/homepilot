@@ -10,6 +10,7 @@ const requiredFiles = [
   'docker/ui/nginx.conf',
   'docker/ui/nginx.desktop.conf',
   'scripts/homepilot-maintenance.sh',
+  '.dockerignore',
   '.env.office.example',
   '.env.native.example',
 ];
@@ -32,6 +33,7 @@ if (failures.length === 0) {
   const nginx = read('docker/ui/nginx.conf');
   const desktopNginx = read('docker/ui/nginx.desktop.conf');
   const maintenance = read('scripts/homepilot-maintenance.sh');
+  const dockerignore = read('.dockerignore');
   const officeEnvironmentTemplate = read('.env.office.example');
   const nativeEnvironmentTemplate = read('.env.native.example');
 
@@ -44,6 +46,26 @@ if (failures.length === 0) {
 
   if (!integrated.includes('./data:/app/data') || !office.includes('./data:/app/data')) {
     failures.push('Every primary profile must mount the canonical ./data directory');
+  }
+  if (!dockerignore.split(/\r?\n/).includes('backups') || !dockerignore.split(/\r?\n/).includes('.env*')) {
+    failures.push('Docker build context must exclude backups and every local .env variant');
+  }
+  for (const [name, content] of [['integrated', integrated], ['office', office]]) {
+    if (!content.includes('127.0.0.1:${HOMEPILOT_TTS_PORT:-8088}:8088')
+      && !content.includes('127.0.0.1:8088:8088')) {
+      failures.push(`${name} must publish TTS on host loopback only`);
+    }
+    if (!content.includes('127.0.0.1:${HOMEPILOT_STT_PORT:-8090}:8090')
+      && !content.includes('127.0.0.1:8090:8090')) {
+      failures.push(`${name} must publish STT on host loopback only`);
+    }
+    if (!content.includes('max-size: "10m"') || !content.includes('max-file: "3"')) {
+      failures.push(`${name} must rotate local Docker logs`);
+    }
+  }
+  if (!integrated.includes('INTERNAL_HA_URL=${INTERNAL_HA_URL:-http://127.0.0.1:18123}')
+    || !haCompanionDesktop.includes('INTERNAL_HA_URL: http://homeassistant:8123')) {
+    failures.push('ha_companion must use host loopback on Linux and service DNS on Docker Desktop');
   }
   if (!integrated.includes('./mosquitto/config:/mosquitto/config:ro')
     || integrated.includes('./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro')) {
@@ -67,8 +89,8 @@ if (failures.length === 0) {
   if (!desktop.includes('HOMEPILOT_API_PORT:-13000') || !office.includes('HOMEPILOT_UI_PORT:-8080')) {
     failures.push('Desktop profile must expose API 13000 and UI 8080 defaults');
   }
-  if (!office.includes('TTS_BASE_URL: http://127.0.0.1:8088')
-    || !office.includes('STT_BASE_URL: http://127.0.0.1:8090')
+  if (!office.includes('TTS_BASE_URL: http://127.0.0.1:${HOMEPILOT_TTS_PORT:-8088}')
+    || !office.includes('STT_BASE_URL: http://127.0.0.1:${HOMEPILOT_STT_PORT:-8090}')
     || !integrated.includes('TTS_BASE_URL=${TTS_BASE_URL:-http://127.0.0.1:8088}')
     || !integrated.includes('STT_BASE_URL=${STT_BASE_URL:-http://127.0.0.1:8090}')) {
     failures.push('Linux host-network profiles must use loopback URLs for local voice services');

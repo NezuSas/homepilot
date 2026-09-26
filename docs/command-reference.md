@@ -58,6 +58,8 @@ bash scripts/homepilot-maintenance.sh --status
 
 ## Compose Profiles
 
+Los comandos directos siguientes sirven para diagnóstico; para instalar o actualizar un appliance, usar `homepilot-maintenance.sh --deploy`, que selecciona también el override VAAPI cuando corresponde. Ver [checklist de entrega](client-appliance-delivery.md) antes de preparar la MiniPC de un cliente.
+
 Linux MiniPC, bridge to an existing Home Assistant:
 
 ```bash

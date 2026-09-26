@@ -24,6 +24,7 @@ El Edge local requiere contratos de API, eventos, persistencia y runtime comunes
 - **REQ-02:** Persistencia y migraciones mantienen compatibilidad y configuración explícita de journal SQLite.
 - **REQ-03:** Eventos y errores comunes se expresan mediante contratos compartidos.
 - **REQ-04:** Un administrador puede consultar y crear copias manuales de la base local desde Diagnósticos. La interfaz muestra únicamente metadatos operativos (nombre, fecha y tamaño); nunca expone rutas internas ni permite restauraciones automáticas.
+- **REQ-04a:** La copia manual de SQLite debe usar el mecanismo de backup en línea de SQLite, incluir transacciones confirmadas en WAL y producir un archivo independiente que supere `PRAGMA integrity_check`. Un fallo no debe dejar una copia parcial visible como válida. La restauración se verifica en una base de prueba aislada; no se incorpora restauración automática al producto.
 
 ## 5. Requisitos No Funcionales
 
