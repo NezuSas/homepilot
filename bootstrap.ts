@@ -11,6 +11,8 @@ import { buildNativeCameraModule } from './infrastructure/assemblers/buildNative
 import { HttpAndroidDisplayBridgeClient } from './packages/integrations/android-display/infrastructure/HttpAndroidDisplayBridgeClient';
 import { AndroidDisplayService } from './packages/integrations/android-display/application/AndroidDisplayService';
 import { DiagnosticsService } from './packages/system-observability/application/DiagnosticsService';
+import { InstallationVerificationBroker } from './packages/cloud-gateway/application/InstallationVerificationBroker';
+import { readCloudEdgeConfig } from './packages/cloud-gateway/infrastructure/CloudEdgeConfigProvider';
 import { RepositoryTopologyReferenceAdapter } from './packages/devices/infrastructure/adapters/RepositoryTopologyReferenceAdapter';
 import { getDatabasePath } from './packages/shared/config/getDatabasePath';
 import { DatabaseBackupService } from './packages/shared/infrastructure/database/DatabaseBackupService';
@@ -128,6 +130,7 @@ export interface BootstrapContainer {
     nativeCameraService: NativeCameraService;
     nativeCameraStreamingService: NativeCameraStreamingService;
     androidDisplayService: AndroidDisplayService;
+    installationVerificationBroker: InstallationVerificationBroker;
   };
   guards: {
     authGuard: AuthGuard;
@@ -422,7 +425,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       assistantSpeechToTextService,
       nativeCameraService: nativeCameraModule.nativeCameraService,
       nativeCameraStreamingService: nativeCameraModule.nativeCameraStreamingService,
-      androidDisplayService
+      androidDisplayService,
+      installationVerificationBroker: new InstallationVerificationBroker(readCloudEdgeConfig)
     },
     guards: {
       authGuard: authModule.authGuard

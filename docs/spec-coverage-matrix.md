@@ -36,6 +36,7 @@ The command fails if a file cannot be mapped to an existing spec.
 | Home Assistant | Home Assistant integration and settings routes | Home Assistant connection, realtime, and resilience specs |
 | Cameras | camera routes, native camera routes, camera UI | Home Assistant camera and native camera specs |
 | Android Smart Displays | `AndroidDisplayRoutes`, `packages/integrations/android-display` | Android display integration V1 |
+| Installation verification | Installation verification broker and shared Cloud Edge config provider | HomePilot Installation Verification Broker V1 |
 | Media | media routes and player cards | Media player local control |
 | Energy | energy view and snapshot widgets | Energy management |
 | Sonoff LAN | `packages/integrations/sonoff` | Sonoff local integration |
@@ -47,7 +48,7 @@ The command fails if a file cannot be mapped to an existing spec.
 
 ## Audited Coverage
 
-- The **787** audited TypeScript/TSX files have a mapping rule to an existing
+- The **792** audited TypeScript/TSX files have a mapping rule to an existing
   spec.
 - All bounded contexts under `packages/` and all API route families are
   covered.

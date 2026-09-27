@@ -2,6 +2,16 @@ import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
+import { InstallationVerificationError, type InstallationVerificationErrorCode } from '../../../packages/cloud-gateway/application/InstallationVerificationBroker';
+
+const installationVerificationStatuses: Record<InstallationVerificationErrorCode, number> = {
+  INSTALLATION_VERIFICATION_CLOUD_NOT_PAIRED: 503,
+  INSTALLATION_VERIFICATION_INPUT_INVALID: 400,
+  INSTALLATION_VERIFICATION_DIRECTORY_UNAVAILABLE: 502,
+  INSTALLATION_VERIFICATION_DIRECTORY_REJECTED: 502,
+  INSTALLATION_VERIFICATION_DIRECTORY_RESPONSE_INVALID: 502,
+  INSTALLATION_VERIFICATION_TIMEOUT: 504,
+};
 
 /**
  * System routes: /health, /api/v1/system/*
@@ -17,6 +27,28 @@ export class SystemRoutes extends ApiRoutes {
     // GET /health (public)
     if (method === 'GET' && pathname === '/health') {
       this.sendJson(res, { status: 'ok' });
+      return true;
+    }
+
+    // POST /api/v1/system/installation-verification/attest
+    if (method === 'POST' && pathname === '/api/v1/system/installation-verification/attest') {
+      const isProtected = await container.guards.authGuard.protect(req, res, true);
+      if (!isProtected) return true;
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
+
+      res.setHeader('Cache-Control', 'no-store');
+      try {
+        const body = await this.parseBody<unknown>(req);
+        const result = await container.services.installationVerificationBroker.attest(body);
+        this.sendJson(res, result);
+      } catch (error: unknown) {
+        const code = error instanceof InstallationVerificationError
+          ? error.code
+          : error instanceof Error && error.message === 'INVALID_JSON'
+            ? 'INSTALLATION_VERIFICATION_INPUT_INVALID'
+            : 'INSTALLATION_VERIFICATION_DIRECTORY_UNAVAILABLE';
+        this.sendError(res, installationVerificationStatuses[code], code);
+      }
       return true;
     }
 

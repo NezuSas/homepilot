@@ -25,6 +25,7 @@ const rules = [
   ['energy-management-v1.md', /(?:EnergyView|EnergySnapshot|useEnergyStore)/i],
   ['dashboard-layout-and-widgets-v1.md', /(?:Dashboard|Dashboards|views\/dashboards)/i],
   ['system-variables-v1.md', /(?:system-vars|SystemVariable)/i],
+  ['homepilot-installation-verification-broker-v1.md', /(?:InstallationVerificationBroker|CloudEdgeConfigProvider|SystemRoutes\.installation-verification)/i],
   ['first-run-setup-edge-onboarding-v1.md', /(?:system-setup|SystemRoutes|FirstAdminSetup|OnboardingView)/i],
   ['observability-diagnostics-v1.md', /(?:system-observability|Diagnostics|Execution|AuditLogs|Resilience)/i],
   ['assistant-v1.md', /(?:packages\/assistant|Assistant|HomeConversation|AudioInput|GlobalWake|wakeAcknowledgement)/i],
