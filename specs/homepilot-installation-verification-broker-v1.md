@@ -87,6 +87,28 @@ guardar fecha y resultado sanitizado, nunca nonce ni atestación.
 Quedan fuera de alcance UI, pairing nuevo, llamada HomePilot→IntentFlow,
 BoardDeviceLink, manifiestos, comandos, sincronización y cambios en Directory.
 
+## Validación E2E en sistemas reales
+
+Se completó el flujo con IntentFlow productivo, HomePilot en la MiniPC y
+Directory real. IntentFlow creó el challenge; el operador lo presentó al
+endpoint administrativo de HomePilot; HomePilot reutilizó su credencial Edge
+para solicitar a Directory la prueba firmada con una clave Ed25519 separada de
+SSO; HomePilot devolvió únicamente la prueba; e IntentFlow verificó la firma
+y la correspondencia del challenge antes de vincular la instalación.
+
+| Paso | Resultado observado |
+| --- | --- |
+| Crear verification challenge en IntentFlow | HTTP 201 |
+| Solicitar attestation a HomePilot | HTTP 200 |
+| Verificar attestation en IntentFlow | HTTP 200 |
+| Estado final de HomePilotInstallation | `LINKED` |
+| Lectura posterior de la instalación | `LINKED` persistido |
+
+`directory_home_id` y `directory_edge_id` se poblaron únicamente a partir de
+la atestación firmada por Directory. Esta evidencia valida el flujo de
+identidad de instalación; no valida todavía heartbeat, `last_seen_at`,
+BoardDeviceLink, `effectiveActions` ni la retirada del ADB legacy.
+
 ## Criterios de aceptación
 
 - [x] **AC1.** Solo un administrador autenticado puede solicitar una atestación mediante el endpoint local.
@@ -103,5 +125,5 @@ BoardDeviceLink, manifiestos, comandos, sincronización y cambios en Directory.
 - [x] **AC12.** El endpoint responde `Cache-Control: no-store` y no devuelve token, `homeId` ni `edgeId`.
 - [x] **AC13.** `CloudGatewayConnector` continúa leyendo la misma configuración cloud mediante `CloudEdgeConfigProvider`.
 
-Estos criterios describen la implementación local; la validación física completa
-IntentFlow → HomePilot → Directory → IntentFlow permanece pendiente.
+Además de la cobertura local de estos criterios, se completó la validación E2E
+IntentFlow → HomePilot → Directory → HomePilot → IntentFlow descrita arriba.

@@ -8,4 +8,4 @@
 - [x] Documentar el límite de confianza y la responsabilidad posterior de IntentFlow.
 - [x] Declarar estado y criterios de aceptación de la implementación local, con mapping específico de spec coverage.
 - [ ] Ejecutar pruebas y validaciones de calidad en una tarea posterior autorizada. Esta tarea prohibió toda ejecución.
-- [ ] Validar el flujo físico completo con Directory e IntentFlow en una fase posterior; sin deploy en esta tarea.
+- [x] Validar el flujo E2E real IntentFlow → HomePilot → Directory → HomePilot → IntentFlow: challenge HTTP 201, attest HTTP 200, verificación HTTP 200 y estado `LINKED` persistido.
