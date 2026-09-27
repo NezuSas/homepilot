@@ -131,4 +131,15 @@ printf 'Base images: %s\n' "${#HOMEPILOT_IMAGE_SERVICES[@]}"
 homepilot_image_enable_display
 printf 'Enabled images: %s\n' "${#HOMEPILOT_IMAGE_SERVICES[@]}"
 [[ ${#HOMEPILOT_IMAGE_SERVICES[@]} -eq 5 && "${HOMEPILOT_IMAGE_SERVICES[4]}" == display-bridge ]]
+printf 'Testing non-root privileged ADB home dispatch...\n'
+android_display_python() { printf '%s' "${HOMEPILOT_TEST_PYTHON:-/usr/bin/python3}"; }
+uname() { printf 'Linux\n'; }
+id() { [[ "$1" == -u ]] && printf '1000\n'; }
+sudo_calls=0
+sudo() {
+  [[ "$1" == "$(android_display_python)" && "$2" == */android-display-adb-home.py && "$3" == "$(pwd -P)" ]] || return 1
+  sudo_calls=$((sudo_calls + 1))
+}
+android_display_prepare_adb_home
+[[ "$sudo_calls" -eq 1 ]]
 printf 'Android Display appliance helper tests passed.\n'

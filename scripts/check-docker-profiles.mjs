@@ -14,6 +14,7 @@ const requiredFiles = [
   'scripts/lib/homepilot-builder.sh',
   'scripts/lib/homepilot-images.sh',
   'scripts/lib/android-display-appliance.sh',
+  'scripts/lib/android-display-adb-home.py',
   'docker-compose.android-display.yml',
   'docker-compose.android-display.desktop.yml',
   'docker/buildkit/homepilot-buildkitd.toml',
@@ -45,6 +46,7 @@ if (failures.length === 0) {
   const builderHelper = read('scripts/lib/homepilot-builder.sh');
   const imageHelper = read('scripts/lib/homepilot-images.sh');
   const displayHelper = read('scripts/lib/android-display-appliance.sh');
+  const displayAdbHome = read('scripts/lib/android-display-adb-home.py');
   const displayCompose = read('docker-compose.android-display.yml');
   const displayDesktop = read('docker-compose.android-display.desktop.yml');
   const displayDockerfile = read('services/android-display-bridge/Dockerfile');
@@ -181,12 +183,15 @@ if (failures.length === 0) {
     failures.push('Android Display must default off and validate persistent token, CIDRs and port');
   }
   if (!displayHelper.includes("readonly HOMEPILOT_DISPLAY_ADB_DIR='data/android-display/adb-home/.android'")
-    || !displayHelper.includes('chown 10001:10001')
-    || !displayHelper.includes('chmod 700')
-    || !displayHelper.includes('"$mode" == 600')
-    || !displayHelper.includes('"$mode" == 644 || "$mode" == 600')
-    || !displayHelper.includes('La identidad ADB está incompleta')
-    || displayHelper.includes('/root/.android')) {
+    || !displayHelper.includes('sudo "$python_bin" "$helper"')
+    || !displayAdbHome.includes('DISPLAY_UID = 10001')
+    || !displayAdbHome.includes('DISPLAY_GID = 10001')
+    || !displayAdbHome.includes('ensure_directory(home, DISPLAY_UID, DISPLAY_GID, 0o700)')
+    || !displayAdbHome.includes('ensure_directory(key_dir, DISPLAY_UID, DISPLAY_GID, 0o700)')
+    || !displayAdbHome.includes('validate_key(key_dir / "adbkey", (0o600,))')
+    || !displayAdbHome.includes('validate_key(key_dir / "adbkey.pub", (0o600, 0o644))')
+    || !displayAdbHome.includes('private_present != public_present')
+    || displayAdbHome.includes('/root/.android')) {
     failures.push('Android Display ADB home must be persistent, non-root and fail closed on bad identities');
   }
   if (!displayCompose.includes('127.0.0.1:${HOMEPILOT_DISPLAY_BRIDGE_HTTP_PORT:-5002}:5002')

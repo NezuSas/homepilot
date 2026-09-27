@@ -76,42 +76,21 @@ android_display_generate_token_if_missing() {
   ok 'Token interno de Android Display generado y protegido; no se mostrará.'
 }
 
+android_display_python() {
+  printf '%s' /usr/bin/python3
+}
+
 android_display_prepare_adb_home() {
   [[ "$(uname -s)" == Linux ]] || return 0 # Desktop uses its named volume.
-  local parent='data/android-display/adb-home' key_dir="$HOMEPILOT_DISPLAY_ADB_DIR" path owner mode
-  [[ ! -L data/android-display && ! -L "$parent" && ! -L "$key_dir" ]] \
-    || fail 'El directorio ADB persistente no puede ser un enlace simbólico.'
-  if [[ ! -e "$key_dir" ]]; then
-    mkdir -p "$key_dir" || fail 'No se pudo crear el directorio ADB persistente.'
-    chmod 700 "$parent" "$key_dir" || fail 'No se pudieron proteger los directorios ADB.'
-    if [[ "$(id -u)" == 0 ]]; then
-      chown 10001:10001 "$parent" "$key_dir"
-    else
-      command -v sudo >/dev/null 2>&1 || fail 'Se requiere sudo para asignar UID/GID 10001 al volumen ADB.'
-      sudo chown 10001:10001 "$parent" "$key_dir" || fail 'No se pudo asignar UID/GID 10001 al volumen ADB.'
-    fi
+  local helper="$(dirname "${BASH_SOURCE[0]}")/android-display-adb-home.py" python_bin
+  python_bin="$(android_display_python)"
+  [[ -f "$helper" && -x "$python_bin" ]] || fail 'Falta el helper ADB o /usr/bin/python3 en Linux.'
+  if [[ "$(id -u)" == 0 ]]; then
+    "$python_bin" "$helper" "$(pwd -P)" || fail 'No se pudo preparar o validar el ADB home persistente.'
+  else
+    command -v sudo >/dev/null 2>&1 || fail 'Se requiere sudo para inspeccionar el ADB home protegido.'
+    sudo "$python_bin" "$helper" "$(pwd -P)" || fail 'No se pudo preparar o validar el ADB home persistente.'
   fi
-  for path in "$parent" "$key_dir"; do
-    [[ -d "$path" && ! -L "$path" ]] || fail 'Directorio ADB persistente inválido.'
-    owner="$(stat -c '%u:%g' "$path")"
-    mode="$(stat -c '%a' "$path")"
-    [[ "$owner" == '10001:10001' && "$mode" == 700 ]] || fail 'Permisos/propietario ADB inseguros; no se alterará la identidad existente.'
-  done
-  for path in "$key_dir/adbkey" "$key_dir/adbkey.pub"; do
-    [[ -e "$path" || -L "$path" ]] || continue
-    [[ -f "$path" && ! -L "$path" ]] || fail 'Identidad ADB existente inválida.'
-    owner="$(stat -c '%u:%g' "$path")"
-    mode="$(stat -c '%a' "$path")"
-    [[ "$owner" == '10001:10001' ]] || fail 'Identidad ADB existente con propietario inválido.'
-    if [[ "$path" == */adbkey ]]; then
-      [[ "$mode" == 600 ]] || fail 'La clave privada ADB debe tener permisos 0600.'
-    else
-      [[ "$mode" == 644 || "$mode" == 600 ]] || fail 'La clave pública ADB tiene permisos inseguros.'
-    fi
-  done
-  [[ -e "$key_dir/adbkey" && -e "$key_dir/adbkey.pub" ]] \
-    || [[ ! -e "$key_dir/adbkey" && ! -e "$key_dir/adbkey.pub" ]] \
-    || fail 'La identidad ADB está incompleta; no se regenerará.'
 }
 
 android_display_add_overlays() {
