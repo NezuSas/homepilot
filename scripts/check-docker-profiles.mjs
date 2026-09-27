@@ -13,6 +13,9 @@ const requiredFiles = [
   'scripts/lib/api-health.sh',
   'scripts/lib/homepilot-builder.sh',
   'scripts/lib/homepilot-images.sh',
+  'scripts/lib/android-display-appliance.sh',
+  'docker-compose.android-display.yml',
+  'docker-compose.android-display.desktop.yml',
   'docker/buildkit/homepilot-buildkitd.toml',
   '.dockerignore',
   '.env.office.example',
@@ -41,6 +44,10 @@ if (failures.length === 0) {
   const apiHealth = read('scripts/lib/api-health.sh');
   const builderHelper = read('scripts/lib/homepilot-builder.sh');
   const imageHelper = read('scripts/lib/homepilot-images.sh');
+  const displayHelper = read('scripts/lib/android-display-appliance.sh');
+  const displayCompose = read('docker-compose.android-display.yml');
+  const displayDesktop = read('docker-compose.android-display.desktop.yml');
+  const displayDockerfile = read('services/android-display-bridge/Dockerfile');
   const builderGc = read('docker/buildkit/homepilot-buildkitd.toml');
   const dockerignore = read('.dockerignore');
   const officeEnvironmentTemplate = read('.env.office.example');
@@ -158,6 +165,52 @@ if (failures.length === 0) {
     || !imageHelper.includes('docker image rm "$image_id"')
     || /docker (?:system|image|builder|volume) prune/.test(imageHelper)) {
     failures.push('HomePilot image lifecycle must remain explicit, label-scoped and free of global prune');
+  }
+  if (!displayHelper.includes("''|false) android_display_enabled=false")
+    || !displayHelper.includes('true) android_display_enabled=true')
+    || !displayHelper.includes('android_display_generate_token_if_missing')
+    || !displayHelper.includes('openssl rand -hex 32')
+    || !displayHelper.includes('[[ -n "$(android_display_env_value HOMEPILOT_DISPLAY_BRIDGE_TOKEN)" ]] && return')
+    || !displayHelper.includes('android_display_validate_cidrs')
+    || !displayHelper.includes('10.0.0.0/8')
+    || !displayHelper.includes('172.16.0.0/12')
+    || !displayHelper.includes('192.168.0.0/16')
+    || !displayHelper.includes('net.prefixlen >= 16')
+    || !displayHelper.includes('HOMEPILOT_DISPLAY_BRIDGE_HTTP_PORT')
+    || !displayHelper.includes('HOMEPILOT_DISPLAY_BRIDGE_TOKEN')) {
+    failures.push('Android Display must default off and validate persistent token, CIDRs and port');
+  }
+  if (!displayHelper.includes("readonly HOMEPILOT_DISPLAY_ADB_DIR='data/android-display/adb-home/.android'")
+    || !displayHelper.includes('chown 10001:10001')
+    || !displayHelper.includes('chmod 700')
+    || !displayHelper.includes('"$mode" == 600')
+    || !displayHelper.includes('"$mode" == 644 || "$mode" == 600')
+    || !displayHelper.includes('La identidad ADB está incompleta')
+    || displayHelper.includes('/root/.android')) {
+    failures.push('Android Display ADB home must be persistent, non-root and fail closed on bad identities');
+  }
+  if (!displayCompose.includes('127.0.0.1:${HOMEPILOT_DISPLAY_BRIDGE_HTTP_PORT:-5002}:5002')
+    || !displayCompose.includes('HOMEPILOT_DISPLAY_BRIDGE_URL: http://127.0.0.1:')
+    || !displayCompose.includes('HOMEPILOT_DISPLAY_BRIDGE_TOKEN: ${HOMEPILOT_DISPLAY_BRIDGE_TOKEN:?')
+    || displayCompose.includes('5037:')
+    || !displayDesktop.includes('ports: !override []')
+    || !displayDesktop.includes('http://homepilot-display-bridge:5002')
+    || !displayDockerfile.includes('io.nezu.homepilot.service="display-bridge"')) {
+    failures.push('Android Display Compose must use loopback Linux, private Desktop networking and managed labels');
+  }
+  if (!maintenance.includes('android_display_add_overlays')
+    || !maintenance.includes('android_display_prepare_adb_home')
+    || !maintenance.includes('android_display_check_network')
+    || !maintenance.includes('android_display_check_api_config')
+    || !maintenance.includes('homepilot_image_enable_display')
+    || !installer.includes('¿Esta instalación utilizará pantallas inteligentes Android?')
+    || !installer.includes('android_display_generate_token_if_missing')
+    || !installer.includes('android_display_prepare_adb_home')
+    || !installer.includes('HOMEPILOT_ANDROID_DISPLAY_ENABLED')
+    || !installer.includes('android_display_check_network')
+    || !imageHelper.includes('HOMEPILOT_IMAGE_SERVICES+=(display-bridge)')
+    || !imageHelper.includes('display-bridge:runtime')) {
+    failures.push('Installer, maintenance and image lifecycle must select the bridge only when enabled');
   }
   for (const [name, content] of [
     ['API', read('docker/api/Dockerfile')],

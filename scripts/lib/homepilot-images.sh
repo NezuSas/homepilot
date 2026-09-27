@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 
-# Only the four Compose-built runtime images participate in rollback rotation.
+# Only enabled Compose-built runtime images participate in rollback rotation.
 # The camera probe is labeled separately and has no rollback: it is disposable
 # and can be rebuilt from the API Dockerfile on the next acceleration check.
-readonly HOMEPILOT_IMAGE_SERVICES=(api ui stt tts)
+HOMEPILOT_IMAGE_SERVICES=(api ui stt tts)
+
+homepilot_image_enable_display() {
+  HOMEPILOT_IMAGE_SERVICES+=(display-bridge)
+}
 
 homepilot_image_revision() {
   git rev-parse --short=12 HEAD 2>/dev/null || printf 'unknown\n'
@@ -133,6 +137,13 @@ homepilot_image_gc_scan() {
   done
   protected_id="$(homepilot_image_id 'homepilot-camera-probe:local' || true)"
   [[ -z "$protected_id" ]] || protected["$protected_id"]=1
+  # Preserve a previously installed display image even when the feature is off.
+  for reference in homepilot-homepilot-display-bridge:latest \
+    "$(homepilot_image_rollback_tag display-bridge)" \
+    "$(homepilot_image_pending_tag display-bridge)"; do
+    protected_id="$(homepilot_image_id "$reference" || true)"
+    [[ -z "$protected_id" ]] || protected["$protected_id"]=1
+  done
 
   for image_id in "${image_ids[@]}"; do
     [[ "$image_id" == sha256:* && -z "${seen[$image_id]:-}" ]] || continue
@@ -143,7 +154,7 @@ homepilot_image_gc_scan() {
     IFS='|' read -r managed service role <<< "$labels"
     [[ "$managed" == v1 ]] || continue
     case "$service:$role" in
-      api:runtime|ui:runtime|stt:runtime|tts:runtime|api:probe) ;;
+      api:runtime|ui:runtime|stt:runtime|tts:runtime|display-bridge:runtime|api:probe) ;;
       *) continue ;;
     esac
     tags="$(docker image inspect --format '{{json .RepoTags}}' "$image_id")" \

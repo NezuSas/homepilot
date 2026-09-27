@@ -58,10 +58,11 @@
 
 **Depende de:** Fases 1–4 y topología verificada en Fase 0.
 
-- [ ] Incorporar overlay opcional al instalador y mantenimiento sin alterar `bridge_ha`, `native_only` ni `ha_companion` cuando no haya displays.
-- [ ] Integrar imagen bridge con builder/lifecycle HomePilot, healthchecks, logging rotado, observabilidad, alerta de indisponibilidad y rollback de imagen.
+- [x] Incorporar feature flag persistente y overlay opcional al instalador y mantenimiento sin alterar `bridge_ha`, `native_only` ni `ha_companion` cuando no haya displays; token generado una vez, CIDR privado validado y ADB home persistente protegido.
+- [x] Integrar imagen bridge habilitada con builder/lifecycle HomePilot, healthcheck, logging rotado y rollback de imagen, incluida candidatura al GC etiquetado y explícito.
+- [ ] Completar observabilidad y alerta de indisponibilidad más allá de la verificación operativa actual.
 - [ ] Añadir backup protegido/cifrado y restauración aislada de `~/.android` y secreto interno, separados del backup SQLite; probar pérdida de claves → `needs_authorization` sin pérdida del dispositivo.
-- [ ] En Linux real, probar API → bridge, host → bridge por loopback, otro equipo LAN → HTTP bridge rechazado, LAN → 5037 rechazado y ausencia de listener host `*:5037`; verificar autenticación interna. En Desktop, probar DNS de servicio por red compartida con igual contrato/auth y sin puerto publicado.
+- [ ] Tras desplegar el appliance, probar API → bridge, host → bridge por loopback, otro equipo LAN → HTTP bridge rechazado, LAN → 5037 rechazado y ausencia de listener host `*:5037`; verificar autenticación interna. En Desktop, probar DNS de servicio por red compartida con igual contrato/auth y sin puerto publicado. La verificación previa del piloto local no sustituye esta prueba end-to-end del instalador/mantenimiento.
 - [ ] Recrear el contenedor bridge y reiniciar el appliance completo: comprobar que persisten claves/autorización, estado y operación; ejecutar restore aislado y verificar recuperación. Evidencia: AC02, AC03, AC11.
 - [ ] Implementar y validar HTTPS local con nombre/certificado confiable y operación sin Internet antes de considerar Display Mode listo para clientes. HTTP LAN permanece etiquetado y restringido al piloto interno. Evidencia: AC10.
 

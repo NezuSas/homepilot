@@ -3,6 +3,7 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib/camera-acceleration.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-builder.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-images.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/android-display-appliance.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/api-health.sh"
 
 readonly ENV_FILE=".env"
@@ -24,6 +25,8 @@ install_community_integrations=false
 community_integrations_only=false
 runtime_failures=0
 startup_failed=false
+android_display_choice=''
+android_display_desktop=false
 
 if [[ -t 1 ]]; then
   RED='\033[0;31m'
@@ -309,6 +312,7 @@ show_technician_checklist() {
   printf '%b\n' "${BOLD}  Acción${NC}                ${action_label}"
   printf '%b\n' "${BOLD}  Limpieza segura${NC}       ${cleanup_label}"
   printf '%b\n' "${BOLD}  Integraciones HA${NC}      ${community_label}"
+  printf '%b\n' "${BOLD}  Android Display${NC}       ${android_display_choice:-conservar configuración actual}"
   divider
 }
 
@@ -324,6 +328,14 @@ run_technician_wizard() {
   choose_technician_action
 
   if [[ "$status_only" == false && "$community_integrations_only" == false ]]; then
+    if [[ -f "$ENV_FILE" && "$(android_display_env_value HOMEPILOT_ANDROID_DISPLAY_ENABLED)" == true ]]; then
+      android_display_choice=true
+      info 'Android Display ya está habilitado; se conservará su configuración.'
+    elif ask_technician_yes_no '¿Esta instalación utilizará pantallas inteligentes Android?'; then
+      android_display_choice=true
+    else
+      android_display_choice=false
+    fi
     if ask_technician_yes_no "¿Retirar contenedores HomePilot detenidos antes de continuar?"; then
       clean=true
     fi
@@ -470,7 +482,8 @@ wait_for_runtime_ready() {
     if container_ready "homepilot-api" true \
       && container_ready "homepilot-ui" false \
       && container_ready "homepilot-stt" true \
-      && container_ready "homepilot-tts" true; then
+      && container_ready "homepilot-tts" true \
+      && { [[ "$android_display_enabled" != true ]] || container_ready 'homepilot-display-bridge' true; }; then
       ok "Servicios HomePilot listos."
       return 0
     fi
@@ -644,6 +657,9 @@ show_runtime_status() {
   check_container "homepilot-ui" "UI HomePilot · puerto ${ui_port}" false
   check_container "homepilot-stt" "STT Whisper · puerto ${stt_port}" true
   check_container "homepilot-tts" "TTS Piper · puerto ${tts_port}" true
+  if [[ "$android_display_enabled" == true ]]; then
+    check_container 'homepilot-display-bridge' 'Android Display Bridge' true
+  fi
 
   section "Conectividad de servicios"
   api_status="$(homepilot_api_health_status || true)"
@@ -656,6 +672,14 @@ show_runtime_status() {
   check_endpoint "UI HomePilot · puerto ${ui_port}" "http://127.0.0.1:${ui_port}" "200"
   check_endpoint "STT Whisper · puerto ${stt_port}" "http://127.0.0.1:${stt_port}/health" "200"
   check_endpoint "TTS Piper · puerto ${tts_port}" "http://127.0.0.1:${tts_port}/health" "200"
+  if [[ "$android_display_enabled" == true ]]; then
+    android_display_check_network
+    android_display_check_api_config
+    if [[ "$android_display_desktop" == false ]]; then
+      check_endpoint 'Android Display Bridge · loopback' \
+        "http://127.0.0.1:$(android_display_env_value HOMEPILOT_DISPLAY_BRIDGE_HTTP_PORT)/health" '200'
+    fi
+  fi
   if [[ "$requires_home_assistant" == true ]]; then
     check_endpoint "Home Assistant · puerto ${ha_port}" "http://127.0.0.1:${ha_port}/" "200,301,302,401,403"
   else
@@ -727,6 +751,12 @@ else
   choose_profile_for_new_installation
   configure_profile
 fi
+if [[ -f "$ENV_FILE" ]]; then
+  case "$(android_display_env_value HOMEPILOT_ANDROID_DISPLAY_ENABLED)" in
+    ''|true|false) ;;
+    *) fail 'HOMEPILOT_ANDROID_DISPLAY_ENABLED debe ser true o false; no se cambiará silenciosamente.' ;;
+  esac
+fi
 [[ -f "$compose_file" ]] || fail "Ejecuta el script desde la raiz del repositorio HomePilot."
 [[ -f "$env_template" ]] || fail "No existe $env_template."
 command -v docker >/dev/null 2>&1 || fail "Docker no esta instalado o no esta disponible para este usuario."
@@ -748,6 +778,12 @@ if [[ "$wizard" != true ]]; then
 fi
 info "Directorio de instalación: $(pwd)"
 info "Compose: $compose_file · Home Assistant: $ha_management_label"
+if [[ "$status_only" == true && -f "$ENV_FILE" ]]; then
+  android_display_load
+  if android_display_is_desktop; then
+    android_display_desktop=true
+  fi
+fi
 
 if [[ "$status_only" == true ]]; then
   section 'Builder de HomePilot'
@@ -833,6 +869,40 @@ elif [[ "$configured_profile" != "$profile" ]]; then
 fi
 ok "Perfil de instalación configurado: ${profile}."
 
+if [[ -z "$android_display_choice" ]]; then
+  if [[ "$(android_display_env_value HOMEPILOT_ANDROID_DISPLAY_ENABLED)" == true ]]; then
+    android_display_choice=true
+  elif [[ -t 0 && "$assume_yes" == false ]] \
+    && ask_technician_yes_no '¿Esta instalación utilizará pantallas inteligentes Android?'; then
+    android_display_choice=true
+  else
+    android_display_choice=false
+  fi
+fi
+set_env_value HOMEPILOT_ANDROID_DISPLAY_ENABLED "$android_display_choice"
+if [[ "$android_display_choice" == true ]]; then
+  if [[ -z "$(android_display_env_value HOMEPILOT_DISPLAY_ADB_CIDRS)" ]]; then
+    read_terminal_line 'CIDR privado autorizado para pantallas (ej. 192.168.1.0/24): ' \
+      || fail 'Android Display requiere un CIDR privado; configúralo en .env antes de usar modo no interactivo.'
+    android_display_validate_cidrs "$REPLY" || fail 'CIDR inválido; usa una subred RFC1918 /16 o más estrecha.'
+    set_env_value HOMEPILOT_DISPLAY_ADB_CIDRS "$REPLY"
+  fi
+  if [[ -z "$(android_display_env_value HOMEPILOT_DISPLAY_BRIDGE_HTTP_PORT)" ]]; then
+    set_env_value HOMEPILOT_DISPLAY_BRIDGE_HTTP_PORT 5002
+  fi
+  android_display_generate_token_if_missing
+  chmod 600 "$ENV_FILE" || fail 'No se pudo proteger .env.'
+  android_display_load
+  if android_display_is_desktop; then
+    android_display_desktop=true
+  fi
+  android_display_prepare_adb_home
+  homepilot_image_enable_display
+  ok 'Android Display habilitado; configuración persistente protegida.'
+else
+  ok 'Android Display deshabilitado; no se crea token ni identidad ADB.'
+fi
+
 if [[ "$profile" == bridge_ha ]]; then
   grep -q '^INTERNAL_HA_URL=http://host.docker.internal:8123$' "$ENV_FILE" \
     && ok "INTERNAL_HA_URL apunta al Home Assistant existente del host." \
@@ -847,6 +917,13 @@ if [[ -n "$cloud_url" || -n "$pairing_code" ]]; then
   ok "HomePilot Cloud quedó configurado sin variables .env."
 fi
 camera_compose_args=(-f "$compose_file")
+if [[ "$android_display_desktop" == true ]]; then
+  if [[ "$profile" == ha_companion ]]; then
+    camera_compose_args+=(-f docker-compose.ha-companion.desktop.yml)
+  else
+    camera_compose_args+=(-f docker-compose.desktop.yml)
+  fi
+fi
 if [[ "$start" == true ]]; then
   export HOMEPILOT_BUILD_REVISION="$(homepilot_image_revision)"
   section 'Builder de HomePilot'
@@ -857,6 +934,10 @@ if [[ "$start" == true ]]; then
     camera_compose_args+=(-f "$camera_acceleration_overlay")
   fi
   camera_acceleration_report
+fi
+if [[ "$android_display_enabled" == true ]]; then
+  camera_compose_args+=(-f "$HOMEPILOT_DISPLAY_OVERLAY")
+  [[ "$android_display_desktop" != true ]] || camera_compose_args+=(-f "$HOMEPILOT_DISPLAY_DESKTOP_OVERLAY")
 fi
 docker compose "${camera_compose_args[@]}" config --quiet
 if [[ "$profile" == ha_companion ]]; then
@@ -876,6 +957,17 @@ if [[ "$start" == true ]]; then
       fi
       warn 'El inicio con VAAPI falló; se reintentará con libx264.'
       camera_compose_args=(-f "$compose_file")
+      if [[ "$android_display_desktop" == true ]]; then
+        if [[ "$profile" == ha_companion ]]; then
+          camera_compose_args+=(-f docker-compose.ha-companion.desktop.yml)
+        else
+          camera_compose_args+=(-f docker-compose.desktop.yml)
+        fi
+      fi
+      if [[ "$android_display_enabled" == true ]]; then
+        camera_compose_args+=(-f "$HOMEPILOT_DISPLAY_OVERLAY")
+        [[ "$android_display_desktop" != true ]] || camera_compose_args+=(-f "$HOMEPILOT_DISPLAY_DESKTOP_OVERLAY")
+      fi
       camera_acceleration_overlay=''
       camera_acceleration_encoder='libx264'
       camera_acceleration_fallback='software (libx264)'

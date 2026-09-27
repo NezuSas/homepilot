@@ -4,6 +4,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib/camera-acceleration.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/appliance-storage-report.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-builder.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-images.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/android-display-appliance.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/api-health.sh"
 
 profile="bridge_ha"
@@ -115,6 +116,16 @@ configure_profile() {
 
   if [[ "$compose_explicit" == false && "$profile" == "bridge_ha" && -f data/mqtt/passwordfile && -f docker-compose.pc-agents.yml ]]; then
     compose_files+=("docker-compose.pc-agents.yml")
+  fi
+  if [[ -f .env ]]; then
+    android_display_load
+    if [[ "$android_display_enabled" == true ]]; then
+      [[ "$compose_explicit" == false ]] || fail 'Android Display habilitado requiere selección automática de Compose; omite --compose.'
+      android_display_desktop=false
+      is_docker_desktop && android_display_desktop=true
+      android_display_add_overlays
+      homepilot_image_enable_display
+    fi
   fi
 }
 
@@ -269,6 +280,15 @@ verify_runtime_once() {
 
   if [[ "$profile" == "bridge_ha" ]]; then
     check_endpoint "Home Assistant existente · puerto ${ha_port}" "http://127.0.0.1:${ha_port}/" "200,301,302,401,403"
+  fi
+  if [[ "$android_display_enabled" == true ]]; then
+    check_container 'homepilot-display-bridge' 'Android Display Bridge'
+    android_display_check_network
+    android_display_check_api_config
+    if [[ "$android_display_desktop" == false ]]; then
+      check_endpoint 'Android Display Bridge · loopback' \
+        "http://127.0.0.1:$(android_display_env_value HOMEPILOT_DISPLAY_BRIDGE_HTTP_PORT)/health" '200'
+    fi
   fi
 }
 
@@ -487,6 +507,7 @@ fi
 
 if [[ "$deploy" == true ]]; then
   if confirm "Limpiar, construir e iniciar HomePilot ahora?"; then
+    [[ "$android_display_enabled" != true ]] || android_display_prepare_adb_home
     export HOMEPILOT_BUILD_REVISION="$(homepilot_image_revision)"
     section 'Builder de HomePilot'
     homepilot_builder_ensure
