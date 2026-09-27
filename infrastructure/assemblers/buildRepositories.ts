@@ -9,6 +9,7 @@ import { SQLiteRoomRepository } from '../../packages/topology/infrastructure/rep
 import { SQLiteDashboardRepository } from '../../packages/topology/infrastructure/repositories/SQLiteDashboardRepository';
 import { SQLiteDeviceRepository } from '../../packages/devices/infrastructure/repositories/SQLiteDeviceRepository';
 import { SQLiteNativeCameraSourceRepository } from '../../packages/devices/infrastructure/repositories/SQLiteNativeCameraSourceRepository';
+import { SQLiteAndroidDisplaySourceRepository } from '../../packages/integrations/android-display/infrastructure/SQLiteAndroidDisplaySourceRepository';
 import { SqliteSceneRepository } from '../../packages/devices/infrastructure/repositories/SqliteSceneRepository';
 import { SQLiteAutomationRuleRepository } from '../../packages/devices/infrastructure/repositories/SQLiteAutomationRuleRepository';
 import { SQLiteActivityLogRepository } from '../../packages/devices/infrastructure/repositories/SQLiteActivityLogRepository';
@@ -26,6 +27,7 @@ export interface RepositoriesAssembly {
   roomRepository: SQLiteRoomRepository;
   deviceRepository: SQLiteDeviceRepository;
   nativeCameraSourceRepository: SQLiteNativeCameraSourceRepository;
+  androidDisplaySourceRepository: SQLiteAndroidDisplaySourceRepository;
   sceneRepository: SqliteSceneRepository;
   automationRuleRepository: SQLiteAutomationRuleRepository;
   activityLogRepository: SQLiteActivityLogRepository;
@@ -47,6 +49,7 @@ export function buildRepositories(
     roomRepository: new SQLiteRoomRepository(dbPath),
     deviceRepository: new SQLiteDeviceRepository(dbPath),
     nativeCameraSourceRepository: new SQLiteNativeCameraSourceRepository(dbPath),
+    androidDisplaySourceRepository: new SQLiteAndroidDisplaySourceRepository(dbPath),
     sceneRepository: new SqliteSceneRepository(db),
     automationRuleRepository: new SQLiteAutomationRuleRepository(dbPath),
     activityLogRepository: new SQLiteActivityLogRepository(dbPath),

@@ -10,6 +10,10 @@ import { getDeviceProfileCapabilities, getDeviceProfileForDevice } from './devic
  * compatibilidad con dispositivos existentes.
  */
 export function resolveCapabilitiesForDevice(device: Device): DeviceCapability[] {
+  if (device.integrationSource === 'android-display') {
+    if (device.type !== 'smart_display' || device.semanticType !== 'smart_display') return [];
+    return [{ type: 'smart_display', name: 'Pantalla inteligente' }];
+  }
   // 1. Prioridad: Capacidades explícitamente declaradas en la entidad
   if (device.capabilities && device.capabilities.length > 0) {
     return [...device.capabilities];

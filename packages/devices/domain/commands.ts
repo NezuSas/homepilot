@@ -16,6 +16,8 @@ export type DeviceCommandV1 =
   | 'media_previous_track'
   | 'media_next_track'
   | 'volume_set'
+  | 'navigate_home'
+  | 'navigate_back'
   | 'ptz_move'
   | 'ptz_stop'
   | 'set_temperature'
@@ -58,6 +60,8 @@ export function isValidCommand(cmd: string): cmd is DeviceCommandV1 {
     'media_previous_track',
     'media_next_track',
     'volume_set',
+    'navigate_home',
+    'navigate_back',
     'ptz_move',
     'ptz_stop',
     'set_temperature',

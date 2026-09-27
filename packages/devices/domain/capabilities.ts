@@ -16,7 +16,8 @@ export type CapabilityType =
   | 'camera'
   | 'camera_ptz'
   | 'button'
-  | 'scene';
+  | 'scene'
+  | 'smart_display';
 
 /**
  * CapabilityCommandParamSchema
@@ -96,6 +97,11 @@ export const CAPABILITY_DEFINITIONS: Record<CapabilityType, CapabilityCommand[]>
   ],
   'scene': [
     { name: 'activate' },
+  ],
+  'smart_display': [
+    { name: 'navigate_home' },
+    { name: 'navigate_back' },
+    { name: 'volume_set', params: [{ name: 'volume', type: 'number', min: 0, max: 100, required: true }] },
   ],
   'camera_ptz': [
     {

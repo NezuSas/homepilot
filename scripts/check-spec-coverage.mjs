@@ -18,6 +18,7 @@ const rules = [
   ['installation-profiles-v1.md', /(?:getInstallationProfile|SystemSetupService|OnboardingView)/i],
   ['media-player-local-control-v1.md', /(?:MediaPlayer|MediaRoutes|MediaService)/i],
   ['native-camera-local-integration-v1.md', /(?:NativeCamera|Onvif|integrations\/native-camera)/i],
+  ['android-display-integration-v1.md', /(?:AndroidDisplay|integrations\/android-display)/i],
   ['home-assistant-camera-streaming-v1.md', /(?:CameraRoutes|CameraMedia|CameraViewer|CameraDevice)/i],
   ['home-assistant-settings-connection-management-v1.md', /(?:home-assistant|HomeAssistant|SettingsRoutes|HomeAssistantDiscovery)/i],
   ['sonoff-local-integration-v1.md', /Sonoff/i],

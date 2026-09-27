@@ -15,6 +15,9 @@ import { SQLiteTopologyReferenceAdapter } from '../../packages/topology/infrastr
 import { AssistantActionService } from '../../packages/assistant/application/AssistantActionService';
 import { DashboardService } from '../../packages/topology/application/DashboardService';
 import { NativeCameraDeviceDriver } from '../../packages/integrations/native-camera/infrastructure/NativeCameraDeviceDriver';
+import { AndroidDisplayDeviceDriver } from '../../packages/integrations/android-display/infrastructure/AndroidDisplayDeviceDriver';
+import type { SQLiteAndroidDisplaySourceRepository } from '../../packages/integrations/android-display/infrastructure/SQLiteAndroidDisplaySourceRepository';
+import type { AndroidDisplayBridgePort } from '../../packages/integrations/android-display/application/AndroidDisplayBridgePort';
 
 import type { SQLiteDeviceRepository } from '../../packages/devices/infrastructure/repositories/SQLiteDeviceRepository';
 import type { SQLiteNativeCameraSourceRepository } from '../../packages/devices/infrastructure/repositories/SQLiteNativeCameraSourceRepository';
@@ -51,6 +54,8 @@ export interface CommandRouterDeps {
   dashboardRepository: SQLiteDashboardRepository;
   nativeCameraSourceRepository: SQLiteNativeCameraSourceRepository;
   nativeCameraDriverRegistry: NativeCameraDriverRegistry;
+  androidDisplaySourceRepository: SQLiteAndroidDisplaySourceRepository;
+  androidDisplayBridge: AndroidDisplayBridgePort;
 }
 
 export function buildCommandRouter(deps: CommandRouterDeps): CommandRouterAssembly {
@@ -68,6 +73,8 @@ export function buildCommandRouter(deps: CommandRouterDeps): CommandRouterAssemb
     dashboardRepository,
     nativeCameraSourceRepository,
     nativeCameraDriverRegistry,
+    androidDisplaySourceRepository,
+    androidDisplayBridge,
   } = deps;
 
   const sharedSyncDeps = {
@@ -120,6 +127,7 @@ export function buildCommandRouter(deps: CommandRouterDeps): CommandRouterAssemb
   driverRegistry.register('sonoff', new SonoffDeviceDriver());
   driverRegistry.register('local', new LocalDeviceDriver());
   driverRegistry.register('native-camera', new NativeCameraDeviceDriver(nativeCameraSourceRepository, nativeCameraDriverRegistry));
+  driverRegistry.register('android-display', new AndroidDisplayDeviceDriver(androidDisplaySourceRepository, androidDisplayBridge));
 
   const deviceCommandService = new DeviceCommandService(
     deviceRepository,

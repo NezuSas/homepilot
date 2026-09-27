@@ -21,6 +21,30 @@ export interface ValidationResult {
 export function validateDeviceCommand(device: Device, command: DeviceCommandRequest): ValidationResult {
   const capabilities = resolveCapabilitiesForDevice(device);
 
+  if (device.integrationSource === 'android-display') {
+    if (capabilities.length !== 1 || capabilities[0].type !== 'smart_display') {
+      return { valid: false, error: 'Smart Display sin capacidad explícita válida.' };
+    }
+    if (command.name === 'navigate_home' || command.name === 'navigate_back') {
+      return command.params && Object.keys(command.params).length > 0
+        ? { valid: false, error: 'Esta acción no acepta parámetros.' }
+        : { valid: true };
+    }
+    if (command.name === 'volume_set') {
+      const params = command.params;
+      const value = params?.volume;
+      return params && Object.keys(params).length === 1 && typeof value === 'number'
+        && Number.isInteger(value) && value >= 0 && value <= 100
+        ? { valid: true }
+        : { valid: false, error: 'volume_set requiere volume entero entre 0 y 100.' };
+    }
+    return { valid: false, error: 'Acción no soportada para Smart Display.' };
+  }
+
+  if (command.name === 'navigate_home' || command.name === 'navigate_back') {
+    return { valid: false, error: 'Navegación Android no soportada por esta integración.' };
+  }
+
   // Fallback conservador: Si no hay capacidades inferidas, permitir comandos legacy para no romper dispositivos raros.
   // Esto asegura que la transición a capacidades sea incremental.
   if (capabilities.length === 0) {

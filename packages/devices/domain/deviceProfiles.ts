@@ -198,6 +198,22 @@ export function getDeviceProfileForDevice(device: Device): DeviceProfile {
 
   const type = device.type.trim().toLowerCase();
 
+  if (device.integrationSource === 'android-display') {
+    return createProfile({
+      source: 'generic',
+      domain: 'android-display',
+      type: 'smart_display',
+      semanticType: 'smart_display',
+      displayName: 'Pantalla inteligente',
+      category: 'media',
+      capabilityTypes: device.type === 'smart_display' && device.semanticType === 'smart_display'
+        ? ['smart_display'] : [],
+      configurationSections: [ASSIGNMENT_SECTION],
+    });
+  }
+
+  if (type === 'smart_display') return createUnknownProfile('generic', type);
+
   if (device.integrationSource === 'native-camera' && type === 'camera') {
     const ptzSupported = device.lastKnownState?.ptz === true;
     return createProfile({

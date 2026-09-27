@@ -368,9 +368,10 @@ export class DeviceRoutes extends ApiRoutes {
           }
         );
 
-        container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');
-
         const upd = await container.repositories.deviceRepository.findDeviceById(commandMatch[1]);
+        if (upd?.integrationSource !== 'android-display') {
+          container.services.homeAssistantSettingsService.updateStatusFromOperation('reachable');
+        }
         this.sendJson(res, upd ? this.enrichDevice(upd) : null);
       } catch (error: unknown) {
         const name = error instanceof Error ? error.constructor.name : 'Error';
@@ -410,7 +411,7 @@ export class DeviceRoutes extends ApiRoutes {
 
         const validSemanticTypes = ['light', 'switch', 'outlet', 'cover', 'camera', 'sensor', 'button', 'unknown', null];
         const { semanticType } = payload;
-        const isSemanticType = semanticType === null || (typeof semanticType === 'string' && ['light', 'switch', 'outlet', 'cover', 'camera', 'sensor', 'button', 'unknown'].includes(semanticType));
+        const isSemanticType = semanticType === null || (typeof semanticType === 'string' && ['light', 'switch', 'outlet', 'cover', 'camera', 'sensor', 'button', 'smart_display', 'unknown'].includes(semanticType));
 
         if (!isSemanticType) {
           return this.sendError(res, 400, 'INVALID_INPUT', 'Invalid semanticType value'), true;
@@ -418,6 +419,12 @@ export class DeviceRoutes extends ApiRoutes {
 
         const device = await container.repositories.deviceRepository.findDeviceById(deviceId);
         if (!device) return this.sendError(res, 404, 'DEVICE_NOT_FOUND', 'Device not found'), true;
+        if (device.integrationSource === 'android-display' && semanticType !== 'smart_display') {
+          return this.sendError(res, 400, 'INVALID_INPUT', 'Smart Display semantic type is fixed'), true;
+        }
+        if (device.integrationSource !== 'android-display' && semanticType === 'smart_display') {
+          return this.sendError(res, 400, 'INVALID_INPUT', 'Smart Display semantic type requires Android Display'), true;
+        }
         const homes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
         if (homes[0]?.id !== device.homeId) {
           return this.sendError(res, 403, 'FORBIDDEN', 'No tiene permisos sobre este dispositivo'), true;

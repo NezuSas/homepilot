@@ -24,6 +24,8 @@
 
 **Depende de:** Fase 1. **No habilita todavía Display Mode.**
 
+- [x] Incremento backend local: migración aditiva 029, fuente/observación separadas, cliente HTTP tipado del bridge, driver registrado, `smart_display` fail-closed y rutas administrativas de prueba/adopción/lista/detalle/refresh; reutiliza `/api/v1/devices/:id/command` para `navigate_home`, `navigate_back` y `volume_set`. No declara completo el resto de Fase 2 ni validación en hardware tras esta integración.
+
 - [ ] Añadir spec de migración/reversión concreta antes de crear tablas `android_display_sources` y `android_display_observations`; repositorios y pruebas de FK, borrado, duplicados y cambio de IP sin cambio de `device_id`.
 - [ ] Incorporar `android-display`, `smart_display` y semantic type, capacidad explícita sin fallback legacy, driver y comandos V1; reutilizar `volume_set`.
 - [ ] Añadir `RouteHandler` de adopción/prueba/estado/configuración/comandos, con autorización por hogar y rol, contratos de error, auditoría y límites de tiempo.

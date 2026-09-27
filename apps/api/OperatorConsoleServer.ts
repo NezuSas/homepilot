@@ -21,6 +21,7 @@ import { MediaPlayerRoutes } from './routes/MediaPlayerRoutes';
 import { ExecutionRoutes } from './routes/ExecutionRoutes';
 import { CameraRoutes } from './routes/CameraRoutes';
 import { NativeCameraRoutes } from './routes/NativeCameraRoutes';
+import { AndroidDisplayRoutes } from './routes/AndroidDisplayRoutes';
 
 /**
  * OperatorConsoleServer — backward-compatible wrapper around ApiGateway.
@@ -41,6 +42,7 @@ export class OperatorConsoleServer {
         new MediaRoutes(mediaService),
         new MediaPlayerRoutes(),
         new NativeCameraRoutes(container.services.nativeCameraService),
+        new AndroidDisplayRoutes(container.services.androidDisplayService),
         new CameraRoutes(container.repositories.nativeCameraSourceRepository, container.services.nativeCameraStreamingService),
         new SystemRoutes(),
         new AuthRoutes(mediaService, loginAttemptRateLimiter),

@@ -8,6 +8,8 @@ import { buildAuthModule } from './infrastructure/assemblers/buildAuthModule';
 import { buildAssistantModule } from './infrastructure/assemblers/buildAssistantModule';
 import { buildCommandRouter } from './infrastructure/assemblers/buildCommandRouter';
 import { buildNativeCameraModule } from './infrastructure/assemblers/buildNativeCameraModule';
+import { HttpAndroidDisplayBridgeClient } from './packages/integrations/android-display/infrastructure/HttpAndroidDisplayBridgeClient';
+import { AndroidDisplayService } from './packages/integrations/android-display/application/AndroidDisplayService';
 import { DiagnosticsService } from './packages/system-observability/application/DiagnosticsService';
 import { RepositoryTopologyReferenceAdapter } from './packages/devices/infrastructure/adapters/RepositoryTopologyReferenceAdapter';
 import { getDatabasePath } from './packages/shared/config/getDatabasePath';
@@ -41,6 +43,7 @@ import type { SQLiteHomeRepository } from './packages/topology/infrastructure/re
 import type { SQLiteRoomRepository } from './packages/topology/infrastructure/repositories/SQLiteRoomRepository';
 import type { SQLiteDeviceRepository } from './packages/devices/infrastructure/repositories/SQLiteDeviceRepository';
 import type { SQLiteNativeCameraSourceRepository } from './packages/devices/infrastructure/repositories/SQLiteNativeCameraSourceRepository';
+import type { SQLiteAndroidDisplaySourceRepository } from './packages/integrations/android-display/infrastructure/SQLiteAndroidDisplaySourceRepository';
 import type { SqliteSceneRepository } from './packages/devices/infrastructure/repositories/SqliteSceneRepository';
 import type { SQLiteAutomationRuleRepository } from './packages/devices/infrastructure/repositories/SQLiteAutomationRuleRepository';
 import type { SQLiteActivityLogRepository } from './packages/devices/infrastructure/repositories/SQLiteActivityLogRepository';
@@ -87,6 +90,7 @@ export interface BootstrapContainer {
     roomRepository: SQLiteRoomRepository;
     deviceRepository: SQLiteDeviceRepository;
     nativeCameraSourceRepository: SQLiteNativeCameraSourceRepository;
+    androidDisplaySourceRepository: SQLiteAndroidDisplaySourceRepository;
     sceneRepository: SqliteSceneRepository;
     automationRuleRepository: SQLiteAutomationRuleRepository;
     activityLogRepository: SQLiteActivityLogRepository;
@@ -123,6 +127,7 @@ export interface BootstrapContainer {
     assistantSpeechToTextService: AssistantSpeechToTextService;
     nativeCameraService: NativeCameraService;
     nativeCameraStreamingService: NativeCameraStreamingService;
+    androidDisplayService: AndroidDisplayService;
   };
   guards: {
     authGuard: AuthGuard;
@@ -218,6 +223,11 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     homeRepository: repos.homeRepository,
   });
 
+  const androidDisplayBridge = HttpAndroidDisplayBridgeClient.fromEnvironment();
+  const androidDisplayService = new AndroidDisplayService(
+    repos.androidDisplaySourceRepository, repos.homeRepository, androidDisplayBridge,
+  );
+
   // 5. Enrutamiento de Comandos (debe construirse antes del motor de automatización)
   const commandRouterAssembly = buildCommandRouter({
     deviceRepository: repos.deviceRepository,
@@ -233,6 +243,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     dashboardRepository: repos.dashboardRepository,
     nativeCameraSourceRepository: repos.nativeCameraSourceRepository,
     nativeCameraDriverRegistry: nativeCameraModule.nativeCameraDriverRegistry,
+    androidDisplaySourceRepository: repos.androidDisplaySourceRepository,
+    androidDisplayBridge,
   });
 
   // 6. Motor de Automatización (usa el commandDispatcher ya construido)
@@ -409,7 +421,8 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       assistantTextToSpeechService,
       assistantSpeechToTextService,
       nativeCameraService: nativeCameraModule.nativeCameraService,
-      nativeCameraStreamingService: nativeCameraModule.nativeCameraStreamingService
+      nativeCameraStreamingService: nativeCameraModule.nativeCameraStreamingService,
+      androidDisplayService
     },
     guards: {
       authGuard: authModule.authGuard
