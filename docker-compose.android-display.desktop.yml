@@ -1,0 +1,16 @@
+# Apply after the relevant base and Docker Desktop overlays. No host HTTP port.
+services:
+  homepilot-api:
+    environment:
+      HOMEPILOT_DISPLAY_BRIDGE_URL: http://homepilot-display-bridge:5002
+    networks:
+      - default
+      - homepilot_display_bridge
+
+  homepilot-display-bridge:
+    ports: !override []
+    volumes: !override
+      - homepilot_display_adb_home:/var/lib/homepilot-display-adb/.android
+
+volumes:
+  homepilot_display_adb_home:

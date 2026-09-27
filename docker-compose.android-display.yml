@@ -1,0 +1,35 @@
+# Optional Linux appliance overlay. Select explicitly after provisioning the key directory.
+services:
+  homepilot-api:
+    environment:
+      HOMEPILOT_DISPLAY_BRIDGE_URL: http://127.0.0.1:${HOMEPILOT_DISPLAY_BRIDGE_HTTP_PORT:-5002}
+      HOMEPILOT_DISPLAY_BRIDGE_TOKEN: ${HOMEPILOT_DISPLAY_BRIDGE_TOKEN:?Set a private display bridge token}
+
+  homepilot-display-bridge:
+    build:
+      context: .
+      dockerfile: services/android-display-bridge/Dockerfile
+      args:
+        HOMEPILOT_BUILD_REVISION: ${HOMEPILOT_BUILD_REVISION:-unknown}
+    container_name: homepilot-display-bridge
+    environment:
+      HOMEPILOT_DISPLAY_BRIDGE_BIND_HOST: 0.0.0.0
+      HOMEPILOT_DISPLAY_BRIDGE_PORT: 5002
+      HOMEPILOT_DISPLAY_BRIDGE_TOKEN: ${HOMEPILOT_DISPLAY_BRIDGE_TOKEN:?Set a private display bridge token}
+      HOMEPILOT_DISPLAY_ADB_CIDRS: ${HOMEPILOT_DISPLAY_ADB_CIDRS:?Set approved private LAN CIDRs}
+    ports:
+      - "127.0.0.1:${HOMEPILOT_DISPLAY_BRIDGE_HTTP_PORT:-5002}:5002"
+    volumes:
+      - ${HOMEPILOT_DISPLAY_ADB_HOME:-./data/android-display/adb-home/.android}:/var/lib/homepilot-display-adb/.android
+    networks:
+      - homepilot_display_bridge
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  homepilot_display_bridge:
+    driver: bridge
