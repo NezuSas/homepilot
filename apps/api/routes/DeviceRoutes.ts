@@ -133,6 +133,28 @@ export class DeviceRoutes extends ApiRoutes {
     const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return true;
 
+    const effectiveActionsMatch = method === 'GET'
+      && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/effective-actions$/);
+    if (effectiveActionsMatch) {
+      try {
+        const deviceId = effectiveActionsMatch[1];
+        const device = await container.repositories.deviceRepository.findDeviceById(deviceId);
+        if (!device) return this.sendError(res, 404, 'DEVICE_NOT_FOUND'), true;
+        await container.adapters.topologyReferencePort.validateHomeOwnership(device.homeId, req.user!.id);
+        const actions = await container.services.effectiveActionsProvider.getForDeviceId(deviceId);
+        res.setHeader('Cache-Control', 'no-store');
+        this.sendJson(res, {
+          deviceId,
+          actions: actions.map(({ semanticAction, controlType, visibility, safetyLevel, requiresConfirmation }) => ({
+            semanticAction, controlType, visibility, safetyLevel, requiresConfirmation,
+          })),
+        });
+      } catch (error: unknown) {
+        this.sendDeviceReadError(res, error);
+      }
+      return true;
+    }
+
     const stateMatch = method === 'GET' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/state$/);
     if (stateMatch) {
       try {
@@ -343,6 +365,15 @@ export class DeviceRoutes extends ApiRoutes {
         const commandName = typeof payload.command === 'string' ? payload.command : payload.command.name;
         if (!isValidCommand(commandName))
           return this.sendError(res, 400, 'INVALID_COMMAND', 'Invalid command'), true;
+
+        const commandDevice = await container.repositories.deviceRepository.findDeviceById(commandMatch[1]);
+        if (commandDevice?.integrationSource === 'android-display') {
+          await container.adapters.topologyReferencePort.validateHomeOwnership(commandDevice.homeId, req.user!.id);
+          const actions = await container.services.effectiveActionsProvider.getForDeviceId(commandDevice.id);
+          if (!actions.some((action) => action.semanticAction === commandName && !action.requiresConfirmation)) {
+            return this.sendError(res, 403, 'FORBIDDEN'), true;
+          }
+        }
         
         const compositeDispatcher = container.adapters.commandDispatcher;
         const correlationId = crypto.randomUUID();

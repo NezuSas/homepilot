@@ -12,6 +12,7 @@ import { DeviceInspector } from '../components/DeviceInspector';
 import { HomeAssistantDiscoverySection } from '../components/HomeAssistantDiscoverySection';
 import { InboxDeviceTile } from '../components/InboxDeviceTile';
 import { ManagedDeviceTile } from '../components/ManagedDeviceTile';
+import { SmartDisplayControls } from '../components/SmartDisplayControls';
 import { SegmentedControl } from '../components/ui/SegmentedControl';
 import { LoadingState } from '../components/ui/LoadingState';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
@@ -36,6 +37,7 @@ type DeviceFilter = 'all' | Exclude<ManagedDeviceKind, 'other'>;
 export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
   const { t } = useTranslation();
   const [inspectingDeviceId, setInspectingDeviceId] = useState<string | null>(null);
+  const [controllingDisplayId, setControllingDisplayId] = useState<string | null>(null);
   const [filter, setFilter] = useState<DeviceFilter>('all');
   const [originFilter, setOriginFilter] = useState<'all' | 'local' | 'bridged'>('all');
   const devices = useDeviceSnapshotStore((state) => state.devices);
@@ -74,12 +76,14 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
     if (mode === 'discovery' && d.status !== 'PENDING') return false;
 
     const matchesType = filter === 'all' || resolveManagedDeviceKind(d) === filter;
-    const isLocal = d.integrationSource === 'sonoff';
+    const isLocal = d.integrationSource === 'sonoff' || d.integrationSource === 'android-display';
     const matchesOrigin = originFilter === 'all' || (originFilter === 'local' ? isLocal : !isLocal);
     return matchesType && matchesOrigin;
   }), [devices, filter, mode, originFilter]);
 
   const roomsFlattened = Object.values(roomsByHome).flat();
+  const controllingDisplay = controllingDisplayId
+    ? devices.find((device) => device.id === controllingDisplayId) : undefined;
   const duplicateNames = useMemo(() => {
     const counts = new Map<string, number>();
     filtered.forEach((device) => {
@@ -131,6 +135,15 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
         />
       )}
 
+      {controllingDisplay && (
+        <SmartDisplayControls
+          device={controllingDisplay}
+          onClose={() => setControllingDisplayId(null)}
+          onCommand={executeDeviceCommand}
+          onUpdate={upsertDevice}
+        />
+      )}
+
       {/* Discovery Layer: Hidden in Manager mode */}
       {mode === 'discovery' && <HomeAssistantDiscoverySection onImported={upsertDevice} />}
 
@@ -164,9 +177,9 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
               value={filter}
               onChange={setFilter}
               label={t('inbox.filters.type_label')}
-              className="grid w-full grid-cols-2 gap-1 rounded-xl p-1 md:grid-cols-3 xl:grid-cols-6"
+              className="grid w-full grid-cols-2 gap-1 rounded-xl p-1 md:grid-cols-3 xl:grid-cols-7"
               optionClassName="h-8 min-h-0 px-2 text-micro font-semibold tracking-normal [&>span]:whitespace-nowrap"
-              options={(['all', 'light', 'switch', 'cover', 'camera', 'sensor'] as const).map((value) => ({
+              options={(['all', 'light', 'switch', 'cover', 'camera', 'sensor', 'smart_display'] as const).map((value) => ({
                 value,
                 label: t(`inbox.filters.${value}`),
               }))}
@@ -210,6 +223,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
                     isDuplicateName={isDuplicateName}
                     onUpdate={(updated) => handleDeviceUpdate(device.id, updated)}
                     onInspect={() => setInspectingDeviceId(device.id)}
+                    onControlDisplay={() => setControllingDisplayId(device.id)}
                     onCommand={executeDeviceCommand}
                   />
                 ) : (

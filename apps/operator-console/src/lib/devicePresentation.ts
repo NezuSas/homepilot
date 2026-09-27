@@ -1,9 +1,11 @@
 import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 import { hasCapability } from './deviceCapabilities';
 
-export type ManagedDeviceKind = 'camera' | 'cover' | 'light' | 'switch' | 'sensor' | 'other';
+export type ManagedDeviceKind = 'camera' | 'cover' | 'light' | 'switch' | 'sensor' | 'smart_display' | 'other';
 
 export const resolveManagedDeviceKind = (device: SnapshotDevice): ManagedDeviceKind => {
+  if (device.integrationSource === 'android-display' && device.type === 'smart_display'
+    && device.semanticType === 'smart_display') return 'smart_display';
   if (
     hasCapability(device, 'camera')
     || device.type === 'camera'

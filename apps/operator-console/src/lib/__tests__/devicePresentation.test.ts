@@ -58,4 +58,12 @@ describe('Feature: presentación de dispositivos por perfil', () => {
   it('Scenario: Given no recognized metadata When classified Then it remains other', () => {
     expect(resolveManagedDeviceKind({ ...device, type: 'unknown', semanticType: null, profile: undefined })).toBe('other');
   });
+
+  it('classifies only a native Android smart display as a display', () => {
+    const display = { ...device, type: 'smart_display', semanticType: 'smart_display' as const,
+      integrationSource: 'android-display', profile: undefined };
+    expect(resolveManagedDeviceKind(display)).toBe('smart_display');
+    expect(resolveManagedDeviceKind({ ...display, integrationSource: 'home-assistant' })).toBe('other');
+    expect(resolveManagedDeviceKind({ ...display, semanticType: null })).toBe('other');
+  });
 });
