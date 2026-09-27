@@ -159,7 +159,7 @@ El bridge es opcional en `bridge_ha`, `native_only` y `ha_companion`; no cambia 
 
 **Integración de appliance:** `HOMEPILOT_ANDROID_DISPLAY_ENABLED=false` por defecto. Al habilitarlo, el instalador conserva la elección en `.env`, exige CIDR RFC1918 específico y puerto local válido, genera una sola vez un token interno criptográfico si falta y prepara el bind mount ADB bajo `data/android-display/adb-home/.android` con UID/GID 10001 y permisos restringidos. Mantenimiento lee la misma configuración, añade los overlays Android Display adecuados a Linux o Desktop y exige health del bridge, publicación HTTP exclusivamente loopback en Linux, ausencia de publicación 5037 y URL/token en API. El bridge participa en active/rollback/rollback-pending y GC etiquetado de HomePilot solo cuando está habilitado; no hay prune global. Deshabilitado, no se generan token ni directorios ni se requiere imagen del bridge. Las claves ADB no se incorporan al backup SQLite: hasta contar con backup cifrado probado, perderlas exige reautorización física visible en Android, nunca regeneración silenciosa de una identidad existente.
 
-Migración NEZU controlada: la adopción y el control local inicial de `192.168.1.37:5555` ya se validaron en MiniPC Linux y hardware real (evidencia abajo). Siguen pendientes abrir dashboard local, cortar Internet y validar lectura/control de Display Mode, reiniciar contenedor/appliance y restaurar backup aislado, retirar bridge/daemon antiguos solo con autorización operativa y plan de reversión, verificar ausencia de listener host `*:5037` en el corte y confirmar que ningún control de display depende de `has_template`. No duplicar emisores ADB simultáneos durante el corte.
+Migración NEZU controlada: la adopción, el control local inicial y la recuperación tras un reinicio completo de la MiniPC ya se validaron en Linux y hardware real (evidencia abajo). Siguen pendientes abrir dashboard local, cortar Internet y validar lectura/control de Display Mode, restaurar un backup aislado, retirar bridge/daemon antiguos solo con autorización operativa y plan de reversión, verificar ausencia de listener host `*:5037` en el corte y confirmar que ningún control de display depende de `has_template`. No duplicar emisores ADB simultáneos durante el corte.
 
 ### Evidencia reportada del piloto local en MiniPC Linux (2026-09-26)
 
@@ -172,7 +172,19 @@ Migración NEZU controlada: la adopción y el control local inicial de `192.168.
 | Control permitido | `navigate_home` mediante `POST /api/v1/devices/:id/command` → HTTP 200. |
 | Rechazo | `sleep` mediante el mismo pipeline → HTTP 400 `INVALID_COMMAND`. |
 
-Esta evidencia corresponde al incremento backend local, no al cumplimiento completo de AC01–AC13: no demuestra cambio de IP sin cambio de `device_id`, recuperación tras reboot, Display Mode ni operación sin Internet. En este piloto de integración **no se realizaron pruebas de `power_toggle`, `reboot` ni `lock_screen`**; no inferir de esta validación soporte o seguridad de esas acciones. Los hallazgos anteriores del bridge sobre keyevents se mantienen separados de esta prueba.
+Esta evidencia corresponde al incremento backend local, no al cumplimiento completo de AC01–AC13: por sí sola no demuestra cambio de IP sin cambio de `device_id`, recuperación tras reinicio del appliance, Display Mode ni operación sin Internet. La recuperación del appliance se documenta separadamente a continuación. En el piloto de integración **no se realizaron pruebas de `power_toggle`, `reboot`, `lock_screen` ni `wake` sobre la pizarra**; no inferir soporte o seguridad de esas acciones. Los hallazgos anteriores del bridge sobre keyevents se mantienen separados de esta prueba.
+
+### Evidencia reportada de validación del appliance Linux real (2026-09-26)
+
+| Comprobación | Resultado observado |
+| --- | --- |
+| Configuración persistente | Feature flag Android Display persistente; `.env` en modo `0600`; token interno generado una sola vez y reutilizado. Su SHA-256 permaneció idéntico después del deploy y del reinicio completo de la MiniPC. |
+| Identidad ADB | ADB home persistente con UID/GID `10001`; `.android` en modo `0700`, `adbkey` en `0600` y `adbkey.pub` en `0644`. Los hashes de ambas claves permanecieron idénticos después del deploy y del reinicio. |
+| Deploy y ciclo de imágenes | El mantenimiento seleccionó automáticamente `docker-compose.android-display.yml`; `homepilot-display-bridge` participó en active/rollback/pending; el deploy estándar terminó correctamente. |
+| Salud y red | API y bridge quedaron healthy; el HTTP del bridge se publicó únicamente en `127.0.0.1:5002`, sin publicar TCP `5037`; API recibió la URL y el token correctos del bridge. Esto no sustituye la prueba desde otro equipo LAN ni la comprobación del listener host `*:5037`. |
+| Reinicio completo | Tras el reboot de la MiniPC, todos los servicios HomePilot regresaron automáticamente; Droidlogic volvió `online`, conservó `androidId=8d08ff705346cade`, respondió correctamente al refresh y ejecutó `navigate_home` con HTTP 200. El reinicio del host no valida el comando `reboot` de la pizarra. |
+
+Durante esta validación se detectaron y corrigieron dos defectos del instalador: `wizard` no estaba inicializado bajo `set -u`, y la inspección no privilegiada del ADB home protegido (`10001:10001`, `0700`) confundía `EACCES` con inexistencia. La corrección permite inspeccionar la identidad existente con los privilegios necesarios sin regenerarla. Permanecen pendientes el backup cifrado de identidad ADB, la UI Smart Display, Display/Kiosk Mode, IntentFlow, `launch_app` y la retirada del sistema legacy. Esta evidencia no declara validados los comandos de energía, bloqueo o activación de pantalla de la pizarra.
 
 ## 11. Criterios de aceptación V1
 

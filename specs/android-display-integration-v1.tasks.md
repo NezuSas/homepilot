@@ -1,6 +1,6 @@
 # Tareas: Smart Displays Android nativos V1
 
-**Estado:** Fase 0 cerrada; bridge de Fase 1 probado en Linux real; incremento backend local de Fase 2 (adopción, persistencia, refresh y control) validado en MiniPC y Droidlogic reales. Display Mode y fases posteriores pendientes.
+**Estado:** Fase 0 cerrada; bridge de Fase 1, incremento backend local de Fase 2 y appliance opcional Linux de Fase 5 validados en MiniPC y Droidlogic reales para los casos indicados abajo. Backup cifrado, UI Smart Display, Display/Kiosk Mode, IntentFlow, `launch_app` y retirada legacy pendientes.
 
 ## Fase 0 — Contrato y decisiones (esta entrega)
 
@@ -27,7 +27,7 @@
 
 - [x] Incremento backend local: migración aditiva 029, fuente/observación separadas, cliente HTTP tipado del bridge, driver registrado, `smart_display` fail-closed y rutas administrativas de prueba/adopción/lista/detalle/refresh; reutiliza `/api/v1/devices/:id/command` para `navigate_home`, `navigate_back` y `volume_set`. Validado en hardware real solo para las operaciones indicadas abajo; no declara completo el resto de Fase 2.
 - [x] Registrar evidencia del piloto MiniPC Linux: migración 029 aplicada con `integrity_check=ok`; Droidlogic `C-T982-61-4G-A52D` Android 11 adoptada en `192.168.1.37:5555` con `androidId=8d08ff705346cade`; adopción HTTP 201; `Device` nativo `smart_display` con `integrationSource=android-display`; fuente y observación persistidas; refresh conserva identidad y `online`.
-- [x] Registrar evidencia de comandos: `navigate_home` por `POST /api/v1/devices/:id/command` → HTTP 200; `sleep` → HTTP 400 `INVALID_COMMAND`. No se probaron `power_toggle`, `reboot` ni `lock_screen` en este piloto de integración.
+- [x] Registrar evidencia de comandos: `navigate_home` por `POST /api/v1/devices/:id/command` → HTTP 200; `sleep` → HTTP 400 `INVALID_COMMAND`. No se probaron `power_toggle`, `reboot`, `lock_screen` ni `wake` sobre la pizarra en este piloto de integración.
 - [x] Fijar política operativa NEZU: Smart Displays instaladas con IP fija como endpoint; `device_id` HomePilot como identidad interna; `android_id` como verificación física cuando exista; MAC solo metadata auxiliar futura, nunca identidad primaria.
 
 - [ ] Completar la cobertura de reversión operativa y los casos pendientes de repositorios: FK, borrado, duplicados y cambio de IP sin cambio de `device_id`. Las tablas del incremento local ya fueron creadas por la migración 029; no tratarlas como futuras.
@@ -60,10 +60,14 @@
 
 - [x] Incorporar feature flag persistente y overlay opcional al instalador y mantenimiento sin alterar `bridge_ha`, `native_only` ni `ha_companion` cuando no haya displays; token generado una vez, CIDR privado validado y ADB home persistente protegido.
 - [x] Integrar imagen bridge habilitada con builder/lifecycle HomePilot, healthcheck, logging rotado y rollback de imagen, incluida candidatura al GC etiquetado y explícito.
+- [x] Registrar validación en appliance Linux real: feature flag persistente, `.env` modo `0600`, token interno generado una vez y reutilizado con SHA-256 idéntico tras deploy y reboot; ADB home UID/GID `10001`, `.android` `0700`, `adbkey` `0600`, `adbkey.pub` `0644` y hashes de ambas claves idénticos tras deploy y reboot.
+- [x] Registrar mantenimiento y deploy reales: overlay `docker-compose.android-display.yml` seleccionado automáticamente, bridge en lifecycle active/rollback/pending, deploy estándar completo, API y bridge healthy, HTTP del bridge solo en `127.0.0.1:5002`, sin publicación TCP `5037` y URL/token correctos recibidos por API.
+- [x] Registrar reboot completo de MiniPC: servicios HomePilot regresan automáticamente, Droidlogic vuelve `online` con el mismo `androidId=8d08ff705346cade`, refresh correcto y `navigate_home` HTTP 200. Esto no valida `reboot`, `power_toggle`, `lock_screen` ni `wake` de la pizarra.
+- [x] Documentar los defectos encontrados y corregidos durante validación Linux: `wizard` sin inicializar bajo `set -u` e inspección no privilegiada del ADB home `10001:10001/0700` que confundía `EACCES` con inexistencia. Confirmar preservación de identidad y token tras las correcciones.
 - [ ] Completar observabilidad y alerta de indisponibilidad más allá de la verificación operativa actual.
 - [ ] Añadir backup protegido/cifrado y restauración aislada de `~/.android` y secreto interno, separados del backup SQLite; probar pérdida de claves → `needs_authorization` sin pérdida del dispositivo.
-- [ ] Tras desplegar el appliance, probar API → bridge, host → bridge por loopback, otro equipo LAN → HTTP bridge rechazado, LAN → 5037 rechazado y ausencia de listener host `*:5037`; verificar autenticación interna. En Desktop, probar DNS de servicio por red compartida con igual contrato/auth y sin puerto publicado. La verificación previa del piloto local no sustituye esta prueba end-to-end del instalador/mantenimiento.
-- [ ] Recrear el contenedor bridge y reiniciar el appliance completo: comprobar que persisten claves/autorización, estado y operación; ejecutar restore aislado y verificar recuperación. Evidencia: AC02, AC03, AC11.
+- [ ] Completar pruebas de aislamiento desde otro equipo LAN hacia HTTP del bridge y TCP `5037`, comprobar ausencia de listener host `*:5037` y verificar autenticación interna. En Desktop, probar DNS de servicio por red compartida con igual contrato/auth y sin puerto publicado. La publicación solo en loopback y la ausencia de publicación `5037` ya están verificadas en el deploy Linux, pero no cierran esta matriz.
+- [ ] Verificar por separado recreación del contenedor bridge con la identidad preservada y ejecutar restore aislado de claves/secretos cuando exista backup cifrado; el reboot completo de la MiniPC ya está validado, pero no demuestra recuperación desde backup. Evidencia parcial: AC02, AC03, AC11.
 - [ ] Implementar y validar HTTPS local con nombre/certificado confiable y operación sin Internet antes de considerar Display Mode listo para clientes. HTTP LAN permanece etiquetado y restringido al piloto interno. Evidencia: AC10.
 
 ## Fase 6 — Migración piloto NEZU y cierre
@@ -71,7 +75,8 @@
 **Depende de:** AC01–AC11 y autorización operativa explícita; no forma parte de la Fase 0.
 
 - [x] Registrar manualmente la pizarra piloto `192.168.1.37:5555` y validar identidad/metadatos, persistencia y refresh en MiniPC Linux; adopción HTTP 201. Esta verificación no equivale al cierre de la migración legacy.
-- [ ] Validar comandos y rechazo de apps/comandos/destinos no autorizados, Display Mode con Internet desconectado, escenas/dispositivos permitidos, revocación de sesión y reinicio del appliance/recovery antes del corte.
+- [x] Confirmar tras reboot completo del appliance que Droidlogic vuelve `online`, conserva `androidId`, responde a refresh y permite `navigate_home` HTTP 200.
+- [ ] Completar validación de comandos y rechazo de apps/comandos/destinos no autorizados, Display Mode con Internet desconectado, escenas/dispositivos permitidos, revocación de sesión y recovery desde backup antes del corte.
 - [ ] Documentar punto de reversión y retirar bridge/daemon ADB históricos únicamente tras aceptación; confirmar que host no escucha `*:5037` ni depende de `has_template` para displays.
 - [ ] Ejecutar matriz de calidad correspondiente (`check:spec-coverage`, BDD, cobertura modular, tests, typecheck, build, responsive, perfiles Docker y `verify:quality`) y registrar evidencia AC01–AC13. No adelantar release sin aprobación.
 
