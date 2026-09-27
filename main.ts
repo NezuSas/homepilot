@@ -39,6 +39,15 @@ async function main(): Promise<void> {
       process.once('SIGTERM', stopCloudGatewayConnector);
     }
 
+    if (process.env.NODE_ENV !== 'test' && process.env.HOMEPILOT_INTENTFLOW_BASE_URL?.trim()) {
+      container.services.manifestSyncService.start();
+      const stopManifestSync = (): void => container.services.manifestSyncService.stop();
+      process.once('SIGINT', stopManifestSync);
+      process.once('SIGTERM', stopManifestSync);
+    } else if (process.env.NODE_ENV !== 'test') {
+      console.log('[IntentFlow Manifest Sync] no configurado; sincronización deshabilitada.');
+    }
+
     console.log('[Main] El sistema se encuentra preparado para operar.');
     
   } catch (error: unknown) {

@@ -37,6 +37,7 @@ const rules = [
   ['edge-platform-foundations-v1.md', /(?:apps\/api\/(?:ApiGateway|RouteHandler|OperatorConsoleServer)|apps\/api\/__tests__\/ApiGateway|apps\/api\/routes\/ApiRoutes|packages\/shared)/i],
   ['release-hardening-v1.md', /(?:ApiRoutes\.error-sanitization|release-hardening)/i],
   ['homepilot-effective-actions-v1.md', /(?:BoardManifestV1|EffectiveActionsResolver)/i],
+  ['homepilot-intentflow-manifest-sync-v1.md', /(?:ManifestBundleV1|ManifestSyncService|EffectiveActionsProvider|DirectoryEdgeServiceTokenClient|IntentFlowManifestClient|ManifestClients|SqliteManifestCacheRepository)/i],
   ['cloud-gateway-edge-connector-v1.md', /(?:packages\/cloud-gateway|CloudGateway)/i],
   ['operator-console-modular-components-v1.md', /(?:apps\/operator-console\/src\/(?:components\/ui|design-system)|apps\/operator-console\/src\/components\/(?:ConfirmModal|CoverPositionControl|AudioInputPicker|InlineTabCreator|DatabaseBackupsCard)|apps\/operator-console\/src\/(?:config|i18n|types|utils)\.ts)/i],
   ['operator-console-v1.md', /(?:apps\/operator-console)/i],

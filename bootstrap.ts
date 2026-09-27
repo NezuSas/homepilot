@@ -12,6 +12,11 @@ import { HttpAndroidDisplayBridgeClient } from './packages/integrations/android-
 import { AndroidDisplayService } from './packages/integrations/android-display/application/AndroidDisplayService';
 import { DiagnosticsService } from './packages/system-observability/application/DiagnosticsService';
 import { InstallationVerificationBroker } from './packages/cloud-gateway/application/InstallationVerificationBroker';
+import { ManifestSyncService } from './packages/cloud-gateway/application/ManifestSyncService';
+import { EffectiveActionsProvider } from './packages/cloud-gateway/application/EffectiveActionsProvider';
+import { DirectoryEdgeServiceTokenClient } from './packages/cloud-gateway/infrastructure/DirectoryEdgeServiceTokenClient';
+import { IntentFlowManifestClient } from './packages/cloud-gateway/infrastructure/IntentFlowManifestClient';
+import { SqliteManifestCacheRepository } from './packages/cloud-gateway/infrastructure/SqliteManifestCacheRepository';
 import { readCloudEdgeConfig } from './packages/cloud-gateway/infrastructure/CloudEdgeConfigProvider';
 import { RepositoryTopologyReferenceAdapter } from './packages/devices/infrastructure/adapters/RepositoryTopologyReferenceAdapter';
 import { getDatabasePath } from './packages/shared/config/getDatabasePath';
@@ -93,6 +98,7 @@ export interface BootstrapContainer {
     deviceRepository: SQLiteDeviceRepository;
     nativeCameraSourceRepository: SQLiteNativeCameraSourceRepository;
     androidDisplaySourceRepository: SQLiteAndroidDisplaySourceRepository;
+    manifestCacheRepository: SqliteManifestCacheRepository;
     sceneRepository: SqliteSceneRepository;
     automationRuleRepository: SQLiteAutomationRuleRepository;
     activityLogRepository: SQLiteActivityLogRepository;
@@ -131,6 +137,8 @@ export interface BootstrapContainer {
     nativeCameraStreamingService: NativeCameraStreamingService;
     androidDisplayService: AndroidDisplayService;
     installationVerificationBroker: InstallationVerificationBroker;
+    manifestSyncService: ManifestSyncService;
+    effectiveActionsProvider: EffectiveActionsProvider;
   };
   guards: {
     authGuard: AuthGuard;
@@ -394,9 +402,16 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     roomManagementService
   );
 
+  const manifestCacheRepository = new SqliteManifestCacheRepository(dbPath);
+  const manifestSyncService = new ManifestSyncService({
+    directory: new DirectoryEdgeServiceTokenClient(readCloudEdgeConfig),
+    intentFlow: new IntentFlowManifestClient(),
+    cache: manifestCacheRepository,
+  });
   const container: BootstrapContainer = {
     repositories: {
       ...repos,
+      manifestCacheRepository,
       userRepository: authModule.userRepository,
       sessionRepository: authModule.sessionRepository,
       directorySsoRepository: authModule.directorySsoRepository,
@@ -426,7 +441,12 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       nativeCameraService: nativeCameraModule.nativeCameraService,
       nativeCameraStreamingService: nativeCameraModule.nativeCameraStreamingService,
       androidDisplayService,
-      installationVerificationBroker: new InstallationVerificationBroker(readCloudEdgeConfig)
+      installationVerificationBroker: new InstallationVerificationBroker(readCloudEdgeConfig),
+      manifestSyncService,
+      effectiveActionsProvider: new EffectiveActionsProvider({
+        cache: manifestCacheRepository,
+        devices: repos.deviceRepository,
+      })
     },
     guards: {
       authGuard: authModule.authGuard
