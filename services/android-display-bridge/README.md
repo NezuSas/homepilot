@@ -9,7 +9,7 @@ Solo `GET /health` es anónimo. Las otras rutas exigen `X-HomePilot-Bridge-Token
 - `POST /internal/v1/displays/connect`: `{ "sourceId": "UUID", "host": "IP-LAN", "port": 5555 }`. Registra el endpoint en memoria y devuelve `online`, `needs_authorization` u `offline`.
 - `GET /internal/v1/displays/:sourceId/state`: estado actual.
 - `GET /internal/v1/displays/:sourceId/inspect`: metadatos best-effort; propiedades individuales no disponibles devuelven `null`.
-- `POST /internal/v1/displays/:sourceId/actions`: `{ "name": "wake|sleep|navigate_home|navigate_back|volume_set", "params": {} }`; `volume_set` requiere `{ "volume": 0..100 }`.
+- `POST /internal/v1/displays/:sourceId/actions`: `{ "name": "wake|lock_screen|navigate_home|navigate_back|volume_set", "params": {} }`; `volume_set` requiere `{ "volume": 0..100 }`. `sleep` se rechaza; no existe alias de compatibilidad.
 - `DELETE /internal/v1/displays/:sourceId/connection`: elimina el registro efímero.
 
 El registro de endpoints se reconstruirá desde la configuración HomePilot en una fase posterior; no es la identidad del display ni un almacén persistente. Errores y logs usan códigos sanitizados, nunca stdout/stderr ADB, token o contenido de claves.
@@ -21,6 +21,8 @@ La imagen fija Debian Bookworm `adb=1:29.0.6-28` y ejecuta el cliente/daemon com
 Antes de activar el overlay Linux, el instalador deberá crear `./data/android-display/adb-home/.android` con UID/GID 10001 y permisos `0700`; si el bind mount se crea como root o tiene permisos demasiado amplios, el bridge falla al iniciar. La clave privada debe conservar `0600`. No usar `/root/.android`, el daemon ADB del host ni un mount de Docker socket. Desktop usa un volumen administrado por Docker que copia el directorio preexistente de la imagen con su propietario no-root.
 
 El directorio `~/.android` debe entrar en un backup cifrado/protegido y en una restauración aislada; **esa integración de backup aún no existe en Fase 1**. Recrear el contenedor sobre el mismo mount/volumen conserva la identidad. Perder el volumen o las claves exige nueva autorización visible en Android; nunca se copia una clave desde otro appliance. No incluir claves/token en API, logs, `lastKnownState`, imagen ni exportaciones.
+
+Hallazgo Droidlogic Android 11: `input keyevent 223` se usa como bloqueo de pantalla; en la prueba real el equipo siguió reportando `mWakefulness=Awake` y `Display Power: state=ON`. Por ello `lock_screen` envía 223, pero **no** significa suspensión. `wake` conserva su traducción interna a keyevent 224; todavía no está validado físicamente como capacidad del perfil Droidlogic y no debe anunciarse como tal. `power_toggle`/KEYCODE_POWER 26 queda fuera de Fase 1/V1: la prueba real dejó ADB `offline`. No se usa como sustituto automático de `wake` o suspensión.
 
 ## Activación opcional y pendientes
 

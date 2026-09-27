@@ -29,7 +29,7 @@ class Source:
 
 
 class DisplayBridge:
-    ACTIONS = frozenset({"wake", "sleep", "navigate_home", "navigate_back", "volume_set"})
+    ACTIONS = frozenset({"wake", "lock_screen", "navigate_home", "navigate_back", "volume_set"})
 
     def __init__(self, config: Config, transport: AdbTransport, max_concurrent: int = 4):
         self.config = config

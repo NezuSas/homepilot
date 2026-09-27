@@ -145,7 +145,7 @@ class AdbTransport:
     def execute(self, serial: str, name: str, params: dict) -> None:
         if not self.connected(serial):
             raise TransportError("ADB_OFFLINE")
-        keycodes = {"wake": "224", "sleep": "223", "navigate_home": "3", "navigate_back": "4"}
+        keycodes = {"wake": "224", "lock_screen": "223", "navigate_home": "3", "navigate_back": "4"}
         if name in keycodes:
             self._run(["adb", "-s", serial, "shell", "input", "keyevent", keycodes[name]], 5)
             return

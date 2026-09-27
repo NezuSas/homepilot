@@ -1,22 +1,23 @@
 # Tareas: Smart Displays Android nativos V1
 
-**Estado:** Fase 0 cerrada; implementación local del bridge de Fase 1 realizada. Validación con ADB y topología Linux reales pendiente antes de activarlo.
+**Estado:** Fase 0 cerrada; bridge de Fase 1 implementado y probado con ADB/aislamiento Linux reales. Integración API y fases posteriores pendientes.
 
 ## Fase 0 — Contrato y decisiones (esta entrega)
 
 - [x] Documentar alcance, exclusiones, modelo Smart Display y separación de ADB como infraestructura en `android-display-integration-v1.md`.
 - [x] Definir contratos propuestos, amenazas, estado, claves persistentes, Display Mode, sesión LAN y criterios AC01–AC13.
 - [x] Cerrar topología Linux (API host-network → HTTP bridge en loopback con autenticación), overlay Desktop en red común, persistencia de `~/.android`, exclusión de `open_url`/`reboot`, piloto HTTP LAN y requisito HTTPS local para clientes.
-- [ ] Verificar en entorno de prueba —sin modificar perfiles existentes— API host-network → HTTP bridge en loopback en Linux, API → bridge por DNS de servicio en Desktop y ruta real de `adbkey` para la versión fijada de platform-tools. Bloquea fases 1 y 5 si falla.
+- [ ] Verificar API HomePilot host-network → HTTP bridge en loopback en Linux y API → bridge por DNS de servicio en Desktop cuando exista el cliente interno. La ruta real de `adbkey` y el aislamiento Linux del bridge ya se verificaron; no marcar la integración API como probada todavía.
 - [ ] Definir contenido inicial de allowlist de paquetes y mecanismo de certificados/nombre HTTPS local que funcione sin Internet antes de habilitar displays de clientes.
 
 ## Fase 1 — Bridge privado y persistencia de claves
 
 **Depende de:** Fase 0, topología y almacenamiento verificados. **No habilita API pública ni UI.**
 
-- [x] Crear `services/android-display-bridge/` con imagen, daemon ADB solo en su namespace, UID/GID no-root, `HOME` estable, mount administrado de `~/.android` (`adbkey`/`adbkey.pub`) y healthcheck; nunca publicar 5037. Validación de runtime Linux pendiente.
+- [x] Crear `services/android-display-bridge/` con imagen, daemon ADB solo en su namespace, UID/GID no-root, `HOME` estable, mount administrado de `~/.android` (`adbkey`/`adbkey.pub`) y healthcheck; nunca publicar 5037. Validado en Linux real para el bridge, sin implicar validación del futuro cliente API.
 - [x] Definir servidor de contrato interno estricto, secreto de servicio, registro por `sourceId`, validación de IP LAN/puerto y rechazo de shell, campos extra y endpoints arbitrarios. El cliente del API HomePilot pertenece a Fase 2.
-- [x] Implementar conexión, estado, metadatos best-effort, locks, timeouts y retries acotados; no repetir acciones no idempotentes. Persistencia de claves definida por mount, pendiente prueba de recreación real.
+- [x] Implementar conexión, estado, metadatos best-effort, locks, timeouts y retries acotados; no repetir acciones no idempotentes. Persistencia de claves y recreación del bridge comprobadas en Linux real.
+- [x] Corregir semántica de Fase 1: `lock_screen` → keyevent 223; rechazar `sleep` y `power_toggle` sin alias. Documentar que keyevent 223 no suspendió Droidlogic, keyevent 26 dejó ADB offline y `wake` no está validado físicamente para ese perfil.
 - [ ] Probar falta de token, destino ADB no autorizado, comandos/apps/URLs no autorizados (`open_url` y `reboot` rechazados), desconexión, recreación del bridge con autorización ADB conservada, pérdida de claves y logs/API/`lastKnownState` sin claves. Evidencia: AC03, AC04, AC06, AC11, AC13.
 
 ## Fase 2 — Dominio, repositorio y adopción manual

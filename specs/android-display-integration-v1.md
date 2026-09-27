@@ -76,16 +76,19 @@ Las sesiones de display y códigos de enrollment se guardarán en un repositorio
 
 `smart_display` será una capacidad explícita, resuelta antes del dispatcher. Para esta integración se **rechaza** el fallback legacy de `CommandCapabilityValidator` cuando no haya capacidades. Se conserva el comando HomePilot existente `volume_set` con entero 0–100; el driver mapea ese valor al rango real del dispositivo, consultado o comprobado, sin asumir una escala Android fija.
 
-Comandos nuevos V1: `wake`, `sleep`, `navigate_home`, `navigate_back`, `launch_app`, `show_dashboard`, `reload`. El driver solo acepta comandos declarados para `smart_display`; no interpreta `press`, `activate` ni parámetros extra como shell. `open_url` y `reboot` quedan excluidos del alcance operativo inicial de V1 y deben rechazarse en API y bridge.
+Comandos nuevos V1: `wake`, `lock_screen`, `navigate_home`, `navigate_back`, `launch_app`, `show_dashboard`, `reload`. El driver solo acepta comandos declarados para `smart_display`; no interpreta `press`, `activate` ni parámetros extra como shell. `sleep`, `power_toggle`, `open_url` y `reboot` quedan excluidos del alcance operativo inicial de V1 y deben rechazarse en API y bridge, sin alias silenciosos.
 
 | Comando | Parámetros/API semántica | Restricción |
 | --- | --- | --- |
-| `wake`, `sleep`, `navigate_home`, `navigate_back`, `reload` | Sin parámetros | Traducción ADB tipada; respuesta de éxito/fallo verificable cuando el firmware lo permita. |
+| `lock_screen`, `navigate_home`, `navigate_back`, `reload` | Sin parámetros | Traducción ADB tipada; `lock_screen` usa keyevent 223 y no promete suspensión ni apagar el display. |
+| `wake` | Sin parámetros | Traducción interna a keyevent 224; no anunciarla como capacidad validada para Droidlogic hasta confirmar el efecto físico. |
 | `volume_set` | `volume` entero 0–100 | Reutiliza contrato HomePilot; rango físico adaptado internamente. |
 | `launch_app` | `packageId` | Solo paquetes presentes en allowlist administrada, con formato validado; nunca nombre de actividad/comando libre. Un paquete no autorizado se rechaza sin invocar ADB. |
 | `show_dashboard` | `dashboardId`, `tabId?` | Exclusivamente IDs internos; backend valida hogar, dashboard y tab y construye la URL de Display Mode. Nunca acepta una URL arbitraria o un token en query. |
 
 Ninguna traducción acepta shell concatenado con valores de usuario. Las operaciones destructivas o no idempotentes no se reintentan ciegamente. Comandos de navegación/volumen tienen timeout y límites de reintento; logs contienen identificadores HomePilot y códigos de error sanitizados, no parámetros sensibles. Cualquier URL externa enviada a `show_dashboard`, `open_url` o al contrato interno se rechaza.
+
+Hallazgo de hardware Droidlogic Android 11: tras `input keyevent 223`, `mWakefulness=Awake` y `Display Power: state=ON`; por tanto, 223 solo se representa como `lock_screen`, nunca como `sleep`. `KEYCODE_POWER 26` dejó ADB `offline`; `power_toggle` permanece fuera de Fase 1/V1 y no puede implementarse automáticamente como suspensión o despertar. La presencia del comando interno `wake` no acredita soporte físico para este perfil.
 
 ## 5. Contratos de API propuestos
 
@@ -155,7 +158,7 @@ Migración NEZU controlada, **sin ejecución durante esta fase**: adoptar `192.1
 - [ ] **AC01:** Display adoptado por IP:5555 tiene UUID HomePilot estable; cambiar endpoint no cambia identidad; discrepancia observada exige reconfirmación.
 - [ ] **AC02:** Un HomePilot sin displays conserva los tres perfiles, arranque, salud y mantenimiento sin servicio ADB obligatorio.
 - [ ] **AC03:** En Linux real, API → bridge y host → bridge funcionan por `127.0.0.1`; desde otro equipo LAN falla el acceso al HTTP del bridge y a TCP 5037; el host no presenta listener `*:5037`. El bridge posee daemon/claves propios y rechaza peticiones internas sin autenticación. En Desktop, API y bridge se comunican por red Docker común sin publicar el bridge y conservan el mismo contrato/autenticación.
-- [ ] **AC04:** API y bridge rechazan shell/ADB arbitrario, comandos fuera de whitelist, parámetros extra, `open_url` y `reboot`; `launch_app` rechaza paquetes fuera de allowlist y `show_dashboard` acepta solo IDs internos y genera su URL en HomePilot.
+- [ ] **AC04:** API y bridge rechazan shell/ADB arbitrario, comandos fuera de whitelist, parámetros extra, `sleep`, `power_toggle`, `open_url` y `reboot`; `lock_screen` traduce únicamente a keyevent 223 sin afirmar suspensión, `launch_app` rechaza paquetes fuera de allowlist y `show_dashboard` acepta solo IDs internos y genera su URL en HomePilot.
 - [ ] **AC05:** `smart_display` tiene capacidades explícitas y falla cerrado aun si el validador legacy de otros dispositivos mantiene fallback.
 - [ ] **AC06:** Prueba/adopción distingue online, offline, autorización pendiente e identidad diferente; metadatos ausentes no se inventan.
 - [ ] **AC07:** Display Mode read-only reutiliza canvas/tabs/widgets aprobados sin sidebar ni edición; refresh y reinicio recuperan dashboard/tab y sesión válida.
@@ -168,6 +171,6 @@ Migración NEZU controlada, **sin ejecución durante esta fase**: adoptar `192.1
 
 ## 12. Decisiones pendientes de verificación técnica
 
-Quedan cerrados: topología Linux loopback + autenticación, overlay Desktop en red compartida, persistencia de `~/.android`, `show_dashboard` por IDs, `launch_app` por allowlist, exclusión de `open_url`/`reboot`, piloto HTTP LAN limitado y HTTPS local obligatorio para clientes. Antes de codificar se debe verificar: puerto loopback libre y enlace efectivo API↔bridge en Linux/Desktop; ruta efectiva de claves con la versión ADB fijada; lectura de identidad/metadatos en la pizarra real; mecanismo concreto de Origin/CSRF y cookies; contenido inicial de la allowlist de paquetes; formato/custodia del backup cifrado; solución de certificados/nombre para HTTPS local offline; y comportamiento de `reload`, `wake` y `sleep` en el firmware piloto. Si cualquiera exige alterar perfiles existentes o relajar aislamiento, detenerse y pedir aprobación arquitectónica.
+Quedan cerrados: topología Linux loopback + autenticación, overlay Desktop en red compartida, persistencia de `~/.android`, `show_dashboard` por IDs, `launch_app` por allowlist, exclusión de `sleep`/`power_toggle`/`open_url`/`reboot`, piloto HTTP LAN limitado y HTTPS local obligatorio para clientes. En Droidlogic, 223 no suspendió la pantalla y 26 dejó ADB offline; `wake` aún requiere validación física antes de declararse capacidad soportada. Antes de las fases siguientes se debe verificar: integración API↔bridge, mecanismo concreto de Origin/CSRF y cookies, contenido inicial de la allowlist de paquetes, formato/custodia del backup cifrado, solución de certificados/nombre para HTTPS local offline y comportamiento de `reload`/`wake` en el firmware piloto. Si cualquiera exige alterar perfiles existentes o relajar aislamiento, detenerse y pedir aprobación arquitectónica.
 
 Referencias técnicas para estas verificaciones: [ADB y depuración inalámbrica (Android)](https://developer.android.com/tools/adb), [carga de claves del cliente ADB (AOSP)](https://android.googlesource.com/platform/packages/modules/adb/+/HEAD/client/auth.cpp), [red host de Docker](https://docs.docker.com/engine/network/drivers/host/) y [publicación de puertos en loopback](https://docs.docker.com/engine/network/port-publishing/).

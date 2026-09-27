@@ -76,11 +76,11 @@ class ServiceTests(unittest.TestCase):
 
     def test_actions_are_strictly_semantic(self):
         self.service.connect(SOURCE, "192.168.1.37", 5555)
-        for action in ("wake", "sleep", "navigate_home", "navigate_back"):
+        for action in ("wake", "lock_screen", "navigate_home", "navigate_back"):
             self.service.execute(SOURCE, action, {})
         self.service.execute(SOURCE, "volume_set", {"volume": 50})
         self.assertEqual(len(self.transport.actions), 5)
-        for action in ("shell", "open_url", "launch_app", "show_dashboard", "reboot", "adb/execute"):
+        for action in ("sleep", "power_toggle", "shell", "open_url", "launch_app", "show_dashboard", "reboot", "adb/execute"):
             with self.subTest(action=action), self.assertRaises(BridgeError):
                 self.service.execute(SOURCE, action, {})
         for params in ({"volume": 101}, {"volume": True}, {"volume": 12, "shell": "id"},
@@ -99,7 +99,7 @@ class ServiceTests(unittest.TestCase):
         try:
             self.assertTrue(self.transport.entered.wait(1))
             with self.assertRaises(BridgeError) as error:
-                self.service.execute(SOURCE, "sleep", {})
+                self.service.execute(SOURCE, "lock_screen", {})
             self.assertEqual(error.exception.code, "DISPLAY_BUSY")
         finally:
             self.transport.wait.set()
@@ -128,11 +128,15 @@ class AdbTranslationTests(unittest.TestCase):
     def test_keycodes_are_fixed_and_never_shell_interpolated(self):
         runner = ScriptedRunner(lambda argv, timeout: Result(0, "device" if argv[-1] == "get-state" else ""))
         transport = AdbTransport(runner)
-        for name, key in (("wake", "224"), ("sleep", "223"),
+        for name, key in (("wake", "224"), ("lock_screen", "223"),
                           ("navigate_home", "3"), ("navigate_back", "4")):
             transport.execute("192.168.1.37:5555", name, {})
             self.assertEqual(runner.calls[-1][0],
                              ["adb", "-s", "192.168.1.37:5555", "shell", "input", "keyevent", key])
+        for unsupported in ("sleep", "power_toggle"):
+            with self.subTest(action=unsupported), self.assertRaises(TransportError) as error:
+                transport.execute("192.168.1.37:5555", unsupported, {})
+            self.assertEqual(error.exception.code, "ACTION_UNSUPPORTED")
 
     def test_volume_maps_percent_to_device_range(self):
         def respond(argv, timeout):
@@ -291,6 +295,12 @@ class HttpTests(unittest.TestCase):
         self.assertEqual(self.request("GET", f"/internal/v1/displays/{SOURCE}/inspect", token=TOKEN)[0], 200)
         self.assertEqual(self.request("POST", f"/internal/v1/displays/{SOURCE}/actions",
                                       {"name": "wake", "params": {}}, TOKEN)[0], 200)
+        self.assertEqual(self.request("POST", f"/internal/v1/displays/{SOURCE}/actions",
+                                      {"name": "lock_screen", "params": {}}, TOKEN)[0], 200)
+        for unsupported in ("sleep", "power_toggle"):
+            with self.subTest(action=unsupported):
+                self.assertEqual(self.request("POST", f"/internal/v1/displays/{SOURCE}/actions",
+                                              {"name": unsupported, "params": {}}, TOKEN)[0], 400)
         self.assertEqual(self.request("POST", "/adb/execute", {"command": "id"}, TOKEN)[0], 404)
         self.assertEqual(self.request("POST", f"/internal/v1/displays/{SOURCE}/actions",
                                       {"name": "shell", "params": {"command": "id"}}, TOKEN)[0], 400)
