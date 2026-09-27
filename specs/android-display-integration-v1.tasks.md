@@ -33,7 +33,7 @@
 - [ ] Completar la cobertura de reversión operativa y los casos pendientes de repositorios: FK, borrado, duplicados y cambio de IP sin cambio de `device_id`. Las tablas del incremento local ya fueron creadas por la migración 029; no tratarlas como futuras.
 - [ ] Incorporar `android-display`, `smart_display` y semantic type, capacidad explícita sin fallback legacy, driver y comandos V1; reutilizar `volume_set`.
 - [ ] Añadir `RouteHandler` de adopción/prueba/estado/configuración/comandos, con autorización por hogar y rol, contratos de error, auditoría y límites de tiempo.
-- [ ] Añadir vista de adopción en Operator Console: nombre, IP, habitación, prueba, autorización pendiente, metadatos y online/offline.
+- [x] Añadir UI administrativa V1 en Sistema para listar, probar y adoptar por nombre/IP/puerto fijo, mostrar autorización pendiente, metadatos y estado; reutilizar `DeviceInspector` para asignación a habitación y el pipeline existente para `navigate_home`, `navigate_back` y `volume_set`. No habilitar acciones de energía, shell ni `launch_app`.
 - [ ] Probar AC01, AC04–AC06, AC13 y no regresión de drivers actuales. No habilitar `reboot`.
 
 ## Fase 3 — Identidad de display y Display Mode read-only

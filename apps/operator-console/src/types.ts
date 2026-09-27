@@ -24,6 +24,7 @@ export type View =
   | 'system-users'
   | 'system-ha'
   | 'system-cameras'
+  | 'system-displays'
   | 'system-onboarding'
   // Legacy aliases resolved at runtime (not stored in state)
   | 'topology'
