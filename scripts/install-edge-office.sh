@@ -16,6 +16,7 @@ requires_home_assistant=true
 
 clean=false
 start=false
+wizard=false
 assume_yes=false
 api_url=""
 cloud_url=""
