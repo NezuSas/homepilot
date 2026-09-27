@@ -32,7 +32,9 @@ Flujo de control: `UI/Display Mode → RouteHandler API → autorización por ho
 
 Identidad estable: `devices.id` (UUID HomePilot). `home_id` y `room_id` determinan hogar y habitación. `adb_host`/`adb_port` son el endpoint actual, modificable sin reemplazar el dispositivo. `adb_serial` es un dato observado del transporte y puede reflejar `IP:puerto`; no es identidad estable. `android_id` se lee solo cuando el firmware lo permita, puede faltar o cambiar tras reset y nunca autoriza por sí mismo una sustitución silenciosa. Ante cambio de identidad observada en un endpoint ya adoptado, el dispositivo queda en estado de revisión y se requiere reconfirmación administrativa.
 
-Se propone una migración futura con dos tablas, sujeta a revisión de migraciones y compatibilidad antes de crearla:
+**Decisión operativa NEZU:** las Smart Displays instaladas por NEZU usarán IP fija para mantener estable el endpoint de conexión. Esa IP, aun siendo fija, no es la identidad canónica: `device_id` es la identidad interna de HomePilot; `android_id` sirve como verificación física cuando esté disponible y debe contrastarse ante una posible sustitución. La dirección MAC podrá incorporarse en el futuro como metadata auxiliar, nunca como identidad primaria ni como sustituto de la comprobación de identidad.
+
+El siguiente esquema describe el objetivo V1 completo de las dos tablas; el incremento local ya materializado en la migración 029 se delimita después del bloque:
 
 ```sql
 CREATE TABLE android_display_sources (
@@ -155,7 +157,20 @@ Una sesión de display no es `admin`, `operator`, `parent`, `child` ni `guest`; 
 
 El bridge es opcional en `bridge_ha`, `native_only` y `ha_companion`; no cambia instalaciones sin displays. Instalador/mantenimiento deben conservar la elección, añadir overlay solo si está habilitado, construirlo con el builder HomePilot, verificar health y aplicar el lifecycle activo/rollback existente a su imagen sin limpieza global. Logs rotados y métricas sanitizadas: conexiones por estado, latencia de acción, reconexiones, errores por código, último contacto y uso de recursos. Un bridge caído no derriba API/UI; los displays quedan offline. Recovery valida claves, token interno, reautorización y sesión/display sin afectar otros perfiles.
 
-Migración NEZU controlada, **sin ejecución durante esta fase**: adoptar `192.168.1.37:5555` manualmente; verificar identidad/metadatos y comandos; abrir dashboard local, cortar Internet y validar lectura/control; reiniciar contenedor/appliance y restaurar backup aislado; retirar bridge/daemon antiguos solo con autorización operativa y plan de reversión; verificar ausencia de listener host `*:5037`; confirmar que ningún control de display depende de `has_template`. No duplicar emisores ADB simultáneos durante el corte.
+Migración NEZU controlada: la adopción y el control local inicial de `192.168.1.37:5555` ya se validaron en MiniPC Linux y hardware real (evidencia abajo). Siguen pendientes abrir dashboard local, cortar Internet y validar lectura/control de Display Mode, reiniciar contenedor/appliance y restaurar backup aislado, retirar bridge/daemon antiguos solo con autorización operativa y plan de reversión, verificar ausencia de listener host `*:5037` en el corte y confirmar que ningún control de display depende de `has_template`. No duplicar emisores ADB simultáneos durante el corte.
+
+### Evidencia reportada del piloto local en MiniPC Linux (2026-09-26)
+
+| Comprobación | Resultado observado |
+| --- | --- |
+| Persistencia | Migración 029 aplicada; SQLite `integrity_check=ok`; fuente y observación persistidas. |
+| Equipo físico | Droidlogic `C-T982-61-4G-A52D`, Android 11; endpoint de IP fija `192.168.1.37:5555`; `androidId=8d08ff705346cade`. |
+| Adopción | HTTP 201; `Device` nativo `type=smart_display`, `integrationSource=android-display`, con `device_id` HomePilot independiente del endpoint. |
+| Actualización de estado | Refresh conserva la misma identidad y reporta `online`. |
+| Control permitido | `navigate_home` mediante `POST /api/v1/devices/:id/command` → HTTP 200. |
+| Rechazo | `sleep` mediante el mismo pipeline → HTTP 400 `INVALID_COMMAND`. |
+
+Esta evidencia corresponde al incremento backend local, no al cumplimiento completo de AC01–AC13: no demuestra cambio de IP sin cambio de `device_id`, recuperación tras reboot, Display Mode ni operación sin Internet. En este piloto de integración **no se realizaron pruebas de `power_toggle`, `reboot` ni `lock_screen`**; no inferir de esta validación soporte o seguridad de esas acciones. Los hallazgos anteriores del bridge sobre keyevents se mantienen separados de esta prueba.
 
 ## 11. Criterios de aceptación V1
 
@@ -175,6 +190,6 @@ Migración NEZU controlada, **sin ejecución durante esta fase**: adoptar `192.1
 
 ## 12. Decisiones pendientes de verificación técnica
 
-Quedan cerrados: topología Linux loopback + autenticación, overlay Desktop en red compartida, persistencia de `~/.android`, `show_dashboard` por IDs, `launch_app` por allowlist, exclusión de `sleep`/`power_toggle`/`open_url`/`reboot`, piloto HTTP LAN limitado y HTTPS local obligatorio para clientes. En Droidlogic, 223 no suspendió la pantalla y 26 dejó ADB offline; `wake` aún requiere validación física antes de declararse capacidad soportada. Antes de las fases siguientes se debe verificar: integración API↔bridge, mecanismo concreto de Origin/CSRF y cookies, contenido inicial de la allowlist de paquetes, formato/custodia del backup cifrado, solución de certificados/nombre para HTTPS local offline y comportamiento de `reload`/`wake` en el firmware piloto. Si cualquiera exige alterar perfiles existentes o relajar aislamiento, detenerse y pedir aprobación arquitectónica.
+Quedan cerrados: topología Linux loopback + autenticación, overlay Desktop en red compartida, persistencia de `~/.android`, `show_dashboard` por IDs, `launch_app` por allowlist, exclusión de `sleep`/`power_toggle`/`open_url`/`reboot`, piloto HTTP LAN limitado, HTTPS local obligatorio para clientes y uso de IP fija por NEZU solo como endpoint, no como identidad. La integración API↔bridge para adopción/refresh/control local ya se validó en el piloto Linux descrito arriba; la topología Desktop y las fases de Display Mode no quedan validadas por ello. En Droidlogic, 223 no suspendió la pantalla y 26 dejó ADB offline en pruebas anteriores del bridge; `wake` aún requiere validación física antes de declararse capacidad soportada. Antes de las fases siguientes se debe verificar: mecanismo concreto de Origin/CSRF y cookies, contenido inicial de la allowlist de paquetes, formato/custodia del backup cifrado, solución de certificados/nombre para HTTPS local offline y comportamiento de `reload`/`wake` en el firmware piloto. Si cualquiera exige alterar perfiles existentes o relajar aislamiento, detenerse y pedir aprobación arquitectónica.
 
 Referencias técnicas para estas verificaciones: [ADB y depuración inalámbrica (Android)](https://developer.android.com/tools/adb), [carga de claves del cliente ADB (AOSP)](https://android.googlesource.com/platform/packages/modules/adb/+/HEAD/client/auth.cpp), [red host de Docker](https://docs.docker.com/engine/network/drivers/host/) y [publicación de puertos en loopback](https://docs.docker.com/engine/network/port-publishing/).

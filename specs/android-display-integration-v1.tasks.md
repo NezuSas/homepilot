@@ -1,13 +1,14 @@
 # Tareas: Smart Displays Android nativos V1
 
-**Estado:** Fase 0 cerrada; bridge de Fase 1 implementado y probado con ADB/aislamiento Linux reales. Integración API y fases posteriores pendientes.
+**Estado:** Fase 0 cerrada; bridge de Fase 1 probado en Linux real; incremento backend local de Fase 2 (adopción, persistencia, refresh y control) validado en MiniPC y Droidlogic reales. Display Mode y fases posteriores pendientes.
 
 ## Fase 0 — Contrato y decisiones (esta entrega)
 
 - [x] Documentar alcance, exclusiones, modelo Smart Display y separación de ADB como infraestructura en `android-display-integration-v1.md`.
 - [x] Definir contratos propuestos, amenazas, estado, claves persistentes, Display Mode, sesión LAN y criterios AC01–AC13.
 - [x] Cerrar topología Linux (API host-network → HTTP bridge en loopback con autenticación), overlay Desktop en red común, persistencia de `~/.android`, exclusión de `open_url`/`reboot`, piloto HTTP LAN y requisito HTTPS local para clientes.
-- [ ] Verificar API HomePilot host-network → HTTP bridge en loopback en Linux y API → bridge por DNS de servicio en Desktop cuando exista el cliente interno. La ruta real de `adbkey` y el aislamiento Linux del bridge ya se verificaron; no marcar la integración API como probada todavía.
+- [x] Verificar API HomePilot host-network → bridge en el piloto Linux mediante adopción, refresh y comando local; la ruta real de `adbkey` y el aislamiento Linux del bridge ya se habían verificado.
+- [ ] Verificar API → bridge por DNS de servicio en Docker Desktop; el resultado Linux no acredita esa topología.
 - [ ] Definir contenido inicial de allowlist de paquetes y mecanismo de certificados/nombre HTTPS local que funcione sin Internet antes de habilitar displays de clientes.
 
 ## Fase 1 — Bridge privado y persistencia de claves
@@ -24,9 +25,12 @@
 
 **Depende de:** Fase 1. **No habilita todavía Display Mode.**
 
-- [x] Incremento backend local: migración aditiva 029, fuente/observación separadas, cliente HTTP tipado del bridge, driver registrado, `smart_display` fail-closed y rutas administrativas de prueba/adopción/lista/detalle/refresh; reutiliza `/api/v1/devices/:id/command` para `navigate_home`, `navigate_back` y `volume_set`. No declara completo el resto de Fase 2 ni validación en hardware tras esta integración.
+- [x] Incremento backend local: migración aditiva 029, fuente/observación separadas, cliente HTTP tipado del bridge, driver registrado, `smart_display` fail-closed y rutas administrativas de prueba/adopción/lista/detalle/refresh; reutiliza `/api/v1/devices/:id/command` para `navigate_home`, `navigate_back` y `volume_set`. Validado en hardware real solo para las operaciones indicadas abajo; no declara completo el resto de Fase 2.
+- [x] Registrar evidencia del piloto MiniPC Linux: migración 029 aplicada con `integrity_check=ok`; Droidlogic `C-T982-61-4G-A52D` Android 11 adoptada en `192.168.1.37:5555` con `androidId=8d08ff705346cade`; adopción HTTP 201; `Device` nativo `smart_display` con `integrationSource=android-display`; fuente y observación persistidas; refresh conserva identidad y `online`.
+- [x] Registrar evidencia de comandos: `navigate_home` por `POST /api/v1/devices/:id/command` → HTTP 200; `sleep` → HTTP 400 `INVALID_COMMAND`. No se probaron `power_toggle`, `reboot` ni `lock_screen` en este piloto de integración.
+- [x] Fijar política operativa NEZU: Smart Displays instaladas con IP fija como endpoint; `device_id` HomePilot como identidad interna; `android_id` como verificación física cuando exista; MAC solo metadata auxiliar futura, nunca identidad primaria.
 
-- [ ] Añadir spec de migración/reversión concreta antes de crear tablas `android_display_sources` y `android_display_observations`; repositorios y pruebas de FK, borrado, duplicados y cambio de IP sin cambio de `device_id`.
+- [ ] Completar la cobertura de reversión operativa y los casos pendientes de repositorios: FK, borrado, duplicados y cambio de IP sin cambio de `device_id`. Las tablas del incremento local ya fueron creadas por la migración 029; no tratarlas como futuras.
 - [ ] Incorporar `android-display`, `smart_display` y semantic type, capacidad explícita sin fallback legacy, driver y comandos V1; reutilizar `volume_set`.
 - [ ] Añadir `RouteHandler` de adopción/prueba/estado/configuración/comandos, con autorización por hogar y rol, contratos de error, auditoría y límites de tiempo.
 - [ ] Añadir vista de adopción en Operator Console: nombre, IP, habitación, prueba, autorización pendiente, metadatos y online/offline.
@@ -65,7 +69,7 @@
 
 **Depende de:** AC01–AC11 y autorización operativa explícita; no forma parte de la Fase 0.
 
-- [ ] Registrar manualmente la pizarra piloto `192.168.1.37:5555`; comparar identidad/metadatos y revisar la autorización ADB.
+- [x] Registrar manualmente la pizarra piloto `192.168.1.37:5555` y validar identidad/metadatos, persistencia y refresh en MiniPC Linux; adopción HTTP 201. Esta verificación no equivale al cierre de la migración legacy.
 - [ ] Validar comandos y rechazo de apps/comandos/destinos no autorizados, Display Mode con Internet desconectado, escenas/dispositivos permitidos, revocación de sesión y reinicio del appliance/recovery antes del corte.
 - [ ] Documentar punto de reversión y retirar bridge/daemon ADB históricos únicamente tras aceptación; confirmar que host no escucha `*:5037` ni depende de `has_template` para displays.
 - [ ] Ejecutar matriz de calidad correspondiente (`check:spec-coverage`, BDD, cobertura modular, tests, typecheck, build, responsive, perfiles Docker y `verify:quality`) y registrar evidencia AC01–AC13. No adelantar release sin aprobación.
