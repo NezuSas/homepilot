@@ -31,6 +31,25 @@ describe('Directory Edge Service Token client', () => {
     expect(http.mock.calls[0][1].body).toBeUndefined();
   });
 
+  it('requests command.execute with the same Edge credential without changing manifest.read', async () => {
+    const http = jest.fn().mockResolvedValue(response(200, { token: 'command-token', expiresIn: 120 }));
+    const client = new DirectoryEdgeServiceTokenClient(() => config, http);
+    await expect(client.requestCommandToken()).resolves.toEqual({ token: 'command-token', expiresIn: 120 });
+    expect(http).toHaveBeenCalledWith(directoryEdgeServiceTokenUrl(config.url), expect.objectContaining({
+      method: 'POST',
+      headers: { Authorization: `Bearer ${config.token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scope: 'homepilot.command.execute' }),
+    }));
+    await expect(client.requestToken()).resolves.toBe('command-token');
+    expect(http.mock.calls[1][1].body).toBeUndefined();
+  });
+
+  it.each([0, -1, 121, '120'])('rejects invalid command-token lifetime %p', async (expiresIn) => {
+    const client = new DirectoryEdgeServiceTokenClient(() => config,
+      jest.fn().mockResolvedValue(response(200, { token: 'command-token', expiresIn })));
+    await expect(client.requestCommandToken()).rejects.toMatchObject({ code: 'INTENTFLOW_DIRECTORY_RESPONSE_INVALID' });
+  });
+
   it.each([401, 403, 503])('classifies Directory HTTP %s without leaking token', async (status) => {
     const client = new DirectoryEdgeServiceTokenClient(() => config, jest.fn().mockResolvedValue(response(status, {})));
     await expect(client.requestToken()).rejects.toMatchObject({

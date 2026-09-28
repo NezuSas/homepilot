@@ -1,6 +1,7 @@
 import type { CloudGatewayConnectorConfig } from './CloudEdgeConfigProvider';
 
 export const MANIFEST_REQUEST_TIMEOUT_MS = 10_000;
+export const COMMAND_TOKEN_TTL_SECONDS = 120;
 
 export type DirectoryTokenErrorCode =
   | 'INTENTFLOW_EDGE_NOT_PAIRED'
@@ -36,6 +37,14 @@ export class DirectoryEdgeServiceTokenClient {
   constructor(private readonly configProvider: EdgeConfigProvider, private readonly httpFetch: HttpFetch = fetch) {}
 
   async requestToken(): Promise<string> {
+    return (await this.exchange()).token;
+  }
+
+  async requestCommandToken(): Promise<{ token: string; expiresIn: number }> {
+    return this.exchange('homepilot.command.execute');
+  }
+
+  private async exchange(scope?: 'homepilot.command.execute'): Promise<{ token: string; expiresIn: number }> {
     const config = this.configProvider();
     if (!config?.token?.trim() || !config.homeId?.trim() || !config.edgeId?.trim()) {
       throw new DirectoryTokenError('INTENTFLOW_EDGE_NOT_PAIRED');
@@ -45,7 +54,10 @@ export class DirectoryEdgeServiceTokenClient {
     const timeout = setTimeout(() => controller.abort(), MANIFEST_REQUEST_TIMEOUT_MS);
     try {
       const response = await this.httpFetch(url, {
-        method: 'POST', headers: { Authorization: `Bearer ${config.token}` }, signal: controller.signal,
+        method: 'POST',
+        headers: { Authorization: `Bearer ${config.token}`, ...(scope ? { 'Content-Type': 'application/json' } : {}) },
+        ...(scope ? { body: JSON.stringify({ scope }) } : {}),
+        signal: controller.signal,
       });
       if (controller.signal.aborted) throw new DirectoryTokenError('INTENTFLOW_DIRECTORY_TIMEOUT');
       if (!response.ok) throw new DirectoryTokenError(response.status >= 500
@@ -60,7 +72,14 @@ export class DirectoryEdgeServiceTokenClient {
         || !(payload as { token: string }).token.trim()) {
         throw new DirectoryTokenError('INTENTFLOW_DIRECTORY_RESPONSE_INVALID');
       }
-      return (payload as { token: string }).token;
+      const expiresIn = (payload as Record<string, unknown>).expiresIn;
+      if (scope && expiresIn !== undefined
+        && (typeof expiresIn !== 'number' || !Number.isSafeInteger(expiresIn)
+          || expiresIn <= 0 || expiresIn > COMMAND_TOKEN_TTL_SECONDS)) {
+        throw new DirectoryTokenError('INTENTFLOW_DIRECTORY_RESPONSE_INVALID');
+      }
+      return { token: (payload as { token: string }).token,
+        expiresIn: scope && typeof expiresIn === 'number' ? expiresIn : COMMAND_TOKEN_TTL_SECONDS };
     } catch (error) {
       if (controller.signal.aborted) throw new DirectoryTokenError('INTENTFLOW_DIRECTORY_TIMEOUT');
       if (error instanceof DirectoryTokenError) throw error;

@@ -20,6 +20,8 @@ const catalog = {
     { key: 'hp_volume_set', displayName: 'Volumen', implementationType: 'homepilot',
       controlType: 'slider', visibility: 'visible', executableInHomePilot: true, dashboardEligible: false },
     { key: 'legacy_camera', displayName: 'Cámara', implementationType: 'legacy_adb',
+      controlType: 'button', visibility: 'visible', executableInHomePilot: true, dashboardEligible: true },
+    { key: 'not_available', displayName: 'Pendiente', implementationType: 'legacy_adb',
       controlType: 'button', visibility: 'visible', executableInHomePilot: false, dashboardEligible: false },
   ],
 };
@@ -40,9 +42,11 @@ describe('Smart Display control catalog', () => {
     expect(html).toContain('Inicio');
     expect(html).toContain('Volumen');
     expect(html).toContain('Cámara');
+    expect(html).toContain('Pendiente');
     expect(html.indexOf('Inicio')).toBeLessThan(html.indexOf('Volumen'));
     expect(html.indexOf('Volumen')).toBeLessThan(html.indexOf('Cámara'));
     expect(html).toContain('Disponible en Dashboard');
+    expect(html.match(/Disponible en Dashboard/g)).toHaveLength(2);
     expect(html).toContain('Control disponible');
     expect(html).toContain('Incluido en tu plan');
     expect(html).not.toContain('legacy_adb');

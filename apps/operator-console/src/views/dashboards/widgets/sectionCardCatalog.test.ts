@@ -46,6 +46,15 @@ describe('section card catalog contracts', () => {
     expect(request).toHaveBeenCalledTimes(1);
     expect(request).toHaveBeenCalledWith('/api/v1/devices/device-123/actions/hp_navigate_home/execute', { method: 'POST' });
   });
+
+  it('uses the same Action Card target for a remote button without sending route details', async () => {
+    const target = toDeviceActionEntityId('display-1', 'go_home');
+    const request = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 'display-1' }) });
+    await executeDeviceActionTarget(target, request);
+    expect(target).toBe('device-action:display-1:go_home');
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledWith('/api/v1/devices/display-1/actions/go_home/execute', { method: 'POST' });
+  });
   it('normalizes legacy cards and derives stable defaults for widget configuration', () => {
     const cards = normalizeCards({
       cards: [

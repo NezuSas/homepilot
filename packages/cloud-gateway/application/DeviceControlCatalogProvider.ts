@@ -1,4 +1,5 @@
 import type { Device } from '../../devices/domain/types';
+import type { DeviceCommandV1 } from '../../devices/domain/commands';
 import type { BoardManifestV1, BoardManifestEntitlementCommandV1 } from './BoardManifestV1';
 import { resolveEffectiveActions, type EffectiveAction } from './EffectiveActionsResolver';
 import { manifestFreshness } from './ManifestSyncService';
@@ -11,9 +12,10 @@ export interface DeviceControlCatalogCommand {
   readonly visibility: 'visible' | 'hidden';
   readonly safetyLevel: 'normal' | 'sensitive';
   readonly requiresConfirmation: boolean;
+  readonly executionRoute: 'homepilot' | 'intentflow' | null;
   readonly executableInHomePilot: boolean;
   readonly dashboardEligible: boolean;
-  readonly semanticAction?: string;
+  readonly semanticAction?: DeviceCommandV1;
 }
 
 export interface DeviceControlCatalog {
@@ -40,7 +42,20 @@ export class DeviceControlCatalogProvider {
 
   getForDevice(device: Device): DeviceControlCatalog | null {
     const manifest = this.ports.cache.getByDeviceId(device.id);
+    return manifest ? this.catalogFromManifest(device, manifest) : null;
+  }
+
+  resolveActionForDevice(device: Device, actionKey: string): {
+    boardId: number; command: DeviceControlCatalogCommand;
+  } | null {
+    const manifest = this.ports.cache.getByDeviceId(device.id);
     if (!manifest) return null;
+    const command = this.catalogFromManifest(device, manifest)?.commands.find((item) => item.key === actionKey);
+    return command ? { boardId: manifest.boardId, command } : null;
+  }
+
+  private catalogFromManifest(device: Device, manifest: BoardManifestV1): DeviceControlCatalog | null {
+    if (manifest.homePilotDeviceId !== device.id) return null;
     const fresh = manifestFreshness(this.ports.cache.getState()?.lastSuccessAt ?? null, this.now()) !== 'EXPIRED';
     let effective: ReadonlyArray<EffectiveAction> = [];
     if (fresh) {
@@ -57,18 +72,21 @@ export class DeviceControlCatalogProvider {
       plan: manifest.entitlement?.plan ?? { id: manifest.planId, name: null, type: null },
       commands: commercial.map((command) => {
         const action = effectiveByKey.get(command.key);
-        const executableInHomePilot = Boolean(action)
-          && command.implementationType === 'homepilot'
+        const localMatch = Boolean(action)
           && action?.controlType === command.controlType
           && action?.visibility === command.visibility
           && action?.safetyLevel === command.safetyLevel
           && action?.requiresConfirmation === command.requiresConfirmation;
+        const executionRoute: DeviceControlCatalogCommand['executionRoute'] = !fresh ? null : command.implementationType === 'legacy_adb'
+          ? 'intentflow' : localMatch ? 'homepilot' : null;
+        const executableInHomePilot = executionRoute !== null;
         return {
           ...command,
+          executionRoute,
           executableInHomePilot,
           dashboardEligible: executableInHomePilot && command.visibility === 'visible'
             && command.controlType === 'button' && command.requiresConfirmation === false,
-          ...(executableInHomePilot && action ? { semanticAction: action.semanticAction } : {}),
+          ...(executionRoute === 'homepilot' && action ? { semanticAction: action.semanticAction } : {}),
         };
       }),
     };

@@ -38,7 +38,7 @@ function provider(manifestInput: unknown, syncedAt = new Date(now).toISOString()
 }
 
 describe('DeviceControlCatalogProvider', () => {
-  it('shows the commercial plan and all commands, but only local effective actions are executable', async () => {
+  it('routes commercial legacy commands through IntentFlow without a local EffectiveAction', async () => {
     const service = provider({ ...base, entitlement: {
       plan: { id: 2, name: 'Plan Premium', type: 'PREMIUM' },
       commands: [command('hp_navigate_home', 'homepilot', 'button'),
@@ -47,14 +47,17 @@ describe('DeviceControlCatalogProvider', () => {
     const catalog = await service.getForDeviceId(deviceId);
     expect(catalog?.plan).toEqual({ id: 2, name: 'Plan Premium', type: 'PREMIUM' });
     expect(catalog?.commands).toEqual([
-      expect.objectContaining({ key: 'hp_navigate_home', executableInHomePilot: true, dashboardEligible: true, semanticAction: 'navigate_home' }),
-      expect.objectContaining({ key: 'hp_volume_set', executableInHomePilot: true, dashboardEligible: false, semanticAction: 'volume_set' }),
-      expect.objectContaining({ key: 'legacy_camera', executableInHomePilot: false, dashboardEligible: false }),
+      expect.objectContaining({ key: 'hp_navigate_home', executionRoute: 'homepilot', executableInHomePilot: true, dashboardEligible: true, semanticAction: 'navigate_home' }),
+      expect.objectContaining({ key: 'hp_volume_set', executionRoute: 'homepilot', executableInHomePilot: true, dashboardEligible: false, semanticAction: 'volume_set' }),
+      expect.objectContaining({ key: 'legacy_camera', executionRoute: 'intentflow', executableInHomePilot: true, dashboardEligible: true }),
     ]);
     expect(catalog?.commands[2]).not.toHaveProperty('semanticAction');
-    expect(service.listDashboardActionsForDevices([device])).toEqual([{
-      deviceId, actionKey: 'hp_navigate_home', displayName: 'hp_navigate_home', deviceName: 'Pizarra Oficina',
-    }]);
+    expect(service.resolveActionForDevice(device, 'legacy_camera')).toEqual({ boardId: 5,
+      command: expect.objectContaining({ key: 'legacy_camera', executionRoute: 'intentflow' }) });
+    expect(service.listDashboardActionsForDevices([device])).toEqual([
+      { deviceId, actionKey: 'hp_navigate_home', displayName: 'hp_navigate_home', deviceName: 'Pizarra Oficina' },
+      { deviceId, actionKey: 'legacy_camera', displayName: 'legacy_camera', deviceName: 'Pizarra Oficina' },
+    ]);
   });
 
   it('uses manifest actions as the catalog for an old manifest', () => {
@@ -62,9 +65,49 @@ describe('DeviceControlCatalogProvider', () => {
     expect(provider(base).getForDevice(device)?.commands).toHaveLength(2);
   });
 
+  it('does not grant a local route without a matching EffectiveAction', () => {
+    const service = provider({ ...base, entitlement: {
+      plan: { id: 2, name: 'Premium', type: 'PREMIUM' },
+      commands: [command('not_in_local_actions', 'homepilot', 'button'),
+        command('hp_navigate_home', 'homepilot', 'slider')],
+    } });
+    expect(service.getForDevice(device)?.commands.map((item) => item.executionRoute)).toEqual([null, null]);
+    expect(service.listDashboardActionsForDevices([device])).toEqual([]);
+  });
+
   it('keeps commercial details but offers no execution after expiry', () => {
-    const expired = provider(base, new Date(now - 24 * 60 * 60_000 - 1).toISOString());
+    const expired = provider({ ...base, entitlement: {
+      plan: { id: 2, name: 'Premium', type: 'PREMIUM' },
+      commands: [command('hp_navigate_home', 'homepilot', 'button'),
+        command('go_home', 'legacy_adb', 'button')],
+    } }, new Date(now - 24 * 60 * 60_000 - 1).toISOString());
     expect(expired.getForDevice(device)?.commands.every((item) => !item.executableInHomePilot && !item.dashboardEligible)).toBe(true);
+    expect(expired.getForDevice(device)?.commands.map((item) => item.executionRoute)).toEqual([null, null]);
     expect(expired.listDashboardActionsForDevices([device])).toEqual([]);
+  });
+
+  it('excludes hidden, confirmation-required and slider commands from Action Card targets', () => {
+    const service = provider({ ...base, entitlement: {
+      plan: { id: 2, name: 'Premium', type: 'PREMIUM' },
+      commands: [
+        { ...command('hidden', 'legacy_adb', 'button'), visibility: 'hidden' },
+        { ...command('confirm', 'legacy_adb', 'button'), requiresConfirmation: true },
+        command('remote_slider', 'legacy_adb', 'slider'),
+      ],
+    } });
+    expect(service.getForDevice(device)?.commands.every((item) => item.executionRoute === 'intentflow')).toBe(true);
+    expect(service.listDashboardActionsForDevices([device])).toEqual([]);
+  });
+
+  it('keeps distinct keys even when commercial display names are equal', () => {
+    const service = provider({ ...base, entitlement: {
+      plan: { id: 2, name: 'Premium', type: 'PREMIUM' },
+      commands: [
+        { ...command('go_home', 'legacy_adb', 'button'), displayName: 'Inicio' },
+        { ...command('hp_navigate_home', 'homepilot', 'button'), displayName: 'Inicio' },
+      ],
+    } });
+    expect(service.listDashboardActionsForDevices([device]).map((item) => item.actionKey))
+      .toEqual(['go_home', 'hp_navigate_home']);
   });
 });

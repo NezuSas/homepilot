@@ -15,8 +15,11 @@ import { InstallationVerificationBroker } from './packages/cloud-gateway/applica
 import { ManifestSyncService } from './packages/cloud-gateway/application/ManifestSyncService';
 import { EffectiveActionsProvider } from './packages/cloud-gateway/application/EffectiveActionsProvider';
 import { DeviceControlCatalogProvider } from './packages/cloud-gateway/application/DeviceControlCatalogProvider';
+import { CommandTokenCache } from './packages/cloud-gateway/application/CommandTokenCache';
+import { IntentFlowCommandExecutionService } from './packages/cloud-gateway/application/IntentFlowCommandExecutionService';
 import { DirectoryEdgeServiceTokenClient } from './packages/cloud-gateway/infrastructure/DirectoryEdgeServiceTokenClient';
 import { IntentFlowManifestClient } from './packages/cloud-gateway/infrastructure/IntentFlowManifestClient';
+import { IntentFlowCommandClient } from './packages/cloud-gateway/infrastructure/IntentFlowCommandClient';
 import { SqliteManifestCacheRepository } from './packages/cloud-gateway/infrastructure/SqliteManifestCacheRepository';
 import { readCloudEdgeConfig } from './packages/cloud-gateway/infrastructure/CloudEdgeConfigProvider';
 import { RepositoryTopologyReferenceAdapter } from './packages/devices/infrastructure/adapters/RepositoryTopologyReferenceAdapter';
@@ -141,6 +144,7 @@ export interface BootstrapContainer {
     manifestSyncService: ManifestSyncService;
     effectiveActionsProvider: EffectiveActionsProvider;
     deviceControlCatalogProvider: DeviceControlCatalogProvider;
+    intentFlowCommandExecutionService: IntentFlowCommandExecutionService;
   };
   guards: {
     authGuard: AuthGuard;
@@ -405,10 +409,14 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   );
 
   const manifestCacheRepository = new SqliteManifestCacheRepository(dbPath);
+  const directoryTokenClient = new DirectoryEdgeServiceTokenClient(readCloudEdgeConfig);
   const manifestSyncService = new ManifestSyncService({
-    directory: new DirectoryEdgeServiceTokenClient(readCloudEdgeConfig),
+    directory: directoryTokenClient,
     intentFlow: new IntentFlowManifestClient(),
     cache: manifestCacheRepository,
+  });
+  const intentFlowCommandExecutionService = new IntentFlowCommandExecutionService({
+    tokens: new CommandTokenCache(directoryTokenClient), client: new IntentFlowCommandClient(),
   });
   const container: BootstrapContainer = {
     repositories: {
@@ -445,6 +453,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       androidDisplayService,
       installationVerificationBroker: new InstallationVerificationBroker(readCloudEdgeConfig),
       manifestSyncService,
+      intentFlowCommandExecutionService,
       effectiveActionsProvider: new EffectiveActionsProvider({
         cache: manifestCacheRepository,
         devices: repos.deviceRepository,

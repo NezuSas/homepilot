@@ -165,7 +165,15 @@ export class DeviceRoutes extends ApiRoutes {
         await container.adapters.topologyReferencePort.validateHomeOwnership(device.homeId, req.user!.id);
         const catalog = container.services.deviceControlCatalogProvider.getForDevice(device);
         if (!catalog) return this.sendError(res, 404, 'DEVICE_NOT_FOUND'), true;
-        this.sendJson(res, catalog);
+        this.sendJson(res, { ...catalog, commands: catalog.commands.map((command) => ({
+          key: command.key, displayName: command.displayName,
+          implementationType: command.implementationType, controlType: command.controlType,
+          visibility: command.visibility, safetyLevel: command.safetyLevel,
+          requiresConfirmation: command.requiresConfirmation,
+          executableInHomePilot: command.executableInHomePilot,
+          dashboardEligible: command.dashboardEligible,
+          ...(command.semanticAction ? { semanticAction: command.semanticAction } : {}),
+        })) });
       } catch (error: unknown) {
         this.sendDeviceReadError(res, error);
       }
@@ -399,20 +407,23 @@ export class DeviceRoutes extends ApiRoutes {
           || Object.keys(payload).length !== 0) {
           return this.sendError(res, 400, 'INVALID_COMMAND'), true;
         }
-        const actions = await container.services.effectiveActionsProvider.getForDeviceId(deviceId);
-        const action = actions.find((candidate) => candidate.key === actionKey);
-        if (!action || action.visibility !== 'visible' || action.controlType !== 'button'
-          || action.requiresConfirmation) return this.sendError(res, 403, 'FORBIDDEN'), true;
+        const resolved = container.services.deviceControlCatalogProvider.resolveActionForDevice(device, actionKey);
+        const command = resolved?.command;
+        if (!resolved || !command?.dashboardEligible) return this.sendError(res, 403, 'FORBIDDEN'), true;
 
-        await executeDeviceCommandUseCase(deviceId, action.semanticAction, req.user!.id, crypto.randomUUID(), {
-          deviceRepository: container.repositories.deviceRepository,
-          eventPublisher: container.adapters.deviceEventPublisher,
-          topologyPort: container.adapters.topologyReferencePort,
-          dispatcherPort: container.adapters.commandDispatcher,
-          activityLogRepository: container.repositories.activityLogRepository,
-          idGenerator: { generate: () => crypto.randomUUID() },
-          clock: { now: () => new Date().toISOString() },
-        }, { allowPendingManualExecution: true });
+        if (command.executionRoute === 'homepilot' && command.semanticAction) {
+          await executeDeviceCommandUseCase(deviceId, command.semanticAction, req.user!.id, crypto.randomUUID(), {
+            deviceRepository: container.repositories.deviceRepository,
+            eventPublisher: container.adapters.deviceEventPublisher,
+            topologyPort: container.adapters.topologyReferencePort,
+            dispatcherPort: container.adapters.commandDispatcher,
+            activityLogRepository: container.repositories.activityLogRepository,
+            idGenerator: { generate: () => crypto.randomUUID() },
+            clock: { now: () => new Date().toISOString() },
+          }, { allowPendingManualExecution: true });
+        } else if (command.executionRoute === 'intentflow') {
+          await container.services.intentFlowCommandExecutionService.execute(resolved.boardId, actionKey);
+        } else return this.sendError(res, 403, 'FORBIDDEN'), true;
         const updated = await container.repositories.deviceRepository.findDeviceById(deviceId);
         this.sendJson(res, updated ? this.enrichDevice(updated) : null);
       } catch (error: unknown) {
@@ -422,6 +433,16 @@ export class DeviceRoutes extends ApiRoutes {
           this.sendError(res, 404, 'DEVICE_NOT_FOUND', message);
         else if (name === 'UnsupportedCommandError' || name === 'InvalidDeviceCommandError' || message === 'INVALID_JSON')
           this.sendError(res, 400, 'INVALID_COMMAND', message);
+        else if (name === 'IntentFlowCommandError' && message === 'INTENTFLOW_COMMAND_FORBIDDEN')
+          this.sendError(res, 403, 'FORBIDDEN', message);
+        else if (name === 'IntentFlowCommandError' && message === 'INTENTFLOW_COMMAND_DEVICE_UNAVAILABLE')
+          this.sendError(res, 400, 'DISPLAY_OFFLINE', message);
+        else if (name === 'IntentFlowCommandError' && message === 'INTENTFLOW_COMMAND_CONFIRMATION_REQUIRED')
+          this.sendError(res, 409, 'COMMAND_CONFIRMATION_REQUIRED', message);
+        else if (name === 'IntentFlowCommandError' && message === 'INTENTFLOW_COMMAND_ROUTE_MISMATCH')
+          this.sendError(res, 502, 'COMMAND_ROUTE_MISMATCH', message);
+        else if (name === 'IntentFlowCommandError' || name === 'DirectoryTokenError' || name === 'CommandTokenCacheError')
+          this.sendError(res, 502, 'COMMAND_DISPATCH_FAILED', message);
         else if (name === 'DispatchIntegrationError') this.sendError(res, 502, 'COMMAND_DISPATCH_FAILED', message);
         else this.sendError(res, 500, 'COMMAND_ERROR', message);
       }

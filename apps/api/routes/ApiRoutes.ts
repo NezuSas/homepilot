@@ -54,6 +54,8 @@ const SAFE_MESSAGES: Record<string, string> = {
   'BRIDGE_UNAVAILABLE': 'El servicio de pantallas no está disponible.',
   'DISPLAY_NOT_CONNECTED': 'La pantalla no está conectada.',
   'COMMAND_DISPATCH_FAILED': 'No se pudo ejecutar el comando en el dispositivo.',
+  'COMMAND_CONFIRMATION_REQUIRED': 'Este comando requiere confirmación y no puede ejecutarse desde esta tarjeta.',
+  'COMMAND_ROUTE_MISMATCH': 'La ruta de ejecución del comando no coincide con el catálogo actual.',
   'INVALID_TYPE': 'Tipo de dispositivo no compatible para esta operación.',
   'INVALID_COMMAND': 'Comando no válido para este dispositivo.',
   'AUTOMATION_ERROR': 'Error en la gestión de automatizaciones.',
