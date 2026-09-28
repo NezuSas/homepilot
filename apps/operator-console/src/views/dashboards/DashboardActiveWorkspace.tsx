@@ -2,7 +2,6 @@ import type { TFunction } from 'i18next';
 import { DashboardTabsNav } from '../../components/DashboardTabsNav';
 import { DashboardTitleBar } from '../../components/DashboardTitleBar';
 import { Button } from '../../components/ui/Button';
-import { cn } from '../../lib/utils';
 import { DashboardCanvas } from './DashboardCanvas';
 import type { Dashboard, DashboardTab, DashboardWidget, DashboardWidgetConfig, WidgetType } from './types';
 
@@ -126,7 +125,7 @@ export function DashboardActiveWorkspace({
     </div>
 
     {activeTab ? (
-      <div className={cn('homepilot-dashboard-content relative flex w-full min-w-0 flex-col gap-5', (isEditing && isOwner) ? 'p-3 sm:p-4' : 'px-2 py-4 sm:px-3 sm:py-6 md:px-4')}>
+      <div className="homepilot-dashboard-content relative flex w-full min-w-0 flex-col gap-5 px-2 py-4 sm:px-3 sm:py-6 md:px-4">
         {activeTab.widgets.length === 0 && !(isEditing && isOwner) ? (
           <div className="flex min-h-64 flex-col items-center justify-center rounded-panel border border-dashed border-primary/25 bg-primary/[0.03] p-8 text-center">
             <p className="text-section-title font-semibold text-foreground">{t('dashboards.widgets_empty')}</p>

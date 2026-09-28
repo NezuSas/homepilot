@@ -127,7 +127,7 @@ async function prepareLoginShell(page: import('@playwright/test').Page) {
   });
 }
 
-async function prepareAuthenticatedDashboard(page: import('@playwright/test').Page) {
+async function prepareAuthenticatedDashboard(page: import('@playwright/test').Page, dashboard: object = responsiveDashboard) {
   await page.addInitScript((user) => {
     localStorage.setItem('hp_session_token', 'responsive-test-token');
     localStorage.setItem('hp_user_ctx', JSON.stringify(user));
@@ -140,7 +140,7 @@ async function prepareAuthenticatedDashboard(page: import('@playwright/test').Pa
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(setupStatus) });
   });
   await page.route('**/api/v1/dashboards', async (route) => {
-    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([responsiveDashboard]) });
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([dashboard]) });
   });
   await page.route('**/api/v1/dashboards/responsive-dashboard/history', async (route) => {
     await route.fulfill({
@@ -263,6 +263,127 @@ test('keeps dashboard controls readable on a high-resolution portrait kiosk', as
   await expect(menuToggle).toBeVisible();
 
 });
+
+for (const viewport of [viewports[2], viewports[1], { name: 'portrait kiosk', ...portraitKioskViewport }]) {
+  test(`Feature: Dashboard layout parity — Scenario: Editing preserves section geometry on ${viewport.name}`, async ({ page }) => {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    const layoutDevices = [1, 2].map((number) => ({
+      id: `layout-light-${number}`,
+      homeId: 'responsive-home',
+      roomId: 'responsive-room',
+      name: `Luz ${number}`,
+      type: 'light',
+      semanticType: 'light',
+      status: 'ASSIGNED',
+      lastKnownState: { state: 'off' },
+    }));
+    const layoutDashboard = {
+      ...responsiveDashboard,
+      tabs: [{
+        ...responsiveDashboard.tabs[0],
+        // No title widget: the edit-only add-title and add-section controls
+        // must not create extra auto-fit tracks or squeeze these sections.
+        widgets: ['Tech', 'Patio'].map((title, index) => ({
+          id: `layout-section-${index}`,
+          type: 'section',
+          config: {
+            layout: { x: index, y: 0, w: 1, h: 2, span: 1 },
+            binding: { entityId: `layout-section-${index}`, entityType: 'system', entityName: title },
+            visibility: { rules: [], defaultState: 'show' },
+            appearance: { title, showTitle: true },
+            extra: { cards: layoutDevices.map((device) => ({
+              id: `${index}-${device.id}`,
+              kind: 'light',
+              title: device.name,
+              entityId: device.id,
+              span: 'small',
+              icon: 'Lightbulb',
+            })) },
+          },
+        })),
+      }],
+    };
+    await prepareAuthenticatedDashboard(page, layoutDashboard);
+    await page.route('**/api/v1/devices', async (route) => {
+      await route.fulfill({ contentType: 'application/json', body: JSON.stringify([...responsiveDevices, ...layoutDevices]) });
+    });
+    await page.route('**/api/v1/scenes', async (route) => {
+      await route.fulfill({ contentType: 'application/json', body: '[]' });
+    });
+    await page.route('**/api/v1/automations', async (route) => {
+      await route.fulfill({ contentType: 'application/json', body: '[]' });
+    });
+    await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+
+    const canvas = page.locator('.homepilot-dashboard-content > div.grid');
+    const section = (title: string) => page.locator('.homepilot-dashboard-widget').filter({
+      has: page.getByRole('heading', { name: title, exact: true }),
+    });
+    await expect(section('Tech')).toBeVisible();
+    await expect(section('Patio')).toBeVisible();
+
+    const geometry = async (title: string) => section(title).evaluate((element) => {
+      const content = element.querySelector(':scope > div > section') as HTMLElement | null;
+      const cardGrid = content?.querySelector(':scope > div.grid') as HTMLElement | null;
+      const canvasElement = document.querySelector('.homepilot-dashboard-content > div.grid') as HTMLElement | null;
+      if (!content || !cardGrid || !canvasElement) throw new Error('Dashboard section geometry is unavailable');
+      const tracks = (template: string) => template.split(/\s+/).map(Number.parseFloat).filter((width) => Number.isFinite(width) && width > 1);
+      const sectionRect = element.getBoundingClientRect();
+      const gridRect = cardGrid.getBoundingClientRect();
+      return {
+        sectionWidth: sectionRect.width,
+        sectionHeight: sectionRect.height,
+        contentWidth: content.getBoundingClientRect().width,
+        cardGridWidth: gridRect.width,
+        cardGridHeight: gridRect.height,
+        cardTracks: tracks(getComputedStyle(cardGrid).gridTemplateColumns),
+        canvasWidth: canvasElement.getBoundingClientRect().width,
+        canvasTracks: tracks(getComputedStyle(canvasElement).gridTemplateColumns),
+        outlineStyle: getComputedStyle(element).outlineStyle,
+        toolbarPosition: getComputedStyle(element.querySelector(':scope > div.absolute.z-30') ?? element).position,
+      };
+    });
+    const settleLayout = () => page.evaluate(() => new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    }));
+    await settleLayout();
+    const view = await Promise.all(['Tech', 'Patio'].map(geometry));
+
+    await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
+    await expect(section('Tech').getByRole('button', { name: /Drag to reorder|Arrastrar para reordenar/i })).toBeVisible();
+    await settleLayout();
+    const edit = await Promise.all(['Tech', 'Patio'].map(geometry));
+
+    await expect(page.getByRole('button', { name: /^(Add title|Añadir título)$/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^(Add section|Añadir sección)$/i })).toBeVisible();
+    await expect(canvas.getByRole('button', { name: /^(Add title|Añadir título|Add section|Añadir sección)$/i })).toHaveCount(0);
+
+    const expectSameWidth = (before: number, after: number, label: string) => {
+      expect(Math.abs(after - before), `${viewport.name}: ${label}`).toBeLessThanOrEqual(2);
+    };
+    for (let index = 0; index < view.length; index += 1) {
+      const before = view[index]!;
+      const after = edit[index]!;
+      expect(before.sectionHeight).toBeGreaterThan(0);
+      expect(after.sectionHeight).toBeGreaterThan(0);
+      expect(before.sectionHeight).toBeGreaterThanOrEqual(before.cardGridHeight);
+      expect(after.sectionHeight).toBeGreaterThanOrEqual(after.cardGridHeight);
+      // The compact-card fixture leaves room for the edit-only add tile in
+      // the existing row; masonry row rounding may account for a few pixels.
+      expect(Math.abs(after.sectionHeight - before.sectionHeight)).toBeLessThanOrEqual(12);
+      expectSameWidth(before.sectionWidth, after.sectionWidth, `section ${index + 1}`);
+      expectSameWidth(before.contentWidth, after.contentWidth, `section content ${index + 1}`);
+      expectSameWidth(before.cardGridWidth, after.cardGridWidth, `card grid ${index + 1}`);
+      expectSameWidth(before.canvasWidth, after.canvasWidth, 'canvas');
+      expect(after.canvasTracks).toHaveLength(before.canvasTracks.length);
+      expect(after.cardTracks).toHaveLength(before.cardTracks.length);
+      before.canvasTracks.forEach((width, track) => expectSameWidth(width, after.canvasTracks[track]!, `canvas track ${track + 1}`));
+      before.cardTracks.forEach((width, track) => expectSameWidth(width, after.cardTracks[track]!, `card track ${track + 1}`));
+      expect(after.outlineStyle).toBe('dashed');
+      expect(after.toolbarPosition).toBe('absolute');
+    }
+  });
+}
 
 test('Feature: Section card editing — Scenario: An owner adds and configures a card without losing the dashboard', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });

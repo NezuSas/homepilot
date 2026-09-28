@@ -288,14 +288,29 @@ export function DashboardCanvas({
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
+      {canEditLayout && !titleWidget && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="md"
+          onClick={onAddTitleClick}
+          aria-label={t('dashboard.editor.sections.add_title')}
+          className="w-full rounded-section border-2 border-dashed border-border/60 bg-background/10 text-primary hover:border-primary/70 hover:bg-primary/5"
+        >
+          <span className="inline-flex items-center gap-2 rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-5 py-2 text-body font-semibold text-primary">
+            <span className="text-panel-title leading-none">+</span>
+            <span>{t('dashboard.editor.sections.add_title')}</span>
+          </span>
+        </Button>
+      )}
       <div
         ref={containerRef}
         className={cn(
           "relative w-full grid min-w-0 overflow-x-hidden transition-all duration-500",
           isPortraitKiosk && "homepilot-portrait-kiosk-canvas",
           isEditing
-            ? "min-h-[calc(100dvh-8rem)] border-2 border-dashed border-primary/10 bg-card/20 p-3 sm:p-4 bg-dashboard-grid bg-dashboard shadow-2xl shadow-primary/5"
-            : "border-transparent bg-transparent p-0"
+            ? "outline outline-2 outline-dashed outline-offset-[-2px] outline-primary/10 bg-card/20 bg-dashboard-grid bg-dashboard shadow-2xl shadow-primary/5"
+            : "bg-transparent"
         )}
         style={{
           // auto-fit + minmax(min(100%, 350px), 1fr): a section uses its 350px
@@ -308,9 +323,8 @@ export function DashboardCanvas({
           // 350px basis (+ the canvas gap) MUST match
           // getDashboardSectionColumns' own basis in dashboardUtils.ts —
           // that JS-computed count decides grid-column: span N for the
-          // title/add-section placeholders, and a mismatched count forces
-          // CSS to add an extra implicit column, which overflows the
-          // viewport instead of wrapping.
+          // actual title widget, and a mismatched count forces CSS to
+          // add an extra implicit column instead of wrapping.
           gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))',
           gridAutoRows: `${CANVAS_ROW_UNIT}px`,
           gridAutoFlow: 'row',
@@ -333,22 +347,6 @@ export function DashboardCanvas({
               onSelectTab={onSelectTab}
             />
           </CanvasFlowItem>
-        ) : canEditLayout ? (
-          <CanvasFlowItem span={columns} gap={gap}>
-            <Button
-              type="button"
-              variant="ghost"
-              size="md"
-              onClick={onAddTitleClick}
-              aria-label={t('dashboard.editor.sections.add_title')}
-              className="min-h-0 w-full rounded-section border-2 border-dashed border-border/60 bg-background/10 text-primary hover:border-primary/70 hover:bg-primary/5"
-            >
-              <span className="inline-flex items-center gap-2 rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-5 py-2 text-body font-semibold text-primary">
-                <span className="text-panel-title leading-none">+</span>
-                <span>{t('dashboard.editor.sections.add_title')}</span>
-              </span>
-            </Button>
-          </CanvasFlowItem>
         ) : null}
 
         <SortableContext items={flowWidgetIds} strategy={rectSortingStrategy}>
@@ -367,23 +365,6 @@ export function DashboardCanvas({
             />
           ))}
         </SortableContext>
-
-        {canEditLayout && (
-          <CanvasFlowItem span={1} gap={gap}>
-            <Button
-              type="button"
-              variant="ghost"
-              size="md"
-              onClick={onAddSectionClick}
-              aria-label={t('dashboard.editor.sections.add_section')}
-              className="min-h-0 w-full rounded-field border-2 border-dashed border-border/70 bg-background/10 text-primary hover:border-primary/70 hover:bg-primary/5"
-            >
-              <span className="inline-flex h-10 min-w-16 items-center justify-center rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-4 text-panel-title font-light leading-none text-primary">
-                +
-              </span>
-            </Button>
-          </CanvasFlowItem>
-        )}
 
         <ConfirmModal
           isOpen={pendingDeleteWidgetId !== null}
@@ -427,6 +408,20 @@ export function DashboardCanvas({
           ) : null}
         </DragOverlay>
       </div>
+      {canEditLayout && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="md"
+          onClick={onAddSectionClick}
+          aria-label={t('dashboard.editor.sections.add_section')}
+          className="w-full max-w-sm rounded-field border-2 border-dashed border-border/70 bg-background/10 text-primary hover:border-primary/70 hover:bg-primary/5"
+        >
+          <span className="inline-flex h-10 min-w-16 items-center justify-center rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-4 text-panel-title font-light leading-none text-primary">
+            +
+          </span>
+        </Button>
+      )}
     </DndContext>
   );
 }

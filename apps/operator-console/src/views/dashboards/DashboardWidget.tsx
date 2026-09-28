@@ -220,7 +220,7 @@ export function DashboardWidgetNode({
         // Editing restores the section boundary without changing its inner card grid.
         isSection
           ? (isEditing
-            ? "rounded-section border-2 border-dashed border-border/70 bg-background/10 p-3 shadow-sm transition-colors hover:border-primary/70"
+            ? "rounded-section outline outline-2 outline-dashed outline-offset-[-2px] outline-border/70 bg-background/10 shadow-sm transition-colors hover:outline-primary/70"
             : "rounded-2xl border-transparent bg-transparent shadow-none")
           : isCamera
             ? "rounded-2xl border-transparent bg-transparent shadow-none"
@@ -237,7 +237,7 @@ export function DashboardWidgetNode({
 
         isEditing && !isSection && "ring-2 ring-transparent hover:ring-primary/20",
         isEditing && isSelected && !isSection && "ring-primary shadow-xl shadow-primary/10 scale-[1.005]",
-        isEditing && isSection && isSelected && "border-primary bg-primary/5 shadow-primary-ring",
+        isEditing && isSection && isSelected && "outline-primary bg-primary/5 shadow-primary-ring",
         !isEditing && !isSection && "hover:shadow-lg hover:border-primary/20"
       )}
     >

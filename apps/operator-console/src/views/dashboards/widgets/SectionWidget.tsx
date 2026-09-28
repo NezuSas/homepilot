@@ -409,47 +409,28 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     </div>
   );
 
-  if (!isEditing) {
-    return (
-      <section
-        onClick={(event) => event.stopPropagation()}
-        className="flex h-full w-full min-w-0 flex-col gap-3 overflow-visible px-1 pb-2 pt-1"
-      >
-        {showTitle ? (
-          <h2 className="min-w-0 truncate text-dashboard-section-title-fluid font-black tracking-tight text-foreground">
-            {title}
-          </h2>
-        ) : null}
-
-        {sectionGrid}
-
-        {catalogModal}
-        {editorModal}
-      </section>
-    );
-  }
-
   return (
-    <div
+    <section
       onClick={(event) => event.stopPropagation()}
-      className="group/section relative flex min-h-fit w-full min-w-0 self-start flex-col overflow-visible px-1 pb-2 pt-1 text-left"
+      className={cn(
+        "flex h-full w-full min-w-0 flex-col gap-3 overflow-visible px-1 pb-2 pt-1",
+        isEditing && "group/section relative text-left",
+      )}
     >
-      <div className="mb-4 flex min-w-0 items-center gap-2">
-        {showTitle ? (
-          <h2 className="min-w-0 truncate text-dashboard-section-title-fluid font-black tracking-tight text-foreground">
-            {title}
-          </h2>
-        ) : (
-          <span className="text-body font-semibold text-muted-foreground">
-            {t('dashboard.editor.sections.untitled_section')}
-          </span>
-        )}
-      </div>
+      {showTitle ? (
+        <h2 className="min-w-0 truncate text-dashboard-section-title-fluid font-black tracking-tight text-foreground">
+          {title}
+        </h2>
+      ) : isEditing ? (
+        <span className="pointer-events-none absolute -top-5 left-1 text-body font-semibold text-muted-foreground">
+          {t('dashboard.editor.sections.untitled_section')}
+        </span>
+      ) : null}
 
       {sectionGrid}
 
       {catalogModal}
       {editorModal}
-    </div>
+    </section>
   );
 }
