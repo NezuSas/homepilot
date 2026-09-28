@@ -330,6 +330,7 @@ for (const viewport of [viewports[2], viewports[1], viewports[0], { name: 'portr
       const tracks = (template: string) => template.split(/\s+/).map(Number.parseFloat).filter((width) => Number.isFinite(width) && width > 1);
       const sectionRect = element.getBoundingClientRect();
       const gridRect = cardGrid.getBoundingClientRect();
+      const canvasRect = canvasElement.getBoundingClientRect();
       const heading = content.querySelector(':scope > h2') as HTMLElement | null;
       const cardRects = [...cardGrid.querySelectorAll<HTMLElement>(':scope > [data-card-id]')]
         .map((card) => card.getBoundingClientRect());
@@ -345,6 +346,7 @@ for (const viewport of [viewports[2], viewports[1], viewports[0], { name: 'portr
         cardGridHeight: gridRect.height,
         titleTop: (heading?.getBoundingClientRect().top ?? sectionRect.top) - sectionRect.top,
         titleToCards: cardRects[0] ? cardRects[0].top - (heading?.getBoundingClientRect().bottom ?? 0) : 0,
+        titleBackground: heading ? getComputedStyle(heading).backgroundColor : '',
         cardTopOffsets: cardRects.map((card) => card.top - gridRect.top),
         rowGap: getComputedStyle(cardGrid).rowGap,
         transitionProperty: getComputedStyle(element).transitionProperty,
@@ -354,11 +356,17 @@ for (const viewport of [viewports[2], viewports[1], viewports[0], { name: 'portr
         canvasWidth: canvasElement.getBoundingClientRect().width,
         canvasTracks: tracks(getComputedStyle(canvasElement).gridTemplateColumns),
         outlineStyle: getComputedStyle(element).outlineStyle,
+        outlineOffset: getComputedStyle(element).outlineOffset,
         toolbarPosition: getComputedStyle(toolbar ?? element).position,
         addCardLeft: addCardRect?.left ?? null,
         addCardRight: addCardRect?.right ?? null,
+        addCardTop: addCardRect?.top ?? null,
         toolbarLeft: toolbarRect?.left ?? null,
         sectionLeft: sectionRect.left,
+        sectionRight: sectionRect.right,
+        canvasLeft: canvasRect.left,
+        canvasRight: canvasRect.right,
+        gridBottom: gridRect.bottom,
         addCardInsideGrid: addCardButton ? cardGrid.contains(addCardButton) : false,
       };
     });
@@ -394,9 +402,14 @@ for (const viewport of [viewports[2], viewports[1], viewports[0], { name: 'portr
       expect(after.sectionHeight).toBeGreaterThan(0);
       expect(before.sectionHeight).toBeGreaterThanOrEqual(before.cardGridHeight);
       expect(after.sectionHeight).toBeGreaterThanOrEqual(after.cardGridHeight);
-      expect(Math.abs(after.sectionHeight - before.sectionHeight)).toBeLessThanOrEqual(2);
+      // The edit-only placeholder follows the real card grid, so the section
+      // may grow, but existing cards retain their view-mode geometry.
+      expect(after.sectionHeight).toBeGreaterThan(before.sectionHeight);
       expect(Math.abs(after.titleTop - before.titleTop)).toBeLessThanOrEqual(2);
       expect(Math.abs(after.titleToCards - before.titleToCards)).toBeLessThanOrEqual(2);
+      expect(before.titleTop).toBeGreaterThanOrEqual(8);
+      expect(before.titleBackground).not.toBe('rgba(0, 0, 0, 0)');
+      expect(after.titleBackground).toBe(before.titleBackground);
       expect(before.rowGap).toBe('8px');
       expect(after.rowGap).toBe('8px');
       expect(after.cardTopOffsets).toHaveLength(before.cardTopOffsets.length);
@@ -424,13 +437,17 @@ for (const viewport of [viewports[2], viewports[1], viewports[0], { name: 'portr
       before.canvasTracks.forEach((width, track) => expectSameWidth(width, after.canvasTracks[track]!, `canvas track ${track + 1}`));
       before.cardTracks.forEach((width, track) => expectSameWidth(width, after.cardTracks[track]!, `card track ${track + 1}`));
       expect(after.outlineStyle).toBe('dashed');
+      expect(Number.parseFloat(after.outlineOffset)).toBeLessThanOrEqual(-2);
+      expect(after.sectionLeft).toBeGreaterThanOrEqual(after.canvasLeft - 1);
+      expect(after.sectionRight).toBeLessThanOrEqual(after.canvasRight + 1);
       expect(after.toolbarPosition).toBe('absolute');
       expect(after.addCardInsideGrid).toBe(false);
-      if (after.addCardLeft === null || after.addCardRight === null || after.toolbarLeft === null) {
+      if (after.addCardLeft === null || after.addCardRight === null || after.addCardTop === null || after.toolbarLeft === null) {
         throw new Error(`${viewport.name}: edit controls are missing`);
       }
       expect(after.addCardLeft).toBeGreaterThanOrEqual(after.sectionLeft);
-      expect(after.addCardRight).toBeLessThanOrEqual(after.toolbarLeft - 4);
+      expect(after.addCardRight).toBeLessThanOrEqual(after.sectionRight);
+      expect(after.addCardTop).toBeGreaterThanOrEqual(after.gridBottom);
     }
   });
 }
@@ -567,7 +584,14 @@ test('Feature: Button card default — Scenario: A new button persists the first
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
   await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
   await page.getByRole('button', { name: /^(Add card|Añadir tarjeta)$/i }).click();
-  await page.getByRole('button', { name: /^(Button|Botón)$/i }).click();
+  const catalogButton = page.getByRole('button', { name: /^(Button|Botón)$/i });
+  const catalogCard = catalogButton.locator('..');
+  const catalogSpacing = await catalogCard.evaluate((element) => {
+    const lastLabel = element.querySelector(':scope > div:nth-child(2) > span:last-child');
+    return lastLabel ? element.getBoundingClientRect().bottom - lastLabel.getBoundingClientRect().bottom : Number.POSITIVE_INFINITY;
+  });
+  expect(catalogSpacing).toBeLessThanOrEqual(24);
+  await catalogButton.click();
 
   const editor = page.locator('[class*="max-w-xl"]').filter({ has: page.getByRole('heading', { name: /^(Edit|Editar)$/i }) });
   const preview = editor.locator('[class*="h-device-card-compact"]').first();
@@ -583,6 +607,38 @@ test('Feature: Button card default — Scenario: A new button persists the first
   const buttonCard = page.locator('[data-card-id]').filter({ hasText: /^(Button|Botón)$/i }).last();
   await expect(buttonCard).toHaveClass(/col-span-1/);
   await expect.poll(() => JSON.stringify(savedDashboard)).toMatch(/"kind":"light"[^}]*"span":"small"/);
+});
+
+test('Feature: Dashboard import — Scenario: Pending bindings and local backgrounds are reported without exposing source IDs', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await prepareAuthenticatedDashboard(page);
+  await page.route('**/api/v1/dashboards/import', async (route) => {
+    await route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        ...responsiveDashboard,
+        id: 'imported-dashboard',
+        title: 'Importado',
+        tabs: [{ ...responsiveDashboard.tabs[0], id: 'imported-tab' }],
+        importReport: {
+          unresolvedBindings: [{ tabTitle: 'Principal', widgetId: 'imported-widget', cardId: 'card-1', title: 'Luz', targetType: 'device' }],
+          nonPortableBackgrounds: 1,
+        },
+      }),
+    });
+  });
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  await page.locator('.homepilot-dashboard-titlebar input[type="file"]').setInputFiles({
+    name: 'dashboard.json', mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify({ format: 'homepilot-dashboard', version: 1, dashboard: { title: 'Importado', tabs: [] } })),
+  });
+
+  await expect(page.getByText(/Tablero importado con elementos pendientes|Dashboard imported with pending items/i)).toBeVisible();
+  await expect(page.getByText(/Asignaciones sin resolver: 1|Unresolved assignments: 1/i)).toBeVisible();
+  await page.getByText(/Ver tarjetas y controles pendientes|Show pending cards and controls/i).click();
+  await expect(page.getByText('Principal · Luz')).toBeVisible();
+  await expect(page.getByText('imported-widget')).toHaveCount(0);
 });
 
 test('Feature: Button card — Scenario: A scene briefly lights its icon without pretending to stay on', async ({ page }) => {

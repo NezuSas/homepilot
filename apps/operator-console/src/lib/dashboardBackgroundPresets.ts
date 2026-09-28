@@ -1,3 +1,9 @@
+import {
+  DASHBOARD_BACKGROUND_PRESETS,
+  getDashboardBackgroundPresetIdBySource,
+  type DashboardBackgroundPresetId,
+} from '../../../../packages/topology/domain/DashboardBackgroundPresets';
+
 export interface DashboardBackgroundPreset {
   id: string;
   src: string;
@@ -5,35 +11,31 @@ export interface DashboardBackgroundPreset {
   descriptionKey: string;
 }
 
-export const dashboardBackgroundPresets: readonly DashboardBackgroundPreset[] = [
-  {
-    id: 'warm-graphite-residence',
-    src: '/dashboard-backgrounds/warm-graphite-residence.png',
+const PRESET_UI_METADATA: Record<DashboardBackgroundPresetId, Pick<DashboardBackgroundPreset, 'labelKey' | 'descriptionKey'>> = {
+  'warm-graphite-residence': {
     labelKey: 'dashboards.view_config.background_presets.warm_graphite.label',
     descriptionKey: 'dashboards.view_config.background_presets.warm_graphite.description',
   },
-  {
-    id: 'mineral-dawn',
-    src: '/dashboard-backgrounds/mineral-dawn.png',
+  'mineral-dawn': {
     labelKey: 'dashboards.view_config.background_presets.mineral_dawn.label',
     descriptionKey: 'dashboards.view_config.background_presets.mineral_dawn.description',
   },
-  {
-    id: 'copper-horizon',
-    src: '/dashboard-backgrounds/copper-horizon.png',
+  'copper-horizon': {
     labelKey: 'dashboards.view_config.background_presets.copper_horizon.label',
     descriptionKey: 'dashboards.view_config.background_presets.copper_horizon.description',
   },
-  {
-    id: 'quiet-atrium',
-    src: '/dashboard-backgrounds/quiet-atrium.png',
+  'quiet-atrium': {
     labelKey: 'dashboards.view_config.background_presets.quiet_atrium.label',
     descriptionKey: 'dashboards.view_config.background_presets.quiet_atrium.description',
   },
-];
+};
+
+export const dashboardBackgroundPresets: readonly DashboardBackgroundPreset[] = DASHBOARD_BACKGROUND_PRESETS.map(
+  (preset) => ({ ...preset, ...PRESET_UI_METADATA[preset.id] }),
+);
 
 export function getDashboardBackgroundSource(background: string, apiBaseUrl: string): string {
-  const isBundledBackground = dashboardBackgroundPresets.some((preset) => preset.src === background);
+  const isBundledBackground = getDashboardBackgroundPresetIdBySource(background) !== undefined;
   if (isBundledBackground || !background.startsWith('/')) return background;
   return `${apiBaseUrl}${background}`;
 }

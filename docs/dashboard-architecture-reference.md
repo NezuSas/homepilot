@@ -125,12 +125,15 @@ Concretely, top to bottom:
   style role gate beyond what's encoded in those lists.
 - **`isDefault`** (per tab): opens automatically on page load instead of
   the first tab.
-- **Background + backgroundOpacity** (per tab): a locally stored image
-  reference, not portable across exports.
+- **Background + backgroundOpacity** (per tab): bundled HomePilot presets
+  are portable by logical ID; uploaded media paths remain appliance-local.
 - **Export/import**: a versioned `homepilot-dashboard` transfer package
-  deliberately excludes ownership, visibility policy, and local background
-  references — importing a dashboard can never disclose another resident's
-  access policy or point at storage that doesn't exist on the new install.
+  excludes ownership, visibility policy, and uploaded background paths. A
+  bundled preset travels by logical ID, while an uploaded image is marked
+  unavailable and falls back safely on import. Installation-specific bindings
+  are retained only when a compatible target exists in an authorized home;
+  otherwise the card/widget remains unassigned and the import response includes
+  an optional report of unresolved bindings and non-portable backgrounds.
 - **Revisions**: every save creates a local, restorable snapshot (`title`,
   `visibility`, `tabs`), also excluding backgrounds.
 - **System Variables** (`packages/system-vars`, `SystemVariableRoutes`): a

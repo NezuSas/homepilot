@@ -32,6 +32,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - **REQ-06:** Las tarjetas de control reflejan el estado real y ejecutan solo acciones soportadas por su entidad.
 - **REQ-07:** Las variables de identidad del título se resuelven exclusivamente desde el contexto autenticado de HomePilot.
 - **REQ-08:** El propietario puede exportar un tablero como un archivo versionado e importar una copia en su propia cuenta, sin sobrescribir tableros existentes.
+  La importación conserva bindings solo si el target compatible existe en un hogar accesible al importador; en caso contrario mantiene el widget/card desasignado y reporta el pendiente, sin remapear por nombre ni rechazar el tablero completo. Los fondos integrados viajan por ID lógico; los uploads locales nunca viajan como ruta o binario y se notifican como no portables.
 - **REQ-09:** Cada actualización de tablero crea una revisión local recuperable por su propietario; la restauración debe crear otra revisión del estado actual antes de aplicar la elegida.
 - **REQ-10:** En modo edición, el encabezado de una vista usa los mismos affordances que una tarjeta: lápiz centrado al hover/foco y menú contextual con editar y eliminar; fuera de edición no expone esos controles.
 
@@ -88,6 +89,8 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - [x] AC33: La pestaña activa conserva su borde completo al hover; la tarjeta multimedia y el encabezado solo muestran acciones de desborde durante edición. El encabezado ofrece lápiz centrado y menú Editar/Eliminar con confirmación antes de borrarse.
 - [x] AC34: A 320px el canvas y el modal de configuración no generan desborde horizontal; las pestañas del modal usan iconos accesibles y las tarjetas de sección conservan un ancho táctil de dos columnas.`r`n- [x] AC34: A 320px el canvas y el modal de configuración no generan desborde horizontal; las pestañas del modal usan iconos accesibles y las tarjetas de sección conservan un ancho táctil de dos columnas.
 - [x] AC35: Las cámaras de Gestor de Dispositivos y ambos tipos de tarjeta del Dashboard comparten la presentación original del Dashboard: imagen protagonista con nombre y espacio superpuestos al pie. Muestran carga hasta el primer fotograma, dejan la imagen sin márgenes ni etiquetas redundantes y permiten ampliar pulsando la tarjeta completa, sin un botón flotante que tape la imagen y con acceso por teclado. El visor ampliado adapta su superficie a la proporción real del fotograma para mostrarlo completo, sin recortar bordes ni crear franjas internas; «En vivo», cierre y nombre permanecen superpuestos al video, sin cabecera ni pie.
+- [ ] AC36: El round-trip conserva orden, iconos, spans y apariencia; los enlaces internos a pestañas usan los nuevos IDs. Bindings externos se conservan solo si existen, son compatibles y pertenecen a un hogar autorizado; los ausentes quedan desasignados y aparecen en un reporte seguro y opcional de la respuesta API, manteniendo el cuerpo Dashboard compatible.
+- [ ] AC37: Un fondo built-in viaja por ID lógico y recupera su opacidad; un fondo local subido no serializa su ruta y al importar usa el fallback seguro con reporte de asset omitido. Archivos mal formados devuelven DASHBOARD_IMPORT_INVALID.
 
 ## 7. Notas Técnicas y Arquitectura
 

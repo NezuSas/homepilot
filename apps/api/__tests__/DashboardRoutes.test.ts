@@ -109,13 +109,17 @@ describe('Feature: dashboard route contract', () => {
     const routes = new DashboardRoutes(createMediaService());
     const container = createContainer();
     const transfer = { version: 1, dashboard: { title: 'Imported', tabs: [] } };
-    container.services.dashboardService.importDashboard = jest.fn().mockResolvedValue({ id: 'imported-1' });
+    container.services.dashboardService.importDashboard = jest.fn().mockResolvedValue({
+      id: 'imported-1',
+      importReport: { unresolvedBindings: [{ tabTitle: 'Sala', widgetId: 'new-widget', cardId: 'card-1', title: 'Luz', targetType: 'device' }], nonPortableBackgrounds: 1 },
+    });
     const response = new MockResponse();
 
     await routes.handle(createRequest(transfer), response as unknown as http.ServerResponse, '/api/v1/dashboards/import', 'POST', container);
 
     expect(container.services.dashboardService.importDashboard).toHaveBeenCalledWith('owner-1', transfer);
     expect(response.writeHead).toHaveBeenCalledWith(201, expect.any(Object));
+    expect(response.end).toHaveBeenCalledWith(expect.stringContaining('"unresolvedBindings"'));
   });
 
   it('Scenario: Given dashboard revision requests When history is loaded and restored Then the owner receives both responses', async () => {

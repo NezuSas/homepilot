@@ -14,6 +14,10 @@ import { SonoffLanDiscoveryService } from '../../packages/integrations/sonoff/ap
 import { SQLiteTopologyReferenceAdapter } from '../../packages/topology/infrastructure/adapters/SQLiteTopologyReferenceAdapter';
 import { AssistantActionService } from '../../packages/assistant/application/AssistantActionService';
 import { DashboardService } from '../../packages/topology/application/DashboardService';
+import { RepositoryDashboardImportBindingResolver } from '../adapters/RepositoryDashboardImportBindingResolver';
+import type { DeviceControlCatalogProvider } from '../../packages/cloud-gateway/application/DeviceControlCatalogProvider';
+import type { SqliteSceneRepository } from '../../packages/devices/infrastructure/repositories/SqliteSceneRepository';
+import type { SQLiteAutomationRuleRepository } from '../../packages/devices/infrastructure/repositories/SQLiteAutomationRuleRepository';
 import { NativeCameraDeviceDriver } from '../../packages/integrations/native-camera/infrastructure/NativeCameraDeviceDriver';
 import { AndroidDisplayDeviceDriver } from '../../packages/integrations/android-display/infrastructure/AndroidDisplayDeviceDriver';
 import type { SQLiteAndroidDisplaySourceRepository } from '../../packages/integrations/android-display/infrastructure/SQLiteAndroidDisplaySourceRepository';
@@ -52,6 +56,9 @@ export interface CommandRouterDeps {
   assistantFindingRepository: SQLiteAssistantFindingRepository;
   assistantFeedbackRepository: SQLiteAssistantFeedbackRepository;
   dashboardRepository: SQLiteDashboardRepository;
+  sceneRepository: SqliteSceneRepository;
+  automationRuleRepository: SQLiteAutomationRuleRepository;
+  deviceControlCatalogProvider: DeviceControlCatalogProvider;
   nativeCameraSourceRepository: SQLiteNativeCameraSourceRepository;
   nativeCameraDriverRegistry: NativeCameraDriverRegistry;
   androidDisplaySourceRepository: SQLiteAndroidDisplaySourceRepository;
@@ -71,6 +78,9 @@ export function buildCommandRouter(deps: CommandRouterDeps): CommandRouterAssemb
     assistantFindingRepository,
     assistantFeedbackRepository,
     dashboardRepository,
+    sceneRepository,
+    automationRuleRepository,
+    deviceControlCatalogProvider,
     nativeCameraSourceRepository,
     nativeCameraDriverRegistry,
     androidDisplaySourceRepository,
@@ -105,7 +115,12 @@ export function buildCommandRouter(deps: CommandRouterDeps): CommandRouterAssemb
     }
   });
 
-  const dashboardService = new DashboardService(dashboardRepository, homeRepository);
+  const dashboardService = new DashboardService(
+    dashboardRepository, homeRepository,
+    new RepositoryDashboardImportBindingResolver(
+      deviceRepository, roomRepository, sceneRepository, automationRuleRepository, deviceControlCatalogProvider,
+    ),
+  );
 
   // -- SONOFF --
   const sonoffDiscoveryService = new SonoffLanDiscoveryService({

@@ -1,6 +1,6 @@
 import { API_BASE_URL } from '../../config';
 import { apiFetch, getApiRequestScope, readApiError } from '../../lib/apiClient';
-import type { Dashboard } from './types';
+import type { Dashboard, DashboardImportResponse } from './types';
 import type { DashboardRevisionSummary } from '../../components/DashboardHistoryModal';
 
 const API = `${API_BASE_URL}/api/v1`;
@@ -71,12 +71,16 @@ export async function exportDashboard(id: string, fallback: string): Promise<unk
   return response.json();
 }
 
-export function importDashboard(transfer: unknown, fallback: string): Promise<Dashboard> {
-  return expectDashboard(apiFetch(`${API}/dashboards/import`, {
+export async function importDashboard(transfer: unknown, fallback: string): Promise<DashboardImportResponse> {
+  const response = await apiFetch(`${API}/dashboards/import`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(transfer),
-  }), fallback);
+  });
+  if (!response.ok) throw new Error(await readApiError(response, fallback));
+  const imported = await response.json() as DashboardImportResponse;
+  invalidateDashboardCatalog();
+  return imported;
 }
 
 export async function loadDashboardHistory(id: string, fallback: string): Promise<DashboardRevisionSummary[]> {

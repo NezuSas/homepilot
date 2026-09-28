@@ -101,7 +101,7 @@ export function SectionCardCatalogModal({
 
           <div className="max-h-section-editor overflow-y-auto p-6">
             {items.length > 0 ? (
-              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              <div className="grid grid-cols-1 items-start gap-5 md:grid-cols-2">
                 {items.map((item) => (
                   <div
                     key={item.kind}

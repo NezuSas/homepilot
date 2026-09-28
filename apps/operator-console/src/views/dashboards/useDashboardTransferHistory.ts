@@ -1,7 +1,7 @@
 import { useState, type Dispatch, type SetStateAction } from 'react';
 import type { TFunction } from 'i18next';
 import type { DashboardRevisionSummary } from '../../components/DashboardHistoryModal';
-import type { Dashboard } from './types';
+import type { Dashboard, DashboardImportReport } from './types';
 import { exportDashboard, importDashboard, loadDashboardHistory, restoreDashboardRevision } from './dashboardOperations';
 
 interface DashboardTransferHistoryOptions {
@@ -20,6 +20,7 @@ export function useDashboardTransferHistory({
   setActiveTabIdx, setIsEditing, getDefaultTabIndex,
 }: DashboardTransferHistoryOptions) {
   const [isTransferring, setIsTransferring] = useState(false);
+  const [importReport, setImportReport] = useState<{ dashboardId: string; report: DashboardImportReport } | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [revisions, setRevisions] = useState<DashboardRevisionSummary[]>([]);
@@ -53,6 +54,7 @@ export function useDashboardTransferHistory({
     if (isTransferring) return;
     setIsTransferring(true);
     setError('');
+    setImportReport(null);
     try {
       let transfer: unknown;
       try {
@@ -61,10 +63,14 @@ export function useDashboardTransferHistory({
         throw new Error(t('dashboards.transfer.error_import'));
       }
       const imported = await importDashboard(transfer, t('dashboards.transfer.error_import'));
-      publishDashboards((current) => [...current, imported]);
-      setActive(imported);
+      const { importReport: report, ...dashboard } = imported;
+      publishDashboards((current) => [...current, dashboard]);
+      setActive(dashboard);
       setActiveTabIdx(0);
       setIsEditing(true);
+      if (report && (report.unresolvedBindings.length > 0 || report.nonPortableBackgrounds > 0)) {
+        setImportReport({ dashboardId: dashboard.id, report });
+      }
     } catch (error_: unknown) {
       setError(error_ instanceof Error ? error_.message : t('dashboards.transfer.error_import'));
     } finally {
@@ -108,7 +114,7 @@ export function useDashboardTransferHistory({
   };
 
   return {
-    isTransferring, handleExport, handleImport, isHistoryOpen, setIsHistoryOpen,
+    isTransferring, handleExport, handleImport, importReport, isHistoryOpen, setIsHistoryOpen,
     isHistoryLoading, revisions, revisionPendingRestore, setRevisionPendingRestore,
     isRestoringRevision, handleOpenHistory, handleRestoreRevision,
   };

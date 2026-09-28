@@ -37,8 +37,8 @@ export const DASHBOARD_TRANSFER_VERSION = 1;
 
 /**
  * Portable dashboard representation. It deliberately excludes ownership,
- * visibility and locally stored backgrounds so importing it cannot disclose
- * another resident's access policy or leave media references broken.
+ * visibility and locally stored background paths. Bundled backgrounds travel
+ * by logical preset ID; uploaded assets are represented only as unavailable.
  */
 export interface DashboardTransferPackage {
   format: typeof DASHBOARD_TRANSFER_FORMAT;
@@ -46,8 +46,39 @@ export interface DashboardTransferPackage {
   exportedAt: string;
   dashboard: {
     title: string;
-    tabs: DashboardTab[];
+    tabs: Array<Omit<DashboardTab, 'background'> & {
+      background?: never;
+      /** Bundled asset identifier, never an appliance-local media path. */
+      backgroundPresetId?: string;
+      /** Indicates an uploaded background was omitted from this JSON transfer. */
+      backgroundUnavailable?: true;
+    }>;
   };
+}
+
+export interface DashboardImportReport {
+  unresolvedBindings: Array<{
+    tabTitle: string;
+    widgetId: string;
+    cardId?: string;
+    title: string;
+    targetType: string;
+  }>;
+  nonPortableBackgrounds: number;
+}
+
+export type DashboardImportResponse = Dashboard & { importReport?: DashboardImportReport };
+
+export interface DashboardImportTarget {
+  type: 'device' | 'room' | 'scene' | 'automation' | 'action' | 'device-action';
+  id: string;
+  cardKind?: string;
+  actionKey?: string;
+}
+
+/** Infrastructure resolves only targets inside a home accessible to the importer. */
+export interface DashboardImportBindingResolver {
+  exists(authorizedHomeIds: ReadonlySet<string>, target: DashboardImportTarget): Promise<boolean>;
 }
 
 /**

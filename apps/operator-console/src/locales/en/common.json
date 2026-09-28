@@ -1545,7 +1545,11 @@
       "export": "Export dashboard",
       "import": "Import dashboard",
       "error_export": "The dashboard could not be exported",
-      "error_import": "The dashboard could not be imported"
+      "error_import": "The dashboard could not be imported",
+      "pending_title": "Dashboard imported with pending items",
+      "pending_message": "Unresolved assignments: {{bindings}}. Local backgrounds not included: {{backgrounds}}. You can assign controls in dashboard edit mode.",
+      "pending_details": "Show pending cards and controls",
+      "pending_item": "{{tab}} · {{title}}"
     },
     "history": {
       "action": "Dashboard history",

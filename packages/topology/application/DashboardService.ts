@@ -5,17 +5,27 @@ import {
   DashboardRevisionSnapshot,
   DashboardTab,
   DashboardTransferPackage,
+  DashboardImportBindingResolver,
+  DashboardImportReport,
+  DashboardImportResponse,
   DashboardVisibility,
   DASHBOARD_TRANSFER_FORMAT,
   DASHBOARD_TRANSFER_VERSION,
 } from '../domain/Dashboard';
 import { HomeRepository } from '../domain/repositories/HomeRepository';
+import {
+  getDashboardBackgroundPreset,
+  getDashboardBackgroundPresetIdBySource,
+  isDashboardBackgroundPresetId,
+} from '../domain/DashboardBackgroundPresets';
 import { randomUUID } from 'crypto';
+import { normalizeImportedWidgets } from './DashboardImportNormalizer';
 
 export class DashboardService {
   constructor(
     private readonly dashboardRepository: DashboardRepository,
-    private readonly homeRepository: HomeRepository
+    private readonly homeRepository: HomeRepository,
+    private readonly importBindingResolver?: DashboardImportBindingResolver,
   ) {}
 
   public async getDashboardsForUser(userId: string, userRole: string): Promise<Dashboard[]> {
@@ -60,17 +70,22 @@ export class DashboardService {
       exportedAt: new Date().toISOString(),
       dashboard: {
         title: dashboard.title,
-        tabs: dashboard.tabs.map(tab => ({
-          id: tab.id,
-          title: tab.title,
-          widgets: tab.widgets,
-          icon: tab.icon,
-        })),
+        tabs: dashboard.tabs.map(tab => {
+          const presetId = getDashboardBackgroundPresetIdBySource(tab.background);
+          return {
+            id: tab.id,
+            title: tab.title,
+            widgets: tab.widgets,
+            icon: tab.icon,
+            ...(presetId ? { backgroundPresetId: presetId, backgroundOpacity: tab.backgroundOpacity } : {}),
+            ...(tab.background && !presetId ? { backgroundUnavailable: true as const } : {}),
+          };
+        }),
       },
     };
   }
 
-  public async importDashboard(userId: string, transfer: unknown): Promise<Dashboard> {
+  public async importDashboard(userId: string, transfer: unknown): Promise<DashboardImportResponse> {
     if (!isDashboardTransferPackage(transfer)) {
       throw new Error('DASHBOARD_IMPORT_INVALID');
     }
@@ -82,27 +97,50 @@ export class DashboardService {
     if (!title || transfer.dashboard.tabs.length === 0) {
       throw new Error('DASHBOARD_IMPORT_INVALID');
     }
+    if (new Set(transfer.dashboard.tabs.map((tab) => tab.id)).size !== transfer.dashboard.tabs.length
+      || transfer.dashboard.tabs.some((tab) => new Set(tab.widgets.map((widget) => widget.id)).size !== tab.widgets.length)) {
+      throw new Error('DASHBOARD_IMPORT_INVALID');
+    }
 
+    const report: DashboardImportReport = { unresolvedBindings: [], nonPortableBackgrounds: 0 };
+    const authorizedHomeIds = new Set((await this.homeRepository.findHomesByUserId(userId)).map((home) => home.id));
+    const tabIds = new Map(transfer.dashboard.tabs.map((tab) => [tab.id, randomUUID()]));
+    const tabs = await Promise.all(transfer.dashboard.tabs.map(async (tab) => {
+      const legacyBackground = (tab as unknown as Record<string, unknown>).background;
+      const presetId = tab.backgroundPresetId
+        ?? (typeof legacyBackground === 'string' ? getDashboardBackgroundPresetIdBySource(legacyBackground) : undefined);
+      if (presetId !== undefined && !isDashboardBackgroundPresetId(presetId)) throw new Error('DASHBOARD_IMPORT_INVALID');
+      if (tab.backgroundUnavailable === true || (typeof legacyBackground === 'string' && !presetId)) {
+        report.nonPortableBackgrounds += 1;
+      }
+      const { backgroundPresetId: _presetId, backgroundUnavailable: _unavailable, ...portableTab } = tab;
+      return {
+        ...portableTab,
+        id: tabIds.get(tab.id)!,
+        background: presetId ? getDashboardBackgroundPreset(presetId)?.src : undefined,
+        backgroundOpacity: presetId && typeof tab.backgroundOpacity === 'number'
+          && Number.isFinite(tab.backgroundOpacity) && tab.backgroundOpacity >= 0 && tab.backgroundOpacity <= 100
+          ? tab.backgroundOpacity : undefined,
+        visibility: undefined,
+        isDefault: false,
+        widgets: await normalizeImportedWidgets(
+          tab.widgets, tab.title, authorizedHomeIds, tabIds, this.importBindingResolver, report,
+        ),
+      };
+    }));
     const now = new Date().toISOString();
     const dashboard: Dashboard = {
       id: randomUUID(),
       ownerId: userId,
       title,
       visibility: { roles: [], users: [userId], homes: [] },
-      tabs: transfer.dashboard.tabs.map(tab => ({
-        ...tab,
-        id: randomUUID(),
-        background: undefined,
-        visibility: undefined,
-        isDefault: false,
-        widgets: tab.widgets.map(widget => ({ ...widget, id: randomUUID() })),
-      })),
+      tabs,
       createdAt: now,
       updatedAt: now,
     };
 
     await this.dashboardRepository.saveDashboard(dashboard);
-    return dashboard;
+    return { ...dashboard, importReport: report };
   }
 
   public async updateDashboard(
@@ -237,7 +275,28 @@ function isDashboardTransferPackage(value: unknown): value is DashboardTransferP
   const candidate = value as Partial<DashboardTransferPackage>;
   return candidate.format === DASHBOARD_TRANSFER_FORMAT
     && typeof candidate.version === 'number'
-    && Boolean(candidate.dashboard)
+    && candidate.dashboard !== null
+    && typeof candidate.dashboard === 'object'
+    && !Array.isArray(candidate.dashboard)
     && typeof candidate.dashboard?.title === 'string'
-    && Array.isArray(candidate.dashboard?.tabs);
+    && Array.isArray(candidate.dashboard?.tabs)
+    && candidate.dashboard.tabs.every((tab) =>
+      tab !== null
+      && typeof tab === 'object'
+      && !Array.isArray(tab)
+      && typeof tab.id === 'string' && Boolean(tab.id.trim())
+      && typeof tab.title === 'string' && Boolean(tab.title.trim())
+      && (tab.backgroundPresetId === undefined || (typeof tab.backgroundPresetId === 'string' && Boolean(tab.backgroundPresetId.trim())))
+      && (tab.backgroundUnavailable === undefined || tab.backgroundUnavailable === true)
+      && (tab.backgroundOpacity === undefined || (typeof tab.backgroundOpacity === 'number' && Number.isFinite(tab.backgroundOpacity) && tab.backgroundOpacity >= 0 && tab.backgroundOpacity <= 100))
+      && Array.isArray(tab.widgets)
+      && tab.widgets.every((widget) =>
+        widget !== null
+        && typeof widget === 'object'
+        && !Array.isArray(widget)
+        && typeof widget.id === 'string' && Boolean(widget.id.trim())
+        && typeof widget.type === 'string' && Boolean(widget.type.trim())
+        && widget.config !== null
+        && typeof widget.config === 'object'
+        && !Array.isArray(widget.config)));
 }

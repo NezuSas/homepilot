@@ -193,6 +193,11 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
 
   // 2. Repositorios y Módulos Base
   const repos = buildRepositories(dbPath, db);
+  const manifestCacheRepository = new SqliteManifestCacheRepository(dbPath);
+  const deviceControlCatalogProvider = new DeviceControlCatalogProvider({
+    cache: manifestCacheRepository,
+    devices: repos.deviceRepository,
+  });
   const topologyReferencePort = new RepositoryTopologyReferenceAdapter(
     repos.homeRepository,
     repos.roomRepository
@@ -258,6 +263,9 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     assistantFindingRepository: assistantAssembly.assistantRepository,
     assistantFeedbackRepository: assistantAssembly.assistantFeedbackRepository,
     dashboardRepository: repos.dashboardRepository,
+    sceneRepository: repos.sceneRepository,
+    automationRuleRepository: repos.automationRuleRepository,
+    deviceControlCatalogProvider,
     nativeCameraSourceRepository: repos.nativeCameraSourceRepository,
     nativeCameraDriverRegistry: nativeCameraModule.nativeCameraDriverRegistry,
     androidDisplaySourceRepository: repos.androidDisplaySourceRepository,
@@ -408,7 +416,6 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     roomManagementService
   );
 
-  const manifestCacheRepository = new SqliteManifestCacheRepository(dbPath);
   const directoryTokenClient = new DirectoryEdgeServiceTokenClient(readCloudEdgeConfig);
   const manifestSyncService = new ManifestSyncService({
     directory: directoryTokenClient,
@@ -458,10 +465,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
         cache: manifestCacheRepository,
         devices: repos.deviceRepository,
       }),
-      deviceControlCatalogProvider: new DeviceControlCatalogProvider({
-        cache: manifestCacheRepository,
-        devices: repos.deviceRepository,
-      })
+      deviceControlCatalogProvider
     },
     guards: {
       authGuard: authModule.authGuard

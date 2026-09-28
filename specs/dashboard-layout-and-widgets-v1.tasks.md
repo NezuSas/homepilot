@@ -2,6 +2,7 @@
 
 ## Implementado
 
+
 - [x] CRUD de dashboards, pestañas, secciones, widgets y visibilidad de usuarios.
 - [x] Canvas responsive, widgets tipados y catálogo MDI diferido.
 - [x] Controles por capacidad, cámaras, sensores, reloj, escena y media player.
@@ -22,6 +23,8 @@
 - [x] AC27: Added a contextual card hover/focus scrim, bounded each editable section with a dashed Home Assistant-style surface, connected direct move, edit, delete, and drag-resize interactions, and moved the section-width picker into the section toolbar; the add-section affordance now consumes one column. Section deletion now opens a destructive confirmation modal before mutating the layout.
 
 ## Verificación obligatoria ante cambios
+
+- [ ] Validar externamente AC36–AC37: tests de round-trip, bindings existentes/ausentes/incompatibles, hogar autorizado, reporte de pendientes, presets y fondos locales. Código y regresiones escritos; no ejecutados en este worktree por restricción de la tarea.
 
 - [ ] Probar móvil, tablet y escritorio con contenido largo y fondos activos.
 - [ ] Probar acceso directo de usuario autorizado y no autorizado.

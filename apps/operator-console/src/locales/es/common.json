@@ -1545,7 +1545,11 @@
       "export": "Exportar tablero",
       "import": "Importar tablero",
       "error_export": "No se pudo exportar el tablero",
-      "error_import": "No se pudo importar el tablero"
+      "error_import": "No se pudo importar el tablero",
+      "pending_title": "Tablero importado con elementos pendientes",
+      "pending_message": "Asignaciones sin resolver: {{bindings}}. Fondos locales no incluidos: {{backgrounds}}. Puedes asignar los controles desde la edición del tablero.",
+      "pending_details": "Ver tarjetas y controles pendientes",
+      "pending_item": "{{tab}} · {{title}}"
     },
     "history": {
       "action": "Historial del tablero",

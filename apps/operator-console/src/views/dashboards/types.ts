@@ -83,6 +83,19 @@ export interface Dashboard {
   updatedAt: string;
 }
 
+export interface DashboardImportReport {
+  unresolvedBindings: Array<{
+    tabTitle: string;
+    widgetId: string;
+    cardId?: string;
+    title: string;
+    targetType: string;
+  }>;
+  nonPortableBackgrounds: number;
+}
+
+export type DashboardImportResponse = Dashboard & { importReport?: DashboardImportReport };
+
 export interface DashboardTemplate {
   id: string;
   name: string;

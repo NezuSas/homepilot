@@ -11,7 +11,7 @@ import { useDeviceSnapshotStore } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig } from '../types';
 import { cardKinds, createId, getCatalogCategory, getCatalogDescriptionKey, getCatalogLabelKey, getDefaultIcon, getDefaultSpan, getEffectiveCardSpan, getRecommendedSectionHeight, getWidgetType, isClockKind, normalizeCards, normalizeKind, type AssignableAutomation, type AssignableDisplayAction, type AssignableScene, type CardDraft, type NormalizedSectionCardItem, type NormalizedSectionCardKind, type SectionCardCategory, type SectionCardIcon, type SectionCardKind, type SectionCardSpan } from './sectionCardCatalog';
 import { getAssignableDevicesForSectionCard, isDeviceActive } from '../dashboardUtils';
-import { IconButton } from '../../../components/ui/IconButton';
+import { Button } from '../../../components/ui/Button';
 import { useMasonryRowSpans } from './useMasonryRowSpans';
 import { getAssignableRooms, isAutomationEntityId, normalizeAssignableAutomation, normalizeAssignableDisplayAction, normalizeAssignableScene, stripAutomationEntityPrefix, toDeviceActionEntityId } from './sectionCardAssignments';
 import { SectionCardContent } from './SectionCardContent';
@@ -389,12 +389,12 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     <section
       onClick={(event) => event.stopPropagation()}
       className={cn(
-        "flex h-full w-full min-w-0 flex-col gap-3 overflow-visible px-1 pb-2 pt-1",
+        "flex h-full w-full min-w-0 flex-col gap-3 overflow-visible px-1 pb-2 pt-3",
         isEditing && "group/section relative text-left",
       )}
     >
       {showTitle ? (
-        <h2 className="min-w-0 truncate text-dashboard-section-title-fluid font-black tracking-tight text-foreground">
+        <h2 className="w-fit max-w-full truncate rounded-lg bg-background/80 px-2 py-1 text-dashboard-section-title-fluid font-black tracking-tight text-foreground backdrop-blur-sm">
           {title}
         </h2>
       ) : isEditing ? (
@@ -406,17 +406,22 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       {sectionGrid}
 
       {isEditing ? (
-        <IconButton
-          icon={Plus}
-          label={t('dashboard.editor.sections.add_card')}
-          variant="ghost"
-          size="sm"
-          onClick={(event) => {
-            event.stopPropagation();
-            setIsCatalogOpen(true);
-          }}
-          className="absolute -top-5 right-40 h-8 w-8 rounded-full border border-dashed border-primary/75 bg-background/95 text-primary shadow-sm hover:bg-primary/10"
-        />
+        <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            aria-label={t('dashboard.editor.sections.add_card')}
+            onClick={(event) => {
+              event.stopPropagation();
+              setIsCatalogOpen(true);
+            }}
+            className="flex min-h-24 w-full flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-primary/50 bg-background/40 p-2 text-center text-primary hover:border-primary hover:bg-primary/10"
+          >
+            <Plus aria-hidden="true" className="h-5 w-5" />
+            <span className="text-micro font-semibold">{t('dashboard.editor.sections.add_card')}</span>
+          </Button>
+        </div>
       ) : null}
 
       {catalogModal}

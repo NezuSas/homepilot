@@ -52,6 +52,7 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
   const navigate = useNavigate();
   const [dashboards, setDashboards]     = useState<Dashboard[]>([]);
   const dashboardsRef = useRef(dashboards);
+  const lastResolvedRouteDashboardId = useRef(initialDashboardId);
   const publishDashboards = (update: (current: Dashboard[]) => Dashboard[]) => {
     const next = update(dashboardsRef.current);
     dashboardsRef.current = next;
@@ -83,7 +84,7 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
   const [isEditing, setIsEditing] = useState(false);
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
   const {
-    isTransferring, handleExport, handleImport, isHistoryOpen, setIsHistoryOpen,
+    isTransferring, handleExport, handleImport, importReport, isHistoryOpen, setIsHistoryOpen,
     isHistoryLoading, revisions, revisionPendingRestore, setRevisionPendingRestore,
     isRestoringRevision, handleOpenHistory, handleRestoreRevision,
   } = useDashboardTransferHistory({
@@ -158,14 +159,15 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- Run only once on mount.
 
   useEffect(() => {
-    if (!initialDashboardId || active?.id === initialDashboardId) return;
+    if (!initialDashboardId || initialDashboardId === lastResolvedRouteDashboardId.current) return;
     const selected = dashboards.find(dashboard => dashboard.id === initialDashboardId);
     if (!selected) return;
+    lastResolvedRouteDashboardId.current = initialDashboardId;
     setActive(selected);
     setActiveTabIdx(getInitialTabIndex(selected, initialTabId));
     setEditingTitle(false);
     setSelectedWidgetId(null);
-  }, [active?.id, dashboards, initialDashboardId, initialTabId]);
+  }, [dashboards, initialDashboardId, initialTabId]);
 
   // Browser back/forward (or a link straight to a specific tab) changes
   // `initialTabId` without changing the dashboard: follow it.
@@ -337,6 +339,30 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
 
       <div className="relative isolate flex min-h-screen-dvh min-w-0 flex-1 flex-col gap-0 animate-in fade-in duration-700">
       {error && <AlertBanner variant="danger" message={error} className="m-4 sm:m-6" />}
+      {importReport && importReport.dashboardId === active?.id && (
+        <div className="m-4 space-y-2 sm:m-6">
+          <AlertBanner
+            variant="warning"
+            title={t('dashboards.transfer.pending_title')}
+            message={t('dashboards.transfer.pending_message', {
+              bindings: importReport.report.unresolvedBindings.length,
+              backgrounds: importReport.report.nonPortableBackgrounds,
+            })}
+          />
+          {importReport.report.unresolvedBindings.length > 0 && (
+            <details className="rounded-panel border border-border/60 bg-card/90 px-4 py-3 text-body text-foreground">
+              <summary className="cursor-pointer font-semibold">{t('dashboards.transfer.pending_details')}</summary>
+              <ul className="mt-3 max-h-48 space-y-1 overflow-y-auto pl-5 text-caption text-muted-foreground">
+                {importReport.report.unresolvedBindings.map((item, index) => (
+                  <li key={`${item.widgetId}-${item.cardId ?? ''}-${index}`} className="list-disc break-words">
+                    {t('dashboards.transfer.pending_item', { tab: item.tabTitle, title: item.title })}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </div>
+      )}
 
       {/* Dashboard creation form */}
       {creating && (
