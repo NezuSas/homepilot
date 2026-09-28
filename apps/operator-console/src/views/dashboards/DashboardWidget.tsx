@@ -216,11 +216,11 @@ export function DashboardWidgetNode({
       onClick={(e) => { e.stopPropagation(); if (!isSection) onClick(); }}
       style={{ ...accentStyle, containerType: 'inline-size' }}
       className={cn(
-        "homepilot-dashboard-widget relative h-full w-full min-h-0 overflow-visible transition-all duration-300 group @container touch-manipulation",
+        "homepilot-dashboard-widget relative h-full w-full min-h-0 overflow-visible transition-[transform,box-shadow,background-color,border-color] duration-300 group @container touch-manipulation",
         // Editing restores the section boundary without changing its inner card grid.
         isSection
           ? (isEditing
-            ? "rounded-section outline outline-2 outline-dashed outline-offset-[-2px] outline-border/70 bg-background/10 shadow-sm transition-colors hover:outline-primary/70"
+            ? "rounded-section outline outline-2 outline-dashed outline-offset-2 outline-border/70 bg-background/10 shadow-sm hover:outline-primary/70"
             : "rounded-2xl border-transparent bg-transparent shadow-none")
           : isCamera
             ? "rounded-2xl border-transparent bg-transparent shadow-none"

@@ -92,11 +92,10 @@ export function isClockKind(kind: SectionCardKind) {
 
 export function getDefaultSpan(kind: SectionCardKind): SectionCardSpan {
   const normalized = normalizeKind(kind);
-  // Tiles (light/device/switch/button-style cards) default to 2-of-4
-  // columns — a horizontal rectangle, two per row — matching Home
-  // Assistant's default tile size. The true quarter-width 'small' (four
-  // per row) stays available, but only as a manual choice.
-  if (normalized === 'light' || normalized === 'device' || normalized === 'cover' || normalized === 'action') return 'medium';
+  // The selectable Button card is `light` and defaults to four per row.
+  if (normalized === 'light') return 'small';
+  // Legacy action cards and other tiles retain their two-per-row default.
+  if (normalized === 'action' || normalized === 'device' || normalized === 'cover') return 'medium';
   if (isClockKind(normalized)) return 'full';
   // Media players, cameras, and sensors need real room for controls/
   // gauges and default to the section's full width.

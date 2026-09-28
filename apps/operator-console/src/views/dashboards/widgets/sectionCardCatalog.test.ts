@@ -89,7 +89,9 @@ describe('section card catalog contracts', () => {
     expect(isClockKind('clock_premium')).toBe(true);
     expect(isBindableKind('assistant')).toBe(false);
     expect(isBindableKind('scene')).toBe(true);
-    expect(getDefaultSpan('light')).toBe('medium');
+    expect(getDefaultSpan('light')).toBe('small');
+    expect(getDefaultSpan('action')).toBe('medium');
+    expect(getDefaultSpan('device')).toBe('medium');
     expect(getDefaultSpan('media')).toBe('full');
     expect(getDefaultSpan('camera')).toBe('full');
     expect(getDefaultIcon('assistant')).toBe('mdi:robot');

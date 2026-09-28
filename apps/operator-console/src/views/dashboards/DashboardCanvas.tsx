@@ -306,7 +306,7 @@ export function DashboardCanvas({
       <div
         ref={containerRef}
         className={cn(
-          "relative w-full grid min-w-0 overflow-x-hidden transition-all duration-500",
+          "relative w-full grid min-w-0 overflow-x-hidden",
           isPortraitKiosk && "homepilot-portrait-kiosk-canvas",
           isEditing
             ? "outline outline-2 outline-dashed outline-offset-[-2px] outline-primary/10 bg-card/20 bg-dashboard-grid bg-dashboard shadow-2xl shadow-primary/5"

@@ -425,6 +425,7 @@
         "sensor_live_reading": "Live reading",
         "sensor_unavailable": "No reading",
         "media_player_label": "Media player",
+        "media_idle": "Nothing playing",
         "media_playing": "Playing",
         "media_paused": "Paused",
         "media_ready": "Ready",

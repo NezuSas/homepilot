@@ -122,11 +122,9 @@ export function SectionCardItem({
         // measured height means content that genuinely needs more room
         // (long titles, font differences) still gets it instead of being
         // clipped by the card's own overflow-hidden background.
-        // The resident view uses measured masonry rows to pack unequal cards.
-        // While editing, cards use the grid's natural row flow instead: it
-        // keeps the insertion order obvious and prevents a tall card from
-        // reserving an empty measured row before the next card.
-        gridRow: isEditing ? undefined : `span ${isTileKind ? Math.max(rowSpan, COMPACT_TILE_ROW_SPAN) : rowSpan}`,
+        // Keep the same measured rows in view and edit so changing modes
+        // cannot compress the section's vertical rhythm.
+        gridRow: `span ${isTileKind ? Math.max(rowSpan, COMPACT_TILE_ROW_SPAN) : rowSpan}`,
         transform: CSS.Translate.toString(transform),
         transition: transition ?? undefined,
       }}

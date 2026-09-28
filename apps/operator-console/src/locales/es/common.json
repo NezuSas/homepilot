@@ -425,6 +425,7 @@
         "sensor_live_reading": "Lectura en vivo",
         "sensor_unavailable": "Sin lectura",
         "media_player_label": "Reproductor multimedia",
+        "media_idle": "Sin reproducción",
         "media_playing": "Reproduciendo",
         "media_paused": "En pausa",
         "media_ready": "Listo",

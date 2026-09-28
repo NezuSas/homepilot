@@ -286,7 +286,6 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     const isScenePreview = normalizedPreviewKind === 'scene';
     const isRoomPreview = normalizedPreviewKind === 'room';
     const isCoverPreview = normalizedPreviewKind === 'cover';
-    const isLightPreview = normalizedPreviewKind === 'light';
     const roomDevices = isRoomPreview && deviceIdOverride
       ? devices.filter((device) => device.roomId === deviceIdOverride)
       : [];
@@ -300,7 +299,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     return (
       <div className={cn(
         "grid overflow-hidden rounded-section bg-background/40 transition-[height,width,max-width] duration-200",
-        span === 'small' && (normalizedPreviewKind === 'device' || normalizedPreviewKind === 'light' ? "h-device-card-compact w-device-card-compact justify-self-center" : "h-section-card-sm w-full max-w-[12rem] justify-self-center"),
+        span === 'small' && (normalizedPreviewKind === 'device' || normalizedPreviewKind === 'light' || normalizedPreviewKind === 'action' ? "h-device-card-compact w-device-card-compact justify-self-center" : "h-section-card-sm w-full max-w-[12rem] justify-self-center"),
         span === 'medium' && !isCoverPreview && "h-section-card-md w-full max-w-form-md",
         span === 'medium' && isCoverPreview && "h-curtain-card w-full max-w-form-md justify-self-center",
         span === 'full' && "w-full",
@@ -313,7 +312,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           span={span}
           icon={iconOverride ?? getDefaultIcon(kind)}
           isAssigned={Boolean(deviceIdOverride)}
-          isActive={previewDevice ? isDeviceActive(previewDevice) : isLightPreview}
+          isActive={previewDevice ? isDeviceActive(previewDevice) : false}
           device={previewDevice}
           isPreview={true}
           roomDeviceCount={roomDevices.length}
@@ -356,13 +355,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
   const sectionGrid = (
     <div
       onClick={(event) => event.stopPropagation()}
-      className={cn(
-        "grid min-h-0 min-w-0 flex-1 grid-cols-2 content-start items-start gap-2 overflow-visible pr-1 sm:grid-cols-4",
-        isEditing
-          ? "auto-rows-auto grid-flow-row"
-          : "auto-rows-[minmax(20px,auto)] grid-flow-row-dense"
-      )}
-
+      className="grid min-h-0 min-w-0 flex-1 grid-cols-2 content-start items-start gap-2 overflow-visible pr-1 sm:grid-cols-4 auto-rows-[minmax(20px,auto)] grid-flow-row-dense"
     >
       <DndContext sensors={cardDragSensors} onDragEnd={handleCardDragEnd}>
         <SortableContext items={cards.map((card) => card.id)} strategy={rectSortingStrategy}>
@@ -389,23 +382,6 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           ))}
         </SortableContext>
       </DndContext>
-
-      {isEditing ? (
-        <IconButton
-          icon={Plus}
-          label={t('dashboard.editor.sections.add_card')}
-          variant="ghost"
-          size="lg"
-          onClick={(event) => {
-            event.stopPropagation();
-            setIsCatalogOpen(true);
-          }}
-          className={cn(
-            "h-device-card-compact w-full rounded-section border-2 border-dashed border-primary/75 bg-background/35 text-primary hover:bg-primary/10 [&>svg]:h-5 [&>svg]:w-5",
-            "col-span-1"
-          )}
-        />
-      ) : null}
     </div>
   );
 
@@ -428,6 +404,20 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       ) : null}
 
       {sectionGrid}
+
+      {isEditing ? (
+        <IconButton
+          icon={Plus}
+          label={t('dashboard.editor.sections.add_card')}
+          variant="ghost"
+          size="sm"
+          onClick={(event) => {
+            event.stopPropagation();
+            setIsCatalogOpen(true);
+          }}
+          className="absolute -top-5 right-40 h-8 w-8 rounded-full border border-dashed border-primary/75 bg-background/95 text-primary shadow-sm hover:bg-primary/10"
+        />
+      ) : null}
 
       {catalogModal}
       {editorModal}

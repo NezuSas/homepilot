@@ -98,6 +98,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
   const isOff = presentation.state === 'off';
   const unavailable = isUnavailable(presentation.state);
   const hasActiveSession = hasActiveMediaSession(presentation.state);
+  const isIdle = !device || (!hasActiveSession && !unavailable);
   const playPauseCommand: MediaPlayerCommand | null = isPlaying
     ? 'media_pause'
     : commands.has('media_play') ? 'media_play' : null;
@@ -207,7 +208,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
     return () => { active = false; };
   }, [device?.id, artworkSourceKey]);
 
-  const artworkUrl = artworkPath ? absoluteApiUrl(artworkPath) : null;
+  const artworkUrl = artworkPath && hasActiveSession && !isIdle ? absoluteApiUrl(artworkPath) : null;
 
   return (
     <div className={cn(
@@ -240,9 +241,9 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
       )}
       {!artworkUrl && (
         <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-          <div className="absolute inset-y-0 right-0 w-[62%] bg-[radial-gradient(ellipse_at_85%_16%,hsl(var(--primary)/0.24),transparent_58%)]" />
-          <AudioLines className="absolute -right-8 top-1/2 h-44 w-44 -translate-y-1/2 rotate-[-12deg] text-primary/20" strokeWidth={1.1} />
-          <div className="absolute bottom-0 right-7 top-0 w-px bg-primary/20" />
+          <div className={cn('absolute inset-y-0 right-0 w-[62%] bg-[radial-gradient(ellipse_at_85%_16%,hsl(var(--primary)/0.24),transparent_58%)]', isIdle && 'opacity-50')} />
+          <AudioLines className={cn('absolute -right-8 top-1/2 h-44 w-44 -translate-y-1/2 rotate-[-12deg]', isIdle ? 'text-muted-foreground/20' : 'text-primary/20')} strokeWidth={1.1} />
+          <div className={cn('absolute bottom-0 right-7 top-0 w-px', isIdle ? 'bg-border/40' : 'bg-primary/20')} />
         </div>
       )}
       <div className={cn(
@@ -264,7 +265,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
       <div className={cn('relative min-w-0', compact ? 'mt-2 px-3' : 'mt-3 px-4')}>
         <span className={cn('block font-bold leading-tight text-foreground', compact ? 'line-clamp-2 text-body-compact' : 'line-clamp-2 text-card-title')}>{displayTitle}</span>
         <span className={cn('block truncate font-semibold text-muted-foreground', compact ? 'mt-0.5 text-micro' : 'mt-1 text-caption')}>
-          {presentation.mediaArtist || t('dashboard.editor.sections.media_player_label')}
+          {isIdle ? t('dashboard.editor.sections.media_idle') : presentation.mediaArtist || t('dashboard.editor.sections.media_player_label')}
         </span>
       </div>
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export const MASONRY_ROW_UNIT_PX = 20;
-export const MASONRY_ROW_GAP_PX = 12;
+export const MASONRY_ROW_GAP_PX = 8;
 
 export function useMasonryRowSpans() {
   const [rowSpans, setRowSpans] = useState<Record<string, number>>({});

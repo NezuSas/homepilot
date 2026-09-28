@@ -264,10 +264,10 @@ test('keeps dashboard controls readable on a high-resolution portrait kiosk', as
 
 });
 
-for (const viewport of [viewports[2], viewports[1], { name: 'portrait kiosk', ...portraitKioskViewport }]) {
+for (const viewport of [viewports[2], viewports[1], viewports[0], { name: 'portrait kiosk', ...portraitKioskViewport }]) {
   test(`Feature: Dashboard layout parity — Scenario: Editing preserves section geometry on ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
-    const layoutDevices = [1, 2].map((number) => ({
+    const layoutDevices = [1, 2, 3, 4, 5].map((number) => ({
       id: `layout-light-${number}`,
       homeId: 'responsive-home',
       roomId: 'responsive-room',
@@ -330,17 +330,36 @@ for (const viewport of [viewports[2], viewports[1], { name: 'portrait kiosk', ..
       const tracks = (template: string) => template.split(/\s+/).map(Number.parseFloat).filter((width) => Number.isFinite(width) && width > 1);
       const sectionRect = element.getBoundingClientRect();
       const gridRect = cardGrid.getBoundingClientRect();
+      const heading = content.querySelector(':scope > h2') as HTMLElement | null;
+      const cardRects = [...cardGrid.querySelectorAll<HTMLElement>(':scope > [data-card-id]')]
+        .map((card) => card.getBoundingClientRect());
+      const addCardButton = content.querySelector<HTMLElement>('button[aria-label="Add card"], button[aria-label="Añadir tarjeta"]');
+      const toolbar = element.querySelector<HTMLElement>(':scope > div.absolute.z-30');
+      const addCardRect = addCardButton?.getBoundingClientRect();
+      const toolbarRect = toolbar?.getBoundingClientRect();
       return {
         sectionWidth: sectionRect.width,
         sectionHeight: sectionRect.height,
         contentWidth: content.getBoundingClientRect().width,
         cardGridWidth: gridRect.width,
         cardGridHeight: gridRect.height,
+        titleTop: (heading?.getBoundingClientRect().top ?? sectionRect.top) - sectionRect.top,
+        titleToCards: cardRects[0] ? cardRects[0].top - (heading?.getBoundingClientRect().bottom ?? 0) : 0,
+        cardTopOffsets: cardRects.map((card) => card.top - gridRect.top),
+        rowGap: getComputedStyle(cardGrid).rowGap,
+        transitionProperty: getComputedStyle(element).transitionProperty,
+        canvasTransitionProperty: getComputedStyle(canvasElement).transitionProperty,
+        canvasTransitionDuration: getComputedStyle(canvasElement).transitionDuration,
         cardTracks: tracks(getComputedStyle(cardGrid).gridTemplateColumns),
         canvasWidth: canvasElement.getBoundingClientRect().width,
         canvasTracks: tracks(getComputedStyle(canvasElement).gridTemplateColumns),
         outlineStyle: getComputedStyle(element).outlineStyle,
-        toolbarPosition: getComputedStyle(element.querySelector(':scope > div.absolute.z-30') ?? element).position,
+        toolbarPosition: getComputedStyle(toolbar ?? element).position,
+        addCardLeft: addCardRect?.left ?? null,
+        addCardRight: addCardRect?.right ?? null,
+        toolbarLeft: toolbarRect?.left ?? null,
+        sectionLeft: sectionRect.left,
+        addCardInsideGrid: addCardButton ? cardGrid.contains(addCardButton) : false,
       };
     });
     const settleLayout = () => page.evaluate(() => new Promise<void>((resolve) => {
@@ -349,7 +368,14 @@ for (const viewport of [viewports[2], viewports[1], { name: 'portrait kiosk', ..
     await settleLayout();
     const view = await Promise.all(['Tech', 'Patio'].map(geometry));
 
-    await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
+    const titlebar = page.locator('.homepilot-dashboard-titlebar');
+    if (viewport.width < 640) {
+      await titlebar.locator('details > summary').click();
+      await titlebar.getByRole('menuitem', { name: /^(Edit|Editar)$/i }).click();
+      await titlebar.locator('details > summary').click();
+    } else {
+      await titlebar.getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
+    }
     await expect(section('Tech').getByRole('button', { name: /Drag to reorder|Arrastrar para reordenar/i })).toBeVisible();
     await settleLayout();
     const edit = await Promise.all(['Tech', 'Patio'].map(geometry));
@@ -368,9 +394,27 @@ for (const viewport of [viewports[2], viewports[1], { name: 'portrait kiosk', ..
       expect(after.sectionHeight).toBeGreaterThan(0);
       expect(before.sectionHeight).toBeGreaterThanOrEqual(before.cardGridHeight);
       expect(after.sectionHeight).toBeGreaterThanOrEqual(after.cardGridHeight);
-      // The compact-card fixture leaves room for the edit-only add tile in
-      // the existing row; masonry row rounding may account for a few pixels.
-      expect(Math.abs(after.sectionHeight - before.sectionHeight)).toBeLessThanOrEqual(12);
+      expect(Math.abs(after.sectionHeight - before.sectionHeight)).toBeLessThanOrEqual(2);
+      expect(Math.abs(after.titleTop - before.titleTop)).toBeLessThanOrEqual(2);
+      expect(Math.abs(after.titleToCards - before.titleToCards)).toBeLessThanOrEqual(2);
+      expect(before.rowGap).toBe('8px');
+      expect(after.rowGap).toBe('8px');
+      expect(after.cardTopOffsets).toHaveLength(before.cardTopOffsets.length);
+      before.cardTopOffsets.forEach((top, card) => {
+        expect(Math.abs(after.cardTopOffsets[card]! - top), `${viewport.name}: card ${card + 1} vertical position`).toBeLessThanOrEqual(2);
+      });
+      expect(after.transitionProperty).not.toContain('all');
+      expect(after.transitionProperty).not.toContain('outline');
+      expect(after.transitionProperty).toContain('transform');
+      expect(after.transitionProperty).toContain('box-shadow');
+      expect(after.transitionProperty).toContain('background-color');
+      expect(after.transitionProperty).toContain('border-color');
+      // CSS defaults transition-property to "all" even when duration is 0s.
+      // An effective zero duration means the canvas cannot animate its outline.
+      expect(
+        after.canvasTransitionDuration.split(',').every((duration) => Number.parseFloat(duration.trim()) === 0),
+        `${viewport.name}: canvas transition-property ${after.canvasTransitionProperty} must have zero duration`,
+      ).toBe(true);
       expectSameWidth(before.sectionWidth, after.sectionWidth, `section ${index + 1}`);
       expectSameWidth(before.contentWidth, after.contentWidth, `section content ${index + 1}`);
       expectSameWidth(before.cardGridWidth, after.cardGridWidth, `card grid ${index + 1}`);
@@ -381,6 +425,12 @@ for (const viewport of [viewports[2], viewports[1], { name: 'portrait kiosk', ..
       before.cardTracks.forEach((width, track) => expectSameWidth(width, after.cardTracks[track]!, `card track ${track + 1}`));
       expect(after.outlineStyle).toBe('dashed');
       expect(after.toolbarPosition).toBe('absolute');
+      expect(after.addCardInsideGrid).toBe(false);
+      if (after.addCardLeft === null || after.addCardRight === null || after.toolbarLeft === null) {
+        throw new Error(`${viewport.name}: edit controls are missing`);
+      }
+      expect(after.addCardLeft).toBeGreaterThanOrEqual(after.sectionLeft);
+      expect(after.addCardRight).toBeLessThanOrEqual(after.toolbarLeft - 4);
     }
   });
 }
@@ -444,6 +494,95 @@ test('Feature: Media card width — Scenario: A player occupies the full section
   const mediaCard = page.locator('[class*="group/card"]').filter({ hasText: /Reproductor|Media player/i });
   await expect(mediaCard).toHaveClass(/col-span-full/);
   await expect(mediaCard.getByRole('slider', { name: /resize card|redimensionar tarjeta/i })).toHaveCount(0);
+});
+
+test('Feature: Media player idle — Scenario: A player reports no playback without stale metadata or changing its controls', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const section = responsiveDashboard.tabs[0]!.widgets[1]!;
+  const mediaDashboard = {
+    ...responsiveDashboard,
+    tabs: [{
+      ...responsiveDashboard.tabs[0]!,
+      widgets: [{
+        ...section,
+        config: {
+          ...section.config,
+          extra: { cards: [{ id: 'media-idle', kind: 'media', title: 'Sala', entityId: 'player-1', span: 'full' }] },
+        },
+      }],
+    }],
+  };
+  await prepareAuthenticatedDashboard(page, mediaDashboard);
+  let mediaState = 'idle';
+  await page.route('**/api/v1/devices', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([{
+      id: 'player-1', homeId: 'responsive-home', roomId: 'responsive-room', name: 'Sala',
+      type: 'media_player', status: 'ASSIGNED',
+      profile: { supportedCommands: ['media_play', 'media_pause', 'volume_set'] },
+      lastKnownState: mediaState === 'idle'
+        ? { state: 'idle', attributes: { media_title: 'Previous session', media_artist: 'Previous artist', entity_picture: '/old-cover.png', volume_level: 0.4 } }
+        : { state: 'playing', attributes: { media_title: 'Canción actual', media_artist: 'Artista actual', volume_level: 0.4 } },
+    }]) });
+  });
+
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  const card = page.locator('[data-card-id="media-idle"]');
+  await expect(card).toBeVisible();
+  await expect(card.getByText(/^(Sin reproducción|Nothing playing)$/)).toBeVisible();
+  await expect(card).toContainText('Sala');
+  await expect(card).not.toContainText('Previous session');
+  await expect(card).not.toContainText('Previous artist');
+  await expect(card.locator('img')).toHaveCount(0);
+  await expect(card.getByRole('button', { name: /^(Reproducir|Play)$/i })).toBeVisible();
+  await expect(card.getByRole('button', { name: /^(Reproducir|Play)$/i })).toBeEnabled();
+  const idleHeight = await card.evaluate((element) => element.getBoundingClientRect().height);
+  const idleControls = await card.locator('button').count();
+
+  mediaState = 'playing';
+  await page.reload();
+  await expect(card.getByText('Canción actual')).toBeVisible();
+  await expect(card.getByText('Artista actual')).toBeVisible();
+  await expect(card.getByText(/^(Sin reproducción|Nothing playing)$/)).toHaveCount(0);
+  expect(await card.locator('button').count()).toBe(idleControls);
+  expect(Math.abs((await card.evaluate((element) => element.getBoundingClientRect().height)) - idleHeight)).toBeLessThanOrEqual(2);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(1441);
+});
+
+test('Feature: Button card default — Scenario: A new button persists the first width and previews an inactive compact tile', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await prepareAuthenticatedDashboard(page);
+  let savedDashboard = responsiveDashboard;
+  await page.route('**/api/v1/dashboards/responsive-dashboard', async (route) => {
+    if (route.request().method() !== 'PATCH') return route.continue();
+    const changes = route.request().postDataJSON() as Partial<typeof responsiveDashboard>;
+    savedDashboard = { ...savedDashboard, ...changes };
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(savedDashboard) });
+  });
+  await page.route('**/api/v1/scenes', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: '[]' });
+  });
+  await page.route('**/api/v1/automations', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: '[]' });
+  });
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
+  await page.getByRole('button', { name: /^(Add card|Añadir tarjeta)$/i }).click();
+  await page.getByRole('button', { name: /^(Button|Botón)$/i }).click();
+
+  const editor = page.locator('[class*="max-w-xl"]').filter({ has: page.getByRole('heading', { name: /^(Edit|Editar)$/i }) });
+  const preview = editor.locator('[class*="h-device-card-compact"]').first();
+  await expect(preview).toBeVisible();
+  await expect(preview).not.toHaveClass(/homepilot-section-light-tile-active/);
+  await expect(preview.getByText(/^(Button|Botón)$/i)).toBeVisible();
+  await expect(editor.getByText(/^(Small · 4 per row|Pequeña · 4 por fila)$/i)).toBeVisible();
+  const previewBox = await preview.boundingBox();
+  expect(previewBox?.height).toBeLessThanOrEqual(98);
+  expect(await preview.evaluate((element) => element.scrollHeight <= element.clientHeight + 1)).toBe(true);
+
+  await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
+  const buttonCard = page.locator('[data-card-id]').filter({ hasText: /^(Button|Botón)$/i }).last();
+  await expect(buttonCard).toHaveClass(/col-span-1/);
+  await expect.poll(() => JSON.stringify(savedDashboard)).toMatch(/"kind":"light"[^}]*"span":"small"/);
 });
 
 test('Feature: Button card — Scenario: A scene briefly lights its icon without pretending to stay on', async ({ page }) => {
