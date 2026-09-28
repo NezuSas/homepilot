@@ -713,6 +713,7 @@
       "controls": "Display controls",
       "online": "Online",
       "offline": "Offline",
+      "unknown": "Status unknown",
       "home": "Home",
       "back": "Back",
       "volume": "Volume to set",

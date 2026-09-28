@@ -606,6 +606,7 @@
       "healthy": "Saludable",
       "degraded": "Degradado",
       "offline": "Desconectado",
+      "unknown": "Estado desconocido",
       "connected": "Conectado",
       "reconnecting": "Reconectando",
       "not_configured": "No Configurado",
