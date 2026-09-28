@@ -1,10 +1,12 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { CircleHelp, MousePointerClick } from 'lucide-react';
-import { getDashboardIconComponent, IconPicker } from './IconPicker';
+import { Camera, CircleHelp } from 'lucide-react';
+import { mdiCamera, mdiPool } from '@mdi/js';
+import { getDashboardIconComponent, IconPicker, MAX_RENDERED_ICONS } from './IconPicker';
 import {
-  chooseDashboardIcon, DASHBOARD_ICON_CATALOG, DASHBOARD_ICON_DEFAULTS,
-  isDashboardIconAvailable, searchDashboardIcons,
+  chooseDashboardIcon, DASHBOARD_ICON_DEFAULTS, getDashboardFallbackIconComponent,
+  isDashboardIconAvailable, limitDashboardMdiIcons, loadDashboardMdiCatalog,
+  searchDashboardMdiIcons,
 } from './dashboardIconRegistry';
 import { getDefaultIcon } from '../widgets/sectionCardCatalog';
 
@@ -13,65 +15,107 @@ jest.mock('react-i18next', () => ({
     ? 'Icon unavailable' : key }),
 }));
 
-describe('getDashboardIconComponent', () => {
-  it('resolves the persisted Home Assistant icon aliases included in the compact catalog', () => {
-    expect(getDashboardIconComponent('mdi:lightbulb')).not.toBe(CircleHelp);
-    expect(getDashboardIconComponent('mdi:power-plug')).not.toBe(CircleHelp);
-    expect(getDashboardIconComponent('mdi:weather-windy')).not.toBe(CircleHelp);
+describe('Dashboard MDI icons', () => {
+  it('resolves a valid canonical MDI to its official path', () => {
+    const html = renderToStaticMarkup(createElement(getDashboardIconComponent('mdi:camera')));
+    expect(html).toContain(mdiCamera);
+    expect(isDashboardIconAvailable('mdi:camera')).toBe(true);
   });
 
-  it('keeps unknown persisted values safe by returning the existing fallback', () => {
-    expect(getDashboardIconComponent('mdi:not-an-icon')).toBe(CircleHelp);
-    const storedIcon = 'legacy:unavailable';
-    const onChange = jest.fn();
-    expect(isDashboardIconAvailable(storedIcon)).toBe(false);
-    expect(getDashboardIconComponent(storedIcon)).toBe(CircleHelp);
-    expect(() => renderToStaticMarkup(createElement(getDashboardIconComponent(storedIcon)))).not.toThrow();
-    chooseDashboardIcon(storedIcon, onChange);
-    expect(onChange).not.toHaveBeenCalled();
-    expect(storedIcon).toBe('legacy:unavailable');
-    const html = renderToStaticMarkup(createElement(IconPicker, { value: storedIcon, onChange }));
-    expect(html.match(/Icon unavailable/g)).toHaveLength(1);
-    expect(html).toContain(storedIcon);
+  it('renders a saved MDI outside the eagerly imported defaults after catalog load', async () => {
+    await loadDashboardMdiCatalog();
+    expect(isDashboardIconAvailable('mdi:pool')).toBe(true);
+    expect(renderToStaticMarkup(createElement(getDashboardIconComponent('mdi:pool')))).toContain(mdiPool);
   });
 
-  it('uses only registered, renderable defaults including the Action Card icon', () => {
-    expect(getDefaultIcon('action')).toBe(DASHBOARD_ICON_DEFAULTS.action);
-    expect(getDashboardIconComponent(getDefaultIcon('action'))).toBe(MousePointerClick);
+  it('keeps every new card default canonical and present in the installed MDI catalog', async () => {
+    const catalog = await loadDashboardMdiCatalog();
     for (const name of Object.values(DASHBOARD_ICON_DEFAULTS)) {
-      expect(isDashboardIconAvailable(name)).toBe(true);
-      expect(() => renderToStaticMarkup(createElement(getDashboardIconComponent(name)))).not.toThrow();
+      expect(name).toMatch(/^mdi:[a-z0-9]+(?:-[a-z0-9]+)*$/);
+      expect(catalog.byName.has(name)).toBe(true);
+      expect(isDashboardIconAvailable(name, catalog)).toBe(true);
     }
+    expect(getDefaultIcon('action')).toBe('mdi:cursor-default-click');
+    expect(catalog.byName.has(getDefaultIcon('action'))).toBe(true);
+    expect(() => renderToStaticMarkup(createElement(getDashboardIconComponent(getDefaultIcon('action'))))).not.toThrow();
   });
 
-  it('finds partial, case-insensitive Spanish and English search terms', () => {
-    for (const [term, icon] of [
-      ['LUZ', 'Lightbulb'], ['light', 'Lightbulb'], ['cáma', 'Camera'],
-      ['camera', 'Camera'], ['wifi', 'Wifi'], ['volumen', 'Volume2'],
-      ['volume', 'Volume2'], ['cerradura', 'Lock'], ['lock', 'Lock'],
-      ['energía', 'Battery'], ['energy', 'Battery'], ['puerta', 'DoorClosed'],
-      ['door', 'DoorClosed'], ['persiana', 'Blinds'], ['blind', 'Blinds'],
-      ['temperatura', 'Thermometer'], ['temperature', 'Thermometer'],
-      ['solar', 'SolarPanel'], ['batería', 'Battery'], ['battery', 'Battery'],
-    ]) {
-      expect(searchDashboardIcons(term).map((entry) => entry.name)).toContain(icon);
-    }
+  it('preserves historic Lucide and MDI values without rewriting them', () => {
+    expect(getDashboardIconComponent('Camera')).toBe(Camera);
+    expect(isDashboardIconAvailable('MousePointerClick')).toBe(true);
+    expect(renderToStaticMarkup(createElement(getDashboardIconComponent('mdi:lightbulb')))).toContain('<svg');
   });
 
-  it('commits only an explicit icon choice from the catalog', () => {
+  it('preserves an unknown stored string, renders fallback and shows one editor warning', async () => {
+    const catalog = await loadDashboardMdiCatalog();
+    const stored = 'mdi:missing-old-icon';
     const onChange = jest.fn();
-    searchDashboardIcons('cam');
+    expect(isDashboardIconAvailable(stored, catalog)).toBe(false);
+    expect(getDashboardIconComponent(stored)).toBe(getDashboardFallbackIconComponent());
+    const html = renderToStaticMarkup(createElement(getDashboardIconComponent(stored)));
+    expect(html).toContain('<svg');
+    expect(getDashboardFallbackIconComponent()).toBe(CircleHelp);
+    chooseDashboardIcon(stored, onChange, catalog);
     expect(onChange).not.toHaveBeenCalled();
-    chooseDashboardIcon('Camera', onChange);
-    expect(onChange).toHaveBeenCalledTimes(1);
-    expect(onChange).toHaveBeenCalledWith('Camera');
+    expect(stored).toBe('mdi:missing-old-icon');
+    const editor = renderToStaticMarkup(createElement(IconPicker, { value: stored, onChange }));
+    expect(editor.match(/Icon unavailable/g)).toHaveLength(1);
+    expect(editor).toContain(stored);
   });
 
-  it('covers representative home, energy, security, media, garden and pool icons', () => {
-    expect(DASHBOARD_ICON_CATALOG.length).toBeGreaterThanOrEqual(100);
-    expect(DASHBOARD_ICON_CATALOG.length).toBeLessThanOrEqual(150);
-    for (const name of ['Home', 'SolarPanel', 'Camera', 'Shield', 'Tv', 'Sprout', 'mdi:pool', 'Monitor']) {
-      expect(isDashboardIconAvailable(name)).toBe(true);
+  it('keeps an unknown legacy string visible without changing its value', () => {
+    const onChange = jest.fn();
+    const html = renderToStaticMarkup(createElement(IconPicker, { value: 'OldCustomIcon', onChange }));
+    expect(getDashboardIconComponent('OldCustomIcon')).toBe(CircleHelp);
+    expect(html).toContain('OldCustomIcon');
+    expect(html.match(/Icon unavailable/g)).toHaveLength(1);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('searches the full library by partial name and Spanish/English aliases, ignoring case and accents', async () => {
+    const catalog = await loadDashboardMdiCatalog();
+    for (const [term, expected] of [
+      ['Camara', 'mdi:camera'], ['CÁMARA', 'mdi:camera'], ['camera', 'mdi:camera'],
+      ['LUZ', 'mdi:lightbulb'], ['light', 'mdi:lightbulb'], ['bombillo', 'mdi:lightbulb'],
+      ['puerta', 'mdi:door'], ['door', 'mdi:door'],
+      ['cerradura', 'mdi:lock'], ['lock', 'mdi:lock'],
+      ['wifi', 'mdi:wifi'], ['red', 'mdi:wifi'], ['network', 'mdi:wifi'],
+      ['bateria', 'mdi:battery'], ['batería', 'mdi:battery'], ['battery', 'mdi:battery'],
+      ['solar', 'mdi:solar-panel'], ['panel', 'mdi:solar-panel'],
+      ['energia', 'mdi:flash'], ['energía', 'mdi:flash'], ['energy', 'mdi:flash'],
+      ['volumen', 'mdi:volume-high'], ['volume', 'mdi:volume-high'], ['audio', 'mdi:volume-high'],
+      ['television', 'mdi:television'], ['tv', 'mdi:television'], ['media', 'mdi:television'],
+      ['persiana', 'mdi:blinds'], ['blind', 'mdi:blinds'], ['cortina', 'mdi:blinds'],
+      ['temperatura', 'mdi:thermometer'], ['temperature', 'mdi:thermometer'], ['clima', 'mdi:thermometer'],
+      ['agua', 'mdi:water'], ['water', 'mdi:water'], ['bomba', 'mdi:pump'], ['pump', 'mdi:pump'],
+      ['piscina', 'mdi:pool'], ['pool', 'mdi:pool'], ['alarma', 'mdi:alarm'], ['alarm', 'mdi:alarm'],
+      ['seguridad', 'mdi:shield'], ['security', 'mdi:shield'], ['sensor', 'mdi:motion-sensor'],
+    ]) {
+      expect(searchDashboardMdiIcons(term, catalog).map((entry) => entry.name)).toContain(expected);
     }
+  });
+
+  it('offers a broad catalog but bounds rendered results and pins the current selection', async () => {
+    const catalog = await loadDashboardMdiCatalog();
+    expect(catalog.entries.length).toBeGreaterThan(7000);
+    const selected = catalog.entries[catalog.entries.length - 1].name;
+    const visible = limitDashboardMdiIcons(catalog.entries, selected, 60);
+    expect(visible).toHaveLength(60);
+    expect(visible[0].name).toBe(selected);
+    expect(visible.filter((entry) => entry.name === selected)).toHaveLength(1);
+    expect(MAX_RENDERED_ICONS).toBeLessThan(1000);
+    expect(limitDashboardMdiIcons(catalog.entries, selected, MAX_RENDERED_ICONS)).toHaveLength(MAX_RENDERED_ICONS);
+  });
+
+  it('does not persist search text, but commits an explicit MDI choice once', async () => {
+    const catalog = await loadDashboardMdiCatalog();
+    const onChange = jest.fn();
+    searchDashboardMdiIcons('cam', catalog);
+    expect(onChange).not.toHaveBeenCalled();
+    chooseDashboardIcon('Camera', onChange, catalog);
+    expect(onChange).not.toHaveBeenCalled();
+    chooseDashboardIcon('mdi:camera', onChange, catalog);
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith('mdi:camera');
   });
 });

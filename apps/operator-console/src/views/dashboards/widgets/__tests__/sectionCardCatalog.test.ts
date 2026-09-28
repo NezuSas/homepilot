@@ -30,7 +30,7 @@ describe('Feature: catálogo de tarjetas de sección', () => {
     expect(isBindableKind('clock_digital')).toBe(false);
     expect(getWidgetType('action')).toBe('action_button');
     expect(isBindableKind('action')).toBe(true);
-    expect(getDefaultIcon('sensor')).toBe('Gauge');
+    expect(getDefaultIcon('sensor')).toBe('mdi:gauge');
   });
   it('Scenario: Given every supported catalog kind When resolving presentation metadata Then it preserves each explicit mapping', () => {
     expect(getCatalogLabelKey('light')).toBe('dashboard.editor.sections.section_card_light');
@@ -49,11 +49,11 @@ describe('Feature: catálogo de tarjetas de sección', () => {
     expect(getWidgetType('energy')).toBe('energy_snapshot');
     expect(getWidgetType('assistant')).toBe('assistant_insight');
     expect(getWidgetType('clock_minimal')).toBe('clock_display');
-    expect(getDefaultIcon('cover')).toBe('Blinds');
-    expect(getDefaultIcon('camera')).toBe('Camera');
-    expect(getDefaultIcon('media')).toBe('Music2');
-    expect(getDefaultIcon('energy')).toBe('Zap');
-    expect(getDefaultIcon('assistant')).toBe('Bot');
+    expect(getDefaultIcon('cover')).toBe('mdi:blinds');
+    expect(getDefaultIcon('camera')).toBe('mdi:camera');
+    expect(getDefaultIcon('media')).toBe('mdi:music');
+    expect(getDefaultIcon('energy')).toBe('mdi:flash');
+    expect(getDefaultIcon('assistant')).toBe('mdi:robot');
   });
 
   it('Scenario: Given legacy, incomplete and clock cards When normalizing them Then unsupported cards are removed and safe defaults are used', () => {
@@ -68,8 +68,8 @@ describe('Feature: catálogo de tarjetas de sección', () => {
 
     expect(cards).toHaveLength(3);
     expect(cards[0]).toMatchObject({ id: 'light-1', kind: 'light', span: 'medium', icon: 'Lightbulb', order: 4 });
-    expect(cards[1]).toMatchObject({ id: 'clock-1', kind: 'clock_digital', span: 'full', widgetType: 'clock_display', icon: 'Clock' });
-    expect(cards[2]).toMatchObject({ id: 'sensor-1', kind: 'sensor', span: 'full', widgetType: 'device_control', icon: 'Gauge' });
+    expect(cards[1]).toMatchObject({ id: 'clock-1', kind: 'clock_digital', span: 'full', widgetType: 'clock_display', icon: getDefaultIcon('clock') });
+    expect(cards[2]).toMatchObject({ id: 'sensor-1', kind: 'sensor', span: 'full', widgetType: 'device_control', icon: getDefaultIcon('sensor') });
   });
 
   it('Scenario: Given obsolete room and scene cards When normalizing Then they are removed from the dashboard', () => {
@@ -112,8 +112,8 @@ describe('Feature: catálogo de tarjetas de sección', () => {
     expect(getDefaultSpan('action')).toBe('medium');
     expect(getDefaultSpan('cover')).toBe('medium');
     expect(getWidgetType('light')).toBe('device_control');
-    expect(getDefaultIcon('clock_premium')).toBe('Clock');
-    expect(getDefaultIcon('device')).toBe('Power');
+    expect(getDefaultIcon('clock_premium')).toBe('mdi:clock-outline');
+    expect(getDefaultIcon('device')).toBe('mdi:power');
     expect(getClockKindLabelKey('clock_digital')).toBe('dashboard.editor.sections.clock_style_digital');
     expect(getClockKindLabelKey('clock_minimal')).toBe('dashboard.editor.sections.clock_style_minimal');
     expect(getClockKindLabelKey('light')).toBe('dashboard.editor.sections.clock_style_premium');
@@ -139,7 +139,7 @@ describe('Feature: catálogo de tarjetas de sección', () => {
         entityId: undefined,
         entityName: undefined,
         span: 'medium',
-        icon: 'Power',
+        icon: getDefaultIcon('device'),
         order: 0,
       });
       expect(cards[1]).toMatchObject({ kind: 'assistant', span: 'medium', widgetType: 'assistant_insight', order: 1 });

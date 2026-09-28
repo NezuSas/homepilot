@@ -65,8 +65,8 @@ describe('section card catalog contracts', () => {
     });
 
     expect(cards).toHaveLength(2);
-    expect(cards[0]).toEqual(expect.objectContaining({ id: 'legacy-clock', kind: 'clock_digital', span: 'full', widgetType: 'clock_display', icon: 'Clock' }));
-    expect(cards[1]).toEqual(expect.objectContaining({ kind: 'camera', entityId: 'camera.gate', span: 'full', widgetType: 'device_control', icon: 'Camera' }));
+    expect(cards[0]).toEqual(expect.objectContaining({ id: 'legacy-clock', kind: 'clock_digital', span: 'full', widgetType: 'clock_display', icon: getDefaultIcon('clock') }));
+    expect(cards[1]).toEqual(expect.objectContaining({ kind: 'camera', entityId: 'camera.gate', span: 'full', widgetType: 'device_control', icon: getDefaultIcon('camera') }));
   });
 
   it('normalizes legacy manual heights into measured masonry cards', () => {
@@ -92,7 +92,7 @@ describe('section card catalog contracts', () => {
     expect(getDefaultSpan('light')).toBe('medium');
     expect(getDefaultSpan('media')).toBe('full');
     expect(getDefaultSpan('camera')).toBe('full');
-    expect(getDefaultIcon('assistant')).toBe('Bot');
+    expect(getDefaultIcon('assistant')).toBe('mdi:robot');
     expect(getWidgetType('energy')).toBe('energy_snapshot');
     expect(getCatalogLabelKey('cover')).toBe('dashboard.editor.sections.section_card_cover');
     expect(getCatalogDescriptionKey('sensor')).toBe('dashboard.editor.sections.section_card_sensor_desc');
