@@ -6,13 +6,14 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
 import { API_BASE_URL } from '../../../config';
 import { fetchDiagnosticResource } from '../../../lib/diagnosticResourceRequests';
+import { apiFetch } from '../../../lib/apiClient';
 import { useDeviceSnapshotStore } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig } from '../types';
-import { cardKinds, createId, getCatalogCategory, getCatalogDescriptionKey, getCatalogLabelKey, getDefaultIcon, getDefaultSpan, getEffectiveCardSpan, getRecommendedSectionHeight, getWidgetType, isClockKind, normalizeCards, normalizeKind, type AssignableAutomation, type AssignableScene, type CardDraft, type NormalizedSectionCardItem, type NormalizedSectionCardKind, type SectionCardCategory, type SectionCardIcon, type SectionCardKind, type SectionCardSpan } from './sectionCardCatalog';
+import { cardKinds, createId, getCatalogCategory, getCatalogDescriptionKey, getCatalogLabelKey, getDefaultIcon, getDefaultSpan, getEffectiveCardSpan, getRecommendedSectionHeight, getWidgetType, isClockKind, normalizeCards, normalizeKind, type AssignableAutomation, type AssignableDisplayAction, type AssignableScene, type CardDraft, type NormalizedSectionCardItem, type NormalizedSectionCardKind, type SectionCardCategory, type SectionCardIcon, type SectionCardKind, type SectionCardSpan } from './sectionCardCatalog';
 import { getAssignableDevicesForSectionCard, isDeviceActive } from '../dashboardUtils';
 import { IconButton } from '../../../components/ui/IconButton';
 import { useMasonryRowSpans } from './useMasonryRowSpans';
-import { getAssignableRooms, isAutomationEntityId, normalizeAssignableAutomation, normalizeAssignableScene, stripAutomationEntityPrefix } from './sectionCardAssignments';
+import { getAssignableRooms, isAutomationEntityId, normalizeAssignableAutomation, normalizeAssignableDisplayAction, normalizeAssignableScene, stripAutomationEntityPrefix, toDeviceActionEntityId } from './sectionCardAssignments';
 import { SectionCardContent } from './SectionCardContent';
 import { SectionCardItem } from './SectionCardItem';
 import { SectionCardCatalogModal } from './SectionCardCatalogModal';
@@ -48,6 +49,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const [cardDraft, setCardDraft] = useState<CardDraft>({ title: '', kind: 'device', entityId: '', span: 'small', icon: 'lightbulb' });
   const [scenes, setScenes] = useState<AssignableScene[]>([]);
   const [automations, setAutomations] = useState<AssignableAutomation[]>([]);
+  const [displayActions, setDisplayActions] = useState<AssignableDisplayAction[]>([]);
   const { processingCardId, actionFeedback, handleCardAction, handleMediaCardAction, executeSectionDeviceCommand } =
     useSectionCardActions({ devices, isEditing, upsertDevice });
 
@@ -68,6 +70,8 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const selectedAutomation = cardDraft.entityId && isAutomationEntityId(cardDraft.entityId)
     ? automations.find((automation) => automation.id === stripAutomationEntityPrefix(cardDraft.entityId))
     : undefined;
+  const selectedDisplayAction = displayActions.find((action) =>
+    toDeviceActionEntityId(action.deviceId, action.actionKey) === cardDraft.entityId);
   const selectedRoom = cardDraft.entityId ? assignableRooms.find((room) => room.id === cardDraft.entityId) : undefined;
 
 
@@ -105,6 +109,21 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
       controller.abort();
     };
   }, [cardDraft.kind, editingCardId, isCatalogOpen]);
+
+  useEffect(() => {
+    if (!editingCardId || (normalizeKind(cardDraft.kind) !== 'action' && normalizeKind(cardDraft.kind) !== 'light')) return;
+    const controller = new AbortController();
+    void apiFetch(`${API_BASE_URL}/api/v1/dashboard-action-targets`, { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('DASHBOARD_ACTION_TARGETS_UNAVAILABLE');
+        const payload: unknown = await response.json();
+        return Array.isArray(payload)
+          ? payload.map(normalizeAssignableDisplayAction).filter((action): action is AssignableDisplayAction => action !== null)
+          : [];
+      }).then((actions) => { if (!controller.signal.aborted) setDisplayActions(actions); })
+      .catch(() => { if (!controller.signal.aborted) setDisplayActions([]); });
+    return () => controller.abort();
+  }, [cardDraft.kind, editingCardId]);
 
   useEffect(() => {
     if (!isCatalogOpen && (!editingCardId || (normalizeKind(cardDraft.kind) !== 'scene' && normalizeKind(cardDraft.kind) !== 'action' && normalizeKind(cardDraft.kind) !== 'light'))) return;
@@ -212,11 +231,11 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       return {
         ...card,
         kind: cardDraft.kind,
-        title: cardDraft.title.trim() || selectedScene?.name || selectedAutomation?.name || selectedRoom?.name || selectedDevice?.name || catalogLabel(cardDraft.kind),
+        title: cardDraft.title.trim() || selectedDisplayAction?.displayName || selectedScene?.name || selectedAutomation?.name || selectedRoom?.name || selectedDevice?.name || catalogLabel(cardDraft.kind),
         description: catalogDescription(cardDraft.kind),
         widgetType: getWidgetType(cardDraft.kind),
         entityId: cardDraft.entityId || undefined,
-        entityName: selectedScene?.name || selectedAutomation?.name || selectedRoom?.name || selectedDevice?.name,
+        entityName: selectedDisplayAction?.deviceName || selectedScene?.name || selectedAutomation?.name || selectedRoom?.name || selectedDevice?.name,
         span: isClockKind(cardDraft.kind) ? 'full' : getEffectiveCardSpan(cardDraft.kind, cardDraft.span),
         icon: cardDraft.icon,
       };
@@ -326,6 +345,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       assignableRooms={assignableRooms}
       scenes={scenes}
       automations={automations}
+      displayActions={displayActions}
       devices={devices}
       renderCatalogPreview={renderCatalogPreview}
       onClose={() => setEditingCardId(null)}

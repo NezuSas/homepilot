@@ -139,8 +139,6 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
         <SmartDisplayControls
           device={controllingDisplay}
           onClose={() => setControllingDisplayId(null)}
-          onCommand={executeDeviceCommand}
-          onUpdate={upsertDevice}
         />
       )}
 

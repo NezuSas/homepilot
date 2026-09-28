@@ -12,10 +12,10 @@ import { ModalPortal } from './ModalPortal';
 import {
   canUseCompactSpan, cardKinds, clockCardOptions, getDefaultIcon, getDefaultSpan,
   getEffectiveCardSpan, getClockKindLabelKey, isBindableKind, isClockKind,
-  normalizeKind, type AssignableAutomation, type AssignableScene, type CardDraft,
+  normalizeKind, type AssignableAutomation, type AssignableDisplayAction, type AssignableScene, type CardDraft,
   type NormalizedSectionCardKind, type SectionCardIcon, type SectionCardKind, type SectionCardSpan,
 } from './sectionCardCatalog';
-import { isAutomationEntityId, stripAutomationEntityPrefix, toAutomationEntityId } from './sectionCardAssignments';
+import { isAutomationEntityId, stripAutomationEntityPrefix, toAutomationEntityId, toDeviceActionEntityId } from './sectionCardAssignments';
 
 const DESKTOP_SECTION_COLUMNS = 4;
 
@@ -27,6 +27,7 @@ interface SectionCardEditorModalProps {
   assignableRooms: SnapshotRoom[];
   scenes: AssignableScene[];
   automations: AssignableAutomation[];
+  displayActions: AssignableDisplayAction[];
   devices: SnapshotDevice[];
   renderCatalogPreview: (
     kind: NormalizedSectionCardKind,
@@ -41,7 +42,7 @@ interface SectionCardEditorModalProps {
 
 export function SectionCardEditorModal({
   cardDraft, setCardDraft, catalogLabel, assignableDevices, assignableRooms,
-  scenes, automations, devices, renderCatalogPreview, onClose, onSave,
+  scenes, automations, displayActions, devices, renderCatalogPreview, onClose, onSave,
 }: SectionCardEditorModalProps) {
   const { t } = useTranslation();
   return (
@@ -232,15 +233,22 @@ export function SectionCardEditorModal({
                         label: automation.enabled ? automation.name : `${automation.name} (${t('dashboard.editor.sections.routine_disabled')})`,
                         description: t('dashboard.editor.sections.routine_option_tag'),
                       })),
+                      ...displayActions.map((action) => ({
+                        value: toDeviceActionEntityId(action.deviceId, action.actionKey),
+                        label: action.displayName,
+                        description: t('dashboard.editor.sections.display_action_option_tag', { name: action.deviceName }),
+                      })),
                     ]}
                     onChange={(selectedId) => {
+                      const nextDisplayAction = displayActions.find((action) =>
+                        toDeviceActionEntityId(action.deviceId, action.actionKey) === selectedId);
                       const nextDevice = devices.find((device) => device.id === selectedId);
-                      const nextName = nextDevice?.name
+                      const nextName = nextDisplayAction?.displayName || nextDevice?.name
                         || scenes.find((scene) => scene.id === selectedId)?.name
                         || (isAutomationEntityId(selectedId)
                           ? automations.find((automation) => automation.id === stripAutomationEntityPrefix(selectedId))?.name
                           : undefined);
-                      const isLightTarget = !selectedId || getAssignableDevicesForSectionCard('light', devices).some((device) => device.id === selectedId);
+                      const isLightTarget = !nextDisplayAction && (!selectedId || getAssignableDevicesForSectionCard('light', devices).some((device) => device.id === selectedId));
                       const nextKind = isLightTarget ? 'light' : 'action';
                       setCardDraft((draft) => ({
                         ...draft,

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { ArrowLeft, House, Monitor, Volume2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Monitor } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
@@ -7,156 +7,137 @@ import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 import { Button } from './ui/Button';
 import { Drawer } from './ui/Drawer';
 import { LoadingState } from './ui/LoadingState';
-import { RangeInput } from './ui/RangeInput';
 
-export type DisplayAction = 'navigate_home' | 'navigate_back' | 'volume_set';
+export interface DisplayCatalogCommand {
+  key: string;
+  displayName: string;
+  implementationType: 'homepilot' | 'legacy_adb';
+  controlType: 'button' | 'slider';
+  visibility: 'visible' | 'hidden';
+  executableInHomePilot: boolean;
+  dashboardEligible: boolean;
+}
 
-export function selectSmartDisplayControls(payload: unknown, deviceId: string): DisplayAction[] {
-  if (!payload || typeof payload !== 'object' || !('deviceId' in payload) || !('actions' in payload)
-    || payload.deviceId !== deviceId || !Array.isArray(payload.actions)) return [];
+export interface DisplayControlCatalog {
+  deviceId: string;
+  plan: { id: number; name: string | null; type: string | null };
+  commands: DisplayCatalogCommand[];
+}
 
-  const actions = new Set<DisplayAction>();
-  for (const action of payload.actions) {
-    if (!action || typeof action !== 'object' || action.visibility !== 'visible'
-      || action.requiresConfirmation !== false) continue;
-    if ((action.semanticAction === 'navigate_home' || action.semanticAction === 'navigate_back')
-      && action.controlType === 'button') actions.add(action.semanticAction);
-    if (action.semanticAction === 'volume_set' && action.controlType === 'slider') actions.add('volume_set');
+export function parseDisplayControlCatalog(value: unknown, deviceId: string): DisplayControlCatalog | null {
+  if (!value || typeof value !== 'object' || !('deviceId' in value) || value.deviceId !== deviceId
+    || !('plan' in value) || !value.plan || typeof value.plan !== 'object'
+    || !('commands' in value) || !Array.isArray(value.commands)) return null;
+  const plan = value.plan;
+  if (!('id' in plan) || typeof plan.id !== 'number' || !Number.isSafeInteger(plan.id) || plan.id <= 0
+    || !('name' in plan) || (plan.name !== null && typeof plan.name !== 'string')
+    || !('type' in plan) || (plan.type !== null && typeof plan.type !== 'string')) return null;
+  const commands: DisplayCatalogCommand[] = [];
+  for (const item of value.commands) {
+    if (!item || typeof item !== 'object' || typeof item.key !== 'string'
+      || typeof item.displayName !== 'string'
+      || (item.implementationType !== 'homepilot' && item.implementationType !== 'legacy_adb')
+      || (item.controlType !== 'button' && item.controlType !== 'slider')
+      || (item.visibility !== 'visible' && item.visibility !== 'hidden')
+      || typeof item.executableInHomePilot !== 'boolean'
+      || typeof item.dashboardEligible !== 'boolean') return null;
+    commands.push({ key: item.key, displayName: item.displayName,
+      implementationType: item.implementationType, controlType: item.controlType, visibility: item.visibility,
+      executableInHomePilot: item.executableInHomePilot, dashboardEligible: item.dashboardEligible });
   }
-  return [...actions];
+  return { deviceId, plan: { id: plan.id, name: plan.name, type: plan.type }, commands };
 }
 
-interface SmartDisplayControlsProps {
-  device: SnapshotDevice;
-  onClose: () => void;
-  onCommand: (deviceId: string, command: string, params?: Record<string, unknown>) => Promise<SnapshotDevice | null>;
-  onUpdate: (device: SnapshotDevice) => void;
-}
-
-interface SmartDisplayActionControlsProps {
-  actions: DisplayAction[];
-  disabled: boolean;
-  busyAction: DisplayAction | null;
-  volume: number;
-  onVolumeChange: (volume: number) => void;
-  onAction: (action: DisplayAction) => void;
-}
-
-export const SmartDisplayActionControls: React.FC<SmartDisplayActionControlsProps> = ({
-  actions, disabled, busyAction, volume, onVolumeChange, onAction,
-}) => {
+export function SmartDisplayCatalogContent({ catalog }: { catalog: DisplayControlCatalog }) {
   const { t } = useTranslation();
-  if (actions.length === 0) return <p className="text-sm text-muted-foreground">{t('inbox.smart_display.no_actions')}</p>;
-  return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {actions.includes('navigate_home') && (
-          <Button type="button" variant="secondary" disabled={disabled} isLoading={busyAction === 'navigate_home'}
-            onClick={() => onAction('navigate_home')} className="w-full">
-            <House className="h-4 w-4" aria-hidden="true" /> {t('inbox.smart_display.home')}
-          </Button>
-        )}
-        {actions.includes('navigate_back') && (
-          <Button type="button" variant="secondary" disabled={disabled} isLoading={busyAction === 'navigate_back'}
-            onClick={() => onAction('navigate_back')} className="w-full">
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" /> {t('inbox.smart_display.back')}
-          </Button>
-        )}
-      </div>
-      {actions.includes('volume_set') && (
-        <div className="rounded-card border border-border bg-background/40 p-4">
-          <label htmlFor="smart-display-volume" className="mb-3 flex items-center gap-2 text-sm font-semibold">
-            <Volume2 className="h-4 w-4" aria-hidden="true" /> {t('inbox.smart_display.volume')}: {volume}%
-          </label>
-          <RangeInput id="smart-display-volume" min={0} max={100} value={volume}
-            disabled={disabled} onValueChange={onVolumeChange} />
-          <p className="mt-2 text-xs text-muted-foreground">{t('inbox.smart_display.volume_hint')}</p>
-          <Button type="button" className="mt-4 w-full" disabled={disabled}
-            isLoading={busyAction === 'volume_set'} onClick={() => onAction('volume_set')}>
-            {t('inbox.smart_display.apply_volume')}
-          </Button>
-        </div>
-      )}
-    </div>
+  const visibleCommands = catalog.commands.filter((command) => command.visibility === 'visible');
+  const available = visibleCommands.filter((command) => command.executableInHomePilot);
+  const remaining = visibleCommands.filter((command) => !command.executableInHomePilot);
+  const renderCommand = (command: DisplayCatalogCommand) => (
+    <li key={command.key} className="min-w-0 border-b border-border/60 py-3 last:border-0">
+      <p className="break-words font-semibold text-foreground">{command.displayName}</p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {command.executableInHomePilot
+          ? t(command.controlType === 'button' ? 'inbox.smart_display.direct_action' : 'inbox.smart_display.value_control')
+          : t(command.implementationType === 'legacy_adb'
+            ? 'inbox.smart_display.managed_externally' : 'inbox.smart_display.included_unavailable')}
+      </p>
+      {command.executableInHomePilot && <p className="mt-1 text-sm text-primary">
+        {t(command.dashboardEligible ? 'inbox.smart_display.dashboard_available' : 'inbox.smart_display.control_available')}
+      </p>}
+    </li>
   );
-};
 
-export const SmartDisplayControls: React.FC<SmartDisplayControlsProps> = ({ device, onClose, onCommand, onUpdate }) => {
+  return <div className="space-y-8">
+    <section aria-labelledby="display-plan-title">
+      <h4 id="display-plan-title" className="text-sm font-semibold text-muted-foreground">{t('inbox.smart_display.current_plan')}</h4>
+      <p className="mt-2 break-words text-lg font-bold text-foreground">
+        {catalog.plan.name || t('inbox.smart_display.plan_fallback', { id: catalog.plan.id })}
+      </p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {catalog.plan.type || t('inbox.smart_display.plan_pending')}
+      </p>
+    </section>
+    <section aria-labelledby="display-homepilot-controls">
+      <h4 id="display-homepilot-controls" className="text-base font-bold">{t('inbox.smart_display.homepilot_controls')}</h4>
+      {available.length ? <ul className="mt-2">{available.map(renderCommand)}</ul>
+        : <p className="mt-2 text-sm text-muted-foreground">{t('inbox.smart_display.no_actions')}</p>}
+    </section>
+    <section aria-labelledby="display-included-controls">
+      <h4 id="display-included-controls" className="text-base font-bold">{t('inbox.smart_display.included_controls')}</h4>
+      {remaining.length ? <ul className="mt-2">{remaining.map(renderCommand)}</ul>
+        : <p className="mt-2 text-sm text-muted-foreground">{t('inbox.smart_display.no_other_controls')}</p>}
+    </section>
+  </div>;
+}
+
+export function SmartDisplayControls({ device, onClose }: { device: SnapshotDevice; onClose: () => void }) {
   const { t } = useTranslation();
-  const [actions, setActions] = useState<DisplayAction[]>([]);
+  const [catalog, setCatalog] = useState<DisplayControlCatalog | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
-  const [busyAction, setBusyAction] = useState<DisplayAction | null>(null);
-  const [feedback, setFeedback] = useState<'success' | 'error' | null>(null);
-  const [volume, setVolume] = useState(50);
-  const online = device.lastKnownState?.connectionState === 'online';
 
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
     setLoadError(false);
-    setActions([]);
-    void apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(device.id)}/effective-actions`, {
+    setCatalog(null);
+    void apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(device.id)}/control-catalog`, {
       signal: controller.signal,
     }).then(async (response) => {
-      if (!response.ok) throw new Error('Effective actions unavailable');
-      const payload: unknown = await response.json();
-      if (!controller.signal.aborted) setActions(selectSmartDisplayControls(payload, device.id));
-    }).catch(() => {
-      if (!controller.signal.aborted) setLoadError(true);
-    }).finally(() => {
-      if (!controller.signal.aborted) setLoading(false);
-    });
+      if (!response.ok) throw new Error('Catalog unavailable');
+      const parsed = parseDisplayControlCatalog(await response.json() as unknown, device.id);
+      if (!parsed) throw new Error('Invalid catalog');
+      if (!controller.signal.aborted) setCatalog(parsed);
+    }).catch(() => { if (!controller.signal.aborted) setLoadError(true); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [device.id, reloadKey]);
 
-  const runAction = async (action: DisplayAction) => {
-    if (busyAction || !online || !actions.includes(action)) return;
-    setBusyAction(action);
-    setFeedback(null);
-    try {
-      const updated = await onCommand(device.id, action, action === 'volume_set' ? { volume } : undefined);
-      if (updated) {
-        onUpdate(updated);
-        setFeedback('success');
-      } else setFeedback('error');
-    } catch {
-      setFeedback('error');
-    } finally {
-      setBusyAction(null);
-    }
-  };
-
-  return (
-    <Drawer isOpen onClose={onClose} title={t('inbox.smart_display.controls')}>
-      <div className="border-b border-border px-5 py-6 pr-16 sm:px-7">
-        <div className="flex items-center gap-3">
-          <Monitor className="h-6 w-6 shrink-0 text-primary" aria-hidden="true" />
-          <div className="min-w-0">
-            <h3 className="truncate text-xl font-bold">{device.name}</h3>
-            <p className="text-sm text-muted-foreground">{online ? t('inbox.smart_display.online')
-              : device.lastKnownState?.connectionState === 'offline'
-                ? t('inbox.smart_display.offline') : t('inbox.smart_display.unknown')}</p>
-          </div>
+  const connectionState = device.lastKnownState?.connectionState;
+  return <Drawer isOpen onClose={onClose} title={t('inbox.smart_display.manage_controls')}>
+    <div className="border-b border-border px-5 py-6 pr-16 sm:px-7">
+      <div className="flex items-center gap-3">
+        <Monitor className="h-6 w-6 shrink-0 text-primary" aria-hidden="true" />
+        <div className="min-w-0">
+          <h3 className="break-words text-xl font-bold">{device.name}</h3>
+          <p className="text-sm text-muted-foreground">
+            {t('inbox.smart_display.type')} · {t(connectionState === 'online' ? 'inbox.smart_display.online'
+              : connectionState === 'offline' ? 'inbox.smart_display.offline' : 'inbox.smart_display.unknown')}
+          </p>
         </div>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-7">
-        {loading ? <LoadingState label={t('inbox.smart_display.loading')} size="sm" /> : loadError ? (
-          <div role="alert" className="space-y-3">
-            <p>{t('inbox.smart_display.load_error')}</p>
-            <Button type="button" variant="outline" onClick={() => setReloadKey((key) => key + 1)}>
-              {t('inbox.smart_display.retry')}
-            </Button>
-          </div>
-        ) : (
-          <SmartDisplayActionControls actions={actions} disabled={!online || busyAction !== null}
-            busyAction={busyAction} volume={volume} onVolumeChange={setVolume} onAction={(action) => void runAction(action)} />
-        )}
-        {feedback && <p role="status" className="mt-5 text-sm text-muted-foreground">
-          {t(feedback === 'success' ? 'inbox.smart_display.command_sent' : 'inbox.smart_display.command_error')}
-        </p>}
-      </div>
-    </Drawer>
-  );
-};
+    </div>
+    <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-7">
+      {loading ? <LoadingState label={t('inbox.smart_display.loading')} size="sm" /> : loadError ? (
+        <div role="alert" className="space-y-3">
+          <p>{t('inbox.smart_display.load_error')}</p>
+          <Button type="button" variant="outline" onClick={() => setReloadKey((key) => key + 1)}>
+            {t('inbox.smart_display.retry')}
+          </Button>
+        </div>
+      ) : catalog ? <SmartDisplayCatalogContent catalog={catalog} /> : null}
+    </div>
+  </Drawer>;
+}

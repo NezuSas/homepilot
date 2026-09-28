@@ -18,6 +18,21 @@ export interface BoardManifestActionV1 {
   readonly requiresConfirmation: boolean;
 }
 
+export interface BoardManifestEntitlementCommandV1 {
+  readonly key: string;
+  readonly displayName: string;
+  readonly implementationType: 'legacy_adb' | 'homepilot';
+  readonly controlType: ManifestControlType;
+  readonly visibility: ManifestVisibility;
+  readonly safetyLevel: ManifestSafetyLevel;
+  readonly requiresConfirmation: boolean;
+}
+
+export interface BoardManifestEntitlementV1 {
+  readonly plan: { readonly id: number; readonly name: string; readonly type: string };
+  readonly commands: ReadonlyArray<BoardManifestEntitlementCommandV1>;
+}
+
 export interface BoardManifestV1 {
   readonly schemaVersion: typeof BOARD_MANIFEST_SCHEMA_VERSION;
   readonly revision: string;
@@ -26,6 +41,7 @@ export interface BoardManifestV1 {
   readonly homePilotDeviceId: string;
   readonly planId: number;
   readonly actions: ReadonlyArray<BoardManifestActionV1>;
+  readonly entitlement?: BoardManifestEntitlementV1;
 }
 
 export class BoardManifestValidationError extends Error {
@@ -44,6 +60,10 @@ const manifestKeys = [
 const actionKeys = [
   'key', 'displayName', 'semanticAction', 'controlType', 'implementationType',
   'implementationConfig', 'visibility', 'safetyLevel', 'requiresConfirmation',
+] as const;
+const entitlementCommandKeys = [
+  'key', 'displayName', 'implementationType', 'controlType', 'visibility',
+  'safetyLevel', 'requiresConfirmation',
 ] as const;
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const revisionPattern = /^[0-9a-f]{64}$/i;
@@ -97,9 +117,37 @@ function parseAction(value: unknown): BoardManifestActionV1 {
   };
 }
 
+function parseEntitlement(value: unknown): BoardManifestEntitlementV1 {
+  if (!hasExactKeys(value, ['plan', 'commands'])
+    || !hasExactKeys(value.plan, ['id', 'name', 'type'])
+    || !isPositiveInteger(value.plan.id)
+    || typeof value.plan.name !== 'string' || !value.plan.name.trim()
+    || typeof value.plan.type !== 'string' || !value.plan.type.trim()
+    || !Array.isArray(value.commands)) throw new BoardManifestValidationError();
+
+  const commands: BoardManifestEntitlementCommandV1[] = value.commands.map((item: unknown) => {
+    if (!hasExactKeys(item, entitlementCommandKeys)
+      || typeof item.key !== 'string' || !item.key.trim() || item.key !== item.key.trim()
+      || typeof item.displayName !== 'string' || !item.displayName.trim()
+      || (item.implementationType !== 'legacy_adb' && item.implementationType !== 'homepilot')
+      || (item.controlType !== 'button' && item.controlType !== 'slider')
+      || (item.visibility !== 'visible' && item.visibility !== 'hidden')
+      || (item.safetyLevel !== 'normal' && item.safetyLevel !== 'sensitive')
+      || typeof item.requiresConfirmation !== 'boolean') throw new BoardManifestValidationError();
+    return {
+      key: item.key, displayName: item.displayName,
+      implementationType: item.implementationType, controlType: item.controlType,
+      visibility: item.visibility, safetyLevel: item.safetyLevel,
+      requiresConfirmation: item.requiresConfirmation,
+    };
+  });
+  if (new Set(commands.map((item) => item.key)).size !== commands.length) throw new BoardManifestValidationError();
+  return { plan: { id: value.plan.id, name: value.plan.name, type: value.plan.type }, commands };
+}
+
 /** Runtime validation at the external IntentFlow manifest boundary. */
 export function parseBoardManifestV1(value: unknown): BoardManifestV1 {
-  if (!hasExactKeys(value, manifestKeys)
+  if (!(hasExactKeys(value, manifestKeys) || hasExactKeys(value, [...manifestKeys, 'entitlement']))
     || value.schemaVersion !== BOARD_MANIFEST_SCHEMA_VERSION
     || typeof value.revision !== 'string' || !revisionPattern.test(value.revision)
     || !isPositiveInteger(value.boardId) || !isPositiveInteger(value.planId)
@@ -112,6 +160,10 @@ export function parseBoardManifestV1(value: unknown): BoardManifestV1 {
   if (new Set(actions.map((action) => action.key)).size !== actions.length) {
     throw new BoardManifestValidationError();
   }
+  const entitlement = 'entitlement' in value ? parseEntitlement(value.entitlement) : undefined;
+  if (entitlement && entitlement.plan.id !== value.planId) {
+    throw new BoardManifestValidationError();
+  }
 
   return {
     schemaVersion: BOARD_MANIFEST_SCHEMA_VERSION,
@@ -121,5 +173,6 @@ export function parseBoardManifestV1(value: unknown): BoardManifestV1 {
     homePilotDeviceId: value.homePilotDeviceId,
     planId: value.planId,
     actions,
+    ...(entitlement ? { entitlement } : {}),
   };
 }

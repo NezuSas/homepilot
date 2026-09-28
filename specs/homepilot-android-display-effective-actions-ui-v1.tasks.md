@@ -6,3 +6,5 @@
 - [x] Reutilizar `POST /api/v1/devices/:id/command` y el control de rango existente.
 - [x] Escribir pruebas de ruta, presentación y controles condicionales.
 - [ ] Ejecutar pruebas y validaciones en una tarea autorizada.
+
+La UI de control remoto de esta fase se reemplazó por el catálogo de `smart-display-control-catalog-v1.md`; la ruta de autorización y el driver permanecen.

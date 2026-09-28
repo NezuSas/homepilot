@@ -14,6 +14,7 @@ import { DiagnosticsService } from './packages/system-observability/application/
 import { InstallationVerificationBroker } from './packages/cloud-gateway/application/InstallationVerificationBroker';
 import { ManifestSyncService } from './packages/cloud-gateway/application/ManifestSyncService';
 import { EffectiveActionsProvider } from './packages/cloud-gateway/application/EffectiveActionsProvider';
+import { DeviceControlCatalogProvider } from './packages/cloud-gateway/application/DeviceControlCatalogProvider';
 import { DirectoryEdgeServiceTokenClient } from './packages/cloud-gateway/infrastructure/DirectoryEdgeServiceTokenClient';
 import { IntentFlowManifestClient } from './packages/cloud-gateway/infrastructure/IntentFlowManifestClient';
 import { SqliteManifestCacheRepository } from './packages/cloud-gateway/infrastructure/SqliteManifestCacheRepository';
@@ -139,6 +140,7 @@ export interface BootstrapContainer {
     installationVerificationBroker: InstallationVerificationBroker;
     manifestSyncService: ManifestSyncService;
     effectiveActionsProvider: EffectiveActionsProvider;
+    deviceControlCatalogProvider: DeviceControlCatalogProvider;
   };
   guards: {
     authGuard: AuthGuard;
@@ -444,6 +446,10 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       installationVerificationBroker: new InstallationVerificationBroker(readCloudEdgeConfig),
       manifestSyncService,
       effectiveActionsProvider: new EffectiveActionsProvider({
+        cache: manifestCacheRepository,
+        devices: repos.deviceRepository,
+      }),
+      deviceControlCatalogProvider: new DeviceControlCatalogProvider({
         cache: manifestCacheRepository,
         devices: repos.deviceRepository,
       })

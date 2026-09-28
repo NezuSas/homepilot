@@ -19,8 +19,33 @@ import {
   normalizeCards,
   normalizeKind,
 } from './sectionCardCatalog';
+import { executeDeviceActionTarget, getDeviceActionExecuteUrl, isDeviceActionEntityId,
+  normalizeAssignableDisplayAction, parseDeviceActionEntityId, toDeviceActionEntityId } from './sectionCardAssignments';
+
+jest.mock('../../../config', () => ({ API_BASE_URL: '' }));
 
 describe('section card catalog contracts', () => {
+  it('persists and parses a validated device-action target without ambiguous splits', () => {
+    const target = toDeviceActionEntityId('device-123', 'hp_navigate_home');
+    expect(target).toBe('device-action:device-123:hp_navigate_home');
+    expect(isDeviceActionEntityId(target)).toBe(true);
+    expect(parseDeviceActionEntityId(target)).toEqual({ deviceId: 'device-123', actionKey: 'hp_navigate_home' });
+    expect(getDeviceActionExecuteUrl(target)).toBe('/api/v1/devices/device-123/actions/hp_navigate_home/execute');
+    expect(parseDeviceActionEntityId('device-action:device-123:hp_home:extra')).toBeNull();
+    expect(() => toDeviceActionEntityId('device:123', 'hp_home')).toThrow('INVALID_DEVICE_ACTION_TARGET');
+    expect(normalizeAssignableDisplayAction({ deviceId: 'device-123', actionKey: 'hp_home',
+      displayName: 'Inicio', deviceName: 'Pizarra' })).not.toBeNull();
+    expect(normalizeAssignableDisplayAction({ deviceId: 'device-123', actionKey: 'hp_home:bad',
+      displayName: 'Inicio', deviceName: 'Pizarra' })).toBeNull();
+  });
+
+  it('uses only the action-key endpoint and rejects a revoked action without fallback', async () => {
+    const target = toDeviceActionEntityId('device-123', 'hp_navigate_home');
+    const request = jest.fn().mockResolvedValue({ ok: false, status: 403 });
+    await expect(executeDeviceActionTarget(target, request)).rejects.toThrow('DEVICE_ACTION_403');
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledWith('/api/v1/devices/device-123/actions/hp_navigate_home/execute', { method: 'POST' });
+  });
   it('normalizes legacy cards and derives stable defaults for widget configuration', () => {
     const cards = normalizeCards({
       cards: [

@@ -19,7 +19,7 @@ const display = {
 } as Device;
 
 const allowed = { key: 'hp_navigate_home', displayName: 'Home', semanticAction: 'navigate_home',
-  controlType: 'button', visibility: 'visible', safetyLevel: 'low', requiresConfirmation: false };
+  controlType: 'button', visibility: 'visible', safetyLevel: 'normal', requiresConfirmation: false };
 
 function response() {
   const res = { setHeader: jest.fn(), writeHead: jest.fn().mockReturnThis(), end: jest.fn().mockReturnThis() };
@@ -31,13 +31,25 @@ function request(command?: unknown): HomePilotRequest {
     _fastifyParsedBody: JSON.stringify({ command }) } as HomePilotRequest;
 }
 
+function actionRequest(body?: unknown): HomePilotRequest {
+  return { headers: {}, user: { id: 'owner-1' },
+    _fastifyParsedBody: body === undefined ? '' : JSON.stringify(body) } as HomePilotRequest;
+}
+
 function containerFor(device: Device = display): BootstrapContainer {
   return {
     guards: { authGuard: { protect: jest.fn().mockResolvedValue(true) } },
-    repositories: { deviceRepository: { findDeviceById: jest.fn().mockResolvedValue(device) } },
+    repositories: {
+      deviceRepository: { findDeviceById: jest.fn().mockResolvedValue(device), findAllByHomeId: jest.fn().mockResolvedValue([device]) },
+      homeRepository: { findHomesByUserId: jest.fn().mockResolvedValue([{ id: 'home-1' }]) },
+    },
     adapters: { topologyReferencePort: { validateHomeOwnership: jest.fn().mockResolvedValue(undefined) } },
     services: {
       effectiveActionsProvider: { getForDeviceId: jest.fn().mockResolvedValue([allowed]) },
+      deviceControlCatalogProvider: {
+        getForDevice: jest.fn().mockReturnValue({ deviceId: device.id, plan: { id: 2, name: 'Premium', type: 'PREMIUM' }, commands: [] }),
+        listDashboardActionsForDevices: jest.fn().mockReturnValue([]),
+      },
       homeAssistantSettingsService: { updateStatusFromOperation: jest.fn() },
     },
   } as unknown as BootstrapContainer;
@@ -61,8 +73,8 @@ describe('DeviceRoutes effective actions for Android displays', () => {
     expect(container.adapters.topologyReferencePort.validateHomeOwnership).toHaveBeenCalledWith('home-1', 'owner-1');
     expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-store');
     expect(res.end).toHaveBeenCalledWith(JSON.stringify({ deviceId: 'display-1', actions: [{
-      semanticAction: 'navigate_home', controlType: 'button', visibility: 'visible',
-      safetyLevel: 'low', requiresConfirmation: false,
+      key: 'hp_navigate_home', displayName: 'Home', semanticAction: 'navigate_home',
+      controlType: 'button', visibility: 'visible', safetyLevel: 'normal', requiresConfirmation: false,
     }] }));
 
     (container.adapters.topologyReferencePort.validateHomeOwnership as jest.Mock)
@@ -71,6 +83,94 @@ describe('DeviceRoutes effective actions for Android displays', () => {
     await routes.handle(request(), denied, '/api/v1/devices/display-1/effective-actions', 'GET', container);
     expect(denied.writeHead).toHaveBeenCalledWith(403, expect.any(Object));
     expect(container.services.effectiveActionsProvider.getForDeviceId).toHaveBeenCalledTimes(1);
+  });
+
+  it('protects the control catalog and the batch dashboard target list', async () => {
+    const container = containerFor();
+    const catalog = response();
+    await routes.handle(request(), catalog, '/api/v1/devices/display-1/control-catalog', 'GET', container);
+    expect(container.adapters.topologyReferencePort.validateHomeOwnership).toHaveBeenCalledWith('home-1', 'owner-1');
+    expect(catalog.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-store');
+    expect(catalog.end).toHaveBeenCalledWith(JSON.stringify({
+      deviceId: 'display-1', plan: { id: 2, name: 'Premium', type: 'PREMIUM' }, commands: [],
+    }));
+
+    (container.adapters.topologyReferencePort.validateHomeOwnership as jest.Mock)
+      .mockRejectedValueOnce(new ForbiddenOwnershipError('Forbidden'));
+    const denied = response();
+    await routes.handle(request(), denied, '/api/v1/devices/display-1/control-catalog', 'GET', container);
+    expect(denied.writeHead).toHaveBeenCalledWith(403, expect.any(Object));
+    expect(container.services.deviceControlCatalogProvider.getForDevice).toHaveBeenCalledTimes(1);
+
+    await routes.handle(request(), response(), '/api/v1/dashboard-action-targets', 'GET', container);
+    expect(container.services.deviceControlCatalogProvider.listDashboardActionsForDevices).toHaveBeenCalledWith([display]);
+  });
+
+  it('does not read catalog or batch targets without authentication or an accessible home', async () => {
+    const container = containerFor();
+    (container.guards.authGuard.protect as jest.Mock).mockResolvedValueOnce(false);
+    await routes.handle(request(), response(), '/api/v1/devices/display-1/control-catalog', 'GET', container);
+    expect(container.services.deviceControlCatalogProvider.getForDevice).not.toHaveBeenCalled();
+    (container.repositories.homeRepository.findHomesByUserId as jest.Mock).mockResolvedValueOnce([]);
+    await routes.handle(request(), response(), '/api/v1/dashboard-action-targets', 'GET', container);
+    expect(container.repositories.deviceRepository.findAllByHomeId).not.toHaveBeenCalled();
+    expect(container.services.deviceControlCatalogProvider.listDashboardActionsForDevices).toHaveBeenCalledWith([]);
+  });
+
+  it.each([undefined, {}])('executes an effective action key with an empty body (%p)', async (body) => {
+    const container = containerFor();
+    const res = response();
+    await routes.handle(actionRequest(body), res, '/api/v1/devices/display-1/actions/hp_navigate_home/execute', 'POST', container);
+    expect(executeDeviceCommandUseCase).toHaveBeenCalledWith('display-1', 'navigate_home',
+      'owner-1', expect.any(String), expect.any(Object), expect.any(Object));
+    expect(res.writeHead).toHaveBeenCalledWith(200, expect.any(Object));
+  });
+
+  it.each([
+    { semanticAction: 'navigate_home' },
+    { params: {} },
+    null,
+    [],
+    'navigate_home',
+    1,
+  ])('rejects nonempty or nonobject action-key bodies (%p)', async (body) => {
+    const container = containerFor();
+    const res = response();
+    await routes.handle(actionRequest(body), res,
+      '/api/v1/devices/display-1/actions/hp_navigate_home/execute', 'POST', container);
+    expect(res.writeHead).toHaveBeenCalledWith(400, expect.any(Object));
+    expect(res.end).toHaveBeenCalledWith(expect.stringContaining('INVALID_COMMAND'));
+    expect(executeDeviceCommandUseCase).not.toHaveBeenCalled();
+  });
+
+  it('rejects missing, slider and confirmation-required keys without dispatching', async () => {
+    const container = containerFor();
+    for (const [actionKey, actions] of [
+      ['revoked', [allowed]],
+      ['hp_volume_set', [{ ...allowed, key: 'hp_volume_set', controlType: 'slider' }]],
+      ['hp_navigate_home', [{ ...allowed, visibility: 'hidden' }]],
+      ['hp_navigate_home', [{ ...allowed, requiresConfirmation: true }]],
+    ] as const) {
+      (container.services.effectiveActionsProvider.getForDeviceId as jest.Mock).mockResolvedValueOnce(actions);
+      const res = response();
+      await routes.handle(request(), res, `/api/v1/devices/display-1/actions/${actionKey}/execute`, 'POST', container);
+      expect(res.writeHead).toHaveBeenCalledWith(403, expect.any(Object));
+    }
+    expect(executeDeviceCommandUseCase).not.toHaveBeenCalled();
+  });
+
+  it('rejects foreign ownership and arbitrary client command parameters on action-key execution', async () => {
+    const container = containerFor();
+    (container.adapters.topologyReferencePort.validateHomeOwnership as jest.Mock)
+      .mockRejectedValueOnce(new ForbiddenOwnershipError('Forbidden'));
+    const foreign = response();
+    await routes.handle(request(), foreign, '/api/v1/devices/display-1/actions/hp_navigate_home/execute', 'POST', container);
+    expect(foreign.writeHead).toHaveBeenCalledWith(403, expect.any(Object));
+    const supplied = response();
+    await routes.handle(request({ semanticAction: 'navigate_back' }), supplied,
+      '/api/v1/devices/display-1/actions/hp_navigate_home/execute', 'POST', container);
+    expect(supplied.writeHead).toHaveBeenCalledWith(400, expect.any(Object));
+    expect(executeDeviceCommandUseCase).not.toHaveBeenCalled();
   });
 
   it('denies unavailable display commands before physical dispatch', async () => {

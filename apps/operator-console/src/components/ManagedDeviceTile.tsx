@@ -96,7 +96,7 @@ export const ManagedDeviceTile: React.FC<ManagedDeviceTileProps> = ({
         className="w-full border-border/60 bg-card/55 text-caption text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
       >
         {kind === 'smart_display' ? <Monitor className="h-4 w-4" /> : <Settings2 className="h-4 w-4" />}
-        {kind === 'smart_display' ? t('inbox.smart_display.control') : t('inbox.manage_device')}
+        {kind === 'smart_display' ? t('inbox.smart_display.manage_controls') : t('inbox.manage_device')}
       </Button>
     </article>
   );

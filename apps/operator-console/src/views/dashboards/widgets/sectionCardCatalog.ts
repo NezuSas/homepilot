@@ -59,6 +59,13 @@ export interface AssignableAutomation {
   enabled: boolean;
 }
 
+export interface AssignableDisplayAction {
+  deviceId: string;
+  actionKey: string;
+  displayName: string;
+  deviceName: string;
+}
+
 export const createId = () => `section-card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 export const cardKinds: NormalizedSectionCardKind[] = [

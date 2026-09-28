@@ -1,8 +1,54 @@
 import { API_BASE_URL } from '../../../config';
 import type { SnapshotRoom } from '../../../stores/useDeviceSnapshotStore';
-import type { AssignableAutomation, AssignableScene } from './sectionCardCatalog';
+import type { AssignableAutomation, AssignableDisplayAction, AssignableScene } from './sectionCardCatalog';
 
 const AUTOMATION_ENTITY_PREFIX = 'automation:';
+const DEVICE_ACTION_PREFIX = 'device-action:';
+const DEVICE_ACTION_SEGMENT = /^[A-Za-z0-9._-]+$/;
+
+export function toDeviceActionEntityId(deviceId: string, actionKey: string): string {
+  if (!DEVICE_ACTION_SEGMENT.test(deviceId) || !DEVICE_ACTION_SEGMENT.test(actionKey)) {
+    throw new Error('INVALID_DEVICE_ACTION_TARGET');
+  }
+  return `${DEVICE_ACTION_PREFIX}${deviceId}:${actionKey}`;
+}
+
+export function parseDeviceActionEntityId(entityId: string): { deviceId: string; actionKey: string } | null {
+  if (!entityId.startsWith(DEVICE_ACTION_PREFIX)) return null;
+  const match = /^device-action:([A-Za-z0-9._-]+):([A-Za-z0-9._-]+)$/.exec(entityId);
+  return match ? { deviceId: match[1], actionKey: match[2] } : null;
+}
+
+export function isDeviceActionEntityId(entityId?: string): boolean {
+  return typeof entityId === 'string' && entityId.startsWith(DEVICE_ACTION_PREFIX);
+}
+
+export function normalizeAssignableDisplayAction(value: unknown): AssignableDisplayAction | null {
+  if (!value || typeof value !== 'object') return null;
+  const item = value as Record<string, unknown>;
+  if (typeof item.deviceId !== 'string' || !DEVICE_ACTION_SEGMENT.test(item.deviceId)
+    || typeof item.actionKey !== 'string' || !DEVICE_ACTION_SEGMENT.test(item.actionKey)
+    || typeof item.displayName !== 'string' || !item.displayName.trim()
+    || typeof item.deviceName !== 'string' || !item.deviceName.trim()) return null;
+  return { deviceId: item.deviceId, actionKey: item.actionKey,
+    displayName: item.displayName, deviceName: item.deviceName };
+}
+
+export function getDeviceActionExecuteUrl(entityId: string): string | null {
+  const target = parseDeviceActionEntityId(entityId);
+  return target ? `${API_BASE_URL}/api/v1/devices/${encodeURIComponent(target.deviceId)}/actions/${encodeURIComponent(target.actionKey)}/execute` : null;
+}
+
+export async function executeDeviceActionTarget(
+  entityId: string,
+  request: (url: string, init: RequestInit) => Promise<Response>,
+): Promise<unknown> {
+  const url = getDeviceActionExecuteUrl(entityId);
+  if (!url) throw new Error('INVALID_DEVICE_ACTION_TARGET');
+  const response = await request(url, { method: 'POST' });
+  if (!response.ok) throw new Error(`DEVICE_ACTION_${response.status}`);
+  return response.json() as Promise<unknown>;
+}
 
 export function toAutomationEntityId(automationId: string): string {
   return `${AUTOMATION_ENTITY_PREFIX}${automationId}`;

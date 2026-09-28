@@ -136,19 +136,49 @@ export class DeviceRoutes extends ApiRoutes {
     const effectiveActionsMatch = method === 'GET'
       && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/effective-actions$/);
     if (effectiveActionsMatch) {
+      res.setHeader('Cache-Control', 'no-store');
       try {
         const deviceId = effectiveActionsMatch[1];
         const device = await container.repositories.deviceRepository.findDeviceById(deviceId);
         if (!device) return this.sendError(res, 404, 'DEVICE_NOT_FOUND'), true;
         await container.adapters.topologyReferencePort.validateHomeOwnership(device.homeId, req.user!.id);
         const actions = await container.services.effectiveActionsProvider.getForDeviceId(deviceId);
-        res.setHeader('Cache-Control', 'no-store');
         this.sendJson(res, {
           deviceId,
-          actions: actions.map(({ semanticAction, controlType, visibility, safetyLevel, requiresConfirmation }) => ({
-            semanticAction, controlType, visibility, safetyLevel, requiresConfirmation,
+          actions: actions.map(({ key, displayName, semanticAction, controlType, visibility, safetyLevel, requiresConfirmation }) => ({
+            key, displayName, semanticAction, controlType, visibility, safetyLevel, requiresConfirmation,
           })),
         });
+      } catch (error: unknown) {
+        this.sendDeviceReadError(res, error);
+      }
+      return true;
+    }
+
+    const controlCatalogMatch = method === 'GET'
+      && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/control-catalog$/);
+    if (controlCatalogMatch) {
+      res.setHeader('Cache-Control', 'no-store');
+      try {
+        const device = await container.repositories.deviceRepository.findDeviceById(controlCatalogMatch[1]);
+        if (!device) return this.sendError(res, 404, 'DEVICE_NOT_FOUND'), true;
+        await container.adapters.topologyReferencePort.validateHomeOwnership(device.homeId, req.user!.id);
+        const catalog = container.services.deviceControlCatalogProvider.getForDevice(device);
+        if (!catalog) return this.sendError(res, 404, 'DEVICE_NOT_FOUND'), true;
+        this.sendJson(res, catalog);
+      } catch (error: unknown) {
+        this.sendDeviceReadError(res, error);
+      }
+      return true;
+    }
+
+    if (method === 'GET' && pathname === '/api/v1/dashboard-action-targets') {
+      res.setHeader('Cache-Control', 'no-store');
+      try {
+        const homes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
+        const devices = (await Promise.all(homes.map((home) =>
+          container.repositories.deviceRepository.findAllByHomeId(home.id)))).flat();
+        this.sendJson(res, container.services.deviceControlCatalogProvider.listDashboardActionsForDevices(devices));
       } catch (error: unknown) {
         this.sendDeviceReadError(res, error);
       }
@@ -351,6 +381,49 @@ export class DeviceRoutes extends ApiRoutes {
           return this.sendError(res, 409, 'DEVICE_IN_USE', 'Device is referenced by a scene or automation'), true;
         }
         this.sendError(res, 500, 'DELETE_ERROR', error instanceof Error ? error.message : 'Unknown error');
+      }
+      return true;
+    }
+
+    const actionKeyMatch = method === 'POST'
+      && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/actions\/([^\/]+)\/execute$/);
+    if (actionKeyMatch) {
+      try {
+        const [deviceId, actionKey] = [actionKeyMatch[1], actionKeyMatch[2]];
+        const device = await container.repositories.deviceRepository.findDeviceById(deviceId);
+        if (!device) return this.sendError(res, 404, 'DEVICE_NOT_FOUND'), true;
+        await container.adapters.topologyReferencePort.validateHomeOwnership(device.homeId, req.user!.id);
+        if (device.integrationSource !== 'android-display') return this.sendError(res, 403, 'FORBIDDEN'), true;
+        const payload = await this.parseBody<unknown>(req);
+        if (payload === null || typeof payload !== 'object' || Array.isArray(payload)
+          || Object.keys(payload).length !== 0) {
+          return this.sendError(res, 400, 'INVALID_COMMAND'), true;
+        }
+        const actions = await container.services.effectiveActionsProvider.getForDeviceId(deviceId);
+        const action = actions.find((candidate) => candidate.key === actionKey);
+        if (!action || action.visibility !== 'visible' || action.controlType !== 'button'
+          || action.requiresConfirmation) return this.sendError(res, 403, 'FORBIDDEN'), true;
+
+        await executeDeviceCommandUseCase(deviceId, action.semanticAction, req.user!.id, crypto.randomUUID(), {
+          deviceRepository: container.repositories.deviceRepository,
+          eventPublisher: container.adapters.deviceEventPublisher,
+          topologyPort: container.adapters.topologyReferencePort,
+          dispatcherPort: container.adapters.commandDispatcher,
+          activityLogRepository: container.repositories.activityLogRepository,
+          idGenerator: { generate: () => crypto.randomUUID() },
+          clock: { now: () => new Date().toISOString() },
+        }, { allowPendingManualExecution: true });
+        const updated = await container.repositories.deviceRepository.findDeviceById(deviceId);
+        this.sendJson(res, updated ? this.enrichDevice(updated) : null);
+      } catch (error: unknown) {
+        const { name, message } = this.getErrorDetails(error);
+        if (name === 'ForbiddenOwnershipError') this.sendError(res, 403, 'FORBIDDEN', message);
+        else if (name === 'DeviceNotFoundError' || name === 'TopologyResourceNotFoundError')
+          this.sendError(res, 404, 'DEVICE_NOT_FOUND', message);
+        else if (name === 'UnsupportedCommandError' || name === 'InvalidDeviceCommandError' || message === 'INVALID_JSON')
+          this.sendError(res, 400, 'INVALID_COMMAND', message);
+        else if (name === 'DispatchIntegrationError') this.sendError(res, 502, 'COMMAND_DISPATCH_FAILED', message);
+        else this.sendError(res, 500, 'COMMAND_ERROR', message);
       }
       return true;
     }

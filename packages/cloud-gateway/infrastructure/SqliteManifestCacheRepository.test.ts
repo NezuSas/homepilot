@@ -48,6 +48,18 @@ describe('SqliteManifestCacheRepository', () => {
     expect(cache.getState()?.lastSuccessAt).toBe(secondTime);
   });
 
+  it('persists an optional entitlement in the same manifest snapshot without a schema change', () => {
+    const entitlement = { plan: { id: 2, name: 'Plan Premium', type: 'PREMIUM' },
+      commands: [{ key: 'legacy_camera', displayName: 'Cámara', implementationType: 'legacy_adb',
+        controlType: 'button', visibility: 'visible', safetyLevel: 'normal', requiresConfirmation: false }] };
+    cache.replaceSnapshot(parseManifestBundleV1({
+      schemaVersion: 'homepilot.manifest-bundle.v1', installationId,
+      manifests: [{ schemaVersion: 'homepilot.board-manifest.v1', revision: 'a'.repeat(64),
+        boardId: 5, installationId, homePilotDeviceId: deviceId, planId: 2, actions: [], entitlement }],
+    }), firstTime);
+    expect(cache.getByDeviceId(deviceId)?.entitlement).toEqual(entitlement);
+  });
+
   it('rejects another installation and preserves pin, cache and timestamp', () => {
     cache.replaceSnapshot(bundle(), firstTime);
     expect(() => cache.replaceSnapshot(bundle(otherInstallationId), secondTime))

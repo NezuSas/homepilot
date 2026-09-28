@@ -5,7 +5,7 @@ import { canExecuteCommand } from '../../../lib/deviceCapabilities';
 import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
 import { isDeviceActive } from '../dashboardUtils';
 import type { MediaPlayerCommand } from './MediaPlayerCard';
-import { getSceneOrRoutineUrl } from './sectionCardAssignments';
+import { executeDeviceActionTarget, getSceneOrRoutineUrl, isDeviceActionEntityId } from './sectionCardAssignments';
 import { normalizeKind, type NormalizedSectionCardItem } from './sectionCardCatalog';
 
 interface SectionCardActionsOptions {
@@ -56,6 +56,20 @@ export function useSectionCardActions({ devices, isEditing, upsertDevice }: Sect
 
 
     if (normalized === 'action') {
+      if (isDeviceActionEntityId(card.entityId)) {
+        setProcessingCardId(card.id);
+        setActionFeedback(null);
+        try {
+          const updated = await executeDeviceActionTarget(card.entityId, apiFetch) as SnapshotDevice;
+          upsertDevice(updated);
+          showActionFeedback(card.id, 'success');
+        } catch {
+          showActionFeedback(card.id, 'error');
+        } finally {
+          setProcessingCardId(null);
+        }
+        return;
+      }
       const device = devices.find((candidate) => candidate.id === card.entityId);
       if (!device) {
         setProcessingCardId(card.id);
