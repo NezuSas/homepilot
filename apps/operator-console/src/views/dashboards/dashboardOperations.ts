@@ -71,10 +71,10 @@ export async function exportDashboard(id: string, fallback: string): Promise<unk
   return response.json();
 }
 
-export async function importDashboard(transfer: unknown, fallback: string): Promise<DashboardImportResponse> {
+export async function importDashboard(transfer: unknown, fallback: string, language: string): Promise<DashboardImportResponse> {
   const response = await apiFetch(`${API}/dashboards/import`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'Accept-Language': language },
     body: JSON.stringify(transfer),
   });
   if (!response.ok) throw new Error(await readApiError(response, fallback));

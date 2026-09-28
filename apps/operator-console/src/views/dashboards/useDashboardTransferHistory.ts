@@ -7,6 +7,7 @@ import { exportDashboard, importDashboard, loadDashboardHistory, restoreDashboar
 interface DashboardTransferHistoryOptions {
   active: Dashboard | null;
   t: TFunction;
+  language: string;
   setError: Dispatch<SetStateAction<string>>;
   publishDashboards: (update: (current: Dashboard[]) => Dashboard[]) => Dashboard[];
   setActive: Dispatch<SetStateAction<Dashboard | null>>;
@@ -16,7 +17,7 @@ interface DashboardTransferHistoryOptions {
 }
 
 export function useDashboardTransferHistory({
-  active, t, setError, publishDashboards, setActive,
+  active, t, language, setError, publishDashboards, setActive,
   setActiveTabIdx, setIsEditing, getDefaultTabIndex,
 }: DashboardTransferHistoryOptions) {
   const [isTransferring, setIsTransferring] = useState(false);
@@ -62,7 +63,7 @@ export function useDashboardTransferHistory({
       } catch {
         throw new Error(t('dashboards.transfer.error_import'));
       }
-      const imported = await importDashboard(transfer, t('dashboards.transfer.error_import'));
+      const imported = await importDashboard(transfer, t('dashboards.transfer.error_import'), language);
       const { importReport: report, ...dashboard } = imported;
       publishDashboards((current) => [...current, dashboard]);
       setActive(dashboard);

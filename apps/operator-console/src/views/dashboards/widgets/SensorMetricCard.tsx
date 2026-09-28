@@ -1,9 +1,9 @@
-import { Activity, BatteryCharging, BatteryFull, BatteryLow, BatteryMedium, Droplets, Gauge, MemoryStick, Thermometer, Wifi, Zap } from 'lucide-react';
+import { Activity, BatteryFull, BatteryLow, BatteryMedium, Droplets, Gauge, MemoryStick, Sun, Thermometer, UserRound, Wifi, Wind, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
 import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
 
-export type SensorCategory = 'battery' | 'temperature' | 'humidity' | 'memory' | 'power' | 'signal' | 'measurement' | 'status';
+export type SensorCategory = 'battery' | 'temperature' | 'humidity' | 'memory' | 'power' | 'energy' | 'signal' | 'illuminance' | 'air_quality' | 'presence' | 'measurement' | 'status';
 
 interface SensorReading {
   value: string | null;
@@ -18,12 +18,10 @@ interface SensorMetricCardProps {
   isPreview?: boolean;
 }
 
-const unavailableStates = new Set(['', 'none', 'null', 'unknown', 'unavailable']);
+const unavailableStates = new Set(['', 'none', 'null', 'unknown', 'unavailable', 'offline']);
 
-// Percentage-bounded categories get the circular gauge; the rest (temperature,
-// power, generic measurements) show the raw value — a °C or W reading isn't
-// naturally 0-100, so a ring around it would be misleading.
-const RING_CATEGORIES = new Set<SensorCategory>(['battery', 'humidity', 'memory', 'signal']);
+// Only categories with meaningful bounded ranges receive severity thresholds.
+const BOUNDED_PERCENTAGE_CATEGORIES = new Set<SensorCategory>(['battery', 'humidity', 'memory', 'signal']);
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -56,8 +54,12 @@ function classifySensor(haystack: string, unit: string | null, hasPercentage: bo
   if (haystack.includes('temp') || unit === '°C' || unit === '°F') return 'temperature';
   if (haystack.includes('humid') || haystack.includes('humed')) return 'humidity';
   if (haystack.includes('memor') || haystack.includes('ram') || haystack.includes('cpu') || haystack.includes('disk') || haystack.includes('storage') || haystack.includes('almacen')) return 'memory';
-  if (haystack.includes('power') || haystack.includes('energ') || unit === 'W' || unit === 'kWh' || unit === 'kW') return 'power';
+  if (haystack.includes('energ') || unit === 'kWh' || unit === 'Wh') return 'energy';
+  if (haystack.includes('power') || haystack.includes('potenc') || unit === 'W' || unit === 'kW') return 'power';
   if (haystack.includes('signal') || haystack.includes('wifi') || haystack.includes('rssi') || haystack.includes('señal')) return 'signal';
+  if (haystack.includes('lux') || haystack.includes('illumin') || haystack.includes('ilumin') || unit === 'lx') return 'illuminance';
+  if (haystack.includes('air quality') || haystack.includes('calidad de aire') || haystack.includes('co2') || unit === 'ppm') return 'air_quality';
+  if (haystack.includes('presen') || haystack.includes('ocupa')) return 'presence';
   if (hasPercentage) return 'measurement';
   return 'status';
 }
@@ -100,7 +102,7 @@ export function getSensorReading(device?: SnapshotDevice, isPreview = false): Se
     value: value && !unavailableStates.has(value.toLocaleLowerCase()) ? value : null,
     unit,
     category,
-    percentage: RING_CATEGORIES.has(category) ? percentageCandidate : null,
+    percentage: BOUNDED_PERCENTAGE_CATEGORIES.has(category) ? percentageCandidate : null,
   };
 }
 
@@ -108,7 +110,6 @@ function BatteryIcon({ percentage }: { percentage: number | null }) {
   const iconClassName = 'h-[52%] w-[52%]';
   if (percentage === null || percentage <= 20) return <BatteryLow className={iconClassName} />;
   if (percentage < 60) return <BatteryMedium className={iconClassName} />;
-  if (percentage < 95) return <BatteryCharging className={iconClassName} />;
   return <BatteryFull className={iconClassName} />;
 }
 
@@ -120,42 +121,53 @@ function CategoryIcon({ category, percentage }: { category: SensorCategory; perc
     case 'humidity': return <Droplets className={className} />;
     case 'memory': return <MemoryStick className={className} />;
     case 'power': return <Zap className={className} />;
+    case 'energy': return <Zap className={className} />;
     case 'signal': return <Wifi className={className} />;
+    case 'illuminance': return <Sun className={className} />;
+    case 'air_quality': return <Wind className={className} />;
+    case 'presence': return <UserRound className={className} />;
     case 'measurement': return <Gauge className={className} />;
     default: return <Activity className={className} />;
   }
 }
 
-/** Higher-is-better categories (battery, signal) vs. higher-is-worse (memory
- * usage) get opposite color ramps; humidity is best around the middle. */
-function getToneClassName(category: SensorCategory, percentage: number | null, rawValue: string | null): string {
-  if (percentage === null) {
-    if (category === 'temperature') {
-      const numeric = numericValue(rawValue);
-      if (numeric === null) return 'text-muted-foreground';
-      if (numeric < 15) return 'text-muted-foreground';
-      if (numeric > 30) return 'text-danger';
-      return 'text-success';
-    }
-    if (category === 'power') return 'text-warning';
-    return 'text-primary';
-  }
+export type SensorSeverity = 'normal' | 'low' | 'critical' | 'unavailable' | 'informational';
 
-  if (category === 'memory') {
-    if (percentage >= 85) return 'text-danger';
-    if (percentage >= 65) return 'text-warning';
-    return 'text-success';
+/** Thresholds are retained from the existing bounded sensor policy. Unbounded
+ * values (power, energy, lux, text) do not imply a health judgment. */
+export function getSensorSeverity(reading: SensorReading): SensorSeverity {
+  if (reading.value === null) return 'unavailable';
+  const percentage = reading.percentage;
+  if (reading.category === 'battery' || reading.category === 'signal') {
+    if (percentage === null) return 'informational';
+    return percentage <= 20 ? 'critical' : percentage < 50 ? 'low' : 'normal';
   }
-
-  if (category === 'humidity') {
-    if (percentage < 25 || percentage > 70) return 'text-warning';
-    return 'text-muted-foreground';
+  if (reading.category === 'memory') {
+    if (percentage === null) return 'informational';
+    return percentage >= 85 ? 'critical' : percentage >= 65 ? 'low' : 'normal';
   }
+  if (reading.category === 'humidity') {
+    if (percentage === null) return 'informational';
+    return percentage < 25 || percentage > 70 ? 'low' : 'normal';
+  }
+  if (reading.category === 'temperature') {
+    const numeric = numericValue(reading.value);
+    if (numeric === null) return 'informational';
+    return numeric > 30 ? 'critical' : numeric < 15 ? 'low' : 'normal';
+  }
+  return 'informational';
+}
 
-  // battery / signal: higher is better.
-  if (percentage <= 20) return 'text-danger';
-  if (percentage < 50) return 'text-warning';
-  return 'text-success';
+function displayValue(value: string | null, t: (key: string) => string): string {
+  switch (value?.toLowerCase()) {
+    case 'open': return t('dashboard.editor.sections.sensor_open');
+    case 'closed': return t('dashboard.editor.sections.sensor_closed');
+    case 'on':
+    case 'true': return t('dashboard.editor.sections.sensor_active');
+    case 'off':
+    case 'false': return t('dashboard.editor.sections.sensor_inactive');
+    default: return value ?? '—';
+  }
 }
 
 function getCategoryLabel(category: SensorCategory, t: (key: string) => string): string {
@@ -165,7 +177,11 @@ function getCategoryLabel(category: SensorCategory, t: (key: string) => string):
     case 'humidity': return t('dashboard.editor.sections.sensor_humidity');
     case 'memory': return t('dashboard.editor.sections.sensor_memory');
     case 'power': return t('dashboard.editor.sections.sensor_power');
+    case 'energy': return t('dashboard.editor.sections.sensor_energy');
     case 'signal': return t('dashboard.editor.sections.sensor_signal');
+    case 'illuminance': return t('dashboard.editor.sections.sensor_illuminance');
+    case 'air_quality': return t('dashboard.editor.sections.sensor_air_quality');
+    case 'presence': return t('dashboard.editor.sections.sensor_presence');
     case 'measurement': return t('dashboard.editor.sections.sensor_measurement');
     default: return t('dashboard.editor.sections.sensor_status');
   }
@@ -174,89 +190,43 @@ function getCategoryLabel(category: SensorCategory, t: (key: string) => string):
 export function SensorMetricCard({ device, title, isPreview = false }: SensorMetricCardProps) {
   const { t } = useTranslation();
   const reading = getSensorReading(device, isPreview);
-  const isUnavailable = reading.value === null;
-  const showRing = reading.percentage !== null;
-  const percentage = reading.percentage ?? 0;
-  const circumference = 2 * Math.PI * 42;
-  const strokeOffset = circumference - (circumference * percentage) / 100;
-  const toneClassName = getToneClassName(reading.category, reading.percentage, reading.value);
+  const severity = getSensorSeverity(reading);
+  const toneClassName = severity === 'critical' ? 'text-danger'
+    : severity === 'low' ? 'text-warning'
+      : severity === 'normal' ? 'text-success' : 'text-muted-foreground';
   const categoryLabel = getCategoryLabel(reading.category, t);
+  const statusLabel = severity === 'informational' ? t('dashboard.editor.sections.sensor_live_reading')
+    : t(`dashboard.editor.sections.sensor_${severity}`);
 
   return (
     <div
-      className="sensor-metric-card homepilot-sensor-reading relative flex h-full min-h-0 flex-col overflow-hidden rounded-section border border-border/60 bg-card/95 p-[clamp(0.75rem,4cqi,1rem)] text-foreground"
+      className="sensor-metric-card homepilot-sensor-reading relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-section border border-border/60 bg-card/95 p-[clamp(0.75rem,4cqi,1rem)] text-foreground"
       style={{ containerType: 'inline-size' }}
     >
-      <div className={cn('absolute inset-x-0 top-0 h-1', isUnavailable ? 'bg-muted' : 'bg-primary/70')} aria-hidden="true" />
-      <div className="flex min-w-0 items-start justify-between gap-2">
+      <div className="flex min-w-0 items-start gap-3">
         <span
           className={cn(
-            'grid h-[clamp(2rem,14cqi,2.5rem)] w-[clamp(2rem,14cqi,2.5rem)] shrink-0 place-items-center rounded-2xl border border-border/60 bg-muted/60 text-muted-foreground',
-            !isUnavailable && toneClassName,
+            'grid h-10 w-10 shrink-0 place-items-center rounded-control bg-muted/60',
+            toneClassName,
           )}
           aria-label={categoryLabel}
         >
           <CategoryIcon category={reading.category} percentage={reading.percentage} />
         </span>
-        <span className="sensor-category-badge max-w-[62%] truncate rounded-full border border-border/55 bg-background/80 px-2.5 py-1 text-micro font-black uppercase tracking-control text-muted-foreground">
-          <span className="sensor-category-text">{categoryLabel}</span>
-        </span>
+        <span className="sensor-category-badge min-w-0 truncate pt-2 text-caption font-semibold text-muted-foreground">{categoryLabel}</span>
       </div>
-
-      <div className={cn(
-        'sensor-reading-layout mt-[clamp(0.5rem,3cqi,1rem)] flex min-h-0 flex-1 items-center gap-3',
-        showRing ? 'sensor-reading-layout--ring' : 'sensor-reading-layout--value',
-      )}>
-        {showRing ? (
-          <div className="sensor-reading-gauge relative grid h-[clamp(3.5rem,26cqi,6rem)] w-[clamp(3.5rem,26cqi,6rem)] shrink-0 place-items-center" aria-label={categoryLabel}>
-            <svg viewBox="0 0 104 104" className="h-full w-full -rotate-90" aria-hidden="true">
-              <circle cx="52" cy="52" r="42" fill="none" stroke="currentColor" strokeWidth="9" className="text-muted/80" />
-              <circle
-                cx="52"
-                cy="52"
-                r="42"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="9"
-                strokeLinecap="round"
-                strokeDasharray={circumference}
-                strokeDashoffset={strokeOffset}
-                className={cn('transition-[stroke-dashoffset] duration-500', toneClassName)}
-              />
-            </svg>
-            <span className="absolute text-sensor-ring-value-fluid font-black tabular-nums text-foreground">
-              {isUnavailable ? '—' : `${Math.round(percentage)}%`}
-            </span>
-          </div>
-        ) : (
-          <div className="sensor-reading-value min-w-0 shrink-0">
-            <span className={cn('block text-sensor-value-fluid font-black tabular-nums', isUnavailable ? 'text-foreground' : toneClassName)}>
-              {reading.value ?? '—'}
-            </span>
-            {!isUnavailable && reading.unit ? (
-              <span className="mt-1 block text-caption font-black uppercase tracking-control text-muted-foreground">{reading.unit}</span>
-            ) : null}
-          </div>
-        )}
-
-        <div className="sensor-reading-copy min-w-0 flex-1">
-          <span className="block line-clamp-2 text-sensor-title-fluid font-black text-foreground">{title}</span>
-          {!isUnavailable ? (
-            <span className="mt-1 block line-clamp-2 text-caption font-semibold leading-snug text-muted-foreground">
-              {categoryLabel}
-            </span>
+      <div className="sensor-reading-layout sensor-reading-layout--value mt-3 flex min-h-0 min-w-0 flex-1 flex-col justify-center">
+        <div className="sensor-reading-value flex min-w-0 flex-wrap items-baseline gap-x-1.5">
+          <span className="max-w-full break-words text-sensor-value-fluid font-black tabular-nums leading-none text-foreground">
+            {displayValue(reading.value, t)}
+          </span>
+          {reading.value !== null && reading.unit ? (
+            <span className="text-card-title font-semibold text-muted-foreground">{reading.unit}</span>
           ) : null}
         </div>
+        <span className="sensor-reading-copy mt-2 block min-w-0 line-clamp-2 text-sensor-title-fluid font-semibold text-foreground" title={title}>{title}</span>
       </div>
-
-      <div className={cn(
-        'sensor-reading-status mt-3 flex min-w-0 items-center justify-center rounded-2xl border border-border/45 bg-background/40 px-3 py-2',
-        isUnavailable ? 'text-muted-foreground' : 'text-primary',
-      )}>
-        <span className="text-micro font-black uppercase tracking-status">
-          {isUnavailable ? t('dashboard.editor.sections.sensor_unavailable') : t('dashboard.editor.sections.ready')}
-        </span>
-      </div>
+      <p className={cn('sensor-reading-status mt-2 min-w-0 truncate text-caption font-semibold', toneClassName)}>{statusLabel}</p>
     </div>
   );
 }

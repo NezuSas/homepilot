@@ -32,7 +32,7 @@ export function AnalogMinimalClock({ now, locale, copy, weather, weatherStatus }
               </div>
             </div>
           </div>
-          <div className="text-clock-minimal-time-fluid font-black leading-none tracking-clock-tight text-foreground tabular-nums">
+          <div className="text-body-lg font-semibold text-foreground tabular-nums">
             {time}
           </div>
           <WeatherPill weather={weather} status={weatherStatus} copy={copy} mode="compact" />

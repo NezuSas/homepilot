@@ -378,9 +378,7 @@ for (const viewport of [viewports[2], viewports[1], viewports[0], { name: 'portr
 
     const titlebar = page.locator('.homepilot-dashboard-titlebar');
     if (viewport.width < 640) {
-      await titlebar.locator('details > summary').click();
-      await titlebar.getByRole('menuitem', { name: /^(Edit|Editar)$/i }).click();
-      await titlebar.locator('details > summary').click();
+      await titlebar.getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
     } else {
       await titlebar.getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
     }
@@ -634,12 +632,68 @@ test('Feature: Dashboard import — Scenario: Pending bindings and local backgro
     buffer: Buffer.from(JSON.stringify({ format: 'homepilot-dashboard', version: 1, dashboard: { title: 'Importado', tabs: [] } })),
   });
 
-  await expect(page.getByText(/Tablero importado con elementos pendientes|Dashboard imported with pending items/i)).toBeVisible();
+  await expect(page.getByText(/Tablero importado con asignaciones pendientes|Dashboard imported with pending assignments/i)).toBeVisible();
   await expect(page.getByText(/Asignaciones sin resolver: 1|Unresolved assignments: 1/i)).toBeVisible();
-  await page.getByText(/Ver tarjetas y controles pendientes|Show pending cards and controls/i).click();
-  await expect(page.getByText('Principal · Luz')).toBeVisible();
+  await page.getByText(/Ver asignaciones pendientes|Show pending assignments/i).click();
+  await expect(page.getByText(/Luz · Sin asignar|Luz · Unassigned/i)).toBeVisible();
+  await expect(page.locator('details').filter({ hasText: /Luz · (Sin asignar|Unassigned)/i })).toContainText('Principal');
   await expect(page.getByText('imported-widget')).toHaveCount(0);
+  await expect(page.getByText('card-1')).toHaveCount(0);
 });
+
+for (const viewport of [...viewports, { name: 'portrait kiosk', ...portraitKioskViewport }]) {
+  test(`Feature: Dashboard tablet UX — Scenario: Toolbar, sensor and clock fit ${viewport.name}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await prepareAuthenticatedDashboard(page);
+    await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+
+    const titlebar = page.locator('.homepilot-dashboard-titlebar');
+    const more = titlebar.locator('details > summary');
+    if (viewport.width >= 1280) {
+      await expect(more).toBeHidden();
+      await expect(titlebar.getByRole('button', { name: /dashboard history|historial del tablero/i })).toBeVisible();
+      await expect(titlebar.getByRole('button', { name: /export dashboard|exportar tablero/i })).toBeVisible();
+      await expect(titlebar.getByRole('button', { name: /import dashboard|importar tablero/i })).toBeVisible();
+    } else {
+      await expect(more).toBeVisible();
+      await more.click();
+      await expect(titlebar.getByRole('menuitem', { name: /dashboard history|historial del tablero/i })).toBeVisible();
+      await expect(titlebar.getByRole('menuitem', { name: /export dashboard|exportar tablero/i })).toBeVisible();
+      await expect(titlebar.getByRole('menuitem', { name: /import dashboard|importar tablero/i })).toBeVisible();
+      await expect(titlebar.getByRole('button', { name: /dashboard history|historial del tablero/i })).toHaveCount(0);
+      await expect(titlebar.getByRole('menuitem', { name: /^(Edit|Editar)$/i })).toHaveCount(0);
+      if (viewport.width >= 640) {
+        await expect(titlebar.getByRole('menuitem', { name: /new panel|nuevo panel/i })).toBeHidden();
+        await expect(titlebar.getByRole('button', { name: /new panel|nuevo panel/i })).toBeVisible();
+      } else {
+        await expect(titlebar.getByRole('menuitem', { name: /new panel|nuevo panel/i })).toBeVisible();
+      }
+    }
+
+    await expect(titlebar.getByRole('button', { name: /^(Edit|Editar)$/i }).last()).toBeVisible();
+    await expect(page.locator('.sensor-metric-card').first()).not.toContainText('LISTO');
+    const geometry = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+      sensors: [...document.querySelectorAll<HTMLElement>('.sensor-metric-card')].map((card) => ({
+        scrollWidth: card.scrollWidth, clientWidth: card.clientWidth,
+      })),
+      clocks: [...document.querySelectorAll<HTMLElement>('.min-h-clock-card')].map((card) => ({
+        scrollWidth: card.scrollWidth, clientWidth: card.clientWidth,
+      })),
+    }));
+    expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth);
+    geometry.sensors.forEach((card) => expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth));
+    geometry.clocks.forEach((card) => expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth));
+    if (viewport.width < 640) {
+      await titlebar.getByRole('button', { name: /^(Rename|Renombrar)$/i }).click();
+      await expect(titlebar.getByRole('textbox', { name: /^(Rename|Renombrar)$/i })).toBeVisible();
+      await expect(more).toHaveCount(0);
+      const titlebarWidth = await titlebar.evaluate((element) => ({ client: element.clientWidth, scroll: element.scrollWidth }));
+      expect(titlebarWidth.scroll).toBeLessThanOrEqual(titlebarWidth.client);
+    }
+  });
+}
 
 test('Feature: Button card — Scenario: A scene briefly lights its icon without pretending to stay on', async ({ page }) => {
   await prepareAuthenticatedDashboard(page);
@@ -962,7 +1016,7 @@ for (const viewport of viewports) {
     await prepareAuthenticatedDashboard(page);
 
     await page.goto('/dashboards/responsive-dashboard/responsive-tab');
-    await expect(page.getByRole('button', { name: /dashboard history|historial del tablero/i })).toBeVisible();
+    await expect(page.locator('.homepilot-dashboard-titlebar')).toBeVisible();
     await expect(page.locator('.homepilot-dashboard-chrome')).toBeVisible();
     await expect(page.locator('.homepilot-dashboard-content')).toBeVisible();
 
@@ -1057,9 +1111,13 @@ for (const viewport of viewports) {
     await prepareAuthenticatedDashboard(page);
 
     await page.goto('/dashboards/responsive-dashboard/responsive-tab');
-    const historyButton = page.getByRole('button', { name: /dashboard history|historial del tablero/i });
-    await expect(historyButton).toBeVisible();
-    await historyButton.click();
+    const titlebar = page.locator('.homepilot-dashboard-titlebar');
+    if (viewport.width < 1280) {
+      await titlebar.locator('details > summary').click();
+      await titlebar.getByRole('menuitem', { name: /dashboard history|historial del tablero/i }).click();
+    } else {
+      await titlebar.getByRole('button', { name: /dashboard history|historial del tablero/i }).click();
+    }
 
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();

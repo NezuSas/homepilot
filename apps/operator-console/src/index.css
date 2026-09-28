@@ -840,11 +840,6 @@
     box-shadow: none;
   }
 
-  .homepilot-sensor-reading .sensor-reading-status {
-    border-color: transparent;
-    background-color: hsl(var(--muted) / 0.42);
-  }
-
   /* Light dashboards keep device controls legible over owner-selected image backgrounds. */
   .light .homepilot-dashboard-screen .device-state-off {
     border-color: hsl(var(--dashboard-edge) / 0.72);
@@ -990,30 +985,6 @@
       display: none;
     }
 
-    .sensor-reading-layout--ring {
-      flex-direction: column;
-      align-items: center;
-      gap: 0.5rem;
-      text-align: center;
-    }
-
-    .sensor-reading-layout--ring .sensor-reading-gauge {
-      width: 3.25rem;
-      height: 3.25rem;
-    }
-
-    .sensor-reading-layout--ring .sensor-reading-copy {
-      width: 100%;
-      flex: none;
-    }
-
-    .sensor-reading-layout--value {
-      gap: 0.625rem;
-    }
-
-    .sensor-reading-status {
-      margin-top: 0.625rem;
-    }
   }
 }
 @layer utilities {

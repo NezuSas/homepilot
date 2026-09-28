@@ -79,7 +79,9 @@ export class DashboardRoutes extends ApiRoutes {
     if (method === 'POST' && pathname === '/api/v1/dashboards/import') {
       try {
         const transfer = await this.parseBody<unknown>(req);
-        const dashboard = await container.services.dashboardService.importDashboard(req.user!.id, transfer);
+        const requestedLanguage = req.headers['accept-language'];
+        const language = Array.isArray(requestedLanguage) ? requestedLanguage[0] : requestedLanguage;
+        const dashboard = await container.services.dashboardService.importDashboard(req.user!.id, transfer, language ?? 'es');
         this.sendJson(res, dashboard, 201);
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Failed to import dashboard';

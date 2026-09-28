@@ -119,6 +119,28 @@ describe('DashboardService', () => {
     expect(imported.importReport).toEqual({ unresolvedBindings: [], nonPortableBackgrounds: 1 });
   });
 
+  it.each([
+    { existing: [], language: 'es', expected: 'Tech' },
+    { existing: ['Tech'], language: 'es', expected: 'Tech · Importado' },
+    { existing: ['Tech', 'Tech · Importado'], language: 'es', expected: 'Tech · Importado 2' },
+    { existing: ['tech', 'Tech · Importado', 'TECH · IMPORTADO 2'], language: 'es', expected: 'Tech · Importado 3' },
+    { existing: ['Tech', 'Tech · Imported'], language: 'en-US', expected: 'Tech · Imported 2' },
+  ])('uses a recognizable, deterministic import title: $expected', async ({ existing, language, expected }) => {
+    const dashboardRepository: DashboardRepository = {
+      ...createDashboardRepository(null),
+      findAllVisibleTo: async () => existing.map((title, index) => createDashboard(`existing-${index}`, title)),
+    };
+    const service = new DashboardService(dashboardRepository, createHomeRepository());
+    const imported = await service.importDashboard('user-1', {
+      format: DASHBOARD_TRANSFER_FORMAT,
+      version: DASHBOARD_TRANSFER_VERSION,
+      dashboard: { title: 'Tech', tabs: [{ id: 'tab-1', title: 'Principal', widgets: [] }] },
+    }, language);
+
+    expect(imported.title).toBe(expected);
+    expect(imported.title).not.toMatch(/[0-9a-f]{8}-[0-9a-f-]{27,}|\d{4}-\d{2}-\d{2}/i);
+  });
+
   it('rejects dashboard transfers with an unsupported version', async () => {
     const service = new DashboardService(createDashboardRepository(null), createHomeRepository());
 

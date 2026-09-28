@@ -76,7 +76,7 @@ export function WeatherPill({
     <div className={`min-w-0 overflow-hidden rounded-full border border-border/55 bg-background/30 px-widget-pad-x py-widget-spacer shadow-inner ${className}`}>
       <div className="flex min-w-0 items-center gap-1.5">
         {category ? <WeatherScene category={category} size="sm" className="h-4 w-4" /> : <AccentDot />}
-        <span className="min-w-0 truncate text-clock-label-fluid font-black uppercase tracking-micro text-foreground">
+        <span className="min-w-0 truncate text-body-compact font-semibold text-foreground">
           {label}
         </span>
       </div>

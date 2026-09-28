@@ -117,7 +117,7 @@ describe('Feature: dashboard route contract', () => {
 
     await routes.handle(createRequest(transfer), response as unknown as http.ServerResponse, '/api/v1/dashboards/import', 'POST', container);
 
-    expect(container.services.dashboardService.importDashboard).toHaveBeenCalledWith('owner-1', transfer);
+    expect(container.services.dashboardService.importDashboard).toHaveBeenCalledWith('owner-1', transfer, 'es');
     expect(response.writeHead).toHaveBeenCalledWith(201, expect.any(Object));
     expect(response.end).toHaveBeenCalledWith(expect.stringContaining('"unresolvedBindings"'));
   });

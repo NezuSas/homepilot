@@ -25,7 +25,7 @@ export function AnalogClassicClock({ now, locale, copy, weather, weatherStatus }
             <ClockLabel>{copy.analogClassic}</ClockLabel>
             <div className="mt-2 text-clock-analog-label-fluid font-semibold text-muted-foreground">{weekday}</div>
           </div>
-          <div className="text-clock-analog-time-fluid font-black leading-none tracking-clock-tight text-foreground tabular-nums">{time}</div>
+          <div className="text-body-lg font-semibold text-foreground tabular-nums">{time}</div>
           <WeatherPill weather={weather} status={weatherStatus} copy={copy} mode="compact" />
         </div>
       </div>

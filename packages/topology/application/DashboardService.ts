@@ -85,7 +85,7 @@ export class DashboardService {
     };
   }
 
-  public async importDashboard(userId: string, transfer: unknown): Promise<DashboardImportResponse> {
+  public async importDashboard(userId: string, transfer: unknown, language = 'es'): Promise<DashboardImportResponse> {
     if (!isDashboardTransferPackage(transfer)) {
       throw new Error('DASHBOARD_IMPORT_INVALID');
     }
@@ -93,13 +93,24 @@ export class DashboardService {
       throw new Error('DASHBOARD_IMPORT_UNSUPPORTED_VERSION');
     }
 
-    const title = transfer.dashboard.title.trim();
-    if (!title || transfer.dashboard.tabs.length === 0) {
+    const sourceTitle = transfer.dashboard.title.trim();
+    if (!sourceTitle || transfer.dashboard.tabs.length === 0) {
       throw new Error('DASHBOARD_IMPORT_INVALID');
     }
     if (new Set(transfer.dashboard.tabs.map((tab) => tab.id)).size !== transfer.dashboard.tabs.length
       || transfer.dashboard.tabs.some((tab) => new Set(tab.widgets.map((widget) => widget.id)).size !== tab.widgets.length)) {
       throw new Error('DASHBOARD_IMPORT_INVALID');
+    }
+
+    const visibleDashboards = await this.dashboardRepository.findAllVisibleTo(userId, '', []);
+    const existingTitles = new Set(visibleDashboards.map((dashboard) => dashboard.title.trim().toLowerCase()));
+    const suffix = language.toLowerCase().startsWith('en') ? 'Imported' : 'Importado';
+    let title = sourceTitle;
+    if (existingTitles.has(title.toLowerCase())) {
+      title = `${sourceTitle} · ${suffix}`;
+      for (let number = 2; existingTitles.has(title.toLowerCase()); number += 1) {
+        title = `${sourceTitle} · ${suffix} ${number}`;
+      }
     }
 
     const report: DashboardImportReport = { unresolvedBindings: [], nonPortableBackgrounds: 0 };

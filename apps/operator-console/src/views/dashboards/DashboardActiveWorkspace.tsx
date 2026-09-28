@@ -89,10 +89,10 @@ export function DashboardActiveWorkspace({
           onConfirmTitle={onConfirmTitle}
           onDelete={onDeleteDashboard}
           deleteLabel={t('dashboards.delete')}
+          renameLabel={t('dashboards.rename')}
           editLabel={t('dashboards.action_edit')}
           doneLabel={t('common.done')}
           newLabel={t('dashboards.action_new')}
-          helpLabel={t('common.help')}
           moreLabel={t('common.more')}
           confirmLabel={t('common.confirm')}
           cancelLabel={t('common.cancel')}

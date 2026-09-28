@@ -24,6 +24,8 @@
 
 ## Verificación obligatoria ante cambios
 
+- [ ] Validar externamente AC38–AC41: colisiones de nombres ES/EN, copy de asignaciones, overflow desktop/tablet/móvil/kiosco, variantes de sensores y composición digital/analógica del reloj. Las regresiones están escritas, no ejecutadas en este worktree por restricción de la tarea.
+
 - [ ] Validar externamente AC36–AC37: tests de round-trip, bindings existentes/ausentes/incompatibles, hogar autorizado, reporte de pendientes, presets y fondos locales. Código y regresiones escritos; no ejecutados en este worktree por restricción de la tarea.
 
 - [ ] Probar móvil, tablet y escritorio con contenido largo y fondos activos.

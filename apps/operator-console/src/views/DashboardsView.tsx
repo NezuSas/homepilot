@@ -47,7 +47,7 @@ interface DashboardsViewProps {
 }
 
 export function DashboardsView({ initialDashboardId = null, initialTabId = null, onDashboardCatalogChange, onOpenMobileMenu }: DashboardsViewProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const [dashboards, setDashboards]     = useState<Dashboard[]>([]);
@@ -88,7 +88,7 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
     isHistoryLoading, revisions, revisionPendingRestore, setRevisionPendingRestore,
     isRestoringRevision, handleOpenHistory, handleRestoreRevision,
   } = useDashboardTransferHistory({
-    active, t, setError, publishDashboards,
+    active, t, language: i18n.language, setError, publishDashboards,
     setActive, setActiveTabIdx, setIsEditing, getDefaultTabIndex,
   });
 
@@ -343,7 +343,9 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
         <div className="m-4 space-y-2 sm:m-6">
           <AlertBanner
             variant="warning"
-            title={t('dashboards.transfer.pending_title')}
+            title={t(importReport.report.unresolvedBindings.length > 0
+              ? 'dashboards.transfer.pending_title'
+              : 'dashboards.transfer.pending_background_title')}
             message={t('dashboards.transfer.pending_message', {
               bindings: importReport.report.unresolvedBindings.length,
               backgrounds: importReport.report.nonPortableBackgrounds,
@@ -351,11 +353,12 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
           />
           {importReport.report.unresolvedBindings.length > 0 && (
             <details className="rounded-panel border border-border/60 bg-card/90 px-4 py-3 text-body text-foreground">
-              <summary className="cursor-pointer font-semibold">{t('dashboards.transfer.pending_details')}</summary>
+              <summary className="flex min-h-11 cursor-pointer items-center font-semibold">{t('dashboards.transfer.pending_details')}</summary>
               <ul className="mt-3 max-h-48 space-y-1 overflow-y-auto pl-5 text-caption text-muted-foreground">
                 {importReport.report.unresolvedBindings.map((item, index) => (
                   <li key={`${item.widgetId}-${item.cardId ?? ''}-${index}`} className="list-disc break-words">
-                    {t('dashboards.transfer.pending_item', { tab: item.tabTitle, title: item.title })}
+                    <span className="text-foreground">{t('dashboards.transfer.pending_item', { title: item.title })}</span>
+                    <span className="ml-2 text-muted-foreground">{item.tabTitle}</span>
                   </li>
                 ))}
               </ul>
