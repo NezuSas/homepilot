@@ -1,61 +1,16 @@
-import { useEffect, useId, useMemo, useRef, useState, type ComponentType } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  Bot,
-  Blinds,
-  BriefcaseBusiness,
-  Camera,
-  Cat,
-  CircleHelp,
-  Clock,
-  Dog,
-  Fan,
-  Gauge,
-  Home,
-  Key,
-  LayoutGrid,
-  Lightbulb,
-  Lock,
-  Music2,
-  Plug,
-  Power,
-  Shield,
-  Sparkles,
-  Speaker,
-  Thermometer,
-  Tv,
-  Wind,
-  Zap,
-} from 'lucide-react';
-import {
-  mdiAirConditioner,
-  mdiAlarm,
-  mdiBlinds,
-  mdiCamera,
-  mdiCat,
-  mdiCeilingFan,
-  mdiDog,
-  mdiDoor,
-  mdiFan,
-  mdiFire,
-  mdiGarage,
-  mdiHome,
-  mdiLightbulb,
-  mdiLock,
-  mdiMusic,
-  mdiPower,
-  mdiPowerPlug,
-  mdiShield,
-  mdiSpeaker,
-  mdiTelevision,
-  mdiThermometer,
-  mdiWeatherWindy,
-  mdiWindowShutter,
-} from '@mdi/js';
+import { ChevronDown, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import {
+  chooseDashboardIcon, getDashboardIconComponent, isDashboardIconAvailable,
+  searchDashboardIcons,
+} from './dashboardIconRegistry';
+
+export { getDashboardIconComponent } from './dashboardIconRegistry';
 
 interface IconPickerProps {
   value?: string;
@@ -65,268 +20,138 @@ interface IconPickerProps {
   className?: string;
 }
 
-type IconComponent = ComponentType<{ className?: string }>;
+const INITIAL_ICON_COUNT = 48;
 
-interface IconEntry {
-  name: string;
-  icon: IconComponent;
-  normalized: string;
-}
-
-/**
- * The initial dashboard bundle only contains icons that HomePilot presents in
- * its own UI. The Material subset covers persisted Home Assistant aliases
- * used by the shipped dashboard and keeps arbitrary user text intact.
- */
-const COMMON_ICON_COMPONENTS: Record<string, IconComponent> = {
-  assistant: Bot,
-  bot: Bot,
-  blinds: Blinds,
-  briefcase: BriefcaseBusiness,
-  camera: Camera,
-  cat: Cat,
-  clock: Clock,
-  dog: Dog,
-  fan: Fan,
-  gauge: Gauge,
-  home: Home,
-  key: Key,
-  layoutgrid: LayoutGrid,
-  lightbulb: Lightbulb,
-  lock: Lock,
-  music: Music2,
-  plug: Plug,
-  powerplug: Plug,
-  power: Power,
-  shield: Shield,
-  sparkles: Sparkles,
-  speaker: Speaker,
-  thermometer: Thermometer,
-  television: Tv,
-  tv: Tv,
-  weatherwindy: Wind,
-  wind: Wind,
-  zap: Zap,
-};
-
-function normalizeIconName(value: string) {
-  return value
-    .trim()
-    .replace(/^(lucide|mdi)[:\-_\s]*/i, '')
-    .replace(/[-_\s]+(.)/g, (_match, letter: string) => letter.toUpperCase())
-    .replace(/[^a-zA-Z0-9]/g, '')
-    .replace(/Icon$/i, '')
-    .toLowerCase();
-}
-
-function createMdiIcon(path: string): IconComponent {
-  return function MdiIcon({ className }) {
-    return (
-      <svg aria-hidden="true" className={className} fill="currentColor" viewBox="0 0 24 24">
-        <path d={path} />
-      </svg>
-    );
-  };
-}
-
-const MATERIAL_ICON_PATHS: Record<string, string> = {
-  'mdi:air-conditioner': mdiAirConditioner,
-  'mdi:alarm': mdiAlarm,
-  'mdi:blinds': mdiBlinds,
-  'mdi:camera': mdiCamera,
-  'mdi:cat': mdiCat,
-  'mdi:ceiling-fan': mdiCeilingFan,
-  'mdi:dog': mdiDog,
-  'mdi:door': mdiDoor,
-  'mdi:fan': mdiFan,
-  'mdi:fire': mdiFire,
-  'mdi:garage': mdiGarage,
-  'mdi:home': mdiHome,
-  'mdi:lightbulb': mdiLightbulb,
-  'mdi:lock': mdiLock,
-  'mdi:music': mdiMusic,
-  'mdi:power': mdiPower,
-  'mdi:power-plug': mdiPowerPlug,
-  'mdi:shield': mdiShield,
-  'mdi:speaker': mdiSpeaker,
-  'mdi:television': mdiTelevision,
-  'mdi:thermometer': mdiThermometer,
-  'mdi:weather-windy': mdiWeatherWindy,
-  'mdi:window-shutter': mdiWindowShutter,
-};
-
-const MATERIAL_ICON_ENTRIES: IconEntry[] = Object.entries(MATERIAL_ICON_PATHS).map(([name, path]) => ({
-  name,
-  icon: createMdiIcon(path),
-  normalized: normalizeIconName(name),
-}));
-
-const MATERIAL_ICON_COMPONENTS: Record<string, IconComponent> = Object.fromEntries(
-  MATERIAL_ICON_ENTRIES.map((entry) => [entry.normalized, entry.icon])
-);
-
-const ICON_CATALOG: IconEntry[] = [
-  ...Object.entries(COMMON_ICON_COMPONENTS).map(([name, icon]) => ({ name, icon, normalized: normalizeIconName(name) })),
-  ...MATERIAL_ICON_ENTRIES,
-].sort((left, right) => left.name.localeCompare(right.name));
-
-export function getDashboardIconComponent(value?: string): IconComponent {
-  const rawValue = value?.trim() || '';
-  const normalized = normalizeIconName(rawValue);
-  if (!normalized) return CircleHelp;
-
-  if (/^mdi[:\-_\s]/i.test(rawValue)) {
-    return MATERIAL_ICON_COMPONENTS[normalized] || CircleHelp;
-  }
-
-  return COMMON_ICON_COMPONENTS[normalized] || MATERIAL_ICON_COMPONENTS[normalized] || CircleHelp;
-}
-
-export function IconPicker({
-  value = '',
-  onChange,
-  placeholder,
-  label,
-  className,
-}: IconPickerProps) {
+export function IconPicker({ value = '', onChange, placeholder, label, className }: IconPickerProps) {
   const { t } = useTranslation();
   const listboxId = useId();
-  const iconInputRef = useRef<HTMLInputElement | null>(null);
-  const [iconQuery, setIconQuery] = useState(value);
-  const [dropdownPos, setDropdownPos] = useState<{ left: number; top: number; width: number } | null>(null);
-
-  useEffect(() => {
-    setIconQuery(value);
-  }, [value]);
-
-  const SelectedIcon = getDashboardIconComponent(iconQuery);
-  const resolvedPlaceholder = placeholder ?? t('dashboard.editor.sections.icon_picker_placeholder');
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const popupRef = useRef<HTMLDivElement | null>(null);
+  const searchRef = useRef<HTMLInputElement | null>(null);
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [showAll, setShowAll] = useState(false);
+  const [position, setPosition] = useState<{ left: number; top: number; width: number } | null>(null);
+  const selectedExists = isDashboardIconAvailable(value);
+  const SelectedIcon = getDashboardIconComponent(value);
   const resolvedLabel = label ?? t('dashboard.editor.sections.icon_picker_label');
-
-  const filteredIcons = useMemo(() => {
-    const query = normalizeIconName(iconQuery);
-
-    if (!query) return ICON_CATALOG;
-
-    const startsWith = ICON_CATALOG.filter((item) => item.normalized.startsWith(query));
-    const includes = ICON_CATALOG.filter((item) => !item.normalized.startsWith(query) && item.normalized.includes(query));
-
-    return [...startsWith, ...includes];
-  }, [iconQuery]);
-
-  const computeDropdownPos = () => {
-    const rect = iconInputRef.current?.getBoundingClientRect();
-    if (!rect) return;
-
-    const maxWidth = Math.max(0, window.innerWidth - 24);
-    const width = Math.min(rect.width, maxWidth);
-
-    setDropdownPos({
-      left: Math.max(12, Math.min(rect.left, window.innerWidth - width - 12)),
-      top: rect.bottom + 8,
-      width,
-    });
-  };
+  const filteredIcons = useMemo(() => searchDashboardIcons(query), [query]);
+  const visibleIcons = showAll ? filteredIcons : filteredIcons.slice(0, INITIAL_ICON_COUNT);
 
   useEffect(() => {
-    if (!dropdownPos) return;
-
-    const updatePosition = () => computeDropdownPos();
-
+    if (!open) return;
+    const updatePosition = () => {
+      const rect = triggerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const width = Math.min(Math.max(rect.width, 320), window.innerWidth - 24);
+      setPosition({
+        left: Math.max(12, Math.min(rect.left, window.innerWidth - width - 12)),
+        top: Math.min(rect.bottom + 8, Math.max(12, window.innerHeight - 320)),
+        width,
+      });
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (!triggerRef.current?.contains(target) && !popupRef.current?.contains(target)) setOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+    updatePosition();
     window.addEventListener('resize', updatePosition);
     window.addEventListener('scroll', updatePosition, true);
-
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
     return () => {
       window.removeEventListener('resize', updatePosition);
       window.removeEventListener('scroll', updatePosition, true);
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
     };
-  }, [dropdownPos]);
+  }, [open]);
 
-  const dropdown = dropdownPos && typeof document !== 'undefined'
-    ? createPortal(
-        <div
-          id={listboxId}
-          role="listbox"
-          aria-label={resolvedLabel}
-          className="fixed z-[100000] max-h-64 overflow-y-auto rounded-2xl border border-border/60 bg-popover p-2 shadow-2xl"
-          style={{
-            left: dropdownPos.left,
-            top: dropdownPos.top,
-            width: dropdownPos.width,
-          }}
-        >
-          {filteredIcons.length > 0 ? (
-            filteredIcons.map((item) => {
-              const Icon = item.icon;
-              const selected = item.normalized === normalizeIconName(iconQuery);
+  useEffect(() => {
+    if (open && position && document.activeElement === triggerRef.current) searchRef.current?.focus();
+  }, [open, position]);
 
-              return (
-                <Button
-                  key={item.name}
-                  type="button"
-                  role="option"
-                  aria-selected={selected}
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => {
-                    setIconQuery(item.name);
-                    onChange(item.name);
-                    setDropdownPos(null);
-                  }}
-                  className={cn(
-                    'w-full justify-start gap-3 rounded-xl px-3 text-left text-body font-black',
-                    selected ? 'bg-primary/15 text-primary' : 'text-foreground hover:bg-muted/60'
-                  )}
-                >
-                  <Icon className="h-5 w-5 shrink-0" />
-                  <span>{item.name}</span>
-                </Button>
-              );
-            })
-          ) : (
-            <div className="px-3 py-6 text-center text-body font-semibold text-muted-foreground">
-              {t('dashboard.editor.sections.icon_picker_empty')}
-            </div>
-          )}
-        </div>,
-        document.body
-      )
-    : null;
-
-  return (
-    <div className={cn('space-y-2', className)}>
+  const popup = open && position && typeof document !== 'undefined' ? createPortal(
+    <div
+      ref={popupRef}
+      id={listboxId}
+      className="fixed z-[100000] max-h-[min(24rem,calc(100vh-24px))] overflow-y-auto rounded-2xl border border-border/60 bg-popover p-3 shadow-2xl"
+      style={position}
+    >
       <Input
-        ref={iconInputRef}
-        type="text"
-        label={resolvedLabel}
-        placeholder={resolvedPlaceholder}
-        value={iconQuery}
-        icon={<SelectedIcon className="h-5 w-5" />}
-        onFocus={computeDropdownPos}
-        aria-autocomplete="list"
-        aria-controls={dropdownPos ? listboxId : undefined}
-        aria-expanded={Boolean(dropdownPos)}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') {
-            setDropdownPos(null);
-            return;
-          }
-
-          if (event.key === 'ArrowDown' && !dropdownPos) {
-            event.preventDefault();
-            computeDropdownPos();
-          }
-        }}
-        onChange={(event) => {
-          const nextValue = event.target.value;
-          setIconQuery(nextValue);
-          onChange(nextValue);
-          setTimeout(computeDropdownPos, 0);
-        }}
-        onBlur={() => setTimeout(() => setDropdownPos(null), 200)}
-        className="border-border/60 bg-card text-foreground"
+        ref={searchRef}
+        type="search"
+        aria-label={t('dashboard.editor.sections.icon_picker_search')}
+        placeholder={placeholder ?? t('dashboard.editor.sections.icon_picker_search')}
+        icon={<Search className="h-4 w-4" />}
+        value={query}
+        onChange={(event) => { setQuery(event.target.value); setShowAll(false); }}
       />
+      {visibleIcons.length ? (
+        <div role="listbox" aria-label={resolvedLabel} className="mt-3 grid grid-cols-3 gap-1 sm:grid-cols-4">
+          {visibleIcons.map(({ name, icon: Icon }) => (
+            <Button
+              key={name}
+              type="button"
+              variant="ghost"
+              size="sm"
+              role="option"
+              aria-selected={name === value}
+              title={name}
+              onClick={() => {
+                chooseDashboardIcon(name, onChange);
+                setOpen(false);
+                triggerRef.current?.focus();
+              }}
+              className={cn('min-h-16 min-w-0 flex-col gap-1 rounded-xl px-1 py-2', name === value && 'bg-primary/15 text-primary')}
+            >
+              <Icon className="h-5 w-5 shrink-0" />
+              <span className="max-w-full truncate text-xs font-medium">{name}</span>
+            </Button>
+          ))}
+        </div>
+      ) : (
+        <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+          {t('dashboard.editor.sections.icon_picker_empty')}
+        </p>
+      )}
+      {!showAll && filteredIcons.length > INITIAL_ICON_COUNT && (
+        <Button type="button" variant="ghost" size="sm" className="mt-2 w-full" onClick={() => setShowAll(true)}>
+          {t('dashboard.editor.sections.icon_picker_more', { count: filteredIcons.length - INITIAL_ICON_COUNT })}
+        </Button>
+      )}
+    </div>, document.body) : null;
 
-      {dropdown}
-    </div>
-  );
+  return <div className={cn('space-y-2', className)}>
+    <span id={`${listboxId}-label`} className="ml-1 block text-micro font-black uppercase tracking-widest text-muted-foreground">
+      {resolvedLabel}
+    </span>
+    <Button
+      ref={triggerRef}
+      type="button"
+      variant="outline"
+      aria-labelledby={`${listboxId}-label`}
+      aria-haspopup="listbox"
+      aria-expanded={open}
+      aria-controls={open ? listboxId : undefined}
+      onClick={() => { setQuery(''); setShowAll(false); setOpen((current) => !current); }}
+      className="w-full justify-start rounded-xl bg-card text-left"
+    >
+      <SelectedIcon className="h-5 w-5 shrink-0" />
+      <span className="min-w-0 flex-1 truncate">{value || resolvedLabel}</span>
+      <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+    </Button>
+    {value && !selectedExists && (
+      <p className="ml-1 text-sm text-muted-foreground" role="status">
+        {t('dashboard.editor.sections.icon_picker_unavailable', { icon: value })}
+      </p>
+    )}
+    {popup}
+  </div>;
 }

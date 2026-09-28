@@ -1,5 +1,6 @@
 import type { DashboardWidgetConfig, WidgetType } from '../types';
 import type { ClockStyle } from './ClockWidget';
+import { DASHBOARD_ICON_DEFAULTS } from '../components/dashboardIconRegistry';
 
 export type SectionCardKind =
   | 'device'
@@ -271,33 +272,33 @@ export function isBindableKind(kind: SectionCardKind) {
 export function getDefaultIcon(kind: SectionCardKind): SectionCardIcon {
   switch (normalizeKind(kind)) {
     case 'light':
-      return 'mdi:lightbulb';
+      return DASHBOARD_ICON_DEFAULTS.light;
     case 'cover':
-      return 'Blinds';
+      return DASHBOARD_ICON_DEFAULTS.cover;
     case 'camera':
-      return 'Camera';
+      return DASHBOARD_ICON_DEFAULTS.camera;
     case 'sensor':
-      return 'Gauge';
+      return DASHBOARD_ICON_DEFAULTS.sensor;
     case 'media':
-      return 'Music2';
+      return DASHBOARD_ICON_DEFAULTS.media;
     case 'action':
-      return 'MousePointerClick';
+      return DASHBOARD_ICON_DEFAULTS.action;
     case 'room':
-      return 'Home';
+      return DASHBOARD_ICON_DEFAULTS.room;
     case 'scene':
-      return 'Sparkles';
+      return DASHBOARD_ICON_DEFAULTS.scene;
     case 'clock_digital':
     case 'clock_analog':
     case 'clock_premium':
     case 'clock_minimal':
-      return 'Clock';
+      return DASHBOARD_ICON_DEFAULTS.clock;
     case 'energy':
-      return 'Zap';
+      return DASHBOARD_ICON_DEFAULTS.energy;
     case 'assistant':
-      return 'Bot';
+      return DASHBOARD_ICON_DEFAULTS.assistant;
     case 'device':
     default:
-      return 'Power';
+      return DASHBOARD_ICON_DEFAULTS.device;
   }
 }
 
