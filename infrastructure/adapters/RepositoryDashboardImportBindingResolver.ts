@@ -5,7 +5,8 @@ import type { SceneRepository } from '../../packages/devices/domain/repositories
 import type { AutomationRuleRepository } from '../../packages/devices/domain/repositories/AutomationRuleRepository';
 import type { DeviceControlCatalogProvider } from '../../packages/cloud-gateway/application/DeviceControlCatalogProvider';
 import type { Device } from '../../packages/devices/domain/types';
-import type { CapabilityCommand } from '../../packages/devices/domain/capabilities';
+import { CAPABILITY_DEFINITIONS } from '../../packages/devices/domain/capabilities';
+import { resolveCapabilitiesForDevice } from '../../packages/devices/domain/CapabilityResolver';
 
 function supports(device: Device, kind?: string): boolean {
   if (!kind) return true;
@@ -17,9 +18,16 @@ function supports(device: Device, kind?: string): boolean {
   if (kind === 'sensor') return has('sensor', 'binary_sensor');
   if (kind === 'media') return has('media_player');
   if (kind === 'device') return !has('camera', 'sensor', 'binary_sensor', 'media_player');
-  if (kind === 'action') return device.capabilities?.some((capability) =>
-    'commands' in capability && Array.isArray(capability.commands)
-      && capability.commands.some((command: CapabilityCommand) => command.name === 'press' || command.name === 'activate')) ?? false;
+  if (kind === 'action') {
+    // Historical repository rows may omit externalId. The profile resolver
+    // reads externalId.startsWith(), so only use it for a present endpoint;
+    // otherwise trust explicit capabilities alone and fail closed.
+    const capabilities = typeof device.externalId === 'string' && device.externalId.trim().length > 0
+      ? resolveCapabilitiesForDevice(device)
+      : device.capabilities ?? [];
+    return capabilities.some((capability) =>
+      CAPABILITY_DEFINITIONS[capability.type]?.some((command) => command.name === 'press' || command.name === 'activate') ?? false);
+  }
   return false;
 }
 

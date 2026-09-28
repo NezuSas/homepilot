@@ -62,6 +62,7 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
   };
   const [active, setActive]             = useState<Dashboard | null>(null);
   const [activeTabIdx, setActiveTabIdx] = useState(0);
+  const [loadedBackground, setLoadedBackground] = useState<{ source: string; opacity: number } | null>(null);
   const [loading, setLoading]           = useState(true);
   // Widgets read device state straight from this store (DeviceWidget/RoomWidget/
   // SectionWidget all do `devices.find(...)`), so the canvas must not mount until
@@ -183,13 +184,16 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
   // reloading — or sharing the link — lands back on this exact tab.
   useEffect(() => {
     if (!active) return;
+    // On an incoming dashboard navigation, `active` still refers to the old
+    // dashboard for one render. Do not replace the new route with the old ID.
+    if (initialDashboardId && active.id !== initialDashboardId) return;
     const tab = active.tabs[activeTabIdx];
     if (!tab) return;
     const targetPath = `/dashboards/${active.id}/${tab.id}`;
     if (location.pathname !== targetPath) {
       navigate(targetPath, { replace: true });
     }
-  }, [active, activeTabIdx, location.pathname, navigate]);
+  }, [active, activeTabIdx, initialDashboardId, location.pathname, navigate]);
 
   const patch = async (id: string, body: Partial<Dashboard>) => {
     try {
@@ -316,24 +320,48 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
     }
   };
 
+  const activeTab = active?.tabs[activeTabIdx];
+  const backgroundSource = activeTab?.background
+    ? getDashboardBackgroundSource(activeTab.background, API_BASE_URL)
+    : null;
+  const backgroundOpacity = (activeTab?.backgroundOpacity ?? 100) / 100;
+
+  useEffect(() => {
+    if (!backgroundSource) {
+      setLoadedBackground(null);
+      return;
+    }
+    let cancelled = false;
+    const image = new Image();
+    image.onload = () => {
+      if (!cancelled) setLoadedBackground({ source: backgroundSource, opacity: backgroundOpacity });
+    };
+    image.onerror = () => {
+      if (!cancelled) setLoadedBackground(null);
+    };
+    image.src = backgroundSource;
+    return () => { cancelled = true; };
+  }, [backgroundSource, backgroundOpacity]);
+
   if (loading || (snapshotLoading && snapshotDevices.length === 0)) {
     return <LoadingState label={t('dashboards.loading')} className="min-h-empty-sm" size="md" />;
   }
-
-  const activeTab = active?.tabs[activeTabIdx];
+  // Keep the previous loaded image while the next one decodes; a tab without
+  // a background clears immediately instead of showing the previous tab's art.
+  const displayedBackground = backgroundSource ? loadedBackground : null;
 
   return (
     <div className="homepilot-dashboard-screen relative isolate flex min-h-screen-dvh flex-col gap-0">
       {/* Pinned to the true viewport so a selected background and its light-mode veil
           cover the complete dashboard, including short canvases. */}
       <div
-        className="homepilot-dashboard-backdrop fixed inset-0 z-0 transition-all duration-700 pointer-events-none"
-        style={activeTab?.background ? {
-          backgroundImage: `url(${getDashboardBackgroundSource(activeTab.background, API_BASE_URL)})`,
+        className="homepilot-dashboard-backdrop fixed inset-0 z-0 pointer-events-none"
+        style={displayedBackground ? {
+          backgroundImage: `url(${displayedBackground.source})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          opacity: (activeTab.backgroundOpacity ?? 100) / 100,
+          opacity: displayedBackground.opacity,
         } : undefined}
       />
 

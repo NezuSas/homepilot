@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { DashboardWidgetConfig } from '../../types';
-import { getClockCopy } from './clockUtils';
+import { formatAmbientDate, getClockCopy } from './clockUtils';
 import { normalizeClockStyle, CLOCK_DESIGN_COMPONENTS } from './clockRegistry';
 
 const now = new Date('2026-09-28T11:51:00');
@@ -20,10 +20,11 @@ describe('Dashboard clock hierarchy', () => {
     const html = renderToStaticMarkup(<Design {...props} />);
     expect(html).toContain('11');
     expect(html).toContain('51');
-    expect(html).toContain('SEP');
+    expect(html).toContain(formatAmbientDate(now, 'es-EC'));
     expect(html).toContain('28');
     expect(html).toContain('Cuenca');
     expect(html).toContain('19');
+    expect(html).toContain('border-t');
     expect(html).toContain('text-clock-time-xl-fluid');
     expect(html).not.toContain('hpDialFace');
   });
@@ -37,5 +38,23 @@ describe('Dashboard clock hierarchy', () => {
       expect(html).not.toContain('text-clock-analog-time-fluid');
       expect(html).not.toContain('text-clock-minimal-time-fluid');
     }
+  });
+
+  it('keeps the premium analog dial primary and its date and weather secondary', () => {
+    const Design = CLOCK_DESIGN_COMPONENTS['analog-classic'];
+    const html = renderToStaticMarkup(<Design {...props} />);
+    expect(html).toContain('hpDialFace-premium');
+    expect(html).toContain(formatAmbientDate(now, 'es-EC'));
+    expect(html).toContain('Cuenca');
+    expect(html).toContain('text-body font-medium');
+    expect(html).not.toContain('text-clock-time-xl-fluid');
+  });
+
+  it('preserves all persisted clock style identifiers and legacy aliases', () => {
+    for (const style of ['minimal', 'digital', 'analog-classic', 'analog-minimal'] as const) {
+      expect(normalizeClockStyle(style)).toBe(style);
+    }
+    expect(normalizeClockStyle('elegant')).toBe('minimal');
+    expect(normalizeClockStyle('analog-orbit')).toBe('analog-classic');
   });
 });

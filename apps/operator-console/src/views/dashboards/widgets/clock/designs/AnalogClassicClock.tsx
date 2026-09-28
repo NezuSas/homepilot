@@ -1,10 +1,10 @@
 import type { ClockDesignProps } from '../clockTypes';
-import { formatWeekday, getHandAngles, pad } from '../clockUtils';
-import { AnalogDial, ClockLabel, ClockShell, WeatherPill } from './ClockShared';
+import { formatAmbientDate, getHandAngles, pad } from '../clockUtils';
+import { AnalogDial, ClockShell, WeatherLine } from './ClockShared';
 
 export function AnalogClassicClock({ now, locale, copy, weather, weatherStatus }: ClockDesignProps) {
   const angles = getHandAngles(now);
-  const weekday = formatWeekday(now, locale, 'short');
+  const dateLine = formatAmbientDate(now, locale);
   const time = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
 
   return (
@@ -20,13 +20,12 @@ export function AnalogClassicClock({ now, locale, copy, weather, weatherStatus }
           />
         </div>
 
-        <div className="flex min-h-0 min-w-0 flex-col justify-center gap-clock-gap-compact">
-          <div>
-            <ClockLabel>{copy.analogClassic}</ClockLabel>
-            <div className="mt-2 text-clock-analog-label-fluid font-semibold text-muted-foreground">{weekday}</div>
+        <div className="flex min-h-0 min-w-0 flex-col justify-center gap-clock-gap">
+          <p className="text-body-lg font-medium text-foreground">{dateLine}</p>
+          <div className="text-body font-medium text-muted-foreground tabular-nums">{time}</div>
+          <div className="border-t border-border/55 pt-clock-gap-compact">
+            <WeatherLine weather={weather} status={weatherStatus} copy={copy} />
           </div>
-          <div className="text-body-lg font-semibold text-foreground tabular-nums">{time}</div>
-          <WeatherPill weather={weather} status={weatherStatus} copy={copy} mode="compact" />
         </div>
       </div>
     </ClockShell>

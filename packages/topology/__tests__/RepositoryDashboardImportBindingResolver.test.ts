@@ -12,9 +12,13 @@ function createResolver(catalogState: CatalogState = 'available') {
     findDeviceById: jest.fn(async (id: string) => id === 'missing-device' ? null : ({
       id,
       homeId: id === 'foreign-device' ? 'home-2' : 'home-1',
-      type: id === 'camera-1' ? 'camera' : 'light',
-      semanticType: id === 'camera-1' ? 'camera' : 'light',
-      capabilities: [],
+      type: id === 'camera-1' ? 'camera' : ['ha-scene', 'scene-capability-only', 'incomplete-ha-scene', 'malformed-external-id'].includes(id) ? 'scene' : 'light',
+      semanticType: id === 'camera-1' ? 'camera' : ['ha-scene', 'scene-capability-only', 'incomplete-ha-scene', 'malformed-external-id'].includes(id) ? 'scene' : 'light',
+      ...(id === 'ha-scene' ? { externalId: 'ha:scene.volume_up' }
+        : id === 'malformed-external-id' ? { externalId: 42 } : {}),
+      // Repository entities store capability identity, not API-enriched commands.
+      capabilities: id === 'scene-capability-only' ? [{ type: 'scene', name: 'Escena' }]
+        : id === 'unknown-capability' ? [{ type: 'not_supported', name: 'Desconocida' }] : [],
     })),
   } as unknown as DeviceRepository;
   const rooms = {
@@ -23,7 +27,7 @@ function createResolver(catalogState: CatalogState = 'available') {
     })),
   } as unknown as RoomRepository;
   const scenes = {
-    findSceneById: jest.fn(async (id: string) => id === 'missing-scene' ? null : ({
+    findSceneById: jest.fn(async (id: string) => ['missing-scene', 'ha-scene', 'scene-capability-only', 'incomplete-ha-scene', 'malformed-external-id', 'incompatible-action', 'unknown-capability'].includes(id) ? null : ({
       id, homeId: id === 'foreign-scene' ? 'home-2' : 'home-1',
     })),
   } as unknown as SceneRepository;
@@ -51,7 +55,18 @@ describe('RepositoryDashboardImportBindingResolver', () => {
     await expect(resolver.exists(authorized, { type: 'device', id: 'light-1', cardKind: 'light' })).resolves.toBe(true);
     await expect(resolver.exists(authorized, { type: 'room', id: 'room-1' })).resolves.toBe(true);
     await expect(resolver.exists(authorized, { type: 'scene', id: 'scene-1' })).resolves.toBe(true);
+    await expect(resolver.exists(authorized, { type: 'action', id: 'scene-1', cardKind: 'action' })).resolves.toBe(true);
+    await expect(resolver.exists(authorized, { type: 'action', id: 'ha-scene', cardKind: 'action' })).resolves.toBe(true);
+    await expect(resolver.exists(authorized, { type: 'action', id: 'scene-capability-only', cardKind: 'action' })).resolves.toBe(true);
     await expect(resolver.exists(authorized, { type: 'automation', id: 'automation-1' })).resolves.toBe(true);
+  });
+
+  it('tolerates missing Home Assistant metadata on normal and foreign devices', async () => {
+    const resolver = createResolver();
+    await expect(resolver.exists(authorized, { type: 'device', id: 'light-1', cardKind: 'light' })).resolves.toBe(true);
+    await expect(resolver.exists(authorized, { type: 'device', id: 'foreign-device', cardKind: 'light' })).resolves.toBe(false);
+    await expect(resolver.exists(authorized, { type: 'action', id: 'incomplete-ha-scene', cardKind: 'action' })).resolves.toBe(false);
+    await expect(resolver.exists(authorized, { type: 'action', id: 'malformed-external-id', cardKind: 'action' })).resolves.toBe(false);
   });
 
   it('rejects foreign, missing or kind-incompatible targets without matching by name', async () => {
@@ -63,6 +78,10 @@ describe('RepositoryDashboardImportBindingResolver', () => {
     await expect(resolver.exists(authorized, { type: 'room', id: 'missing-room' })).resolves.toBe(false);
     await expect(resolver.exists(authorized, { type: 'scene', id: 'foreign-scene' })).resolves.toBe(false);
     await expect(resolver.exists(authorized, { type: 'scene', id: 'missing-scene' })).resolves.toBe(false);
+    await expect(resolver.exists(authorized, { type: 'action', id: 'foreign-scene', cardKind: 'action' })).resolves.toBe(false);
+    await expect(resolver.exists(authorized, { type: 'action', id: 'missing-scene', cardKind: 'action' })).resolves.toBe(false);
+    await expect(resolver.exists(authorized, { type: 'action', id: 'incompatible-action', cardKind: 'action' })).resolves.toBe(false);
+    await expect(resolver.exists(authorized, { type: 'action', id: 'unknown-capability', cardKind: 'action' })).resolves.toBe(false);
     await expect(resolver.exists(authorized, { type: 'automation', id: 'foreign-automation' })).resolves.toBe(false);
     await expect(resolver.exists(authorized, { type: 'automation', id: 'missing-automation' })).resolves.toBe(false);
   });

@@ -97,6 +97,16 @@ export function formatDateLine(now: Date, locale: string): string {
   return `${weekday}, ${day} ${month} ${year}`;
 }
 
+export function formatAmbientDate(now: Date, locale: string): string {
+  const normalized = normalizeLocale(locale);
+  const weekday = formatWeekday(now, normalized, 'long');
+  const month = formatMonth(now, normalized, 'long');
+  const day = now.getDate();
+  return normalized.toLowerCase().startsWith('en')
+    ? `${weekday}, ${month} ${day}`
+    : `${weekday}, ${day} de ${month.toLocaleLowerCase(normalized)}`;
+}
+
 export function formatCompactDate(now: Date, locale: string): string {
   const normalized = normalizeLocale(locale);
   const isEnglish = normalized.toLowerCase().startsWith('en');

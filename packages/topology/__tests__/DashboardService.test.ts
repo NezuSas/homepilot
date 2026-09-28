@@ -1,6 +1,7 @@
 import { DashboardService } from '../application/DashboardService';
 import {
   Dashboard,
+  DashboardImportBindingResolver,
   DashboardRevision,
   DashboardRepository,
   DASHBOARD_TRANSFER_FORMAT,
@@ -215,6 +216,115 @@ describe('DashboardService', () => {
     ]));
     expect(imported.importReport?.unresolvedBindings).toHaveLength(2);
     expect(resolver.exists).toHaveBeenCalledWith(expect.any(Set), expect.objectContaining({ id: 'missing-device' }));
+  });
+
+  it('round-trips a Button bound to an existing scene without reporting it unresolved', async () => {
+    const source = createDashboard('source', 'Control');
+    source.tabs[0].widgets = [{ id: 'section', type: 'room_summary', config: {
+      appearance: { title: 'Acciones' },
+      extra: { cards: [{
+        id: 'button-scene', kind: 'action', title: 'VOLUMEN+', widgetType: 'action_button',
+        entityId: 'scene-1', entityName: 'VOLUMEN+', span: 'small', icon: 'speaker', order: 7,
+      }] },
+    } }];
+    const resolver = { exists: jest.fn(async (homes: ReadonlySet<string>, target: { type: string; id: string }) =>
+      homes.has('home-1') && target.type === 'action' && target.id === 'scene-1') };
+    const homeRepository: HomeRepository = {
+      ...createHomeRepository(),
+      findHomesByUserId: async () => [{
+        id: 'home-1', ownerId: 'user-1', name: 'Hogar', entityVersion: 1,
+        createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
+      }],
+    };
+    const service = new DashboardService(createDashboardRepository(source), homeRepository, resolver);
+    const transfer = JSON.parse(JSON.stringify(await service.exportDashboard('user-1', source.id))) as unknown;
+    const imported = await service.importDashboard('user-1', transfer);
+    const cards = (imported.tabs[0].widgets[0].config.extra as {
+      cards: Array<{ id: string; entityId?: string; order: number; span: string }>;
+    }).cards;
+
+    expect(cards).toEqual([expect.objectContaining({ id: 'button-scene', entityId: 'scene-1', order: 7, span: 'small' })]);
+    expect(imported.importReport?.unresolvedBindings).toEqual([]);
+    expect(resolver.exists).toHaveBeenCalledWith(new Set(['home-1']), {
+      type: 'action', id: 'scene-1', cardKind: 'action',
+    });
+  });
+
+  it('imports a missing Button scene without retaining its foreign ID or matching by name', async () => {
+    const source = createDashboard('source', 'Control');
+    source.tabs[0].widgets = [{ id: 'section', type: 'room_summary', config: {
+      appearance: { title: 'Acciones' },
+      extra: { cards: [{ id: 'button-scene', kind: 'action', title: 'VOLUMEN+', entityId: 'foreign-scene', entityName: 'VOLUMEN+', span: 'small', order: 7 }] },
+    } }];
+    const service = new DashboardService(createDashboardRepository(source), createHomeRepository(), {
+      exists: async () => false,
+    });
+    const imported = await service.importDashboard('user-1', await service.exportDashboard('user-1', source.id));
+    const cards = (imported.tabs[0].widgets[0].config.extra as {
+      cards: Array<{ entityId?: string; entityName?: string; title: string; order: number }>;
+    }).cards;
+
+    expect(cards).toEqual([expect.objectContaining({ title: 'VOLUMEN+', order: 7, entityId: undefined, entityName: undefined })]);
+    expect(imported.importReport?.unresolvedBindings).toEqual([
+      expect.objectContaining({ cardId: 'button-scene', title: 'VOLUMEN+', targetType: 'action' }),
+    ]);
+    expect(JSON.stringify(imported)).not.toContain('foreign-scene');
+  });
+
+  it('preserves valid device, room, scene, automation and device-action bindings across tabs', async () => {
+    const source = createDashboard('source', 'Control');
+    source.tabs = [
+      { id: 'first', title: 'Primero', widgets: [
+        ...(['device', 'room', 'scene', 'automation'] as const).map((entityType) => ({
+          id: `widget-${entityType}`, type: 'selected_device' as const,
+          config: { binding: { entityType, entityId: `${entityType}-1`, entityName: 'Nombre local' } },
+        })),
+        { id: 'section', type: 'room_summary', config: { extra: { cards: [
+          { id: 'scene-card', kind: 'action', entityId: 'scene-1', title: 'Escena', span: 'small', order: 0 },
+          { id: 'routine-card', kind: 'action', entityId: 'automation:automation-1', title: 'Rutina', span: 'small', order: 1 },
+          { id: 'display-card', kind: 'action', entityId: 'device-action:device-1:navigate_home', title: 'Inicio', span: 'small', order: 2 },
+        ] } } },
+      ] },
+      { id: 'second', title: 'Segundo', widgets: [] },
+    ];
+    const expected = new Set(['device:device-1', 'room:room-1', 'scene:scene-1', 'automation:automation-1', 'action:scene-1', 'device-action:device-1']);
+    const resolver: DashboardImportBindingResolver = {
+      exists: async (_homes, target) => expected.has(`${target.type}:${target.id}`),
+    };
+    const service = new DashboardService(createDashboardRepository(source), createHomeRepository(), resolver);
+    const imported = await service.importDashboard('user-1', await service.exportDashboard('user-1', source.id));
+
+    expect(imported.tabs.map((tab) => tab.title)).toEqual(['Primero', 'Segundo']);
+    expect(imported.tabs[0].widgets.map((widget) => widget.type)).toEqual([
+      'selected_device', 'selected_device', 'selected_device', 'selected_device', 'room_summary',
+    ]);
+    expect(imported.tabs[0].widgets.slice(0, 4).map((widget) => (widget.config.binding as { entityId: string }).entityId))
+      .toEqual(['device-1', 'room-1', 'scene-1', 'automation-1']);
+    const cards = (imported.tabs[0].widgets[4].config.extra as { cards: Array<{ id: string; entityId: string; order: number }> }).cards;
+    expect(cards.map((card) => [card.id, card.entityId, card.order])).toEqual([
+      ['scene-card', 'scene-1', 0],
+      ['routine-card', 'automation:automation-1', 1],
+      ['display-card', 'device-action:device-1:navigate_home', 2],
+    ]);
+    expect(imported.importReport?.unresolvedBindings).toEqual([]);
+  });
+
+  it('unassigns an unavailable or ineligible device-action without persisting its target', async () => {
+    const source = createDashboard('source', 'Control');
+    source.tabs[0].widgets = [{ id: 'section', type: 'room_summary', config: { extra: { cards: [
+      { id: 'missing-action', kind: 'action', entityId: 'device-action:foreign-device:navigate_home', title: 'Inicio', span: 'small' },
+    ] } } }];
+    const service = new DashboardService(createDashboardRepository(source), createHomeRepository(), {
+      exists: async () => false,
+    });
+    const imported = await service.importDashboard('user-1', await service.exportDashboard('user-1', source.id));
+    const cards = (imported.tabs[0].widgets[0].config.extra as { cards: Array<{ entityId?: string }> }).cards;
+
+    expect(cards[0].entityId).toBeUndefined();
+    expect(imported.importReport?.unresolvedBindings).toEqual([
+      expect.objectContaining({ cardId: 'missing-action', targetType: 'device-action' }),
+    ]);
+    expect(JSON.stringify(imported)).not.toContain('foreign-device');
   });
 
   it('imports fail-closed when no binding resolver is injected', async () => {

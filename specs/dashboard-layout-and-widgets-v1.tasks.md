@@ -24,6 +24,9 @@
 
 ## Verificación obligatoria ante cambios
 
+- [ ] Validar externamente el round-trip de un Botón asignado a escena con el ID real del recurso y hogar autorizado; comprobar también que una escena ausente se desasigna y se reporta sin matching por nombre. Regresiones escritas, no ejecutadas aquí.
+- [ ] Validar externamente la estabilidad geométrica del fondo A → B → sin fondo → B en desktop y tablet y revisar visualmente el reloj digital ambiental y el analógico premium en claro/oscuro. Las pruebas están escritas, no ejecutadas aquí.
+
 - [ ] Validar externamente AC38–AC41: colisiones de nombres ES/EN, copy de asignaciones, overflow desktop/tablet/móvil/kiosco, variantes de sensores y composición digital/analógica del reloj. Las regresiones están escritas, no ejecutadas en este worktree por restricción de la tarea.
 
 - [ ] Validar externamente AC36–AC37: tests de round-trip, bindings existentes/ausentes/incompatibles, hogar autorizado, reporte de pendientes, presets y fondos locales. Código y regresiones escritos; no ejecutados en este worktree por restricción de la tarea.

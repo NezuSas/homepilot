@@ -167,6 +167,63 @@ async function prepareAuthenticatedDashboard(page: import('@playwright/test').Pa
   });
 }
 
+for (const viewport of [viewports[1], viewports[2]]) {
+  test(`dashboard backgrounds keep viewport and canvas geometry during navigation on ${viewport.name}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await prepareAuthenticatedDashboard(page);
+    const first = { ...responsiveDashboard, tabs: [{ ...responsiveDashboard.tabs[0], background: '/media/dashboards/test-backdrop-a.svg' }] };
+    const second = { ...responsiveDashboard, id: 'second-dashboard', title: 'Segundo tablero', tabs: [{ ...responsiveDashboard.tabs[0], id: 'second-tab', background: '/media/dashboards/test-backdrop-b.svg' }] };
+    const plain = { ...responsiveDashboard, id: 'plain-dashboard', title: 'Sin fondo', tabs: [{ ...responsiveDashboard.tabs[0], id: 'plain-tab', background: undefined }] };
+    await page.route('**/api/v1/dashboards', async (route) => {
+      await route.fulfill({ contentType: 'application/json', body: JSON.stringify([first, second, plain]) });
+    });
+    let releaseSecondImage: () => void = () => undefined;
+    const secondImageGate = new Promise<void>((resolve) => { releaseSecondImage = resolve; });
+    await page.route('**/media/dashboards/test-backdrop-*.svg', async (route) => {
+      if (route.request().url().endsWith('test-backdrop-b.svg')) await secondImageGate;
+      await route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900"><rect width="1600" height="900" fill="#483b32"/></svg>' });
+    });
+    await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+    const backdrop = page.locator('.homepilot-dashboard-backdrop');
+    const canvas = page.locator('.homepilot-dashboard-content');
+    await expect(backdrop).toHaveCSS('background-image', /test-backdrop-a/);
+    const geometry = async () => ({
+      backdrop: await backdrop.boundingBox(), canvas: await canvas.boundingBox(),
+      viewport: await page.evaluate(() => ({ width: window.innerWidth, height: window.innerHeight })),
+    });
+    const before = await geometry();
+    const navigate = async (dashboardId: string, tabId: string) => {
+      await page.evaluate(({ dashboardId, tabId }) => {
+        window.history.pushState({}, '', `/dashboards/${dashboardId}/${tabId}`);
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      }, { dashboardId, tabId });
+    };
+
+    await navigate('second-dashboard', 'second-tab');
+    await expect(page).toHaveURL(/second-dashboard\/second-tab/);
+    await expect(backdrop).toHaveCSS('background-image', /test-backdrop-a/);
+    const whileLoading = await geometry();
+    expect(whileLoading.backdrop).toEqual(before.backdrop);
+    expect(whileLoading.viewport).toEqual(before.viewport);
+    expect(Math.abs((whileLoading.canvas?.y ?? 0) - (before.canvas?.y ?? 0))).toBeLessThanOrEqual(2);
+
+    releaseSecondImage();
+    await expect(backdrop).toHaveCSS('background-image', /test-backdrop-b/);
+    await expect(page).toHaveURL(/second-dashboard\/second-tab/);
+    const after = await geometry();
+    expect(after.backdrop).toEqual(before.backdrop);
+    expect(after.viewport).toEqual(before.viewport);
+    expect(Math.abs((after.canvas?.y ?? 0) - (before.canvas?.y ?? 0))).toBeLessThanOrEqual(2);
+
+    await navigate('plain-dashboard', 'plain-tab');
+    await expect(backdrop).toHaveCSS('background-image', 'none');
+    expect((await geometry()).backdrop).toEqual(before.backdrop);
+    await navigate('second-dashboard', 'second-tab');
+    await expect(backdrop).toHaveCSS('background-image', /test-backdrop-b/);
+    expect((await geometry()).backdrop).toEqual(before.backdrop);
+  });
+}
+
 test('normal Operator Console startup consumes no Directory handoff without a 404 or duplicate request', async ({ page }) => {
   await prepareLoginShell(page);
   const statuses: number[] = [];

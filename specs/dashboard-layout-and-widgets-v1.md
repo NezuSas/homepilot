@@ -33,6 +33,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - **REQ-07:** Las variables de identidad del título se resuelven exclusivamente desde el contexto autenticado de HomePilot.
 - **REQ-08:** El propietario puede exportar un tablero como un archivo versionado e importar una copia en su propia cuenta, sin sobrescribir tableros existentes.
   La importación conserva bindings solo si el target compatible existe en un hogar accesible al importador; en caso contrario mantiene el widget/card desasignado y reporta el pendiente, sin remapear por nombre ni rechazar el tablero completo. Los fondos integrados viajan por ID lógico; los uploads locales nunca viajan como ruta o binario y se notifican como no portables.
+  Un Botón de sección almacena una escena nativa como `kind: action` y `entityId` de escena; las automatizaciones usan el prefijo `automation:` y los comandos de pantalla `device-action:<deviceId>:<actionKey>`. El informe solo señala bindings realmente ausentes o incompatibles; el título visible nunca se usa para resolverlos.
 - **REQ-09:** Cada actualización de tablero crea una revisión local recuperable por su propietario; la restauración debe crear otra revisión del estado actual antes de aplicar la elegida.
 - **REQ-10:** En modo edición, el encabezado de una vista usa los mismos affordances que una tarjeta: lápiz centrado al hover/foco y menú contextual con editar y eliminar; fuera de edición no expone esos controles.
 
@@ -52,6 +53,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - **NFR-12:** El reordenamiento de zonas funciona mediante puntero y teclado desde el control de arrastre. Si una interacción se cancela, el estado visual transitorio se limpia sin alterar el orden persistido.
 - **NFR-13:** Los kioscos verticales de alta resolución usan como máximo dos columnas en el canvas para conservar controles legibles a distancia, sin modificar los breakpoints de móvil, tablet o escritorio.
 - **NFR-14:** En teléfonos, el canvas no excede su ancho disponible y las secciones presentan dos columnas internas; desde el breakpoint sm conservan las cuatro columnas de escritorio.`r`n- **NFR-14:** En teléfonos, el canvas no excede su ancho disponible y las secciones presentan dos columnas internas; desde el breakpoint `sm` conservan las cuatro columnas de escritorio.
+- **NFR-15:** El fondo del tablero conserva un contenedor anclado al viewport durante la navegación. La siguiente imagen se precarga antes de reemplazar la anterior; una pestaña sin fondo limpia la imagen inmediatamente, sin modificar el box model del canvas.
 
 ## 6. Criterios de Aceptación
 
@@ -95,12 +97,14 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - [ ] AC39: En escritorio amplio todas las acciones del encabezado son visibles y «Más» no aparece; en tablet/móvil el menú contiene solo las acciones desplazadas, mantiene edición/finalización accesible y no causa desborde horizontal.
 - [ ] AC40: La tarjeta de sensor prioriza valor/unidad y nombre, representa estados sin CTA ni ring y maneja porcentaje, temperatura, humedad, luz, energía, presencia, estados binarios y texto en formatos estrechos y temas claro/oscuro.
 - [ ] AC41: El reloj predeterminado es digital y muestra hora, fecha y clima con jerarquía ambiental; las variantes analógicas existentes siguen disponibles pero su hora numérica secundaria no compite con la esfera.
+- [ ] AC42: Al cambiar entre tableros con imagen, sin imagen y con presets o uploads, el fondo conserva sus bounds y el canvas mantiene su posición en desktop y tablet; la imagen nueva no reemplaza a la anterior hasta cargarse.
 
 ## 7. Notas Técnicas y Arquitectura
 
 - API: `/api/v1/dashboards/*` mediante `DashboardRoutes`.
 - Las estructuras de dashboard pertenecen al contexto de topología; los widgets no contienen reglas de negocio de dispositivos.
 - `DashboardCanvas` y el catálogo de widgets son el único punto de montaje visual de tarjetas.
+- El resolver de importación valida Botones de dispositivo con `resolveCapabilitiesForDevice` y `CAPABILITY_DEFINITIONS`, como la API de dispositivos. El repositorio almacena tipos de capacidad, no necesariamente el arreglo `commands` enriquecido que recibe la UI; una escena HA con `activate` no debe quedar desasignada por esa diferencia de representación.
 - `DashboardsView` sigue el mismo idioma ya usado en `DashboardView.tsx`/`InboxView.tsx`:
   `snapshotLoading && snapshotDevices.length === 0` gatea el render con `LoadingState`, y la vista
   llama `refreshSnapshot()` en su efecto de montaje (deduplicado por el propio store) en vez de

@@ -84,6 +84,26 @@ export function WeatherPill({
   );
 }
 
+export function WeatherLine({
+  weather,
+  status,
+  copy,
+}: {
+  weather: ClockWeather | null;
+  status: 'idle' | 'loading' | 'ready' | 'error';
+  copy: ClockCopy;
+}) {
+  const label = formatWeather(weather, status, copy, 'full');
+  const category = weather && status === 'ready' ? getWeatherCategory(weather.code, isDaytimeHour(new Date())) : null;
+
+  return (
+    <div className="flex min-w-0 items-center gap-2 text-caption font-medium text-muted-foreground">
+      {category ? <WeatherScene category={category} size="sm" className="h-4 w-4 shrink-0" /> : <AccentDot />}
+      <span className="min-w-0 truncate">{label}</span>
+    </div>
+  );
+}
+
 export function ClockProgress({
   value,
   label,
