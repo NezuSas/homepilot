@@ -8,11 +8,14 @@ import { type SnapshotDevice, type SnapshotRoom } from '../../../stores/useDevic
 import { isDeviceActive } from '../dashboardUtils';
 import { Button } from '../../../components/ui/Button';
 import { IconButton } from '../../../components/ui/IconButton';
+import { CurtainDeviceTileLoadingGeometry } from '../../../components/CurtainDeviceTile';
 import type { MediaPlayerCommand } from './MediaPlayerCard';
 import { CardResizeHandle } from './CardResizeHandle';
 import { MASONRY_ROW_GAP_PX, MASONRY_ROW_UNIT_PX } from './useMasonryRowSpans';
 import { ModalPortal } from './ModalPortal';
 import { SectionCardContent } from './SectionCardContent';
+import { DashboardCardSkeleton, type DashboardCardSkeletonVariant } from '../../../components/ui/DashboardCardSkeleton';
+import { needsInitialDashboardSkeleton, useDelayedSkeleton } from '../../../components/ui/useDashboardDelayedSkeleton';
 import {
   canUseCompactSpan, getDefaultSpan, getEffectiveCardSpan, getSpanClass,
   isClockKind, normalizeKind, type NormalizedSectionCardItem,
@@ -29,6 +32,7 @@ export function SectionCardItem({
   isEditing,
   devices,
   roomsByHome,
+  snapshotPending,
   processingCardId,
   actionFeedback,
   catalogLabel,
@@ -46,6 +50,7 @@ export function SectionCardItem({
   isEditing: boolean;
   devices: SnapshotDevice[];
   roomsByHome: Record<string, SnapshotRoom[]>;
+  snapshotPending: boolean;
   processingCardId: string | null;
   actionFeedback: { id: string; status: 'success' | 'error' } | null;
   catalogLabel: (kind: SectionCardKind) => string;
@@ -75,6 +80,11 @@ export function SectionCardItem({
   const isCamera = normalizeKind(card.kind) === 'camera';
   const isClock = isClockKind(card.kind);
   const normalizedKind = normalizeKind(card.kind);
+  const skeletonVariant: DashboardCardSkeletonVariant | null = normalizedKind === 'sensor' ? 'sensor'
+    : normalizedKind === 'camera' ? 'camera'
+      : normalizedKind === 'media' ? 'media'
+        : normalizedKind === 'device' || normalizedKind === 'cover' ? 'control'
+          : normalizedKind === 'room' ? 'generic' : null;
   const isCover = normalizedKind === 'cover';
   const isTileKind = normalizedKind === 'device' || normalizedKind === 'light' || normalizedKind === 'action';
   const isCompactDeviceCard = isTileKind && span === 'small';
@@ -86,6 +96,10 @@ export function SectionCardItem({
   const assignedDevice = card.entityId
     ? devices.find((device) => device.id === card.entityId)
     : undefined;
+  // Buttons and clocks can render their configured content immediately. A
+  // missing device after the first snapshot is unavailable, not still loading.
+  const initialPending = Boolean(card.entityId && skeletonVariant && needsInitialDashboardSkeleton(snapshotPending, Boolean(assignedDevice)));
+  const showSkeleton = useDelayedSkeleton(initialPending);
   const assignedRoomName = assignedDevice?.roomId
     ? (roomsByHome[assignedDevice.homeId] ?? []).find((room) => room.id === assignedDevice.roomId)?.name
     : undefined;
@@ -95,6 +109,11 @@ export function SectionCardItem({
   const isActionable = Boolean(card.entityId)
     && !isEditing
     && (normalizedKind === 'device' || normalizedKind === 'light' || normalizedKind === 'action');
+  // Sensor copy determines its intrinsic masonry row height. Cover loading
+  // reserves the real tile's structural rows without the preview's
+  // illustrative controls or a magic pixel height.
+  const reserveContentGeometry = normalizedKind === 'sensor';
+  const overlaySkeleton = reserveContentGeometry || isCover;
 
   useEffect(() => {
     if (!isCardMenuOpen) return;
@@ -107,9 +126,32 @@ export function SectionCardItem({
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [isCardMenuOpen]);
 
+  const cardContent = <SectionCardContent
+    kind={card.kind}
+    title={card.title || catalogLabel(card.kind)}
+    subtitle={isCamera ? assignedRoomName : subtitle}
+    span={span}
+    icon={card.icon}
+    isAssigned={Boolean(card.entityId)}
+    isActive={tileIsActive}
+    device={assignedDevice}
+    isEditorPreview={isEditing}
+    isMediaProcessing={processingCardId === card.id}
+    onMediaCommand={normalizedKind === 'media'
+      ? (command, params) => { void handleMediaCardAction(card, command, params); }
+      : undefined}
+    roomDeviceCount={roomDevices.length}
+    roomActiveCount={roomDevices.filter(isDeviceActive).length}
+    onDeviceUpdate={upsertDevice}
+    onDeviceCommand={isCover ? executeSectionDeviceCommand : undefined}
+    onAction={normalizedKind === 'action' && !isEditing ? () => { void handleCardAction(card); } : undefined}
+    actionFeedback={processingCardId === card.id ? 'pending' : actionFeedback?.id === card.id ? actionFeedback.status : undefined}
+  />;
+
   return (
     <div
       key={card.id}
+      data-dashboard-card-id={card.id}
       ref={(element) => {
         setNodeRef(element);
         registerRowSpanRef(card.id, element);
@@ -128,7 +170,7 @@ export function SectionCardItem({
         transform: CSS.Translate.toString(transform),
         transition: transition ?? undefined,
       }}
-      onClick={isCover || normalizedKind === 'action' ? undefined : (event) => { void handleCardAction(card, event); }}
+      onClick={initialPending || isCover || normalizedKind === 'action' ? undefined : (event) => { void handleCardAction(card, event); }}
       {...(isEditing ? attributes : {})}
       {...(isEditing ? listeners : {})}
       className={cn(
@@ -150,34 +192,21 @@ export function SectionCardItem({
         !isTileKind && span === 'full' && "min-h-section-card-lg",
         isCamera && "min-h-curtain-card",
         isClock && "min-h-clock-card",
-        isCover && "w-full max-w-curtain-dashboard justify-self-start",
-        isActionable && "cursor-pointer hover:-translate-y-0.5 hover:shadow-depth-2",
+        // Match the live CurtainDeviceTile's dashboard min-height at sm+.
+        isCover && "w-full max-w-curtain-dashboard justify-self-start sm:min-h-curtain-card",
+        isActionable && !initialPending && "cursor-pointer hover:-translate-y-0.5 hover:shadow-depth-2",
         (normalizedKind === 'light' || normalizedKind === 'action') && tileIsActive && "homepilot-section-light-tile-active",
         isDragging && "z-30 opacity-45",
         getSpanClass(span)
       )}
     >
-      <SectionCardContent
-        kind={card.kind}
-        title={card.title || catalogLabel(card.kind)}
-        subtitle={isCamera ? assignedRoomName : subtitle}
-        span={span}
-        icon={card.icon}
-        isAssigned={Boolean(card.entityId)}
-        isActive={tileIsActive}
-        device={assignedDevice}
-        isEditorPreview={isEditing}
-        isMediaProcessing={processingCardId === card.id}
-        onMediaCommand={normalizedKind === 'media'
-          ? (command, params) => { void handleMediaCardAction(card, command, params); }
-          : undefined}
-        roomDeviceCount={roomDevices.length}
-        roomActiveCount={roomDevices.filter(isDeviceActive).length}
-        onDeviceUpdate={upsertDevice}
-        onDeviceCommand={isCover ? executeSectionDeviceCommand : undefined}
-        onAction={normalizedKind === 'action' && !isEditing ? () => { void handleCardAction(card); } : undefined}
-        actionFeedback={processingCardId === card.id ? 'pending' : actionFeedback?.id === card.id ? actionFeedback.status : undefined}
-      />
+      {initialPending ? (
+        <div className="relative grid h-full min-h-0 w-full" aria-busy="true">
+          {reserveContentGeometry && <div className="invisible min-h-0" aria-hidden="true">{cardContent}</div>}
+          {isCover && <div className="invisible min-h-0" aria-hidden="true"><CurtainDeviceTileLoadingGeometry /></div>}
+          {skeletonVariant && <DashboardCardSkeleton variant={skeletonVariant} visible={showSkeleton} className={overlaySkeleton ? 'absolute inset-0' : undefined} />}
+        </div>
+      ) : cardContent}
 
       {isEditing ? (
         <div

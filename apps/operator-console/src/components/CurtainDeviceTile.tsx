@@ -51,6 +51,33 @@ const getCoverClassKey = (attributes?: Record<string, unknown>): string => {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : 'generic';
 };
 
+const STANDARD_DASHBOARD_CURTAIN_GEOMETRY = 'curtain-device-tile min-h-section-card-md sm:min-h-curtain-card';
+
+/** Reserves the live cover's header, copy, class and position rows without
+ * inventing device state or rendering actionable controls. It stays visually
+ * hidden beneath the first-load skeleton. */
+export function CurtainDeviceTileLoadingGeometry() {
+  return <DeviceTileShell active={false} className={STANDARD_DASHBOARD_CURTAIN_GEOMETRY}>
+    <div className="relative z-10 flex h-full min-w-0 flex-col justify-between">
+      <div className="curtain-tile-header flex items-start justify-between gap-3">
+        <span className="h-10 w-10 shrink-0 sm:h-12 sm:w-12" />
+        <span className="text-caption">&nbsp;</span>
+      </div>
+      <div className="curtain-tile-copy flex min-w-0 flex-col gap-1 overflow-hidden">
+        <span className="text-card-title">&nbsp;</span>
+        <span className="text-caption">&nbsp;</span>
+      </div>
+      <div className="flex min-w-0 items-center gap-2 text-micro"><span>&nbsp;</span></div>
+      <div className="curtain-tile-actions mt-4 flex min-w-0 flex-col gap-3">
+        <div className="curtain-tile-position min-w-0 rounded-2xl border border-border/35 px-3 py-2">
+          <div className="mb-1.5 flex items-center justify-between gap-2 text-micro"><span>&nbsp;</span><span>&nbsp;</span></div>
+          <div className="h-1.5" />
+        </div>
+      </div>
+    </div>
+  </DeviceTileShell>;
+}
+
 interface CurtainDeviceTileProps {
   device: Device;
   onUpdate?: (updated: Device) => void;
@@ -174,7 +201,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
       syncing={isMoving}
       className={cn(
         layout === 'dashboard'
-          ? (isCompact ? 'curtain-device-tile min-h-section-card-sm' : 'curtain-device-tile min-h-section-card-md sm:min-h-curtain-card')
+          ? (isCompact ? 'curtain-device-tile min-h-section-card-sm' : STANDARD_DASHBOARD_CURTAIN_GEOMETRY)
           : 'curtain-device-tile min-h-curtain-card sm:min-h-curtain-card-lg',
       )}
     >
@@ -330,7 +357,7 @@ export const CurtainDeviceTilePreview: React.FC<CurtainDeviceTilePreviewProps> =
       active={false}
       className={cn(
         layout === 'dashboard'
-          ? (isCompact ? 'curtain-device-tile min-h-section-card-sm' : 'curtain-device-tile min-h-section-card-md sm:min-h-curtain-card')
+          ? (isCompact ? 'curtain-device-tile min-h-section-card-sm' : STANDARD_DASHBOARD_CURTAIN_GEOMETRY)
           : 'curtain-device-tile min-h-curtain-card sm:min-h-curtain-card-lg',
       )}
     >

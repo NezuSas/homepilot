@@ -1549,6 +1549,7 @@
     "widgets_empty": "Esta pestaña está vacía. Añade tu primer widget abajo.",
     "loading": "Cargando tus paneles",
     "error_load": "No se pudieron cargar los paneles",
+    "error_devices": "No se pudo cargar el estado de los dispositivos. Comprueba la conexión y vuelve a intentar.",
     "error_create": "No se pudo crear el panel",
     "error_save": "No se pudieron guardar los cambios del panel",
     "error_delete": "No se pudo eliminar el panel",

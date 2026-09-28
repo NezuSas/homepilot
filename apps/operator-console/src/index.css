@@ -331,6 +331,16 @@
   /* ── Animation classes ────────────────────────────────────── */
   .animate-luxury-ripple  { animation: luxury-ripple 1.5s var(--ease-out) forwards; }
   .animate-pulse-slow     { animation: pulse-slow 3s var(--ease-in-out) infinite; }
+  @keyframes homepilot-dashboard-skeleton-breathe {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.84; }
+  }
+  .homepilot-dashboard-skeleton-motion {
+    animation: homepilot-dashboard-skeleton-breathe 2.8s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .homepilot-dashboard-skeleton-motion { animation: none; }
+  }
   .animate-pulse-beacon   { animation: pulse-beacon 2s ease-in-out infinite; }
   .animate-slide-up-fade  { animation: slide-up-fade var(--duration-slow) var(--ease-out) both; }
   .animate-weather-cloud-a  { animation: weather-cloud-drift-a 6s ease-in-out infinite; }

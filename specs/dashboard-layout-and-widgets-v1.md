@@ -54,6 +54,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - **NFR-13:** Los kioscos verticales de alta resolución usan como máximo dos columnas en el canvas para conservar controles legibles a distancia, sin modificar los breakpoints de móvil, tablet o escritorio.
 - **NFR-14:** En teléfonos, el canvas no excede su ancho disponible y las secciones presentan dos columnas internas; desde el breakpoint sm conservan las cuatro columnas de escritorio.`r`n- **NFR-14:** En teléfonos, el canvas no excede su ancho disponible y las secciones presentan dos columnas internas; desde el breakpoint `sm` conservan las cuatro columnas de escritorio.
 - **NFR-15:** El fondo del tablero conserva un contenedor anclado al viewport durante la navegación. La siguiente imagen se precarga antes de reemplazar la anterior; una pestaña sin fondo limpia la imagen inmediatamente, sin modificar el box model del canvas.
+- **NFR-16:** Las tarjetas asíncronas del Dashboard reservan su geometría durante la primera carga sin datos útiles. Un umbral visual compartido de 190 ms evita flashes; los refrescos conservan el último estado conocido y los estados offline/error no se confunden con carga. Los placeholders son decorativos, no interactivos, usan tokens claro/oscuro y respetan movimiento reducido.
 
 ## 6. Criterios de Aceptación
 
@@ -73,7 +74,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - [x] AC14: Una pestaña nueva en edición conserva el fondo cuadriculado y los placeholders hasta el borde inferior del viewport visible.
 - [x] AC15: Una zona puede reordenarse desde su control de arrastre mediante teclado y una cancelación no deja overlay ni opacidad residual.
 - [x] AC16: Las tarjetas de sensor, clima y cortina mantienen jerarquía visual, controles táctiles y ausencia de overflow horizontal a 320px, 768px y 1440px. Las lecturas y porcentajes siguen siendo legibles sin alterar sus contratos de datos ni comandos.
-- [x] AC17: `DashboardsView` no monta el lienzo de widgets hasta que el snapshot de dispositivos (`useDeviceSnapshotStore`) tuvo su primera carga — evita que `DeviceWidget`/`RoomWidget`/`SectionWidget` muestren brevemente su estado "no configurado" antes de recibir datos reales, mostrando en su lugar el mismo `LoadingState` ya usado para la carga del propio tablero.
+- [ ] AC17: `DashboardsView` espera la configuración inicial del tablero, pero monta el lienzo mientras llega el primer snapshot de dispositivos. Las tarjetas dinámicas sin datos muestran su propio placeholder tras el umbral compartido y no enseñan brevemente un estado "sin asignar"; las tarjetas con datos cacheados se renderizan de inmediato.
 - [x] AC18: Un kiosco vertical de 1080×1920 distribuye el canvas en dos columnas y mantiene controles legibles, mientras móvil, tablet y escritorio conservan sus breakpoints existentes.
 - [x] AC19: Cada tarjeta dentro de una `SectionWidget` reclama únicamente las filas de grid que necesita según su altura real medida (masonry denso), en vez de compartir la altura de la tarjeta más alta de su fila.
 - [x] AC20: Reordenar tarjetas dentro de una sección funciona igual con mouse, teclado y touch (`@dnd-kit`), igualando el soporte táctil que ya tenía el lienzo externo de widgets.
@@ -98,6 +99,8 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - [ ] AC40: La tarjeta de sensor prioriza valor/unidad y nombre, representa estados sin CTA ni ring y maneja porcentaje, temperatura, humedad, luz, energía, presencia, estados binarios y texto en formatos estrechos y temas claro/oscuro.
 - [ ] AC41: El reloj predeterminado es digital y muestra hora, fecha y clima con jerarquía ambiental; las variantes analógicas existentes siguen disponibles pero su hora numérica secundaria no compite con la esfera.
 - [ ] AC42: Al cambiar entre tableros con imagen, sin imagen y con presets o uploads, el fondo conserva sus bounds y el canvas mantiene su posición en desktop y tablet; la imagen nueva no reemplaza a la anterior hasta cargarse.
+- [ ] AC43: Sensor, dispositivo, cámara, media y energía usan skeletons semánticos únicamente durante su primera carga sin contenido. Cámara conserva proporción 4:3 y un fotograma anterior; reloj muestra la hora inmediatamente y limita el placeholder al clima; botones/escenas con configuración local no muestran carga falsa. Un error u offline finaliza el skeleton; si falla el primer snapshot de dispositivos, el tablero ofrece un aviso y reintento sin cambiar el contrato del store.
+- [ ] AC44: En escritorio, tablet, móvil y kiosco vertical, la transición skeleton → contenido mantiene bounds de tarjetas, sección y canvas sin overflow horizontal. Los placeholders no reciben foco ni ejecutan comandos; la animación se desactiva con `prefers-reduced-motion`.
 
 ## 7. Notas Técnicas y Arquitectura
 
@@ -105,10 +108,7 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - Las estructuras de dashboard pertenecen al contexto de topología; los widgets no contienen reglas de negocio de dispositivos.
 - `DashboardCanvas` y el catálogo de widgets son el único punto de montaje visual de tarjetas.
 - El resolver de importación valida Botones de dispositivo con `resolveCapabilitiesForDevice` y `CAPABILITY_DEFINITIONS`, como la API de dispositivos. El repositorio almacena tipos de capacidad, no necesariamente el arreglo `commands` enriquecido que recibe la UI; una escena HA con `activate` no debe quedar desasignada por esa diferencia de representación.
-- `DashboardsView` sigue el mismo idioma ya usado en `DashboardView.tsx`/`InboxView.tsx`:
-  `snapshotLoading && snapshotDevices.length === 0` gatea el render con `LoadingState`, y la vista
-  llama `refreshSnapshot()` en su efecto de montaje (deduplicado por el propio store) en vez de
-  depender solo de la carga inicial de `App.tsx`.
+- `DashboardsView` conserva `LoadingState` para la configuración inicial del tablero y llama `refreshSnapshot()` al montar. La espera del primer snapshot se representa dentro de cada tarjeta dinámica; el store conserva dispositivos previos durante refresh y la presentación no añade estado de skeleton al dominio.
 
 ## 8. Preguntas Abiertas y TODOs
 

@@ -13,19 +13,25 @@ import { getDashboardIconComponent } from '../components/IconPicker';
 import { Button } from '../../../components/ui/Button';
 import { getDeviceTileStateClasses } from '../../../components/ui/DeviceTileShell';
 import { createDeviceTogglePlan, executeDeviceToggle } from './deviceToggle';
+import { DashboardCardSkeleton } from '../../../components/ui/DashboardCardSkeleton';
+import { needsInitialDashboardSkeleton, useDelayedSkeleton } from '../../../components/ui/useDashboardDelayedSkeleton';
 
 const API = `${API_BASE_URL}/api/v1`;
 
 export function DeviceWidget({ config, isEditing, onConfigure }: { config: DashboardWidgetConfig; isEditing: boolean; onConfigure?: () => void }) {
   const { t } = useTranslation();
   const devices = useDeviceSnapshotStore((state) => state.devices);
+  const snapshotLoading = useDeviceSnapshotStore((state) => state.isLoading);
   const roomsByHome = useDeviceSnapshotStore((state) => state.roomsByHome);
   const upsertDevice = useDeviceSnapshotStore((state) => state.upsertDevice);
   const device = devices.find((candidate) => candidate.id === config.binding.entityId);
+  const initialPending = Boolean(config.binding.entityId && needsInitialDashboardSkeleton(snapshotLoading && devices.length === 0, Boolean(device)));
+  const showSkeleton = useDelayedSkeleton(initialPending);
   const [isProcessing, setIsProcessing] = useState(false);
   const [toggleError, setToggleError] = useState<string | null>(null);
 
   if (!device) {
+    if (initialPending) return <div className="h-full w-full" aria-busy="true"><DashboardCardSkeleton variant="control" visible={showSkeleton} /></div>;
     return (
       <DormantWidgetPlaceholder
         title={t('dashboards.widgets.selected_device.label')}

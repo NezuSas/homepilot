@@ -1549,6 +1549,7 @@
     "widgets_empty": "This tab is empty. Add your first widget below.",
     "loading": "Loading your dashboards",
     "error_load": "Dashboards could not be loaded",
+    "error_devices": "Device status could not be loaded. Check the connection and try again.",
     "error_create": "The dashboard could not be created",
     "error_save": "Dashboard changes could not be saved",
     "error_delete": "The dashboard could not be deleted",

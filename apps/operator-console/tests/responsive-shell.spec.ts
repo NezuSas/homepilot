@@ -167,6 +167,119 @@ async function prepareAuthenticatedDashboard(page: import('@playwright/test').Pa
   });
 }
 
+for (const viewport of [...viewports, { name: 'portrait kiosk', ...portraitKioskViewport }]) {
+  test(`dashboard initial skeleton preserves card, section and canvas geometry on ${viewport.name}`, async ({ page }) => {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await prepareAuthenticatedDashboard(page);
+    let releaseDevices: (() => void) | undefined;
+    const blockedDevices = new Promise<void>((resolve) => { releaseDevices = resolve; });
+    await page.route('**/api/v1/devices', async (route) => {
+      await blockedDevices;
+      await route.fulfill({ contentType: 'application/json', body: JSON.stringify(responsiveDevices) });
+    });
+
+    await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+    const card = page.locator('[data-dashboard-card-id="responsive-sensor"]');
+    await expect(card.locator('[data-dashboard-skeleton="sensor"]')).toBeVisible();
+    const geometry = async () => page.evaluate(() => {
+      const cardElement = document.querySelector('[data-dashboard-card-id="responsive-sensor"]');
+      const sectionElement = cardElement?.closest('.homepilot-dashboard-widget');
+      const canvasElement = document.querySelector('.homepilot-dashboard-content');
+      const rect = (element: Element | null | undefined) => {
+        const bounds = element?.getBoundingClientRect();
+        return bounds ? { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height, bottom: bounds.bottom } : null;
+      };
+      const items = Array.from(cardElement?.parentElement?.children ?? []).map((element, index) => {
+        const bounds = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        return {
+          index,
+          id: element.getAttribute('data-dashboard-card-id') ?? element.getAttribute('data-testid') ?? element.tagName.toLowerCase(),
+          x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height, bottom: bounds.bottom,
+          gridRowStart: style.gridRowStart,
+          gridRowEnd: style.gridRowEnd,
+          position: style.position,
+          display: style.display,
+          visibility: style.visibility,
+        };
+      });
+      return {
+        card: rect(cardElement), section: rect(sectionElement), canvas: rect(canvasElement),
+        items, childCount: items.length,
+        sectionBottom: sectionElement?.getBoundingClientRect().bottom ?? null,
+        maxChildBottom: items.length ? Math.max(...items.map((item) => item.bottom ?? -Infinity)) : null,
+        overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+      };
+    });
+    const before = await geometry();
+    expect(before.card).not.toBeNull();
+    expect(before.section).not.toBeNull();
+    expect(before.canvas).not.toBeNull();
+    expect(before.overflow).toBe(false);
+
+    releaseDevices?.();
+    await expect(card.locator('.sensor-metric-card')).toBeVisible();
+    await expect(card.locator('[data-dashboard-skeleton]')).toHaveCount(0);
+    const after = await geometry();
+    const geometryChanges = (['card', 'section', 'canvas'] as const).flatMap((key) =>
+      (['x', 'y', 'width', 'height'] as const).map((axis) => {
+        const initial = before[key]![axis];
+        const final = after[key]![axis];
+        return { key, axis, initial, final, delta: Math.abs(final - initial) };
+      }),
+    );
+    const geometryReport = geometryChanges
+      .map(({ key, axis, initial, final, delta }) => `${key}.${axis}: before=${initial} after=${final} delta=${delta}`)
+      .join('\n');
+    const describeItem = (item: (typeof before.items)[number] | undefined) => item
+      ? `${item.id} x=${item.x} y=${item.y} width=${item.width} height=${item.height} bottom=${item.bottom} row=${item.gridRowStart}/${item.gridRowEnd} position=${item.position} display=${item.display} visibility=${item.visibility}`
+      : 'missing';
+    const itemReport = Array.from({ length: Math.max(before.childCount, after.childCount) }, (_, index) =>
+      `item[${index}] before: ${describeItem(before.items[index])}\n` +
+      `item[${index}] after:  ${describeItem(after.items[index])}`,
+    ).join('\n');
+    const sectionReport = `childCount before=${before.childCount} after=${after.childCount}; ` +
+      `sectionBottom before=${before.sectionBottom} after=${after.sectionBottom}; ` +
+      `maxChildBottom before=${before.maxChildBottom} after=${after.maxChildBottom}`;
+    expect(geometryChanges.filter(({ delta }) => delta > 2), `${viewport.name} geometry:\n${geometryReport}\n${sectionReport}\n${itemReport}`).toEqual([]);
+    expect(after.overflow).toBe(false);
+  });
+}
+
+test('a fast initial snapshot never flashes a Dashboard skeleton', async ({ page }) => {
+  await prepareAuthenticatedDashboard(page);
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  await expect(page.locator('[data-dashboard-card-id="responsive-sensor"] .sensor-metric-card')).toBeVisible();
+  await expect(page.locator('[data-dashboard-skeleton]')).toHaveCount(0);
+});
+
+test('a failed first device snapshot leaves loading and offers recovery', async ({ page }) => {
+  await prepareAuthenticatedDashboard(page);
+  await page.route('**/api/v1/devices', async (route) => {
+    await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
+  });
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  await expect(page.getByText(/No se pudo cargar el estado de los dispositivos|Device status could not be loaded/)).toBeVisible();
+  await expect(page.locator('[data-dashboard-skeleton]')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Reintentar|Retry/i })).toBeVisible();
+});
+
+test('Dashboard skeleton motion is disabled when reduced motion is requested', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await prepareAuthenticatedDashboard(page);
+  let releaseDevices: (() => void) | undefined;
+  const blockedDevices = new Promise<void>((resolve) => { releaseDevices = resolve; });
+  await page.route('**/api/v1/devices', async (route) => {
+    await blockedDevices;
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(responsiveDevices) });
+  });
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  const skeleton = page.locator('[data-dashboard-skeleton="sensor"]').first();
+  await expect(skeleton).toBeVisible();
+  expect(await skeleton.evaluate((element) => getComputedStyle(element).animationName)).toBe('none');
+  releaseDevices?.();
+});
+
 for (const viewport of [viewports[1], viewports[2]]) {
   test(`dashboard backgrounds keep viewport and canvas geometry during navigation on ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize(viewport);

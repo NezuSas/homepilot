@@ -34,6 +34,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const catalogDescription = (kind: SectionCardKind) => t(getCatalogDescriptionKey(kind));
 
   const devices = useDeviceSnapshotStore((state) => state.devices);
+  const snapshotLoading = useDeviceSnapshotStore((state) => state.isLoading);
   const roomsByHome = useDeviceSnapshotStore((state) => state.roomsByHome);
   const upsertDevice = useDeviceSnapshotStore((state) => state.upsertDevice);
 
@@ -366,6 +367,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
               isEditing={isEditing}
               devices={devices}
               roomsByHome={roomsByHome}
+              snapshotPending={snapshotLoading && devices.length === 0}
               processingCardId={processingCardId}
               actionFeedback={actionFeedback}
               catalogLabel={catalogLabel}

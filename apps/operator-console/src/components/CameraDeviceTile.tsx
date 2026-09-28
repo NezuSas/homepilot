@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Loader2, Maximize2, MoveDiagonal, RefreshCw, VideoOff } from 'lucide-react';
+import { Maximize2, MoveDiagonal, RefreshCw, VideoOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
@@ -11,6 +11,8 @@ import { CameraMediaFrame, type CameraFeedMode } from './CameraMediaFrame';
 import { CameraViewerModal } from './CameraViewerModal';
 import { Button } from './ui/Button';
 import { StatusPill } from './ui/StatusPill';
+import { DashboardCardSkeleton } from './ui/DashboardCardSkeleton';
+import { useDelayedSkeleton } from './ui/useDashboardDelayedSkeleton';
 
 interface CameraDeviceTileProps {
   device: SnapshotDevice;
@@ -117,6 +119,8 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
   }, [device.id, isViewerOpen]);
 
   const unavailable = reportedUnavailable && !media;
+  const firstFramePending = isConnecting && !hasRenderedFrame && !hasFeedError && !unavailable;
+  const showSkeleton = useDelayedSkeleton(firstFramePending);
   const ptzSupported = useMemo(
     () => device.capabilities?.some((capability) => capability.type === 'camera_ptz') ?? false,
     [device.capabilities]
@@ -222,11 +226,12 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
               onFailure={handleFeedFailure}
             />
           )}
-          {(isConnecting && !hasRenderedFrame || !media || hasFeedError || unavailable) && (
+          {firstFramePending && <div className="absolute inset-0" role="status" aria-busy="true" aria-label={statusLabel}>
+            <DashboardCardSkeleton variant="camera" mediaOnly visible={showSkeleton} className="h-full" />
+          </div>}
+          {!firstFramePending && (!media || hasFeedError || unavailable) && (
             <div className="absolute inset-0 flex h-full w-full flex-col items-center justify-center gap-2.5 bg-muted text-muted-foreground" role="status" aria-live="polite">
-              {isConnecting && !hasFeedError && !unavailable
-                ? <Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden="true" />
-                : <VideoOff className="h-6 w-6 text-danger" aria-hidden="true" />}
+              <VideoOff className="h-6 w-6 text-danger" aria-hidden="true" />
               {statusLabel}
             </div>
           )}

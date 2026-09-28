@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import type { ClockCopy, ClockWeather } from '../clockTypes';
 import { formatWeather, isDaytimeHour } from '../clockUtils';
 import { getWeatherCategory, WeatherScene } from './WeatherScene';
+import { DashboardSkeletonBar } from '../../../../../components/ui/DashboardCardSkeleton';
+import { useDelayedSkeleton } from '../../../../../components/ui/useDashboardDelayedSkeleton';
 
 export function ClockShell({
   children,
@@ -68,6 +70,8 @@ export function WeatherPill({
   mode?: 'full' | 'compact' | 'temp';
   className?: string;
 }) {
+  const weatherPending = !weather && (status === 'idle' || status === 'loading');
+  const showSkeleton = useDelayedSkeleton(weatherPending);
   const label = formatWeather(weather, status, copy, mode);
   const isReady = Boolean(weather) && status === 'ready';
   const category = isReady ? getWeatherCategory(weather!.code, isDaytimeHour(new Date())) : null;
@@ -76,9 +80,8 @@ export function WeatherPill({
     <div className={`min-w-0 overflow-hidden rounded-full border border-border/55 bg-background/30 px-widget-pad-x py-widget-spacer shadow-inner ${className}`}>
       <div className="flex min-w-0 items-center gap-1.5">
         {category ? <WeatherScene category={category} size="sm" className="h-4 w-4" /> : <AccentDot />}
-        <span className="min-w-0 truncate text-body-compact font-semibold text-foreground">
-          {label}
-        </span>
+        {weatherPending ? <span className="min-w-0 flex-1" aria-hidden="true">{showSkeleton && <DashboardSkeletonBar className="homepilot-dashboard-skeleton-motion h-4 w-24 max-w-full" />}</span>
+          : <span className="min-w-0 truncate text-body-compact font-semibold text-foreground">{label}</span>}
       </div>
     </div>
   );
@@ -93,13 +96,16 @@ export function WeatherLine({
   status: 'idle' | 'loading' | 'ready' | 'error';
   copy: ClockCopy;
 }) {
+  const weatherPending = !weather && (status === 'idle' || status === 'loading');
+  const showSkeleton = useDelayedSkeleton(weatherPending);
   const label = formatWeather(weather, status, copy, 'full');
   const category = weather && status === 'ready' ? getWeatherCategory(weather.code, isDaytimeHour(new Date())) : null;
 
   return (
     <div className="flex min-w-0 items-center gap-2 text-caption font-medium text-muted-foreground">
       {category ? <WeatherScene category={category} size="sm" className="h-4 w-4 shrink-0" /> : <AccentDot />}
-      <span className="min-w-0 truncate">{label}</span>
+      {weatherPending ? <span className="min-w-0 flex-1" aria-hidden="true">{showSkeleton && <DashboardSkeletonBar className="homepilot-dashboard-skeleton-motion h-4 w-32 max-w-full" />}</span>
+        : <span className="min-w-0 truncate">{label}</span>}
     </div>
   );
 }

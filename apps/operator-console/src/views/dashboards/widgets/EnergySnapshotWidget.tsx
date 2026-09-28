@@ -5,6 +5,8 @@ import type { DashboardWidgetConfig } from '../types';
 import { Zap, Activity, Battery, AlertCircle, RefreshCw } from 'lucide-react';
 import { useEnergyStore } from '../../../stores/useEnergyStore';
 import { DormantWidgetPlaceholder } from '../components/DormantWidgetPlaceholder';
+import { DashboardCardSkeleton } from '../../../components/ui/DashboardCardSkeleton';
+import { needsInitialDashboardSkeleton, useDelayedSkeleton } from '../../../components/ui/useDashboardDelayedSkeleton';
 
 interface EnergySnapshotWidgetProps {
   config: DashboardWidgetConfig;
@@ -25,6 +27,14 @@ export function EnergySnapshotWidget({ config, isEditing, onConfigure }: EnergyS
   const power = computeTotalPower();
   const energy = computeTotalEnergy();
   const hasData = entities.length > 0;
+  const initialPending = needsInitialDashboardSkeleton(isLoading, hasData);
+  const showSkeleton = useDelayedSkeleton(initialPending);
+
+  if (initialPending) {
+    return <div className="h-full w-full" aria-busy="true">
+      <DashboardCardSkeleton variant="energy" visible={showSkeleton} />
+    </div>;
+  }
 
   if (!hasData && !isLoading) {
     return (

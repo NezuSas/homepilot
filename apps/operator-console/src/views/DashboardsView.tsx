@@ -20,6 +20,7 @@ import { useDashboardTransferHistory } from './dashboards/useDashboardTransferHi
 import { generateId } from '../utils/generateId';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import { AlertBanner } from '../components/ui/AlertBanner';
+import { Button } from '../components/ui/Button';
 
 // Main dashboard view
 
@@ -64,13 +65,9 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
   const [activeTabIdx, setActiveTabIdx] = useState(0);
   const [loadedBackground, setLoadedBackground] = useState<{ source: string; opacity: number } | null>(null);
   const [loading, setLoading]           = useState(true);
-  // Widgets read device state straight from this store (DeviceWidget/RoomWidget/
-  // SectionWidget all do `devices.find(...)`), so the canvas must not mount until
-  // the first snapshot lands — otherwise every widget briefly renders its "not
-  // configured"/placeholder look, then pops into the real (possibly different) state.
-  const snapshotDevices = useDeviceSnapshotStore((state) => state.devices);
-  const snapshotLoading = useDeviceSnapshotStore((state) => state.isLoading);
   const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
+  const snapshotLoading = useDeviceSnapshotStore((state) => state.isLoading);
+  const snapshotLastUpdatedAt = useDeviceSnapshotStore((state) => state.lastUpdatedAt);
   const [creating, setCreating]         = useState(false);
   const [newTitle, setNewTitle]         = useState('');
   const [editingTitle, setEditingTitle] = useState(false);
@@ -343,12 +340,13 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
     return () => { cancelled = true; };
   }, [backgroundSource, backgroundOpacity]);
 
-  if (loading || (snapshotLoading && snapshotDevices.length === 0)) {
+  if (loading) {
     return <LoadingState label={t('dashboards.loading')} className="min-h-empty-sm" size="md" />;
   }
   // Keep the previous loaded image while the next one decodes; a tab without
   // a background clears immediately instead of showing the previous tab's art.
   const displayedBackground = backgroundSource ? loadedBackground : null;
+  const snapshotLoadFailed = !snapshotLoading && snapshotLastUpdatedAt === null;
 
   return (
     <div className="homepilot-dashboard-screen relative isolate flex min-h-screen-dvh flex-col gap-0">
@@ -367,6 +365,12 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
 
       <div className="relative isolate flex min-h-screen-dvh min-w-0 flex-1 flex-col gap-0 animate-in fade-in duration-700">
       {error && <AlertBanner variant="danger" message={error} className="m-4 sm:m-6" />}
+      {snapshotLoadFailed && <AlertBanner
+        variant="warning"
+        message={t('dashboards.error_devices')}
+        action={<Button type="button" variant="outline" size="sm" onClick={() => { void refreshSnapshot(); }}>{t('common.retry')}</Button>}
+        className="m-4 sm:m-6"
+      />}
       {importReport && importReport.dashboardId === active?.id && (
         <div className="m-4 space-y-2 sm:m-6">
           <AlertBanner
