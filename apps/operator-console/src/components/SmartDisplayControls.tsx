@@ -51,20 +51,14 @@ export function parseDisplayControlCatalog(value: unknown, deviceId: string): Di
 export function SmartDisplayCatalogContent({ catalog }: { catalog: DisplayControlCatalog }) {
   const { t } = useTranslation();
   const visibleCommands = catalog.commands.filter((command) => command.visibility === 'visible');
-  const available = visibleCommands.filter((command) => command.executableInHomePilot);
-  const remaining = visibleCommands.filter((command) => !command.executableInHomePilot);
   const renderCommand = (command: DisplayCatalogCommand) => (
     <li key={command.key} className="min-w-0 border-b border-border/60 py-3 last:border-0">
       <p className="break-words font-semibold text-foreground">{command.displayName}</p>
       <p className="mt-1 text-sm text-muted-foreground">
-        {command.executableInHomePilot
-          ? t(command.controlType === 'button' ? 'inbox.smart_display.direct_action' : 'inbox.smart_display.value_control')
-          : t(command.implementationType === 'legacy_adb'
-            ? 'inbox.smart_display.managed_externally' : 'inbox.smart_display.included_unavailable')}
+        {t(command.dashboardEligible ? 'inbox.smart_display.dashboard_available'
+          : command.executableInHomePilot && command.controlType === 'slider'
+            ? 'inbox.smart_display.control_available' : 'inbox.smart_display.included_in_plan')}
       </p>
-      {command.executableInHomePilot && <p className="mt-1 text-sm text-primary">
-        {t(command.dashboardEligible ? 'inbox.smart_display.dashboard_available' : 'inbox.smart_display.control_available')}
-      </p>}
     </li>
   );
 
@@ -78,15 +72,10 @@ export function SmartDisplayCatalogContent({ catalog }: { catalog: DisplayContro
         {catalog.plan.type || t('inbox.smart_display.plan_pending')}
       </p>
     </section>
-    <section aria-labelledby="display-homepilot-controls">
-      <h4 id="display-homepilot-controls" className="text-base font-bold">{t('inbox.smart_display.homepilot_controls')}</h4>
-      {available.length ? <ul className="mt-2">{available.map(renderCommand)}</ul>
-        : <p className="mt-2 text-sm text-muted-foreground">{t('inbox.smart_display.no_actions')}</p>}
-    </section>
     <section aria-labelledby="display-included-controls">
       <h4 id="display-included-controls" className="text-base font-bold">{t('inbox.smart_display.included_controls')}</h4>
-      {remaining.length ? <ul className="mt-2">{remaining.map(renderCommand)}</ul>
-        : <p className="mt-2 text-sm text-muted-foreground">{t('inbox.smart_display.no_other_controls')}</p>}
+      {visibleCommands.length ? <ul className="mt-2">{visibleCommands.map(renderCommand)}</ul>
+        : <p className="mt-2 text-sm text-muted-foreground">{t('inbox.smart_display.no_actions')}</p>}
     </section>
   </div>;
 }
