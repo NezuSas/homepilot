@@ -50,8 +50,9 @@ export function SectionActionCard({
       className={cn(
         SECTION_COMPACT_TILE_CLASSES,
         getLightTileSurfaceClasses(Boolean(isActive)),
-        '!transform-none gap-0 px-2.5 py-2.5 focus-visible:ring-primary/70 disabled:cursor-default disabled:opacity-100',
+        'px-2.5 py-2.5 active:scale-[0.985] focus-visible:ring-primary/70 disabled:cursor-default',
         isActive ? 'hover:bg-transparent' : 'hover:bg-card/95',
+        unavailable && !isPresentationOnly ? 'disabled:opacity-60' : 'disabled:opacity-100',
         isPresentationOnly && 'pointer-events-none cursor-default',
       )}
     >

@@ -354,14 +354,15 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
           cover the complete dashboard, including short canvases. */}
       <div
         className="homepilot-dashboard-backdrop fixed inset-0 z-0 pointer-events-none"
-        style={displayedBackground ? {
+      >
+        <div className="absolute inset-0" style={displayedBackground ? {
           backgroundImage: `url(${displayedBackground.source})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
           opacity: displayedBackground.opacity,
-        } : undefined}
-      />
+        } : undefined} />
+      </div>
 
       <div className="relative isolate flex min-h-screen-dvh min-w-0 flex-1 flex-col gap-0 animate-in fade-in duration-700">
       {error && <AlertBanner variant="danger" message={error} className="m-4 sm:m-6" />}

@@ -4,6 +4,8 @@ export const DASHBOARD_BACKGROUND_PRESETS = [
   { id: 'mineral-dawn', src: '/dashboard-backgrounds/mineral-dawn.png' },
   { id: 'copper-horizon', src: '/dashboard-backgrounds/copper-horizon.png' },
   { id: 'quiet-atrium', src: '/dashboard-backgrounds/quiet-atrium.png' },
+  // The picker reveals this preset only after its independent image is installed.
+  { id: 'homepilot-amber-residence', src: '/dashboard-backgrounds/homepilot-amber-residence.webp' },
 ] as const;
 
 export type DashboardBackgroundPresetId = typeof DASHBOARD_BACKGROUND_PRESETS[number]['id'];

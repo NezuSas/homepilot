@@ -47,20 +47,22 @@ Los reproductores importados deben operar como dispositivos locales de HomePilot
 
 - [x] AC1: Un reproductor importado aparece como entidad seleccionable solo para tarjetas de media.
 - [x] AC2: Reproducir, pausar, avanzar y cambiar volumen actualiza su estado visible sin descartar los atributos multimedia ya disponibles.
-- [x] AC3: Una portada válida se muestra como fondo sin ocultar los controles.
+- [x] AC3: Una portada válida se muestra en un cuadro 1:1 con `object-fit: cover`, sin ocultar los controles.
 - [x] AC4: Un fallo de artwork no afecta los demás datos ni genera error de UI.
 - [x] AC8: Cuando Home Assistant informa posición y duración, la tarjeta muestra el tiempo transcurrido, duración y una barra de progreso; cuando no los informa, conserva el layout sin inventar datos.
 - [x] AC10: Si una integración informa posición y duración sin `media_position_updated_at`, la tarjeta usa el instante local de recepción como referencia visual y se resincroniza con el siguiente estado real.
 - [x] AC11: Si un bridge renueva `media_position_updated_at` sin avanzar materialmente `media_position`, la tarjeta conserva su referencia local; solo se resincroniza ante un cambio de contenido o un salto de posición de al menos dos segundos.
 - [x] AC12: Al recargar la página durante una reproducción, la tarjeta recupera la referencia local de esa sesión para el mismo dispositivo y contenido; no vuelve visualmente a cero por un timestamp reiniciado del bridge.
 - [x] AC13: HomePilot conserva en el servidor una referencia de reproducción por dispositivo y contenido cuando el bridge publica una posición estacionaria; cualquier navegador usa esa referencia compartida sin depender de su caché.
-- [x] AC9: Sin portada, la tarjeta muestra un campo de audio estático de grafito y cobre que conserva el contraste de controles y texto.
+- [x] AC9: Sin portada, la tarjeta muestra un placeholder neutral de audio dentro del mismo cuadro 1:1, sin inventar una imagen o metadata.
 - [x] AC5: El asistente informa título, artista, estado y volumen de un reproductor autorizado sin invocar interpretación no determinista. Evidencia: `assistant_media_player_control.test.ts`.
 - [x] AC6: El asistente fija y ajusta volumen porcentual mediante el contrato `volume_set`, preservando el rango 0–100. Evidencia: `assistant_media_player_control.test.ts`.
 - [x] AC7: Un reproductor no disponible no recibe comandos; un reproductor apagado se enciende antes de un comando compatible y un fallo informa revisar conexión. Evidencia: `assistant_media_player_control.test.ts`.
 - [x] AC14: Dado un reproductor que pasa a `idle` conservando atributos de una sesión anterior, el tablero no muestra título, artista, progreso ni portada heredados; `paused` conserva los metadatos publicados. Evidencia: `MediaPlayerCard.test.ts` y `npm run verify:quality`.
 
 ## 7. Notas Técnicas y Arquitectura
+
+- El único Media Player visible usa la presentación HomePilot Premium. El renderer histórico se conserva internamente como referencia y no se selecciona ni se monta en dashboards. No existe selector de variantes ni campo nuevo en el JSON persistido; las tarjetas antiguas usan el renderer nuevo sin migración. Artwork, estado y comandos conservan la fuente y la lógica existentes. Mientras el source key no cambia se mantiene la portada previa durante refresh; al pasar a idle o cambiar de contenido se limpia para evitar arte heredado incorrecto.
 
 - API: `/api/v1/media*` y rutas de `MediaPlayerRoutes`.
 - La comunicación externa sigue el bridge configurado; la UI no consulta Home Assistant directamente.

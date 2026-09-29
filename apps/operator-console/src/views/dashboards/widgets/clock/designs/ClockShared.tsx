@@ -101,8 +101,10 @@ export function WeatherLine({
   const label = formatWeather(weather, status, copy, 'full');
   const category = weather && status === 'ready' ? getWeatherCategory(weather.code, isDaytimeHour(new Date())) : null;
 
+  // The 16px loading bar and the 18px resolved caption share one row height,
+  // so weather resolution cannot change the clock's measured masonry span.
   return (
-    <div className="flex min-w-0 items-center gap-2 text-caption font-medium text-muted-foreground">
+    <div className="flex min-h-[1lh] min-w-0 items-center gap-2 text-caption font-medium text-muted-foreground">
       {category ? <WeatherScene category={category} size="sm" className="h-4 w-4 shrink-0" /> : <AccentDot />}
       {weatherPending ? <span className="min-w-0 flex-1" aria-hidden="true">{showSkeleton && <DashboardSkeletonBar className="homepilot-dashboard-skeleton-motion h-4 w-32 max-w-full" />}</span>
         : <span className="min-w-0 truncate">{label}</span>}

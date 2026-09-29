@@ -204,7 +204,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
           openViewer();
         }}
         className={cn(
-          'group relative min-h-curtain-card w-full overflow-hidden rounded-section border border-border/40 bg-card',
+          'group relative min-h-curtain-card w-full overflow-hidden rounded-section border border-border/50 bg-card shadow-surface-card',
           'aspect-[4/3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
           isLive && 'cursor-pointer touch-manipulation',
           dashboard && 'max-h-[22rem]'
@@ -238,6 +238,12 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
 
         </div>
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+        {dashboard && isLive && (
+          <span className="pointer-events-none absolute right-3 top-3 rounded-full border border-white/15 bg-black/55 px-2.5 py-1 text-micro font-semibold text-white backdrop-blur-sm">
+            <span aria-hidden="true" className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-primary" />
+            {t('camera.live')}
+          </span>
+        )}
         <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-3 sm:p-4">
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-1.5">

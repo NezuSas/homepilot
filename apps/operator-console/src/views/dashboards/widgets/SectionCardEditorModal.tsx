@@ -10,8 +10,8 @@ import type { SnapshotDevice, SnapshotRoom } from '../../../stores/useDeviceSnap
 import { getAssignableDevicesForSectionCard } from '../dashboardUtils';
 import { ModalPortal } from './ModalPortal';
 import {
-  canUseCompactSpan, cardKinds, clockCardOptions, getDefaultIcon, getDefaultSpan,
-  getEffectiveCardSpan, getClockKindLabelKey, isBindableKind, isClockKind,
+  canUseCompactSpan, cardKinds, getDefaultIcon, getDefaultSpan,
+  getEffectiveCardSpan, isBindableKind, isClockKind,
   normalizeKind, type AssignableAutomation, type AssignableDisplayAction, type AssignableScene, type CardDraft,
   type NormalizedSectionCardKind, type SectionCardIcon, type SectionCardKind, type SectionCardSpan,
 } from './sectionCardCatalog';
@@ -75,7 +75,7 @@ export function SectionCardEditorModal({
           <div className="custom-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
             {renderCatalogPreview(
               cardDraft.kind,
-              cardDraft.title || (isClockKind(cardDraft.kind) ? t(getClockKindLabelKey(cardDraft.kind)) : catalogLabel(cardDraft.kind)),
+              cardDraft.title || catalogLabel(cardDraft.kind),
               cardDraft.span,
               cardDraft.icon,
               normalizeKind(cardDraft.kind) === 'camera' || normalizeKind(cardDraft.kind) === 'cover' || normalizeKind(cardDraft.kind) === 'room' || normalizeKind(cardDraft.kind) === 'sensor' || normalizeKind(cardDraft.kind) === 'media' || normalizeKind(cardDraft.kind) === 'action' ? cardDraft.entityId : undefined,
@@ -88,27 +88,7 @@ export function SectionCardEditorModal({
               className="h-12 rounded-2xl border-border/60 bg-background/60 px-4 font-semibold"
             />
 
-            {isClockKind(cardDraft.kind) ? (
-              <SearchableSelectField
-                label={t('dashboard.editor.sections.clock_design')}
-                value={cardDraft.kind}
-                options={clockCardOptions.map((option) => ({
-                  value: option.kind,
-                  label: t(option.labelKey),
-                }))}
-                onChange={(value) => {
-                  const nextKind = value as NormalizedSectionCardKind;
-                  setCardDraft((draft) => ({
-                    ...draft,
-                    kind: nextKind,
-                    entityId: '',
-                    span: getDefaultSpan(nextKind),
-                    icon: getDefaultIcon(nextKind),
-                    title: draft.title || t(getClockKindLabelKey(nextKind)),
-                  }));
-                }}
-              />
-            ) : (
+            {!isClockKind(cardDraft.kind) && (
               <SearchableSelectField
                 label={t('dashboard.editor.sections.card_type')}
                 value={cardDraft.kind === 'action' ? 'light' : cardDraft.kind}

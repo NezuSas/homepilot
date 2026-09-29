@@ -75,10 +75,7 @@ export const cardKinds: NormalizedSectionCardKind[] = [
   'camera',
   'sensor',
   'media',
-  'clock_digital',
-  'clock_analog',
   'clock_premium',
-  'clock_minimal',
 ];
 
 export function normalizeKind(kind: SectionCardKind): NormalizedSectionCardKind {
@@ -148,10 +145,7 @@ export const catalogCategories: ReadonlyArray<{ key: SectionCardCategory; labelK
 ];
 
 export const clockCardOptions: { kind: NormalizedSectionCardKind; style: ClockStyle; labelKey: string }[] = [
-  { kind: 'clock_premium', style: 'analog-classic', labelKey: 'dashboard.editor.sections.clock_style_premium' },
-  { kind: 'clock_digital', style: 'digital', labelKey: 'dashboard.editor.sections.clock_style_digital' },
-  { kind: 'clock_analog', style: 'minimal', labelKey: 'dashboard.editor.sections.clock_style_residential' },
-  { kind: 'clock_minimal', style: 'analog-minimal', labelKey: 'dashboard.editor.sections.clock_style_minimal' },
+  { kind: 'clock_premium', style: 'analog-classic', labelKey: 'dashboard.editor.sections.section_card_clock' },
 ];
 
 
@@ -174,13 +168,10 @@ export function getCatalogLabelKey(kind: SectionCardKind) {
     case 'scene':
       return 'dashboard.editor.sections.section_card_scene';
     case 'clock_digital':
-      return 'dashboard.editor.sections.section_card_clock_digital';
     case 'clock_analog':
-      return 'dashboard.editor.sections.section_card_clock_analog';
     case 'clock_premium':
-      return 'dashboard.editor.sections.section_card_clock_premium';
     case 'clock_minimal':
-      return 'dashboard.editor.sections.section_card_clock_minimal';
+      return 'dashboard.editor.sections.section_card_clock';
     case 'energy':
       return 'dashboard.editor.sections.section_card_energy';
     case 'assistant':
@@ -210,13 +201,10 @@ export function getCatalogDescriptionKey(kind: SectionCardKind) {
     case 'scene':
       return 'dashboard.editor.sections.section_card_scene_desc';
     case 'clock_digital':
-      return 'dashboard.editor.sections.section_card_clock_digital_desc';
     case 'clock_analog':
-      return 'dashboard.editor.sections.section_card_clock_analog_desc';
     case 'clock_premium':
-      return 'dashboard.editor.sections.section_card_clock_premium_desc';
     case 'clock_minimal':
-      return 'dashboard.editor.sections.section_card_clock_minimal_desc';
+      return 'dashboard.editor.sections.section_card_clock_desc';
     case 'energy':
       return 'dashboard.editor.sections.section_card_energy_desc';
     case 'assistant':
@@ -365,22 +353,12 @@ export function getRecommendedSectionHeight(currentHeight: number, cards: Normal
 }
 
 export function getClockKindLabelKey(kind: SectionCardKind) {
-  switch (normalizeKind(kind)) {
-    case 'clock_digital':
-      return 'dashboard.editor.sections.clock_style_digital';
-    case 'clock_analog':
-      return 'dashboard.editor.sections.clock_style_residential';
-    case 'clock_minimal':
-      return 'dashboard.editor.sections.clock_style_minimal';
-    case 'clock_premium':
-    default:
-      return 'dashboard.editor.sections.clock_style_premium';
-  }
+  void kind;
+  return 'dashboard.editor.sections.section_card_clock';
 }
 
 export function getClockStyleForKind(kind: SectionCardKind): ClockStyle {
-  const normalized = normalizeKind(kind);
-  const option = clockCardOptions.find((item) => item.kind === normalized);
-  return option?.style ?? 'minimal';
+  void kind;
+  return 'analog-classic';
 }
 

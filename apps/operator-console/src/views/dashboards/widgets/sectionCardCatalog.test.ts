@@ -82,9 +82,18 @@ describe('section card catalog contracts', () => {
     expect(cards.every((card) => !Object.hasOwn(card, 'rowSpan'))).toBe(true);
   });
 
+  it('round-trips historical clock card IDs without introducing persisted visual fields', () => {
+    const historicalKinds = ['clock_digital', 'clock_analog', 'clock_premium', 'clock_minimal'] as const;
+    const cards = normalizeCards({ cards: historicalKinds.map((kind, index) => ({ id: `clock-${index}`, kind, span: 'full' })) });
+    expect(cards.map((card) => card.kind)).toEqual(historicalKinds);
+    expect(JSON.parse(JSON.stringify(cards)).map((card: { kind: string }) => card.kind)).toEqual(historicalKinds);
+    expect(cards.every((card) => !Object.hasOwn(card, 'design') && !Object.hasOwn(card, 'variant'))).toBe(true);
+  });
+
   it('maps every supported card kind to its visual catalog, binding, and layout contracts', () => {
     expect(cardKinds).toContain('clock_premium');
-    expect(clockCardOptions.map((option) => option.kind)).toEqual(expect.arrayContaining(['clock_digital', 'clock_analog', 'clock_premium', 'clock_minimal']));
+    expect(clockCardOptions.map((option) => option.kind)).toEqual(['clock_premium']);
+    expect(cardKinds.filter(isClockKind)).toEqual(['clock_premium']);
     expect(normalizeKind('clock')).toBe('clock_digital');
     expect(isClockKind('clock_premium')).toBe(true);
     expect(isBindableKind('assistant')).toBe(false);
@@ -99,7 +108,7 @@ describe('section card catalog contracts', () => {
     expect(getCatalogLabelKey('cover')).toBe('dashboard.editor.sections.section_card_cover');
     expect(getCatalogDescriptionKey('sensor')).toBe('dashboard.editor.sections.section_card_sensor_desc');
     expect(getSpanClass('medium')).toBe('col-span-1 sm:col-span-2');
-    expect(getClockKindLabelKey('clock_minimal')).toBe('dashboard.editor.sections.clock_style_minimal');
+    expect(getClockKindLabelKey('clock_minimal')).toBe('dashboard.editor.sections.section_card_clock');
     expect(getClockStyleForKind('clock_premium')).toBe('analog-classic');
   });
 

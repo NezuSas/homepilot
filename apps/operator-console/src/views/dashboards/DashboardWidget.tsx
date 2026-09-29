@@ -220,8 +220,8 @@ export function DashboardWidgetNode({
         // Editing restores the section boundary without changing its inner card grid.
         isSection
           ? (isEditing
-            ? "rounded-section outline outline-2 outline-dashed outline-offset-[-2px] outline-border/70 bg-background/10 shadow-sm hover:outline-primary/70"
-            : "rounded-2xl border-transparent bg-transparent shadow-none")
+            ? "homepilot-dashboard-section rounded-section outline outline-2 outline-dashed outline-offset-[-2px] outline-border/70 hover:outline-primary/70"
+            : "homepilot-dashboard-section rounded-2xl border-transparent")
           : isCamera
             ? "rounded-2xl border-transparent bg-transparent shadow-none"
             : "rounded-section sm:rounded-panel",

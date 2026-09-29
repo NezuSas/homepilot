@@ -28,6 +28,10 @@ const PRESET_UI_METADATA: Record<DashboardBackgroundPresetId, Pick<DashboardBack
     labelKey: 'dashboards.view_config.background_presets.quiet_atrium.label',
     descriptionKey: 'dashboards.view_config.background_presets.quiet_atrium.description',
   },
+  'homepilot-amber-residence': {
+    labelKey: 'dashboards.view_config.background_presets.amber_residence.label',
+    descriptionKey: 'dashboards.view_config.background_presets.amber_residence.description',
+  },
 };
 
 export const dashboardBackgroundPresets: readonly DashboardBackgroundPreset[] = DASHBOARD_BACKGROUND_PRESETS.map(

@@ -1617,6 +1617,10 @@
         "quiet_atrium": {
           "label": "Atrio sereno",
           "description": "Formas arquitectónicas suaves en piedra."
+        },
+        "amber_residence": {
+          "label": "HomePilot Amber Residence",
+          "description": "Interior residencial de luz cálida y profundidad ámbar."
         }
       },
       "background_settings": "Configuración del fondo",

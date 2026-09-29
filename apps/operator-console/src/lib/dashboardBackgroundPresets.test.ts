@@ -10,9 +10,9 @@ import {
 } from '../../../../packages/topology/domain/DashboardBackgroundPresets';
 
 describe('dashboard background presets', () => {
-  it('ships four unique local backgrounds', () => {
-    expect(dashboardBackgroundPresets).toHaveLength(4);
-    expect(new Set(dashboardBackgroundPresets.map((preset) => preset.src)).size).toBe(4);
+  it('registers five unique portable backgrounds, including the pending amber asset', () => {
+    expect(dashboardBackgroundPresets).toHaveLength(5);
+    expect(new Set(dashboardBackgroundPresets.map((preset) => preset.src)).size).toBe(5);
     expect(dashboardBackgroundPresets.every((preset) => preset.src.startsWith('/dashboard-backgrounds/'))).toBe(true);
   });
 

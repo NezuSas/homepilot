@@ -168,6 +168,56 @@ async function prepareAuthenticatedDashboard(page: import('@playwright/test').Pa
 }
 
 for (const viewport of [...viewports, { name: 'portrait kiosk', ...portraitKioskViewport }]) {
+  test(`premium dashboard surfaces preserve section bounds and avoid overflow on ${viewport.name}`, async ({ page }) => {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    const section = responsiveDashboard.tabs[0]!.widgets[1]!;
+    if (!('extra' in section.config)) throw new Error('Responsive fixture has no section cards');
+    const dashboard = {
+      ...responsiveDashboard,
+      tabs: [{
+        ...responsiveDashboard.tabs[0]!,
+        widgets: [responsiveDashboard.tabs[0]!.widgets[0]!, {
+          ...section,
+          config: {
+            ...section.config,
+            extra: { ...section.config.extra, cards: [
+              ...section.config.extra.cards,
+              { id: 'premium-action', kind: 'action', title: 'Indirecta espalda muy larga', span: 'small' },
+            ] },
+          },
+        }],
+      }],
+    };
+    await prepareAuthenticatedDashboard(page, dashboard);
+    await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+
+    const sectionSurface = page.locator('.homepilot-dashboard-section');
+    const tile = page.locator('[data-dashboard-card-id="premium-action"]');
+    await expect(sectionSurface).toBeVisible();
+    await expect(tile).toBeVisible();
+    await expect(page.locator('[data-homepilot-clock]')).toBeVisible();
+    const sectionBefore = await sectionSurface.boundingBox();
+    const dark = await sectionSurface.evaluate((element) => ({
+      background: getComputedStyle(element).backgroundColor,
+      backdrop: getComputedStyle(element).backdropFilter,
+    }));
+    expect(dark.background).not.toBe('rgba(0, 0, 0, 0)');
+    expect(dark.backdrop).not.toBe('none');
+    const tileGeometry = await tile.evaluate((element) => ({
+      width: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+      label: element.querySelector('button span')?.textContent,
+    }));
+    expect(tileGeometry.scrollWidth).toBeLessThanOrEqual(tileGeometry.width);
+    expect(tileGeometry.label).toContain('Indirecta espalda');
+    await page.evaluate(() => document.documentElement.classList.add('light'));
+    const sectionAfter = await sectionSurface.boundingBox();
+    expect(sectionAfter?.width).toBe(sectionBefore?.width);
+    expect(sectionAfter?.height).toBe(sectionBefore?.height);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+
   test(`dashboard initial skeleton preserves card, section and canvas geometry on ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await prepareAuthenticatedDashboard(page);
@@ -221,6 +271,12 @@ for (const viewport of [...viewports, { name: 'portrait kiosk', ...portraitKiosk
     await expect(card.locator('.sensor-metric-card')).toBeVisible();
     await expect(card.locator('[data-dashboard-skeleton]')).toHaveCount(0);
     const after = await geometry();
+    const weatherBefore = before.items.find((item) => item.id === 'responsive-weather');
+    const weatherAfter = after.items.find((item) => item.id === 'responsive-weather');
+    expect(weatherBefore).toBeDefined();
+    expect(weatherAfter?.height).toBe(weatherBefore?.height);
+    expect(weatherAfter?.gridRowStart).toBe(weatherBefore?.gridRowStart);
+    expect(weatherAfter?.gridRowEnd).toBe(weatherBefore?.gridRowEnd);
     const geometryChanges = (['card', 'section', 'canvas'] as const).flatMap((key) =>
       (['x', 'y', 'width', 'height'] as const).map((axis) => {
         const initial = before[key]![axis];
@@ -298,8 +354,9 @@ for (const viewport of [viewports[1], viewports[2]]) {
     });
     await page.goto('/dashboards/responsive-dashboard/responsive-tab');
     const backdrop = page.locator('.homepilot-dashboard-backdrop');
+    const backdropImage = backdrop.locator(':scope > div');
     const canvas = page.locator('.homepilot-dashboard-content');
-    await expect(backdrop).toHaveCSS('background-image', /test-backdrop-a/);
+    await expect(backdropImage).toHaveCSS('background-image', /test-backdrop-a/);
     const geometry = async () => ({
       backdrop: await backdrop.boundingBox(), canvas: await canvas.boundingBox(),
       viewport: await page.evaluate(() => ({ width: window.innerWidth, height: window.innerHeight })),
@@ -314,14 +371,14 @@ for (const viewport of [viewports[1], viewports[2]]) {
 
     await navigate('second-dashboard', 'second-tab');
     await expect(page).toHaveURL(/second-dashboard\/second-tab/);
-    await expect(backdrop).toHaveCSS('background-image', /test-backdrop-a/);
+    await expect(backdropImage).toHaveCSS('background-image', /test-backdrop-a/);
     const whileLoading = await geometry();
     expect(whileLoading.backdrop).toEqual(before.backdrop);
     expect(whileLoading.viewport).toEqual(before.viewport);
     expect(Math.abs((whileLoading.canvas?.y ?? 0) - (before.canvas?.y ?? 0))).toBeLessThanOrEqual(2);
 
     releaseSecondImage();
-    await expect(backdrop).toHaveCSS('background-image', /test-backdrop-b/);
+    await expect(backdropImage).toHaveCSS('background-image', /test-backdrop-b/);
     await expect(page).toHaveURL(/second-dashboard\/second-tab/);
     const after = await geometry();
     expect(after.backdrop).toEqual(before.backdrop);
@@ -329,10 +386,10 @@ for (const viewport of [viewports[1], viewports[2]]) {
     expect(Math.abs((after.canvas?.y ?? 0) - (before.canvas?.y ?? 0))).toBeLessThanOrEqual(2);
 
     await navigate('plain-dashboard', 'plain-tab');
-    await expect(backdrop).toHaveCSS('background-image', 'none');
+    await expect(backdropImage).toHaveCSS('background-image', 'none');
     expect((await geometry()).backdrop).toEqual(before.backdrop);
     await navigate('second-dashboard', 'second-tab');
-    await expect(backdrop).toHaveCSS('background-image', /test-backdrop-b/);
+    await expect(backdropImage).toHaveCSS('background-image', /test-backdrop-b/);
     expect((await geometry()).backdrop).toEqual(before.backdrop);
   });
 }
@@ -908,17 +965,17 @@ test('Feature: Button card — Scenario: A scene briefly lights its icon without
   await expect(sceneButton).toHaveAttribute('data-action-state', 'pending');
   await expect(sceneTile).toHaveClass(/homepilot-section-light-tile-active/);
   await expect(sceneButton).toHaveClass(/homepilot-section-light-tile-surface/);
-  await expect(sceneButton.locator('svg').first()).toHaveClass(/text-light-active/);
+  await expect(sceneButton.locator('svg').first()).toHaveClass(/text-primary/);
   await expect(sceneTile.locator('svg.lucide-loader-circle')).toHaveCount(0);
   finishSceneExecution?.();
   await expect(sceneButton).toHaveAttribute('data-action-state', 'success');
   await expect(sceneTile).toHaveClass(/homepilot-section-light-tile-active/);
-  await expect(sceneButton.locator('svg').first()).toHaveClass(/text-light-active/);
+  await expect(sceneButton.locator('svg').first()).toHaveClass(/text-primary/);
   await expect(sceneButton.locator('svg.lucide-check')).toHaveCount(0);
   await expect(sceneButton.getByText(/^(Done|Listo)$/i)).toHaveCount(0);
   await expect(sceneButton).toHaveAttribute('data-action-state', 'idle', { timeout: 4000 });
   await expect(sceneTile).not.toHaveClass(/homepilot-section-light-tile-active/);
-  await expect(sceneButton.locator('svg').first()).toHaveClass(/text-muted-foreground/);
+  await expect(sceneButton.locator('svg').first()).toHaveClass(/text-foreground\/80/);
 });
 
 test('Feature: Unified control tile — Scenario: Selecting a light still sends an on/off command', async ({ page }) => {

@@ -200,7 +200,7 @@ export function SensorMetricCard({ device, title, isPreview = false }: SensorMet
 
   return (
     <div
-      className="sensor-metric-card homepilot-sensor-reading relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-section border border-border/60 bg-card/95 p-[clamp(0.75rem,4cqi,1rem)] text-foreground"
+      className="sensor-metric-card homepilot-sensor-reading relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-section border border-border/55 bg-card/95 p-[clamp(0.75rem,4cqi,1rem)] text-foreground shadow-surface-card"
       style={{ containerType: 'inline-size' }}
     >
       <div className="flex min-w-0 items-start gap-3">

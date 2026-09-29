@@ -776,6 +776,10 @@
      quiet rules instead of stacked rounded cards and elevated shadows. */
   .homepilot-dashboard-screen {
     background-color: hsl(var(--background));
+    --dashboard-section-surface: 30 8% 12%;
+    --dashboard-section-edge: 35 12% 33%;
+    --dashboard-tile-surface: 30 7% 17%;
+    --dashboard-tile-edge: 35 9% 31%;
   }
 
   .light .homepilot-dashboard-screen {
@@ -783,6 +787,49 @@
     --dashboard-surface: 35 18% 93%;
     --dashboard-surface-raised: 36 20% 96%;
     --dashboard-edge: 32 13% 73%;
+    --dashboard-section-surface: 35 18% 93%;
+    --dashboard-section-edge: 32 13% 73%;
+    --dashboard-tile-surface: 36 20% 96%;
+    --dashboard-tile-edge: 32 13% 73%;
+  }
+
+  /* An inset edge preserves measured section/card bounds and masonry rows. */
+  .homepilot-dashboard-screen .homepilot-dashboard-section {
+    background: hsl(var(--dashboard-section-surface) / 0.84);
+    box-shadow: inset 0 0 0 1px hsl(var(--dashboard-section-edge) / 0.32), 0 14px 32px -30px hsl(var(--background) / 0.8);
+    backdrop-filter: blur(6px);
+  }
+
+  .homepilot-dashboard-screen .homepilot-dashboard-section h2 {
+    background: hsl(var(--dashboard-section-surface) / 0.88);
+  }
+
+  .homepilot-dashboard-screen .homepilot-section-light-tile-surface,
+  .homepilot-dashboard-screen .homepilot-section-tile-inactive {
+    border-color: hsl(var(--dashboard-tile-edge) / 0.52);
+    background: hsl(var(--dashboard-tile-surface) / 0.94);
+    box-shadow: 0 8px 18px -18px hsl(var(--background) / 0.9);
+  }
+
+  .homepilot-dashboard-screen .homepilot-section-light-tile-active {
+    border-color: hsl(var(--primary) / 0.7);
+    background: linear-gradient(150deg, hsl(var(--primary) / 0.16), hsl(var(--dashboard-tile-surface) / 0.96) 65%);
+    box-shadow: 0 12px 24px -22px hsl(var(--primary) / 0.58), inset 0 1px 0 hsl(var(--primary) / 0.13);
+  }
+
+  .homepilot-dashboard-screen .homepilot-section-light-tile-active .homepilot-section-light-tile-surface {
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .homepilot-dashboard-screen .homepilot-section-tile-inactive:hover,
+  .homepilot-dashboard-screen .homepilot-section-light-tile-surface:hover {
+    border-color: hsl(var(--dashboard-tile-edge) / 0.82);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    .homepilot-dashboard-screen .homepilot-dashboard-section { background: hsl(var(--dashboard-section-surface) / 0.96); }
   }
 
   .homepilot-dashboard-backdrop::after {
@@ -835,7 +882,7 @@
   }
 
   .dark .homepilot-dashboard-backdrop::after {
-    background: linear-gradient(135deg, hsl(var(--background) / 0.32) 0%, hsl(var(--card) / 0.18) 58%, hsl(var(--background) / 0.36) 100%);
+    background: linear-gradient(135deg, hsl(var(--background) / 0.4) 0%, hsl(var(--card) / 0.24) 58%, hsl(var(--background) / 0.43) 100%);
     backdrop-filter: saturate(0.84) contrast(0.94) brightness(0.78) blur(0.6px);
   }
 

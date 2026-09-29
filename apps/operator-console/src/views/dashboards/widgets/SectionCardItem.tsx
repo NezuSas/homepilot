@@ -109,6 +109,11 @@ export function SectionCardItem({
   const isActionable = Boolean(card.entityId)
     && !isEditing
     && (normalizedKind === 'device' || normalizedKind === 'light' || normalizedKind === 'action');
+  const interactionAttributes = isEditing
+    ? attributes
+    : isActionable && normalizedKind !== 'action'
+      ? { role: 'button' as const, tabIndex: 0, 'aria-label': card.title || catalogLabel(card.kind) }
+      : {};
   // Sensor copy determines its intrinsic masonry row height. Cover loading
   // reserves the real tile's structural rows without the preview's
   // illustrative controls or a magic pixel height.
@@ -171,7 +176,12 @@ export function SectionCardItem({
         transition: transition ?? undefined,
       }}
       onClick={initialPending || isCover || normalizedKind === 'action' ? undefined : (event) => { void handleCardAction(card, event); }}
-      {...(isEditing ? attributes : {})}
+      onKeyDown={isActionable && normalizedKind !== 'action' && !initialPending ? (event) => {
+        if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) return;
+        event.preventDefault();
+        void handleCardAction(card);
+      } : undefined}
+      {...interactionAttributes}
       {...(isEditing ? listeners : {})}
       className={cn(
         // `grid` here isn't for a multi-cell layout — CardPreview is the
@@ -194,7 +204,7 @@ export function SectionCardItem({
         isClock && "min-h-clock-card",
         // Match the live CurtainDeviceTile's dashboard min-height at sm+.
         isCover && "w-full max-w-curtain-dashboard justify-self-start sm:min-h-curtain-card",
-        isActionable && !initialPending && "cursor-pointer hover:-translate-y-0.5 hover:shadow-depth-2",
+        isActionable && !initialPending && "cursor-pointer hover:-translate-y-0.5 hover:shadow-depth-2 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         (normalizedKind === 'light' || normalizedKind === 'action') && tileIsActive && "homepilot-section-light-tile-active",
         isDragging && "z-30 opacity-45",
         getSpanClass(span)

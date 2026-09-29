@@ -1,54 +1,25 @@
 import type { ComponentType } from 'react';
-import {
-  AnalogClassicClock,
-  AnalogMinimalClock,
-  DigitalClock,
-  MinimalClock,
-} from './designs';
+import { HomePilotClock } from './designs/HomePilotClock';
 import type { ClockDesignProps, ClockStyle, ClockStyleOption } from './clockTypes';
 
 export const CLOCK_MIN_LAYOUT = { w: 4, h: 4 } as const;
 
 export const CLOCK_STYLES: ClockStyleOption[] = [
   {
-    value: 'minimal',
-    label: 'Digital residencial',
-    labelEs: 'Digital residencial',
-    labelEn: 'Residential digital',
-    minW: 4,
-    minH: 4,
-  },
-  {
-    value: 'digital',
-    label: 'Digital compacto',
-    labelEs: 'Digital compacto',
-    labelEn: 'Compact digital',
-    minW: 4,
-    minH: 4,
-  },
-  {
     value: 'analog-classic',
-    label: 'Anal\u00f3gico premium',
-    labelEs: 'Anal\u00f3gico premium',
-    labelEn: 'Premium analog',
-    minW: 4,
-    minH: 4,
-  },
-  {
-    value: 'analog-minimal',
-    label: 'Anal\u00f3gico minimal',
-    labelEs: 'Anal\u00f3gico minimal',
-    labelEn: 'Minimal analog',
+    label: 'Reloj',
+    labelEs: 'Reloj',
+    labelEn: 'Clock',
     minW: 4,
     minH: 4,
   },
 ];
 
 export const CLOCK_DESIGN_COMPONENTS: Record<ClockStyle, ComponentType<ClockDesignProps>> = {
-  minimal: MinimalClock,
-  digital: DigitalClock,
-  'analog-classic': AnalogClassicClock,
-  'analog-minimal': AnalogMinimalClock,
+  minimal: HomePilotClock,
+  digital: HomePilotClock,
+  'analog-classic': HomePilotClock,
+  'analog-minimal': HomePilotClock,
 };
 
 export function getClockStyleLabel(style: ClockStyleOption, locale?: string): string {

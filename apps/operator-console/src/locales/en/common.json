@@ -1617,6 +1617,10 @@
         "quiet_atrium": {
           "label": "Quiet atrium",
           "description": "Soft architectural forms in stone."
+        },
+        "amber_residence": {
+          "label": "HomePilot Amber Residence",
+          "description": "A warm residential interior with amber depth."
         }
       },
       "background_settings": "Background configuration",

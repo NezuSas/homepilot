@@ -6,6 +6,9 @@
 - [x] CRUD de dashboards, pestañas, secciones, widgets y visibilidad de usuarios.
 - [x] Canvas responsive, widgets tipados y catálogo MDI diferido.
 - [x] Controles por capacidad, cámaras, sensores, reloj, escena y media player.
+- [x] Unificar la presentación del reloj en HomePilotClock, ofrecer una sola opción Reloj y conservar los IDs históricos sin migración.
+- [x] Aplicar superficies premium dark/light a secciones y tiles dentro de sus bounds existentes; separar la opacidad de la fotografía de la veladura del Dashboard.
+- [x] Registrar el preset lógico Amber Residence y ocultarlo hasta que su asset independiente esté disponible.
 - [x] Tipografía de métricas de sensores centralizada en tokens responsive del design system.
 - [x] Superficies claras de widgets con fondos activos: una veladura cálida y neutra reduce la competencia visual del fondo, mientras las tarjetas usan una escala mineral de piedra y arena, bordes serenos y elevación moderada sin alterar estados ni comandos.
 - [x] Placeholder de nueva sección en flujo secuencial, siempre posterior a las secciones existentes.
@@ -22,11 +25,14 @@
 
 ## Verificación obligatoria ante cambios
 
+- [ ] Validar externamente el único Reloj visible, la compatibilidad de los cuatro IDs históricos, las superficies premium de Section/tiles y su geometría en dark/light, escritorio, tablet, móvil y kiosco vertical. Tests escritos; no ejecutados por restricción de esta tarea.
+- [ ] Incorporar el asset independiente `apps/operator-console/public/dashboard-backgrounds/homepilot-amber-residence.webp`; hasta entonces el preset está registrado pero oculto en el selector.
+
 - [ ] Ejecutar externamente las regresiones de skeleton inicial, delay, refresh, error/offline, cámara 4:3, sensor value-first, media, reloj y movimiento reducido; no se ejecutaron en esta tarea.
 - [ ] Ejecutar externamente la prueba responsive de transición skeleton → contenido en escritorio, tablet, móvil y kiosco vertical; verificar bounds y ausencia de overflow.
 
 - [ ] Validar externamente el round-trip de un Botón asignado a escena con el ID real del recurso y hogar autorizado; comprobar también que una escena ausente se desasigna y se reporta sin matching por nombre. Regresiones escritas, no ejecutadas aquí.
-- [ ] Validar externamente la estabilidad geométrica del fondo A → B → sin fondo → B en desktop y tablet y revisar visualmente el reloj digital ambiental y el analógico premium en claro/oscuro. Las pruebas están escritas, no ejecutadas aquí.
+- [ ] Validar externamente la estabilidad geométrica del fondo A → B → sin fondo → B en desktop y tablet y revisar visualmente el único HomePilot Clock en claro/oscuro. Las pruebas están escritas, no ejecutadas aquí.
 
 - [ ] Validar externamente AC38–AC41: colisiones de nombres ES/EN, copy de asignaciones, overflow desktop/tablet/móvil/kiosco, variantes de sensores y composición digital/analógica del reloj. Las regresiones están escritas, no ejecutadas en este worktree por restricción de la tarea.
 

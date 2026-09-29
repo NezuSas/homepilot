@@ -15,6 +15,7 @@ import { Modal } from './ui/Modal';
 
 const MAX_BG_PX = 1920;
 const BG_QUALITY = 0.8;
+const AMBER_RESIDENCE_SOURCE = dashboardBackgroundPresets.find((preset) => preset.id === 'homepilot-amber-residence')?.src;
 
 type ConfigTab = 'settings' | 'background' | 'visibility';
 
@@ -52,6 +53,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
   const [draftTitle, setDraftTitle] = useState(tab.title);
   const [backgroundOpacity, setBackgroundOpacity] = useState(tab.backgroundOpacity ?? 50);
   const [backgroundImg, setBackgroundImg] = useState<string | null>(tab.background || null);
+  const [amberResidenceAvailable, setAmberResidenceAvailable] = useState(false);
   const [allowedUsers, setAllowedUsers] = useState<string[]>(tab.visibility?.users || []);
 
   const [users, setUsers] = useState<Array<{ id: string; username: string; displayName?: string | null }>>([]);
@@ -60,6 +62,16 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
   const [iconQuery, setIconQuery] = useState(tab.icon || '');
   const [isDefaultTab, setIsDefaultTab] = useState(tab.isDefault ?? false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isOpen || !AMBER_RESIDENCE_SOURCE) return;
+    const image = new window.Image();
+    let active = true;
+    image.onload = () => { if (active) setAmberResidenceAvailable(true); };
+    image.onerror = () => { if (active) setAmberResidenceAvailable(false); };
+    image.src = AMBER_RESIDENCE_SOURCE;
+    return () => { active = false; };
+  }, [isOpen]);
 
   // Sync state with props when modal opens or tab changes
   useEffect(() => {
@@ -274,7 +286,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" role="list">
-                  {dashboardBackgroundPresets.map((preset) => {
+                  {dashboardBackgroundPresets.filter((preset) => preset.id !== 'homepilot-amber-residence' || amberResidenceAvailable).map((preset) => {
                     const isSelected = backgroundImg === preset.src;
                     return (
                       <Button

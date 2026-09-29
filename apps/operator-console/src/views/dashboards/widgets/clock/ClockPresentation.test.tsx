@@ -1,7 +1,8 @@
+import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { DashboardWidgetConfig } from '../../types';
 import { formatAmbientDate, getClockCopy } from './clockUtils';
-import { normalizeClockStyle, CLOCK_DESIGN_COMPONENTS } from './clockRegistry';
+import { normalizeClockStyle, CLOCK_DESIGN_COMPONENTS, CLOCK_STYLES } from './clockRegistry';
 
 const now = new Date('2026-09-28T11:51:00');
 const props = {
@@ -13,48 +14,26 @@ const props = {
   weatherStatus: 'ready' as const,
 };
 
-describe('Dashboard clock hierarchy', () => {
-  it('keeps the default digital-first with one prominent time and secondary date/weather', () => {
-    expect(normalizeClockStyle(undefined)).toBe('minimal');
-    const Design = CLOCK_DESIGN_COMPONENTS[normalizeClockStyle(undefined)];
-    const html = renderToStaticMarkup(<Design {...props} />);
-    expect(html).toContain('11');
-    expect(html).toContain('51');
-    expect(html).toContain(formatAmbientDate(now, 'es-EC'));
-    expect(html).toContain('28');
-    expect(html).toContain('Cuenca');
-    expect(html).toContain('19');
-    expect(html).toContain('border-t');
-    expect(html).toContain('text-clock-time-xl-fluid');
-    expect(html).not.toContain('hpDialFace');
-  });
-
-  it('retains optional analog variants without a second oversized digital time', () => {
-    for (const style of ['analog-classic', 'analog-minimal'] as const) {
-      const Design = CLOCK_DESIGN_COMPONENTS[style];
-      const html = renderToStaticMarkup(<Design {...props} />);
-      expect(html).toContain('<svg');
-      expect(html).toContain('11:51');
-      expect(html).not.toContain('text-clock-analog-time-fluid');
-      expect(html).not.toContain('text-clock-minimal-time-fluid');
-    }
-  });
-
-  it('keeps the premium analog dial primary and its date and weather secondary', () => {
-    const Design = CLOCK_DESIGN_COMPONENTS['analog-classic'];
-    const html = renderToStaticMarkup(<Design {...props} />);
-    expect(html).toContain('hpDialFace-premium');
-    expect(html).toContain(formatAmbientDate(now, 'es-EC'));
-    expect(html).toContain('Cuenca');
-    expect(html).toContain('text-body font-medium');
-    expect(html).not.toContain('text-clock-time-xl-fluid');
-  });
-
-  it('preserves all persisted clock style identifiers and legacy aliases', () => {
+describe('HomePilot Clock', () => {
+  it('offers one selectable clock while accepting all historical style IDs', () => {
+    expect(CLOCK_STYLES.map((style) => style.value)).toEqual(['analog-classic']);
     for (const style of ['minimal', 'digital', 'analog-classic', 'analog-minimal'] as const) {
       expect(normalizeClockStyle(style)).toBe(style);
+      expect(CLOCK_DESIGN_COMPONENTS[style]).toBe(CLOCK_DESIGN_COMPONENTS['analog-classic']);
     }
     expect(normalizeClockStyle('elegant')).toBe('minimal');
     expect(normalizeClockStyle('analog-orbit')).toBe('analog-classic');
+  });
+
+  it('renders the same analog composition, date, time and weather for every legacy ID', () => {
+    const markup = (['minimal', 'digital', 'analog-classic', 'analog-minimal'] as const)
+      .map((style) => renderToStaticMarkup(createElement(CLOCK_DESIGN_COMPONENTS[style], props)));
+    expect(new Set(markup).size).toBe(1);
+    expect(markup[0]).toContain('data-homepilot-clock');
+    expect(markup[0]).toContain('hpDialFace-premium');
+    expect(markup[0]).toContain(formatAmbientDate(now, 'es-EC'));
+    expect(markup[0]).toContain('11:51');
+    expect(markup[0]).toContain('Cuenca');
+    expect(markup[0]).toContain('19');
   });
 });
