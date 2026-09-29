@@ -1,31 +1,72 @@
+import { Clock3, Cloud, MoreHorizontal, Quote } from 'lucide-react';
 import type { ClockDesignProps } from '../clockTypes';
-import { formatAmbientDate, getHandAngles, pad } from '../clockUtils';
-import { AnalogDial, ClockShell, WeatherLine } from './ClockShared';
+import { formatMonth, formatTemperature, formatWeekday, getHandAngles, isDaytimeHour, pad } from '../clockUtils';
+import { AnalogDial, ClockShell } from './ClockShared';
+import { getWeatherCategory, WeatherScene } from './WeatherScene';
 
 /** The single presentation for new and historically persisted clock styles. */
 export function HomePilotClock({ now, locale, copy, weather, weatherStatus }: ClockDesignProps) {
   const angles = getHandAngles(now);
+  const isEnglish = locale.toLowerCase().startsWith('en');
+  const date = isEnglish
+    ? `${formatMonth(now, locale, 'long')} ${now.getDate()}`
+    : `${now.getDate()} de ${formatMonth(now, locale, 'long')}`;
+  const hasWeather = weatherStatus === 'ready' && weather !== null;
+  const weatherCategory = hasWeather ? getWeatherCategory(weather.code, isDaytimeHour(now)) : null;
 
   return (
-    <ClockShell tone="analog" className="homepilot-clock-surface p-clock-shell-compact">
-      <div data-homepilot-clock className="relative z-10 flex h-full min-h-0 min-w-0 flex-col justify-between gap-clock-gap">
-        <div className="grid min-h-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-clock-gap-layout">
-          <div className="min-w-0">
-            <p className="text-body font-medium leading-snug text-muted-foreground">{formatAmbientDate(now, locale)}</p>
-            <p className="mt-2 text-clock-time-md-fluid font-semibold leading-none tracking-clock-time tabular-nums text-foreground sm:text-clock-time-lg-fluid">
-              {pad(now.getHours())}:{pad(now.getMinutes())}
-            </p>
+    <ClockShell tone="analog" className="homepilot-clock-surface homepilot-clock-reference">
+      <div data-homepilot-clock className="homepilot-clock-reference-layout relative z-10">
+        <header className="homepilot-clock-reference-header">
+          <div className="homepilot-clock-reference-heading">
+            <Clock3 aria-hidden="true" className="homepilot-clock-reference-header-icon" />
+            <span>{isEnglish ? 'Clock' : 'Reloj'}</span>
           </div>
-          <AnalogDial
-            hourAngle={angles.hour}
-            minuteAngle={angles.minute}
-            secondAngle={angles.second}
-            premium
-            className="homepilot-clock-dial !h-clock-dial-classic !w-clock-dial-classic max-h-full max-w-full"
-          />
+          <MoreHorizontal aria-hidden="true" className="homepilot-clock-reference-menu-mark" />
+        </header>
+
+        <div className="homepilot-clock-reference-main">
+          <div className="homepilot-clock-reference-dial-frame">
+            <AnalogDial
+              hourAngle={angles.hour}
+              minuteAngle={angles.minute}
+              secondAngle={angles.second}
+              premium
+              className="homepilot-clock-dial"
+            />
+            <span className="homepilot-clock-reference-brand" aria-hidden="true">HOMEPILOT</span>
+          </div>
+
+          <div className="homepilot-clock-reference-details">
+            <div className="homepilot-clock-reference-time tabular-nums">
+              {pad(now.getHours())}:{pad(now.getMinutes())}
+            </div>
+            <div className="homepilot-clock-reference-weekday">{formatWeekday(now, locale, 'long')}</div>
+            <div className="homepilot-clock-reference-date">{date}</div>
+            <div className="homepilot-clock-reference-divider" aria-hidden="true" />
+            <div className="homepilot-clock-reference-weather" aria-live="polite">
+              {weatherCategory
+                ? <WeatherScene category={weatherCategory} size="md" className="homepilot-clock-reference-weather-icon" />
+                : <Cloud aria-hidden="true" className="homepilot-clock-reference-weather-icon" />}
+              <div className="homepilot-clock-reference-weather-info">
+                <span className="homepilot-clock-reference-location">{weather?.location ?? copy.cuenca}</span>
+                <strong className="homepilot-clock-reference-temperature tabular-nums">
+                  {hasWeather ? formatTemperature(weather.temperature) : '—'}
+                </strong>
+              </div>
+              <div className="homepilot-clock-reference-condition">
+                {hasWeather ? weather.label : weatherStatus === 'idle' || weatherStatus === 'loading' ? copy.weatherLoading : copy.weatherUnavailable}
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="min-w-0 border-t border-border/45 pt-clock-gap-compact">
-          <WeatherLine weather={weather} status={weatherStatus} copy={copy} />
+
+        <div className="homepilot-clock-reference-quote">
+          <Quote aria-hidden="true" className="homepilot-clock-reference-quote-icon" />
+          <p>
+            {isEnglish ? 'Great spaces' : 'Los grandes espacios'}<br />
+            {isEnglish ? 'begin with great control.' : 'empiezan con un buen control.'}
+          </p>
         </div>
       </div>
     </ClockShell>

@@ -1040,6 +1040,249 @@
   .dark .homepilot-dashboard-screen .homepilot-clock-second-hand { stroke: rgb(var(--dashboard-premium-accent-light)); }
   .dark .homepilot-dashboard-screen .homepilot-clock-center { fill: rgb(var(--dashboard-premium-accent)); }
 
+  /* The reference composition belongs only to the Dashboard clock card. */
+  .homepilot-dashboard-screen .homepilot-clock-reference {
+    min-height: 25rem;
+  }
+
+  .homepilot-dashboard-screen .homepilot-clock-reference-layout {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: clamp(0.75rem, 3cqi, 1.15rem);
+    min-height: 25rem;
+    height: 100%;
+    padding: clamp(1.1rem, 4cqi, 1.4rem);
+    color: hsl(var(--foreground));
+  }
+
+  .homepilot-dashboard-screen .homepilot-clock-reference-header,
+  .homepilot-dashboard-screen .homepilot-clock-reference-heading {
+    display: flex;
+    align-items: center;
+  }
+
+  .homepilot-dashboard-screen .homepilot-clock-reference-header {
+    justify-content: space-between;
+    min-height: 1.9rem;
+  }
+
+  .homepilot-dashboard-screen .homepilot-clock-reference-heading {
+    gap: 1.1rem;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  .homepilot-dashboard-screen .homepilot-clock-reference-header-icon {
+    width: 1.85rem;
+    height: 1.85rem;
+    color: hsl(var(--primary));
+    stroke-width: 2.1;
+  }
+
+  .homepilot-dashboard-screen .homepilot-clock-reference-menu-mark {
+    width: 1.35rem;
+    height: 1.35rem;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .homepilot-dashboard-screen .homepilot-clock-reference-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1.06fr) minmax(0, 0.94fr);
+    align-items: center;
+    gap: clamp(0.75rem, 3cqi, 1.15rem);
+    min-width: 0;
+  }
+
+  .homepilot-dashboard-screen .homepilot-clock-reference-dial-frame {
+    position: relative;
+    width: 100%;
+    max-width: 13rem;
+    aspect-ratio: 1;
+    border: 1px solid hsl(var(--primary) / 0.82);
+    border-radius: 50%;
+    background: radial-gradient(circle at 47% 42%, hsl(var(--card) / 0.78), hsl(var(--background) / 0.92) 72%);
+    box-shadow: 0 12px 30px -18px hsl(var(--primary) / 0.38), inset 0 0 0 4px hsl(var(--primary) / 0.06), inset 0 0 20px hsl(var(--background) / 0.45);
+  }
+
+  .homepilot-dashboard-screen .homepilot-clock-reference .homepilot-clock-dial {
+    width: 100%;
+    height: 100%;
+  }
+
+  .homepilot-dashboard-screen .homepilot-clock-reference-brand {
+    position: absolute;
+    top: 68%;
+    right: 0;
+    left: 0;
+    text-align: center;
+    font-size: clamp(0.45rem, 1.7cqi, 0.6rem);
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: hsl(var(--muted-foreground) / 0.9);
+    pointer-events: none;
+  }
+
+  .homepilot-dashboard-screen .homepilot-clock-reference-details {
+    min-width: 0;
+    line-height: 1.25;
+  }
+
+  .homepilot-dashboard-screen .homepilot-clock-reference-time {
+    font-size: clamp(2.2rem, 9cqi, 3rem);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1;
+  }
+
+  .homepilot-dashboard-screen .homepilot-clock-reference-weekday {
+    margin-top: 0.65rem;
+    font-size: clamp(0.85rem, 2.5cqi, 1rem);
+  }
+
+  .homepilot-dashboard-screen .homepilot-clock-reference-date {
+    margin-top: 0.25rem;
+    font-size: clamp(0.8rem, 2.3cqi, 0.95rem);
+    color: hsl(var(--muted-foreground));
+  }
+
+  .homepilot-dashboard-screen .homepilot-clock-reference-divider {
+    height: 1px;
+    margin: clamp(0.8rem, 3cqi, 1.2rem) 0 clamp(0.65rem, 2.4cqi, 0.9rem);
+    background: hsl(var(--border) / 0.7);
+  }
+
+  .homepilot-dashboard-screen .homepilot-clock-reference-weather {
+    display: grid;
+    grid-template-columns: clamp(2.2rem, 9cqi, 3rem) minmax(0, 1fr);
+    align-items: center;
+    column-gap: 0.5rem;
+    min-width: 0;
+  }
+
+  .homepilot-dashboard-screen .homepilot-clock-reference-weather-icon {
+    width: 100%;
+    height: auto;
+  }
+
+  .homepilot-dashboard-screen .homepilot-clock-reference-weather-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .homepilot-dashboard-screen .homepilot-clock-reference-location {
+    overflow: hidden;
+    font-size: clamp(0.8rem, 2.4cqi, 0.95rem);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .homepilot-dashboard-screen .homepilot-clock-reference-temperature {
+    font-size: clamp(1.25rem, 4.7cqi, 1.65rem);
+    line-height: 1.1;
+  }
+
+  .homepilot-dashboard-screen .homepilot-clock-reference-condition {
+    grid-column: 1 / -1;
+    margin-top: 0.25rem;
+    overflow: hidden;
+    font-size: clamp(0.76rem, 2.3cqi, 0.9rem);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .homepilot-dashboard-screen .homepilot-clock-reference-quote {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-height: 4.8rem;
+    padding: 0.9rem 1.15rem;
+    border: 1px solid hsl(var(--border) / 0.45);
+    border-radius: 1rem;
+    background: linear-gradient(125deg, hsl(var(--card) / 0.66), hsl(var(--background) / 0.38));
+    box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.03);
+  }
+
+  .homepilot-dashboard-screen .homepilot-clock-reference-quote-icon {
+    width: 1.45rem;
+    height: 1.45rem;
+    flex: none;
+    align-self: flex-start;
+    margin-top: 0.15rem;
+    color: hsl(var(--primary) / 0.48);
+    fill: hsl(var(--primary) / 0.35);
+  }
+
+  .homepilot-dashboard-screen .homepilot-clock-reference-quote p {
+    margin: 0;
+    font-size: clamp(0.78rem, 2.4cqi, 0.95rem);
+    line-height: 1.35;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-clock-reference {
+    border-color: rgb(var(--dashboard-premium-edge) / 0.2);
+    background: radial-gradient(circle at 34% 43%, rgb(var(--dashboard-premium-accent) / 0.095), transparent 42%), radial-gradient(circle at 86% 12%, rgb(var(--dashboard-premium-accent) / 0.045), transparent 36%), linear-gradient(145deg, rgb(23 20 18 / 0.97), rgb(27 24 22 / 0.96));
+    box-shadow: 0 15px 34px -24px rgb(6 4 3 / 0.7), inset 0 1px 0 rgb(255 230 210 / 0.055);
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-clock-reference-dial-frame {
+    border-color: rgb(var(--dashboard-premium-accent-light) / 0.88);
+    background: radial-gradient(circle at 45% 38%, rgb(39 32 27 / 0.93), rgb(16 14 13 / 0.98) 74%);
+    box-shadow: 0 16px 30px -20px rgb(6 3 2 / 0.8), 0 0 18px rgb(var(--dashboard-premium-accent) / 0.16), inset 0 0 0 5px rgb(var(--dashboard-premium-accent) / 0.055), inset 0 0 26px rgb(4 3 2 / 0.55);
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-clock-reference .homepilot-clock-dial-face {
+    stroke: rgb(var(--dashboard-premium-accent-light) / 0.32);
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-clock-reference .homepilot-clock-hour-tick {
+    stroke: rgb(var(--dashboard-premium-text) / 0.94);
+    stroke-opacity: 0.9;
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-clock-reference .homepilot-clock-minute-tick {
+    stroke: rgb(var(--dashboard-premium-accent-light) / 0.6);
+    stroke-opacity: 0.58;
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-clock-reference-brand {
+    color: rgb(var(--dashboard-premium-secondary) / 0.78);
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-clock-reference-date,
+  .dark .homepilot-dashboard-screen .homepilot-clock-reference-condition,
+  .dark .homepilot-dashboard-screen .homepilot-clock-reference-quote p {
+    color: rgb(var(--dashboard-premium-secondary) / 0.84);
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-clock-reference-divider {
+    background: rgb(var(--dashboard-premium-edge) / 0.18);
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-clock-reference-quote {
+    border-color: rgb(var(--dashboard-premium-edge) / 0.11);
+    background: linear-gradient(120deg, rgb(48 37 29 / 0.58), rgb(25 23 21 / 0.74) 65%);
+    box-shadow: inset 0 1px 0 rgb(255 230 210 / 0.035);
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-clock-reference-quote-icon {
+    color: rgb(var(--dashboard-premium-accent) / 0.45);
+    fill: rgb(var(--dashboard-premium-accent) / 0.35);
+  }
+
+  @container (max-width: 350px) {
+    .homepilot-dashboard-screen .homepilot-clock-reference-main {
+      gap: 0.7rem;
+    }
+
+    .homepilot-dashboard-screen .homepilot-clock-reference-quote {
+      gap: 0.65rem;
+      padding-inline: 0.85rem;
+    }
+  }
+
   .dark .homepilot-dashboard-screen [data-media-player="homepilot-premium"] {
     background: radial-gradient(circle at 20% 25%, rgb(var(--dashboard-premium-accent) / 0.09), transparent 36%), linear-gradient(145deg, rgb(34 29 26 / 0.92), rgb(var(--dashboard-premium-card) / 0.9));
   }
