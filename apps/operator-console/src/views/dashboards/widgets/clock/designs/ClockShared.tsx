@@ -226,13 +226,13 @@ export function AnalogDial({
       </defs>
 
       <circle className="homepilot-clock-dial-face" cx="60" cy="60" r="54" fill={`url(#hpDialFace-${minimal ? 'minimal' : premium ? 'premium' : 'classic'})`} stroke="hsl(var(--border))" strokeOpacity="0.74" strokeWidth="1" filter={`url(#hpDialShadow-${minimal ? 'minimal' : premium ? 'premium' : 'classic'})`} />
-      <circle className="homepilot-clock-dial-ring" cx="60" cy="60" r="46" fill="none" stroke="hsl(var(--primary))" strokeOpacity={premium ? '0.22' : '0.13'} strokeWidth="1" />
+      <circle className="homepilot-clock-dial-ring" cx="60" cy="60" r={premium ? '51' : '46'} fill="none" stroke="hsl(var(--primary))" strokeOpacity={premium ? '0.15' : '0.13'} strokeWidth="1" />
 
       {marks.map((_, index) => {
         const angle = (index * 6 * Math.PI) / 180;
         const isHour = index % 5 === 0;
-        const inner = isHour ? 39.5 : 45.5;
-        const outer = premium && isHour ? 51 : 50;
+        const inner = premium ? (isHour ? 43 : 47) : (isHour ? 39.5 : 45.5);
+        const outer = 50;
         const x1 = 60 + Math.sin(angle) * inner;
         const y1 = 60 - Math.cos(angle) * inner;
         const x2 = 60 + Math.sin(angle) * outer;
@@ -266,8 +266,8 @@ export function AnalogDial({
       <line className="homepilot-clock-minute-hand" x1="60" y1="60" x2="60" y2="25" stroke="hsl(var(--muted-foreground))" strokeWidth="2.2" strokeLinecap="round" transform={`rotate(${minuteAngle} 60 60)`} />
       <line className="homepilot-clock-second-hand" x1="60" y1="66" x2="60" y2="23" stroke="hsl(var(--primary))" strokeWidth="1.55" strokeLinecap="round" transform={`rotate(${secondAngle} 60 60)`} />
 
-      <circle className="homepilot-clock-center" cx="60" cy="60" r={premium ? '8.5' : '8'} fill="hsl(var(--primary))" />
-      <circle cx="60" cy="60" r="3" fill="hsl(var(--background))" />
+      <circle className="homepilot-clock-center" cx="60" cy="60" r={premium ? '6' : '8'} fill="hsl(var(--primary))" />
+      <circle cx="60" cy="60" r={premium ? '2.3' : '3'} fill="hsl(var(--background))" />
     </svg>
   );
 }

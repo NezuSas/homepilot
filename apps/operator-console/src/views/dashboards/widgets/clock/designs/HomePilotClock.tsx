@@ -1,4 +1,4 @@
-import { Clock3, Cloud, MoreHorizontal, Quote } from 'lucide-react';
+import { Clock3, Cloud } from 'lucide-react';
 import type { ClockDesignProps } from '../clockTypes';
 import { formatMonth, formatTemperature, formatWeekday, getHandAngles, isDaytimeHour, pad } from '../clockUtils';
 import { AnalogDial, ClockShell } from './ClockShared';
@@ -22,7 +22,6 @@ export function HomePilotClock({ now, locale, copy, weather, weatherStatus }: Cl
             <Clock3 aria-hidden="true" className="homepilot-clock-reference-header-icon" />
             <span>{isEnglish ? 'Clock' : 'Reloj'}</span>
           </div>
-          <MoreHorizontal aria-hidden="true" className="homepilot-clock-reference-menu-mark" />
         </header>
 
         <div className="homepilot-clock-reference-main">
@@ -62,7 +61,7 @@ export function HomePilotClock({ now, locale, copy, weather, weatherStatus }: Cl
         </div>
 
         <div className="homepilot-clock-reference-quote">
-          <Quote aria-hidden="true" className="homepilot-clock-reference-quote-icon" />
+          <span aria-hidden="true" className="homepilot-clock-reference-quote-mark">“</span>
           <p>
             {isEnglish ? 'Great spaces' : 'Los grandes espacios'}<br />
             {isEnglish ? 'begin with great control.' : 'empiezan con un buen control.'}

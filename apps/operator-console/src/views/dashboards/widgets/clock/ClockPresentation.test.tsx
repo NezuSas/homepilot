@@ -33,6 +33,7 @@ describe('HomePilot Clock', () => {
     expect(markup[0]).toContain('hpDialFace-premium');
     expect(markup[0]).toContain('Reloj');
     expect(markup[0]).toContain('HOMEPILOT');
+    expect(markup[0]).not.toContain('homepilot-clock-reference-menu-mark');
     expect(markup[0]).toContain('Lunes');
     expect(markup[0]).toContain('28 de Septiembre');
     expect(markup[0]).toContain('11:51');
