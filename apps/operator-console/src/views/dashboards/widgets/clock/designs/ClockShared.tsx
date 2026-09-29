@@ -262,9 +262,9 @@ export function AnalogDial({
         </>
       ) : null}
 
-      <line className="homepilot-clock-hour-hand" x1="60" y1="60" x2="60" y2="36" stroke="hsl(var(--foreground))" strokeWidth={premium ? '3.4' : '3.1'} strokeLinecap="round" transform={`rotate(${hourAngle} 60 60)`} />
-      <line className="homepilot-clock-minute-hand" x1="60" y1="60" x2="60" y2="25" stroke="hsl(var(--muted-foreground))" strokeWidth="2.2" strokeLinecap="round" transform={`rotate(${minuteAngle} 60 60)`} />
-      <line className="homepilot-clock-second-hand" x1="60" y1="66" x2="60" y2="23" stroke="hsl(var(--primary))" strokeWidth="1.55" strokeLinecap="round" transform={`rotate(${secondAngle} 60 60)`} />
+      <line className="homepilot-clock-hour-hand" x1="60" y1="60" x2="60" y2={premium ? '24' : '36'} stroke="hsl(var(--foreground))" strokeWidth={premium ? '2.8' : '3.1'} strokeLinecap="round" transform={`rotate(${hourAngle} 60 60)`} />
+      <line className="homepilot-clock-minute-hand" x1="60" y1="60" x2="60" y2={premium ? '16' : '25'} stroke="hsl(var(--muted-foreground))" strokeWidth={premium ? '2' : '2.2'} strokeLinecap="round" transform={`rotate(${minuteAngle} 60 60)`} />
+      <line className="homepilot-clock-second-hand" x1="60" y1="66" x2="60" y2="23" stroke="hsl(var(--primary))" strokeWidth={premium ? '1' : '1.55'} strokeLinecap="round" transform={`rotate(${secondAngle} 60 60)`} />
 
       <circle className="homepilot-clock-center" cx="60" cy="60" r={premium ? '6' : '8'} fill="hsl(var(--primary))" />
       <circle cx="60" cy="60" r={premium ? '2.3' : '3'} fill="hsl(var(--background))" />
