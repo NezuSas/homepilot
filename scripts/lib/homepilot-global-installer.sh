@@ -2,6 +2,7 @@
 
 source "$(dirname "${BASH_SOURCE[0]}")/android-display-appliance.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/api-health.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/homepilot-terminal-ui.sh"
 
 hp_client=''
 hp_installation=''
@@ -19,67 +20,6 @@ hp_remote=true
 hp_community=false
 hp_edge_hostname=''
 hp_pairing_changed=false
-
-hp_color_init() {
-  HP_RESET='' HP_BOLD='' HP_DIM='' HP_AMBER='' HP_GREEN='' HP_YELLOW='' HP_RED=''
-  if [[ -t 1 && "${TERM:-dumb}" != dumb ]]; then
-    HP_RESET=$'\033[0m' HP_BOLD=$'\033[1m' HP_DIM=$'\033[2m'
-    HP_AMBER=$'\033[38;5;208m' HP_GREEN=$'\033[32m'
-    HP_YELLOW=$'\033[33m' HP_RED=$'\033[31m'
-  fi
-}
-
-hp_fail() { printf '%bError: %s%b\n' "$HP_RED" "$1" "$HP_RESET" >&2; return 1; }
-hp_line() { printf '%b────────────────────────────────────────────────────────────%b\n' "$HP_DIM" "$HP_RESET"; }
-hp_step() { hp_line; printf '%b  %s / 8   %s%b\n' "$HP_BOLD" "$1" "$2" "$HP_RESET"; hp_line; }
-hp_ok() { printf '%b  ✓ %s%b\n' "$HP_GREEN" "$1" "$HP_RESET"; }
-hp_warn() { printf '%b  ! %s%b\n' "$HP_YELLOW" "$1" "$HP_RESET"; }
-
-hp_banner() {
-  hp_color_init
-  printf '\n%b╔══════════════════════════════════════════════════════════╗%b\n' "$HP_AMBER" "$HP_RESET"
-  printf '%b║             N E Z U   ·   H O M E P I L O T             ║%b\n' "$HP_AMBER" "$HP_RESET"
-  printf '%b║                Installation Assistant                    ║%b\n' "$HP_AMBER" "$HP_RESET"
-  printf '%b╚══════════════════════════════════════════════════════════╝%b\n\n' "$HP_AMBER" "$HP_RESET"
-  printf '  Preparando una nueva instalación HomePilot\n'
-}
-
-hp_read() {
-  local prompt="$1" answer
-  printf '  %s' "$prompt"
-  if [[ -r /dev/tty && -t 0 ]]; then
-    IFS= read -r answer </dev/tty || return 1
-  else
-    IFS= read -r answer || return 1
-  fi
-  REPLY="$answer"
-}
-
-hp_secret() {
-  local prompt="$1" answer
-  printf '  %s' "$prompt"
-  if [[ -r /dev/tty && -t 0 ]]; then
-    IFS= read -rs answer </dev/tty || return 1
-  else
-    IFS= read -rs answer || return 1
-  fi
-  printf '\n'
-  REPLY="$answer"
-}
-
-hp_yes_no() {
-  local default="$2" answer
-  while true; do
-    hp_read "$1 $([[ "$default" == true ]] && printf '[S/n] ' || printf '[s/N] ')" || return 1
-    answer="${REPLY,,}"
-    case "$answer" in
-      s|si|sí|y|yes) return 0 ;;
-      n|no) return 1 ;;
-      '') [[ "$default" == true ]]; return ;;
-      *) hp_warn 'Responde sí o no.' ;;
-    esac
-  done
-}
 
 hp_valid_name() { [[ -n "$1" && ${#1} -le 80 && "$1" =~ ^[[:alnum:]À-ÿ][[:alnum:]À-ÿ[:space:]._-]*$ ]]; }
 hp_valid_hostname() { [[ ${#1} -le 63 && "$1" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; }
@@ -106,12 +46,15 @@ hp_collect_information() {
   hp_read 'Nombre del cliente: ' || hp_fail 'Falta nombre del cliente.'
   hp_client="$REPLY"
   hp_valid_name "$hp_client" || hp_fail 'Nombre del cliente inválido.'
+  hp_ui_confirm_value "$hp_client"
   hp_read 'Nombre de la instalación: ' || hp_fail 'Falta nombre de instalación.'
   hp_installation="$REPLY"
   hp_valid_name "$hp_installation" || hp_fail 'Nombre de instalación inválido.'
+  hp_ui_confirm_value "$hp_installation"
   hp_read 'Hostname de la MiniPC: ' || hp_fail 'Falta hostname.'
   hp_hostname="$REPLY"
   hp_valid_hostname "$hp_hostname" || hp_fail 'Hostname Linux inválido.'
+  hp_ui_confirm_value "$hp_hostname"
   if [[ "$hp_hostname" != "$(hostname)" ]]; then
     if hp_yes_no "¿Cambiar el hostname actual a ${hp_hostname}?" false; then hp_change_hostname=true; fi
   fi
@@ -119,34 +62,39 @@ hp_collect_information() {
 
 hp_collect_architecture() {
   hp_step 4 'ARQUITECTURA DEL CLIENTE'
-  if hp_yes_no '¿El cliente usará dispositivos integrados mediante Home Assistant?' true; then
-    printf '  1. Conectar un Home Assistant existente\n  2. Instalar Home Assistant junto a HomePilot\n'
-    hp_read 'Selecciona 1 o 2: ' || hp_fail 'Falta selección Home Assistant.'
-    case "$REPLY" in 1) hp_profile=bridge_ha ;; 2) hp_profile=ha_companion ;; *) hp_fail 'Selección Home Assistant inválida.' ;; esac
-  else
-    hp_profile=native_only
-  fi
+  hp_ui_select '¿Cómo se integrarán los dispositivos?' \
+    'Home Assistant existente' 'Instalar Home Assistant' 'Solo HomePilot' \
+    || hp_fail 'Falta selección Home Assistant.'
+  case "$REPLY" in
+    1) hp_profile=bridge_ha ;;
+    2) hp_profile=ha_companion ;;
+    3) hp_profile=native_only ;;
+    *) hp_fail 'Selección Home Assistant inválida.' ;;
+  esac
   if [[ "$hp_profile" == bridge_ha ]]; then
     if hp_yes_no '¿Autorizar instalar HACS y SonoffLAN si faltan?' false; then hp_community=true; fi
   fi
   hp_step 5 'CAPACIDADES OPCIONALES'
-  printf '  Las cámaras RTSP/ONVIF se integran directamente en HomePilot.\n'
+  hp_ui_block "$HP_SECONDARY" 'Las cámaras RTSP/ONVIF se integran directamente en HomePilot.'
   if hp_yes_no '¿El cliente tendrá cámaras administradas por HomePilot?' false; then hp_cameras=true; fi
   if hp_yes_no '¿El cliente tendrá una pizarra o pantalla Android administrada?' false; then
     hp_android=true
     hp_read 'CIDR LAN autorizado (ej. 192.168.1.0/24): ' || hp_fail 'Falta CIDR Android.'
     hp_android_cidrs="$REPLY"
     android_display_validate_cidrs "$hp_android_cidrs" || hp_fail 'CIDR Android inválido.'
+    hp_ui_confirm_value "$hp_android_cidrs"
   fi
   if hp_yes_no '¿Esta instalación utilizará dispositivos o agentes MQTT?' false; then
     hp_mqtt=true
     hp_read 'IP LAN de esta MiniPC para MQTT (no 0.0.0.0): ' || hp_fail 'Falta IP LAN MQTT.'
     hp_mqtt_bind_address="$REPLY"
     hp_valid_lan_ip "$hp_mqtt_bind_address" || hp_fail 'IP LAN MQTT inválida o no privada.'
+    hp_ui_confirm_value "$hp_mqtt_bind_address"
     if [[ ! -f data/mqtt/passwordfile ]]; then
       hp_read 'Usuario MQTT para Home Assistant/agentes: ' || hp_fail 'Falta usuario MQTT.'
       hp_mqtt_username="$REPLY"
       [[ "$hp_mqtt_username" =~ ^[A-Za-z0-9_-]+$ ]] || hp_fail 'Usuario MQTT inválido.'
+      hp_ui_confirm_value "$hp_mqtt_username"
     fi
   fi
   if ! hp_yes_no '¿Habilitar voz local HomePilot?' true; then hp_voice=false; fi
@@ -156,6 +104,7 @@ hp_collect_architecture() {
     hp_read 'URL pública HomePilot asignada por NEZU (https://...): ' || hp_fail 'Falta URL pública.'
     hp_edge_hostname="$REPLY"
     hp_valid_edge_url "$hp_edge_hostname" || hp_fail 'URL pública inválida.'
+    hp_ui_confirm_value "$hp_edge_hostname"
   fi
 }
 
@@ -174,17 +123,19 @@ hp_summary() {
   local ha_label='No requerido'
   [[ "$hp_profile" != bridge_ha ]] || ha_label='Existente'
   [[ "$hp_profile" != ha_companion ]] || ha_label='Administrado'
-  hp_step 7 'CONFIGURACIÓN SELECCIONADA'
-  printf '  Cliente ..................... %s\n' "$hp_client"
-  printf '  Instalación ................. %s\n' "$hp_installation"
-  printf '  Home Assistant .............. %s\n' "$ha_label"
-  printf '  Cámaras nativas ............. %s\n' "$hp_cameras"
-  printf '  Android Display ............. %s\n' "$hp_android"
-  printf '  MQTT ........................ %s\n' "$hp_mqtt"
-  printf '  Voz ......................... %s\n' "$hp_voice"
-  printf '  TPM 2.0 ..................... obligatorio\n'
-  printf '  Acceso remoto NEZU .......... %s\n' "$hp_remote"
-  printf '  Compose ..................... %s\n' "$(hp_plan_compose)"
+  hp_step 7 'REVISAR CONFIGURACIÓN'
+  hp_ui_review_row 'Cliente' "$hp_client"
+  hp_ui_review_row 'Instalación' "$hp_installation"
+  hp_ui_review_row 'Home Assistant' "$ha_label"
+  hp_ui_review_row 'Cámaras' "$(hp_ui_yes_label "$hp_cameras")"
+  hp_ui_review_row 'Android Display' "$(hp_ui_yes_label "$hp_android")"
+  hp_ui_review_row 'MQTT' "$(hp_ui_yes_label "$hp_mqtt")"
+  hp_ui_review_row 'Voz' "$(hp_ui_yes_label "$hp_voice")"
+  hp_ui_review_row 'Cloudflare' "$(hp_ui_yes_label "$hp_remote")"
+  hp_ui_review_row 'TPM 2.0' 'Detectado'
+  printf '\n'
+  hp_ui_block "$HP_SECONDARY" 'Servicios Compose seleccionados:'
+  hp_ui_wrap_block "$HP_SECONDARY" "$(hp_plan_compose)"
 }
 
 hp_preflight() {
@@ -407,6 +358,7 @@ hp_complete_pending_runtime() {
     hp_read 'Usuario MQTT para completar el broker: ' || hp_fail 'Falta usuario MQTT.'
     hp_mqtt_username="$REPLY"
     [[ "$hp_mqtt_username" =~ ^[A-Za-z0-9_-]+$ ]] || hp_fail 'Usuario MQTT inválido.'
+    hp_ui_confirm_value "$hp_mqtt_username"
   fi
   hp_verify_tpm
   hp_prepare_mqtt
@@ -415,33 +367,41 @@ hp_complete_pending_runtime() {
 
 hp_finish() {
   hp_step 8 'INSTALACIÓN FINALIZADA'
-  printf '%b╔══════════════════════════════════════════════════════════╗%b\n' "$HP_AMBER" "$HP_RESET"
-  printf '%b║               HOMEPILOT INSTALLATION READY               ║%b\n' "$HP_AMBER" "$HP_RESET"
-  printf '%b╚══════════════════════════════════════════════════════════╝%b\n' "$HP_AMBER" "$HP_RESET"
-  printf '\n  Sistema\n  ✓ Ubuntu ...................... OK\n  ✓ Docker ...................... OK\n'
-  printf '  ✓ HomePilot API ............... Healthy\n  ✓ HomePilot UI ................ Online\n'
-  printf '\n  Seguridad\n  TPM 2.0 ..................... %s\n' "$([[ "$hp_remote" == true ]] && printf Bound || printf 'Verificado · binding pendiente')"
-  printf '  Directory Edge .............. %s\n' "$([[ "$hp_remote" == true ]] && printf Paired || printf Pendiente)"
-  printf '\n  Integraciones\n'
-  printf '  Home Assistant .............. %s\n' "$hp_profile"
-  printf '  Cámaras nativas ............. %s\n' "$hp_cameras"
-  printf '  Android Display ............. %s\n' "$hp_android"
-  printf '  MQTT ........................ %s\n' "$hp_mqtt"
-  printf '  Voz ......................... %s\n' "$hp_voice"
-  printf '\n  Soporte\n  Cloudflare Tunnel ........... %s\n' "$([[ "$hp_remote" == true ]] && printf Connected || printf 'No configurado')"
+  hp_ui_center "$HP_AMBER$HP_BOLD" 'HOMEPILOT INSTALLATION READY'
+  printf '\n'
+  hp_ui_status '✓' "$HP_GREEN" 'API' 'Healthy'
+  hp_ui_status '✓' "$HP_GREEN" 'UI' 'Online'
+  if [[ "$hp_remote" == true ]]; then
+    hp_ui_status '✓' "$HP_GREEN" 'TPM 2.0' 'Bound'
+    hp_ui_status '✓' "$HP_GREEN" 'Directory Edge' 'Paired'
+    hp_ui_status '✓' "$HP_GREEN" 'Cloudflare Tunnel' 'Connected'
+  else
+    hp_ui_status '●' "$HP_YELLOW" 'TPM 2.0' 'Verificado · binding pendiente'
+    hp_ui_status '—' "$HP_SECONDARY" 'Directory Edge' 'Pendiente'
+    hp_ui_status '—' "$HP_SECONDARY" 'Cloudflare Tunnel' 'No configurado'
+  fi
+  printf '\n'
+  hp_ui_review_row 'Home Assistant' "$hp_profile"
+  hp_ui_review_row 'Cámaras nativas' "$(hp_ui_yes_label "$hp_cameras")"
+  hp_ui_review_row 'Android Display' "$(hp_ui_yes_label "$hp_android")"
+  hp_ui_review_row 'MQTT' "$(hp_ui_yes_label "$hp_mqtt")"
+  hp_ui_review_row 'Voz' "$(hp_ui_yes_label "$hp_voice")"
   local ui_port=8080
   if [[ -f .env ]]; then ui_port="$(sed -n 's/^HOMEPILOT_UI_PORT=//p' .env | tail -n 1)"; ui_port="${ui_port:-8080}"; fi
-  printf '\n  Abra HomePilot en: http://%s:%s\n' "$(hp_lan_address)" "$ui_port"
-  printf '  Allí creará el primer administrador, completará onboarding, dispositivos y Dashboard.\n'
-  printf '\n  Installation completed successfully.\n'
+  printf '\n'
+  hp_ui_block "$HP_PRIMARY" 'HomePilot'
+  hp_ui_block "$HP_AMBER" "http://$(hp_lan_address):${ui_port}"
+  hp_ui_wrap_block "$HP_SECONDARY" 'Desde ahí: crear administrador, configurar integraciones, completar onboarding y Dashboard.'
+  printf '\n'
+  hp_ui_center "$HP_GREEN" 'Installation completed successfully.'
 }
 
 hp_existing_menu() {
   hp_banner
-  printf '  Existing HomePilot installation detected\n'
-  printf '  1. Estado / diagnóstico\n  2. Completar configuración pendiente\n'
-  printf '  3. Reparar componentes seleccionados\n  4. Cancelar\n'
-  hp_read 'Selecciona 1-4: ' || hp_fail 'Falta selección.'
+  hp_ui_center "$HP_SOFT" 'Existing HomePilot installation detected'
+  hp_ui_select 'Selecciona una acción' 'Estado / diagnóstico' \
+    'Completar configuración pendiente' 'Reparar componentes seleccionados' 'Cancelar' \
+    || hp_fail 'Falta selección.'
   case "$REPLY" in
     1) bash scripts/install-edge-office.sh --status; bash scripts/check-edge-install.sh ;;
     2)
@@ -453,6 +413,7 @@ hp_existing_menu() {
         hp_read 'URL pública HomePilot asignada por NEZU (https://...): ' || hp_fail 'Falta URL pública.'
         hp_edge_hostname="$REPLY"
         hp_valid_edge_url "$hp_edge_hostname" || hp_fail 'URL pública inválida.'
+        hp_ui_confirm_value "$hp_edge_hostname"
       fi
       hp_verify_tpm
       hp_configure_cloudflared
@@ -460,8 +421,8 @@ hp_existing_menu() {
       hp_bind_identity
       ;;
     3)
-      printf '  1. Paquetes base y Docker\n  2. Servicio Cloudflare\n  3. Diagnóstico API\n'
-      hp_read 'Selecciona componente 1-3: ' || hp_fail 'Falta selección.'
+      hp_ui_select 'Selecciona un componente' 'Paquetes base y Docker' \
+        'Servicio Cloudflare' 'Diagnóstico API' || hp_fail 'Falta selección.'
       case "$REPLY" in
         1) hp_yes_no '¿Reparar paquetes base y Docker?' false && { hp_install_base; hp_install_docker; } ;;
         2) hp_remote=true; hp_yes_no '¿Reparar servicio Cloudflare?' false && hp_configure_cloudflared ;;
@@ -478,6 +439,7 @@ hp_main() {
   hp_color_init
   if hp_existing_installation; then hp_existing_menu; return; fi
   hp_banner
+  hp_ui_begin
   hp_collect_information
   hp_step 2 'SISTEMA BASE'
   hp_preflight

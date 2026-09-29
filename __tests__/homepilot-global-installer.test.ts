@@ -29,9 +29,9 @@ const simulatedSystem = `
 
 describe('HomePilot global installation wizard without system operations', () => {
   it.each([
-    ['existing Home Assistant', 's\n1\nn\nn\nn\nn\ns\nn\ns\n', 'bridge_ha'],
-    ['managed Home Assistant', 's\n2\nn\nn\nn\ns\nn\ns\n', 'ha_companion'],
-    ['no Home Assistant', 'n\nn\nn\nn\ns\nn\ns\n', 'native_only'],
+    ['existing Home Assistant', '1\nn\nn\nn\nn\ns\nn\ns\n', 'bridge_ha'],
+    ['managed Home Assistant', '2\nn\nn\nn\ns\nn\ns\n', 'ha_companion'],
+    ['no Home Assistant', '3\nn\nn\nn\ns\nn\ns\n', 'native_only'],
   ])('maps %s to its existing installation profile', (_label, architectureInput, profile) => {
     const input = `Cliente Prueba\nCasa Prueba\nhomepilot-test\nn\n${architectureInput}`;
     const result = runShell(simulatedSystem, input);
@@ -39,11 +39,44 @@ describe('HomePilot global installation wizard without system operations', () =>
     expect(result.stdout).toContain(`DEPLOY:${profile}:false:false:false:true`);
     expect(result.stdout).toContain('TPM_OK');
     expect(result.stdout).toContain('FINISHED');
+    expect(result.stdout).toContain('Welcome to');
+    expect(result.stdout).toContain('H O M E P I L O T');
+    expect(result.stdout).toContain('SYSTEM CHECK');
+    expect(result.stdout).toContain('REVISAR CONFIGURACIÓN');
+    expect(result.stdout).not.toMatch(/\x1b\[/);
+  });
+
+  it('centers the same branded text at 80, 100 and 120 columns', () => {
+    const result = runShell(`
+      HP_UI_TTY=true
+      for width in 80 100 120; do
+        tput() { [[ "$1" == cols ]] && printf '%s' "$width"; }
+        hp_ui_center '' 'H O M E P I L O T'
+      done
+    `);
+    expect(result.status).toBe(0);
+    const lines = result.stdout.trimEnd().split('\n');
+    const label = 'H O M E P I L O T';
+    expect(lines.map((line) => line.indexOf(label))).toEqual(
+      [80, 100, 120].map((columns) => Math.floor((columns - label.length) / 2)),
+    );
+  });
+
+  it('keeps a secret hidden while showing an input in the central block', () => {
+    const result = runShell(`
+      hp_secret 'Cloudflare Tunnel Token'
+      printf 'SECRET_LENGTH:%s\\n' "\${#REPLY}"
+    `, 'private-token-value\n');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('Cloudflare Tunnel Token');
+    expect(result.stdout).toContain('❯ ••••••••');
+    expect(result.stdout).toContain('SECRET_LENGTH:19');
+    expect(result.stdout + result.stderr).not.toContain('private-token-value');
     expect(result.stdout).not.toMatch(/\x1b\[/);
   });
 
   it('selects native cameras, Android, MQTT and disables voice without probing unselected services', () => {
-    const input = 'Cliente Prueba\nCasa Prueba\nhomepilot-test\nn\nn\ns\ns\n192.168.1.0/24\ns\n192.168.1.10\nhomeassistant\nn\nn\ns\n';
+    const input = 'Cliente Prueba\nCasa Prueba\nhomepilot-test\nn\n3\ns\ns\n192.168.1.0/24\ns\n192.168.1.10\nhomeassistant\nn\nn\ns\n';
     const result = runShell(simulatedSystem, input);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('DEPLOY:native_only:true:true:true:false');

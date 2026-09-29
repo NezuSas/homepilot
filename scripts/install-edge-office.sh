@@ -66,6 +66,13 @@ else
   NC=''
 fi
 
+if [[ "$global_install" == true ]]; then
+  source scripts/lib/homepilot-terminal-ui.sh
+  hp_color_init
+  RED="$HP_RED" GREEN="$HP_GREEN" YELLOW="$HP_YELLOW"
+  BLUE="$HP_AMBER" CYAN="$HP_SOFT" BOLD="$HP_BOLD" DIM="$HP_DIM" NC="$HP_RESET"
+fi
+
 divider() {
   printf '%b\n' "${DIM}────────────────────────────────────────────────────────────────────────${NC}"
 }
@@ -805,7 +812,7 @@ if [[ "$community_integrations_only" == true ]]; then
   exit 0
 fi
 
-if [[ "$wizard" != true ]]; then
+if [[ "$wizard" != true && "$global_install" != true ]]; then
   banner
 fi
 info "Directorio de instalación: $(pwd)"
