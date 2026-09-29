@@ -35,6 +35,7 @@ interface SectionCardEditorModalProps {
     spanOverride?: SectionCardSpan,
     iconOverride?: SectionCardIcon,
     deviceIdOverride?: string,
+    isEditorPreview?: boolean,
   ) => ReactNode;
   onClose: () => void;
   onSave: () => void;
@@ -79,6 +80,7 @@ export function SectionCardEditorModal({
               cardDraft.span,
               cardDraft.icon,
               normalizeKind(cardDraft.kind) === 'camera' || normalizeKind(cardDraft.kind) === 'cover' || normalizeKind(cardDraft.kind) === 'room' || normalizeKind(cardDraft.kind) === 'sensor' || normalizeKind(cardDraft.kind) === 'media' || normalizeKind(cardDraft.kind) === 'action' ? cardDraft.entityId : undefined,
+              true,
             )}
 
             <Input

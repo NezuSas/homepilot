@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import type { ClockCopy, ClockWeather } from '../clockTypes';
 import { formatWeather, isDaytimeHour } from '../clockUtils';
 import { getWeatherCategory, WeatherScene } from './WeatherScene';
@@ -205,6 +205,9 @@ export function AnalogDial({
   className?: string;
 }) {
   const marks = Array.from({ length: 60 });
+  const uniqueId = useId();
+  const faceId = `hpDialFace-${minimal ? 'minimal' : premium ? 'premium' : 'classic'}-${uniqueId}`;
+  const shadowId = `hpDialShadow-${minimal ? 'minimal' : premium ? 'premium' : 'classic'}-${uniqueId}`;
   const radiusClass = premium
     ? 'h-clock-dial-premium w-clock-dial-premium'
     : 'h-clock-dial w-clock-dial';
@@ -216,16 +219,16 @@ export function AnalogDial({
       aria-hidden="true"
     >
       <defs>
-        <radialGradient id={`hpDialFace-${minimal ? 'minimal' : premium ? 'premium' : 'classic'}`} cx="50%" cy="42%" r="64%">
+        <radialGradient id={faceId} cx="50%" cy="42%" r="64%">
           <stop offset="0%" stopColor="hsl(var(--card))" stopOpacity="1" />
           <stop offset="100%" stopColor="hsl(var(--background))" stopOpacity="0.68" />
         </radialGradient>
-        <filter id={`hpDialShadow-${minimal ? 'minimal' : premium ? 'premium' : 'classic'}`} x="-40%" y="-40%" width="180%" height="180%">
+        <filter id={shadowId} x="-40%" y="-40%" width="180%" height="180%">
           <feDropShadow dx="0" dy="18" stdDeviation="13" floodColor="hsl(var(--background))" floodOpacity="0.42" />
         </filter>
       </defs>
 
-      <circle className="homepilot-clock-dial-face" cx="60" cy="60" r="54" fill={`url(#hpDialFace-${minimal ? 'minimal' : premium ? 'premium' : 'classic'})`} stroke="hsl(var(--border))" strokeOpacity="0.74" strokeWidth="1" filter={`url(#hpDialShadow-${minimal ? 'minimal' : premium ? 'premium' : 'classic'})`} />
+      <circle className="homepilot-clock-dial-face" cx="60" cy="60" r="54" fill={`url(#${faceId})`} stroke="hsl(var(--border))" strokeOpacity="0.74" strokeWidth="1" filter={`url(#${shadowId})`} />
       <circle className="homepilot-clock-dial-ring" cx="60" cy="60" r={premium ? '51' : '46'} fill="none" stroke="hsl(var(--primary))" strokeOpacity={premium ? '0.15' : '0.13'} strokeWidth="1" />
 
       {marks.map((_, index) => {
@@ -266,8 +269,8 @@ export function AnalogDial({
       <line className="homepilot-clock-minute-hand" x1="60" y1="60" x2="60" y2={premium ? '16' : '25'} stroke="hsl(var(--muted-foreground))" strokeWidth={premium ? '2' : '2.2'} strokeLinecap="round" transform={`rotate(${minuteAngle} 60 60)`} />
       <line className="homepilot-clock-second-hand" x1="60" y1="66" x2="60" y2="23" stroke="hsl(var(--primary))" strokeWidth={premium ? '1' : '1.55'} strokeLinecap="round" transform={`rotate(${secondAngle} 60 60)`} />
 
-      <circle className="homepilot-clock-center" cx="60" cy="60" r={premium ? '6' : '8'} fill="hsl(var(--primary))" />
-      <circle cx="60" cy="60" r={premium ? '2.3' : '3'} fill="hsl(var(--background))" />
+      <circle className="homepilot-clock-center" cx="60" cy="60" r={premium ? '4.6' : '8'} fill="hsl(var(--primary))" />
+      <circle className="homepilot-clock-center-core" cx="60" cy="60" r={premium ? '1.8' : '3'} fill="hsl(var(--background))" />
     </svg>
   );
 }

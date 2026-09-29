@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { Plus } from 'lucide-react';
+import { Clock3, LayoutGrid, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
 import { API_BASE_URL } from '../../../config';
@@ -19,6 +19,7 @@ import { SectionCardItem } from './SectionCardItem';
 import { SectionCardCatalogModal } from './SectionCardCatalogModal';
 import { SectionCardEditorModal } from './SectionCardEditorModal';
 import { useSectionCardActions } from './useSectionCardActions';
+import { getDashboardIconComponent } from '../components/dashboardIconRegistry';
 
 interface SectionWidgetProps {
   config: DashboardWidgetConfig;
@@ -80,6 +81,10 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const title = rawTitle || t('dashboard.editor.sections.new_section');
   const showTitle = config.appearance?.showTitle !== false;
   const cards = normalizeCards(config.extra);
+  const sectionIcon = config.appearance?.icon?.trim();
+  const SectionIcon = sectionIcon
+    ? getDashboardIconComponent(sectionIcon)
+    : cards.some((card) => isClockKind(card.kind)) ? Clock3 : LayoutGrid;
   const editingCard = editingCardId ? cards.find((card) => card.id === editingCardId) : undefined;
 
   useEffect(() => {
@@ -278,6 +283,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     spanOverride?: SectionCardSpan,
     iconOverride?: SectionCardIcon,
     deviceIdOverride?: string,
+    isEditorPreview = false,
   ) => {
     const title = titleOverride || catalogLabel(kind);
     const span = getEffectiveCardSpan(kind, spanOverride ?? getDefaultSpan(kind));
@@ -299,12 +305,14 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
 
     return (
       <div className={cn(
-        "grid overflow-hidden rounded-section bg-background/40 transition-[height,width,max-width] duration-200",
+        "grid overflow-hidden rounded-section transition-[height,width,max-width] duration-200",
+        !isClockPreview && "bg-background/40",
+        isClockPreview && (isEditorPreview ? 'homepilot-clock-preview-host homepilot-clock-preview-host--editor' : 'homepilot-clock-preview-host homepilot-clock-preview-host--catalog'),
         span === 'small' && (normalizedPreviewKind === 'device' || normalizedPreviewKind === 'light' || normalizedPreviewKind === 'action' ? "h-device-card-compact w-device-card-compact justify-self-center" : "h-section-card-sm w-full max-w-[12rem] justify-self-center"),
         span === 'medium' && !isCoverPreview && "h-section-card-md w-full max-w-form-md",
         span === 'medium' && isCoverPreview && "h-curtain-card w-full max-w-form-md justify-self-center",
         span === 'full' && "w-full",
-        isCameraPreview ? 'min-h-60' : isClockPreview ? 'h-56' : isRoomPreview ? 'h-52' : isScenePreview ? 'h-44' : isCoverPreview && span === 'full' ? 'h-curtain-card-lg' : normalizedPreviewKind === 'media' ? 'h-media-card-preview' : span === 'full' ? 'h-40' : ''
+        isCameraPreview ? 'min-h-60' : isClockPreview ? '' : isRoomPreview ? 'h-52' : isScenePreview ? 'h-44' : isCoverPreview && span === 'full' ? 'h-curtain-card-lg' : normalizedPreviewKind === 'media' ? 'h-media-card-preview' : span === 'full' ? 'h-40' : ''
       )}>
         <SectionCardContent
           kind={kind}
@@ -396,8 +404,9 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       )}
     >
       {showTitle ? (
-        <h2 className="w-fit max-w-full truncate rounded-lg bg-background/80 px-2 py-1 text-dashboard-section-title-fluid font-black tracking-tight text-foreground backdrop-blur-sm">
-          {title}
+        <h2 className="homepilot-dashboard-section-heading flex w-fit max-w-full items-center gap-2 truncate rounded-lg px-2 py-1 text-dashboard-section-title-fluid font-black tracking-tight">
+          <SectionIcon className="homepilot-dashboard-section-heading-icon h-5 w-5 shrink-0" />
+          <span className="truncate">{title}</span>
         </h2>
       ) : isEditing ? (
         <span className="pointer-events-none absolute -top-5 left-1 text-body font-semibold text-muted-foreground">

@@ -11,5 +11,9 @@ export function SectionClockPreview({ kind, title }: { kind: SectionCardKind; ti
     extra: { clockStyle: getClockStyleForKind(kind) },
   };
 
-  return <div className="h-full min-h-clock-card overflow-hidden rounded-section"><ClockWidget config={clockConfig} /></div>;
+  return (
+    <div className="homepilot-dashboard-screen h-full min-h-clock-card overflow-hidden rounded-section">
+      <ClockWidget config={clockConfig} />
+    </div>
+  );
 }
