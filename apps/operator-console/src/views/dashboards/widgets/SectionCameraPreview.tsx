@@ -19,9 +19,9 @@ export function SectionCameraPreview({ device, title, subtitle }: SectionCameraP
     return <CameraDeviceTile device={device} title={title} roomName={subtitle} dashboard />;
   }
 
-  return <div className="relative h-full min-h-curtain-card overflow-hidden rounded-section border border-border/40 bg-card">
+  return <div className="homepilot-camera-tile relative h-full min-h-curtain-card overflow-hidden rounded-section border border-border/40 bg-card">
     <div className="absolute inset-0"><CameraMediaPlaceholder /></div>
-    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+    <div className="homepilot-camera-gradient pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
     <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4">
       <p className="line-clamp-2 text-card-title font-bold leading-tight text-white drop-shadow">{title}</p>
       <p className="mt-1 truncate text-caption font-semibold text-white/80">{subtitle || t('dashboard.editor.sections.camera_unassigned')}</p>

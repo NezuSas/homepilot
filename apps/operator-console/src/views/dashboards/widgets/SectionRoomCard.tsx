@@ -11,7 +11,7 @@ export function SectionRoomCard({ title, roomDeviceCount, roomActiveCount }: Sec
   const { t } = useTranslation();
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col justify-between overflow-hidden rounded-section border border-border/60 bg-room-card p-3.5 text-foreground shadow-surface-card ring-1 ring-background/70 transition-all dark:border-primary/20 dark:bg-room-card-dark dark:shadow-primary-room sm:p-4">
+    <div className="homepilot-dashboard-large-card relative flex h-full min-h-0 flex-col justify-between overflow-hidden rounded-section border border-border/60 bg-room-card p-3.5 text-foreground shadow-surface-card ring-1 ring-background/70 transition-all dark:border-primary/20 dark:bg-room-card-dark dark:shadow-primary-room sm:p-4">
       <div className="pointer-events-none absolute inset-0 bg-room-card-aura opacity-80 dark:opacity-100" />
       <div className="flex items-start justify-between gap-3">
         <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-primary/20 bg-primary/10 text-primary shadow-sm ring-1 ring-primary/10 sm:h-11 sm:w-11"><Home className="h-room-icon w-room-icon sm:h-5 sm:w-5" /></span>

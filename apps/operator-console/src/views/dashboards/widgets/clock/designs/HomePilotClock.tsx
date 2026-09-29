@@ -7,7 +7,7 @@ export function HomePilotClock({ now, locale, copy, weather, weatherStatus }: Cl
   const angles = getHandAngles(now);
 
   return (
-    <ClockShell tone="analog" className="p-clock-shell-compact">
+    <ClockShell tone="analog" className="homepilot-clock-surface p-clock-shell-compact">
       <div data-homepilot-clock className="relative z-10 flex h-full min-h-0 min-w-0 flex-col justify-between gap-clock-gap">
         <div className="grid min-h-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-clock-gap-layout">
           <div className="min-w-0">
@@ -21,7 +21,7 @@ export function HomePilotClock({ now, locale, copy, weather, weatherStatus }: Cl
             minuteAngle={angles.minute}
             secondAngle={angles.second}
             premium
-            className="!h-clock-dial-classic !w-clock-dial-classic max-h-full max-w-full"
+            className="homepilot-clock-dial !h-clock-dial-classic !w-clock-dial-classic max-h-full max-w-full"
           />
         </div>
         <div className="min-w-0 border-t border-border/45 pt-clock-gap-compact">

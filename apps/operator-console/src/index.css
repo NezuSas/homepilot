@@ -882,8 +882,8 @@
   }
 
   .dark .homepilot-dashboard-backdrop::after {
-    background: linear-gradient(135deg, hsl(var(--background) / 0.4) 0%, hsl(var(--card) / 0.24) 58%, hsl(var(--background) / 0.43) 100%);
-    backdrop-filter: saturate(0.84) contrast(0.94) brightness(0.78) blur(0.6px);
+    background: linear-gradient(135deg, hsl(var(--background) / 0.32) 0%, hsl(var(--card) / 0.19) 58%, hsl(var(--background) / 0.34) 100%);
+    backdrop-filter: saturate(0.96) contrast(0.98) brightness(0.9) blur(0.6px);
   }
 
   .light .homepilot-dashboard-widget:has(.homepilot-dashboard-title) {
@@ -909,6 +909,222 @@
     background: linear-gradient(135deg, hsl(var(--primary) / 0.2) 0%, hsl(var(--dashboard-surface-raised) / 0.96) 78%);
     box-shadow: 0 14px 30px -22px hsl(var(--primary) / 0.38), inset 0 1px 0 hsl(var(--dashboard-surface-raised) / 0.76);
   }
+
+  /* Premium dashboard is a local visual language, not a replacement for the
+     application-wide primary or semantic success/warning/danger palette. */
+  .dark .homepilot-dashboard-screen {
+    --dashboard-premium-accent: 242 138 58;
+    --dashboard-premium-accent-light: 246 163 94;
+    --dashboard-premium-accent-soft: rgb(var(--dashboard-premium-accent) / 0.12);
+    --dashboard-premium-accent-border: rgb(var(--dashboard-premium-accent-light) / 0.65);
+    --dashboard-premium-accent-glow: rgb(var(--dashboard-premium-accent) / 0.14);
+    --dashboard-premium-section: 29 24 21;
+    --dashboard-premium-card: 28 24 22;
+    --dashboard-premium-tile: 48 41 36;
+    --dashboard-premium-tile-hover: 50 41 35;
+    --dashboard-premium-edge: 255 215 185;
+    --dashboard-premium-text: 255 252 249;
+    --dashboard-premium-secondary: 235 225 218;
+    /* Alias only inside the dark Dashboard; the app-wide brand primary stays unchanged. */
+    --primary: 27 86% 59%;
+    --ring: 27 86% 59%;
+    --foreground: 30 30% 96%;
+    --muted-foreground: 26 13% 72%;
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-dashboard-section {
+    background: rgb(var(--dashboard-premium-section) / 0.78);
+    box-shadow: 0 12px 40px rgb(10 7 5 / 0.2), inset 0 0 0 1px rgb(var(--dashboard-premium-edge) / 0.16), inset 0 1px 0 rgb(255 230 210 / 0.04);
+    backdrop-filter: blur(16px);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    .dark .homepilot-dashboard-screen .homepilot-dashboard-section {
+      background: rgb(var(--dashboard-premium-section) / 0.88);
+    }
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-dashboard-section h2 {
+    background: transparent;
+    color: rgb(var(--dashboard-premium-text) / 0.94);
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-clock-surface,
+  .dark .homepilot-dashboard-screen [data-media-player="homepilot-premium"],
+  .dark .homepilot-dashboard-screen .sensor-metric-card,
+  .dark .homepilot-dashboard-screen .homepilot-camera-tile,
+  .dark .homepilot-dashboard-screen .homepilot-dashboard-large-card {
+    border-color: rgb(var(--dashboard-premium-edge) / 0.18);
+    background-color: rgb(var(--dashboard-premium-card) / 0.89);
+    box-shadow: 0 12px 28px -22px rgb(7 5 4 / 0.46), inset 0 1px 0 rgb(255 230 210 / 0.045);
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-section-light-tile-surface,
+  .dark .homepilot-dashboard-screen .homepilot-section-tile-inactive {
+    border-color: rgb(var(--dashboard-premium-edge) / 0.13);
+    background: rgb(var(--dashboard-premium-tile) / 0.84);
+    box-shadow: 0 8px 18px -17px rgb(9 6 4 / 0.52), inset 0 1px 0 rgb(255 230 210 / 0.025);
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-section-tile-inactive:hover,
+  .dark .homepilot-dashboard-screen .homepilot-section-light-tile-surface:hover {
+    border-color: rgb(var(--dashboard-premium-edge) / 0.22);
+    background: rgb(var(--dashboard-premium-tile-hover) / 0.9);
+    box-shadow: 0 10px 21px -17px rgb(9 6 4 / 0.6), inset 0 1px 0 rgb(255 230 210 / 0.045);
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-section-tile-inactive svg,
+  .dark .homepilot-dashboard-screen .homepilot-section-light-tile-surface svg {
+    color: rgb(var(--dashboard-premium-text) / 0.88);
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-section-light-tile-active,
+  .dark .homepilot-dashboard-screen .homepilot-section-device-tile-active {
+    border-color: var(--dashboard-premium-accent-border);
+    background: linear-gradient(180deg, rgb(var(--dashboard-premium-accent) / 0.18), rgb(var(--dashboard-premium-accent) / 0.08)), rgb(var(--dashboard-premium-tile) / 0.88);
+    box-shadow: 0 8px 22px -14px var(--dashboard-premium-accent-glow), 0 0 22px var(--dashboard-premium-accent-glow), inset 0 0 20px rgb(var(--dashboard-premium-accent) / 0.05);
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-section-light-tile-active > .homepilot-section-light-tile-surface {
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-section-light-tile-active svg,
+  .dark .homepilot-dashboard-screen .homepilot-section-device-tile-active svg {
+    color: rgb(var(--dashboard-premium-accent-light));
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-section-light-tile-surface:focus-visible,
+  .dark .homepilot-dashboard-screen .homepilot-section-device-tile-active:focus-visible {
+    outline: 2px solid var(--dashboard-premium-accent-border);
+    outline-offset: 2px;
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-clock-surface {
+    background: radial-gradient(circle at 78% 44%, rgb(var(--dashboard-premium-accent) / 0.08), transparent 38%), linear-gradient(145deg, rgb(34 29 26 / 0.94), rgb(var(--dashboard-premium-card) / 0.9));
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-dashboard-large-card {
+    background: linear-gradient(145deg, rgb(37 31 27 / 0.92), rgb(var(--dashboard-premium-card) / 0.89));
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-dashboard-large-card-active {
+    border-color: var(--dashboard-premium-accent-border);
+    background: linear-gradient(145deg, rgb(var(--dashboard-premium-accent) / 0.15), rgb(var(--dashboard-premium-card) / 0.91) 68%);
+    box-shadow: 0 10px 28px -20px var(--dashboard-premium-accent-glow), inset 0 1px 0 rgb(var(--dashboard-premium-accent-light) / 0.1);
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-clock-ambient-glow {
+    background: rgb(var(--dashboard-premium-accent) / 0.09);
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-clock-accent-dot {
+    background: rgb(var(--dashboard-premium-accent-light));
+    box-shadow: 0 0 10px rgb(var(--dashboard-premium-accent) / 0.16);
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-clock-dial {
+    filter: drop-shadow(0 10px 12px rgb(8 5 3 / 0.3)) drop-shadow(0 0 10px rgb(var(--dashboard-premium-accent) / 0.08));
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-clock-dial radialGradient stop:first-child { stop-color: rgb(48 39 33); }
+  .dark .homepilot-dashboard-screen .homepilot-clock-dial radialGradient stop:last-child { stop-color: rgb(26 22 20); }
+  .dark .homepilot-dashboard-screen .homepilot-clock-dial-face { stroke: rgb(var(--dashboard-premium-edge) / 0.28); }
+  .dark .homepilot-dashboard-screen .homepilot-clock-dial-ring { stroke: rgb(var(--dashboard-premium-accent-light)); stroke-opacity: 0.42; }
+  .dark .homepilot-dashboard-screen .homepilot-clock-hour-tick { stroke: rgb(var(--dashboard-premium-secondary) / 0.8); }
+  .dark .homepilot-dashboard-screen .homepilot-clock-minute-tick { stroke: rgb(var(--dashboard-premium-edge) / 0.46); }
+  .dark .homepilot-dashboard-screen .homepilot-clock-hour-hand { stroke: rgb(var(--dashboard-premium-text) / 0.95); }
+  .dark .homepilot-dashboard-screen .homepilot-clock-minute-hand { stroke: rgb(var(--dashboard-premium-secondary) / 0.9); }
+  .dark .homepilot-dashboard-screen .homepilot-clock-second-hand { stroke: rgb(var(--dashboard-premium-accent-light)); }
+  .dark .homepilot-dashboard-screen .homepilot-clock-center { fill: rgb(var(--dashboard-premium-accent)); }
+
+  .dark .homepilot-dashboard-screen [data-media-player="homepilot-premium"] {
+    background: radial-gradient(circle at 20% 25%, rgb(var(--dashboard-premium-accent) / 0.09), transparent 36%), linear-gradient(145deg, rgb(34 29 26 / 0.92), rgb(var(--dashboard-premium-card) / 0.9));
+  }
+
+  .dark .homepilot-dashboard-screen [data-media-artwork] {
+    border-color: rgb(var(--dashboard-premium-edge) / 0.2);
+    background: rgb(47 39 33 / 0.95);
+    box-shadow: 0 8px 18px -14px rgb(6 4 3 / 0.6), inset 0 1px 0 rgb(255 230 210 / 0.09);
+  }
+
+  .dark .homepilot-dashboard-screen [data-media-artwork-placeholder] {
+    background: radial-gradient(circle at 32% 26%, rgb(var(--dashboard-premium-accent) / 0.16), transparent 68%), rgb(47 39 33 / 0.95);
+    color: rgb(var(--dashboard-premium-accent-light) / 0.78);
+  }
+
+  .dark .homepilot-dashboard-screen [data-media-player="homepilot-premium"] .homepilot-media-play-control {
+    border-color: var(--dashboard-premium-accent-border);
+    background: var(--dashboard-premium-accent-soft);
+    color: rgb(var(--dashboard-premium-text) / 0.96);
+    box-shadow: 0 7px 17px -13px var(--dashboard-premium-accent-glow), 0 0 18px rgb(var(--dashboard-premium-accent) / 0.16), inset 0 1px 0 rgb(var(--dashboard-premium-accent-light) / 0.18);
+  }
+
+  .dark .homepilot-dashboard-screen [data-media-player="homepilot-premium"] .homepilot-media-play-control:hover {
+    background: rgb(var(--dashboard-premium-accent) / 0.18);
+  }
+
+  .dark .homepilot-dashboard-screen [data-media-player="homepilot-premium"] button:not(.homepilot-media-play-control) {
+    color: rgb(var(--dashboard-premium-secondary) / 0.88);
+  }
+
+  .dark .homepilot-dashboard-screen [data-media-player="homepilot-premium"] button:not(.homepilot-media-play-control):hover {
+    color: rgb(var(--dashboard-premium-accent-light));
+    background: rgb(var(--dashboard-premium-accent) / 0.08);
+  }
+
+  .dark .homepilot-dashboard-screen [data-media-player="homepilot-premium"] [role="progressbar"],
+  .dark .homepilot-dashboard-screen .homepilot-media-volume-track {
+    background: rgb(255 255 255 / 0.13);
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-media-volume-track { overflow: visible; }
+
+  .dark .homepilot-dashboard-screen [data-media-player="homepilot-premium"] [role="progressbar"] > span,
+  .dark .homepilot-dashboard-screen .homepilot-media-volume-track > span {
+    background: rgb(var(--dashboard-premium-accent));
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-media-volume-track > span { position: relative; }
+
+  .dark .homepilot-dashboard-screen .homepilot-media-volume-track > span::after {
+    content: '';
+    position: absolute;
+    right: -3px;
+    top: 50%;
+    width: 7px;
+    height: 7px;
+    transform: translateY(-50%);
+    border-radius: 50%;
+    background: rgb(var(--dashboard-premium-accent-light));
+    box-shadow: 0 0 7px rgb(var(--dashboard-premium-accent) / 0.22);
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-camera-gradient {
+    background: linear-gradient(to top, rgb(25 16 11 / 0.84), rgb(35 24 18 / 0.12) 65%, transparent);
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-camera-tile .bg-scene-preview {
+    background: radial-gradient(circle at 82% 22%, rgb(var(--dashboard-premium-accent) / 0.13), transparent 38%), rgb(var(--dashboard-premium-card) / 0.93);
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-camera-live-badge {
+    border-color: rgb(var(--dashboard-premium-edge) / 0.22);
+    background: rgb(28 23 20 / 0.7);
+    color: rgb(var(--dashboard-premium-text) / 0.94);
+  }
+
+  .dark .homepilot-dashboard-screen .homepilot-camera-live-dot {
+    background: rgb(var(--dashboard-premium-accent));
+  }
+
+  .dark .homepilot-dashboard-screen .sensor-metric-card > div:first-child > span[aria-label] {
+    background: rgb(var(--dashboard-premium-edge) / 0.08);
+    box-shadow: inset 0 0 0 1px rgb(var(--dashboard-premium-edge) / 0.1), inset 0 1px 0 rgb(255 230 210 / 0.05);
+  }
+
   .homepilot-home {
     width: 100%;
     max-width: none;

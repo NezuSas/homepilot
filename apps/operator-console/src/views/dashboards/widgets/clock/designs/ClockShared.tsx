@@ -30,14 +30,14 @@ export function ClockShell({
     >
       <div className="pointer-events-none absolute inset-0 rounded-[inherit] bg-clock-sheen opacity-70" />
       <div className="pointer-events-none absolute inset-px rounded-[inherit] border border-white/5" />
-      <div className="pointer-events-none absolute -right-20 -top-20 h-52 w-52 rounded-full bg-primary/5 blur-3xl" />
+      <div className="homepilot-clock-ambient-glow pointer-events-none absolute -right-20 -top-20 h-52 w-52 rounded-full bg-primary/5 blur-3xl" />
       {children}
     </div>
   );
 }
 
 export function AccentDot({ className = '' }: { className?: string }) {
-  return <span className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary shadow-primary-glow ${className}`} />;
+  return <span className={`homepilot-clock-accent-dot inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary shadow-primary-glow ${className}`} />;
 }
 
 export function ClockLabel({
@@ -225,8 +225,8 @@ export function AnalogDial({
         </filter>
       </defs>
 
-      <circle cx="60" cy="60" r="54" fill={`url(#hpDialFace-${minimal ? 'minimal' : premium ? 'premium' : 'classic'})`} stroke="hsl(var(--border))" strokeOpacity="0.74" strokeWidth="1" filter={`url(#hpDialShadow-${minimal ? 'minimal' : premium ? 'premium' : 'classic'})`} />
-      <circle cx="60" cy="60" r="46" fill="none" stroke="hsl(var(--primary))" strokeOpacity={premium ? '0.22' : '0.13'} strokeWidth="1" />
+      <circle className="homepilot-clock-dial-face" cx="60" cy="60" r="54" fill={`url(#hpDialFace-${minimal ? 'minimal' : premium ? 'premium' : 'classic'})`} stroke="hsl(var(--border))" strokeOpacity="0.74" strokeWidth="1" filter={`url(#hpDialShadow-${minimal ? 'minimal' : premium ? 'premium' : 'classic'})`} />
+      <circle className="homepilot-clock-dial-ring" cx="60" cy="60" r="46" fill="none" stroke="hsl(var(--primary))" strokeOpacity={premium ? '0.22' : '0.13'} strokeWidth="1" />
 
       {marks.map((_, index) => {
         const angle = (index * 6 * Math.PI) / 180;
@@ -240,6 +240,7 @@ export function AnalogDial({
         return (
           <line
             key={index}
+            className={isHour ? 'homepilot-clock-hour-tick' : 'homepilot-clock-minute-tick'}
             x1={x1}
             y1={y1}
             x2={x2}
@@ -261,11 +262,11 @@ export function AnalogDial({
         </>
       ) : null}
 
-      <line x1="60" y1="60" x2="60" y2="36" stroke="hsl(var(--foreground))" strokeWidth={premium ? '3.4' : '3.1'} strokeLinecap="round" transform={`rotate(${hourAngle} 60 60)`} />
-      <line x1="60" y1="60" x2="60" y2="25" stroke="hsl(var(--muted-foreground))" strokeWidth="2.2" strokeLinecap="round" transform={`rotate(${minuteAngle} 60 60)`} />
-      <line x1="60" y1="66" x2="60" y2="23" stroke="hsl(var(--primary))" strokeWidth="1.55" strokeLinecap="round" transform={`rotate(${secondAngle} 60 60)`} />
+      <line className="homepilot-clock-hour-hand" x1="60" y1="60" x2="60" y2="36" stroke="hsl(var(--foreground))" strokeWidth={premium ? '3.4' : '3.1'} strokeLinecap="round" transform={`rotate(${hourAngle} 60 60)`} />
+      <line className="homepilot-clock-minute-hand" x1="60" y1="60" x2="60" y2="25" stroke="hsl(var(--muted-foreground))" strokeWidth="2.2" strokeLinecap="round" transform={`rotate(${minuteAngle} 60 60)`} />
+      <line className="homepilot-clock-second-hand" x1="60" y1="66" x2="60" y2="23" stroke="hsl(var(--primary))" strokeWidth="1.55" strokeLinecap="round" transform={`rotate(${secondAngle} 60 60)`} />
 
-      <circle cx="60" cy="60" r={premium ? '8.5' : '8'} fill="hsl(var(--primary))" />
+      <circle className="homepilot-clock-center" cx="60" cy="60" r={premium ? '8.5' : '8'} fill="hsl(var(--primary))" />
       <circle cx="60" cy="60" r="3" fill="hsl(var(--background))" />
     </svg>
   );

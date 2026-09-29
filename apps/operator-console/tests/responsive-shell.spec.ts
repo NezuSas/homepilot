@@ -573,7 +573,7 @@ for (const viewport of [viewports[2], viewports[1], viewports[0], { name: 'portr
         cardGridHeight: gridRect.height,
         titleTop: (heading?.getBoundingClientRect().top ?? sectionRect.top) - sectionRect.top,
         titleToCards: cardRects[0] ? cardRects[0].top - (heading?.getBoundingClientRect().bottom ?? 0) : 0,
-        titleBackground: heading ? getComputedStyle(heading).backgroundColor : '',
+        sectionBackground: getComputedStyle(element).backgroundColor,
         cardTopOffsets: cardRects.map((card) => card.top - gridRect.top),
         rowGap: getComputedStyle(cardGrid).rowGap,
         transitionProperty: getComputedStyle(element).transitionProperty,
@@ -633,8 +633,8 @@ for (const viewport of [viewports[2], viewports[1], viewports[0], { name: 'portr
       expect(Math.abs(after.titleTop - before.titleTop)).toBeLessThanOrEqual(2);
       expect(Math.abs(after.titleToCards - before.titleToCards)).toBeLessThanOrEqual(2);
       expect(before.titleTop).toBeGreaterThanOrEqual(8);
-      expect(before.titleBackground).not.toBe('rgba(0, 0, 0, 0)');
-      expect(after.titleBackground).toBe(before.titleBackground);
+      expect(before.sectionBackground).not.toBe('rgba(0, 0, 0, 0)');
+      expect(after.sectionBackground).toBe(before.sectionBackground);
       expect(before.rowGap).toBe('8px');
       expect(after.rowGap).toBe('8px');
       expect(after.cardTopOffsets).toHaveLength(before.cardTopOffsets.length);

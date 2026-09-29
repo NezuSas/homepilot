@@ -10,7 +10,7 @@ export function SectionSceneCard({ title, subtitle }: SectionSceneCardProps) {
   const { t } = useTranslation();
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-section border border-primary/25 bg-room-card-rich p-4">
+    <div className="homepilot-dashboard-large-card relative flex h-full min-h-0 flex-col overflow-hidden rounded-section border border-primary/25 bg-room-card-rich p-4">
       <div className="flex items-start justify-between gap-3">
         <span className="grid h-11 w-11 place-items-center rounded-2xl border border-primary/30 bg-primary/10 text-primary shadow-inner"><Monitor className="h-5 w-5" /></span>
         <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-micro font-black uppercase tracking-status text-primary">{t('dashboard.editor.sections.scene_list')}</span>

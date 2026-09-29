@@ -283,7 +283,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
           onClick={(event) => { event.stopPropagation(); invoke(playPauseCommand); }}
           variant="primary"
           size="md"
-          className="h-11 w-11 rounded-full border border-primary/40 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary"
+          className="homepilot-media-play-control h-11 w-11 rounded-full border border-primary/40 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary"
         />
         {hasNext && (
           <IconButton
@@ -310,7 +310,7 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
             size="sm"
             className="h-8 w-8 rounded-lg text-foreground/80 hover:text-primary"
           />
-          <div className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-foreground/15" aria-hidden="true">
+          <div className="homepilot-media-volume-track h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-foreground/15" aria-hidden="true">
             <span className="block h-full rounded-full bg-primary/85 transition-[width] duration-300" style={{ width: `${currentVolume ?? 0}%` }} />
           </div>
           <IconButton
