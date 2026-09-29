@@ -10,7 +10,7 @@ readonly compose_agents="docker-compose.pc-agents.yml"
 usage() {
   cat <<'EOF'
 Uso:
-  bash scripts/configure-pc-agent-mqtt.sh init --ha-username USUARIO
+  bash scripts/configure-pc-agent-mqtt.sh init --ha-username USUARIO [--prepare-only]
   bash scripts/configure-pc-agent-mqtt.sh add-device --device-name NOMBRE
   bash scripts/configure-pc-agent-mqtt.sh status
 
@@ -31,9 +31,11 @@ shift || true
 case "$command_name" in
   init)
     ha_username=""
+    prepare_only=false
     while [[ $# -gt 0 ]]; do
       case "$1" in
         --ha-username) ha_username="${2:-}"; shift 2 ;;
+        --prepare-only) prepare_only=true; shift ;;
         --help) usage; exit 0 ;;
         *) fail "Opción no reconocida: $1" ;;
       esac
@@ -45,15 +47,21 @@ case "$command_name" in
     [[ -f "$compose_base" && -f "$compose_agents" ]] || fail 'Faltan archivos Compose de MQTT.'
     umask 077
     mkdir -p "$credentials_dir"
-    docker run --rm -it -v "$(pwd)/${credentials_dir}:/mqtt" eclipse-mosquitto:2 \
+    docker_tty=()
+    [[ ! -t 0 || ! -t 1 ]] || docker_tty=(-t)
+    docker run --rm -i "${docker_tty[@]}" -v "$(pwd)/${credentials_dir}:/mqtt" eclipse-mosquitto:2 \
       mosquitto_passwd -c /mqtt/passwordfile "$ha_username"
     cat > "$acl_file" <<EOF
 user ${ha_username}
 topic readwrite hass.agent/#
 EOF
     chmod 600 "$password_file" "$acl_file"
-    compose up -d homepilot-mqtt
-    ok 'Broker MQTT seguro iniciado.'
+    if [[ "$prepare_only" == true ]]; then
+      ok 'Credenciales MQTT seguras preparadas; el instalador iniciará el broker.'
+    else
+      compose up -d homepilot-mqtt
+      ok 'Broker MQTT seguro iniciado.'
+    fi
     printf 'Configura MQTT en Home Assistant con host IP_DE_LA_MINIPC, puerto 1883 y usuario %s.\n' "$ha_username"
     ;;
   add-device)

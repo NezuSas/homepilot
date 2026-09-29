@@ -3,7 +3,8 @@ import { dirname, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 
-const [cloudUrl, code, suppliedEdgeHostname] = process.argv.slice(2);
+const [cloudUrl, suppliedCode, suppliedEdgeHostname] = process.argv.slice(2);
+const code = suppliedCode === '--code-stdin' ? readFileSync(0, 'utf8').trim() : suppliedCode;
 if (!cloudUrl || !code) throw new Error('Uso: node scripts/claim-cloud-pairing.mjs <https://accounts.nezuecuador.com> <codigo> [https://homepilot-casa.nezuecuador.com]');
 const edgeHostname = suppliedEdgeHostname ?? discoverCloudflaredHostname();
 const response = await fetch(new URL('/directory/edge-pairing/claim', cloudUrl), {

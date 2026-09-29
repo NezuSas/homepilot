@@ -1,0 +1,26 @@
+# For ha_companion when the technician explicitly enables LAN MQTT agents.
+# Compose 2.24+ !override replaces the built-in broker instead of merging ports.
+services:
+  homepilot-mqtt: !override
+    image: eclipse-mosquitto:2
+    container_name: homepilot-mqtt
+    ports:
+      - "${HOMEPILOT_MQTT_BIND_ADDRESS:-127.0.0.1}:${HOMEPILOT_MQTT_PORT:-1883}:1883"
+    volumes:
+      - ./mosquitto/config/mosquitto.secure.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./data/mqtt:/mosquitto/config/credentials:ro
+      - homepilot-mqtt-data:/mosquitto/data
+    healthcheck:
+      test: ["CMD-SHELL", "kill -0 1"]
+      interval: 15s
+      timeout: 8s
+      retries: 3
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  homepilot-mqtt-data:

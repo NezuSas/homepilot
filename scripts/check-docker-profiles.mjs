@@ -6,6 +6,8 @@ const requiredFiles = [
   'docker-compose.desktop.yml',
   'docker-compose.ha-companion.desktop.yml',
   'docker-compose.pc-agents.yml',
+  'docker-compose.mqtt-secure.yml',
+  'docker-compose.tpm.yml',
   'mosquitto/config/mosquitto.secure.conf',
   'docker/ui/nginx.conf',
   'docker/ui/nginx.desktop.conf',
@@ -37,6 +39,8 @@ if (failures.length === 0) {
   const desktop = read('docker-compose.desktop.yml');
   const haCompanionDesktop = read('docker-compose.ha-companion.desktop.yml');
   const pcAgents = read('docker-compose.pc-agents.yml');
+  const secureMqttOverlay = read('docker-compose.mqtt-secure.yml');
+  const tpmOverlay = read('docker-compose.tpm.yml');
   const secureMqtt = read('mosquitto/config/mosquitto.secure.conf');
   const nginx = read('docker/ui/nginx.conf');
   const desktopNginx = read('docker/ui/nginx.desktop.conf');
@@ -98,6 +102,16 @@ if (failures.length === 0) {
     || !secureMqtt.includes('allow_anonymous false') || !secureMqtt.includes('acl_file')) {
     failures.push('Office PC-agent MQTT must use the secure credentials and ACL profile');
   }
+  if (!secureMqttOverlay.includes('homepilot-mqtt: !override')
+    || !secureMqttOverlay.includes('HOMEPILOT_MQTT_BIND_ADDRESS:-127.0.0.1')
+    || secureMqttOverlay.includes('0.0.0.0')
+    || !secureMqttOverlay.includes('mosquitto.secure.conf')
+    || !secureMqttOverlay.includes('./data/mqtt:/mosquitto/config/credentials:ro')) {
+    failures.push('Managed-HA MQTT overlay must replace the anonymous broker with a secure, LAN-scoped listener');
+  }
+  if (!tpmOverlay.includes('/dev/tpmrm0:/dev/tpmrm0')) {
+    failures.push('TPM overlay must pass through the resource manager device to the API');
+  }
   if (!integrated.includes('/app/data/homepilot.db') || !office.includes('/app/data/homepilot.db') || !desktop.includes('/app/data/homepilot.db')) {
     failures.push('Every profile must target /app/data/homepilot.db');
   }
@@ -143,8 +157,9 @@ if (failures.length === 0) {
   }
   if (!maintenance.includes('is_docker_desktop')
     || !maintenance.includes('docker-compose.desktop.yml')
-    || !maintenance.includes('docker compose "${compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME"')
-    || !maintenance.includes('docker compose "${compose_args[@]}" up -d --no-build --remove-orphans')) {
+    || !maintenance.includes('docker compose "${compose_options[@]}" build --builder "$HOMEPILOT_BUILDER_NAME"')
+    || maintenance.includes('--remove-orphans')
+    || !maintenance.includes('maintenance_build_and_up "${compose_args[@]}"')) {
     failures.push('Maintenance deploy must select the Docker Desktop overlay, build with the dedicated builder, then start without rebuilding');
   }
   if (!builderHelper.includes('--buildkitd-config "$HOMEPILOT_BUILDKIT_CONFIG"')

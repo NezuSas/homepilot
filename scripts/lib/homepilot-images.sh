@@ -10,6 +10,10 @@ homepilot_image_enable_display() {
 }
 
 homepilot_image_revision() {
+  if [[ -n "${HOMEPILOT_BUILD_REVISION:-}" ]]; then
+    printf '%s\n' "$HOMEPILOT_BUILD_REVISION"
+    return
+  fi
   git rev-parse --short=12 HEAD 2>/dev/null || printf 'unknown\n'
 }
 

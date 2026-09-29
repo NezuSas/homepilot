@@ -19,6 +19,11 @@ gc_homepilot=false
 assume_yes=false
 truncate_logs=false
 runtime_failures=0
+global_installer_v1=false
+voice_enabled=true
+camera_enabled=true
+mqtt_enabled=false
+tpm_enabled=false
 
 if [[ -t 1 ]]; then
   RED='\033[0;31m'
@@ -89,6 +94,20 @@ load_saved_profile() {
   esac
 }
 
+load_installer_capabilities() {
+  [[ -f .env ]] || return 0
+  if [[ "$(env_value HOMEPILOT_GLOBAL_INSTALLER_VERSION '')" == v1 ]]; then
+    global_installer_v1=true
+    voice_enabled="$(env_value HOMEPILOT_VOICE_ENABLED true)"
+    camera_enabled="$(env_value HOMEPILOT_CAMERA_ENABLED true)"
+    mqtt_enabled="$(env_value HOMEPILOT_MQTT_ENABLED false)"
+    tpm_enabled="$(env_value HOMEPILOT_TPM_ENABLED true)"
+    for value in "$voice_enabled" "$camera_enabled" "$mqtt_enabled" "$tpm_enabled"; do
+      [[ "$value" == true || "$value" == false ]] || fail 'Capacidad del instalador inválida en .env.'
+    done
+  fi
+}
+
 configure_profile() {
   case "$profile" in
     bridge_ha|native_only)
@@ -115,7 +134,17 @@ configure_profile() {
   fi
 
   if [[ "$compose_explicit" == false && "$profile" == "bridge_ha" && -f data/mqtt/passwordfile && -f docker-compose.pc-agents.yml ]]; then
-    compose_files+=("docker-compose.pc-agents.yml")
+    if [[ "$global_installer_v1" != true ]]; then compose_files+=("docker-compose.pc-agents.yml"); fi
+  fi
+  if [[ "$global_installer_v1" == true ]]; then
+    [[ "$tpm_enabled" != true ]] || compose_files+=("docker-compose.tpm.yml")
+    if [[ "$mqtt_enabled" == true ]]; then
+      if [[ "$profile" == ha_companion ]]; then
+        compose_files+=("docker-compose.mqtt-secure.yml")
+      else
+        compose_files+=("docker-compose.pc-agents.yml")
+      fi
+    fi
   fi
   if [[ -f .env ]]; then
     android_display_load
@@ -271,12 +300,19 @@ verify_runtime_once() {
   runtime_failures=0
   check_container "homepilot-api" "API HomePilot"
   check_container "homepilot-ui" "UI HomePilot"
-  check_container "homepilot-stt" "STT Whisper"
-  check_container "homepilot-tts" "TTS Piper"
+  if [[ "$voice_enabled" == true ]]; then
+    check_container "homepilot-stt" "STT Whisper"
+    check_container "homepilot-tts" "TTS Piper"
+  fi
   check_api_health
   check_endpoint "UI HomePilot · puerto ${ui_port}" "http://127.0.0.1:${ui_port}" "200"
-  check_endpoint "STT Whisper · puerto ${stt_port}" "http://127.0.0.1:${stt_port}/health" "200"
-  check_endpoint "TTS Piper · puerto ${tts_port}" "http://127.0.0.1:${tts_port}/health" "200"
+  if [[ "$voice_enabled" == true ]]; then
+    check_endpoint "STT Whisper · puerto ${stt_port}" "http://127.0.0.1:${stt_port}/health" "200"
+    check_endpoint "TTS Piper · puerto ${tts_port}" "http://127.0.0.1:${tts_port}/health" "200"
+  fi
+  if [[ "$mqtt_enabled" == true ]]; then
+    check_container 'homepilot-mqtt' 'MQTT Mosquitto'
+  fi
 
   if [[ "$profile" == "bridge_ha" ]]; then
     check_endpoint "Home Assistant existente · puerto ${ha_port}" "http://127.0.0.1:${ha_port}/" "200,301,302,401,403"
@@ -345,6 +381,10 @@ clean_docker_residue() {
   fi
 }
 select_camera_acceleration_for_deploy() {
+  if [[ "$camera_enabled" != true ]]; then
+    info 'Cámaras deshabilitadas; se omite el probe VAAPI.'
+    return
+  fi
   section 'Aceleración HLS de cámaras'
   if [[ "$compose_explicit" == true ]]; then
     info 'Compose personalizado: se conserva sin overrides automáticos de cámara.'
@@ -355,6 +395,17 @@ select_camera_acceleration_for_deploy() {
     compose_files+=("$camera_acceleration_overlay")
   fi
   camera_acceleration_report
+}
+
+maintenance_build_and_up() {
+  local -a compose_options=("$@")
+  if [[ "$global_installer_v1" == true ]]; then
+    COMPOSE_BAKE=false docker compose "${compose_options[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" "${build_services[@]}" \
+      && docker compose "${compose_options[@]}" up -d --no-build --no-deps "${runtime_services[@]}"
+  else
+    COMPOSE_BAKE=false docker compose "${compose_options[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" \
+      && docker compose "${compose_options[@]}" up -d --no-build
+  fi
 }
 
 deploy_homepilot() {
@@ -375,8 +426,7 @@ deploy_homepilot() {
 
   while (( attempt <= max_attempts )); do
     info "Construcción e inicio: intento ${attempt}/${max_attempts}."
-    if COMPOSE_BAKE=false docker compose "${compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" \
-      && docker compose "${compose_args[@]}" up -d --no-build --remove-orphans; then
+    if maintenance_build_and_up "${compose_args[@]}"; then
       ok "HomePilot construido e iniciado."
       break
     fi
@@ -393,8 +443,7 @@ deploy_homepilot() {
       for file in "${compose_files[@]}"; do
         compose_args+=( -f "$file" )
       done
-      if COMPOSE_BAKE=false docker compose "${compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" \
-        && docker compose "${compose_args[@]}" up -d --no-build --remove-orphans; then
+      if maintenance_build_and_up "${compose_args[@]}"; then
         ok 'HomePilot construido e iniciado con codificación por software.'
         break
       fi
@@ -466,6 +515,7 @@ if [[ "$deploy" == false && "$clean_only" == false && "$status_only" == false &&
 fi
 
 load_saved_profile
+load_installer_capabilities
 configure_profile
 banner
 check_requirements
@@ -489,8 +539,10 @@ if [[ "$gc_homepilot" == true ]]; then
 fi
 
 if [[ "$status_only" == true ]]; then
-  section 'Aceleración HLS de cámaras'
-  camera_acceleration_report_running
+  if [[ "$camera_enabled" == true ]]; then
+    section 'Aceleración HLS de cámaras'
+    camera_acceleration_report_running
+  fi
   verify_runtime
   exit 0
 fi
@@ -507,6 +559,24 @@ fi
 
 if [[ "$deploy" == true ]]; then
   if confirm "Limpiar, construir e iniciar HomePilot ahora?"; then
+    if [[ "$global_installer_v1" == true ]]; then
+      HOMEPILOT_IMAGE_SERVICES=(api ui)
+      build_services=(homepilot-api homepilot-ui)
+      runtime_services=()
+      [[ "$mqtt_enabled" != true ]] || runtime_services+=(homepilot-mqtt)
+      [[ "$profile" != ha_companion ]] || runtime_services+=(homeassistant)
+      if [[ "$voice_enabled" == true ]]; then
+        HOMEPILOT_IMAGE_SERVICES+=(stt tts)
+        build_services+=(homepilot-stt homepilot-tts)
+        runtime_services+=(homepilot-stt homepilot-tts)
+      fi
+      runtime_services+=(homepilot-api homepilot-ui)
+      if [[ "$android_display_enabled" == true ]]; then
+        HOMEPILOT_IMAGE_SERVICES+=(display-bridge)
+        build_services+=(homepilot-display-bridge)
+        runtime_services+=(homepilot-display-bridge)
+      fi
+    fi
     [[ "$android_display_enabled" != true ]] || android_display_prepare_adb_home
     export HOMEPILOT_BUILD_REVISION="$(homepilot_image_revision)"
     section 'Builder de HomePilot'

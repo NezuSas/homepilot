@@ -27,6 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl ffmpeg tpm
 # Copy build artifacts and production-only dependencies
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/migrations ./migrations
+COPY --from=builder /app/scripts/claim-cloud-pairing.mjs ./scripts/claim-cloud-pairing.mjs
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 # (Note: In a more complex setup, we would run 'npm prune --production' here, 

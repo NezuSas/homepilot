@@ -285,7 +285,7 @@ Use a dedicated directory for each HomePilot appliance, for example `/opt/homepi
 | New or empty miniPC, customer does not need Home Assistant | `native_only` | Creates and owns only HomePilot resources. |
 | MiniPC with an existing customer Home Assistant or other Docker applications | `bridge_ha` | Preserves the existing Home Assistant, `.env`, volumes, databases, images, networks, and containers outside the HomePilot Compose project. |
 
-`--clean` and `--deploy` never run global Docker prune commands. They remove stopped containers belonging to the selected HomePilot Compose project, not BuildKit cache, images, networks, volumes, or data. `--deploy` also uses `--remove-orphans`, limited to containers with the same Compose project identity; verify the profile before switching Compose files because `ha_companion` includes Home Assistant in that project. Resources of unrelated projects remain outside this scope.
+`--clean` and `--deploy` never run global Docker prune commands or `--remove-orphans`. They remove only stopped containers belonging to the selected HomePilot Compose project, not BuildKit cache, images, networks, volumes, or data. Verify the profile before switching Compose files because `ha_companion` includes Home Assistant in that project. Resources of unrelated projects remain outside this scope.
 
 Before any customer deployment, run the read-only diagnostic:
 

@@ -26,8 +26,25 @@ install_community_integrations=false
 community_integrations_only=false
 runtime_failures=0
 startup_failed=false
-android_display_choice=''
+android_display_choice="${HOMEPILOT_INSTALL_ANDROID_CHOICE:-}"
 android_display_desktop=false
+global_install="${HOMEPILOT_GLOBAL_INSTALL:-false}"
+camera_enabled="${HOMEPILOT_INSTALL_CAMERA_ENABLED:-true}"
+voice_enabled="${HOMEPILOT_INSTALL_VOICE_ENABLED:-true}"
+mqtt_enabled="${HOMEPILOT_INSTALL_MQTT_ENABLED:-false}"
+tpm_enabled="${HOMEPILOT_INSTALL_TPM_ENABLED:-false}"
+
+append_global_overlays() {
+  [[ "$global_install" == true ]] || return 0
+  [[ "$tpm_enabled" != true ]] || camera_compose_args+=(-f docker-compose.tpm.yml)
+  if [[ "$mqtt_enabled" == true ]]; then
+    if [[ "$profile" == ha_companion ]]; then
+      camera_compose_args+=(-f docker-compose.mqtt-secure.yml)
+    else
+      camera_compose_args+=(-f docker-compose.pc-agents.yml)
+    fi
+  fi
+}
 
 if [[ -t 1 ]]; then
   RED='\033[0;31m'
@@ -482,8 +499,8 @@ wait_for_runtime_ready() {
   while (( elapsed <= timeout_seconds )); do
     if container_ready "homepilot-api" true \
       && container_ready "homepilot-ui" false \
-      && container_ready "homepilot-stt" true \
-      && container_ready "homepilot-tts" true \
+      && { [[ "$voice_enabled" != true ]] || { container_ready "homepilot-stt" true && container_ready "homepilot-tts" true; }; } \
+      && { [[ "$mqtt_enabled" != true ]] || container_ready "homepilot-mqtt" "$([[ "$profile" == ha_companion ]] && printf true || printf false)"; } \
       && { [[ "$android_display_enabled" != true ]] || container_ready 'homepilot-display-bridge' true; }; then
       ok "Servicios HomePilot listos."
       return 0
@@ -617,7 +634,7 @@ provision_home_assistant_community_integrations() {
     info "Home Assistant administrado: se provisionarán HACS y SonoffLAN si faltan."
   elif [[ "$install_community_integrations" == true ]]; then
     should_install=true
-  elif [[ "$profile" == bridge_ha ]] \
+  elif [[ "$profile" == bridge_ha && "$global_install" != true ]] \
     && { ! home_assistant_component_installed hacs || ! home_assistant_component_installed sonoff; }; then
     info "Home Assistant existente: HACS/SonoffLAN se detectan en modo lectura."
     if [[ "$status_only" == false ]] && [[ -t 0 ]]; then
@@ -656,8 +673,15 @@ show_runtime_status() {
   section "Estado operativo de servicios"
   check_container "homepilot-api" "API HomePilot" true
   check_container "homepilot-ui" "UI HomePilot · puerto ${ui_port}" false
-  check_container "homepilot-stt" "STT Whisper · puerto ${stt_port}" true
-  check_container "homepilot-tts" "TTS Piper · puerto ${tts_port}" true
+  if [[ "$voice_enabled" == true ]]; then
+    check_container "homepilot-stt" "STT Whisper · puerto ${stt_port}" true
+    check_container "homepilot-tts" "TTS Piper · puerto ${tts_port}" true
+  else
+    ok 'Voz local: deshabilitada; STT/TTS no son servicios requeridos.'
+  fi
+  if [[ "$mqtt_enabled" == true ]]; then
+    check_container "homepilot-mqtt" 'MQTT Mosquitto' "$([[ "$profile" == ha_companion ]] && printf true || printf false)"
+  fi
   if [[ "$android_display_enabled" == true ]]; then
     check_container 'homepilot-display-bridge' 'Android Display Bridge' true
   fi
@@ -671,8 +695,10 @@ show_runtime_status() {
     runtime_failures=$((runtime_failures + 1))
   fi
   check_endpoint "UI HomePilot · puerto ${ui_port}" "http://127.0.0.1:${ui_port}" "200"
-  check_endpoint "STT Whisper · puerto ${stt_port}" "http://127.0.0.1:${stt_port}/health" "200"
-  check_endpoint "TTS Piper · puerto ${tts_port}" "http://127.0.0.1:${tts_port}/health" "200"
+  if [[ "$voice_enabled" == true ]]; then
+    check_endpoint "STT Whisper · puerto ${stt_port}" "http://127.0.0.1:${stt_port}/health" "200"
+    check_endpoint "TTS Piper · puerto ${tts_port}" "http://127.0.0.1:${tts_port}/health" "200"
+  fi
   if [[ "$android_display_enabled" == true ]]; then
     android_display_check_network
     android_display_check_api_config
@@ -753,6 +779,11 @@ else
   configure_profile
 fi
 if [[ -f "$ENV_FILE" ]]; then
+  if [[ "$global_install" != true ]]; then
+    voice_enabled="$(env_value HOMEPILOT_VOICE_ENABLED true)"
+    camera_enabled="$(env_value HOMEPILOT_CAMERA_ENABLED true)"
+    mqtt_enabled="$(env_value HOMEPILOT_MQTT_ENABLED false)"
+  fi
   case "$(android_display_env_value HOMEPILOT_ANDROID_DISPLAY_ENABLED)" in
     ''|true|false) ;;
     *) fail 'HOMEPILOT_ANDROID_DISPLAY_ENABLED debe ser true o false; no se cambiará silenciosamente.' ;;
@@ -790,7 +821,7 @@ if [[ "$status_only" == true ]]; then
   section 'Builder de HomePilot'
   homepilot_builder_report
   section 'Aceleración HLS de cámaras'
-  camera_acceleration_report_running
+  [[ "$camera_enabled" != true ]] || camera_acceleration_report_running
   show_runtime_status
   show_home_assistant_community_status
   if (( runtime_failures > 0 )); then
@@ -825,7 +856,9 @@ else
 fi
 
 section "Puertos requeridos por HomePilot"
-for port in 3000 8080 8088 8090 11434; do
+required_ports=(3000 8080 11434)
+[[ "$voice_enabled" != true ]] || required_ports+=(8088 8090)
+for port in "${required_ports[@]}"; do
   if ss -ltn 2>/dev/null | grep -q ":${port} "; then
     warn "Puerto ${port} ya esta ocupado; ajusta HOMEPILOT_*_PORT en .env si no pertenece a HomePilot."
   else
@@ -869,6 +902,18 @@ elif [[ "$configured_profile" != "$profile" ]]; then
   fail ".env declara ${configured_profile:-ningún perfil}; ajusta HOMEPILOT_INSTALLATION_PROFILE=${profile} antes de continuar."
 fi
 ok "Perfil de instalación configurado: ${profile}."
+if [[ "$global_install" == true ]]; then
+  set_env_value HOMEPILOT_GLOBAL_INSTALLER_VERSION v1
+  set_env_value HOMEPILOT_TPM_ENABLED "$tpm_enabled"
+  set_env_value HOMEPILOT_CLIENT_NAME "${HOMEPILOT_INSTALL_CLIENT_NAME:-}"
+  set_env_value HOMEPILOT_INSTALLATION_NAME "${HOMEPILOT_INSTALL_NAME:-}"
+  set_env_value HOMEPILOT_CAMERA_ENABLED "$camera_enabled"
+  set_env_value HOMEPILOT_VOICE_ENABLED "$voice_enabled"
+  set_env_value HOMEPILOT_MQTT_ENABLED "$mqtt_enabled"
+  if [[ "$mqtt_enabled" == true ]]; then
+    set_env_value HOMEPILOT_MQTT_BIND_ADDRESS "${HOMEPILOT_INSTALL_MQTT_BIND_ADDRESS:-127.0.0.1}"
+  fi
+fi
 
 if [[ -z "$android_display_choice" ]]; then
   if [[ "$(android_display_env_value HOMEPILOT_ANDROID_DISPLAY_ENABLED)" == true ]]; then
@@ -883,8 +928,12 @@ fi
 set_env_value HOMEPILOT_ANDROID_DISPLAY_ENABLED "$android_display_choice"
 if [[ "$android_display_choice" == true ]]; then
   if [[ -z "$(android_display_env_value HOMEPILOT_DISPLAY_ADB_CIDRS)" ]]; then
-    read_terminal_line 'CIDR privado autorizado para pantallas (ej. 192.168.1.0/24): ' \
-      || fail 'Android Display requiere un CIDR privado; configúralo en .env antes de usar modo no interactivo.'
+    if [[ -n "${HOMEPILOT_INSTALL_ANDROID_CIDRS:-}" ]]; then
+      REPLY="$HOMEPILOT_INSTALL_ANDROID_CIDRS"
+    else
+      read_terminal_line 'CIDR privado autorizado para pantallas (ej. 192.168.1.0/24): ' \
+        || fail 'Android Display requiere un CIDR privado; configúralo en .env antes de usar modo no interactivo.'
+    fi
     android_display_validate_cidrs "$REPLY" || fail 'CIDR inválido; usa una subred RFC1918 /16 o más estrecha.'
     set_env_value HOMEPILOT_DISPLAY_ADB_CIDRS "$REPLY"
   fi
@@ -925,16 +974,22 @@ if [[ "$android_display_desktop" == true ]]; then
     camera_compose_args+=(-f docker-compose.desktop.yml)
   fi
 fi
+append_global_overlays
 if [[ "$start" == true ]]; then
   export HOMEPILOT_BUILD_REVISION="$(homepilot_image_revision)"
   section 'Builder de HomePilot'
   homepilot_builder_ensure
-  section 'Aceleración HLS de cámaras'
-  camera_acceleration_select
-  if [[ -n "$camera_acceleration_overlay" ]]; then
-    camera_compose_args+=(-f "$camera_acceleration_overlay")
+  if [[ "$camera_enabled" == true ]]; then
+    section 'Aceleración HLS de cámaras'
+    camera_acceleration_select
+    if [[ -n "$camera_acceleration_overlay" ]]; then
+      camera_compose_args+=(-f "$camera_acceleration_overlay")
+    fi
+    camera_acceleration_report
+  else
+    camera_acceleration_overlay=''
+    ok 'Cámaras nativas no seleccionadas; se omite el probe VAAPI.'
   fi
-  camera_acceleration_report
 fi
 if [[ "$android_display_enabled" == true ]]; then
   camera_compose_args+=(-f "$HOMEPILOT_DISPLAY_OVERLAY")
@@ -948,10 +1003,60 @@ else
 fi
 
 if [[ "$start" == true ]]; then
+  if [[ "$global_install" == true ]]; then
+    HOMEPILOT_IMAGE_SERVICES=(api ui)
+    build_services=(homepilot-api homepilot-ui)
+    runtime_services=()
+    if [[ "$mqtt_enabled" == true ]]; then
+      runtime_services+=(homepilot-mqtt)
+    fi
+    if [[ "$profile" == ha_companion ]]; then
+      runtime_services+=(homeassistant)
+    fi
+    if [[ "$voice_enabled" == true ]]; then
+      HOMEPILOT_IMAGE_SERVICES+=(stt tts)
+      build_services+=(homepilot-stt homepilot-tts)
+      runtime_services+=(homepilot-stt homepilot-tts)
+    fi
+    runtime_services+=(homepilot-api homepilot-ui)
+    if [[ "$android_display_enabled" == true ]]; then
+      HOMEPILOT_IMAGE_SERVICES+=(display-bridge)
+      build_services+=(homepilot-display-bridge)
+      runtime_services+=(homepilot-display-bridge)
+    fi
+  fi
   section "Inicio de HomePilot"
   if confirm "Se construiran e iniciaran los servicios HomePilot de este compose. Continuar?"; then
     homepilot_image_prepare_rollback "${camera_compose_args[@]}"
-    if ! (COMPOSE_BAKE=false docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" \
+    if [[ "$global_install" == true ]]; then
+      if ! (COMPOSE_BAKE=false docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" "${build_services[@]}" \
+        && docker compose "${camera_compose_args[@]}" up --no-build --no-deps -d "${runtime_services[@]}"); then
+        if [[ -z "$camera_acceleration_overlay" ]]; then
+          fail 'No se pudo iniciar el conjunto modular HomePilot; se conservan las imágenes de rollback.'
+        fi
+        warn 'El inicio con VAAPI falló; se reintentará con libx264.'
+        camera_compose_args=(-f "$compose_file")
+        if [[ "$android_display_desktop" == true ]]; then
+          if [[ "$profile" == ha_companion ]]; then
+            camera_compose_args+=(-f docker-compose.ha-companion.desktop.yml)
+          else
+            camera_compose_args+=(-f docker-compose.desktop.yml)
+          fi
+        fi
+        append_global_overlays
+        if [[ "$android_display_enabled" == true ]]; then
+          camera_compose_args+=(-f "$HOMEPILOT_DISPLAY_OVERLAY")
+          [[ "$android_display_desktop" != true ]] || camera_compose_args+=(-f "$HOMEPILOT_DISPLAY_DESKTOP_OVERLAY")
+        fi
+        camera_acceleration_overlay=''
+        camera_acceleration_encoder='libx264'
+        camera_acceleration_fallback='software (libx264)'
+        camera_acceleration_reason='falló el inicio con el override VAAPI'
+        camera_acceleration_report
+        COMPOSE_BAKE=false docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" "${build_services[@]}"
+        docker compose "${camera_compose_args[@]}" up --no-build --no-deps -d "${runtime_services[@]}"
+      fi
+    elif ! (COMPOSE_BAKE=false docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" \
       && docker compose "${camera_compose_args[@]}" up --no-build -d); then
       if [[ -z "$camera_acceleration_overlay" ]]; then
         fail 'No se pudo iniciar HomePilot.'
@@ -969,6 +1074,7 @@ if [[ "$start" == true ]]; then
         camera_compose_args+=(-f "$HOMEPILOT_DISPLAY_OVERLAY")
         [[ "$android_display_desktop" != true ]] || camera_compose_args+=(-f "$HOMEPILOT_DISPLAY_DESKTOP_OVERLAY")
       fi
+      append_global_overlays
       camera_acceleration_overlay=''
       camera_acceleration_encoder='libx264'
       camera_acceleration_fallback='software (libx264)'
