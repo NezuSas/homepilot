@@ -1593,10 +1593,27 @@ for (const viewport of viewports) {
     compactBadgeVisibility
       .filter(({ clientWidth }) => clientWidth <= 192)
       .forEach(({ display }) => expect(display).toBe('none'));
+    const sensorSurface = page.locator('[data-dashboard-card-id="responsive-battery"] .sensor-metric-card');
+    const sensorGeometry = () => sensorSurface.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      return {
+        width: rect.width,
+        height: rect.height,
+        padding: style.padding,
+        borderRadius: style.borderRadius,
+        borderWidth: style.borderWidth,
+        backgroundColor: style.backgroundColor,
+      };
+    });
+    const darkSensor = await sensorGeometry();
     await expect(page.getByText('Cortina de sala').first()).toBeVisible();
     await expect(page.locator('.min-h-clock-card').first()).toBeVisible();
 
     await page.evaluate(() => document.documentElement.classList.add('light'));
+    const lightSensor = await sensorGeometry();
+    expect({ ...lightSensor, backgroundColor: darkSensor.backgroundColor }).toEqual(darkSensor);
+    expect(lightSensor.backgroundColor).not.toBe(darkSensor.backgroundColor);
     const lightTokens = await page.evaluate(() => {
       const style = getComputedStyle(document.documentElement);
       return {
