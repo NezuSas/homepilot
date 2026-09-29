@@ -85,7 +85,7 @@ export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
         <IconButton icon={X} label={cancelLabel} onClick={onCancelEditingTitle} variant="ghost" size="md" />
       </div>
     ) : (
-      <div className={`group flex min-w-0 flex-1 items-center ${isEditingDashboard ? 'gap-4' : 'gap-2'}`}>
+      <div className="group flex min-w-0 flex-1 items-center gap-2">
         <h3 className="truncate text-section-title font-semibold tracking-tight text-foreground sm:text-panel-title">{title}</h3>
         <IconButton icon={PenLine} label={renameLabel} onClick={onStartEditingTitle} variant="ghost" size="lg" className="rounded-full" />
       </div>

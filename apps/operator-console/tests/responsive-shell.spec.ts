@@ -775,18 +775,19 @@ test('Feature: Section appearance — Scenario: An owner can select and clear an
   expect(savedDashboard.tabs[0]?.widgets.find((widget) => widget.id === 'responsive-section')?.config.appearance).not.toHaveProperty('icon');
 });
 
-test('Feature: Button cards — Scenario: Active and inactive buttons keep the same rounded geometry', async ({ page }) => {
+test('Feature: Button cards — Scenario: Light and scene-action buttons share a 24px surface in active and inactive states', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const section = responsiveDashboard.tabs[0]!.widgets[1]!;
-  const lightCards = [
+  const buttonCards = [
     { id: 'light-on-card', kind: 'light', title: 'Luz activa', entityId: 'light-on', span: 'small' },
     { id: 'light-off-card', kind: 'light', title: 'Luz inactiva', entityId: 'light-off', span: 'small' },
+    { id: 'scene-action-card', kind: 'action', title: 'Escena', entityId: 'scene-1', span: 'small' },
   ];
   const dashboard = {
     ...responsiveDashboard,
     tabs: [{ ...responsiveDashboard.tabs[0]!, widgets: [responsiveDashboard.tabs[0]!.widgets[0]!, {
       ...section,
-      config: { ...section.config, extra: { cards: lightCards } },
+      config: { ...section.config, extra: { cards: buttonCards } },
     }] }],
   };
   await prepareAuthenticatedDashboard(page, dashboard);
@@ -798,17 +799,32 @@ test('Feature: Button cards — Scenario: Active and inactive buttons keep the s
   });
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
 
-  const geometry = async (id: string) => page.locator(`[data-dashboard-card-id="${id}"] > div`).first().evaluate((element) => {
+  const geometry = async (id: string) => page.locator(`[data-dashboard-card-id="${id}"] > :first-child`).evaluate((element) => {
     const style = getComputedStyle(element);
     const bounds = element.getBoundingClientRect();
     return { radius: style.borderRadius, width: bounds.width, height: bounds.height, padding: style.padding };
   });
   await expect(page.locator('[data-dashboard-card-id="light-on-card"]')).toBeVisible();
   await expect(page.locator('[data-dashboard-card-id="light-off-card"]')).toBeVisible();
+  await expect(page.locator('[data-dashboard-card-id="scene-action-card"]')).toBeVisible();
   const active = await geometry('light-on-card');
   const inactive = await geometry('light-off-card');
+  const action = await geometry('scene-action-card');
   expect(active.radius).toBe('24px');
   expect(inactive).toEqual(active);
+  expect(action.radius).toBe('24px');
+  expect(action.padding).toBe(inactive.padding);
+
+  const inactiveSurface = async (id: string) => page.locator(`[data-dashboard-card-id="${id}"] > :first-child`).evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      borderWidth: style.borderWidth,
+      borderStyle: style.borderStyle,
+      boxSizing: style.boxSizing,
+      backgroundColor: style.backgroundColor,
+    };
+  });
+  expect(await inactiveSurface('scene-action-card')).toEqual(await inactiveSurface('light-off-card'));
 });
 
 test('Feature: Clock editing — Scenario: A fixed section clock can be moved, removed and added without an editor', async ({ page }) => {
@@ -939,13 +955,91 @@ test('Feature: Media card width — Scenario: A player occupies the full section
   await page.getByRole('button', { name: /^(Add card|Añadir tarjeta)$/i }).click();
   await page.getByRole('button', { name: /^(Reproductor|Media player)$/i }).click();
 
-  await expect(page.getByRole('heading', { name: /^(Edit|Editar)$/i })).toBeVisible();
-  await expect(page.getByText(/^(Card width|Ancho de tarjeta)$/i)).toHaveCount(0);
+  const editorHeading = page.getByRole('heading', { name: /^(Edit|Editar)$/i });
+  await expect(editorHeading).toBeVisible();
+  const editor = editorHeading.locator('..').locator('..').locator('..');
+  const editorPreview = editor.locator('.custom-scrollbar > .grid');
+  await expect(editor.getByRole('button', { name: /^(Premium)$/i })).toHaveAttribute('aria-pressed', 'true');
+  await expect(editorPreview.locator('[data-media-player="homepilot-premium"]')).toBeVisible();
+  await expect(editor.getByText(/^(Card width|Ancho de tarjeta)$/i)).toHaveCount(0);
   await page.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
 
   const mediaCard = page.locator('[class*="group/card"]').filter({ hasText: /Reproductor|Media player/i });
+  await expect(mediaCard.locator('[data-media-player="homepilot-premium"]')).toBeVisible();
   await expect(mediaCard).toHaveClass(/col-span-full/);
   await expect(mediaCard.getByRole('slider', { name: /resize card|redimensionar tarjeta/i })).toHaveCount(0);
+  await expect.poll(() => {
+    const section = savedDashboard.tabs[0]?.widgets.find((widget) => widget.id === 'responsive-section');
+    if (!section || !('extra' in section.config)) return undefined;
+    const mediaCard = (section.config.extra.cards as Array<{ kind: string; mediaVariant?: string }>).find((card) => card.kind === 'media');
+    return mediaCard?.mediaVariant;
+  }).toBe('premium');
+});
+
+test('Feature: Media Player design — Scenario: Classic preview and persisted design retain the same player controls', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const section = responsiveDashboard.tabs[0]!.widgets[1]!;
+  const dashboard = {
+    ...responsiveDashboard,
+    tabs: [{ ...responsiveDashboard.tabs[0]!, widgets: [{
+      ...section,
+      config: { ...section.config, extra: { cards: [{ id: 'media-design', kind: 'media', title: 'Sala', entityId: 'player-1', span: 'full' }] } },
+    }] }],
+  };
+  let savedDashboard: object = dashboard;
+  const player = {
+    id: 'player-1', homeId: 'responsive-home', roomId: 'responsive-room', name: 'Sala', type: 'media_player', status: 'ASSIGNED',
+    profile: { supportedCommands: ['media_play', 'media_pause', 'volume_set'] },
+    lastKnownState: { state: 'paused', attributes: { media_title: 'Canción', media_artist: 'Artista', volume_level: 0.4 } },
+  };
+  const commands: unknown[] = [];
+  await prepareAuthenticatedDashboard(page, dashboard);
+  await page.route('**/api/v1/dashboards', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([savedDashboard]) });
+  });
+  await page.route('**/api/v1/dashboards/responsive-dashboard', async (route) => {
+    if (route.request().method() !== 'PATCH') return route.continue();
+    savedDashboard = { ...savedDashboard, ...(route.request().postDataJSON() as object) };
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(savedDashboard) });
+  });
+  await page.route('**/api/v1/devices', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([player]) });
+  });
+  await page.route('**/api/v1/devices/player-1/command', async (route) => {
+    commands.push(route.request().postDataJSON());
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(player) });
+  });
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+
+  const card = page.locator('[data-dashboard-card-id="media-design"]');
+  await expect(card.locator('[data-media-player="homepilot-premium"]')).toBeVisible();
+  await expect(card.getByText('Canción')).toBeVisible();
+  await card.getByRole('button', { name: /^(Play|Reproducir)$/i }).click();
+  await expect.poll(() => commands.length).toBe(1);
+
+  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
+  await card.hover();
+  const cardActions = /^(Card actions|Acciones de tarjeta)$/i;
+  await card.getByRole('button', { name: cardActions }).click();
+  await page.getByRole('menu', { name: cardActions }).getByRole('menuitem', { name: /^(Edit|Editar)$/i }).click();
+  await expect(page.getByRole('button', { name: /^(Premium)$/i })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: /^(Classic|Clásico)$/i }).click();
+  await expect(page.getByRole('button', { name: /^(Classic|Clásico)$/i })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-media-player="homepilot-classic"]')).toBeVisible();
+  await page.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
+
+  const persistedMedia = () => {
+    const stored = savedDashboard as { tabs: Array<{ widgets: Array<{ id: string; config: { extra?: { cards?: Array<{ id: string; entityId?: string; mediaVariant?: string }> } } }> }> };
+    return stored.tabs[0]?.widgets.find((widget) => widget.id === 'responsive-section')?.config.extra?.cards?.find((item) => item.id === 'media-design');
+  };
+  await expect.poll(() => persistedMedia()?.mediaVariant).toBe('classic');
+  expect(persistedMedia()?.entityId).toBe('player-1');
+  await page.reload();
+  await expect(card.locator('[data-media-player="homepilot-classic"]')).toBeVisible();
+  await expect(card.getByText('Canción')).toBeVisible();
+  await card.getByRole('button', { name: /^(Play|Reproducir)$/i }).click();
+  await expect.poll(() => commands.length).toBe(2);
+  expect(commands[1]).toEqual(commands[0]);
 });
 
 test('Feature: Media player idle — Scenario: A player reports no playback without stale metadata or changing its controls', async ({ page }) => {

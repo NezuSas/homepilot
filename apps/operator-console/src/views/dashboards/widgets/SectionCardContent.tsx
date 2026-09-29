@@ -10,7 +10,7 @@ import { SectionEnergyCard } from './SectionEnergyCard';
 import { SectionRoomCard } from './SectionRoomCard';
 import { SectionSceneCard } from './SectionSceneCard';
 import { SensorMetricCard } from './SensorMetricCard';
-import { isClockKind, normalizeKind, type SectionCardIcon, type SectionCardKind, type SectionCardSpan } from './sectionCardCatalog';
+import { isClockKind, normalizeKind, type MediaVariant, type SectionCardIcon, type SectionCardKind, type SectionCardSpan } from './sectionCardCatalog';
 
 interface SectionCardContentProps {
   kind: SectionCardKind;
@@ -18,6 +18,7 @@ interface SectionCardContentProps {
   subtitle?: string;
   span: SectionCardSpan;
   icon?: SectionCardIcon;
+  mediaVariant?: MediaVariant;
   isAssigned?: boolean;
   isActive?: boolean;
   device?: SnapshotDevice;
@@ -39,6 +40,7 @@ export function SectionCardContent({
   subtitle,
   span,
   icon,
+  mediaVariant,
   isAssigned,
   isActive,
   device,
@@ -59,7 +61,7 @@ export function SectionCardContent({
   if (isClockKind(normalized)) return <SectionClockPreview kind={normalized} title={title} />;
   if (normalized === 'camera') return <SectionCameraPreview device={device} title={title} subtitle={subtitle} />;
   if (normalized === 'sensor') return <SensorMetricCard device={device} title={title} isPreview={isPreview} />;
-  if (normalized === 'media') return <MediaPlayerCard device={device} title={title} isPreview={isPreview} isProcessing={isMediaProcessing} onCommand={onMediaCommand} compact={isSmall} />;
+  if (normalized === 'media') return <MediaPlayerCard device={device} title={title} isPreview={isPreview} isProcessing={isMediaProcessing} onCommand={onMediaCommand} compact={isSmall} mediaVariant={mediaVariant} />;
   if (normalized === 'cover') {
     const density = isSmall ? 'compact' : 'standard';
     return device && !isPreview

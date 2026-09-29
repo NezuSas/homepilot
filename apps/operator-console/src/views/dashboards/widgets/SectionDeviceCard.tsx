@@ -5,7 +5,7 @@ import { getDefaultIcon, normalizeKind, type SectionCardIcon, type SectionCardKi
 
 const SECTION_COMPACT_TILE_LAYOUT_CLASSES = 'relative flex h-full min-h-0 w-full flex-col items-center justify-center gap-1.5 overflow-hidden border p-2.5 text-center text-foreground transition-[border-color,background-color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary';
 export const SECTION_COMPACT_TILE_CLASSES = `${SECTION_COMPACT_TILE_LAYOUT_CLASSES} rounded-xl`;
-const SECTION_BUTTON_TILE_CLASSES = `${SECTION_COMPACT_TILE_LAYOUT_CLASSES} rounded-section`;
+export const SECTION_BUTTON_TILE_CLASSES = `${SECTION_COMPACT_TILE_LAYOUT_CLASSES} rounded-section`;
 export const SECTION_COMPACT_TILE_INACTIVE_CLASSES = 'homepilot-section-tile-inactive border-border/60 bg-card/95 shadow-surface-card';
 
 export function getLightTileSurfaceClasses(isActive: boolean, isPreview = false) {

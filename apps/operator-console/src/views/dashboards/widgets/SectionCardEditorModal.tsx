@@ -13,7 +13,7 @@ import {
   canUseCompactSpan, cardKinds, getDefaultIcon, getDefaultSpan,
   getEffectiveCardSpan, isBindableKind, isClockKind,
   normalizeKind, type AssignableAutomation, type AssignableDisplayAction, type AssignableScene, type CardDraft,
-  type NormalizedSectionCardKind, type SectionCardIcon, type SectionCardKind, type SectionCardSpan,
+  type MediaVariant, type NormalizedSectionCardKind, type SectionCardIcon, type SectionCardKind, type SectionCardSpan,
 } from './sectionCardCatalog';
 import { isAutomationEntityId, stripAutomationEntityPrefix, toAutomationEntityId, toDeviceActionEntityId } from './sectionCardAssignments';
 
@@ -36,6 +36,7 @@ interface SectionCardEditorModalProps {
     iconOverride?: SectionCardIcon,
     deviceIdOverride?: string,
     isEditorPreview?: boolean,
+    mediaVariantOverride?: MediaVariant,
   ) => ReactNode;
   onClose: () => void;
   onSave: () => void;
@@ -81,6 +82,27 @@ export function SectionCardEditorModal({
               cardDraft.icon,
               normalizeKind(cardDraft.kind) === 'camera' || normalizeKind(cardDraft.kind) === 'cover' || normalizeKind(cardDraft.kind) === 'room' || normalizeKind(cardDraft.kind) === 'sensor' || normalizeKind(cardDraft.kind) === 'media' || normalizeKind(cardDraft.kind) === 'action' ? cardDraft.entityId : undefined,
               true,
+              cardDraft.mediaVariant,
+            )}
+
+            {normalizeKind(cardDraft.kind) === 'media' && (
+              <fieldset className="space-y-2">
+                <legend className="text-caption font-semibold text-foreground">{t('dashboard.editor.sections.media_design')}</legend>
+                <div className="flex gap-2">
+                  {(['premium', 'classic'] as const).map((variant) => (
+                    <Button
+                      key={variant}
+                      type="button"
+                      variant={cardDraft.mediaVariant === variant ? 'primary' : 'outline'}
+                      size="sm"
+                      aria-pressed={cardDraft.mediaVariant === variant}
+                      onClick={() => setCardDraft((draft) => ({ ...draft, mediaVariant: variant }))}
+                    >
+                      {t(`dashboard.editor.sections.media_design_${variant}`)}
+                    </Button>
+                  ))}
+                </div>
+              </fieldset>
             )}
 
             <Input

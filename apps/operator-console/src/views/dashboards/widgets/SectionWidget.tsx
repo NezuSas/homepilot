@@ -9,7 +9,7 @@ import { fetchDiagnosticResource } from '../../../lib/diagnosticResourceRequests
 import { apiFetch } from '../../../lib/apiClient';
 import { useDeviceSnapshotStore } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig } from '../types';
-import { cardKinds, createId, getCatalogCategory, getCatalogDescriptionKey, getCatalogLabelKey, getDefaultIcon, getDefaultSpan, getEffectiveCardSpan, getRecommendedSectionHeight, getWidgetType, isClockKind, normalizeCards, normalizeKind, type AssignableAutomation, type AssignableDisplayAction, type AssignableScene, type CardDraft, type NormalizedSectionCardItem, type NormalizedSectionCardKind, type SectionCardCategory, type SectionCardIcon, type SectionCardKind, type SectionCardSpan } from './sectionCardCatalog';
+import { cardKinds, createId, getCatalogCategory, getCatalogDescriptionKey, getCatalogLabelKey, getDefaultIcon, getDefaultSpan, getEffectiveCardSpan, getRecommendedSectionHeight, getWidgetType, isClockKind, normalizeCards, normalizeKind, normalizeMediaVariant, type AssignableAutomation, type AssignableDisplayAction, type AssignableScene, type CardDraft, type MediaVariant, type NormalizedSectionCardItem, type NormalizedSectionCardKind, type SectionCardCategory, type SectionCardIcon, type SectionCardKind, type SectionCardSpan } from './sectionCardCatalog';
 import { getAssignableDevicesForSectionCard, isDeviceActive } from '../dashboardUtils';
 import { Button } from '../../../components/ui/Button';
 import { useMasonryRowSpans } from './useMasonryRowSpans';
@@ -48,7 +48,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
-  const [cardDraft, setCardDraft] = useState<CardDraft>({ title: '', kind: 'device', entityId: '', span: 'small', icon: 'lightbulb' });
+  const [cardDraft, setCardDraft] = useState<CardDraft>({ title: '', kind: 'device', entityId: '', span: 'small', icon: 'lightbulb', mediaVariant: 'premium' });
   const [scenes, setScenes] = useState<AssignableScene[]>([]);
   const [automations, setAutomations] = useState<AssignableAutomation[]>([]);
   const [displayActions, setDisplayActions] = useState<AssignableDisplayAction[]>([]);
@@ -197,6 +197,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       widgetType: item.widgetType,
       span: item.span,
       icon: item.icon,
+      ...(item.kind === 'media' ? { mediaVariant: 'premium' as const } : {}),
     };
 
     updateCards([...cards, nextCard]);
@@ -213,6 +214,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         entityId: '',
         span: nextCard.span ?? getDefaultSpan(nextCard.kind),
         icon: nextIcon,
+        mediaVariant: normalizeMediaVariant(nextCard.mediaVariant),
       });
     } else {
       setEditingCardId(null);
@@ -229,6 +231,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       entityId: card.entityId || '',
       span: getEffectiveCardSpan(card.kind, card.span ?? getDefaultSpan(card.kind)),
       icon: nextIcon,
+      mediaVariant: normalizeMediaVariant(card.mediaVariant),
     });
   };
 
@@ -237,7 +240,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     const nextCards = cards.map((card) => {
       if (card.id !== editingCard.id) return card;
 
-      return {
+      const updatedCard: NormalizedSectionCardItem = {
         ...card,
         kind: cardDraft.kind,
         title: cardDraft.title.trim() || selectedDisplayAction?.displayName || selectedScene?.name || selectedAutomation?.name || selectedRoom?.name || selectedDevice?.name || catalogLabel(cardDraft.kind),
@@ -248,6 +251,9 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         span: isClockKind(cardDraft.kind) ? 'full' : getEffectiveCardSpan(cardDraft.kind, cardDraft.span),
         icon: cardDraft.icon,
       };
+      if (cardDraft.kind === 'media') updatedCard.mediaVariant = cardDraft.mediaVariant;
+      else delete updatedCard.mediaVariant;
+      return updatedCard;
     });
 
     updateCards(nextCards);
@@ -287,6 +293,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     iconOverride?: SectionCardIcon,
     deviceIdOverride?: string,
     isEditorPreview = false,
+    mediaVariantOverride?: MediaVariant,
   ) => {
     const title = titleOverride || catalogLabel(kind);
     const span = getEffectiveCardSpan(kind, spanOverride ?? getDefaultSpan(kind));
@@ -326,6 +333,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           isAssigned={Boolean(deviceIdOverride)}
           isActive={previewDevice ? isDeviceActive(previewDevice) : false}
           device={previewDevice}
+          mediaVariant={mediaVariantOverride}
           isPreview={true}
           roomDeviceCount={roomDevices.length}
           roomActiveCount={roomDevices.filter(isDeviceActive).length}

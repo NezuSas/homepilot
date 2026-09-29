@@ -218,6 +218,23 @@ describe('DashboardService', () => {
     expect(resolver.exists).toHaveBeenCalledWith(expect.any(Set), expect.objectContaining({ id: 'missing-device' }));
   });
 
+  it('preserves a Media Player design and binding through export and import', async () => {
+    const source = createDashboard('source', 'Control');
+    source.tabs[0].widgets = [{ id: 'section', type: 'room_summary', config: {
+      extra: { cards: [{ id: 'media-1', kind: 'media', title: 'Sala', entityId: 'speaker-1', mediaVariant: 'classic' }] },
+    } }];
+    const service = new DashboardService(createDashboardRepository(source), createHomeRepository(), {
+      exists: async () => true,
+    });
+
+    const imported = await service.importDashboard('user-1', await service.exportDashboard('user-1', source.id));
+    const cards = (imported.tabs[0].widgets[0].config.extra as {
+      cards: Array<{ entityId?: string; mediaVariant?: string }>;
+    }).cards;
+
+    expect(cards[0]).toMatchObject({ entityId: 'speaker-1', mediaVariant: 'classic' });
+  });
+
   it('round-trips a Button bound to an existing scene without reporting it unresolved', async () => {
     const source = createDashboard('source', 'Control');
     source.tabs[0].widgets = [{ id: 'section', type: 'room_summary', config: {

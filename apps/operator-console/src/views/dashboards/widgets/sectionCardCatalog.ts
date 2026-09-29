@@ -24,6 +24,11 @@ export type NormalizedSectionCardKind = Exclude<SectionCardKind, 'clock'>;
 export type LegacySectionCardKind = SectionCardKind | 'system';
 export type SectionCardSpan = 'small' | 'medium' | 'full';
 export type SectionCardIcon = string;
+export type MediaVariant = 'premium' | 'classic';
+
+export function normalizeMediaVariant(value: unknown): MediaVariant {
+  return value === 'classic' ? 'classic' : 'premium';
+}
 
 export interface SectionCardItem {
   id: string;
@@ -35,6 +40,7 @@ export interface SectionCardItem {
   entityName?: string;
   span?: SectionCardSpan;
   icon?: SectionCardIcon;
+  mediaVariant?: MediaVariant;
 }
 
 export interface NormalizedSectionCardItem extends Omit<SectionCardItem, 'kind'> {
@@ -47,6 +53,7 @@ export interface CardDraft {
   entityId: string;
   span: SectionCardSpan;
   icon: SectionCardIcon;
+  mediaVariant: MediaVariant;
 }
 
 export interface AssignableScene {
@@ -320,6 +327,9 @@ export function normalizeCards(extra?: DashboardWidgetConfig['extra']): Normaliz
               : getDefaultSpan(kind)
           ),
       icon: typeof card.icon === 'string' && card.icon.trim() ? card.icon : getDefaultIcon(kind),
+      ...(kind === 'media' && (card.mediaVariant === 'classic' || card.mediaVariant === 'premium')
+        ? { mediaVariant: card.mediaVariant }
+        : {}),
       order: typeof card.order === 'number' ? card.order : index,
     }];
   });

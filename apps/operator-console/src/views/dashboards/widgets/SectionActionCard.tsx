@@ -3,7 +3,7 @@ import { Button } from '../../../components/ui/Button';
 import { cn } from '../../../lib/utils';
 import { getDashboardIconComponent } from '../components/IconPicker';
 import { getDefaultIcon, normalizeKind, type SectionCardIcon, type SectionCardKind } from './sectionCardCatalog';
-import { getLightTileIconClasses, getLightTileSurfaceClasses, SECTION_COMPACT_TILE_CLASSES } from './SectionDeviceCard';
+import { getLightTileIconClasses, getLightTileSurfaceClasses, SECTION_BUTTON_TILE_CLASSES } from './SectionDeviceCard';
 
 interface SectionActionCardProps {
   kind: SectionCardKind;
@@ -48,7 +48,7 @@ export function SectionActionCard({
       title={actionFeedback === 'error' ? t('dashboard.editor.sections.action_button_error') : unavailable ? t('dashboard.editor.sections.action_button_unavailable') : subtitle}
       variant="ghost"
       className={cn(
-        SECTION_COMPACT_TILE_CLASSES,
+        SECTION_BUTTON_TILE_CLASSES,
         getLightTileSurfaceClasses(Boolean(isActive)),
         'px-2.5 py-2.5 active:scale-[0.985] focus-visible:ring-primary/70 disabled:cursor-default',
         isActive ? 'hover:bg-transparent' : 'hover:bg-card/95',

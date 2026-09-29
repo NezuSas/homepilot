@@ -78,7 +78,7 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
           const Icon = getTabIcon(tab, index);
           const isActive = activeTabIdx === index;
           return (
-            <div key={tab.id} className="group flex shrink-0 items-center">
+            <div key={tab.id} className={cn('group flex shrink-0 items-center', isEditing && 'gap-1')}>
                 <Button
                   type="button"
                   onClick={() => onSelectTab(index)}
@@ -107,7 +107,7 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
                   }}
                   variant="ghost"
                   size="md"
-                  className={cn("mr-1 rounded-full", isActive && "bg-primary/15 text-primary")}
+                  className={cn("rounded-full", isActive && "bg-primary/15 text-primary")}
                 />
               )}
             </div>
