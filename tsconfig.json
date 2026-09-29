@@ -20,7 +20,8 @@
     "services/**/*",
     "__tests__/**/*",
     "main.ts",
-    "bootstrap.ts"
+    "bootstrap.ts",
+    "scripts/enroll-edge-device.ts"
   ],
   "exclude": [
     "node_modules",

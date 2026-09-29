@@ -1,11 +1,6 @@
 import { readFileSync } from 'node:fs';
-
-export interface CloudGatewayConnectorConfig {
-  url: string;
-  token: string;
-  homeId: string;
-  edgeId: string;
-}
+import type { CloudGatewayConnectorConfig } from '../application/EdgeDeviceContract';
+export type { CloudGatewayConnectorConfig } from '../application/EdgeDeviceContract';
 
 /** Reads the existing provisioned Edge identity without changing its storage format. */
 export function readCloudEdgeConfig(): CloudGatewayConnectorConfig | null {

@@ -22,6 +22,10 @@ import { IntentFlowManifestClient } from './packages/cloud-gateway/infrastructur
 import { IntentFlowCommandClient } from './packages/cloud-gateway/infrastructure/IntentFlowCommandClient';
 import { SqliteManifestCacheRepository } from './packages/cloud-gateway/infrastructure/SqliteManifestCacheRepository';
 import { readCloudEdgeConfig } from './packages/cloud-gateway/infrastructure/CloudEdgeConfigProvider';
+import { EdgeDeviceIdentityService } from './packages/cloud-gateway/application/EdgeDeviceIdentityService';
+import { DeviceIdentityError, type DeviceIdentityProvider } from './packages/cloud-gateway/application/DeviceIdentityProvider';
+import { SqliteDeviceBindingRepository } from './packages/cloud-gateway/infrastructure/SqliteDeviceBindingRepository';
+import { createDeviceIdentityProvider } from './packages/cloud-gateway/infrastructure/createDeviceIdentityProvider';
 import { RepositoryTopologyReferenceAdapter } from './packages/devices/infrastructure/adapters/RepositoryTopologyReferenceAdapter';
 import { getDatabasePath } from './packages/shared/config/getDatabasePath';
 import { DatabaseBackupService } from './packages/shared/infrastructure/database/DatabaseBackupService';
@@ -103,6 +107,7 @@ export interface BootstrapContainer {
     nativeCameraSourceRepository: SQLiteNativeCameraSourceRepository;
     androidDisplaySourceRepository: SQLiteAndroidDisplaySourceRepository;
     manifestCacheRepository: SqliteManifestCacheRepository;
+    deviceBindingRepository: SqliteDeviceBindingRepository;
     sceneRepository: SqliteSceneRepository;
     automationRuleRepository: SQLiteAutomationRuleRepository;
     activityLogRepository: SQLiteActivityLogRepository;
@@ -141,6 +146,7 @@ export interface BootstrapContainer {
     nativeCameraStreamingService: NativeCameraStreamingService;
     androidDisplayService: AndroidDisplayService;
     installationVerificationBroker: InstallationVerificationBroker;
+    edgeDeviceIdentityService: EdgeDeviceIdentityService;
     manifestSyncService: ManifestSyncService;
     effectiveActionsProvider: EffectiveActionsProvider;
     deviceControlCatalogProvider: DeviceControlCatalogProvider;
@@ -166,6 +172,7 @@ export interface BootstrapOptions {
   dbPath?: string;
   migrationsDir?: string;
   verbose?: boolean;
+  deviceIdentityProvider?: DeviceIdentityProvider;
 }
 
 /**
@@ -188,6 +195,12 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     migrationsDir: options?.migrationsDir,
     verbose: isVerbose
   });
+
+  const deviceBindingRepository = new SqliteDeviceBindingRepository(db);
+  const edgeDeviceIdentityService = new EdgeDeviceIdentityService(
+    deviceBindingRepository, options?.deviceIdentityProvider ?? createDeviceIdentityProvider(dbPath), readCloudEdgeConfig,
+  );
+  if ((await edgeDeviceIdentityService.verifyAtStartup()).status !== 'READY') throw new DeviceIdentityError();
 
   const { eventBus, deviceEventPublisher, topologyEventPublisher } = buildEventBus();
 
@@ -416,7 +429,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     roomManagementService
   );
 
-  const directoryTokenClient = new DirectoryEdgeServiceTokenClient(readCloudEdgeConfig);
+  const directoryTokenClient = new DirectoryEdgeServiceTokenClient(readCloudEdgeConfig, fetch, edgeDeviceIdentityService);
   const manifestSyncService = new ManifestSyncService({
     directory: directoryTokenClient,
     intentFlow: new IntentFlowManifestClient(),
@@ -429,6 +442,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     repositories: {
       ...repos,
       manifestCacheRepository,
+      deviceBindingRepository,
       userRepository: authModule.userRepository,
       sessionRepository: authModule.sessionRepository,
       directorySsoRepository: authModule.directorySsoRepository,
@@ -459,6 +473,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       nativeCameraStreamingService: nativeCameraModule.nativeCameraStreamingService,
       androidDisplayService,
       installationVerificationBroker: new InstallationVerificationBroker(readCloudEdgeConfig),
+      edgeDeviceIdentityService,
       manifestSyncService,
       intentFlowCommandExecutionService,
       effectiveActionsProvider: new EffectiveActionsProvider({

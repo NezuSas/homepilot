@@ -1,0 +1,5 @@
+# Add only for a provisioned Linux MiniPC with TPM 2.0. Legacy installs omit this override.
+services:
+  homepilot-api:
+    devices:
+      - /dev/tpmrm0:/dev/tpmrm0

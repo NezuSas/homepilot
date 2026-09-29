@@ -38,6 +38,7 @@ The command fails if a file cannot be mapped to an existing spec.
 | Android Smart Displays | `AndroidDisplayRoutes`, `packages/integrations/android-display` | Android display integration V1 |
 | IntentFlow manifest and effective actions | `BoardManifestV1`, `EffectiveActionsResolver` | HomePilot effectiveActions V1 |
 | Installation verification | Installation verification broker and shared Cloud Edge config provider | HomePilot Installation Verification Broker V1 |
+| Device-bound Edge identity | TPM/software provider, binding repository, Directory proof client, diagnostic startup | HomePilot Device-Bound Edge Identity V1 |
 | IntentFlow manifest sync | Bundle parser, Directory/IntentFlow clients, local manifest cache and effective-actions provider | HomePilot IntentFlow Manifest Sync V1 |
 | Smart Display commercial controls and command execution | Control catalog, command-token cache, IntentFlow command client, Action Card target | Smart Display Control Catalog V1 |
 | Media | media routes and player cards | Media player local control |
@@ -51,7 +52,7 @@ The command fails if a file cannot be mapped to an existing spec.
 
 ## Audited Coverage
 
-- The **828** audited TypeScript/TSX files have a mapping rule to an existing
+- The **839** audited TypeScript/TSX files have a mapping rule to an existing
   spec.
 - All bounded contexts under `packages/` and all API route families are
   covered.

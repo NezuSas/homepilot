@@ -5,6 +5,8 @@ import { OperatorConsoleServer } from './apps/api/OperatorConsoleServer';
 import { getDatabasePath } from './packages/shared/config/getDatabasePath';
 import { CloudGatewayConnector } from './packages/cloud-gateway/infrastructure/CloudGatewayConnector';
 import { EdgeGatewayRelayExecutor } from './packages/cloud-gateway/application/EdgeGatewayRelayExecutor';
+import { DeviceIdentityError } from './packages/cloud-gateway/application/DeviceIdentityProvider';
+import { createDeviceIdentityDiagnosticServer } from './apps/api/DeviceIdentityDiagnosticServer';
 
 /**
  * Punto de entrada principal (Entrypoint Edge) 
@@ -51,6 +53,11 @@ async function main(): Promise<void> {
     console.log('[Main] El sistema se encuentra preparado para operar.');
     
   } catch (error: unknown) {
+    if (error instanceof DeviceIdentityError) {
+      console.error('[Main] DEVICE_IDENTITY_INVALID: instalación no lista.');
+      createDeviceIdentityDiagnosticServer().listen(3000, process.env.HOMEPILOT_API_BIND_HOST?.trim() || '0.0.0.0');
+      return;
+    }
     console.error('[Main] Fallo catastrófico durante el arranque general:', error instanceof Error ? error.message : error);
     process.exit(1);
   }
