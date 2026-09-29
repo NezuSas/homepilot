@@ -233,21 +233,23 @@ export function SectionCardItem({
 
       {isEditing ? (
         <>
-          <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center opacity-0 transition-opacity duration-150 group-hover/card:opacity-100 group-focus-within/card:opacity-100">
-            <IconButton
-              icon={Pencil}
-              label={t('common.edit')}
-              onPointerDown={(event) => event.stopPropagation()}
-              onKeyDown={(event) => event.stopPropagation()}
-              onClick={(event) => {
-                event.stopPropagation();
-                openCardEditor(card);
-              }}
-              variant="default"
-              size={isCompactDeviceCard ? "sm" : "md"}
-              className="pointer-events-auto rounded-full bg-background/95 shadow-lg backdrop-blur-md hover:text-primary"
-            />
-          </div>
+          {!isClock && (
+            <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center opacity-0 transition-opacity duration-150 group-hover/card:opacity-100 group-focus-within/card:opacity-100">
+              <IconButton
+                icon={Pencil}
+                label={t('common.edit')}
+                onPointerDown={(event) => event.stopPropagation()}
+                onKeyDown={(event) => event.stopPropagation()}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  openCardEditor(card);
+                }}
+                variant="default"
+                size={isCompactDeviceCard ? "sm" : "md"}
+                className="pointer-events-auto rounded-full bg-background/95 shadow-lg backdrop-blur-md hover:text-primary"
+              />
+            </div>
+          )}
           <div className={cn("pointer-events-none absolute right-2 top-2 z-30 opacity-0 transition-opacity duration-150 group-hover/card:pointer-events-auto group-hover/card:opacity-100 group-focus-within/card:pointer-events-auto group-focus-within/card:opacity-100", isCompactDeviceCard && "right-1 top-1")}>
             <IconButton
               icon={MoreVertical}
@@ -255,7 +257,10 @@ export function SectionCardItem({
               aria-haspopup="menu"
               aria-expanded={isCardMenuOpen}
               onPointerDown={(event) => event.stopPropagation()}
-              onKeyDown={(event) => event.stopPropagation()}
+              onKeyDown={(event) => {
+                event.stopPropagation();
+                if (event.key === 'Escape') setIsCardMenuOpen(false);
+              }}
               onClick={(event) => {
                 event.stopPropagation();
                 const rect = event.currentTarget.getBoundingClientRect();
@@ -280,20 +285,24 @@ export function SectionCardItem({
             onPointerDown={(event) => event.stopPropagation()}
             className="fixed z-50 min-w-36 rounded-panel border border-border/70 bg-card p-1.5 shadow-depth-3"
           >
-            <Button
-              role="menuitem"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setIsCardMenuOpen(false);
-                openCardEditor(card);
-              }}
-              className="w-full justify-start font-semibold"
-            >
-              <Pencil className="h-4 w-4" aria-hidden="true" />
-              {t('common.edit')}
-            </Button>
-            <div role="separator" className="my-1 border-t border-border/65" />
+            {!isClock && (
+              <>
+                <Button
+                  role="menuitem"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setIsCardMenuOpen(false);
+                    openCardEditor(card);
+                  }}
+                  className="w-full justify-start font-semibold"
+                >
+                  <Pencil className="h-4 w-4" aria-hidden="true" />
+                  {t('common.edit')}
+                </Button>
+                <div role="separator" className="my-1 border-t border-border/65" />
+              </>
+            )}
             <Button
               role="menuitem"
               variant="ghost"

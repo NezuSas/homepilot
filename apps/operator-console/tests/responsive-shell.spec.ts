@@ -709,6 +709,114 @@ test('Feature: Section card editing — Scenario: An owner adds and configures a
   await expect(page.getByText('Lecturas del hogar')).toBeVisible();
 });
 
+test('Feature: Clock editing — Scenario: A fixed section clock can be moved, removed and added without an editor', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const section = responsiveDashboard.tabs[0]!.widgets[1]!;
+  if (!('extra' in section.config)) throw new Error('Responsive fixture has no section cards');
+  const dashboard = {
+    ...responsiveDashboard,
+    tabs: [{
+      ...responsiveDashboard.tabs[0]!,
+      widgets: [responsiveDashboard.tabs[0]!.widgets[0]!, {
+        ...section,
+        config: {
+          ...section.config,
+          extra: { ...section.config.extra, cards: [
+            section.config.extra.cards[4]!,
+            { ...section.config.extra.cards[0]!, span: 'full' },
+          ] },
+        },
+      }],
+    }],
+  };
+  await prepareAuthenticatedDashboard(page, dashboard);
+  let savedDashboard = dashboard;
+  await page.route('**/api/v1/dashboards/responsive-dashboard', async (route) => {
+    if (route.request().method() !== 'PATCH') return route.continue();
+    const changes = route.request().postDataJSON() as Partial<typeof dashboard>;
+    savedDashboard = { ...savedDashboard, ...changes };
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(savedDashboard) });
+  });
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
+
+  const clock = page.locator('[data-dashboard-card-id="responsive-weather"]');
+  const sensor = page.locator('[data-dashboard-card-id="responsive-sensor"]');
+  const cardActions = /^(Card actions|Acciones de tarjeta)$/i;
+  const edit = /^(Edit|Editar)$/i;
+  await expect(clock.getByRole('button', { name: edit })).toHaveCount(0);
+  await clock.hover();
+  const clockActionsButton = clock.getByRole('button', { name: cardActions });
+  await clockActionsButton.click();
+  const clockMenu = page.getByRole('menu', { name: cardActions });
+  await expect(clockMenu.getByRole('menuitem', { name: edit })).toHaveCount(0);
+  await expect(clockMenu.getByRole('menuitem', { name: /^(Delete|Eliminar)$/i })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(clockMenu).not.toBeVisible();
+  await expect(clockActionsButton).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.getByRole('heading', { name: edit })).toHaveCount(0);
+
+  await expect(sensor.getByRole('button', { name: edit })).toHaveCount(1);
+  await sensor.hover();
+  await sensor.getByRole('button', { name: cardActions }).click();
+  await page.getByRole('menu', { name: cardActions }).getByRole('menuitem', { name: edit }).click();
+  await expect(page.getByRole('heading', { name: edit })).toBeVisible();
+  await page.getByRole('button', { name: /^(Close|Cerrar)$/i }).click();
+
+  await clock.dragTo(sensor, { steps: 10 });
+  await expect.poll(() => {
+    const savedSection = savedDashboard.tabs[0]?.widgets.find((widget) => widget.id === 'responsive-section');
+    if (!savedSection || !('extra' in savedSection.config)) return [];
+    return savedSection.config.extra.cards.map((card) => card.id);
+  }).toEqual(['responsive-sensor', 'responsive-weather']);
+
+  await clock.hover();
+  await clock.getByRole('button', { name: cardActions }).click();
+  await page.getByRole('menu', { name: cardActions }).getByRole('menuitem', { name: /^(Delete|Eliminar)$/i }).click();
+  await expect(clock).toHaveCount(0);
+
+  await page.getByRole('button', { name: /^(Add card|Añadir tarjeta)$/i }).click();
+  const cardCatalog = page.locator('.max-h-section-modal').filter({
+    has: page.getByRole('heading', { name: /^(Add card to section|Añadir tarjeta a la sección)$/i }),
+  });
+  await cardCatalog.getByRole('button', { name: /^(Clock|Reloj)$/i })
+    .and(cardCatalog.locator('.max-h-section-editor > div > div > button[type="button"]'))
+    .click();
+  await expect(page.getByRole('heading', { name: /^(Add card to section|Añadir tarjeta a la sección)$/i })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: edit })).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: /^(Name|Nombre)$/i })).toHaveCount(0);
+  await expect(page.locator('[data-homepilot-clock]')).toHaveCount(1);
+});
+
+test('Feature: Clock editing — Scenario: A standalone clock has no Configure action but retains layout controls', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const dashboard = {
+    ...responsiveDashboard,
+    tabs: [{
+      ...responsiveDashboard.tabs[0]!,
+      widgets: [responsiveDashboard.tabs[0]!.widgets[0]!, {
+        id: 'standalone-clock',
+        type: 'clock_display',
+        config: {
+          layout: { x: 0, y: 1, w: 3, h: 4, span: 3 },
+          binding: { entityId: 'standalone-clock', entityType: 'system', entityName: 'Reloj' },
+          visibility: { rules: [], defaultState: 'show' },
+          appearance: { title: 'Reloj', showTitle: true },
+        },
+      }],
+    }],
+  };
+  await prepareAuthenticatedDashboard(page, dashboard);
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
+
+  const clock = page.locator('.homepilot-dashboard-widget').filter({ has: page.locator('[data-homepilot-clock]') });
+  await expect(clock).toHaveCount(1);
+  await expect(clock.getByRole('button', { name: /^(Configure|Configurar)$/i })).toHaveCount(0);
+  await expect(clock.getByRole('button', { name: /^(Drag to reorder|Arrastrar para reordenar)$/i })).toBeVisible();
+  await expect(clock.getByRole('button', { name: /^(Delete|Eliminar)$/i })).toBeVisible();
+});
+
 test('Feature: Media card width — Scenario: A player occupies the full section without a redundant width control', async ({ page }) => {
   await prepareAuthenticatedDashboard(page);
   let savedDashboard = responsiveDashboard;

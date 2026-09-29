@@ -194,6 +194,7 @@ export function DashboardWidgetNode({
   const isCamera = widget.type === 'device_control' && (boundDevice?.type === 'camera' || boundDevice?.semanticType === 'camera');
   const isDevice = (widget.type === 'device_control' || widget.type === 'action_button') && !isCamera;
   const isSection = widget.type === 'section'; const isTitleWidget = widget.type === 'dashboard_title';
+  const canConfigureWidget = widget.type !== 'clock_display';
   const openTitleEditor = () => {
     setIsTitleEditorOpen(true);
     onClick();
@@ -418,25 +419,27 @@ export function DashboardWidgetNode({
                   className="h-9 w-7 touch-none cursor-grab text-muted-foreground/50 active:cursor-grabbing hover:text-primary"
                 />
               )}
-              {!isTitleWidget && canDrag && <div className="mx-0.5 h-4 w-px bg-border/40" />}
-              <IconButton
-                icon={Pencil}
-                label={isSection ? t('dashboard.editor.sections.edit_section_title') : t('common.configure')}
-                variant="ghost"
-                size="sm"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  if (isSection) {
-                    setSectionDraftTitle(widget.config.appearance?.title ?? '');
-                    setSectionDraftSpan(getSectionSpan(widget));
-                    setIsSectionEditorOpen(true);
-                  } else {
-                    onClick();
-                  }
-                }}
-                className="hover:bg-primary/10 hover:text-primary"
-              />
-              {!isTitleWidget && onDelete && <div className="mx-0.5 h-4 w-px bg-border/40" />}
+              {!isTitleWidget && canDrag && (canConfigureWidget || Boolean(onDelete)) && <div className="mx-0.5 h-4 w-px bg-border/40" />}
+              {canConfigureWidget && (
+                <IconButton
+                  icon={Pencil}
+                  label={isSection ? t('dashboard.editor.sections.edit_section_title') : t('common.configure')}
+                  variant="ghost"
+                  size="sm"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    if (isSection) {
+                      setSectionDraftTitle(widget.config.appearance?.title ?? '');
+                      setSectionDraftSpan(getSectionSpan(widget));
+                      setIsSectionEditorOpen(true);
+                    } else {
+                      onClick();
+                    }
+                  }}
+                  className="hover:bg-primary/10 hover:text-primary"
+                />
+              )}
+              {canConfigureWidget && !isTitleWidget && onDelete && <div className="mx-0.5 h-4 w-px bg-border/40" />}
               {!isTitleWidget && onDelete && (
                 <IconButton
                   icon={Trash2}

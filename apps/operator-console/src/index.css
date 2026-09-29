@@ -1285,14 +1285,15 @@
 
   .homepilot-dashboard-screen .homepilot-clock-reference-quote-mark {
     flex: none;
-    align-self: flex-start;
+    align-self: center;
     height: 1.4rem;
-    margin-top: -0.25rem;
     color: var(--hp-clock-accent);
     font-family: Georgia, serif;
     font-size: clamp(2rem, 6cqi, 2.8rem);
     font-weight: 700;
     line-height: 1;
+    transform: scale(1.6);
+    transform-origin: center;
   }
 
   .homepilot-dashboard-screen .homepilot-clock-reference-quote p {
@@ -1307,7 +1308,7 @@
   }
 
   .dark:not(.light) .homepilot-dashboard-screen .homepilot-clock-reference-quote-mark {
-    color: rgb(255 154 82 / 0.56);
+    color: rgb(255 154 82 / 0.72);
   }
 
   @container (max-width: 350px) {

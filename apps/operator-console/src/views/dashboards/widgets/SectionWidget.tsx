@@ -206,18 +206,23 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     setQuery('');
     setCatalogCategoryFilter(null);
 
-    setEditingCardId(nextCard.id);
-    const nextIcon = nextCard.icon ?? getDefaultIcon(nextCard.kind);
-    setCardDraft({
-      title: nextCard.title,
-      kind: nextCard.kind,
-      entityId: '',
-      span: nextCard.span ?? getDefaultSpan(nextCard.kind),
-      icon: nextIcon,
-    });
+    if (!isClockKind(nextCard.kind)) {
+      setEditingCardId(nextCard.id);
+      const nextIcon = nextCard.icon ?? getDefaultIcon(nextCard.kind);
+      setCardDraft({
+        title: nextCard.title,
+        kind: nextCard.kind,
+        entityId: '',
+        span: nextCard.span ?? getDefaultSpan(nextCard.kind),
+        icon: nextIcon,
+      });
+    } else {
+      setEditingCardId(null);
+    }
   };
 
   const openCardEditor = (card: NormalizedSectionCardItem) => {
+    if (isClockKind(card.kind)) return;
     setEditingCardId(card.id);
     const nextIcon = card.icon ?? getDefaultIcon(card.kind);
     setCardDraft({
@@ -344,7 +349,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     />
   ) : null;
 
-  const editorModal = editingCard ? (
+  const editorModal = editingCard && !isClockKind(editingCard.kind) ? (
     <SectionCardEditorModal
       cardDraft={cardDraft}
       setCardDraft={setCardDraft}
