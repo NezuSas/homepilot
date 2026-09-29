@@ -1040,7 +1040,7 @@
     --hp-clock-muted: rgb(185 174 165);
     --hp-clock-accent: rgb(255 122 46);
     --hp-clock-rule: rgb(185 174 165 / 0.2);
-    --hp-clock-edge: rgb(42 36 29);
+    --hp-clock-edge: rgb(42 36 29 / 0.72);
     --hp-clock-glow: rgb(255 154 82 / 0.09);
     --hp-clock-surface-start: rgb(26 23 20 / 0.98);
     --hp-clock-surface-end: rgb(20 18 16 / 0.99);
@@ -1126,31 +1126,24 @@
     border: 1px solid var(--hp-clock-accent);
     border-radius: 50%;
     background: radial-gradient(circle at 47% 42%, var(--hp-clock-dial-start), var(--hp-clock-dial-end) 76%);
-    box-shadow: 0 11px 25px -17px rgb(9 8 7 / 0.58), inset 0 0 0 2px rgb(255 154 82 / 0.045);
+    box-shadow: 0 11px 25px -17px rgb(9 8 7 / 0.58);
   }
 
   .homepilot-dashboard-screen .homepilot-clock-reference .homepilot-clock-dial {
     width: 100%;
     height: 100%;
-    filter: drop-shadow(0 10px 12px rgb(9 8 7 / 0.24));
-  }
-
-  .homepilot-dashboard-screen .homepilot-clock-reference .homepilot-clock-dial radialGradient stop:first-child {
-    stop-color: var(--hp-clock-dial-start);
-  }
-
-  .homepilot-dashboard-screen .homepilot-clock-reference .homepilot-clock-dial radialGradient stop:last-child {
-    stop-color: var(--hp-clock-dial-end);
+    filter: none;
   }
 
   .homepilot-dashboard-screen .homepilot-clock-reference .homepilot-clock-dial-face {
+    fill: transparent;
+    filter: none;
     stroke: var(--hp-clock-edge);
     stroke-opacity: 0.2;
   }
 
   .homepilot-dashboard-screen .homepilot-clock-reference .homepilot-clock-dial-ring {
-    stroke: var(--hp-clock-accent);
-    stroke-opacity: 0.08;
+    display: none;
   }
 
   .homepilot-dashboard-screen .homepilot-clock-reference .homepilot-clock-hour-tick,
@@ -1213,11 +1206,7 @@
   }
 
   .light .homepilot-dashboard-screen .homepilot-clock-reference-dial-frame {
-    box-shadow: 0 11px 24px -18px rgb(55 40 28 / 0.12), inset 0 0 0 2px rgb(255 112 28 / 0.025);
-  }
-
-  .light .homepilot-dashboard-screen .homepilot-clock-reference .homepilot-clock-dial {
-    filter: drop-shadow(0 8px 10px rgb(55 40 28 / 0.1));
+    box-shadow: 0 11px 24px -18px rgb(55 40 28 / 0.12);
   }
 
   .light .homepilot-dashboard-screen .homepilot-clock-reference .homepilot-clock-center-core {
@@ -1314,7 +1303,7 @@
   }
 
   .dark:not(.light) .homepilot-dashboard-screen .homepilot-clock-reference-dial-frame {
-    box-shadow: 0 13px 25px -18px rgb(9 8 7 / 0.72), 0 0 12px rgb(255 154 82 / 0.09), inset 0 0 0 2px rgb(255 122 46 / 0.035);
+    box-shadow: 0 13px 25px -18px rgb(9 8 7 / 0.72), 0 0 12px rgb(255 154 82 / 0.09);
   }
 
   .dark:not(.light) .homepilot-dashboard-screen .homepilot-clock-reference-quote-mark {
