@@ -911,8 +911,18 @@
   }
 
   .homepilot-sensor-reading {
-    border-color: hsl(var(--border-subtle));
-    box-shadow: none;
+    border-color: hsl(var(--dashboard-edge) / 0.72);
+    background: linear-gradient(145deg, hsl(var(--dashboard-surface-raised) / 0.97), hsl(var(--dashboard-surface) / 0.95));
+    box-shadow: 0 12px 26px -22px hsl(var(--foreground) / 0.16), inset 0 1px 0 hsl(var(--dashboard-surface-raised) / 0.65);
+  }
+
+  .homepilot-sensor-reading .sensor-premium-gauge-track {
+    stroke: hsl(var(--border-subtle));
+  }
+
+  .homepilot-sensor-reading .sensor-premium-gauge-progress {
+    stroke: hsl(var(--primary));
+    filter: drop-shadow(0 2px 3px hsl(var(--primary) / 0.2));
   }
 
   /* Light dashboards keep device controls legible over owner-selected image backgrounds. */
@@ -1408,8 +1418,15 @@
   }
 
   .dark:not(.light) .homepilot-dashboard-screen .sensor-metric-card > div:first-child > span[aria-label] {
-    background: rgb(var(--dashboard-premium-edge) / 0.08);
-    box-shadow: inset 0 0 0 1px rgb(var(--dashboard-premium-edge) / 0.1), inset 0 1px 0 rgb(255 230 210 / 0.05);
+    color: rgb(var(--dashboard-premium-accent-light));
+  }
+
+  .dark:not(.light) .homepilot-dashboard-screen .homepilot-sensor-reading {
+    background: radial-gradient(circle at 24% 72%, rgb(var(--dashboard-premium-accent) / 0.06), transparent 42%), linear-gradient(145deg, rgb(var(--dashboard-premium-card) / 0.94), rgb(var(--dashboard-premium-section) / 0.95));
+  }
+
+  .dark:not(.light) .homepilot-dashboard-screen .homepilot-sensor-reading .sensor-premium-gauge-track {
+    stroke: rgb(var(--dashboard-premium-edge) / 0.14);
   }
 
   .homepilot-home {

@@ -4,8 +4,13 @@ import { getSensorReading, getSensorSeverity, SensorMetricCard } from './SensorM
 
 jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => ({
   'dashboard.editor.sections.sensor_battery': 'Batería',
+  'dashboard.editor.sections.sensor_battery_level': 'Nivel de batería',
   'dashboard.editor.sections.sensor_temperature': 'Temperatura',
+  'dashboard.editor.sections.sensor_gpu_temperature': 'Temperatura GPU',
   'dashboard.editor.sections.sensor_load': 'Carga',
+  'dashboard.editor.sections.sensor_cpu_load': 'Carga de CPU',
+  'dashboard.editor.sections.sensor_gpu_load': 'Carga de GPU',
+  'dashboard.editor.sections.sensor_memory_usage': 'Uso de memoria',
   'dashboard.editor.sections.sensor_status': 'Estado',
   'dashboard.editor.sections.sensor_normal': 'Normal',
   'dashboard.editor.sections.sensor_low': 'Bajo',
@@ -78,7 +83,8 @@ describe('Sensor Metric Card status presentation', () => {
     expect(html).toContain('role="meter"');
     expect(html).toContain(`aria-valuenow="${value}"`);
     expect(html).toContain(`${value}%`);
-    expect(html).toContain('conic-gradient');
+    expect(html).toContain('stroke-linecap="round"');
+    expect(html).toContain(deviceClass === 'battery' ? 'Nivel de batería' : deviceClass === 'cpu' ? 'Carga de CPU' : deviceClass === 'gpu' ? 'Carga de GPU' : 'Uso de memoria');
   });
 
   it('shows GPU temperature without a percentage meter or invented range', () => {
@@ -88,6 +94,7 @@ describe('Sensor Metric Card status presentation', () => {
     expect(reading.presentation).toBe('temperature');
     expect(html).toContain('63');
     expect(html).toContain('°C');
+    expect(html).toContain('Temperatura GPU');
     expect(html).not.toContain('role="meter"');
     expect(getSensorSeverity(reading)).toBe('informational');
   });
