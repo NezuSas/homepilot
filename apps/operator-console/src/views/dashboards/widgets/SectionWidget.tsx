@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { Clock3, LayoutGrid, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
 import { API_BASE_URL } from '../../../config';
@@ -82,9 +82,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const showTitle = config.appearance?.showTitle !== false;
   const cards = normalizeCards(config.extra);
   const sectionIcon = config.appearance?.icon?.trim();
-  const SectionIcon = sectionIcon
-    ? getDashboardIconComponent(sectionIcon)
-    : cards.some((card) => isClockKind(card.kind)) ? Clock3 : LayoutGrid;
+  const SectionIcon = sectionIcon ? getDashboardIconComponent(sectionIcon) : null;
   const editingCard = editingCardId ? cards.find((card) => card.id === editingCardId) : undefined;
 
   useEffect(() => {
@@ -404,13 +402,13 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     <section
       onClick={(event) => event.stopPropagation()}
       className={cn(
-        "flex h-full w-full min-w-0 flex-col gap-3 overflow-visible px-1 pb-2 pt-3",
+        "flex h-full w-full min-w-0 flex-col gap-3 overflow-visible px-5 pb-2 pt-3",
         isEditing && "group/section relative text-left",
       )}
     >
       {showTitle ? (
         <h2 className="homepilot-dashboard-section-heading flex w-fit max-w-full items-center gap-2 truncate rounded-lg px-2 py-1 text-dashboard-section-title-fluid font-black tracking-tight">
-          <SectionIcon className="homepilot-dashboard-section-heading-icon h-5 w-5 shrink-0" />
+          {SectionIcon && <SectionIcon className="homepilot-dashboard-section-heading-icon h-5 w-5 shrink-0" />}
           <span className="truncate">{title}</span>
         </h2>
       ) : isEditing ? (

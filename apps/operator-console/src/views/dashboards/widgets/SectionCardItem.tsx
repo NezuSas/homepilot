@@ -205,6 +205,7 @@ export function SectionCardItem({
         // Match the live CurtainDeviceTile's dashboard min-height at sm+.
         isCover && "w-full max-w-curtain-dashboard justify-self-start sm:min-h-curtain-card",
         isActionable && !initialPending && "cursor-pointer hover:-translate-y-0.5 hover:shadow-depth-2 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+        normalizedKind === 'light' && !tileIsActive && "border border-transparent",
         (normalizedKind === 'light' || normalizedKind === 'action') && tileIsActive && "homepilot-section-light-tile-active",
         isDragging && "z-30 opacity-45",
         getSpanClass(span)

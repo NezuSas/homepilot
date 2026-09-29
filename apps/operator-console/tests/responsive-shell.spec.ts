@@ -709,6 +709,108 @@ test('Feature: Section card editing — Scenario: An owner adds and configures a
   await expect(page.getByText('Lecturas del hogar')).toBeVisible();
 });
 
+test('Feature: Section appearance — Scenario: An owner can select and clear an optional section icon', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const section = responsiveDashboard.tabs[0]!.widgets[1]!;
+  const dashboard = {
+    ...responsiveDashboard,
+    tabs: [{
+      ...responsiveDashboard.tabs[0]!,
+      widgets: [responsiveDashboard.tabs[0]!.widgets[0]!, section, {
+        ...section,
+        id: 'section-with-icon',
+        config: {
+          ...section.config,
+          layout: { ...section.config.layout, y: 5 },
+          binding: { ...section.config.binding, entityId: 'section-with-icon' },
+          appearance: { ...section.config.appearance, title: 'Con icono', icon: 'mdi:home' },
+          extra: { cards: [] },
+        },
+      }],
+    }],
+  };
+  await prepareAuthenticatedDashboard(page, dashboard);
+  let savedDashboard = dashboard;
+  await page.route('**/api/v1/dashboards/responsive-dashboard', async (route) => {
+    if (route.request().method() !== 'PATCH') return route.continue();
+    const changes = route.request().postDataJSON() as Partial<typeof dashboard>;
+    savedDashboard = { ...savedDashboard, ...changes };
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(savedDashboard) });
+  });
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+
+  const sectionWithoutIcon = page.locator('.homepilot-dashboard-widget').filter({ has: page.getByRole('heading', { name: 'Lecturas del hogar', exact: true }) });
+  const sectionWithIcon = page.locator('.homepilot-dashboard-widget').filter({ has: page.getByRole('heading', { name: 'Con icono', exact: true }) });
+  await expect(sectionWithoutIcon.locator('.homepilot-dashboard-section-heading svg')).toHaveCount(0);
+  await expect(sectionWithIcon.locator('.homepilot-dashboard-section-heading svg')).toHaveCount(1);
+  const sectionPadding = await sectionWithoutIcon.locator('section').evaluate((element) => ({
+    left: getComputedStyle(element).paddingLeft,
+    right: getComputedStyle(element).paddingRight,
+  }));
+  expect(sectionPadding).toEqual({ left: '20px', right: '20px' });
+
+  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
+  await sectionWithoutIcon.getByRole('button', { name: /^(Edit section|Editar sección)$/i }).click();
+  const editor = page.getByRole('dialog', { name: /^(Edit section|Editar sección)$/i });
+  const preview = editor.getByRole('group', { name: /^(Section preview|Vista previa de la sección)$/i });
+  await expect(preview.locator('svg')).toHaveCount(0);
+  await editor.getByRole('button', { name: /^(Icon|Icono)$/i }).click();
+  const iconPicker = page.getByRole('dialog', { name: /^(Icon|Icono)$/i });
+  const iconSearch = iconPicker.getByRole('searchbox');
+  await iconSearch.fill('home');
+  await expect(iconSearch).toHaveValue('home');
+  await expect(editor.getByRole('textbox', { name: /^(Section title|Título de sección)$/i })).toHaveValue('Lecturas del hogar');
+  await iconPicker.getByRole('listbox', { name: /^(Icon|Icono)$/i }).getByRole('option', { name: 'home', exact: true }).click();
+  await expect(preview.locator('svg')).toHaveCount(1);
+  await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
+  await expect(sectionWithoutIcon.locator('.homepilot-dashboard-section-heading svg')).toHaveCount(1);
+  expect(savedDashboard.tabs[0]?.widgets.find((widget) => widget.id === 'responsive-section')?.config.appearance).toHaveProperty('icon', 'mdi:home');
+
+  await sectionWithoutIcon.getByRole('button', { name: /^(Edit section|Editar sección)$/i }).click();
+  await editor.getByRole('button', { name: /^(Remove icon|Quitar icono)$/i }).click();
+  await expect(preview.locator('svg')).toHaveCount(0);
+  await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
+  await expect(sectionWithoutIcon.locator('.homepilot-dashboard-section-heading svg')).toHaveCount(0);
+  await expect(sectionWithIcon.locator('.homepilot-dashboard-section-heading svg')).toHaveCount(1);
+  expect(savedDashboard.tabs[0]?.widgets.find((widget) => widget.id === 'responsive-section')?.config.appearance).not.toHaveProperty('icon');
+});
+
+test('Feature: Button cards — Scenario: Active and inactive buttons keep the same rounded geometry', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const section = responsiveDashboard.tabs[0]!.widgets[1]!;
+  const lightCards = [
+    { id: 'light-on-card', kind: 'light', title: 'Luz activa', entityId: 'light-on', span: 'small' },
+    { id: 'light-off-card', kind: 'light', title: 'Luz inactiva', entityId: 'light-off', span: 'small' },
+  ];
+  const dashboard = {
+    ...responsiveDashboard,
+    tabs: [{ ...responsiveDashboard.tabs[0]!, widgets: [responsiveDashboard.tabs[0]!.widgets[0]!, {
+      ...section,
+      config: { ...section.config, extra: { cards: lightCards } },
+    }] }],
+  };
+  await prepareAuthenticatedDashboard(page, dashboard);
+  await page.route('**/api/v1/devices', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([
+      { id: 'light-on', homeId: 'responsive-home', roomId: 'responsive-room', name: 'Luz activa', type: 'light', semanticType: 'light', status: 'ASSIGNED', lastKnownState: { state: 'on' } },
+      { id: 'light-off', homeId: 'responsive-home', roomId: 'responsive-room', name: 'Luz inactiva', type: 'light', semanticType: 'light', status: 'ASSIGNED', lastKnownState: { state: 'off' } },
+    ]) });
+  });
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+
+  const geometry = async (id: string) => page.locator(`[data-dashboard-card-id="${id}"] > div`).first().evaluate((element) => {
+    const style = getComputedStyle(element);
+    const bounds = element.getBoundingClientRect();
+    return { radius: style.borderRadius, width: bounds.width, height: bounds.height, padding: style.padding };
+  });
+  await expect(page.locator('[data-dashboard-card-id="light-on-card"]')).toBeVisible();
+  await expect(page.locator('[data-dashboard-card-id="light-off-card"]')).toBeVisible();
+  const active = await geometry('light-on-card');
+  const inactive = await geometry('light-off-card');
+  expect(active.radius).toBe('24px');
+  expect(inactive).toEqual(active);
+});
+
 test('Feature: Clock editing — Scenario: A fixed section clock can be moved, removed and added without an editor', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const section = responsiveDashboard.tabs[0]!.widgets[1]!;
@@ -876,7 +978,7 @@ test('Feature: Media player idle — Scenario: A player reports no playback with
   });
 
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
-  const card = page.locator('[data-card-id="media-idle"]');
+  const card = page.locator('[data-dashboard-card-id="media-idle"]');
   await expect(card).toBeVisible();
   await expect(card.getByText(/^(Sin reproducción|Nothing playing)$/)).toBeVisible();
   await expect(card).toContainText('Sala');
@@ -896,6 +998,13 @@ test('Feature: Media player idle — Scenario: A player reports no playback with
   expect(await card.locator('button').count()).toBe(idleControls);
   expect(Math.abs((await card.evaluate((element) => element.getBoundingClientRect().height)) - idleHeight)).toBeLessThanOrEqual(2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(1441);
+
+  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
+  await expect(card.locator('[data-media-player] > div').first().locator('p').first().locator('..').locator('svg')).toHaveCount(0);
+  await card.hover();
+  const cardActions = card.getByRole('button', { name: /^(Card actions|Acciones de tarjeta)$/i });
+  await cardActions.click();
+  await expect(page.getByRole('menu', { name: /^(Card actions|Acciones de tarjeta)$/i })).toBeVisible();
 });
 
 test('Feature: Button card default — Scenario: A new button persists the first width and previews an inactive compact tile', async ({ page }) => {

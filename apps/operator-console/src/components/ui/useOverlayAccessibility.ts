@@ -56,6 +56,18 @@ export function useOverlayAccessibility({
         return;
       }
 
+      const focusedNode = event.target;
+      const isControlledPopup = Array.from(topOverlay.querySelectorAll<HTMLElement>('[aria-controls][aria-expanded="true"]'))
+        .some((control) => {
+          const popupRole = control.getAttribute('aria-haspopup');
+          if (popupRole !== 'dialog' && popupRole !== 'listbox') return false;
+          const controlledId = control.getAttribute('aria-controls');
+          const popup = controlledId ? document.getElementById(controlledId) : null;
+          if (!popup || popup.getAttribute('role') !== popupRole) return false;
+          return popup.contains(focusedNode);
+        });
+      if (isControlledPopup) return;
+
       const focusableElements = topOverlay.querySelectorAll<HTMLElement>(focusableSelector);
       (focusableElements[0] ?? topOverlay).focus();
     };
@@ -83,6 +95,8 @@ export function useOverlayAccessibility({
   }, [containerRef, isOpen]);
 
   const handleOverlayKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (!(event.target instanceof Node) || !containerRef.current?.contains(event.target)) return;
+
     if (event.key === 'Escape' && onClose) {
       event.preventDefault();
       onClose();

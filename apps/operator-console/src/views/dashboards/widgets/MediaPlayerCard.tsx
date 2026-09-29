@@ -1,4 +1,4 @@
-import { MinusCircle, MoreVertical, Pause, Play, PlusCircle, Power, SkipBack, SkipForward, Volume1, Volume2, VolumeX } from 'lucide-react';
+import { MinusCircle, Pause, Play, PlusCircle, Power, SkipBack, SkipForward, Volume1, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../../../config';
@@ -24,7 +24,6 @@ interface MediaPlayerCardProps {
   isProcessing?: boolean;
   onCommand?: (command: MediaPlayerCommand, params?: Record<string, unknown>) => void;
   compact?: boolean;
-  isEditing?: boolean;
 }
 interface MediaArtworkSession {
   readonly artworkPath: string | null;
@@ -84,7 +83,7 @@ function writePlaybackReference(deviceId: string | undefined, reference: MediaPl
   }
 }
 
-export function MediaPlayerCard({ device, title, isPreview = false, isProcessing = false, onCommand, compact = false, isEditing = false }: MediaPlayerCardProps) {
+export function MediaPlayerCard({ device, title, isPreview = false, isProcessing = false, onCommand, compact = false }: MediaPlayerCardProps) {
   const { t } = useTranslation();
   const [artworkSession, setArtworkSession] = useState<{ sourceKey: string; artworkPath: string | null } | null>(null);
   const [playbackClock, setPlaybackClock] = useState(() => Date.now());
@@ -222,9 +221,8 @@ export function MediaPlayerCard({ device, title, isPreview = false, isProcessing
       <div className={cn('relative grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-4', compact ? 'p-3' : 'p-4 sm:gap-5 sm:p-5')}>
         <MediaArtworkSquare artworkUrl={artworkUrl} compact={compact} />
         <div className="min-w-0">
-          <div className="flex min-w-0 items-center justify-between gap-2">
+          <div className="min-w-0">
             <p className="min-w-0 truncate text-micro font-semibold uppercase tracking-label text-muted-foreground">{title}</p>
-            {isEditing && !compact && <MoreVertical className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
           </div>
           <p className={cn('mt-2 line-clamp-2 font-bold leading-tight text-foreground', compact ? 'text-body-compact' : 'text-card-title')}>{displayTitle}</p>
           <p className="mt-1 truncate text-caption font-medium text-muted-foreground">

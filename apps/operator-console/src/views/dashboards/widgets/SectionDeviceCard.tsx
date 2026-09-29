@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { getDashboardIconComponent } from '../components/IconPicker';
 import { getDefaultIcon, normalizeKind, type SectionCardIcon, type SectionCardKind } from './sectionCardCatalog';
 
-export const SECTION_COMPACT_TILE_CLASSES = 'relative flex h-full min-h-0 w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl border p-2.5 text-center text-foreground transition-[border-color,background-color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary';
+const SECTION_COMPACT_TILE_LAYOUT_CLASSES = 'relative flex h-full min-h-0 w-full flex-col items-center justify-center gap-1.5 overflow-hidden border p-2.5 text-center text-foreground transition-[border-color,background-color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary';
+export const SECTION_COMPACT_TILE_CLASSES = `${SECTION_COMPACT_TILE_LAYOUT_CLASSES} rounded-xl`;
+const SECTION_BUTTON_TILE_CLASSES = `${SECTION_COMPACT_TILE_LAYOUT_CLASSES} rounded-section`;
 export const SECTION_COMPACT_TILE_INACTIVE_CLASSES = 'homepilot-section-tile-inactive border-border/60 bg-card/95 shadow-surface-card';
 
 export function getLightTileSurfaceClasses(isActive: boolean, isPreview = false) {
@@ -35,7 +37,7 @@ export function SectionDeviceCard({ kind, title, subtitle, icon, isAssigned, isA
 
   if (isTileKind) {
     return (
-      <div className={cn(SECTION_COMPACT_TILE_CLASSES, isLightKind ? getLightTileSurfaceClasses(Boolean(isActive), isPreview) : isActive ? 'homepilot-section-device-tile-active border-primary/45 bg-primary/15 shadow-surface-card' : SECTION_COMPACT_TILE_INACTIVE_CLASSES, !isAssigned && !isPreview && 'opacity-60')}>
+      <div className={cn(isLightKind ? SECTION_BUTTON_TILE_CLASSES : SECTION_COMPACT_TILE_CLASSES, isLightKind ? getLightTileSurfaceClasses(Boolean(isActive), isPreview) : isActive ? 'homepilot-section-device-tile-active border-primary/45 bg-primary/15 shadow-surface-card' : SECTION_COMPACT_TILE_INACTIVE_CLASSES, !isAssigned && !isPreview && 'opacity-60')}>
         <Icon className={isLightKind ? getLightTileIconClasses(Boolean(isActive)) : cn('h-7 w-7 shrink-0 transition-colors', isActive ? 'text-primary' : 'text-foreground/80')} />
         <span className="line-clamp-2 min-w-0 text-micro font-bold leading-tight text-foreground">{title}</span>
       </div>

@@ -17,6 +17,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
 import { clampSectionSpan, getSectionSpan } from './dashboardUtils';
+import { IconPicker, getDashboardIconComponent } from './components/IconPicker';
 
 // Sub-widgets
 import { DeviceWidget } from './widgets/DeviceWidget';
@@ -183,6 +184,7 @@ export function DashboardWidgetNode({
   const { t } = useTranslation();
   const [isSectionEditorOpen, setIsSectionEditorOpen] = useState(false);
   const [sectionDraftTitle, setSectionDraftTitle] = useState('');
+  const [sectionDraftIcon, setSectionDraftIcon] = useState('');
   const [sectionDraftSpan, setSectionDraftSpan] = useState(1);
   const [titleEditorRequest, setTitleEditorRequest] = useState(0);
   const [isTitleEditorOpen, setIsTitleEditorOpen] = useState(false);
@@ -195,6 +197,7 @@ export function DashboardWidgetNode({
   const isDevice = (widget.type === 'device_control' || widget.type === 'action_button') && !isCamera;
   const isSection = widget.type === 'section'; const isTitleWidget = widget.type === 'dashboard_title';
   const canConfigureWidget = widget.type !== 'clock_display';
+  const SectionDraftIcon = sectionDraftIcon ? getDashboardIconComponent(sectionDraftIcon) : null;
   const openTitleEditor = () => {
     setIsTitleEditorOpen(true);
     onClick();
@@ -275,7 +278,7 @@ export function DashboardWidgetNode({
                 size="md"
                 onClick={() => {
                   onConfigChange?.(widget.id, {
-                    appearance: { ...widget.config.appearance, title: sectionDraftTitle.trim() },
+                    appearance: { ...widget.config.appearance, title: sectionDraftTitle.trim(), icon: sectionDraftIcon.trim() || undefined },
                     layout: { ...widget.config.layout, span: sectionDraftSpan },
                   });
                   setIsSectionEditorOpen(false);
@@ -297,6 +300,20 @@ export function DashboardWidgetNode({
                 if (event.key === 'Escape') setIsSectionEditorOpen(false);
               }}
             />
+            <div className="space-y-2">
+              <IconPicker value={sectionDraftIcon} onChange={setSectionDraftIcon} />
+              {sectionDraftIcon && (
+                <Button type="button" variant="ghost" size="sm" onClick={() => setSectionDraftIcon('')}>
+                  {t('dashboard.editor.sections.remove_section_icon')}
+                </Button>
+              )}
+            </div>
+            <div role="group" aria-label={t('dashboard.editor.sections.section_preview')} className="rounded-xl border border-border/50 bg-background/40 p-3">
+              <div className="flex items-center gap-2 text-dashboard-section-title-fluid font-black tracking-tight text-foreground">
+                {SectionDraftIcon && <SectionDraftIcon className="h-5 w-5 shrink-0 text-primary" />}
+                <span className="min-w-0 truncate">{sectionDraftTitle.trim() || t('dashboard.editor.sections.new_section')}</span>
+              </div>
+            </div>
             <div className="space-y-2">
               <p className="text-micro font-black uppercase tracking-widest text-muted-foreground">
                 {t('dashboard.editor.sections.span_picker_label')}
@@ -430,6 +447,7 @@ export function DashboardWidgetNode({
                     event.stopPropagation();
                     if (isSection) {
                       setSectionDraftTitle(widget.config.appearance?.title ?? '');
+                      setSectionDraftIcon(widget.config.appearance?.icon ?? '');
                       setSectionDraftSpan(getSectionSpan(widget));
                       setIsSectionEditorOpen(true);
                     } else {
