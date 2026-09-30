@@ -3,6 +3,7 @@ import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { SettingsRoutes } from '../routes/SettingsRoutes';
+import { MediaService } from '../../../packages/shared/infrastructure/MediaService';
 
 class MockResponse extends EventEmitter {
   public readonly writeHead = jest.fn().mockReturnThis();
@@ -46,7 +47,7 @@ function createContainer(isAdmin = true): BootstrapContainer {
 
 describe('Feature: Home Assistant connection settings API', () => {
   it('Scenario: Given an authenticated user When the canonical test endpoint is called Then it tests without saving configuration', async () => {
-    const routes = new SettingsRoutes();
+    const routes = new SettingsRoutes(new MediaService());
     const container = createContainer();
 
     await routes.handle(createRequest({ baseUrl: 'http://ha.local', accessToken: 'token' }), new MockResponse() as unknown as http.ServerResponse, '/api/v1/settings/home-assistant/test', 'POST', container);
@@ -56,7 +57,7 @@ describe('Feature: Home Assistant connection settings API', () => {
   });
 
   it('Scenario: Given an administrator When saving a URL without a replacement token Then it delegates the optional token unchanged', async () => {
-    const routes = new SettingsRoutes();
+    const routes = new SettingsRoutes(new MediaService());
     const container = createContainer();
 
     await routes.handle(createRequest({ baseUrl: 'http://ha.local' }), new MockResponse() as unknown as http.ServerResponse, '/api/v1/settings/home-assistant', 'POST', container);
@@ -65,7 +66,7 @@ describe('Feature: Home Assistant connection settings API', () => {
   });
 
   it('Scenario: Given a caller When reading settings Then the response contains the masked status and never a raw token', async () => {
-    const routes = new SettingsRoutes();
+    const routes = new SettingsRoutes(new MediaService());
     const container = createContainer();
     const response = new MockResponse();
 
@@ -76,7 +77,7 @@ describe('Feature: Home Assistant connection settings API', () => {
   });
 
   it('Scenario: Given a protected request without a session When settings are targeted Then it stops before services are called', async () => {
-    const routes = new SettingsRoutes();
+    const routes = new SettingsRoutes(new MediaService());
     const container = createContainer();
     container.guards.authGuard.protect = jest.fn().mockResolvedValue(false);
 
@@ -85,7 +86,7 @@ describe('Feature: Home Assistant connection settings API', () => {
   });
 
   it('Scenario: Given incomplete connection test data When testing Then it returns validation without calling Home Assistant', async () => {
-    const routes = new SettingsRoutes();
+    const routes = new SettingsRoutes(new MediaService());
     const container = createContainer();
     const response = new MockResponse();
 
@@ -97,7 +98,7 @@ describe('Feature: Home Assistant connection settings API', () => {
   });
 
   it('Scenario: Given a failed connection test When testing Then it returns the service status as a safe error', async () => {
-    const routes = new SettingsRoutes();
+    const routes = new SettingsRoutes(new MediaService());
     const container = createContainer();
     const response = new MockResponse();
     container.services.homeAssistantSettingsService.testConnection = jest.fn().mockResolvedValue({ success: false, status: 'unreachable', error: 'Timed out' });
@@ -108,7 +109,7 @@ describe('Feature: Home Assistant connection settings API', () => {
   });
 
   it('Scenario: Given a non-administrator When saving settings Then it does not persist changes', async () => {
-    const routes = new SettingsRoutes();
+    const routes = new SettingsRoutes(new MediaService());
     const container = createContainer(false);
 
     await routes.handle(createRequest({ baseUrl: 'http://ha.local' }), new MockResponse() as unknown as http.ServerResponse, '/api/v1/settings/home-assistant', 'POST', container);
@@ -117,7 +118,7 @@ describe('Feature: Home Assistant connection settings API', () => {
   });
 
   it('Scenario: Given an invalid Home Assistant URL When saving Then it reports validation instead of an internal error', async () => {
-    const routes = new SettingsRoutes();
+    const routes = new SettingsRoutes(new MediaService());
     const container = createContainer();
     const response = new MockResponse();
     container.services.homeAssistantSettingsService.saveSettings = jest.fn().mockRejectedValue(new Error('Invalid URL'));
@@ -129,13 +130,13 @@ describe('Feature: Home Assistant connection settings API', () => {
   });
 
   it('Scenario: Given an unrelated path When settings routes receive it Then they decline it', async () => {
-    const routes = new SettingsRoutes();
+    const routes = new SettingsRoutes(new MediaService());
 
     await expect(routes.handle(createRequest(), new MockResponse() as unknown as http.ServerResponse, '/api/v1/devices', 'GET', createContainer())).resolves.toBe(false);
   });
 
   it('Scenario: Given an authenticated user When the status endpoint is called Then it returns only connection status and its timestamp', async () => {
-    const routes = new SettingsRoutes();
+    const routes = new SettingsRoutes(new MediaService());
     const container = createContainer();
     const response = new MockResponse();
 
@@ -148,7 +149,7 @@ describe('Feature: Home Assistant connection settings API', () => {
 });
 describe('Feature: Home Assistant settings failure contracts', () => {
   it('returns safe errors for unexpected test, save, and status failures', async () => {
-    const routes = new SettingsRoutes();
+    const routes = new SettingsRoutes(new MediaService());
 
     const testContainer = createContainer();
     testContainer.services.homeAssistantSettingsService.testConnection = jest.fn().mockRejectedValue(new Error('transport details'));

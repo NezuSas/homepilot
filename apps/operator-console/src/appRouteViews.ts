@@ -5,6 +5,7 @@ export const TopologyView = lazy(() => import('./views/TopologyView').then(modul
 export const InboxView = lazy(() => import('./views/InboxView').then(module => ({ default: module.InboxView })));
 export const AuditLogsView = lazy(() => import('./views/AuditLogsView').then(module => ({ default: module.AuditLogsView })));
 export const HomeAssistantSettingsView = lazy(() => import('./views/HomeAssistantSettingsView').then(module => ({ default: module.HomeAssistantSettingsView })));
+export const HomePersonalizationView = lazy(() => import('./views/HomePersonalizationView').then(module => ({ default: module.HomePersonalizationView })));
 export const DiagnosticsView = lazy(() => import('./views/DiagnosticsView').then(module => ({ default: module.DiagnosticsView })));
 export const UsersView = lazy(() => import('./views/UsersView').then(module => ({ default: module.UsersView })));
 export const RoutinesView = lazy(() => import('./views/RoutinesView'));

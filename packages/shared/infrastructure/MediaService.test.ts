@@ -93,4 +93,46 @@ describe('MediaService image upload validation', () => {
     await expect(service.deleteTabBackground('dashboard', '../tab')).rejects.toThrow('Invalid tabId');
     await expect(service.deleteDashboardBackgrounds('folder/name')).rejects.toThrow('Invalid dashboardId');
   });
+
+  it('keeps five persistent Home image slots ordered and compacts physical files after deletion', async () => {
+    const service = new MediaService(mediaDirectory);
+    for (let slot = 1; slot <= 5; slot += 1) {
+      const image = `data:image/png;base64,${Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from([slot])]).toString('base64')}`;
+      const images = await service.addHomeImage(image);
+      expect(images.at(-1)?.url).toBe(`/media/home/image_home_${slot}.png`);
+    }
+    await expect(service.addHomeImage(pngDataUri)).rejects.toThrow('HOME_IMAGE_LIMIT');
+    expect(await fs.readdir(path.join(mediaDirectory, 'home'))).toHaveLength(5);
+
+    const compacted = await service.deleteHomeImage(2);
+    expect(compacted.map(({ slot }) => slot)).toEqual([1, 2, 3, 4]);
+    expect((await fs.readdir(path.join(mediaDirectory, 'home'))).sort()).toEqual([
+      'image_home_1.png', 'image_home_2.png', 'image_home_3.png', 'image_home_4.png',
+    ]);
+    expect((await fs.readFile(path.join(mediaDirectory, 'home', 'image_home_2.png'))).at(-1)).toBe(3);
+    expect((await fs.readFile(path.join(mediaDirectory, 'home', 'image_home_4.png'))).at(-1)).toBe(5);
+    expect(await new MediaService(mediaDirectory).listHomeImages()).toEqual(compacted);
+    expect((await service.addHomeImage(pngDataUri)).at(-1)?.slot).toBe(5);
+  });
+
+  it('rejects invalid Home images and never leaves staging files', async () => {
+    const service = new MediaService(mediaDirectory);
+    await expect(service.addHomeImage('data:image/svg+xml;base64,PHN2Zy8+')).rejects.toThrow('Unsupported image type');
+    await expect(service.addHomeImage('data:image/png;base64,aGVsbG8=')).rejects.toThrow('Invalid image payload');
+    await expect(service.addHomeImage(`data:image/png;base64,${Buffer.alloc((5 * 1024 * 1024) + 1).toString('base64')}`)).rejects.toThrow('Image exceeds allowed size');
+    expect(await service.listHomeImages()).toEqual([]);
+  });
+
+  it('compacts mixed image extensions without retaining an obsolete slot file', async () => {
+    const service = new MediaService(mediaDirectory);
+    const jpeg = `data:image/jpeg;base64,${Buffer.from([0xff, 0xd8, 0xff, 0x01]).toString('base64')}`;
+    const webp = `data:image/webp;base64,${Buffer.from([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50]).toString('base64')}`;
+    await service.addHomeImage(jpeg);
+    await service.addHomeImage(pngDataUri);
+    await service.addHomeImage(webp);
+    expect((await service.deleteHomeImage(1)).map(({ url }) => url)).toEqual([
+      '/media/home/image_home_1.png', '/media/home/image_home_2.webp',
+    ]);
+    expect((await fs.readdir(path.join(mediaDirectory, 'home'))).sort()).toEqual(['image_home_1.png', 'image_home_2.webp']);
+  });
 });

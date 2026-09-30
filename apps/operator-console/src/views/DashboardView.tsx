@@ -16,6 +16,7 @@ import {
   SCENE_FAVORITES_STORAGE_KEY,
 } from '../lib/favorites';
 import { apiFetch } from '../lib/apiClient';
+import { EMPTY_HOME_PERSONALIZATION, getHomePeriod, msUntilNextHomePeriod, type HomePersonalization } from '../lib/homePersonalization';
 import { fetchDiagnosticResource, invalidateDiagnosticCatalog } from '../lib/diagnosticResourceRequests';
 import type { View } from '../types';
 import { useAssistantStore } from '../stores/useAssistantStore';
@@ -62,6 +63,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
   const [activeAction, setActiveAction] = useState<{ findingId: string; action: AssistantFindingAction; deviceName?: string } | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [luxuryRipple, setLuxuryRipple] = useState(false);
+  const [homePersonalization, setHomePersonalization] = useState<HomePersonalization>(EMPTY_HOME_PERSONALIZATION);
+  const [homePeriod, setHomePeriod] = useState(() => getHomePeriod(new Date()));
+  const [activeHeroImage, setActiveHeroImage] = useState(0);
   const allDevices = useDeviceSnapshotStore((state) => state.devices);
   const homes = useDeviceSnapshotStore((state) => state.homes);
   const snapshotLoading = useDeviceSnapshotStore((state) => state.isLoading);
@@ -106,6 +110,43 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
     void fetchData();
     return () => dataRequest.current?.abort();
   }, [fetchData]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void apiFetch(`${API_URL}/settings/home-personalization`, { signal: controller.signal })
+      .then(async (response) => {
+        if (response.ok) setHomePersonalization(await response.json() as HomePersonalization);
+      }).catch(() => { /* Keep the built-in image and neutral text when offline. */ });
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    let timeout: number;
+    const schedule = () => {
+      const now = new Date();
+      setHomePeriod(getHomePeriod(now));
+      timeout = window.setTimeout(schedule, msUntilNextHomePeriod(now));
+    };
+    schedule();
+    return () => window.clearTimeout(timeout);
+  }, []);
+
+  useEffect(() => {
+    if (homePersonalization.heroImages.length <= 1) return;
+    let interval: number | undefined;
+    const sync = () => {
+      if (interval !== undefined) window.clearInterval(interval);
+      interval = document.hidden ? undefined : window.setInterval(() => {
+        setActiveHeroImage((current) => (current + 1) % homePersonalization.heroImages.length);
+      }, 5000);
+    };
+    document.addEventListener('visibilitychange', sync);
+    sync();
+    return () => {
+      document.removeEventListener('visibilitychange', sync);
+      if (interval !== undefined) window.clearInterval(interval);
+    };
+  }, [homePersonalization.heroImages]);
 
   const executeDeviceCommand = useCallback(async (deviceId: string, command: string): Promise<SnapshotDevice | null> => {
     const response = await apiFetch(`${API_URL}/devices/${deviceId}/command`, {
@@ -176,12 +217,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
       return score(right) - score(left);
     }), [findings]);
 
-  const greetingKey = useMemo(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'morning';
-    if (hour < 19) return 'afternoon';
-    return 'evening';
-  }, []);
+  const greetingKey = homePeriod === 'night' ? 'evening' : homePeriod;
+  const phrase = homePersonalization[`${homePeriod}Phrase`].trim() || t('dashboard.home_calm');
+  const heroImages = homePersonalization.heroImages.length > 0
+    ? homePersonalization.heroImages.map((image) => `${API_BASE_URL}${image.url}`)
+    : ['/home-dashboard-ambient.png'];
   const favoriteSceneIds = useMemo(() => readFavoriteIds(SCENE_FAVORITES_STORAGE_KEY), []);
   const favoriteAutomationIds = useMemo(() => readFavoriteIds(AUTOMATION_FAVORITES_STORAGE_KEY), []);
 
@@ -191,22 +231,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
     <div className="homepilot-home flex flex-col gap-6 pb-10 animate-in fade-in duration-500 sm:gap-8 sm:pb-12">
       <DashboardAtmosphereRipple active={luxuryRipple} />
 
-      <header className="homepilot-home-hero flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-        <img
-          className="homepilot-home-hero-image"
-          src="/home-dashboard-ambient.png"
+      <header className="homepilot-home-hero flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        {heroImages.map((src, index) => <img
+          key={src}
+          className={`homepilot-home-hero-image ${index === activeHeroImage || heroImages.length === 1 ? 'opacity-100' : 'opacity-0'}`}
+          src={src}
           alt=""
           aria-hidden="true"
           decoding="async"
-          fetchPriority="high"
-        />
+          fetchPriority={index === 0 ? 'high' : 'auto'}
+        />)}
         <div className="homepilot-home-hero-overlay" aria-hidden="true" />
         <div className="relative z-10 min-w-0">
-          <p className="text-caption font-semibold text-primary lg:text-label">{t('dashboard.home_label')}</p>
-          <h1 className="mt-2 text-display-title font-black leading-tight tracking-display-tight text-foreground sm:text-hero-title lg:text-hero-title-lg">
+          <h1 className="text-display-title font-black leading-tight tracking-display-tight text-foreground sm:text-hero-title lg:text-hero-title-lg">
             {t(`dashboard.greeting_${greetingKey}`, { name: displayName || t('dashboard.resident') })}
           </h1>
-          <p className="mt-3 max-w-xl text-body text-muted-foreground lg:text-card-title">{t('dashboard.home_calm')}</p>
+          <p className="mt-3 max-w-xl text-body text-muted-foreground lg:text-card-title">{phrase}</p>
         </div>
         <div className="relative z-10">
           <HomeClimateSummary currentUserId={currentUserId} onOpenOwnDashboardTab={onOpenOwnDashboardTab} />

@@ -44,6 +44,7 @@ import { invalidateDiagnosticCatalog } from './lib/diagnosticResourceRequests';
 import type { SetupStatus } from './appShellTypes';
 
 const REALTIME_REFRESH_DEBOUNCE_MS = 300;
+const HOME_IDLE_RETURN_MS = 120_000;
 
 function requiresVoiceConfirmation(response: AssistantConversationResponse): boolean {
   if (response.type !== 'clarification') return false;
@@ -157,6 +158,40 @@ function App() {
   }, [resetAppShellState, resetAssistantState, resetSnapshotState]);
 
   const { status, user, handleLoginSuccess, handleLogout, clearSession, validateSession } = useSession(onSessionCleared);
+
+  useEffect(() => {
+    if (status !== 'authenticated' || currentView === 'dashboard') return;
+    let timer: number;
+    const schedule = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        // Existing modal work remains in place; an interaction closing it starts a fresh period.
+        if (document.querySelector('[role="dialog"][aria-modal="true"]')) {
+          schedule();
+          return;
+        }
+        navigate('/', { replace: true });
+      }, HOME_IDLE_RETURN_MS);
+    };
+    const onActivity = () => schedule();
+    const onScroll = (event: Event) => { if (event.isTrusted) schedule(); };
+    schedule();
+    window.addEventListener('pointermove', onActivity, { passive: true });
+    window.addEventListener('pointerdown', onActivity, { passive: true });
+    window.addEventListener('touchstart', onActivity, { passive: true });
+    window.addEventListener('keydown', onActivity);
+    window.addEventListener('wheel', onActivity, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true, capture: true });
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('pointermove', onActivity);
+      window.removeEventListener('pointerdown', onActivity);
+      window.removeEventListener('touchstart', onActivity);
+      window.removeEventListener('keydown', onActivity);
+      window.removeEventListener('wheel', onActivity);
+      window.removeEventListener('scroll', onScroll, true);
+    };
+  }, [status, currentView, navigate]);
   const [directorySsoToken, setDirectorySsoToken] = useState<string | null>(null);
   const [directorySsoError, setDirectorySsoError] = useState(false);
   const directoryHandoffRef = useRef<Promise<BrowserDirectoryHandoff | null> | null>(null);

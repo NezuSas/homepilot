@@ -22,6 +22,7 @@ const rules = [
   ['homepilot-android-display-effective-actions-ui-v1.md', /(?:DeviceRoutes\.effective-actions)/i],
   ['android-display-integration-v1.md', /(?:AndroidDisplay|integrations\/android-display)/i],
   ['home-assistant-camera-streaming-v1.md', /(?:CameraRoutes|CameraMedia|CameraViewer|CameraDevice)/i],
+  ['operator-console-v1.md', /HomePersonalizationRoutes/i],
   ['home-assistant-settings-connection-management-v1.md', /(?:home-assistant|HomeAssistant|SettingsRoutes|HomeAssistantDiscovery)/i],
   ['sonoff-local-integration-v1.md', /Sonoff/i],
   ['energy-management-v1.md', /(?:EnergyView|EnergySnapshot|useEnergyStore)/i],

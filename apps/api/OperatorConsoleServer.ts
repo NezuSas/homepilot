@@ -48,7 +48,7 @@ export class OperatorConsoleServer {
         new AuthRoutes(mediaService, loginAttemptRateLimiter),
         new AdminRoutes(),
       new AssistantRoutes(),
-      new SettingsRoutes(),
+      new SettingsRoutes(mediaService),
         new TopologyRoutes(),
         new SceneRoutes(),
         new AutomationRoutes(),

@@ -9,6 +9,8 @@ export class MediaService {
   private static readonly ALLOWED_IMAGE_TYPES = new Set(['jpeg', 'jpg', 'png', 'webp']);
   private static readonly MAX_AVATAR_BYTES = 2 * 1024 * 1024;
   private static readonly MAX_BACKGROUND_BYTES = 8 * 1024 * 1024;
+  private static readonly MAX_HOME_BYTES = 5 * 1024 * 1024;
+  private homeImageOperation: Promise<void> = Promise.resolve();
 
   constructor(baseDir?: string) {
     // If not specified, stores media in <project_root>/data/media
@@ -86,6 +88,78 @@ export class MediaService {
     try {
       await fs.rm(dashboardDir, { recursive: true, force: true });
     } catch {}
+  }
+
+  /** Home hero images share the existing persistent media root and have ordered slots. */
+  public async listHomeImages(): Promise<Array<{ slot: number; url: string }>> {
+    const homeDir = path.join(this.baseMediaDir, 'home');
+    const entries = await fs.readdir(homeDir).catch((error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT') return [];
+      throw error;
+    });
+    const images = entries.flatMap((name) => {
+      const match = /^image_home_([1-5])\.(jpg|png|webp)$/.exec(name);
+      return match ? [{ slot: Number(match[1]), url: `/media/home/${name}` }] : [];
+    });
+    return images.sort((left, right) => left.slot - right.slot);
+  }
+
+  public async addHomeImage(dataUri: string): Promise<Array<{ slot: number; url: string }>> {
+    return this.withHomeImageLock(async () => {
+      const { extension, buffer } = this.parseImageDataUri(dataUri, MediaService.MAX_HOME_BYTES);
+      const images = await this.listHomeImages();
+      if (images.length >= 5) throw new Error('HOME_IMAGE_LIMIT');
+      const slot = images.length + 1;
+      if (images.some((image) => image.slot !== images.indexOf(image) + 1)) throw new Error('HOME_IMAGE_SLOTS_INVALID');
+      const homeDir = path.join(this.baseMediaDir, 'home');
+      await fs.mkdir(homeDir, { recursive: true });
+      const staging = path.join(homeDir, `.image_home_tmp_upload_${process.pid}`);
+      try {
+        await fs.writeFile(staging, buffer, { flag: 'wx' });
+        await fs.rename(staging, path.join(homeDir, `image_home_${slot}.${extension}`));
+      } finally {
+        await fs.rm(staging, { force: true });
+      }
+      return this.listHomeImages();
+    });
+  }
+
+  public async deleteHomeImage(slot: number): Promise<Array<{ slot: number; url: string }>> {
+    return this.withHomeImageLock(async () => {
+      const images = await this.listHomeImages();
+      if (!Number.isInteger(slot) || !images.some((image) => image.slot === slot)) throw new Error('HOME_IMAGE_NOT_FOUND');
+      const homeDir = path.join(this.baseMediaDir, 'home');
+      const source = path.join(homeDir, path.basename(images.find((image) => image.slot === slot)!.url));
+      const staging = path.join(homeDir, `.image_home_tmp_deleted_${process.pid}`);
+      const moved: Array<{ from: string; to: string }> = [];
+      await fs.rename(source, staging);
+      try {
+        for (const image of images.filter((item) => item.slot > slot)) {
+          const from = path.join(homeDir, path.basename(image.url));
+          const to = path.join(homeDir, path.basename(image.url).replace(`image_home_${image.slot}.`, `image_home_${image.slot - 1}.`));
+          await fs.rename(from, to);
+          moved.push({ from, to });
+        }
+        await fs.unlink(staging);
+      } catch (error) {
+        for (const move of moved.reverse()) await fs.rename(move.to, move.from);
+        await fs.rename(staging, source);
+        throw error;
+      }
+      return this.listHomeImages();
+    });
+  }
+
+  private async withHomeImageLock<T>(operation: () => Promise<T>): Promise<T> {
+    const previous = this.homeImageOperation;
+    let release!: () => void;
+    this.homeImageOperation = new Promise<void>((resolve) => { release = resolve; });
+    await previous;
+    try {
+      return await operation();
+    } finally {
+      release();
+    }
   }
 
   /**

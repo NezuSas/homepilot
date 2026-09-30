@@ -2,11 +2,25 @@ import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
+import { MediaService } from '../../../packages/shared/infrastructure/MediaService';
+
+const HOME_PHRASES_KEY = 'home_personalization_phrases';
+type HomePhrases = { morningPhrase: string; afternoonPhrase: string; nightPhrase: string };
+
+function validPhrases(value: unknown): value is HomePhrases {
+  if (!value || typeof value !== 'object') return false;
+  const phrases = value as Record<string, unknown>;
+  return ['morningPhrase', 'afternoonPhrase', 'nightPhrase'].every(
+    (key) => typeof phrases[key] === 'string' && phrases[key].length <= 100,
+  );
+}
 
 /**
  * Settings routes: /api/v1/settings/*
  */
 export class SettingsRoutes extends ApiRoutes {
+  constructor(private readonly mediaService: MediaService) { super(); }
+
   async handle(
     req: HomePilotRequest,
     res: http.ServerResponse,
@@ -18,6 +32,61 @@ export class SettingsRoutes extends ApiRoutes {
 
     const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return true;
+
+    if (pathname === '/api/v1/settings/home-personalization' && method === 'GET') {
+      const variable = await container.services.systemVariableService.get('global', null, HOME_PHRASES_KEY);
+      const stored: unknown = variable ? JSON.parse(variable.value) : null;
+      const phrases: HomePhrases = validPhrases(stored) ? stored : { morningPhrase: '', afternoonPhrase: '', nightPhrase: '' };
+      this.sendJson(res, { ...phrases, heroImages: await this.mediaService.listHomeImages() });
+      return true;
+    }
+
+    if (pathname === '/api/v1/settings/home-personalization' && method === 'PUT') {
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
+      const payload: unknown = await this.parseBody<unknown>(req);
+      if (!validPhrases(payload)) return this.sendError(res, 400, 'VALIDATION_ERROR', 'Each phrase must be at most 100 characters'), true;
+      const phrases: HomePhrases = {
+        morningPhrase: payload.morningPhrase,
+        afternoonPhrase: payload.afternoonPhrase,
+        nightPhrase: payload.nightPhrase,
+      };
+      await container.services.systemVariableService.set({
+        scope: 'global', name: HOME_PHRASES_KEY, value: JSON.stringify(phrases), valueType: 'json',
+      });
+      this.sendJson(res, { ...phrases, heroImages: await this.mediaService.listHomeImages() });
+      return true;
+    }
+
+    if (pathname === '/api/v1/settings/home-personalization/images' && method === 'POST') {
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
+      const payload = await this.parseBody<{ dataUri?: unknown }>(req);
+      if (typeof payload?.dataUri !== 'string') return this.sendError(res, 400, 'VALIDATION_ERROR', 'Image is required'), true;
+      try {
+        this.sendJson(res, { heroImages: await this.mediaService.addHomeImage(payload.dataUri) });
+      } catch (error) {
+        const code = error instanceof Error ? error.message : '';
+        if (code === 'HOME_IMAGE_LIMIT') return this.sendError(res, 409, code, 'Maximum five images'), true;
+        if (['Invalid image data URI', 'Unsupported image type', 'Image exceeds allowed size', 'Invalid image payload'].includes(code)) {
+          return this.sendError(res, 400, 'VALIDATION_ERROR', code), true;
+        }
+        throw error;
+      }
+      return true;
+    }
+
+    const homeImageDelete = /^\/api\/v1\/settings\/home-personalization\/images\/([1-5])$/.exec(pathname);
+    if (homeImageDelete && method === 'DELETE') {
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
+      try {
+        this.sendJson(res, { heroImages: await this.mediaService.deleteHomeImage(Number(homeImageDelete[1])) });
+      } catch (error) {
+        if (error instanceof Error && error.message === 'HOME_IMAGE_NOT_FOUND') {
+          return this.sendError(res, 404, 'NOT_FOUND', 'Home image not found'), true;
+        }
+        throw error;
+      }
+      return true;
+    }
 
     // POST /api/v1/settings/home-assistant/test (canonical) and legacy test-ha-connection
     if (method === 'POST' && (pathname === '/api/v1/settings/home-assistant/test' || pathname === '/api/v1/settings/test-ha-connection')) {

@@ -131,3 +131,24 @@
 - **Descripción**: Consumir el snapshot compartido de hogares, dispositivos y habitaciones en ambas vistas, refrescarlo después de mutaciones de topología y evitar mostrar habitaciones de hogares no autorizados. Verificar la navegación con una prueba de solicitudes duplicadas.
 - **Módulos**: `TopologyView.tsx`, `ScenesView.tsx`, `AutomationsView.tsx`, `RoutinesView.tsx`, `AppViewRouter.tsx` y prueba responsive.
 - **Criterio Relacionado**: Alineado con **AC30**.
+
+### [BE-Home-01] Persistir personalización global de Inicio
+- **Descripción**: Guardar tres frases y exponer lectura autenticada y escritura exclusiva de Admin, con límite de 100 caracteres. Reutilizar el servicio y volumen persistente de medios para hasta cinco imágenes validadas; mantener slots deterministas y contiguos al añadir, reemplazar o eliminar, sin archivos huérfanos.
+- **Módulos**: persistencia global existente de variables de sistema (sin migración nueva), `MediaService` y rutas de settings.
+- **Criterio Relacionado**: **AC31–AC32**.
+
+### [UI-Home-01] Personalización administrativa y hero de Inicio
+- **Descripción**: Ocultar «Mi Hogar», ofrecer en Sistema la edición Admin de frases con contador y textarea adaptable y la gestión de imágenes con posición y preview. Compartir la regla horaria del saludo y la frase; conservar fallback ambiental, carrusel de cinco segundos y contenido superior legible y responsive.
+- **Módulos**: navegación de Sistema, vista de personalización, `DashboardView.tsx` y estilos acotados.
+- **Dependencias**: `BE-Home-01`.
+- **Criterio Relacionado**: **AC31–AC33**.
+
+### [UI-Home-02] Retorno a Inicio por inactividad
+- **Descripción**: Escuchar solo interacciones humanas y navegar por SPA a Inicio tras 120 segundos fuera de esa vista, considerando las protecciones de edición/modal existentes sin añadir un framework global nuevo.
+- **Módulos**: shell/router de Operator Console y prueba de navegación.
+- **Criterio Relacionado**: **AC34**.
+
+### [QA-Home-01] Regresión de personalización de Inicio
+- **Descripción**: Cubrir frases y límites, RBAC de lectura/escritura, slots persistentes y compactación sin huérfanos, fallback/carrusel, temporizador de inactividad, accesibilidad y geometría responsive; ejecutar validaciones de spec, tests, typecheck y builds aplicables.
+- **Dependencias**: `BE-Home-01`, `UI-Home-01`, `UI-Home-02`.
+- **Criterio Relacionado**: **AC31–AC34**.

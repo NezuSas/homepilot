@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import type { UserContext } from '../lib/useSession';
 import type { View } from '../types';
 import type { AssistantTurnCoordinator } from '../lib/assistantTurnCoordinator';
-import { AssistantView, AuditLogsView, DashboardView, DashboardsView, DiagnosticsView, EnergyView, ExecutionLogsView, HomeAssistantSettingsView, HomeConversationView, InboxView, NativeCamerasView, ResilienceShowcaseView, RoutinesView, TopologyView, UsersView } from '../appRouteViews';
+import { AssistantView, AuditLogsView, DashboardView, DashboardsView, DiagnosticsView, EnergyView, ExecutionLogsView, HomeAssistantSettingsView, HomePersonalizationView, HomeConversationView, InboxView, NativeCamerasView, ResilienceShowcaseView, RoutinesView, TopologyView, UsersView } from '../appRouteViews';
 import type { SetupStatus } from '../appShellTypes';
 import { OnboardingView } from '../views/OnboardingView';
 import { LoadingState } from './ui/LoadingState';
@@ -48,6 +48,7 @@ export function AppViewRouter(props: AppViewRouterProps) {
     {props.currentView === 'system-devices' && <InboxView mode="manager" />}{props.currentView === 'system-inbox' && <InboxView mode="discovery" />}{props.currentView === 'system-diagnostics' && <DiagnosticsView />}{props.currentView === 'system-audit' && <AuditLogsView />}{props.currentView === 'system-executions' && <ExecutionLogsView />}{props.currentView === 'system-ha' && <HomeAssistantSettingsView />}{props.currentView === 'system-cameras' && <NativeCamerasView />}
     {props.currentView === 'system-onboarding' && props.setupStatus && <OnboardingView statusProvider={props.setupStatus} userContext={props.user} onCompleted={props.onOnboardingCompleted} />}
     {props.currentView === 'system-users' && <UsersView currentUserId={props.user?.id ?? null} />}
+    {props.currentView === 'system-home-personalization' && props.user?.role === 'admin' && <HomePersonalizationView />}
     {props.currentView === 'home-conversation' && <HomeConversationView pendingPrompt={props.pendingPrompt} assistantTurnCoordinator={props.assistantTurnCoordinator} onPendingPromptConsumed={props.onPendingPromptConsumed} />}
   </Suspense></PageFrame>;
 }

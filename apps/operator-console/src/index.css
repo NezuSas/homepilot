@@ -1458,6 +1458,11 @@
     object-fit: cover;
     object-position: center;
     filter: brightness(1.42) saturate(0.92);
+    transition: opacity 700ms ease-in-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .homepilot-home-hero-image { transition: none; }
   }
 
   .homepilot-home-hero-overlay {
