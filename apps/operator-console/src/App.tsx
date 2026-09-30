@@ -75,6 +75,11 @@ function App() {
   const { t, i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+  const mainScrollRef = useRef<HTMLElement>(null);
+  const resetMainScroll = useCallback(() => {
+    mainScrollRef.current?.scrollTo({ top: 0, behavior: 'instant' });
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, []);
   // The URL is the source of truth for navigation (reload/back/forward/share
   // all just work), instead of plain component state that resets on reload.
   const currentView = useMemo(() => pathToView(location.pathname), [location.pathname]);
@@ -170,6 +175,7 @@ function App() {
           schedule();
           return;
         }
+        resetMainScroll();
         navigate('/', { replace: true });
       }, HOME_IDLE_RETURN_MS);
     };
@@ -191,7 +197,7 @@ function App() {
       window.removeEventListener('wheel', onActivity);
       window.removeEventListener('scroll', onScroll, true);
     };
-  }, [status, currentView, navigate]);
+  }, [status, currentView, navigate, resetMainScroll]);
   const [directorySsoToken, setDirectorySsoToken] = useState<string | null>(null);
   const [directorySsoError, setDirectorySsoError] = useState(false);
   const directoryHandoffRef = useRef<Promise<BrowserDirectoryHandoff | null> | null>(null);
@@ -640,6 +646,16 @@ function App() {
     if (resolved === 'dashboards') setIsDashboardsExpanded(true);
   };
 
+  const navigateFromSidebar = (view: View) => {
+    resetMainScroll();
+    navigateTo(view);
+  };
+
+  const navigatePathFromSidebar = (path: string) => {
+    resetMainScroll();
+    navigate(path);
+  };
+
   const handleGlobalWakeCommand = (command: string) => {
     const text = command.trim();
     if (!text) return;
@@ -780,8 +796,8 @@ function App() {
             isAdmin={user?.role === 'admin'}
             assistantOpenCount={assistantSummary?.totalOpen ?? 0}
             translate={t}
-            onNavigate={navigateTo}
-            onNavigatePath={(path) => navigate(path)}
+            onNavigate={navigateFromSidebar}
+            onNavigatePath={navigatePathFromSidebar}
             onRefreshDashboards={() => { void refreshSidebarDashboards(); }}
             onDashboardsExpandedChange={setIsDashboardsExpanded}
             onSystemExpandedChange={setIsSystemExpanded}
@@ -823,7 +839,7 @@ function App() {
           <MobileSidebarToggle onOpen={() => setIsSidebarOpen(true)} />
         )}
         
-        <section className={cn(
+        <section ref={mainScrollRef} className={cn(
           "flex-1 min-h-0 relative scroll-smooth",
           currentView === 'home-conversation'
             ? "overflow-hidden"

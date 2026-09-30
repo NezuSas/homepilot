@@ -60,6 +60,46 @@ export class AutomationRoutes extends ApiRoutes {
     const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return true;
 
+    if (pathname === '/api/v1/automations/favorites' && (method === 'GET' || method === 'PUT')) {
+      try {
+        const userId = req.user!.id;
+        const key = 'pref:automation-favorites';
+        const memory = container.repositories.assistantMemoryRepository;
+        const homes = await container.repositories.homeRepository.findHomesByUserId(userId);
+        const homeIds = new Set(homes.map((home) => home.id));
+        const saved = await memory.findByKey(userId, key);
+        const stored: unknown = saved ? JSON.parse(saved.value) : [];
+        const ids = Array.isArray(stored) ? stored.filter((id): id is string => typeof id === 'string') : [];
+        if (method === 'GET') {
+          const accessible = await Promise.all(ids.map(async (id) => {
+            const rule = await container.repositories.automationRuleRepository.findById(id);
+            return rule && homeIds.has(rule.homeId) ? id : null;
+          }));
+          return this.sendJson(res, {
+            automationIds: accessible.filter((id): id is string => id !== null),
+            initialized: saved !== null,
+          }), true;
+        }
+        const payload = await this.parseBody<{ automationIds?: unknown }>(req);
+        if (!Array.isArray(payload?.automationIds) || payload.automationIds.length > 200
+          || payload.automationIds.some((id) => typeof id !== 'string' || !id.trim())
+          || new Set(payload.automationIds).size !== payload.automationIds.length) {
+          return this.sendError(res, 400, 'INVALID_INPUT', 'automationIds must be a unique array of automation IDs'), true;
+        }
+        const nextIds = payload.automationIds as string[];
+        for (const id of nextIds) {
+          const rule = await container.repositories.automationRuleRepository.findById(id);
+          if (!rule || !homeIds.has(rule.homeId)) {
+            return this.sendError(res, 403, 'FORBIDDEN', 'Automation is not accessible'), true;
+          }
+        }
+        await memory.upsert({ userId, key, value: JSON.stringify(nextIds), valueType: 'json', expiresAt: null });
+        return this.sendJson(res, nextIds), true;
+      } catch (error: unknown) {
+        return this.sendError(res, 500, 'AUTOMATION_FAVORITES_ERROR', error instanceof Error ? error.message : 'Unknown error'), true;
+      }
+    }
+
     // GET /api/v1/automations
     if (method === 'GET' && pathname === '/api/v1/automations') {
       try {

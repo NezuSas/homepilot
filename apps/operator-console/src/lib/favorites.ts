@@ -12,7 +12,3 @@ export const readFavoriteIds = (storageKey: string): string[] => {
     return [];
   }
 };
-
-export const writeFavoriteIds = (storageKey: string, ids: string[]): void => {
-  localStorage.setItem(storageKey, JSON.stringify(ids));
-};

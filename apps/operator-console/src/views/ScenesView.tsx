@@ -11,6 +11,7 @@ import { ScenesGroup } from '../components/ScenesGroup';
 import { ScenesHeader } from '../components/ScenesHeader';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { useDeviceSnapshotStore, type SnapshotDevice } from '../stores/useDeviceSnapshotStore';
+import { useSceneFavorites } from '../lib/useSceneFavorites';
 
 interface Room {
   id: string;
@@ -51,18 +52,11 @@ const ScenesView: React.FC<{
   const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
   
   // Local Stats
-  const [favorites, setFavorites] = useState<string[]>(() => {
-    const saved = localStorage.getItem('hp_fav_scenes');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const { favorites, toggleFavorite: persistFavorite } = useSceneFavorites(currentUserId, scenes.map((scene) => scene.id));
   const [recents, setRecents] = useState<string[]>(() => {
     const saved = localStorage.getItem('hp_recent_scenes');
     return saved ? JSON.parse(saved) : [];
   });
-
-  useEffect(() => {
-    localStorage.setItem('hp_fav_scenes', JSON.stringify(favorites));
-  }, [favorites]);
 
   useEffect(() => {
     localStorage.setItem('hp_recent_scenes', JSON.stringify(recents));
@@ -70,7 +64,7 @@ const ScenesView: React.FC<{
 
   const toggleFavorite = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setFavorites(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
+    void persistFavorite(id);
   };
 
   const trackRecent = (id: string) => {

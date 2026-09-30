@@ -34,6 +34,10 @@ function createContainer(isAuthorized = true): BootstrapContainer {
         findByHomeId: jest.fn().mockResolvedValue([{ id: 'automation-1', homeId: 'home-1' }]),
         findById: jest.fn().mockResolvedValue({ id: 'automation-1', homeId: 'home-1' }),
       },
+      assistantMemoryRepository: {
+        findByKey: jest.fn().mockResolvedValue(null),
+        upsert: jest.fn().mockResolvedValue(undefined),
+      },
       roomRepository: { findRoomById: jest.fn() },
     },
     engine: {
@@ -43,6 +47,53 @@ function createContainer(isAuthorized = true): BootstrapContainer {
 }
 
 describe('Feature: automation route contract', () => {
+  it('stores automation favorites under their own user-scoped key and rejects inaccessible rules', async () => {
+    const container = createContainer();
+    const request = createRequest();
+    request._fastifyParsedBody = JSON.stringify({ automationIds: ['automation-1'] });
+    const saved = new MockResponse();
+    await new AutomationRoutes().handle(request, saved as unknown as http.ServerResponse, '/api/v1/automations/favorites', 'PUT', container);
+    expect(saved.writeHead).toHaveBeenCalledWith(200, expect.any(Object));
+    expect(container.repositories.assistantMemoryRepository.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 'owner-1', key: 'pref:automation-favorites', value: '["automation-1"]', expiresAt: null,
+    }));
+
+    (container.repositories.automationRuleRepository.findById as jest.Mock).mockResolvedValue({ id: 'foreign', homeId: 'other-home' });
+    request._fastifyParsedBody = JSON.stringify({ automationIds: ['foreign'] });
+    const denied = new MockResponse();
+    await new AutomationRoutes().handle(request, denied as unknown as http.ServerResponse, '/api/v1/automations/favorites', 'PUT', container);
+    expect(denied.writeHead).toHaveBeenCalledWith(403, expect.any(Object));
+    expect(container.repositories.assistantMemoryRepository.upsert).toHaveBeenCalledTimes(1);
+  });
+
+  it('filters deleted and inaccessible automation favorites and isolates another user', async () => {
+    const container = createContainer();
+    (container.repositories.assistantMemoryRepository.findByKey as jest.Mock).mockResolvedValue({ value: '["automation-1","deleted","foreign"]' });
+    (container.repositories.automationRuleRepository.findById as jest.Mock).mockImplementation(async (id: string) =>
+      id === 'automation-1' ? { id, homeId: 'home-1' } : id === 'foreign' ? { id, homeId: 'other-home' } : null);
+    const response = new MockResponse();
+    await new AutomationRoutes().handle(createRequest(), response as unknown as http.ServerResponse, '/api/v1/automations/favorites', 'GET', container);
+    expect(JSON.parse(response.end.mock.calls[0][0])).toEqual({ automationIds: ['automation-1'], initialized: true });
+
+    const gustavo = createRequest();
+    gustavo.user = { ...gustavo.user!, id: 'gustavo' };
+    (container.repositories.assistantMemoryRepository.findByKey as jest.Mock).mockResolvedValueOnce(null);
+    const otherResponse = new MockResponse();
+    await new AutomationRoutes().handle(gustavo, otherResponse as unknown as http.ServerResponse, '/api/v1/automations/favorites', 'GET', container);
+    expect(container.repositories.assistantMemoryRepository.findByKey).toHaveBeenCalledWith('gustavo', 'pref:automation-favorites');
+    expect(JSON.parse(otherResponse.end.mock.calls[0][0])).toEqual({ automationIds: [], initialized: false });
+  });
+
+  it('rejects malformed favorites without modifying persistent preferences', async () => {
+    const container = createContainer();
+    const request = createRequest();
+    request._fastifyParsedBody = JSON.stringify({ automationIds: ['automation-1', 'automation-1'] });
+    const response = new MockResponse();
+    await new AutomationRoutes().handle(request, response as unknown as http.ServerResponse, '/api/v1/automations/favorites', 'PUT', container);
+    expect(response.writeHead).toHaveBeenCalledWith(400, expect.any(Object));
+    expect(container.repositories.assistantMemoryRepository.upsert).not.toHaveBeenCalled();
+  });
+
   it('Scenario: Given an unauthenticated request When automations are listed Then no data is queried', async () => {
     const container = createContainer(false);
 

@@ -265,6 +265,28 @@ describe('DashboardService', () => {
     expect(imported.tabs[2]?.widgets.map((widget) => widget.config)).toEqual(source.tabs[0]?.widgets.map((widget) => widget.config));
   });
 
+  it('round-trips sparse responsive slots, rebases their widget IDs and preserves them in revisions', async () => {
+    const source = createDashboard('source', 'Control');
+    source.tabs[0].widgets = [
+      { id: 'a', type: 'room_summary', config: {} },
+      { id: 'b', type: 'room_summary', config: {} },
+    ];
+    source.tabs[0].sectionLayout = { columns4: ['a', null, 'b'], columns3: ['b', 'a'] };
+    const saveRevision = jest.fn();
+    const service = new DashboardService({
+      ...createDashboardRepository(source), findAllVisibleTo: async () => [source], saveRevision,
+    }, createHomeRepository());
+    const transfer = await service.exportDashboard('user-1', source.id);
+    expect(transfer.dashboard.tabs[0].sectionLayout).toEqual(source.tabs[0].sectionLayout);
+
+    const imported = await service.importDashboard('user-1', JSON.parse(JSON.stringify(transfer)) as unknown);
+    const [newA, newB] = imported.tabs[1].widgets.map((widget) => widget.id);
+    expect(imported.tabs[1].sectionLayout).toEqual({ columns4: [newA, null, newB], columns3: [newB, newA] });
+    expect(saveRevision).toHaveBeenCalledWith(expect.objectContaining({
+      snapshot: expect.objectContaining({ tabs: expect.arrayContaining([expect.objectContaining({ sectionLayout: source.tabs[0].sectionLayout })]) }),
+    }));
+  });
+
   it('preserves compatible local bindings, unassigns missing targets without name remapping, and reports each one', async () => {
     const source = createDashboard('source', 'Control');
     source.tabs[0].widgets = [

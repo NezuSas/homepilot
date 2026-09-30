@@ -21,6 +21,45 @@ export class SceneRoutes extends ApiRoutes {
     const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return true;
 
+    // Favorites are a per-user preference, not a property of the shared scene.
+    // Reuse the existing user-scoped persistence rather than changing scenes.
+    if (pathname === '/api/v1/scenes/favorites' && (method === 'GET' || method === 'PUT')) {
+      try {
+        const key = 'pref:scene-favorites';
+        const memory = container.repositories.assistantMemoryRepository;
+        const accessibleHomes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
+        const homeIds = new Set(accessibleHomes.map((home) => home.id));
+        const saved = await memory.findByKey(req.user!.id, key);
+        const stored: unknown = saved ? JSON.parse(saved.value) : [];
+        const ids = Array.isArray(stored) ? stored.filter((id): id is string => typeof id === 'string') : [];
+        if (method === 'GET') {
+          const accessible = await Promise.all(ids.map(async (id) => {
+            const scene = await container.repositories.sceneRepository.findSceneById(id);
+            return scene && homeIds.has(scene.homeId) ? id : null;
+          }));
+          return this.sendJson(res, {
+            sceneIds: accessible.filter((id): id is string => id !== null),
+            initialized: saved !== null,
+          }), true;
+        }
+        const payload = await this.parseBody<{ sceneIds?: unknown }>(req);
+        if (!Array.isArray(payload?.sceneIds) || payload.sceneIds.length > 200 || payload.sceneIds.some((id) => typeof id !== 'string' || !id.trim()) || new Set(payload.sceneIds).size !== payload.sceneIds.length) {
+          return this.sendError(res, 400, 'INVALID_INPUT', 'sceneIds must be a unique array of scene IDs'), true;
+        }
+        const nextIds = payload.sceneIds as string[];
+        for (const id of nextIds) {
+          const scene = await container.repositories.sceneRepository.findSceneById(id);
+          if (!scene || !homeIds.has(scene.homeId)) {
+            return this.sendError(res, 403, 'FORBIDDEN', 'Scene is not accessible'), true;
+          }
+        }
+        await memory.upsert({ userId: req.user!.id, key, value: JSON.stringify(nextIds), valueType: 'json', expiresAt: null });
+        return this.sendJson(res, nextIds), true;
+      } catch (error: unknown) {
+        return this.sendError(res, 500, 'SCENE_FAVORITES_ERROR', error instanceof Error ? error.message : 'Unknown error'), true;
+      }
+    }
+
     // GET /api/v1/scenes
     if (method === 'GET' && pathname === '/api/v1/scenes') {
       try {

@@ -38,9 +38,10 @@ export async function normalizeImportedWidgets(
   tabIds: ReadonlyMap<string, string>,
   resolver: DashboardImportBindingResolver | undefined,
   report: DashboardImportReport,
+  widgetIds?: ReadonlyMap<string, string>,
 ): Promise<DashboardWidget[]> {
   return Promise.all(widgets.map(async (widget) => {
-    const widgetId = randomUUID();
+    const widgetId = widgetIds?.get(widget.id) ?? randomUUID();
     const config = JSON.parse(JSON.stringify(widget.config)) as Record<string, unknown>;
     const widgetTitle = record(config.appearance)?.title;
     const title = typeof widgetTitle === 'string' && widgetTitle.trim() ? widgetTitle : widget.type;

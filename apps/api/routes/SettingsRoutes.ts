@@ -11,7 +11,7 @@ function validPhrases(value: unknown): value is HomePhrases {
   if (!value || typeof value !== 'object') return false;
   const phrases = value as Record<string, unknown>;
   return ['morningPhrase', 'afternoonPhrase', 'nightPhrase'].every(
-    (key) => typeof phrases[key] === 'string' && phrases[key].length <= 100,
+    (key) => typeof phrases[key] === 'string' && phrases[key].length <= 1000,
   );
 }
 
@@ -44,7 +44,7 @@ export class SettingsRoutes extends ApiRoutes {
     if (pathname === '/api/v1/settings/home-personalization' && method === 'PUT') {
       if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       const payload: unknown = await this.parseBody<unknown>(req);
-      if (!validPhrases(payload)) return this.sendError(res, 400, 'VALIDATION_ERROR', 'Each phrase must be at most 100 characters'), true;
+      if (!validPhrases(payload)) return this.sendError(res, 400, 'VALIDATION_ERROR', 'Each phrase must be at most 1000 characters'), true;
       const phrases: HomePhrases = {
         morningPhrase: payload.morningPhrase,
         afternoonPhrase: payload.afternoonPhrase,

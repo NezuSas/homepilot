@@ -5,7 +5,8 @@ import {
   useSensor,
   useSensors,
   DragOverlay,
-  defaultDropAnimationSideEffects
+  defaultDropAnimationSideEffects,
+  useDroppable,
 } from '@dnd-kit/core';
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable';
@@ -14,6 +15,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
+import { moveSectionSlot, resolveSectionSlots, sectionLayoutKey, type SectionLayout } from './sectionSlots';
 import { Button } from '../../components/ui/Button';
 import ConfirmModal from '../../components/ConfirmModal';
 import type { DashboardWidget, DashboardWidgetConfig } from './types';
@@ -31,7 +33,8 @@ interface DashboardCanvasProps {
   isEditing: boolean;
   onWidgetClick: (id: string) => void;
   selectedWidgetId: string | null;
-  onLayoutChange: (widgets: DashboardWidget[]) => void;
+  sectionLayout?: SectionLayout;
+  onLayoutChange: (widgets: DashboardWidget[], sectionLayout?: SectionLayout) => void;
   onWidgetConfigChange?: (widgetId: string, config: Partial<DashboardWidgetConfig>) => void;
   onAddSectionClick?: () => void;
   onAddTitleClick?: () => void;
@@ -109,6 +112,7 @@ function SortableCanvasWidget({
   onClick,
   onConfigChange,
   onDelete,
+  slotMode = false,
 }: {
   widget: DashboardWidget;
   columns: number;
@@ -119,6 +123,7 @@ function SortableCanvasWidget({
   onClick: (id: string) => void;
   onConfigChange?: (id: string, config: Partial<DashboardWidgetConfig>) => void;
   onDelete?: (id: string) => void;
+  slotMode?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: widget.id,
@@ -131,8 +136,8 @@ function SortableCanvasWidget({
     <div
       ref={(node) => { setNodeRef(node); nodeRef.current = node; }}
       style={{
-        gridColumn: `span ${span}`,
-        gridRow: `span ${rowSpan}`,
+        gridColumn: slotMode ? undefined : `span ${span}`,
+        gridRow: slotMode ? undefined : `span ${rowSpan}`,
         transform: CSS.Transform.toString(transform),
         transition: transition ?? undefined,
         opacity: isDragging ? 0.3 : 1,
@@ -158,12 +163,21 @@ function SortableCanvasWidget({
   );
 }
 
+function SectionDropSlot({ index, editing, children }: { index: number; editing: boolean; children?: ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id: `section-slot-${index}`, disabled: !editing });
+  return <div
+    ref={setNodeRef}
+    data-section-slot={index}
+    className={cn('min-w-0', !children && 'min-h-36', editing && !children && 'rounded-panel border border-dashed border-primary/25 bg-primary/[0.025]', isOver && editing && 'border-primary/75 bg-primary/10')}
+  >{children}</div>;
+}
+
 export function DashboardCanvas({
   widgets,
   isEditing,
   onWidgetClick,
   selectedWidgetId,
-  onLayoutChange, onWidgetConfigChange, onAddSectionClick, onAddTitleClick,
+  onLayoutChange, sectionLayout, onWidgetConfigChange, onAddSectionClick, onAddTitleClick,
   tabs, currentTabId, onSelectTab }: DashboardCanvasProps) {
   const { t } = useTranslation();
   const [activeWidget, setActiveWidget] = useState<DashboardWidget | null>(null);
@@ -236,6 +250,17 @@ export function DashboardCanvas({
     [sanitizedWidgets],
   );
   const flowWidgetIds = useMemo(() => flowWidgets.map((widget) => widget.id), [flowWidgets]);
+  const sectionWidgets = useMemo(() => flowWidgets.filter((widget) => widget.type === 'section'), [flowWidgets]);
+  const sectionSlots = useMemo(() => resolveSectionSlots(flowWidgets, sectionLayout, columns), [flowWidgets, sectionLayout, columns]);
+  // A legacy section spanning multiple tracks must retain its approved size;
+  // one-slot placement applies only to the modular, single-track sections.
+  const useSectionSlots = sectionWidgets.length > 0
+    && sectionWidgets.every((widget) => getSectionSpan(widget) === 1)
+    && (isEditing || sectionLayout?.[sectionLayoutKey(columns)] !== undefined);
+  const slotCount = useSectionSlots
+    ? Math.ceil(sectionSlots.length / columns) * columns + (isEditing ? columns : 0)
+    : 0;
+  const sectionById = useMemo(() => new Map(sectionWidgets.map((widget) => [widget.id, widget])), [sectionWidgets]);
 
   const sensorOptions = useMemo(() => ({
     activationConstraint: {
@@ -262,6 +287,18 @@ export function DashboardCanvas({
 
     const { active, over } = event;
     if (!over || active.id === over.id) return;
+
+    if (useSectionSlots && sectionById.has(String(active.id))) {
+      const target = String(over.id);
+      const targetIndex = target.startsWith('section-slot-')
+        ? Number(target.slice('section-slot-'.length))
+        : sectionSlots.indexOf(target);
+      if (!Number.isInteger(targetIndex) || targetIndex < 0) return;
+      const moved = moveSectionSlot(sectionSlots, String(active.id), targetIndex);
+      if (moved === sectionSlots) return;
+      onLayoutChange(widgets, { ...sectionLayout, [sectionLayoutKey(columns)]: moved });
+      return;
+    }
 
     const oldIndex = flowWidgets.findIndex((w) => w.id === active.id);
     const newIndex = flowWidgets.findIndex((w) => w.id === over.id);
@@ -349,8 +386,26 @@ export function DashboardCanvas({
           </CanvasFlowItem>
         ) : null}
 
-        <SortableContext items={flowWidgetIds} strategy={rectSortingStrategy}>
-          {flowWidgets.map((widget) => (
+        {useSectionSlots && <CanvasFlowItem span={columns} gap={gap}>
+          <SortableContext items={sectionWidgets.map((widget) => widget.id)} strategy={rectSortingStrategy}>
+            <div className="grid min-w-0 items-start" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gap: `${gap}px` }}>
+              {Array.from({ length: slotCount }, (_, index) => {
+                const widget = sectionById.get(sectionSlots[index] ?? '');
+                return <SectionDropSlot key={index} index={index} editing={isEditing}>
+                  {widget && <SortableCanvasWidget
+                    widget={widget} columns={columns} gap={gap} slotMode
+                    isEditing={isEditing} canDrag={canEditLayout}
+                    isSelected={selectedWidgetId === widget.id}
+                    onClick={onWidgetClick} onConfigChange={onWidgetConfigChange}
+                    onDelete={setPendingDeleteWidgetId}
+                  />}
+                </SectionDropSlot>;
+              })}
+            </div>
+          </SortableContext>
+        </CanvasFlowItem>}
+        <SortableContext items={useSectionSlots ? flowWidgetIds.filter((id) => !sectionById.has(id)) : flowWidgetIds} strategy={rectSortingStrategy}>
+          {flowWidgets.filter((widget) => !useSectionSlots || widget.type !== 'section').map((widget) => (
             <SortableCanvasWidget
               key={widget.id}
               widget={widget}

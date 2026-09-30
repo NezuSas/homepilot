@@ -91,7 +91,7 @@ test('greeting and phrase change together at the afternoon boundary', async ({ p
   await expect(hero.getByText('Frase de tarde')).toBeVisible();
 });
 
-test('Admin can edit Home phrases with a 100-character limit and responsive image slots', async ({ page }) => {
+test('Admin can edit Home phrases with a 1000-character limit and responsive image slots', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 720 });
   await prepare(page, [{ slot: 1, url: '/media/home/image_home_1.png' }]);
   let saved: unknown = null;
@@ -105,12 +105,15 @@ test('Admin can edit Home phrases with a 100-character limit and responsive imag
   const morning = page.getByRole('textbox', { name: /frase de la mañana|morning phrase/i });
   await expect(morning).toBeVisible();
   const initialHeight = await morning.evaluate((element) => element.getBoundingClientRect().height);
-  await morning.fill('A'.repeat(100));
-  await expect(page.getByText('100 / 100')).toBeVisible();
+  await morning.fill('A'.repeat(1000));
+  await expect(page.getByText('1000 / 1000')).toBeVisible();
+  await morning.press('End');
+  await morning.press('Z');
+  await expect(morning).toHaveValue('A'.repeat(1000));
   expect(await morning.evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThan(initialHeight);
   expect(await morning.evaluate((element) => getComputedStyle(element).resize)).toBe('none');
   await page.getByRole('button', { name: /guardar frases|save phrases/i }).click();
-  await expect.poll(() => saved).toMatchObject({ morningPhrase: 'A'.repeat(100) });
+  await expect.poll(() => saved).toMatchObject({ morningPhrase: 'A'.repeat(1000) });
   await expect(page.getByRole('status')).toContainText(/frases guardadas correctamente|phrases saved successfully/i);
   await expect(page.getByText('image_home_1')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
@@ -332,6 +335,28 @@ for (const viewport of [
     expect(heroBox && headingBox && phraseBox).toBeTruthy();
     expect(headingBox!.y - heroBox!.y).toBeLessThan(80);
     expect(phraseBox!.y).toBeGreaterThan(headingBox!.y);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  });
+
+  test(`Home keeps a 1000-character phrase above the Clock modules without overflow on ${viewport.name}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await prepare(page);
+    const phrase = ('Control sereno y claro para cada espacio. ').repeat(25).slice(0, 1000);
+    await page.route(endpoint, (route) => route.fulfill({ json: {
+      morningPhrase: phrase, afternoonPhrase: phrase, nightPhrase: phrase, heroImages: [],
+    } }));
+    await page.goto('/');
+    const hero = page.locator('.homepilot-home-hero');
+    const paragraph = hero.locator('p').filter({ hasText: phrase });
+    const modules = hero.locator('.homepilot-home-summary');
+    await expect(paragraph).toBeVisible();
+    await expect(modules).toHaveCount(3);
+    const phraseBounds = await paragraph.boundingBox();
+    const moduleBounds = await modules.first().boundingBox();
+    const heroBounds = await hero.boundingBox();
+    expect(phraseBounds && moduleBounds && heroBounds).toBeTruthy();
+    expect(moduleBounds!.y).toBeGreaterThan(phraseBounds!.y + phraseBounds!.height);
+    expect(moduleBounds!.y + moduleBounds!.height).toBeLessThanOrEqual(heroBounds!.y + heroBounds!.height);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   });
 }

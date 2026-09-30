@@ -65,6 +65,8 @@ export interface DashboardTab {
   id: string;
   title: string;
   widgets: DashboardWidget[];
+  /** Sparse section IDs for each effective responsive column count. */
+  sectionLayout?: Partial<Record<'columns1' | 'columns2' | 'columns3' | 'columns4', Array<string | null>>>;
   icon?: string;
   background?: string;
   backgroundOpacity?: number;

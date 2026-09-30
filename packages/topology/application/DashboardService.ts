@@ -79,6 +79,7 @@ export class DashboardService {
             id: tab.id,
             title: tab.title,
             widgets: tab.widgets,
+            sectionLayout: tab.sectionLayout,
             icon: tab.icon,
             isDefault: tab.isDefault === true,
             ...(presetId ? { backgroundPresetId: presetId, backgroundOpacity: tab.backgroundOpacity } : {}),
@@ -126,6 +127,7 @@ export class DashboardService {
     const authorizedHomeIds = new Set((await this.homeRepository.findHomesByUserId(userId)).map((home) => home.id));
     const tabIds = new Map(transfer.dashboard.tabs.map((tab) => [tab.id, randomUUID()]));
     const tabs = await Promise.all(transfer.dashboard.tabs.map(async (tab) => {
+      const widgetIds = new Map(tab.widgets.map((widget) => [widget.id, randomUUID()]));
       const legacyBackground = (tab as unknown as Record<string, unknown>).background;
       const presetId = tab.backgroundPresetId
         ?? (typeof legacyBackground === 'string' ? getDashboardBackgroundPresetIdBySource(legacyBackground) : undefined);
@@ -137,6 +139,9 @@ export class DashboardService {
       return {
         ...portableTab,
         id: tabIds.get(tab.id)!,
+        sectionLayout: tab.sectionLayout && Object.fromEntries(Object.entries(tab.sectionLayout).map(([key, slots]) => [
+          key, slots?.map((id) => id === null ? null : widgetIds.get(id) ?? null),
+        ])),
         background: presetId ? getDashboardBackgroundPreset(presetId)?.src : undefined,
         backgroundOpacity: presetId && typeof tab.backgroundOpacity === 'number'
           && Number.isFinite(tab.backgroundOpacity) && tab.backgroundOpacity >= 0 && tab.backgroundOpacity <= 100
@@ -144,7 +149,7 @@ export class DashboardService {
         visibility: undefined,
         isDefault: tab.isDefault === true,
         widgets: await normalizeImportedWidgets(
-          tab.widgets, tab.title, authorizedHomeIds, tabIds, this.importBindingResolver, report,
+          tab.widgets, tab.title, authorizedHomeIds, tabIds, this.importBindingResolver, report, widgetIds,
         ),
       };
     }));
@@ -331,6 +336,11 @@ function isDashboardTransferPackage(value: unknown): value is DashboardTransferP
       && (tab.backgroundPresetId === undefined || (typeof tab.backgroundPresetId === 'string' && Boolean(tab.backgroundPresetId.trim())))
       && (tab.backgroundUnavailable === undefined || tab.backgroundUnavailable === true)
       && (tab.isDefault === undefined || typeof tab.isDefault === 'boolean')
+      && (tab.sectionLayout === undefined || (tab.sectionLayout !== null
+        && typeof tab.sectionLayout === 'object' && !Array.isArray(tab.sectionLayout)
+        && Object.entries(tab.sectionLayout).every(([key, slots]) =>
+          /^columns[1-4]$/.test(key) && Array.isArray(slots)
+          && slots.length <= 200 && slots.every((id) => id === null || typeof id === 'string'))))
       && (tab.backgroundOpacity === undefined || (typeof tab.backgroundOpacity === 'number' && Number.isFinite(tab.backgroundOpacity) && tab.backgroundOpacity >= 0 && tab.backgroundOpacity <= 100))
       && Array.isArray(tab.widgets)
       && tab.widgets.every((widget) =>

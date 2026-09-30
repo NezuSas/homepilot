@@ -31,11 +31,49 @@ function createContainer(isAuthorized = true): BootstrapContainer {
         saveScene: jest.fn().mockResolvedValue(undefined),
         findSceneById: jest.fn(),
       },
+      assistantMemoryRepository: {
+        findByKey: jest.fn().mockResolvedValue(null),
+        upsert: jest.fn().mockResolvedValue(undefined),
+      },
     },
   } as unknown as BootstrapContainer;
 }
 
 describe('Feature: scene route contract', () => {
+  it('stores favorites per authenticated user and rejects inaccessible scenes', async () => {
+    const container = createContainer();
+    (container.repositories.sceneRepository.findSceneById as jest.Mock).mockResolvedValue({ id: 'scene-1', homeId: 'home-1' });
+    const route = new SceneRoutes();
+    const saved = new MockResponse();
+    await route.handle(createRequest({ sceneIds: ['scene-1'] }), saved as unknown as http.ServerResponse, '/api/v1/scenes/favorites', 'PUT', container);
+    expect(saved.writeHead).toHaveBeenCalledWith(200, expect.any(Object));
+    expect(container.repositories.assistantMemoryRepository.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 'owner-1', key: 'pref:scene-favorites', value: '["scene-1"]',
+    }));
+
+    (container.repositories.sceneRepository.findSceneById as jest.Mock).mockResolvedValue({ id: 'scene-2', homeId: 'foreign-home' });
+    const denied = new MockResponse();
+    await route.handle(createRequest({ sceneIds: ['scene-2'] }), denied as unknown as http.ServerResponse, '/api/v1/scenes/favorites', 'PUT', container);
+    expect(denied.writeHead).toHaveBeenCalledWith(403, expect.any(Object));
+    expect(container.repositories.assistantMemoryRepository.upsert).toHaveBeenCalledTimes(1);
+  });
+
+  it('loads only accessible favorites and distinguishes an empty saved preference from an unmigrated user', async () => {
+    const container = createContainer();
+    (container.repositories.assistantMemoryRepository.findByKey as jest.Mock).mockResolvedValue({ value: '["scene-1","scene-2"]' });
+    (container.repositories.sceneRepository.findSceneById as jest.Mock).mockImplementation(async (id: string) =>
+      id === 'scene-1' ? { id, homeId: 'home-1' } : { id, homeId: 'foreign-home' });
+    const reply = new MockResponse();
+    await new SceneRoutes().handle(createRequest(), reply as unknown as http.ServerResponse, '/api/v1/scenes/favorites', 'GET', container);
+    expect(JSON.parse(reply.end.mock.calls[0][0])).toEqual({ sceneIds: ['scene-1'], initialized: true });
+    const otherUser = createRequest();
+    otherUser.user = { ...otherUser.user!, id: 'owner-2' };
+    (container.repositories.assistantMemoryRepository.findByKey as jest.Mock).mockResolvedValueOnce(null);
+    const otherReply = new MockResponse();
+    await new SceneRoutes().handle(otherUser, otherReply as unknown as http.ServerResponse, '/api/v1/scenes/favorites', 'GET', container);
+    expect(container.repositories.assistantMemoryRepository.findByKey).toHaveBeenCalledWith('owner-2', 'pref:scene-favorites');
+    expect(JSON.parse(otherReply.end.mock.calls[0][0])).toEqual({ sceneIds: [], initialized: false });
+  });
   it('Scenario: Given an unauthenticated request When scenes are requested Then no repository is queried', async () => {
     const container = createContainer(false);
 

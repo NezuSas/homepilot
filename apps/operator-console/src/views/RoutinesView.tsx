@@ -54,7 +54,7 @@ export default function RoutinesView({
       {activeSection === 'scenes' ? (
         <ScenesView onActionExecute={onSceneActionExecute} currentUserId={currentUserId} />
       ) : (
-        <AutomationsView />
+        <AutomationsView currentUserId={currentUserId} />
       )}
     </div>
   );

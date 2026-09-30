@@ -72,7 +72,7 @@ export function HomePersonalizationView() {
 
   const savePhrases = async () => {
     if (operationRef.current) return;
-    if (PHRASE_KEYS.some((key) => settings[key].length > 100)) {
+    if (PHRASE_KEYS.some((key) => settings[key].length > 1000)) {
       setFeedback({ message: t('home_personalization.phrase_limit'), variant: 'danger' });
       return;
     }
@@ -141,13 +141,13 @@ export function HomePersonalizationView() {
             value={settings[key]}
             onChange={(event) => setSettings((current) => ({ ...current, [key]: event.target.value }))}
             placeholder={t(`home_personalization.${key}Placeholder`)}
-            maxLength={100}
+            maxLength={1000}
             rows={2}
             disabled={operation !== 'idle'}
             aria-describedby={`home-${key}-count`}
             className="w-full resize-none overflow-hidden rounded-xl border border-border bg-background px-4 py-3 text-body text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           />
-          <span id={`home-${key}-count`} className="self-end text-caption text-muted-foreground">{settings[key].length} / 100</span>
+          <span id={`home-${key}-count`} className="self-end text-caption text-muted-foreground">{settings[key].length} / 1000</span>
         </div>)}
         <Button onClick={() => void savePhrases()} disabled={operation !== 'idle'} isLoading={operation === 'saving'} className="self-start">{t(operation === 'saving' ? 'home_personalization.saving' : 'home_personalization.save')}</Button>
       </Card>

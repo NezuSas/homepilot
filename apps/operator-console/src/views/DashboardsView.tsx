@@ -5,7 +5,7 @@ import { API_BASE_URL } from '../config';
 import { getDashboardBackgroundSource } from '../lib/dashboardBackgroundPresets';
 import { LoadingState } from '../components/ui/LoadingState';
 import { EmptyDashboards } from '../components/EmptyDashboards';
-import type { Dashboard, DashboardWidget, WidgetType, DashboardWidgetConfig } from './dashboards/types';
+import type { Dashboard, DashboardTab, DashboardWidget, WidgetType, DashboardWidgetConfig } from './dashboards/types';
 import { DashboardActiveWorkspace } from './dashboards/DashboardActiveWorkspace';
 import { DashboardViewOverlays } from './dashboards/DashboardViewOverlays';
 import { configureTab, createDefaultWidgetConfig, insertWidget, updateWidgetConfig, type TabConfigFields } from './dashboards/dashboardMutations';
@@ -261,10 +261,10 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
     }
   };
 
-  const handleLayoutChange = async (updatedWidgets: DashboardWidget[]) => {
+  const handleLayoutChange = async (updatedWidgets: DashboardWidget[], sectionLayout?: NonNullable<DashboardTab['sectionLayout']>) => {
     if (!active) return;
     const updatedTabs = active.tabs.map((tab, idx) =>
-      idx !== activeTabIdx ? tab : { ...tab, widgets: updatedWidgets }
+      idx !== activeTabIdx ? tab : { ...tab, widgets: updatedWidgets, sectionLayout: sectionLayout ?? tab.sectionLayout }
     );
     await patch(active.id, { tabs: updatedTabs });
   };
@@ -410,7 +410,7 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
               onCancelAddingTab={() => setAddingTab(false)}
               onAddWidget={(type, size) => { void handleAddWidget(type, size); }}
               onSelectWidget={setSelectedWidgetId}
-              onLayoutChange={(widgets) => { void handleLayoutChange(widgets); }}
+              onLayoutChange={(widgets, layout) => { void handleLayoutChange(widgets, layout); }}
               onWidgetConfigChange={(widgetId, config) => { void handleUpdateWidgetConfig(widgetId, config); }}
               onSelectCanvasTab={(tabId) => {
                 const targetIdx = active.tabs.findIndex(tab => tab.id === tabId);

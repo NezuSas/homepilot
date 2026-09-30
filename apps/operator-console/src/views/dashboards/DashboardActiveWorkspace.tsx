@@ -4,6 +4,7 @@ import { DashboardTitleBar } from '../../components/DashboardTitleBar';
 import { Button } from '../../components/ui/Button';
 import { DashboardCanvas } from './DashboardCanvas';
 import type { Dashboard, DashboardTab, DashboardWidget, DashboardWidgetConfig, WidgetType } from './types';
+import type { SectionLayout } from './sectionSlots';
 
 interface DashboardActiveWorkspaceProps {
   active: Dashboard;
@@ -33,7 +34,7 @@ interface DashboardActiveWorkspaceProps {
   onCancelAddingTab: () => void;
   onAddWidget: (type: WidgetType, size?: { w: number; h: number }) => void;
   onSelectWidget: (id: string) => void;
-  onLayoutChange: (widgets: DashboardWidget[]) => void;
+  onLayoutChange: (widgets: DashboardWidget[], sectionLayout?: SectionLayout) => void;
   onWidgetConfigChange: (widgetId: string, config: Partial<DashboardWidgetConfig>) => void;
   onSelectCanvasTab: (tabId: string) => void;
 }
@@ -127,6 +128,7 @@ export function DashboardActiveWorkspace({
         ) : (
           <DashboardCanvas
             widgets={activeTab.widgets}
+            sectionLayout={activeTab.sectionLayout}
             isEditing={isEditing && isOwner}
             onAddTitleClick={() => onAddWidget('dashboard_title')}
             selectedWidgetId={selectedWidgetId}

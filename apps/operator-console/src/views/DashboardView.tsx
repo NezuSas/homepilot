@@ -10,11 +10,7 @@ import { DashboardInsightsSection } from '../components/DashboardInsightsSection
 import { LoadingState } from '../components/ui/LoadingState';
 import { HomeClimateSummary } from '../components/HomeClimateSummary';
 import { API_BASE_URL } from '../config';
-import {
-  AUTOMATION_FAVORITES_STORAGE_KEY,
-  readFavoriteIds,
-  SCENE_FAVORITES_STORAGE_KEY,
-} from '../lib/favorites';
+import { useAutomationFavorites, useSceneFavorites } from '../lib/useSceneFavorites';
 import { apiFetch } from '../lib/apiClient';
 import { EMPTY_HOME_PERSONALIZATION, getHomePeriod, HOME_HERO_INTERVAL_MS, msUntilNextHomePeriod, resolveHomePhrase, type HomePersonalization } from '../lib/homePersonalization';
 import { fetchDiagnosticResource, invalidateDiagnosticCatalog } from '../lib/diagnosticResourceRequests';
@@ -222,8 +218,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
   const heroImages = homePersonalization.heroImages.length > 0
     ? homePersonalization.heroImages.map((image) => `${API_BASE_URL}${image.url}`)
     : ['/home-dashboard-ambient.png'];
-  const favoriteSceneIds = useMemo(() => readFavoriteIds(SCENE_FAVORITES_STORAGE_KEY), []);
-  const favoriteAutomationIds = useMemo(() => readFavoriteIds(AUTOMATION_FAVORITES_STORAGE_KEY), []);
+  const { favorites: favoriteSceneIds } = useSceneFavorites(currentUserId, scenes.map((scene) => scene.id));
+  const { favorites: favoriteAutomationIds } = useAutomationFavorites(
+    canManageAutomations ? currentUserId : null,
+    automations.map((automation) => automation.id),
+  );
 
   if (snapshotLoading && allDevices.length === 0) return <LoadingState label={t('common.loading')} className="min-h-empty-sm" />;
 
@@ -231,7 +230,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
     <div className="homepilot-home flex flex-col gap-6 pb-10 animate-in fade-in duration-500 sm:gap-8 sm:pb-12">
       <DashboardAtmosphereRipple active={luxuryRipple} />
 
-      <header className="homepilot-home-hero flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+      <header className="homepilot-home-hero flex flex-col gap-5">
         {heroImages.map((src, index) => <img
           key={src}
           className={`homepilot-home-hero-image ${index === activeHeroImage || heroImages.length === 1 ? 'opacity-100' : 'opacity-0'}`}
@@ -246,9 +245,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
           <h1 className="text-display-title font-black leading-tight tracking-display-tight text-foreground sm:text-hero-title lg:text-hero-title-lg">
             {t(`dashboard.greeting_${greetingKey}`, { name: displayName || t('dashboard.resident') })}
           </h1>
-          <p className="mt-3 max-w-xl text-body text-muted-foreground lg:text-card-title">{phrase}</p>
+          <p className="mt-3 max-w-3xl whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-body text-muted-foreground lg:text-card-title">{phrase}</p>
         </div>
-        <div className="relative z-10">
+        <div className="relative z-10 min-w-0">
           <HomeClimateSummary currentUserId={currentUserId} onOpenOwnDashboardTab={onOpenOwnDashboardTab} />
         </div>
       </header>

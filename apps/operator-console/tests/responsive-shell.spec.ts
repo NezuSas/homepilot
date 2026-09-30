@@ -127,14 +127,14 @@ async function prepareLoginShell(page: import('@playwright/test').Page) {
   });
 }
 
-async function prepareAuthenticatedDashboard(page: import('@playwright/test').Page, dashboard: object = responsiveDashboard) {
+async function prepareAuthenticatedDashboard(page: import('@playwright/test').Page, dashboard: object = responsiveDashboard, user = dashboardUser) {
   await page.addInitScript((user) => {
     localStorage.setItem('hp_session_token', 'responsive-test-token');
     localStorage.setItem('hp_user_ctx', JSON.stringify(user));
-  }, dashboardUser);
+  }, user);
 
   await page.route('**/api/v1/auth/me', async (route) => {
-    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(dashboardUser) });
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(user) });
   });
   await page.route('**/api/v1/system/setup-status', async (route) => {
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(setupStatus) });
@@ -167,14 +167,14 @@ async function prepareAuthenticatedDashboard(page: import('@playwright/test').Pa
   });
 }
 
-test('keeps the Home dashboard indicator neutral without an owned main tab', async ({ page }) => {
+test('disables the Home dashboard action without an owned main tab', async ({ page }) => {
   const shared = { ...responsiveDashboard, ownerId: 'another-user' };
   await prepareAuthenticatedDashboard(page, shared);
   await page.goto('/');
 
   const context = page.getByLabel(/contexto local del hogar|local home context/i);
   await expect(context.getByText(/sin pestaña principal|no main tab/i)).toBeVisible();
-  await expect(context.getByRole('button', { name: /abrir la pestaña|open .* in my dashboard/i })).toHaveCount(0);
+  await expect(context.getByRole('button', { name: /sin pestaña principal|no main tab/i })).toBeDisabled();
 });
 
 test('opens the owned main tab even when a shared dashboard is also accessible', async ({ page }) => {
@@ -195,6 +195,265 @@ test('opens the owned main tab even when a shared dashboard is also accessible',
   const context = page.getByLabel(/contexto local del hogar|local home context/i);
   await context.getByRole('button', { name: /abrir la pestaña Principal de mi tablero|open Principal in my dashboard/i }).click();
   await expect(page).toHaveURL(/\/dashboards\/responsive-dashboard\/responsive-tab$/);
+});
+
+test('Feature: Section slots — moving to a gap and swapping Sections persist without changing another profile', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const baseSection = responsiveDashboard.tabs[0]!.widgets[1]!;
+  let dashboard = {
+    ...responsiveDashboard,
+    tabs: [{
+      ...responsiveDashboard.tabs[0]!,
+      widgets: ['a', 'b', 'c'].map((id) => ({
+        ...baseSection, id,
+        config: { ...baseSection.config, layout: { x: 0, y: 0, w: 1, h: 2, span: 1 }, appearance: { title: id.toUpperCase(), showTitle: true }, extra: { cards: [] } },
+      })),
+      sectionLayout: {
+        columns4: ['a', 'b', 'c'] as Array<string | null>,
+        columns3: ['c', 'b', 'a'] as Array<string | null>,
+        columns2: ['b', null, 'a', 'c'] as Array<string | null>,
+        columns1: ['a', null, 'c', 'b'] as Array<string | null>,
+      },
+    }],
+  };
+  await prepareAuthenticatedDashboard(page, dashboard);
+  await page.route('**/api/v1/dashboards', (route) => route.fulfill({ json: [dashboard] }));
+  await page.route('**/api/v1/dashboards/responsive-dashboard', async (route) => {
+    if (route.request().method() !== 'PATCH') return route.fallback();
+    const patch = route.request().postDataJSON() as Partial<typeof dashboard>;
+    dashboard = { ...dashboard, ...patch };
+    await route.fulfill({ json: dashboard });
+  });
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).click();
+
+  const section = (name: string) => page.locator('.homepilot-dashboard-widget').filter({ has: page.getByRole('heading', { name, exact: true }) });
+  const handle = (name: string) => section(name).getByRole('button', { name: /Drag to reorder|Arrastrar para reordenar/i });
+  await expect(page.locator('[data-section-slot="3"]')).toBeVisible();
+  await handle('B').dragTo(page.locator('[data-section-slot="4"]'), { steps: 12 });
+  await expect.poll(() => dashboard.tabs[0]?.sectionLayout.columns4).toEqual(['a', null, 'c', null, 'b']);
+  await handle('A').dragTo(section('C'), { steps: 12 });
+  await expect.poll(() => dashboard.tabs[0]?.sectionLayout.columns4).toEqual(['c', null, 'a', null, 'b']);
+  expect(dashboard.tabs[0]?.sectionLayout.columns3).toEqual(['c', 'b', 'a']);
+
+  await page.reload();
+  await expect(page.locator('[data-section-slot="1"] .homepilot-dashboard-widget')).toHaveCount(0);
+  await expect(page.locator('[data-section-slot="4"]')).toContainText('B');
+  for (const profile of [
+    { width: 1440, height: 900, first: 'C', gap: false },
+    { width: 768, height: 1024, first: 'B', gap: true },
+    { width: 320, height: 720, first: 'A', gap: true },
+  ]) {
+    await page.setViewportSize({ width: profile.width, height: profile.height });
+    await expect(page.locator('[data-section-slot="0"]')).toContainText(profile.first);
+    await expect(page.locator('[data-section-slot="1"] .homepilot-dashboard-widget')).toHaveCount(profile.gap ? 0 : 1);
+  }
+});
+
+test('Feature: Sidebar navigation — a main view resets shell scroll but an internal tab does not', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 700 });
+  const dashboard = {
+    ...responsiveDashboard,
+    tabs: [responsiveDashboard.tabs[0]!, { ...responsiveDashboard.tabs[0]!, id: 'secondary-tab', title: 'Sala', isDefault: false }],
+  };
+  await prepareAuthenticatedDashboard(page, dashboard);
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  const scrollArea = page.locator('main > section');
+  await scrollArea.evaluate((element) => {
+    const spacer = document.createElement('div');
+    spacer.style.height = '2000px';
+    spacer.setAttribute('aria-hidden', 'true');
+    element.appendChild(spacer);
+    element.scrollTop = 400;
+  });
+  await expect.poll(() => scrollArea.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  await page.locator('.homepilot-dashboard-tabs').getByRole('button', { name: 'Sala', exact: true }).click();
+  await expect.poll(() => scrollArea.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  await page.locator('aside nav').getByRole('button', { name: /^(Home|Inicio)$/i }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect.poll(() => scrollArea.evaluate((element) => element.scrollTop)).toBe(0);
+
+  await page.goto('/system/home-personalization');
+  await scrollArea.evaluate((element) => {
+    const spacer = document.createElement('div');
+    spacer.style.height = '2000px';
+    spacer.setAttribute('aria-hidden', 'true');
+    element.appendChild(spacer);
+    element.scrollTop = 400;
+  });
+  await expect.poll(() => scrollArea.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  const systemMenu = page.locator('aside nav').getByRole('button', { name: /^(System|Sistema)$/i });
+  if (await systemMenu.getAttribute('aria-expanded') === 'false') await systemMenu.click();
+  await page.locator('aside nav').getByRole('button', { name: /^(Cámaras IP|IP Cameras)$/i }).click();
+  await expect(page).toHaveURL(/\/system\/cameras$/);
+  await expect.poll(() => scrollArea.evaluate((element) => element.scrollTop)).toBe(0);
+});
+
+test('Feature: Section slots — a shared read-only tab exposes its gaps but no drag controls', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const baseSection = responsiveDashboard.tabs[0]!.widgets[1]!;
+  const shared = {
+    ...responsiveDashboard, ownerId: 'other-owner',
+    tabs: [{ ...responsiveDashboard.tabs[0]!, widgets: ['a', 'b'].map((id) => ({
+      ...baseSection, id,
+      config: { ...baseSection.config, layout: { x: 0, y: 0, w: 1, h: 2, span: 1 }, appearance: { title: id.toUpperCase(), showTitle: true }, extra: { cards: [] } },
+    })), sectionLayout: { columns4: ['a', null, 'b'] } }],
+  };
+  await prepareAuthenticatedDashboard(page, shared);
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  await expect(page.locator('[data-section-slot="1"] .homepilot-dashboard-widget')).toHaveCount(0);
+  await expect(page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Drag to reorder|Arrastrar para reordenar/i })).toHaveCount(0);
+});
+
+test('Feature: scene favorites — a legacy local favorite migrates once and the server remains authoritative', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('legacy-favorites-seeded')) return;
+    localStorage.setItem('hp_fav_scenes', JSON.stringify(['favorite-scene']));
+    sessionStorage.setItem('legacy-favorites-seeded', '1');
+  });
+  await prepareAuthenticatedDashboard(page);
+  await page.route('**/api/v1/homes', (route) => route.fulfill({ json: [{ id: 'responsive-home', ownerId: dashboardUser.id, name: 'Casa' }] }));
+  await page.route('**/api/v1/scenes', (route) => route.fulfill({ json: [{
+    id: 'favorite-scene', homeId: 'responsive-home', roomId: null, name: 'Escena noche', actions: [],
+  }] }));
+  let initialized = false;
+  let serverIds: string[] = [];
+  let saves = 0;
+  await page.route('**/api/v1/scenes/favorites', async (route) => {
+    if (route.request().method() === 'PUT') {
+      serverIds = (route.request().postDataJSON() as { sceneIds: string[] }).sceneIds;
+      initialized = true;
+      saves += 1;
+      return route.fulfill({ json: serverIds });
+    }
+    return route.fulfill({ json: { sceneIds: serverIds, initialized } });
+  });
+  await page.goto('/');
+  await expect(page.locator('.homepilot-home-routines').getByRole('button', { name: /Escena noche/ })).toBeVisible();
+  expect(serverIds).toEqual(['favorite-scene']);
+  expect(saves).toBe(1);
+  expect(await page.evaluate(() => localStorage.getItem('hp_fav_scenes'))).toBeNull();
+
+  await page.reload();
+  await expect(page.locator('.homepilot-home-routines').getByRole('button', { name: /Escena noche/ })).toBeVisible();
+  expect(saves).toBe(1);
+  serverIds = [];
+  await page.reload();
+  await expect(page.locator('.homepilot-home-routines').getByRole('button', { name: /Escena noche/ })).toHaveCount(0);
+  expect(saves).toBe(1);
+
+  serverIds = ['favorite-scene'];
+  await page.route('**/api/v1/scenes', (route) => route.fulfill({ json: [
+    { id: 'favorite-scene', homeId: 'responsive-home', roomId: null, name: 'Escena noche', actions: [] },
+    { id: 'other-scene', homeId: 'responsive-home', roomId: null, name: 'Escena mañana', actions: [] },
+  ] }));
+  await page.evaluate(() => localStorage.setItem('hp_fav_scenes', JSON.stringify(['other-scene'])));
+  await page.reload();
+  await expect(page.locator('.homepilot-home-routines').getByRole('button', { name: /Escena mañana/ })).toBeVisible();
+  expect(serverIds).toEqual(['favorite-scene', 'other-scene']);
+  expect(saves).toBe(2);
+});
+
+const favoriteAutomationRules = [
+  { id: 'automation-x', homeId: 'responsive-home', name: 'Luz nocturna', enabled: true,
+    trigger: { type: 'time', timeLocal: '22:00', timezone: 'America/Guayaquil' },
+    action: { type: 'device_command', targetDeviceId: 'sensor-climate', command: 'turn_on' } },
+  { id: 'automation-y', homeId: 'responsive-home', name: 'Luz matutina', enabled: true,
+    trigger: { type: 'time', timeLocal: '07:00', timezone: 'America/Guayaquil' },
+    action: { type: 'device_command', targetDeviceId: 'sensor-climate', command: 'turn_on' } },
+];
+
+test('Feature: automation favorites — valid legacy IDs migrate once, merge with server data and never overwrite it with an empty local list', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('legacy-automation-favorites-seeded')) return;
+    localStorage.setItem('hp_fav_automations', JSON.stringify(['automation-x', 'deleted-automation']));
+    sessionStorage.setItem('legacy-automation-favorites-seeded', '1');
+  });
+  await prepareAuthenticatedDashboard(page);
+  await page.route('**/api/v1/homes', (route) => route.fulfill({ json: [{ id: 'responsive-home', ownerId: dashboardUser.id, name: 'Casa' }] }));
+  await page.route('**/api/v1/scenes', (route) => route.fulfill({ json: [] }));
+  await page.route('**/api/v1/automations', (route) => route.fulfill({ json: favoriteAutomationRules }));
+  let serverIds: string[] = [];
+  let saves = 0;
+  await page.route('**/api/v1/automations/favorites', async (route) => {
+    if (route.request().method() === 'PUT') {
+      serverIds = (route.request().postDataJSON() as { automationIds: string[] }).automationIds;
+      saves += 1;
+      return route.fulfill({ json: serverIds });
+    }
+    return route.fulfill({ json: { automationIds: serverIds, initialized: saves > 0 } });
+  });
+
+  await page.goto('/');
+  await expect(page.locator('.homepilot-home-routines').getByRole('button', { name: /Luz nocturna/ })).toBeVisible();
+  expect(serverIds).toEqual(['automation-x']);
+  expect(await page.evaluate(() => localStorage.getItem('hp_fav_automations'))).toBeNull();
+  await page.reload();
+  expect(saves).toBe(1);
+
+  await page.evaluate(() => localStorage.setItem('hp_fav_automations', JSON.stringify(['automation-y'])));
+  await page.reload();
+  await expect(page.locator('.homepilot-home-routines').getByRole('button', { name: /Luz matutina/ })).toBeVisible();
+  expect(serverIds).toEqual(['automation-x', 'automation-y']);
+
+  await page.evaluate(() => localStorage.setItem('hp_fav_automations', '[]'));
+  await page.reload();
+  expect(serverIds).toEqual(['automation-x', 'automation-y']);
+  expect(saves).toBe(2);
+  serverIds = [];
+  await page.reload();
+  await expect(page.locator('.homepilot-home-routines').getByRole('button', { name: /Luz nocturna|Luz matutina/ })).toHaveCount(0);
+  expect(saves).toBe(2);
+});
+
+test('Feature: automation favorites — tablet and PC synchronize one user without leaking to another', async ({ browser }) => {
+  const tabletContext = await browser.newContext({ viewport: { width: 768, height: 1024 } });
+  const pcContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const gustavoContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const server = new Map<string, string[]>();
+  const prepare = async (page: import('@playwright/test').Page, user: typeof dashboardUser) => {
+    await prepareAuthenticatedDashboard(page, responsiveDashboard, user);
+    await page.route('**/api/v1/homes', (route) => route.fulfill({ json: [{ id: 'responsive-home', ownerId: user.id, name: 'Casa' }] }));
+    await page.route('**/api/v1/scenes', (route) => route.fulfill({ json: [] }));
+    await page.route('**/api/v1/automations', (route) => route.fulfill({ json: favoriteAutomationRules.slice(0, 1) }));
+    await page.route('**/api/v1/automations/favorites', (route) => {
+      if (route.request().method() === 'PUT') {
+        const ids = (route.request().postDataJSON() as { automationIds: string[] }).automationIds;
+        server.set(user.id, ids);
+        return route.fulfill({ json: ids });
+      }
+      return route.fulfill({ json: { automationIds: server.get(user.id) ?? [], initialized: server.has(user.id) } });
+    });
+  };
+
+  try {
+    const tablet = await tabletContext.newPage();
+    const pc = await pcContext.newPage();
+    const gustavo = await gustavoContext.newPage();
+    await prepare(tablet, dashboardUser);
+    await prepare(pc, dashboardUser);
+    await prepare(gustavo, { ...dashboardUser, id: 'gustavo', username: 'gustavo', displayName: 'Gustavo' });
+
+    await tablet.goto('/routines/automations');
+    await tablet.getByRole('button', { name: /Añadir a favoritas|Add to favorites/i }).click();
+    await expect.poll(() => server.get(dashboardUser.id)).toEqual(['automation-x']);
+
+    await pc.goto('/');
+    await expect(pc.locator('.homepilot-home-routines').getByRole('button', { name: /Luz nocturna/ })).toBeVisible();
+    await gustavo.goto('/');
+    await expect(gustavo.locator('.homepilot-home-routines').getByRole('button', { name: /Luz nocturna/ })).toHaveCount(0);
+
+    await pc.goto('/routines/automations');
+    await pc.getByRole('button', { name: /Quitar de favoritas|Remove from favorites/i }).click();
+    await expect.poll(() => server.get(dashboardUser.id)).toEqual([]);
+    await tablet.reload();
+    await expect(tablet.getByRole('button', { name: /Añadir a favoritas|Add to favorites/i })).toHaveCount(1);
+  } finally {
+    await tabletContext.close();
+    await pcContext.close();
+    await gustavoContext.close();
+  }
 });
 
 test('allows clearing the current open-on-load tab before enabling another', async ({ page }) => {
@@ -579,7 +838,9 @@ for (const viewport of [viewports[2], viewports[1], viewports[0], { name: 'portr
         ...responsiveDashboard.tabs[0],
         // No title widget: the edit-only add-title and add-section controls
         // must not create extra auto-fit tracks or squeeze these sections.
-        widgets: ['Tech', 'Patio'].map((title, index) => ({
+        // Fill the desktop profile's four slots so auto-fit view mode and
+        // explicit-slot edit mode share the same section track width.
+        widgets: ['Tech', 'Patio', 'Sala', 'Cocina'].map((title, index) => ({
           id: `layout-section-${index}`,
           type: 'section',
           config: {
@@ -1716,9 +1977,11 @@ for (const viewport of viewports) {
     await page.goto('/');
     const climateSummary = page.getByLabel(/contexto local del hogar|local home context/i);
     await expect(climateSummary).toBeVisible();
-    await expect(climateSummary.getByText('Cuenca')).toBeVisible();
+    await expect(climateSummary.getByText('Cuenca')).toHaveCount(2);
     await expect(climateSummary.locator('time')).toBeVisible();
-    await expect(climateSummary.getByText(/°C|temperatura no disponible|temperature unavailable/i)).toBeVisible();
+    await expect(climateSummary.getByText(/°C|clima no disponible|weather unavailable|cargando clima|loading weather/i)).toBeVisible();
+    await expect(climateSummary.locator('.homepilot-home-summary')).toHaveCount(3);
+    await expect(climateSummary.getByRole('button')).toHaveCount(1);
     const ownDashboard = climateSummary.getByRole('button', { name: /abrir la pestaña Principal de mi tablero|open.*Principal.*dashboard/i });
     await expect(ownDashboard).toBeVisible();
     const ambientImage = page.locator('img[src="/home-dashboard-ambient.png"]');

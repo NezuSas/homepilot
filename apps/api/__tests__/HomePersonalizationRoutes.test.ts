@@ -45,16 +45,19 @@ describe('Feature: global Home personalization API', () => {
     expect(target.guards.authGuard.requireRole).not.toHaveBeenCalled();
   });
 
-  it('allows an Admin to save three phrases but rejects more than 100 characters', async () => {
+  it('allows an Admin to save 1000 characters per phrase but rejects 1001', async () => {
     const target = container();
     const phrases = { morningPhrase: 'Mañana', afternoonPhrase: 'Tarde', nightPhrase: 'Noche' };
     await routes.handle(request(phrases), response() as unknown as http.ServerResponse, ENDPOINT, 'PUT', target);
     expect(target.services.systemVariableService.set).toHaveBeenCalledWith(expect.objectContaining({ scope: 'global', name: 'home_personalization_phrases', value: JSON.stringify(phrases) }));
+    const boundary = { ...phrases, morningPhrase: 'x'.repeat(1000) };
+    await routes.handle(request(boundary), response() as unknown as http.ServerResponse, ENDPOINT, 'PUT', target);
+    expect(target.services.systemVariableService.set).toHaveBeenCalledWith(expect.objectContaining({ value: JSON.stringify(boundary) }));
 
     const reply = response();
-    await routes.handle(request({ ...phrases, nightPhrase: 'x'.repeat(101) }), reply as unknown as http.ServerResponse, ENDPOINT, 'PUT', target);
+    await routes.handle(request({ ...phrases, nightPhrase: 'x'.repeat(1001) }), reply as unknown as http.ServerResponse, ENDPOINT, 'PUT', target);
     expect(reply.writeHead).toHaveBeenCalledWith(400, expect.any(Object));
-    expect(target.services.systemVariableService.set).toHaveBeenCalledTimes(1);
+    expect(target.services.systemVariableService.set).toHaveBeenCalledTimes(2);
   });
 
   it('never persists arbitrary extra fields or binary payloads with the phrases', async () => {

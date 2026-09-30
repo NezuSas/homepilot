@@ -133,7 +133,7 @@
 - **Criterio Relacionado**: Alineado con **AC30**.
 
 ### [BE-Home-01] Persistir personalización global de Inicio
-- **Descripción**: Guardar tres frases y exponer lectura autenticada y escritura exclusiva de Admin, con límite de 100 caracteres. Reutilizar el servicio y volumen persistente de medios para hasta cinco imágenes validadas; mantener slots deterministas y contiguos al añadir, reemplazar o eliminar, sin archivos huérfanos.
+- **Descripción**: Guardar tres frases y exponer lectura autenticada y escritura exclusiva de Admin, con límite de 1000 caracteres. Reutilizar el servicio y volumen persistente de medios para hasta cinco imágenes validadas; mantener slots deterministas y contiguos al añadir, reemplazar o eliminar, sin archivos huérfanos.
 - **Módulos**: persistencia global existente de variables de sistema (sin migración nueva), `MediaService` y rutas de settings.
 - **Criterio Relacionado**: **AC31–AC32**.
 
@@ -152,3 +152,23 @@
 - **Descripción**: Cubrir frases y límites, feedback de éxito/error/ocupado, RBAC de lectura/escritura, confirmación de borrado, slots persistentes y compactación sin huérfanos, versiones/caché HTTP, fallback de frases y carrusel de diez segundos, temporizador de inactividad, accesibilidad y geometría responsive; ejecutar validaciones de spec, tests, typecheck y builds aplicables.
 - **Dependencias**: `BE-Home-01`, `UI-Home-01`, `UI-Home-02`.
 - **Criterio Relacionado**: **AC31–AC34**.
+
+### [BE-Home-02] Favoritos de escenas y automatizaciones por usuario
+- **Descripción**: Persistir ambos tipos de favoritos en claves independientes del repositorio SQLite por usuario, con validación de acceso, lectura entre dispositivos y migración puntual por unión de IDs legacy válidos. Aislar usuarios y conservar RBAC.
+- **Módulos**: preferencias persistentes, rutas API de escenas y automatizaciones, migración no destructiva y pruebas de autorización y reinicio de repositorio.
+- **Criterio Relacionado**: **AC23, AC36**.
+
+### [UI-Home-03] Navegación e indicadores modulares de Inicio
+- **Descripción**: Reiniciar el scroll al navegar por Sidebar, ampliar frases a 1000 caracteres, reutilizar hora/fecha y clima del Clock y diferenciar el botón de acceso al Dashboard de los indicadores estáticos.
+- **Módulos**: shell, personalización, Clock, hero de Inicio y pruebas responsive.
+- **Criterio Relacionado**: **AC31, AC35, AC38–AC39**.
+
+### [UI-Dashboard-03] Slots responsive de Sections
+- **Descripción**: Mantener la grilla y permisos existentes con slots vacíos persistentes por perfil de columnas; drag sobre vacío mueve, sobre ocupado intercambia; conservar compatibilidad histórica, transferencia y revisiones.
+- **Módulos**: modelo de pestaña, canvas, persistencia JSON y pruebas de layout/importación.
+- **Criterio Relacionado**: **AC37**.
+
+### [QA-Home-02] Regresión de navegación, favoritos, slots e Inicio
+- **Descripción**: Validar scroll, límites 1000/1001, favoritos de escenas y automatizaciones cross-device y migración, slots por 1–4 columnas, permisos, hero modular, Clock intacto, E2E responsive, trazabilidad y builds.
+- **Dependencias**: `BE-Home-02`, `UI-Home-03`, `UI-Dashboard-03`.
+- **Criterio Relacionado**: **AC31, AC35–AC39**.

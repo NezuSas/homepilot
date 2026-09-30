@@ -16,11 +16,7 @@ import { AlertBanner } from '../components/ui/AlertBanner';
 import { Button } from '../components/ui/Button';
 import { humanize } from '../lib/naming-utils';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
-import {
-  AUTOMATION_FAVORITES_STORAGE_KEY,
-  readFavoriteIds,
-  writeFavoriteIds,
-} from '../lib/favorites';
+import { useAutomationFavorites } from '../lib/useSceneFavorites';
 
 interface AutomationRule {
   id: string;
@@ -62,7 +58,7 @@ interface Scene {
 const getErrorMessage = (error: unknown, fallback: string): string =>
   error instanceof Error ? error.message : fallback;
 
-const AutomationsView: React.FC = () => {
+const AutomationsView: React.FC<{ currentUserId: string | null }> = ({ currentUserId }) => {
   const { t } = useTranslation();
   const [rules, setRules] = useState<AutomationRule[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
@@ -76,7 +72,7 @@ const AutomationsView: React.FC = () => {
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [favoriteIds, setFavoriteIds] = useState<string[]>(() => readFavoriteIds(AUTOMATION_FAVORITES_STORAGE_KEY));
+  const { favorites: favoriteIds, toggleFavorite: persistFavorite } = useAutomationFavorites(currentUserId, rules.map((rule) => rule.id));
   const [timerReference, setTimerReference] = useState(() => DateTime.now());
   const dataRequest = useRef<AbortController | null>(null);
   const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
@@ -88,9 +84,6 @@ const AutomationsView: React.FC = () => {
     return [{ rule, remainingMinutes: Math.max(1, Math.ceil(scheduledAt.diff(timerReference, 'minutes').minutes)) }];
   }).sort((left, right) => left.remainingMinutes - right.remainingMinutes), [rules, timerReference]);
 
-  useEffect(() => {
-    writeFavoriteIds(AUTOMATION_FAVORITES_STORAGE_KEY, favoriteIds);
-  }, [favoriteIds]);
   useEffect(() => {
     const interval = window.setInterval(() => setTimerReference(DateTime.now()), 60_000);
     return () => window.clearInterval(interval);
@@ -177,7 +170,7 @@ const AutomationsView: React.FC = () => {
       await fetchJSON(`${API_BASE_URL}/api/v1/automations/${id}`, { method: 'DELETE' });
       invalidateDiagnosticCatalog();
       setRules(prev => prev.filter(r => r.id !== id));
-      setFavoriteIds((current) => current.filter((favoriteId) => favoriteId !== id));
+      if (favoriteIds.includes(id)) void persistFavorite(id);
       setConfirmDeleteId(null);
       setNotification({ message: t('automations.notifications.deleted'), type: 'success' });
     } catch (error: unknown) {
@@ -193,12 +186,6 @@ const AutomationsView: React.FC = () => {
     return d ? humanize(d.id, d.name) : (id || t('common.unknown'));
   };
   const getSceneName = (id?: string) => scenes.find(s => s.id === id)?.name || id || t('common.unknown_scene');
-
-  const toggleFavorite = (ruleId: string) => {
-    setFavoriteIds((current) => current.includes(ruleId)
-      ? current.filter((favoriteId) => favoriteId !== ruleId)
-      : [...current, ruleId]);
-  };
 
   if (isLoading && rules.length === 0) {
     return <LoadingState label={t('common.loading')} className="min-h-empty-sm" />;
@@ -244,7 +231,7 @@ const AutomationsView: React.FC = () => {
               onEdit={openEditAutomation}
               onDelete={setConfirmDeleteId}
               isFavorite={favoriteIds.includes(rule.id)}
-              onToggleFavorite={toggleFavorite}
+              onToggleFavorite={(id) => { void persistFavorite(id); }}
             />
           ))}
         </div>

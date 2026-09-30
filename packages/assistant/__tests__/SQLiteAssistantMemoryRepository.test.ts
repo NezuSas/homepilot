@@ -54,4 +54,21 @@ describe('SQLiteAssistantMemoryRepository', () => {
     await expect(repository.findByKey('user-1', 'alias:kitchen')).resolves.toBeNull();
     expect(db.prepare('SELECT COUNT(*) AS count FROM assistant_memory WHERE key = ?').get('alias:expired')).toEqual({ count: 0 });
   });
+
+  it('keeps scene and automation favorites separate per user after the SQLite connection is recreated', async () => {
+    await repository.upsert({ userId: 'oscar', key: 'pref:scene-favorites', value: '["scene-a"]', valueType: 'json', expiresAt: null });
+    await repository.upsert({ userId: 'oscar', key: 'pref:automation-favorites', value: '["automation-x"]', valueType: 'json', expiresAt: null });
+
+    SqliteDatabaseManager.close(dbPath);
+    db = SqliteDatabaseManager.getInstance(dbPath);
+    repository = new SQLiteAssistantMemoryRepository(dbPath);
+
+    expect((await repository.findByKey('oscar', 'pref:scene-favorites'))?.value).toBe('["scene-a"]');
+    expect((await repository.findByKey('oscar', 'pref:automation-favorites'))?.value).toBe('["automation-x"]');
+    await expect(repository.findByKey('gustavo', 'pref:scene-favorites')).resolves.toBeNull();
+    await expect(repository.findByKey('gustavo', 'pref:automation-favorites')).resolves.toBeNull();
+
+    await repository.upsert({ userId: 'oscar', key: 'pref:automation-favorites', value: '[]', valueType: 'json', expiresAt: null });
+    expect((await repository.findByKey('oscar', 'pref:scene-favorites'))?.value).toBe('["scene-a"]');
+  });
 });
