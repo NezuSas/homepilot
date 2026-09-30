@@ -1483,11 +1483,6 @@
     backdrop-filter: blur(12px);
   }
 
-  .homepilot-home-routine-card {
-    border-color: hsl(var(--border-subtle));
-    box-shadow: none;
-  }
-
   .homepilot-home-insights > div:first-child {
     padding-inline: 0;
   }

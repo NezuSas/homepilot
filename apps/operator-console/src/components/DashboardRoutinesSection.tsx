@@ -1,6 +1,6 @@
-import { Clock3, Settings2, Sparkles, Star, Zap } from 'lucide-react';
+import { Settings2, Star } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { cn } from '../lib/utils';
+import { SectionActionCard } from '../views/dashboards/widgets/SectionActionCard';
 import { Button } from './ui/Button';
 
 interface RoutineScene {
@@ -24,8 +24,9 @@ interface DashboardRoutinesSectionProps {
   favoriteAutomationIds: string[];
   canManageAutomations: boolean;
   processingId: string | null;
+  actionFeedback: { id: string; status: 'success' | 'error' } | null;
   onSceneExecute: (scene: RoutineScene) => void;
-  onAutomationToggle: (automation: DashboardRoutineAutomation) => void;
+  onAutomationExecute: (automation: DashboardRoutineAutomation) => void;
   onManage: () => void;
 }
 
@@ -36,8 +37,9 @@ export function DashboardRoutinesSection({
   favoriteAutomationIds,
   canManageAutomations,
   processingId,
+  actionFeedback,
   onSceneExecute,
-  onAutomationToggle,
+  onAutomationExecute,
   onManage,
 }: DashboardRoutinesSectionProps) {
   const { t } = useTranslation();
@@ -73,67 +75,27 @@ export function DashboardRoutinesSection({
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,9.5rem),1fr))] gap-3" data-testid="favorite-routine-grid">
           {routines.map((routine) => {
-            if (routine.type === 'scene') {
-              const isProcessing = processingId === `scene_${routine.value.id}`;
-              return (
-                <Button
-                  key={`scene_${routine.value.id}`}
-                  type="button"
-                  variant="ghost"
-                  size="md"
-                  onClick={() => onSceneExecute(routine.value)}
-                  disabled={processingId !== null}
-                  className={cn(
-                    'group relative flex min-h-20 w-full items-center justify-start gap-3 homepilot-home-routine-card rounded-card border bg-card p-3.5 text-left shadow-depth-1 surface-transition active:scale-[0.98] disabled:opacity-60',
-                    isProcessing ? 'border-primary bg-primary text-primary-foreground shadow-depth-2' : 'border-border/65 hover:border-primary/35',
-                  )}
-                >
-                  <span className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-pill border', isProcessing ? 'border-primary-foreground/20 bg-primary-foreground/15' : 'border-primary/15 bg-primary/10 text-primary')}>
-                    <Sparkles className={cn('h-5 w-5', isProcessing && 'animate-pulse')} />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className={cn('mb-1 inline-flex rounded-pill border px-2 py-0.5 text-micro font-semibold uppercase tracking-control', isProcessing ? 'border-primary-foreground/20 text-primary-foreground/75' : 'border-primary/20 bg-primary/5 text-primary')}>
-                      {t('dashboard.routine_manual')}
-                    </span>
-                    <span className="block truncate text-card-title font-semibold tracking-tight">{routine.value.name}</span>
-                    <span className={cn('mt-1 block truncate text-caption', isProcessing ? 'text-primary-foreground/75' : 'text-muted-foreground')}>
-                      {routine.value.description || t('dashboard.routine_scene_actions', { count: routine.value.actions.length })}
-                    </span>
-                  </span>
-                </Button>
-              );
-            }
-
-            const isProcessing = processingId === routine.value.id;
-            const TriggerIcon = routine.value.trigger.type === 'time' ? Clock3 : Zap;
+            const key = `${routine.type}_${routine.value.id}`;
+            const isProcessing = processingId === key;
+            const feedback = isProcessing ? 'pending' : actionFeedback?.id === key ? actionFeedback.status : undefined;
             return (
-              <Button
-                key={`automation_${routine.value.id}`}
-                type="button"
-                variant="ghost"
-                size="md"
-                onClick={() => onAutomationToggle(routine.value)}
-                disabled={processingId !== null}
-                className={cn(
-                  'group relative flex min-h-20 w-full items-center justify-start gap-3 homepilot-home-routine-card rounded-card border bg-card p-3.5 text-left shadow-depth-1 surface-transition active:scale-[0.98] disabled:opacity-60',
-                  routine.value.enabled ? 'border-primary/35 hover:border-primary/55' : 'border-border/65 hover:border-primary/35',
-                )}
-              >
-                <span className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-pill border', routine.value.enabled ? 'border-primary/20 bg-primary/10 text-primary' : 'border-border bg-muted/50 text-muted-foreground')}>
-                  <TriggerIcon className={cn('h-5 w-5', isProcessing && 'animate-pulse')} />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="mb-1 inline-flex rounded-pill border border-border/70 bg-muted/45 px-2 py-0.5 text-micro font-semibold uppercase tracking-control text-muted-foreground">
-                    {t('dashboard.routine_automatic')}
-                  </span>
-                  <span className="block truncate text-card-title font-semibold tracking-tight text-foreground">{routine.value.name}</span>
-                  <span className={cn('mt-1 block text-caption', routine.value.enabled ? 'text-primary' : 'text-muted-foreground')}>
-                    {routine.value.enabled ? t('automations.summary.active') : t('automations.summary.paused')}
-                  </span>
-                </span>
-              </Button>
+              <div key={key} className="h-28 min-w-0" data-home-routine={routine.type}>
+                <SectionActionCard
+                  kind="action"
+                  title={routine.value.name}
+                  eyebrow={t(routine.type === 'scene' ? 'dashboard.routine_manual' : 'dashboard.routine_automatic')}
+                  detail={t('dashboard.routine_scene_actions', { count: routine.type === 'scene' ? routine.value.actions.length : 1 })}
+                  isAssigned
+                  isActive={isProcessing || feedback === 'success'}
+                  actionFeedback={feedback}
+                  onAction={processingId === null ? () => {
+                    if (routine.type === 'scene') onSceneExecute(routine.value);
+                    else onAutomationExecute(routine.value);
+                  } : undefined}
+                />
+              </div>
             );
           })}
         </div>

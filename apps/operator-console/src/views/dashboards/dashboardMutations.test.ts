@@ -25,6 +25,7 @@ describe('dashboard mutation contracts', () => {
     expect(title.layout).toMatchObject({ w: 12, h: 2, span: undefined });
     expect(title.extra).toMatchObject({ markdown: '# Welcome\nLocal home', align: 'center' });
     expect(createDefaultWidgetConfig('section', undefined, labels).appearance.title).toBe('New section');
+    expect(createDefaultWidgetConfig('section', undefined, labels).layout.span).toBe(1);
   });
 
   it('pins a new title before other widgets without mutating the original tabs', () => {
@@ -45,5 +46,15 @@ describe('dashboard mutation contracts', () => {
     expect(updated[0].widgets[0].config.appearance).toMatchObject({ title: 'Lights', variant: 'glass', showTitle: true });
     expect(updated[0].widgets[0].config.layout).toEqual(section.config.layout);
     expect(tabs[0].widgets[0].config.appearance.title).toBe('New section');
+  });
+
+  it('keeps Sections at one slot when inserted or edited without changing their cards', () => {
+    const legacy = { ...section, config: { ...section.config, layout: { ...section.config.layout, span: 4 }, extra: { cards: [{ id: 'light' }] } } };
+    const created = insertWidget([{ ...tabs[1], widgets: [] }], 0, legacy);
+    expect(created[0].widgets[0].config.layout.span).toBe(1);
+    expect(created[0].widgets[0].config.extra).toEqual(legacy.config.extra);
+    const edited = updateWidgetConfig(created, 0, legacy.id, { layout: { ...legacy.config.layout, span: 3 } });
+    expect(edited[0].widgets[0].config.layout.span).toBe(1);
+    expect(edited[0].widgets[0].config.extra).toEqual(legacy.config.extra);
   });
 });

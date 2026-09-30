@@ -348,15 +348,57 @@ for (const viewport of [
     await page.goto('/');
     const hero = page.locator('.homepilot-home-hero');
     const paragraph = hero.locator('p').filter({ hasText: phrase });
-    const modules = hero.locator('.homepilot-home-summary');
+    const modules = hero.locator('.homepilot-home-context .homepilot-home-summary');
     await expect(paragraph).toBeVisible();
-    await expect(modules).toHaveCount(3);
+    await expect(modules).toHaveCount(2);
     const phraseBounds = await paragraph.boundingBox();
     const moduleBounds = await modules.first().boundingBox();
     const heroBounds = await hero.boundingBox();
     expect(phraseBounds && moduleBounds && heroBounds).toBeTruthy();
     expect(moduleBounds!.y).toBeGreaterThan(phraseBounds!.y + phraseBounds!.height);
     expect(moduleBounds!.y + moduleBounds!.height).toBeLessThanOrEqual(heroBounds!.y + heroBounds!.height);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  });
+}
+
+for (const viewport of [
+  { name: 'mobile', width: 320, height: 720 },
+  { name: 'tablet portrait', width: 768, height: 1024 },
+  { name: 'tablet landscape', width: 1024, height: 768 },
+  { name: 'desktop', width: 1440, height: 900 },
+]) {
+  test(`Home hero composition keeps square Clock summaries and a separate dashboard action on ${viewport.name}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await prepare(page);
+    await page.goto('/');
+    const hero = page.locator('.homepilot-home-hero');
+    const summaries = hero.locator('.homepilot-home-context .homepilot-home-summary');
+    const phrase = hero.getByText(/Frase de (mañana|tarde|noche)/);
+    const location = hero.getByText(/^(Ubicación|Location)$/);
+    const action = hero.getByRole('button', { name: /sin pestaña principal|no main tab/i });
+    await expect(summaries).toHaveCount(2);
+    await expect(summaries.nth(0)).toContainText(/Fecha\/Hora|Date\/Time/);
+    await expect(summaries.nth(1)).toContainText(/Clima|Weather/);
+    await expect(location).toBeVisible();
+    await expect(location.locator('..')).toContainText('Cuenca');
+    await expect(hero.getByRole('button', { name: /Ubicación|Location/i })).toHaveCount(0);
+    await expect(action).toContainText(/Ir a tablero|Go to dashboard/);
+    const heroBox = await hero.boundingBox();
+    const phraseBox = await phrase.boundingBox();
+    const firstBox = await summaries.nth(0).boundingBox();
+    const secondBox = await summaries.nth(1).boundingBox();
+    const actionBox = await action.boundingBox();
+    expect(heroBox && phraseBox && firstBox && secondBox && actionBox).toBeTruthy();
+    expect(Math.abs(firstBox!.width - firstBox!.height)).toBeLessThan(1);
+    expect(Math.abs(secondBox!.width - secondBox!.height)).toBeLessThan(1);
+    expect(firstBox!.x).toBeLessThan(secondBox!.x + secondBox!.width);
+    expect(firstBox!.y).toBeGreaterThan(phraseBox!.y + phraseBox!.height);
+    if (viewport.width >= 1024) {
+      expect(phraseBox!.width).toBeLessThanOrEqual(heroBox!.width * 0.55);
+      expect(actionBox!.x).toBeGreaterThan(secondBox!.x + secondBox!.width);
+    } else {
+      expect(actionBox!.y).toBeGreaterThan(firstBox!.y);
+    }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   });
 }

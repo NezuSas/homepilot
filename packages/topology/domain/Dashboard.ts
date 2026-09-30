@@ -1,6 +1,6 @@
 export interface DashboardWidget {
   id: string;
-  type: 'room_summary' | 'selected_device' | 'scenes_shortcut' | 'assistant_insights' | 'energy_insight';
+  type: 'room_summary' | 'selected_device' | 'scenes_shortcut' | 'assistant_insights' | 'energy_insight' | 'section';
   config: Record<string, unknown>;
 }
 

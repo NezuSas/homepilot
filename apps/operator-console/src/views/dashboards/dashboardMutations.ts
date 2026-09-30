@@ -43,11 +43,14 @@ export function createDefaultWidgetConfig(type: WidgetType, size: { w: number; h
 }
 
 export function insertWidget(tabs: DashboardTab[], tabIndex: number, widget: DashboardWidget): DashboardTab[] {
+  const inserted = widget.type === 'section'
+    ? { ...widget, config: { ...widget.config, layout: { ...widget.config.layout, span: 1 } } }
+    : widget;
   return tabs.map((tab, index) => index !== tabIndex ? tab : {
     ...tab,
     widgets: widget.type === 'dashboard_title'
-      ? [widget, ...tab.widgets]
-      : [...tab.widgets, widget],
+      ? [inserted, ...tab.widgets]
+      : [...tab.widgets, inserted],
   });
 }
 
@@ -74,7 +77,7 @@ export function updateWidgetConfig(tabs: DashboardTab[], tabIndex: number, widge
         appearance: { ...widget.config.appearance, ...(newConfig.appearance || {}) },
         visibility: { ...widget.config.visibility, ...(newConfig.visibility || {}) },
         binding: { ...widget.config.binding, ...(newConfig.binding || {}) },
-        layout: { ...widget.config.layout, ...(newConfig.layout || {}) },
+        layout: { ...widget.config.layout, ...(newConfig.layout || {}), ...(widget.type === 'section' ? { span: 1 } : {}) },
         extra: { ...widget.config.extra, ...(newConfig.extra || {}) },
       },
     }),

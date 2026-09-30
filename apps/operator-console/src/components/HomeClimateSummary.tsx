@@ -5,6 +5,7 @@ import { useClockData } from '../views/dashboards/widgets/clock/useClockData';
 import { ClockDateTimeSummary, ClockWeatherSummary } from '../views/dashboards/widgets/clock/designs/ClockSummaries';
 import { loadDashboards } from '../views/dashboards/dashboardOperations';
 import { Button } from './ui/Button';
+import { HomeContextIndicator } from './HomeContextIndicator';
 
 const configuredCity = (import.meta.env.VITE_HOME_CITY as string | undefined)?.trim() || 'Cuenca';
 
@@ -31,26 +32,28 @@ export const HomeClimateSummary: React.FC<HomeClimateSummaryProps> = ({ currentU
   }, [currentUserId, t]);
 
   return (
-    <div className="relative z-10 flex min-w-0 w-full flex-col gap-5" aria-label={t('dashboard.home_context')}>
+    <div className="relative z-10 flex min-w-0 w-full flex-col gap-5 lg:flex-row lg:items-end lg:justify-between" aria-label={t('dashboard.home_context')}>
+      <div className="flex min-w-0 flex-col items-start gap-3">
+        <div className="homepilot-home-context flex min-w-0 flex-wrap items-start justify-start gap-3">
+          <ClockDateTimeSummary now={now} locale={locale} home homeLabel={t('dashboard.datetime_label')} />
+          <ClockWeatherSummary now={now} weather={weather} status={weatherStatus} copy={copy} home homeLabel={t('dashboard.weather_label')} />
+        </div>
+        <HomeContextIndicator icon={MapPin} label={t('dashboard.location_label')} primaryIcon className="w-fit max-w-full flex-none">
+          {weather?.location ?? configuredCity}
+        </HomeContextIndicator>
+      </div>
       <Button
         type="button"
         size="md"
-        className="self-end active:scale-[0.98]"
+        className="self-start active:scale-[0.98] lg:mb-0.5 lg:self-end"
         disabled={!ownDefault}
         aria-label={ownDefault ? t('dashboard.open_own_default_tab', { title: ownDefault.title }) : t('dashboard.no_default_tab')}
+        title={!ownDefault ? t('dashboard.no_default_tab') : undefined}
         onClick={() => { if (ownDefault) onOpenOwnDashboardTab(ownDefault.dashboardId, ownDefault.tabId); }}
       >
         <LayoutDashboard className="h-4 w-4 shrink-0" aria-hidden="true" />
-        {ownDefault ? t('dashboard.open_dashboard') : t('dashboard.no_default_tab')}
+        {t('dashboard.open_dashboard')}
       </Button>
-      <div className="homepilot-home-context flex min-w-0 flex-wrap items-stretch gap-3">
-        <ClockDateTimeSummary now={now} locale={locale} home />
-        <ClockWeatherSummary now={now} weather={weather} status={weatherStatus} copy={copy} home />
-        <div className="homepilot-home-summary flex min-w-0 items-center gap-2 rounded-card border border-border/60 bg-card/80 px-4 py-3 text-caption text-muted-foreground backdrop-blur-md">
-          <MapPin className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
-          <span>{weather?.location ?? configuredCity}</span>
-        </div>
-      </div>
     </div>
   );
 };

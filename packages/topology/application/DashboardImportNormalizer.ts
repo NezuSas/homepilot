@@ -3,6 +3,7 @@ import type {
   DashboardImportBindingResolver, DashboardImportReport, DashboardImportTarget,
   DashboardWidget,
 } from '../domain/Dashboard';
+import { normalizeSectionWidgets } from '../domain/DashboardSectionLayout';
 
 const DEVICE_ACTION = /^device-action:([A-Za-z0-9._-]+):([A-Za-z0-9._-]+)$/;
 
@@ -40,7 +41,8 @@ export async function normalizeImportedWidgets(
   report: DashboardImportReport,
   widgetIds?: ReadonlyMap<string, string>,
 ): Promise<DashboardWidget[]> {
-  return Promise.all(widgets.map(async (widget) => {
+  const normalized = normalizeSectionWidgets(widgets);
+  return Promise.all(normalized.map(async (widget) => {
     const widgetId = widgetIds?.get(widget.id) ?? randomUUID();
     const config = JSON.parse(JSON.stringify(widget.config)) as Record<string, unknown>;
     const widgetTitle = record(config.appearance)?.title;

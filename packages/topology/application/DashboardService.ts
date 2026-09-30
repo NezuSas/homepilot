@@ -20,6 +20,7 @@ import {
 } from '../domain/DashboardBackgroundPresets';
 import { randomUUID } from 'crypto';
 import { normalizeImportedWidgets } from './DashboardImportNormalizer';
+import { normalizeDashboardSections, normalizeSectionTabs } from '../domain/DashboardSectionLayout';
 
 export class DashboardService {
   constructor(
@@ -32,7 +33,8 @@ export class DashboardService {
     const homes = await this.homeRepository.findHomesByUserId(userId);
     const homeIds = homes.map(h => h.id);
     const dashboards = await this.dashboardRepository.findAllVisibleTo(userId, userRole, homeIds);
-    return dashboards.map((dashboard) => {
+    return dashboards.map((stored) => {
+      const dashboard = normalizeDashboardSections(stored);
       if (dashboard.ownerId === userId) return dashboard;
 
       const hasTabVisibility = dashboard.tabs.some((tab) => tab.visibility !== undefined);
@@ -182,8 +184,9 @@ export class DashboardService {
       });
     }
 
-    await this.dashboardRepository.saveDashboard(dashboard);
-    return { ...dashboard, importReport: report };
+    const normalizedDashboard = normalizeDashboardSections(dashboard);
+    await this.dashboardRepository.saveDashboard(normalizedDashboard);
+    return { ...normalizedDashboard, importReport: report };
   }
 
   public async updateDashboard(
@@ -213,7 +216,7 @@ export class DashboardService {
     const updated: Dashboard = {
       ...dashboard,
       title: updates.title ?? dashboard.title,
-      tabs: updates.tabs ?? dashboard.tabs,
+      tabs: normalizeSectionTabs(updates.tabs ?? dashboard.tabs),
       visibility: updates.tabs
         ? createVisibilityForTabs(dashboard.ownerId, updates.tabs, updates.visibility ?? dashboard.visibility)
         : updates.visibility ?? dashboard.visibility,
@@ -243,10 +246,10 @@ export class DashboardService {
       ...dashboard,
       title: revision.snapshot.title,
       visibility: cloneValue(revision.snapshot.visibility),
-      tabs: revision.snapshot.tabs.map((tab) => ({
+      tabs: normalizeSectionTabs(revision.snapshot.tabs.map((tab) => ({
         ...cloneValue(tab),
         background: currentBackgroundByTabId.get(tab.id),
-      })),
+      }))),
       updatedAt: now,
     };
     if (restored.tabs.filter((tab) => tab.isDefault).length > 1) {
@@ -271,7 +274,7 @@ export class DashboardService {
       throw new Error('FORBIDDEN');
     }
 
-    return dashboard;
+    return normalizeDashboardSections(dashboard);
   }
 
   public async deleteDashboard(userId: string, _userRole: string, dashboardId: string): Promise<void> {

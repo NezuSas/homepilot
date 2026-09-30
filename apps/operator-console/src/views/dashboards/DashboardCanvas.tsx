@@ -252,8 +252,8 @@ export function DashboardCanvas({
   const flowWidgetIds = useMemo(() => flowWidgets.map((widget) => widget.id), [flowWidgets]);
   const sectionWidgets = useMemo(() => flowWidgets.filter((widget) => widget.type === 'section'), [flowWidgets]);
   const sectionSlots = useMemo(() => resolveSectionSlots(flowWidgets, sectionLayout, columns), [flowWidgets, sectionLayout, columns]);
-  // A legacy section spanning multiple tracks must retain its approved size;
-  // one-slot placement applies only to the modular, single-track sections.
+  // All Sections render in one slot, including historical multitrack data.
+  // Keep the sparse slot map authoritative wherever a profile was saved.
   const useSectionSlots = sectionWidgets.length > 0
     && sectionWidgets.every((widget) => getSectionSpan(widget) === 1)
     && (isEditing || sectionLayout?.[sectionLayoutKey(columns)] !== undefined);

@@ -102,13 +102,13 @@ describe('dashboard section span', () => {
     expect(clampSectionSpan(0, 3)).toBe(1);
   });
 
-  it('reads the persisted span when present', () => {
-    expect(getSectionSpan(createSection('a', 2))).toBe(2);
+  it('renders a historical multitrack Section in one slot', () => {
+    expect(getSectionSpan(createSection('a', 2))).toBe(1);
   });
 
-  it('derives a span from legacy absolute-layout width when no span was ever saved', () => {
-    expect(getSectionSpan(createSection('a', undefined, 12))).toBe(3);
-    expect(getSectionSpan(createSection('a', undefined, 6))).toBe(2);
+  it('does not derive a wider Section from legacy absolute-layout width', () => {
+    expect(getSectionSpan(createSection('a', undefined, 12))).toBe(1);
+    expect(getSectionSpan(createSection('a', undefined, 6))).toBe(1);
     expect(getSectionSpan(createSection('a', undefined, 3))).toBe(1);
   });
 });

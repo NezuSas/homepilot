@@ -173,8 +173,9 @@ test('disables the Home dashboard action without an owned main tab', async ({ pa
   await page.goto('/');
 
   const context = page.getByLabel(/contexto local del hogar|local home context/i);
-  await expect(context.getByText(/sin pestaña principal|no main tab/i)).toBeVisible();
-  await expect(context.getByRole('button', { name: /sin pestaña principal|no main tab/i })).toBeDisabled();
+  const action = context.getByRole('button', { name: /sin pestaña principal|no main tab/i });
+  await expect(action).toContainText(/Ir a tablero|Go to dashboard/);
+  await expect(action).toBeDisabled();
 });
 
 test('opens the owned main tab even when a shared dashboard is also accessible', async ({ page }) => {
@@ -248,6 +249,36 @@ test('Feature: Section slots — moving to a gap and swapping Sections persist w
     await expect(page.locator('[data-section-slot="0"]')).toContainText(profile.first);
     await expect(page.locator('[data-section-slot="1"] .homepilot-dashboard-widget')).toHaveCount(profile.gap ? 0 : 1);
   }
+});
+
+test('Feature: Section slots — a historical wide Section edits and saves as one slot without a width picker', async ({ page }) => {
+  const baseSection = responsiveDashboard.tabs[0]!.widgets[1]!;
+  let dashboard = {
+    ...responsiveDashboard,
+    tabs: [{ ...responsiveDashboard.tabs[0]!, widgets: [{
+      ...baseSection, id: 'legacy-wide-section',
+      config: { ...baseSection.config, layout: { x: 0, y: 0, w: 12, h: 2, span: 4 }, appearance: { title: 'Sala', showTitle: true }, extra: { cards: [{ id: 'legacy-card', kind: 'sensor', title: 'Batería' }] } },
+    }], sectionLayout: { columns4: ['legacy-wide-section', null] as Array<string | null> } }],
+  };
+  await prepareAuthenticatedDashboard(page, dashboard);
+  await page.route('**/api/v1/dashboards', (route) => route.fulfill({ json: [dashboard] }));
+  await page.route('**/api/v1/dashboards/responsive-dashboard', (route) => {
+    if (route.request().method() !== 'PATCH') return route.fallback();
+    dashboard = { ...dashboard, ...route.request().postDataJSON() as Partial<typeof dashboard> };
+    return route.fulfill({ json: dashboard });
+  });
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).click();
+  await expect(page.locator('[data-section-slot="1"] .homepilot-dashboard-widget')).toHaveCount(0);
+  await page.getByRole('button', { name: /Editar sección|Edit section/i }).click();
+  const editor = page.getByRole('dialog', { name: /Editar sección|Edit section/i });
+  await expect(editor).toBeVisible();
+  await expect(editor.getByRole('group', { name: /Ancho de la tarjeta|Card width/i })).toHaveCount(0);
+  await editor.getByRole('button', { name: /^(Guardar|Save)$/i }).click();
+  await expect.poll(() => dashboard.tabs[0].widgets[0].config.layout.span).toBe(1);
+  expect(dashboard.tabs[0].widgets[0].config.extra.cards.map((card) => card.id)).toEqual(['legacy-card']);
+  expect(dashboard.tabs[0].sectionLayout.columns4).toEqual(['legacy-wide-section', null]);
 });
 
 test('Feature: Sidebar navigation — a main view resets shell scroll but an internal tab does not', async ({ page }) => {
@@ -363,6 +394,62 @@ const favoriteAutomationRules = [
     trigger: { type: 'time', timeLocal: '07:00', timezone: 'America/Guayaquil' },
     action: { type: 'device_command', targetDeviceId: 'sensor-climate', command: 'turn_on' } },
 ];
+
+test('Feature: favorite routines — compact action tiles execute momentarily without toggling automations', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await prepareAuthenticatedDashboard(page);
+  await page.route('**/api/v1/homes', (route) => route.fulfill({ json: [{ id: 'responsive-home', ownerId: dashboardUser.id, name: 'Casa' }] }));
+  const scenes = Array.from({ length: 5 }, (_, index) => ({
+    id: `scene-${index}`, homeId: 'responsive-home', roomId: null, name: `Escena ${index + 1}`, actions: [{ deviceId: 'sensor-climate', command: 'turn_on' }],
+  }));
+  await page.route('**/api/v1/scenes', (route) => route.fulfill({ json: scenes }));
+  await page.route('**/api/v1/scenes/favorites', (route) => route.fulfill({ json: { sceneIds: scenes.map((scene) => scene.id), initialized: true } }));
+  await page.route('**/api/v1/automations', (route) => route.fulfill({ json: favoriteAutomationRules.slice(0, 1) }));
+  await page.route('**/api/v1/automations/favorites', (route) => route.fulfill({ json: { automationIds: ['automation-x'], initialized: true } }));
+  let releaseScene: (() => void) | undefined;
+  let sceneAttempts = 0;
+  let automationRuns = 0;
+  let automationToggles = 0;
+  await page.route('**/api/v1/scenes/scene-0/execute', async (route) => {
+    sceneAttempts += 1;
+    if (sceneAttempts === 1) await new Promise<void>((resolve) => { releaseScene = resolve; });
+    await route.fulfill({ status: sceneAttempts === 1 ? 200 : 500, json: {} });
+  });
+  await page.route('**/api/v1/automations/automation-x/run', (route) => {
+    automationRuns += 1;
+    return route.fulfill({ json: {} });
+  });
+  await page.route(/\/api\/v1\/automations\/automation-x\/(enable|disable)$/, (route) => {
+    automationToggles += 1;
+    return route.fulfill({ json: {} });
+  });
+  await page.goto('/');
+  const grid = page.getByTestId('favorite-routine-grid');
+  const tiles = grid.locator('[data-home-routine]');
+  await expect(tiles).toHaveCount(6);
+  const rowPositions = await tiles.evaluateAll((items) => items.map((item) => Math.round(item.getBoundingClientRect().top)));
+  expect(rowPositions.filter((position) => position === rowPositions[0]).length).toBeGreaterThanOrEqual(3);
+  const scene = grid.locator('[data-home-routine="scene"]').filter({ hasText: 'Escena 1' }).getByRole('button');
+  const automation = grid.locator('[data-home-routine="automation"]').getByRole('button');
+  await expect(scene).toContainText('Manual');
+  await expect(scene).toContainText(/1 acción|1 action/);
+  await scene.click();
+  await expect(scene).toHaveAttribute('aria-busy', 'true');
+  await expect(scene).toBeDisabled();
+  expect(sceneAttempts).toBe(1);
+  releaseScene?.();
+  await expect(scene.getByRole('status')).toBeVisible();
+  await expect(scene).toHaveAttribute('data-action-state', 'idle', { timeout: 5_000 });
+  await automation.click();
+  await expect(automation.getByRole('status')).toBeVisible();
+  await expect(automation).toHaveAttribute('data-action-state', 'idle', { timeout: 5_000 });
+  expect(automationRuns).toBe(1);
+  expect(automationToggles).toBe(0);
+  await scene.click();
+  await expect(scene.getByRole('alert')).toBeVisible();
+  await expect(scene).toHaveAttribute('data-action-state', 'idle', { timeout: 6_000 });
+  expect(sceneAttempts).toBe(2);
+});
 
 test('Feature: automation favorites — valid legacy IDs migrate once, merge with server data and never overwrite it with an empty local list', async ({ page }) => {
   await page.addInitScript(() => {
@@ -1980,7 +2067,8 @@ for (const viewport of viewports) {
     await expect(climateSummary.getByText('Cuenca')).toHaveCount(2);
     await expect(climateSummary.locator('time')).toBeVisible();
     await expect(climateSummary.getByText(/°C|clima no disponible|weather unavailable|cargando clima|loading weather/i)).toBeVisible();
-    await expect(climateSummary.locator('.homepilot-home-summary')).toHaveCount(3);
+    await expect(climateSummary.locator('.homepilot-home-summary')).toHaveCount(2);
+    await expect(climateSummary.getByText(/^(Ubicación|Location)$/)).toBeVisible();
     await expect(climateSummary.getByRole('button')).toHaveCount(1);
     const ownDashboard = climateSummary.getByRole('button', { name: /abrir la pestaña Principal de mi tablero|open.*Principal.*dashboard/i });
     await expect(ownDashboard).toBeVisible();

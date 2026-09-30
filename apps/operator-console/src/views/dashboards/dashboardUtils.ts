@@ -84,10 +84,11 @@ export function clampSectionSpan(span: number, columns: number): number {
 }
 
 /**
- * Reads a widget's column-span, deriving it from the legacy absolute-layout
- * width when a dashboard was persisted before the flow-based grid existed.
+ * Sections always occupy one slot. Other widgets retain their persisted span
+ * or derive it from legacy absolute-layout width.
  */
 export function getSectionSpan(widget: DashboardWidget): number {
+  if (widget.type === 'section') return 1;
   const explicitSpan = widget.config.layout.span;
   if (typeof explicitSpan === 'number' && Number.isFinite(explicitSpan)) {
     return Math.max(1, Math.min(Math.round(explicitSpan), DASHBOARD_MAX_SECTION_SPAN));

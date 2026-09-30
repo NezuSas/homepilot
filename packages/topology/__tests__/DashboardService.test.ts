@@ -287,6 +287,26 @@ describe('DashboardService', () => {
     }));
   });
 
+  it('imports a historical multitrack Section as one slot without losing child cards or an empty slot', async () => {
+    const service = new DashboardService(createDashboardRepository(null), createHomeRepository());
+    const imported = await service.importDashboard('user-1', {
+      format: DASHBOARD_TRANSFER_FORMAT,
+      version: DASHBOARD_TRANSFER_VERSION,
+      exportedAt: '2026-09-30T00:00:00.000Z',
+      dashboard: { title: 'Casa', tabs: [{
+        id: 'tab', title: 'Principal', sectionLayout: { columns4: ['section', null] },
+        widgets: [{ id: 'section', type: 'section', config: {
+          layout: { x: 0, y: 0, w: 12, h: 2, span: 4 },
+          extra: { cards: [{ id: 'light', kind: 'light', title: 'Luz' }, { id: 'clock', kind: 'clock', title: 'Reloj' }] },
+        } }],
+      }] },
+    });
+    const widget = imported.tabs[0].widgets[0];
+    expect((widget.config.layout as { span: number }).span).toBe(1);
+    expect((widget.config.extra as { cards: Array<{ id: string }> }).cards.map((card) => card.id)).toEqual(['light', 'clock']);
+    expect(imported.tabs[0].sectionLayout?.columns4).toEqual([widget.id, null]);
+  });
+
   it('preserves compatible local bindings, unassigns missing targets without name remapping, and reports each one', async () => {
     const source = createDashboard('source', 'Control');
     source.tabs[0].widgets = [

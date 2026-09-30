@@ -185,7 +185,6 @@ export function DashboardWidgetNode({
   const [isSectionEditorOpen, setIsSectionEditorOpen] = useState(false);
   const [sectionDraftTitle, setSectionDraftTitle] = useState('');
   const [sectionDraftIcon, setSectionDraftIcon] = useState('');
-  const [sectionDraftSpan, setSectionDraftSpan] = useState(1);
   const [titleEditorRequest, setTitleEditorRequest] = useState(0);
   const [isTitleEditorOpen, setIsTitleEditorOpen] = useState(false);
   const [isTitleMenuOpen, setIsTitleMenuOpen] = useState(false);
@@ -279,7 +278,7 @@ export function DashboardWidgetNode({
                 onClick={() => {
                   onConfigChange?.(widget.id, {
                     appearance: { ...widget.config.appearance, title: sectionDraftTitle.trim(), icon: sectionDraftIcon.trim() || undefined },
-                    layout: { ...widget.config.layout, span: sectionDraftSpan },
+                    layout: { ...widget.config.layout, span: 1 },
                   });
                   setIsSectionEditorOpen(false);
                 }}
@@ -312,26 +311,6 @@ export function DashboardWidgetNode({
               <div className="flex items-center gap-2 text-dashboard-section-title-fluid font-black tracking-tight text-foreground">
                 {SectionDraftIcon && <SectionDraftIcon className="h-5 w-5 shrink-0 text-primary" />}
                 <span className="min-w-0 truncate">{sectionDraftTitle.trim() || t('dashboard.editor.sections.new_section')}</span>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <p className="text-micro font-black uppercase tracking-widest text-muted-foreground">
-                {t('dashboard.editor.sections.span_picker_label')}
-              </p>
-              <div className="grid grid-cols-4 gap-2" role="group" aria-label={t('dashboard.editor.sections.span_picker_label')}>
-                {Array.from({ length: 4 }, (_, index) => index + 1).map((span) => (
-                  <Button
-                    key={span}
-                    type="button"
-                    variant={sectionDraftSpan === span ? 'primary' : 'outline'}
-                    size="md"
-                    aria-pressed={sectionDraftSpan === span}
-                    onClick={() => setSectionDraftSpan(span)}
-                    className="h-10 min-w-0 px-0"
-                  >
-                    {span}
-                  </Button>
-                ))}
               </div>
             </div>
           </div>
@@ -448,7 +427,6 @@ export function DashboardWidgetNode({
                     if (isSection) {
                       setSectionDraftTitle(widget.config.appearance?.title ?? '');
                       setSectionDraftIcon(widget.config.appearance?.icon ?? '');
-                      setSectionDraftSpan(getSectionSpan(widget));
                       setIsSectionEditorOpen(true);
                     } else {
                       onClick();

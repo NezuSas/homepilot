@@ -172,3 +172,18 @@
 - **Descripción**: Validar scroll, límites 1000/1001, favoritos de escenas y automatizaciones cross-device y migración, slots por 1–4 columnas, permisos, hero modular, Clock intacto, E2E responsive, trazabilidad y builds.
 - **Dependencias**: `BE-Home-02`, `UI-Home-03`, `UI-Dashboard-03`.
 - **Criterio Relacionado**: **AC31, AC35–AC39**.
+
+### [UI-Home-04] Composición y ejecución compacta de Inicio
+- **Descripción**: Restaurar Ubicación como etiqueta, ajustar Hora/Clima cuadrados y frase a columna izquierda, situar «Ir a tablero» a la derecha, y presentar favoritas como tiles de acción momentánea compartidos con Dashboard. Ejecutar automatizaciones favoritas sin alterar su habilitación.
+- **Módulos**: hero, ClockSummaries, HomeContextIndicator, DashboardRoutinesSection y SectionActionCard.
+- **Criterio Relacionado**: **AC40–AC41**.
+
+### [UI-Dashboard-04] Section de un solo slot
+- **Descripción**: Quitar el selector de ancho y normalizar el span exterior de Sections actuales e históricas a 1 en UI, dominio, importación y restauración, conservando tarjetas internas y mapas de slots vacíos.
+- **Módulos**: editor/canvas, mutaciones de Dashboard y servicio de transferencia.
+- **Criterio Relacionado**: **AC42**.
+
+### [QA-Home-03] Regresión focalizada y validación final
+- **Descripción**: Validar primero hero, favoritas y slots con tests y responsive focalizados; ejecutar suites completas una sola vez al final, junto a trazabilidad, i18n, arquitectura, typecheck, lint y builds.
+- **Dependencias**: `UI-Home-04`, `UI-Dashboard-04`.
+- **Criterio Relacionado**: **AC40–AC42**.

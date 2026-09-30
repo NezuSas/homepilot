@@ -13,11 +13,13 @@ import { API_BASE_URL } from '../config';
 import { useAutomationFavorites, useSceneFavorites } from '../lib/useSceneFavorites';
 import { apiFetch } from '../lib/apiClient';
 import { EMPTY_HOME_PERSONALIZATION, getHomePeriod, HOME_HERO_INTERVAL_MS, msUntilNextHomePeriod, resolveHomePhrase, type HomePersonalization } from '../lib/homePersonalization';
-import { fetchDiagnosticResource, invalidateDiagnosticCatalog } from '../lib/diagnosticResourceRequests';
+import { fetchDiagnosticResource } from '../lib/diagnosticResourceRequests';
 import type { View } from '../types';
 import { useAssistantStore } from '../stores/useAssistantStore';
 import type { AssistantFinding, AssistantFindingAction } from '../stores/useAssistantStore';
 import { useDeviceSnapshotStore, type SnapshotDevice } from '../stores/useDeviceSnapshotStore';
+import { getSceneOrRoutineUrl } from './dashboards/widgets/sectionCardAssignments';
+import { useMomentaryActionFeedback } from './dashboards/widgets/useMomentaryActionFeedback';
 
 interface SceneAction {
   deviceId: string;
@@ -58,6 +60,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
   const [automations, setAutomations] = useState<DashboardRoutineAutomation[]>([]);
   const [activeAction, setActiveAction] = useState<{ findingId: string; action: AssistantFindingAction; deviceName?: string } | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const processingIdRef = useRef<string | null>(null);
+  const { actionFeedback, clearActionFeedback, showActionFeedback } = useMomentaryActionFeedback();
   const [luxuryRipple, setLuxuryRipple] = useState(false);
   const [homePersonalization, setHomePersonalization] = useState<HomePersonalization>(EMPTY_HOME_PERSONALIZATION);
   const [homePeriod, setHomePeriod] = useState(() => getHomePeriod(new Date()));
@@ -153,35 +157,32 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
     return response.ok ? await response.json() as SnapshotDevice : null;
   }, []);
 
-  const handleSceneExecute = async (scene: Pick<Scene, 'id' | 'name'>) => {
-    if (processingId) return;
-    setProcessingId(`scene_${scene.id}`);
+  const executeFavoriteRoutine = async (id: string, name: string, entityId: string) => {
+    if (processingIdRef.current) return;
+    processingIdRef.current = id;
+    setProcessingId(id);
+    clearActionFeedback();
     setLuxuryRipple(true);
     window.setTimeout(() => setLuxuryRipple(false), 1500);
-    onActionExecute?.(scene.name);
     try {
-      await apiFetch(`${API_URL}/scenes/${scene.id}/execute`, { method: 'POST' });
+      const response = await apiFetch(getSceneOrRoutineUrl(entityId), { method: 'POST' });
+      if (!response.ok) throw new Error(`FAVORITE_ROUTINE_${response.status}`);
+      showActionFeedback(id, 'success');
+      onActionExecute?.(name);
       await fetchData();
+    } catch {
+      showActionFeedback(id, 'error');
     } finally {
+      processingIdRef.current = null;
       setProcessingId(null);
     }
   };
 
-  const handleAutomationToggle = async (automation: DashboardRoutineAutomation) => {
-    if (processingId) return;
-    setProcessingId(automation.id);
-    try {
-      const action = automation.enabled ? 'disable' : 'enable';
-      const response = await apiFetch(`${API_URL}/automations/${automation.id}/${action}`, { method: 'PATCH' });
-      if (response.ok) {
-        invalidateDiagnosticCatalog();
-        setAutomations((current) => current.map((item) => item.id === automation.id ? { ...item, enabled: !item.enabled } : item));
-        onActionExecute?.(automation.name);
-      }
-    } finally {
-      setProcessingId(null);
-    }
-  };
+  const handleSceneExecute = (scene: Pick<Scene, 'id' | 'name'>) =>
+    executeFavoriteRoutine(`scene_${scene.id}`, scene.name, scene.id);
+
+  const handleAutomationExecute = (automation: DashboardRoutineAutomation) =>
+    executeFavoriteRoutine(`automation_${automation.id}`, automation.name, `automation:${automation.id}`);
 
   const handleAction = async (finding: AssistantFinding, action: AssistantFindingAction) => {
     if (action.type === 'ignore' || action.type === 'dismiss') {
@@ -241,7 +242,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
           fetchPriority={index === 0 ? 'high' : 'auto'}
         />)}
         <div className="homepilot-home-hero-overlay" aria-hidden="true" />
-        <div className="relative z-10 min-w-0">
+        <div className="relative z-10 min-w-0 lg:max-w-[50%]">
           <h1 className="text-display-title font-black leading-tight tracking-display-tight text-foreground sm:text-hero-title lg:text-hero-title-lg">
             {t(`dashboard.greeting_${greetingKey}`, { name: displayName || t('dashboard.resident') })}
           </h1>
@@ -259,8 +260,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
         favoriteAutomationIds={favoriteAutomationIds}
         canManageAutomations={canManageAutomations}
         processingId={processingId}
+        actionFeedback={actionFeedback}
         onSceneExecute={handleSceneExecute}
-        onAutomationToggle={handleAutomationToggle}
+        onAutomationExecute={handleAutomationExecute}
         onManage={() => onNavigate?.('routines')}
       />
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react';
+import { useCallback, useState, type MouseEvent } from 'react';
 import { apiFetch } from '../../../lib/apiClient';
 import { API_BASE_URL } from '../../../config';
 import { canExecuteCommand } from '../../../lib/deviceCapabilities';
@@ -7,6 +7,7 @@ import { isDeviceActive } from '../dashboardUtils';
 import type { MediaPlayerCommand } from './MediaPlayerCard';
 import { executeDeviceActionTarget, getSceneOrRoutineUrl, isDeviceActionEntityId } from './sectionCardAssignments';
 import { normalizeKind, type NormalizedSectionCardItem } from './sectionCardCatalog';
+import { useMomentaryActionFeedback } from './useMomentaryActionFeedback';
 
 interface SectionCardActionsOptions {
   devices: SnapshotDevice[];
@@ -16,20 +17,7 @@ interface SectionCardActionsOptions {
 
 export function useSectionCardActions({ devices, isEditing, upsertDevice }: SectionCardActionsOptions) {
   const [processingCardId, setProcessingCardId] = useState<string | null>(null);
-  const [actionFeedback, setActionFeedback] = useState<{ id: string; status: 'success' | 'error' } | null>(null);
-  const actionFeedbackTimerRef = useRef<number | null>(null);
-  useEffect(() => () => {
-    if (actionFeedbackTimerRef.current !== null) window.clearTimeout(actionFeedbackTimerRef.current);
-  }, []);
-
-  const showActionFeedback = (id: string, status: 'success' | 'error') => {
-    if (actionFeedbackTimerRef.current !== null) window.clearTimeout(actionFeedbackTimerRef.current);
-    setActionFeedback({ id, status });
-    actionFeedbackTimerRef.current = window.setTimeout(() => {
-      setActionFeedback((current) => current?.id === id ? null : current);
-      actionFeedbackTimerRef.current = null;
-    }, status === 'success' ? 1800 : 4000);
-  };
+  const { actionFeedback, clearActionFeedback, showActionFeedback } = useMomentaryActionFeedback();
 
   const handleCardAction = async (card: NormalizedSectionCardItem, event?: MouseEvent) => {
     event?.stopPropagation();
@@ -58,7 +46,7 @@ export function useSectionCardActions({ devices, isEditing, upsertDevice }: Sect
     if (normalized === 'action') {
       if (isDeviceActionEntityId(card.entityId)) {
         setProcessingCardId(card.id);
-        setActionFeedback(null);
+        clearActionFeedback();
         try {
           const updated = await executeDeviceActionTarget(card.entityId, apiFetch) as SnapshotDevice;
           upsertDevice(updated);
@@ -73,7 +61,7 @@ export function useSectionCardActions({ devices, isEditing, upsertDevice }: Sect
       const device = devices.find((candidate) => candidate.id === card.entityId);
       if (!device) {
         setProcessingCardId(card.id);
-        setActionFeedback(null);
+        clearActionFeedback();
         try {
           const response = await apiFetch(getSceneOrRoutineUrl(card.entityId), { method: 'POST' });
           if (!response.ok) throw new Error(`ACTION_SCENE_OR_ROUTINE_${response.status}`);
@@ -98,7 +86,7 @@ export function useSectionCardActions({ devices, isEditing, upsertDevice }: Sect
       if (!command) return;
 
       setProcessingCardId(card.id);
-      setActionFeedback(null);
+      clearActionFeedback();
       try {
         const response = await apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(device.id)}/command`, {
           method: 'POST',
