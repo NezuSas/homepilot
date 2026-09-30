@@ -50,6 +50,7 @@ describe('Automation Application: CRUD Use Cases', () => {
           homeId: 'home-1',
           userId: 'user-1',
           name: 'Rule Alpha',
+          icon: 'mdi:home',
           trigger: { type: 'device_state_changed', deviceId: 'd1', stateKey: 'presence', expectedValue: true },
           action: { type: 'device_command', targetDeviceId: 'd2', command: 'turn_on' }
         },
@@ -62,8 +63,10 @@ describe('Automation Application: CRUD Use Cases', () => {
       );
 
       expect(rule.id).toBe('rule-id-123');
+      expect(rule.icon).toBe('mdi:home');
       const saved = await ruleRepo.findById('rule-id-123');
       expect(saved).toBeDefined();
+      expect(saved?.icon).toBe('mdi:home');
       expect(topologyMock.validateHomeOwnership).toHaveBeenCalledWith('home-1', 'user-1');
     });
 

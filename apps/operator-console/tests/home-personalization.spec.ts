@@ -374,14 +374,16 @@ for (const viewport of [
     const hero = page.locator('.homepilot-home-hero');
     const summaries = hero.locator('.homepilot-home-context .homepilot-home-summary');
     const phrase = hero.getByText(/Frase de (mañana|tarde|noche)/);
-    const location = hero.getByText(/^(Ubicación|Location)$/);
+    const location = hero.getByText('Cuenca').last();
     const action = hero.getByRole('button', { name: /sin pestaña principal|no main tab/i });
     await expect(summaries).toHaveCount(2);
-    await expect(summaries.nth(0)).toContainText(/Fecha\/Hora|Date\/Time/);
-    await expect(summaries.nth(1)).toContainText(/Clima|Weather/);
+    await expect(summaries.nth(0)).not.toContainText(/Fecha\/Hora|Date\/Time/);
+    await expect(summaries.nth(1)).not.toContainText(/Clima|Weather/);
     await expect(location).toBeVisible();
-    await expect(location.locator('..')).toContainText('Cuenca');
+    await expect(hero.getByText(/^(Ubicación|Location)$/)).toHaveCount(0);
     await expect(hero.getByRole('button', { name: /Ubicación|Location/i })).toHaveCount(0);
+    await expect(hero.getByLabel('HomePilot by NEZU')).toBeVisible();
+    await expect(page.getByText('Powered by NEZU')).toBeVisible();
     await expect(action).toContainText(/Ir a tablero|Go to dashboard/);
     const heroBox = await hero.boundingBox();
     const phraseBox = await phrase.boundingBox();
@@ -391,6 +393,11 @@ for (const viewport of [
     expect(heroBox && phraseBox && firstBox && secondBox && actionBox).toBeTruthy();
     expect(Math.abs(firstBox!.width - firstBox!.height)).toBeLessThan(1);
     expect(Math.abs(secondBox!.width - secondBox!.height)).toBeLessThan(1);
+    const verticalPadding = await summaries.evaluateAll((elements) => elements.map((element) => {
+      const style = getComputedStyle(element);
+      return Number.parseFloat(style.paddingTop) + Number.parseFloat(style.paddingBottom);
+    }));
+    expect(verticalPadding.every((value) => value <= 20)).toBe(true);
     expect(firstBox!.x).toBeLessThan(secondBox!.x + secondBox!.width);
     expect(firstBox!.y).toBeGreaterThan(phraseBox!.y + phraseBox!.height);
     if (viewport.width >= 1024) {

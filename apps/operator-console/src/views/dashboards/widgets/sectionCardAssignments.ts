@@ -65,7 +65,7 @@ export function normalizeAssignableScene(rawScene: unknown): AssignableScene | n
   if (!rawScene || typeof rawScene !== 'object') return null;
   const scene = rawScene as Record<string, unknown>;
   if (typeof scene.id !== 'string') return null;
-  return { id: scene.id, name: typeof scene.name === 'string' && scene.name.trim() ? scene.name : 'Escena' };
+  return { id: scene.id, name: typeof scene.name === 'string' && scene.name.trim() ? scene.name : 'Escena', ...(typeof scene.icon === 'string' ? { icon: scene.icon } : {}) };
 }
 
 export function isAutomationEntityId(entityId?: string): boolean {
@@ -88,5 +88,5 @@ export function normalizeAssignableAutomation(rawAutomation: unknown): Assignabl
   if (!rawAutomation || typeof rawAutomation !== 'object') return null;
   const automation = rawAutomation as Record<string, unknown>;
   if (typeof automation.id !== 'string') return null;
-  return { id: automation.id, name: typeof automation.name === 'string' && automation.name.trim() ? automation.name : 'Rutina', enabled: automation.enabled !== false };
+  return { id: automation.id, name: typeof automation.name === 'string' && automation.name.trim() ? automation.name : 'Rutina', enabled: automation.enabled !== false, ...(typeof automation.icon === 'string' ? { icon: automation.icon } : {}) };
 }

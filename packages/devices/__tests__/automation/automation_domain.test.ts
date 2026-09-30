@@ -33,6 +33,20 @@ describe('Automation Domain: createAutomationRule', () => {
     expect((rule.trigger as any).deviceId).toBe('sensor-1');
   });
 
+  it('keeps the selected icon when creating and editing without changing the trigger or action', () => {
+    const created = createAutomationRule({
+      homeId: 'home-1', userId: 'user-1', name: 'Routine', icon: 'mdi:home',
+      trigger: validTrigger, action: validAction,
+    }, idGen);
+    const updated = updateAutomationRule(created, { icon: 'mdi:weather-windy' });
+    expect(created.icon).toBe('mdi:home');
+    expect(updated.icon).toBe('mdi:weather-windy');
+    expect(updated.trigger).toEqual(created.trigger);
+    expect(updated.action).toEqual(created.action);
+    expect(updateAutomationRule(updated, { name: 'Renamed' }).icon).toBe('mdi:weather-windy');
+    expect(() => updateAutomationRule(updated, { icon: '<script>' })).toThrow(InvalidAutomationRuleError);
+  });
+
   it('debe fallar si el nombre está vacío o solo tiene espacios', () => {
     expect(() => createAutomationRule({
       homeId: 'home-1',

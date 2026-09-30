@@ -59,11 +59,13 @@ export interface CardDraft {
 export interface AssignableScene {
   id: string;
   name: string;
+  icon?: string;
 }
 
 export interface AssignableAutomation {
   id: string;
   name: string;
+  icon?: string;
   enabled: boolean;
 }
 

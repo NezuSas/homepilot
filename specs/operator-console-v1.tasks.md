@@ -174,7 +174,7 @@
 - **Criterio Relacionado**: **AC31, AC35–AC39**.
 
 ### [UI-Home-04] Composición y ejecución compacta de Inicio
-- **Descripción**: Restaurar Ubicación como etiqueta, ajustar Hora/Clima cuadrados y frase a columna izquierda, situar «Ir a tablero» a la derecha, y presentar favoritas como tiles de acción momentánea compartidos con Dashboard. Ejecutar automatizaciones favoritas sin alterar su habilitación.
+- **Descripción**: Mostrar solo la ciudad en el chip informativo; retirar títulos redundantes y compactar padding vertical de Hora/Clima cuadrados; mantener frase a la izquierda e «Ir a tablero» a la derecha. Incorporar branding discreto HomePilot/NEZU en hero y Sidebar. Presentar favoritas con solo icono y nombre mediante el tile de acción momentánea compartido con Dashboard; ejecutar automatizaciones sin alterar su habilitación.
 - **Módulos**: hero, ClockSummaries, HomeContextIndicator, DashboardRoutinesSection y SectionActionCard.
 - **Criterio Relacionado**: **AC40–AC41**.
 
@@ -184,6 +184,20 @@
 - **Criterio Relacionado**: **AC42**.
 
 ### [QA-Home-03] Regresión focalizada y validación final
-- **Descripción**: Validar primero hero, favoritas y slots con tests y responsive focalizados; ejecutar suites completas una sola vez al final, junto a trazabilidad, i18n, arquitectura, typecheck, lint y builds.
+- **Descripción**: Validar hero, favoritas, iconos y slots con tests y responsive focalizados; para este polish no ejecutar la suite responsive completa salvo regresión transversal, junto a trazabilidad, i18n, typecheck, lint y builds.
 - **Dependencias**: `UI-Home-04`, `UI-Dashboard-04`.
 - **Criterio Relacionado**: **AC40–AC42**.
+
+### [BE-Home-03] Iconos durables de Escenas y Automatizaciones
+- **Descripción**: Añadir `icon` opcional al dominio y API de Escena/Automatización; persistir Escena en su JSON existente y Automatización mediante migración SQLite aditiva, sin alterar registros históricos ni ejecución.
+- **Criterio Relacionado**: **AC43**.
+
+### [UI-Home-05] Selección y uso unificado de iconos
+- **Descripción**: Reutilizar el IconPicker existente en crear/editar, mostrar el icono persistido en listas, botones de acción enlazados del Dashboard y favoritas; usar fallback estable para históricos y conservar la tarjeta momentánea compartida.
+- **Dependencias**: `BE-Home-03`.
+- **Criterio Relacionado**: **AC43–AC44**.
+
+### [QA-Home-04] Regresión focalizada de iconos y composición
+- **Descripción**: Verificar creación, edición, persistencia y fallback de iconos; hero/branding, favoritas momentáneas y responsive de Inicio en escenarios focalizados, además de typecheck, lint y builds.
+- **Dependencias**: `BE-Home-03`, `UI-Home-05`.
+- **Criterio Relacionado**: **AC40**, **AC43–AC44**.

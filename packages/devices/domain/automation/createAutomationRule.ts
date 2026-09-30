@@ -8,6 +8,7 @@ export interface CreateAutomationRulePayload {
   homeId: string;
   userId: string;
   name: string;
+  icon?: string;
   trigger: AutomationTrigger;
   action: AutomationAction;
 }
@@ -24,6 +25,7 @@ export function createAutomationRule(
   if (!payload.homeId || payload.homeId.trim() === '') throw new InvalidAutomationRuleError('homeId');
   if (!payload.userId || payload.userId.trim() === '') throw new InvalidAutomationRuleError('userId');
   if (!payload.name || payload.name.trim() === '') throw new InvalidAutomationRuleError('name');
+  if (payload.icon !== undefined && (typeof payload.icon !== 'string' || payload.icon.length > 128 || !/^mdi:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(payload.icon))) throw new InvalidAutomationRuleError('icon');
   
   // Validar Trigger
   if (payload.trigger.type === 'device_state_changed') {
@@ -105,6 +107,7 @@ export function createAutomationRule(
     homeId: payload.homeId.trim(),
     userId: payload.userId.trim(),
     name: payload.name.trim(),
+    ...(payload.icon !== undefined ? { icon: payload.icon } : {}),
     enabled: true,
     trigger: Object.freeze({ ...payload.trigger }),
     action: Object.freeze({ ...payload.action })

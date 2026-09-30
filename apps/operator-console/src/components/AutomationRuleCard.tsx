@@ -4,10 +4,12 @@ import { Clock, Cpu, Pencil, Star, Trash2, Zap } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/Button';
 import { IconButton } from './ui/IconButton';
+import { getDashboardIconComponent } from '../views/dashboards/components/IconPicker';
 
 interface AutomationRule {
   id: string;
   name: string;
+  icon?: string;
   enabled: boolean;
   trigger: {
     type: 'device_state_changed' | 'time';
@@ -63,6 +65,7 @@ export const AutomationRuleCard: React.FC<AutomationRuleCardProps> = ({
 }) => {
   const { t } = useTranslation();
   const isEnabled = rule.enabled;
+  const ConfiguredIcon = rule.icon ? getDashboardIconComponent(rule.icon) : null;
   const isWorking = processingId === rule.id;
   const triggerDevice = devices.find((device) => device.id === rule.trigger.deviceId);
   const actionDevice = devices.find((device) => device.id === rule.action.targetDeviceId);
@@ -111,7 +114,7 @@ export const AutomationRuleCard: React.FC<AutomationRuleCardProps> = ({
               ? (isFullyAutonomous ? 'bg-success text-success-foreground premium-glow-success shadow-lg shadow-success/20' : 'bg-primary text-primary-foreground premium-glow shadow-lg shadow-primary/20')
               : 'bg-muted text-muted-foreground'
           )}>
-            {rule.trigger.type === 'time' ? <Clock className="w-6 h-6 relative z-10" /> : <Zap className="w-6 h-6 relative z-10" />}
+            {ConfiguredIcon ? <ConfiguredIcon className="w-6 h-6 relative z-10" /> : rule.trigger.type === 'time' ? <Clock className="w-6 h-6 relative z-10" /> : <Zap className="w-6 h-6 relative z-10" />}
           </div>
           <div>
             <div className="flex items-center gap-2 mb-0.5">

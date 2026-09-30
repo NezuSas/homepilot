@@ -91,6 +91,7 @@ export class SceneRoutes extends ApiRoutes {
       try {
         const payload = await this.parseBody<{
           name?: string;
+          icon?: string;
           homeId?: string;
           roomId?: string | null;
           actions?: unknown[];
@@ -99,6 +100,9 @@ export class SceneRoutes extends ApiRoutes {
 
         if (!payload.name || !payload.homeId || !Array.isArray(payload.actions)) {
           return this.sendError(res, 400, 'INVALID_INPUT', 'Missing name, homeId, or actions array'), true;
+        }
+        if (payload.icon !== undefined && (typeof payload.icon !== 'string' || payload.icon.length > 128 || !/^mdi:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(payload.icon))) {
+          return this.sendError(res, 400, 'INVALID_INPUT', 'Invalid scene icon'), true;
         }
 
         const home = await container.repositories.homeRepository.findHomeById(payload.homeId);
@@ -116,6 +120,7 @@ export class SceneRoutes extends ApiRoutes {
           homeId: payload.homeId,
           roomId: payload.roomId ?? null,
           name: payload.name,
+          ...(payload.icon !== undefined ? { icon: payload.icon } : {}),
           actions: payload.actions as Scene['actions'],
           ...(payload.executionMode !== undefined ? { executionMode: payload.executionMode } : {}),
           createdAt: new Date().toISOString(),
@@ -140,14 +145,19 @@ export class SceneRoutes extends ApiRoutes {
 
         const payload = await this.parseBody<{
           name?: string;
+          icon?: string;
           roomId?: string | null;
           actions?: Scene['actions'];
           executionMode?: 'sequential' | 'parallel';
         }>(req);
+        if (payload.icon !== undefined && (typeof payload.icon !== 'string' || payload.icon.length > 128 || !/^mdi:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(payload.icon))) {
+          return this.sendError(res, 400, 'INVALID_INPUT', 'Invalid scene icon'), true;
+        }
 
         const updated: Scene = {
           ...scene,
           name: payload.name ?? scene.name,
+          icon: payload.icon ?? scene.icon,
           actions: payload.actions ?? scene.actions,
           roomId: payload.roomId !== undefined ? payload.roomId : scene.roomId,
           ...(payload.executionMode !== undefined

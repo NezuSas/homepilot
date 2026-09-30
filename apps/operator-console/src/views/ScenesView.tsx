@@ -28,6 +28,7 @@ interface Scene {
   homeId: string;
   roomId: string | null;
   name: string;
+  icon?: string;
   description?: string;
   actions: SceneAction[];
 }

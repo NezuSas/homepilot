@@ -21,11 +21,11 @@ describe('SqliteSceneRepository', () => {
   afterEach(() => database.close());
 
   it('persists the modern payload including sequential execution mode and updates atomically', async () => {
-    await repository.saveScene(scene('scene-1', { executionMode: 'sequential' }));
-    await repository.saveScene(scene('scene-1', { name: 'Updated', executionMode: 'parallel', updatedAt: '2026-08-17T01:00:00.000Z' }));
+    await repository.saveScene(scene('scene-1', { executionMode: 'sequential', icon: 'mdi:home' }));
+    await repository.saveScene(scene('scene-1', { name: 'Updated', executionMode: 'parallel', icon: 'mdi:weather-windy', updatedAt: '2026-08-17T01:00:00.000Z' }));
 
     await expect(repository.findSceneById('scene-1')).resolves.toEqual(expect.objectContaining({
-      name: 'Updated', executionMode: 'parallel', actions: [expect.objectContaining({ delayMs: 25, continueOnFailure: true })]
+      name: 'Updated', executionMode: 'parallel', icon: 'mdi:weather-windy', actions: [expect.objectContaining({ delayMs: 25, continueOnFailure: true })]
     }));
     expect(database.prepare('SELECT COUNT(*) AS count FROM scenes').get()).toEqual({ count: 1 });
   });
@@ -35,6 +35,7 @@ describe('SqliteSceneRepository', () => {
     await repository.saveScene(scene('scene-2', { homeId: 'home-2', createdAt: '2026-08-17T00:00:02.000Z' }));
 
     await expect(repository.findSceneById('legacy')).resolves.toMatchObject({ id: 'legacy', actions: [{ deviceId: 'd', command: 'turn_off' }] });
+    expect((await repository.findSceneById('legacy'))?.icon).toBeUndefined();
     await expect(repository.findSceneById('missing')).resolves.toBeNull();
     await expect(repository.findScenesByHomeId('home-1')).resolves.toEqual([expect.objectContaining({ id: 'legacy' })]);
     await expect(repository.findAll()).resolves.toEqual([expect.objectContaining({ id: 'scene-2' }), expect.objectContaining({ id: 'legacy' })]);

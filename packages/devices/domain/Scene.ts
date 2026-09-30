@@ -32,6 +32,7 @@ export interface Scene {
   homeId: string;
   roomId: string | null;
   name: string;
+  icon?: string;
   actions: SceneAction[];
   executionMode?: 'sequential' | 'parallel';
   createdAt: string;

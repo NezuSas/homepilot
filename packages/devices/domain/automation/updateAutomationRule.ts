@@ -9,6 +9,7 @@ import { isValidCommand } from '../commands';
  */
 export interface UpdateAutomationRulePatch {
   readonly name?: string;
+  readonly icon?: string;
   readonly trigger?: AutomationTrigger;
   readonly action?: AutomationAction;
 }
@@ -28,6 +29,9 @@ export function updateAutomationRule(
   // Validar que el nombre final no quede vacío tras el trimming
   if (resolvedName === '') {
     throw new InvalidAutomationRuleError('name');
+  }
+  if (patch.icon !== undefined && (typeof patch.icon !== 'string' || patch.icon.length > 128 || !/^mdi:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(patch.icon))) {
+    throw new InvalidAutomationRuleError('icon');
   }
 
   // Resolver trigger y action finales (patch parcial: solo se reemplaza si viene en el payload)
@@ -107,6 +111,7 @@ export function updateAutomationRule(
     userId: existing.userId,
     enabled: existing.enabled,
     name: resolvedName,
+    ...(patch.icon !== undefined || existing.icon !== undefined ? { icon: patch.icon ?? existing.icon } : {}),
     trigger: resolvedTrigger,
     action: resolvedAction
   });

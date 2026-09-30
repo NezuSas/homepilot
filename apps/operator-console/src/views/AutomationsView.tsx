@@ -21,6 +21,7 @@ import { useAutomationFavorites } from '../lib/useSceneFavorites';
 interface AutomationRule {
   id: string;
   name: string;
+  icon?: string;
   enabled: boolean;
   trigger: {
     type: 'device_state_changed' | 'time';

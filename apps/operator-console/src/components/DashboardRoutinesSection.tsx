@@ -6,6 +6,7 @@ import { Button } from './ui/Button';
 interface RoutineScene {
   id: string;
   name: string;
+  icon?: string;
   description?: string;
   actions: { deviceId: string; command: 'turn_on' | 'turn_off' | 'open' | 'close' | 'stop' }[];
 }
@@ -13,6 +14,7 @@ interface RoutineScene {
 export interface DashboardRoutineAutomation {
   id: string;
   name: string;
+  icon?: string;
   enabled: boolean;
   trigger: { type: 'device_state_changed' | 'time'; time?: string; timeLocal?: string };
 }
@@ -75,18 +77,17 @@ export function DashboardRoutinesSection({
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,9.5rem),1fr))] gap-3" data-testid="favorite-routine-grid">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,8rem),1fr))] gap-3" data-testid="favorite-routine-grid">
           {routines.map((routine) => {
             const key = `${routine.type}_${routine.value.id}`;
             const isProcessing = processingId === key;
             const feedback = isProcessing ? 'pending' : actionFeedback?.id === key ? actionFeedback.status : undefined;
             return (
-              <div key={key} className="h-28 min-w-0" data-home-routine={routine.type}>
+              <div key={key} className="h-24 min-w-0" data-home-routine={routine.type}>
                 <SectionActionCard
                   kind="action"
                   title={routine.value.name}
-                  eyebrow={t(routine.type === 'scene' ? 'dashboard.routine_manual' : 'dashboard.routine_automatic')}
-                  detail={t('dashboard.routine_scene_actions', { count: routine.type === 'scene' ? routine.value.actions.length : 1 })}
+                  icon={routine.value.icon ?? (routine.type === 'scene' ? 'mdi:auto-fix' : 'mdi:robot')}
                   isAssigned
                   isActive={isProcessing || feedback === 'success'}
                   actionFeedback={feedback}

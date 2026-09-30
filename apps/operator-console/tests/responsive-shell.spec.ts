@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { mdiAutoFix, mdiHome, mdiRobot, mdiWeatherWindy } from '@mdi/js';
 
 const setupStatus = {
   isInitialized: true,
@@ -400,7 +401,7 @@ test('Feature: favorite routines — compact action tiles execute momentarily wi
   await prepareAuthenticatedDashboard(page);
   await page.route('**/api/v1/homes', (route) => route.fulfill({ json: [{ id: 'responsive-home', ownerId: dashboardUser.id, name: 'Casa' }] }));
   const scenes = Array.from({ length: 5 }, (_, index) => ({
-    id: `scene-${index}`, homeId: 'responsive-home', roomId: null, name: `Escena ${index + 1}`, actions: [{ deviceId: 'sensor-climate', command: 'turn_on' }],
+    id: `scene-${index}`, homeId: 'responsive-home', roomId: null, name: `Escena ${index + 1}`, icon: 'mdi:home', actions: [{ deviceId: 'sensor-climate', command: 'turn_on' }],
   }));
   await page.route('**/api/v1/scenes', (route) => route.fulfill({ json: scenes }));
   await page.route('**/api/v1/scenes/favorites', (route) => route.fulfill({ json: { sceneIds: scenes.map((scene) => scene.id), initialized: true } }));
@@ -431,8 +432,9 @@ test('Feature: favorite routines — compact action tiles execute momentarily wi
   expect(rowPositions.filter((position) => position === rowPositions[0]).length).toBeGreaterThanOrEqual(3);
   const scene = grid.locator('[data-home-routine="scene"]').filter({ hasText: 'Escena 1' }).getByRole('button');
   const automation = grid.locator('[data-home-routine="automation"]').getByRole('button');
-  await expect(scene).toContainText('Manual');
-  await expect(scene).toContainText(/1 acción|1 action/);
+  await expect(scene).toHaveText('Escena 1');
+  await expect(scene.locator('svg')).toBeVisible();
+  await expect(grid.getByText(/^(Manual|Automática|Automatic|1 acción|1 action)$/i)).toHaveCount(0);
   await scene.click();
   await expect(scene).toHaveAttribute('aria-busy', 'true');
   await expect(scene).toBeDisabled();
@@ -449,6 +451,136 @@ test('Feature: favorite routines — compact action tiles execute momentarily wi
   await expect(scene.getByRole('alert')).toBeVisible();
   await expect(scene).toHaveAttribute('data-action-state', 'idle', { timeout: 6_000 });
   expect(sceneAttempts).toBe(2);
+});
+
+test('Feature: routine icons — editing scenes and automations persists one icon for lists and Home favorites', async ({ page }) => {
+  await prepareAuthenticatedDashboard(page);
+  await page.route('**/api/v1/homes', (route) => route.fulfill({ json: [{ id: 'responsive-home', ownerId: dashboardUser.id, name: 'Casa' }] }));
+  let scene = {
+    id: 'scene-icon', homeId: 'responsive-home', roomId: null, name: 'Escena icono',
+    actions: [{ deviceId: 'cover-living', command: 'open' }], icon: undefined as string | undefined,
+  };
+  let automation = {
+    id: 'automation-icon', homeId: 'responsive-home', name: 'Auto icono', enabled: true,
+    trigger: { type: 'time', timeLocal: '22:00', timezone: 'America/Guayaquil' },
+    action: { type: 'device_command', targetDeviceId: 'cover-living', command: 'open' },
+    icon: undefined as string | undefined,
+  };
+  await page.route('**/api/v1/scenes', (route) => route.fulfill({ json: [scene] }));
+  await page.route('**/api/v1/automations', (route) => route.fulfill({ json: [automation] }));
+  await page.route('**/api/v1/scenes/scene-icon', (route) => {
+    scene = { ...scene, ...route.request().postDataJSON() as typeof scene };
+    return route.fulfill({ json: scene });
+  });
+  await page.route('**/api/v1/automations/automation-icon', (route) => {
+    automation = { ...automation, ...route.request().postDataJSON() as typeof automation };
+    return route.fulfill({ json: automation });
+  });
+  await page.route('**/api/v1/scenes/favorites', (route) => route.fulfill({ json: { sceneIds: ['scene-icon'], initialized: true } }));
+  await page.route('**/api/v1/automations/favorites', (route) => route.fulfill({ json: { automationIds: ['automation-icon'], initialized: true } }));
+
+  await page.goto('/');
+  const legacyFavorites = page.getByTestId('favorite-routine-grid');
+  await expect(legacyFavorites.locator('[data-home-routine="scene"] svg path')).toHaveAttribute('d', mdiAutoFix);
+  await expect(legacyFavorites.locator('[data-home-routine="automation"] svg path')).toHaveAttribute('d', mdiRobot);
+
+  await page.goto('/routines/scenes');
+  await expect(page.getByRole('heading', { name: 'Escena icono' }).locator('../..').locator('svg').first()).toBeVisible();
+  await page.getByRole('button', { name: /^(Editar|Edit)$/i }).click();
+  const sceneEditor = page.getByRole('dialog', { name: /^(Editar Escena|Edit Scene)$/i });
+  await sceneEditor.getByRole('button', { name: /^(Icono|Icon)$/i }).click();
+  const picker = page.getByRole('dialog', { name: /^(Icono|Icon)$/i });
+  await picker.getByRole('searchbox').fill('home');
+  await picker.getByRole('listbox').getByRole('option', { name: 'home', exact: true }).click();
+  await sceneEditor.getByRole('button', { name: /^(Guardar Escena|Save Scene)$/i }).click();
+  expect(scene.icon).toBe('mdi:home');
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Escena icono' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Escena icono' }).locator('../..').locator('svg path').first()).toHaveAttribute('d', mdiHome);
+
+  await page.goto('/routines/automations');
+  await page.getByRole('button', { name: /^(Editar|Edit)$/i }).click();
+  const automationEditor = page.getByRole('dialog', { name: /^(Refinar Automatización|Refine Automation)$/i });
+  await automationEditor.getByRole('button', { name: /^(Icono|Icon)$/i }).click();
+  await picker.getByRole('searchbox').fill('weather windy');
+  await picker.getByRole('listbox').getByRole('option', { name: 'weather-windy', exact: true }).click();
+  await automationEditor.getByRole('button', { name: /^(Confirmar Automatización|Confirm Automation)$/i }).click();
+  expect(automation.icon).toBe('mdi:weather-windy');
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Auto icono' })).toBeVisible();
+
+  await page.goto('/');
+  const favorites = page.getByTestId('favorite-routine-grid');
+  await expect(favorites.locator('[data-home-routine="scene"] svg path')).toHaveAttribute('d', mdiHome);
+  await expect(favorites.locator('[data-home-routine="automation"] svg path')).toHaveAttribute('d', mdiWeatherWindy);
+
+  const section = responsiveDashboard.tabs[0]!.widgets[1]!;
+  const boundDashboard = { ...responsiveDashboard, tabs: [{ ...responsiveDashboard.tabs[0]!, widgets: [
+    responsiveDashboard.tabs[0]!.widgets[0]!, {
+      ...section, config: { ...section.config, extra: { cards: [
+        { id: 'scene-binding', kind: 'action', title: scene.name, entityId: scene.id, span: 'small', icon: 'mdi:cursor-default-click' },
+        { id: 'automation-binding', kind: 'action', title: automation.name, entityId: `automation:${automation.id}`, span: 'small', icon: 'mdi:cursor-default-click' },
+      ] } },
+    },
+  ] }] };
+  await page.route('**/api/v1/dashboards', (route) => route.fulfill({ json: [boundDashboard] }));
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  await expect(page.locator('[data-dashboard-card-id="scene-binding"] svg path')).toHaveAttribute('d', mdiHome);
+  await expect(page.locator('[data-dashboard-card-id="automation-binding"] svg path')).toHaveAttribute('d', mdiWeatherWindy);
+});
+
+test('Feature: routine icons — new scenes and automations save a selected icon and reload it', async ({ page }) => {
+  await prepareAuthenticatedDashboard(page);
+  await page.route('**/api/v1/homes', (route) => route.fulfill({ json: [{ id: 'responsive-home', ownerId: dashboardUser.id, name: 'Casa' }] }));
+  await page.route('**/api/v1/devices', (route) => route.fulfill({ json: [{
+    id: 'scene-light', homeId: 'responsive-home', roomId: null, name: 'Scene light', type: 'light', semanticType: 'light', status: 'ASSIGNED', lastKnownState: null,
+  }] }));
+  let createdScene: { id: string; homeId: string; roomId: string | null; name: string; icon?: string; actions: object[] } | null = null;
+  let createdAutomation: { id: string; homeId: string; name: string; icon?: string; enabled: boolean; trigger: object; action: object } | null = null;
+  await page.route('**/api/v1/scenes', (route) => {
+    if (route.request().method() === 'POST') {
+      createdScene = { ...route.request().postDataJSON() as NonNullable<typeof createdScene>, id: 'new-scene' };
+      return route.fulfill({ status: 201, json: createdScene });
+    }
+    return route.fulfill({ json: createdScene ? [createdScene] : [] });
+  });
+  await page.route('**/api/v1/automations', (route) => {
+    if (route.request().method() === 'POST') {
+      createdAutomation = { ...route.request().postDataJSON() as NonNullable<typeof createdAutomation>, id: 'new-automation', homeId: 'responsive-home', enabled: true };
+      return route.fulfill({ status: 201, json: createdAutomation });
+    }
+    return route.fulfill({ json: createdAutomation ? [createdAutomation] : [] });
+  });
+
+  await page.goto('/routines/scenes');
+  await page.getByRole('button', { name: /^(Crear Escena|Create Scene)$/i }).first().click();
+  const sceneEditor = page.getByRole('dialog', { name: /^(Crear Escena|Create Scene)$/i });
+  await sceneEditor.getByRole('textbox', { name: /Cena con invitados|Dinner Party/i }).fill('Escena nueva');
+  await sceneEditor.getByRole('button', { name: /^(Icono|Icon)$/i }).click();
+  const picker = page.getByRole('dialog', { name: /^(Icono|Icon)$/i });
+  await picker.getByRole('searchbox').fill('home');
+  await picker.getByRole('listbox').getByRole('option', { name: 'home', exact: true }).click();
+  await sceneEditor.getByText('Scene light', { exact: true }).click();
+  await sceneEditor.getByRole('button', { name: /^(Guardar Escena|Save Scene)$/i }).click();
+  expect(createdScene).toMatchObject({ name: 'Escena nueva', icon: 'mdi:home' });
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Escena nueva' })).toBeVisible();
+
+  await page.goto('/routines/automations');
+  await page.getByRole('button', { name: /^(Crear Regla|Create Rule)$/i }).first().click();
+  const automationEditor = page.getByRole('dialog', { name: /^(Nueva Automatización|New Automation)$/i });
+  await automationEditor.getByRole('textbox', { name: /Asignar nombre|Naming this Automation/i }).fill('Auto nueva');
+  await automationEditor.getByRole('button', { name: /^(Icono|Icon)$/i }).click();
+  await picker.getByRole('searchbox').fill('weather windy');
+  await picker.getByRole('listbox').getByRole('option', { name: 'weather-windy', exact: true }).click();
+  await automationEditor.getByRole('radiogroup', { name: /Disparador de Inteligencia|Intelligence Trigger/i }).getByRole('radio', { name: /^(Hora|Time)$/i }).click();
+  await automationEditor.getByRole('radiogroup', { name: /Consecuencia Definida|Defined Consequence/i }).getByRole('radio', { name: /^(Escenas|Scenes)$/i }).click();
+  await automationEditor.getByRole('button', { name: /Seleccionar Escena|Select Scene/i }).click();
+  await page.getByRole('listbox', { name: /Seleccionar Escena|Select Scene/i }).getByRole('option', { name: 'Escena nueva' }).click();
+  await automationEditor.getByRole('button', { name: /^(Confirmar Automatización|Confirm Automation)$/i }).click();
+  expect(createdAutomation).toMatchObject({ name: 'Auto nueva', icon: 'mdi:weather-windy' });
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Auto nueva' })).toBeVisible();
 });
 
 test('Feature: automation favorites — valid legacy IDs migrate once, merge with server data and never overwrite it with an empty local list', async ({ page }) => {
@@ -2068,7 +2200,7 @@ for (const viewport of viewports) {
     await expect(climateSummary.locator('time')).toBeVisible();
     await expect(climateSummary.getByText(/°C|clima no disponible|weather unavailable|cargando clima|loading weather/i)).toBeVisible();
     await expect(climateSummary.locator('.homepilot-home-summary')).toHaveCount(2);
-    await expect(climateSummary.getByText(/^(Ubicación|Location)$/)).toBeVisible();
+    await expect(climateSummary.getByText(/^(Ubicación|Location)$/)).toHaveCount(0);
     await expect(climateSummary.getByRole('button')).toHaveCount(1);
     const ownDashboard = climateSummary.getByRole('button', { name: /abrir la pestaña Principal de mi tablero|open.*Principal.*dashboard/i });
     await expect(ownDashboard).toBeVisible();

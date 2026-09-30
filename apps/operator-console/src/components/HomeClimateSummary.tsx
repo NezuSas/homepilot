@@ -35,10 +35,10 @@ export const HomeClimateSummary: React.FC<HomeClimateSummaryProps> = ({ currentU
     <div className="relative z-10 flex min-w-0 w-full flex-col gap-5 lg:flex-row lg:items-end lg:justify-between" aria-label={t('dashboard.home_context')}>
       <div className="flex min-w-0 flex-col items-start gap-3">
         <div className="homepilot-home-context flex min-w-0 flex-wrap items-start justify-start gap-3">
-          <ClockDateTimeSummary now={now} locale={locale} home homeLabel={t('dashboard.datetime_label')} />
-          <ClockWeatherSummary now={now} weather={weather} status={weatherStatus} copy={copy} home homeLabel={t('dashboard.weather_label')} />
+          <ClockDateTimeSummary now={now} locale={locale} home />
+          <ClockWeatherSummary now={now} weather={weather} status={weatherStatus} copy={copy} home />
         </div>
-        <HomeContextIndicator icon={MapPin} label={t('dashboard.location_label')} primaryIcon className="w-fit max-w-full flex-none">
+        <HomeContextIndicator icon={MapPin} primaryIcon className="w-fit max-w-full flex-none">
           {weather?.location ?? configuredCity}
         </HomeContextIndicator>
       </div>

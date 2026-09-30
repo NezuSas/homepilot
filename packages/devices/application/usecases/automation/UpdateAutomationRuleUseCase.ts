@@ -7,6 +7,7 @@ import { InvalidAutomationRuleError } from '../../../domain/errors';
 
 export interface UpdateAutomationRuleRequest {
   readonly name?: string;
+  readonly icon?: string;
   readonly trigger?: AutomationTrigger;
   readonly action?: AutomationAction;
 }
@@ -67,6 +68,7 @@ export async function updateAutomationRuleUseCase(
   //    Esta función aplica trimming, valida que el nombre no quede vacío y previene bucles (AC6).
   const patch: UpdateAutomationRulePatch = {
     ...(request.name !== undefined && { name: request.name }),
+    ...(request.icon !== undefined && { icon: request.icon }),
     ...(request.trigger !== undefined && { trigger: request.trigger }),
     ...(request.action !== undefined && { action: request.action })
   };

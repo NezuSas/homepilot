@@ -13,6 +13,7 @@ interface AutomationRuleRow {
   home_id: string;
   user_id: string;
   name: string;
+  icon: string | null;
   enabled: number; // 0 o 1
   trigger: string; // JSON
   action: string;  // JSON
@@ -44,12 +45,13 @@ export class SQLiteAutomationRuleRepository implements AutomationRuleRepository 
 
     const stmt = this.db.prepare(`
       INSERT INTO automation_rules (
-        id, home_id, user_id, name, enabled, trigger, action, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'NOW'))
+        id, home_id, user_id, name, icon, enabled, trigger, action, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'NOW'))
       ON CONFLICT(id) DO UPDATE SET
         home_id = excluded.home_id,
         user_id = excluded.user_id,
         name = excluded.name,
+        icon = excluded.icon,
         enabled = excluded.enabled,
         trigger = excluded.trigger,
         action = excluded.action,
@@ -61,6 +63,7 @@ export class SQLiteAutomationRuleRepository implements AutomationRuleRepository 
       rule.homeId,
       rule.userId, // owner context as per schema
       rule.name,
+      rule.icon ?? null,
       isEnabled,
       serializedTrigger,
       serializedAction
@@ -130,6 +133,7 @@ export class SQLiteAutomationRuleRepository implements AutomationRuleRepository 
       homeId: row.home_id,
       userId: row.user_id,
       name: row.name,
+      ...(row.icon ? { icon: row.icon } : {}),
       enabled: row.enabled === 1,
       trigger: this.deserializeTrigger(row.trigger),
       action: this.deserializeAction(row.action),

@@ -46,6 +46,7 @@ export function AppSidebarFooter({ collapsed, user, profile, theme, demoStepCoun
           <IconButton icon={LogOut} label={t('nav.logout')} onClick={onLogout} variant="danger" size="sm" />
         </div>
       </div>
+      <p className={cn('text-center text-micro text-muted-foreground/70', collapsed && 'xl:sr-only')}>Powered by NEZU</p>
     </div>
   );
 }

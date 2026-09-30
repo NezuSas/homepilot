@@ -5,7 +5,6 @@ import { cn } from '../lib/utils';
 interface HomeContextIndicatorProps {
   icon: LucideIcon;
   children: ReactNode;
-  label?: string;
   className?: string;
   primaryIcon?: boolean;
   onClick?: () => void;
@@ -13,7 +12,7 @@ interface HomeContextIndicatorProps {
 }
 
 /** Shared visual primitive for the compact context indicators in Inicio. */
-export function HomeContextIndicator({ icon: Icon, children, label, className, primaryIcon = false, onClick, actionLabel }: HomeContextIndicatorProps) {
+export function HomeContextIndicator({ icon: Icon, children, className, primaryIcon = false, onClick, actionLabel }: HomeContextIndicatorProps) {
   const styles = cn(
     'flex min-w-0 flex-1 items-center gap-2 rounded-card border border-border/60 bg-card/80 px-3 py-2.5 text-caption text-muted-foreground shadow-sm sm:flex-none',
     onClick && 'cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
@@ -24,7 +23,6 @@ export function HomeContextIndicator({ icon: Icon, children, label, className, p
       <Icon className="h-3.5 w-3.5" aria-hidden="true" />
     </span>
     <span className="min-w-0">
-      {label && <span className="block text-micro text-muted-foreground">{label}</span>}
       <span className="block truncate font-semibold text-foreground">{children}</span>
     </span>
   </>;

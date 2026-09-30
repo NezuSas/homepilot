@@ -28,6 +28,7 @@ export interface AutomationActionConfig {
 export interface AutomationRuleDraft {
   id: string;
   name: string;
+  icon?: string;
   trigger: AutomationTriggerConfig & { type: 'device_state_changed' | 'time' };
   action: AutomationActionConfig & { type: 'device_command' | 'execute_scene' };
 }

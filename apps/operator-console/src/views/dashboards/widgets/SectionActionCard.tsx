@@ -16,8 +16,6 @@ interface SectionActionCardProps {
   isEditorPreview?: boolean;
   onAction?: () => void;
   actionFeedback?: 'pending' | 'success' | 'error';
-  eyebrow?: string;
-  detail?: string;
 }
 
 export function SectionActionCard({
@@ -31,8 +29,6 @@ export function SectionActionCard({
   isEditorPreview,
   onAction,
   actionFeedback,
-  eyebrow,
-  detail,
 }: SectionActionCardProps) {
   const { t } = useTranslation();
   const Icon = getDashboardIconComponent(icon ?? getDefaultIcon(normalizeKind(kind)));
@@ -60,10 +56,8 @@ export function SectionActionCard({
         isPresentationOnly && 'pointer-events-none cursor-default',
       )}
     >
-      {eyebrow && <span className="text-micro font-semibold uppercase tracking-control text-primary">{eyebrow}</span>}
       <Icon aria-hidden="true" className={getLightTileIconClasses(Boolean(isActive))} />
       <span className="line-clamp-2 min-w-0 text-micro font-bold leading-tight text-foreground">{title}</span>
-      {detail && <span className="line-clamp-1 min-w-0 text-micro text-muted-foreground">{detail}</span>}
       {actionFeedback === 'success' && <span role="status" className="sr-only">{t('dashboard.editor.sections.action_button_success')}</span>}
       {actionFeedback === 'error' && <span role="alert" className="sr-only">{t('dashboard.editor.sections.action_button_error')}</span>}
     </Button>

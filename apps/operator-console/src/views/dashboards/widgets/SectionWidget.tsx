@@ -27,6 +27,16 @@ interface SectionWidgetProps {
   onUpdate?: (config: Partial<DashboardWidgetConfig>) => void;
 }
 
+function getBoundRoutineIcon(entityId: string | undefined, scenes: AssignableScene[], automations: AssignableAutomation[]): string | undefined {
+  if (!entityId) return undefined;
+  if (isAutomationEntityId(entityId)) {
+    const automation = automations.find((item) => item.id === stripAutomationEntityPrefix(entityId));
+    return automation ? automation.icon ?? 'mdi:robot' : undefined;
+  }
+  const scene = scenes.find((item) => item.id === entityId);
+  return scene ? scene.icon ?? 'mdi:auto-fix' : undefined;
+}
+
 export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProps) {
   const { t } = useTranslation();
 
@@ -81,12 +91,13 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const title = rawTitle || t('dashboard.editor.sections.new_section');
   const showTitle = config.appearance?.showTitle !== false;
   const cards = normalizeCards(config.extra);
+  const hasRoutineAction = cards.some((card) => card.entityId && normalizeKind(card.kind) === 'action');
   const sectionIcon = config.appearance?.icon?.trim();
   const SectionIcon = sectionIcon ? getDashboardIconComponent(sectionIcon) : null;
   const editingCard = editingCardId ? cards.find((card) => card.id === editingCardId) : undefined;
 
   useEffect(() => {
-    if (!isCatalogOpen && (!editingCardId || (normalizeKind(cardDraft.kind) !== 'scene' && normalizeKind(cardDraft.kind) !== 'action' && normalizeKind(cardDraft.kind) !== 'light'))) return;
+    if (!hasRoutineAction && !isCatalogOpen && (!editingCardId || (normalizeKind(cardDraft.kind) !== 'scene' && normalizeKind(cardDraft.kind) !== 'action' && normalizeKind(cardDraft.kind) !== 'light'))) return;
 
     const controller = new AbortController();
     void fetchDiagnosticResource(`${API_BASE_URL}/api/v1/scenes`, controller.signal)
@@ -112,7 +123,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
     return () => {
       controller.abort();
     };
-  }, [cardDraft.kind, editingCardId, isCatalogOpen]);
+  }, [cardDraft.kind, editingCardId, hasRoutineAction, isCatalogOpen]);
 
   useEffect(() => {
     if (!editingCardId || (normalizeKind(cardDraft.kind) !== 'action' && normalizeKind(cardDraft.kind) !== 'light')) return;
@@ -130,7 +141,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   }, [cardDraft.kind, editingCardId]);
 
   useEffect(() => {
-    if (!isCatalogOpen && (!editingCardId || (normalizeKind(cardDraft.kind) !== 'scene' && normalizeKind(cardDraft.kind) !== 'action' && normalizeKind(cardDraft.kind) !== 'light'))) return;
+    if (!hasRoutineAction && !isCatalogOpen && (!editingCardId || (normalizeKind(cardDraft.kind) !== 'scene' && normalizeKind(cardDraft.kind) !== 'action' && normalizeKind(cardDraft.kind) !== 'light'))) return;
 
     const controller = new AbortController();
     void fetchDiagnosticResource(`${API_BASE_URL}/api/v1/automations`, controller.signal)
@@ -156,7 +167,7 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
     return () => {
       controller.abort();
     };
-  }, [cardDraft.kind, editingCardId, isCatalogOpen]);
+  }, [cardDraft.kind, editingCardId, hasRoutineAction, isCatalogOpen]);
 
   const catalogItems = cardKinds.map((kind) => ({
     kind,
@@ -329,7 +340,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           title={title}
           subtitle={normalizedPreviewKind === 'cover' ? previewRoomName || catalogDescription(kind) : catalogDescription(kind)}
           span={span}
-          icon={iconOverride ?? getDefaultIcon(kind)}
+          icon={(normalizedPreviewKind === 'action' ? getBoundRoutineIcon(deviceIdOverride, scenes, automations) : undefined) ?? iconOverride ?? getDefaultIcon(kind)}
           isAssigned={Boolean(deviceIdOverride)}
           isActive={previewDevice ? isDeviceActive(previewDevice) : false}
           device={previewDevice}
@@ -383,6 +394,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
             <SectionCardItem
               key={card.id}
               card={card}
+              actionIcon={normalizeKind(card.kind) === 'action' ? getBoundRoutineIcon(card.entityId, scenes, automations) : undefined}
               isEditing={isEditing}
               devices={devices}
               roomsByHome={roomsByHome}

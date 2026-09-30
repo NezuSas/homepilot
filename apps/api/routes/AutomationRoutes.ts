@@ -15,12 +15,14 @@ import type { TopologyReferencePort } from '../../../packages/devices/applicatio
 
 interface CreateAutomationPayload {
   name: string;
+  icon?: string;
   trigger: AutomationTrigger;
   action: AutomationAction;
 }
 
 interface UpdateAutomationPayload {
   name?: string;
+  icon?: string;
   trigger?: AutomationTrigger;
   action?: AutomationAction;
 }
@@ -132,6 +134,7 @@ export class AutomationRoutes extends ApiRoutes {
             homeId: home.id,
             userId: req.user!.id,
             name: payload.name,
+            icon: payload.icon,
             trigger: payload.trigger,
             action: payload.action,
           },

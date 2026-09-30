@@ -104,12 +104,20 @@ describe('Feature: scene route contract', () => {
     expect(response.end).toHaveBeenCalledWith(expect.stringContaining('INVALID_INPUT'));
   });
 
+  it('rejects malformed icon identifiers before saving a scene', async () => {
+    const container = createContainer();
+    const response = new MockResponse();
+    await new SceneRoutes().handle(createRequest({ homeId: 'home-1', name: 'Invalid icon', icon: '<script>', actions: [{ deviceId: 'light-1', command: 'turn_on' }] }), response as unknown as http.ServerResponse, '/api/v1/scenes', 'POST', container);
+    expect(response.writeHead).toHaveBeenCalledWith(400, expect.any(Object));
+    expect(container.repositories.sceneRepository.saveScene).not.toHaveBeenCalled();
+  });
+
   it('Scenario: Given a valid owner scene When creating Then it is persisted for the selected home', async () => {
     const container = createContainer();
     const response = new MockResponse();
 
     await new SceneRoutes().handle(
-      createRequest({ name: 'Movie time', homeId: 'home-1', actions: [{ deviceId: 'light-1', command: 'turn_off' }] }),
+      createRequest({ name: 'Movie time', icon: 'mdi:home', homeId: 'home-1', actions: [{ deviceId: 'light-1', command: 'turn_off' }] }),
       response as unknown as http.ServerResponse,
       '/api/v1/scenes',
       'POST',
@@ -119,6 +127,7 @@ describe('Feature: scene route contract', () => {
     expect(container.repositories.sceneRepository.saveScene).toHaveBeenCalledWith(expect.objectContaining({
       homeId: 'home-1',
       name: 'Movie time',
+      icon: 'mdi:home',
       actions: [{ deviceId: 'light-1', command: 'turn_off' }],
     }));
     expect(response.writeHead).toHaveBeenCalledWith(201, expect.any(Object));
@@ -143,10 +152,10 @@ describe('Feature: scene route contract', () => {
     const updateResponse = new MockResponse();
     const deleteResponse = new MockResponse();
 
-    await new SceneRoutes().handle(createRequest({ name: 'New', executionMode: 'sequential' }), updateResponse as unknown as http.ServerResponse, '/api/v1/scenes/scene-1', 'PATCH', container);
+    await new SceneRoutes().handle(createRequest({ name: 'New', icon: 'mdi:weather-windy', executionMode: 'sequential' }), updateResponse as unknown as http.ServerResponse, '/api/v1/scenes/scene-1', 'PATCH', container);
     await new SceneRoutes().handle(createRequest(), deleteResponse as unknown as http.ServerResponse, '/api/v1/scenes/scene-1', 'DELETE', container);
 
-    expect(container.repositories.sceneRepository.saveScene).toHaveBeenCalledWith(expect.objectContaining({ name: 'New', executionMode: 'sequential' }));
+    expect(container.repositories.sceneRepository.saveScene).toHaveBeenCalledWith(expect.objectContaining({ name: 'New', icon: 'mdi:weather-windy', executionMode: 'sequential' }));
     expect((container.repositories.sceneRepository as unknown as { deleteScene: jest.Mock }).deleteScene).toHaveBeenCalledWith('scene-1');
     expect(deleteResponse.writeHead).toHaveBeenCalledWith(204);
   });

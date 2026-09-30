@@ -9,6 +9,7 @@ import { AutomationBuilderIdentityField } from '../components/AutomationBuilderI
 import { AutomationBuilderSubmitButton } from '../components/AutomationBuilderSubmitButton';
 import { AutomationBuilderTriggerSection } from '../components/AutomationBuilderTriggerSection';
 import { Modal } from '../components/ui/Modal';
+import { IconPicker } from './dashboards/components/IconPicker';
 import type { AutomationActionConfig, AutomationBuilderDevice, AutomationBuilderScene, AutomationRuleDraft, AutomationTriggerConfig } from '../components/AutomationBuilderTypes';
 
 interface AutomationBuilderModalProps {
@@ -53,6 +54,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState('');
+  const [icon, setIcon] = useState('');
   const [triggerType, setTriggerType] = useState<'device_state_changed' | 'time'>('device_state_changed');
   const [triggerConfig, setTriggerConfig] = useState<AutomationTriggerConfig>(DEFAULT_TRIGGER_CONFIG);
   const [actionType, setActionType] = useState<'device_command' | 'execute_scene'>('device_command');
@@ -63,12 +65,14 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
 
     if (existingAutomation) {
       setName(existingAutomation.name);
+      setIcon(existingAutomation.icon ?? '');
       setTriggerType(existingAutomation.trigger.type);
       setTriggerConfig({ ...existingAutomation.trigger });
       setActionType(existingAutomation.action.type);
       setActionConfig({ ...existingAutomation.action });
     } else {
       setName('');
+      setIcon('');
       setTriggerType('device_state_changed');
       setTriggerConfig(DEFAULT_TRIGGER_CONFIG);
       setActionType('device_command');
@@ -92,6 +96,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
     const timeLocal = triggerConfig.timeLocal || triggerConfig.time || '12:00';
     const payload = {
       name: name.trim(),
+      icon: icon || undefined,
       trigger: triggerType === 'time'
         ? {
             type: 'time' as const,
@@ -177,6 +182,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
         value={name}
         onChange={setName}
       />
+      <IconPicker value={icon} onChange={setIcon} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <AutomationBuilderTriggerSection

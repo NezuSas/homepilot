@@ -49,8 +49,9 @@ describe('Feature: automation mutation route contracts', () => {
     const routes = new AutomationRoutes();
     const success = new MockResponse();
     createAutomationRuleUseCase.mockResolvedValue({ id: 'rule-1', name: 'Night mode' });
-    await routes.handle(request({ name: 'Night mode', trigger: { type: 'time' }, action: { type: 'scene', sceneId: 'scene-1' } }), success as unknown as http.ServerResponse, '/api/v1/automations', 'POST', container());
+    await routes.handle(request({ name: 'Night mode', icon: 'mdi:home', trigger: { type: 'time' }, action: { type: 'scene', sceneId: 'scene-1' } }), success as unknown as http.ServerResponse, '/api/v1/automations', 'POST', container());
     expect(success.writeHead).toHaveBeenCalledWith(201, expect.any(Object));
+    expect(createAutomationRuleUseCase).toHaveBeenCalledWith(expect.objectContaining({ icon: 'mdi:home' }), expect.any(Object));
 
     const failure = new MockResponse();
     const error = new Error('Invalid rule');
@@ -69,8 +70,9 @@ describe('Feature: automation mutation route contracts', () => {
     deleteAutomationRuleUseCase.mockResolvedValue(undefined);
 
     const patch = new MockResponse();
-    await routes.handle(request({ name: 'Updated' }), patch as unknown as http.ServerResponse, '/api/v1/automations/rule-1', 'PATCH', container());
+    await routes.handle(request({ name: 'Updated', icon: 'mdi:weather-windy' }), patch as unknown as http.ServerResponse, '/api/v1/automations/rule-1', 'PATCH', container());
     expect(patch.writeHead).toHaveBeenCalledWith(200, expect.any(Object));
+    expect(updateAutomationRuleUseCase).toHaveBeenCalledWith('rule-1', 'owner-1', expect.objectContaining({ icon: 'mdi:weather-windy' }), expect.any(Object));
 
     const enable = new MockResponse();
     await routes.handle(request(), enable as unknown as http.ServerResponse, '/api/v1/automations/rule-1/enable', 'PATCH', container());

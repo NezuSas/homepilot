@@ -214,13 +214,16 @@ describe('SQLite Devices Persistence Integration', () => {
     };
 
     it('debe guardar y recuperar una regla, reconstruyendo payloads en memoria', async () => {
-      await ruleRepo.save(rule);
+      await ruleRepo.save({ ...rule, icon: 'mdi:home' });
 
       const retrieved = await ruleRepo.findById('rule-1');
       expect(retrieved).not.toBeNull();
       expect(retrieved?.enabled).toBe(true);
+      expect(retrieved?.icon).toBe('mdi:home');
       expect((retrieved?.trigger as any).deviceId).toBe('dev-1');
       expect((retrieved?.action as any).command).toBe('turn_on');
+      await ruleRepo.save({ ...retrieved!, icon: 'mdi:weather-windy' });
+      expect((await ruleRepo.findById('rule-1'))?.icon).toBe('mdi:weather-windy');
     });
 
     it('findByTriggerDevice devuelve solo reglas en estado activo', async () => {
@@ -270,6 +273,7 @@ describe('SQLite Devices Persistence Integration', () => {
         trigger: expect.objectContaining({ type: 'device_state_changed', deviceId: 'legacy-sensor' }),
         action: expect.objectContaining({ type: 'device_command', targetDeviceId: 'legacy-light' }),
       }));
+      expect(legacy?.icon).toBeUndefined();
       expect(legacyTime?.trigger).toEqual(expect.objectContaining({ type: 'time', timeLocal: '14:15', timezone: 'UTC', timeUTC: expect.any(String) }));
       expect(allForHome.map(item => item.id)).toEqual(expect.arrayContaining(['rule-legacy', 'rule-legacy-time']));
       expect(all.map(item => item.id)).toEqual(expect.arrayContaining(['rule-legacy', 'rule-legacy-time']));

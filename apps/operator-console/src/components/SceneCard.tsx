@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { IconButton } from './ui/IconButton';
+import { getDashboardIconComponent } from '../views/dashboards/components/IconPicker';
 
 interface SceneAction {
   deviceId: string;
@@ -24,6 +25,7 @@ interface SceneAction {
 export interface SceneCardScene {
   id: string;
   name: string;
+  icon?: string;
   description?: string;
   actions: SceneAction[];
 }
@@ -63,7 +65,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({
   onDelete,
 }) => {
   const { t } = useTranslation();
-  const Icon = getSceneIcon(scene.name);
+  const Icon = scene.icon ? getDashboardIconComponent(scene.icon) : getSceneIcon(scene.name);
   const normalizedName = scene.name.toLowerCase();
   const description = scene.description
     || (normalizedName.includes('morning') && t('scenes.descriptions.morning'))

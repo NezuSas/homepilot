@@ -10,6 +10,7 @@ export interface CreateAutomationRuleRequest {
   homeId: string;
   userId: string;
   name: string;
+  icon?: string;
   trigger: AutomationTrigger;
   action: AutomationAction;
 }
@@ -56,6 +57,7 @@ export async function createAutomationRuleUseCase(
     homeId: request.homeId,
     userId: request.userId,
     name: request.name,
+    icon: request.icon,
     trigger: request.trigger,
     action: request.action
   }, deps.idGenerator);

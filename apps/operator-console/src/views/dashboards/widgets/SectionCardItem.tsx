@@ -29,6 +29,7 @@ const STANDARD_CARD_SPAN_ORDER: SectionCardSpan[] = ['medium', 'full'];
 
 export function SectionCardItem({
   card,
+  actionIcon,
   isEditing,
   devices,
   roomsByHome,
@@ -47,6 +48,7 @@ export function SectionCardItem({
   rowSpan,
 }: {
   card: NormalizedSectionCardItem;
+  actionIcon?: string;
   isEditing: boolean;
   devices: SnapshotDevice[];
   roomsByHome: Record<string, SnapshotRoom[]>;
@@ -136,7 +138,7 @@ export function SectionCardItem({
     title={card.title || catalogLabel(card.kind)}
     subtitle={isCamera ? assignedRoomName : subtitle}
     span={span}
-    icon={card.icon}
+    icon={actionIcon ?? card.icon}
     mediaVariant={card.mediaVariant}
     isAssigned={Boolean(card.entityId)}
     isActive={tileIsActive}

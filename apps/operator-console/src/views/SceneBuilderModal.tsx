@@ -11,6 +11,7 @@ import { Button } from '../components/ui/Button';
 import { SegmentedControl } from '../components/ui/SegmentedControl';
 import { Input, SearchInput } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
+import { IconPicker } from './dashboards/components/IconPicker';
 import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 import { canExecuteCommand, hasCapability } from '../lib/deviceCapabilities';
 
@@ -31,6 +32,7 @@ interface Scene {
   homeId: string;
   roomId: string | null;
   name: string;
+  icon?: string;
   description?: string;
   actions: SceneAction[];
 }
@@ -48,6 +50,7 @@ interface SceneBuilderModalProps {
 export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, onSaved, homeId, rooms, devices, initialRoomId = null, existingScene }) => {
   const { t } = useTranslation();
   const [name, setName] = useState(existingScene?.name || '');
+  const [icon, setIcon] = useState(existingScene?.icon || '');
   const [description, setDescription] = useState(existingScene?.description || '');
   const [roomId, setRoomId] = useState<string | null>(existingScene ? existingScene.roomId : initialRoomId);
   const [actions, setActions] = useState<SceneAction[]>(existingScene?.actions || []);
@@ -103,6 +106,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
         homeId,
         roomId,
         name: name.trim(),
+        icon: icon || undefined,
         description: description.trim(),
         actions
       };
@@ -206,6 +210,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                placeholder={t('scenes.builder.placeholders.description')}
                className="h-12 border-foreground/10 bg-foreground/[0.03] px-4 text-body font-medium placeholder:opacity-20"
              />
+             <IconPicker value={icon} onChange={setIcon} />
           </div>
 
           {/* Device Selection Section */}
