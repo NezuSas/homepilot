@@ -71,8 +71,22 @@ hp_fail() { hp_ui_status '✕' "$HP_RED" 'Failed' "$1" >&2; return 1; }
 hp_working() { hp_ui_status '●' "$HP_AMBER" "$1"; }
 hp_skipped() { hp_ui_status '—' "$HP_SECONDARY" "$1"; }
 
+hp_ui_prepare_first_frame() {
+  [[ "$HP_UI_TTY" == true && "${HP_UI_INITIAL_CLEARED:-false}" != true ]] || return 0
+
+  local lines
+  lines="$(tput lines 2>/dev/null || printf 0)"
+  if [[ "$lines" =~ ^[0-9]+$ ]] && (( lines > 0 )); then
+    tput csr 0 "$((lines - 1))" 2>/dev/null || true
+  fi
+  if ! tput clear 2>/dev/null; then printf '\033[2J'; fi
+  tput cup 0 0 2>/dev/null || printf '\033[H'
+  HP_UI_INITIAL_CLEARED=true
+}
+
 hp_ui_header() {
   hp_color_init
+  hp_ui_prepare_first_frame
   hp_ui_center "$HP_SECONDARY" 'Welcome to'
   printf '\n'
   hp_ui_center "$HP_PRIMARY" '███╗   ██╗███████╗███████╗██╗   ██╗'
