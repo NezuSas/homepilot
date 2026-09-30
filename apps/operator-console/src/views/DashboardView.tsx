@@ -50,10 +50,12 @@ interface DashboardViewProps {
   onActionExecute?: (label: string) => void;
   onNavigate?: (view: View, params?: unknown) => void;
   displayName?: string | null;
+  currentUserId: string | null;
+  onOpenOwnDashboardTab: (dashboardId: string, tabId: string) => void;
   canManageAutomations: boolean;
 }
 
-export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, onNavigate, displayName, canManageAutomations }) => {
+export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, onNavigate, displayName, currentUserId, onOpenOwnDashboardTab, canManageAutomations }) => {
   const { t } = useTranslation();
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [automations, setAutomations] = useState<DashboardRoutineAutomation[]>([]);
@@ -207,7 +209,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
           <p className="mt-3 max-w-xl text-body text-muted-foreground lg:text-card-title">{t('dashboard.home_calm')}</p>
         </div>
         <div className="relative z-10">
-          <HomeClimateSummary />
+          <HomeClimateSummary currentUserId={currentUserId} onOpenOwnDashboardTab={onOpenOwnDashboardTab} />
         </div>
       </header>
 

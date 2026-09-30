@@ -24,7 +24,7 @@ describe('SqliteUserRepository', () => {
     new SqliteMigrationsRunner(db).run(path.resolve(__dirname, '../../../migrations'));
     repository = new SqliteUserRepository(db);
   });
-  afterEach(() => db.exec('DELETE FROM users'));
+  afterEach(() => db.exec('DELETE FROM dashboards; DELETE FROM users'));
   afterAll(() => { db.close(); if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath); });
 
   it('seeds, counts, lists, and finds users by case-insensitive username and id', async () => {

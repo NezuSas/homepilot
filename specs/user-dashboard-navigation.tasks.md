@@ -15,4 +15,6 @@
 - [x] **Jerarquía residencial del tablero (AC39).** `DashboardsView.tsx`, `DashboardTitleBar.tsx`, `DashboardTabsNav.tsx`, `DashboardWidget.tsx` y `index.css` reducen capas decorativas, ordenan el shell por líneas discretas y conservan el contenido en un ancho legible; `responsive-shell.spec.ts` comprueba la presencia y separación del shell en todos los breakpoints definidos.
 
 > La spec sigue en **Borrador**: esta auditoría no declara implementados criterios que todavía carecen de escenario de aceptación directo.
+- [x] **Indicador de Inicio y default (AC41–AC42).** `HomeContextIndicator` comparte la superficie de los cuatro indicadores; `responsive-shell.spec.ts` valida navegación propia, estado neutral, toggle excluyente y cuatro tamaños. Servicio y trigger SQLite protegen persistencia e import/export.
+- [x] **Ownership obligatorio (AC43–AC44).** Migración 032 provisiona usuarios existentes/nuevos y detecta duplicados sin alterarlos; servicio, ruta y trigger impiden crear otro Dashboard propio o eliminar el obligatorio. Pruebas de servicio/migración/rutas y navegación cubren sharing.
 - [x] Ajustar cortina en contenedores estrechos: se adapta al ancho real de la tarjeta y prioriza estado, nombre y acción primaria sin recortar posición o controles secundarios.

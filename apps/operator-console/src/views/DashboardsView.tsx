@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
-import { DashboardCreateForm } from '../components/DashboardCreateForm';
 import { getDashboardBackgroundSource } from '../lib/dashboardBackgroundPresets';
 import { LoadingState } from '../components/ui/LoadingState';
 import { EmptyDashboards } from '../components/EmptyDashboards';
@@ -11,8 +10,6 @@ import { DashboardActiveWorkspace } from './dashboards/DashboardActiveWorkspace'
 import { DashboardViewOverlays } from './dashboards/DashboardViewOverlays';
 import { configureTab, createDefaultWidgetConfig, insertWidget, updateWidgetConfig, type TabConfigFields } from './dashboards/dashboardMutations';
 import {
-  createDashboard,
-  deleteDashboard,
   loadDashboards,
   saveDashboard,
 } from './dashboards/dashboardOperations';
@@ -68,14 +65,10 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
   const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
   const snapshotLoading = useDeviceSnapshotStore((state) => state.isLoading);
   const snapshotLastUpdatedAt = useDeviceSnapshotStore((state) => state.lastUpdatedAt);
-  const [creating, setCreating]         = useState(false);
-  const [newTitle, setNewTitle]         = useState('');
   const [editingTitle, setEditingTitle] = useState(false);
   const [draftTitle, setDraftTitle]     = useState('');
   const [addingTab, setAddingTab]       = useState(false);
   const [error, setError]               = useState('');
-  const [submittingCreate, setSubmittingCreate] = useState(false);
-  const [dashboardPendingDelete, setDashboardPendingDelete] = useState<Dashboard | null>(null);
   const [tabPendingDelete, setTabPendingDelete] = useState<number | null>(null);
   const [tabConfigIdx, setTabConfigIdx] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -205,25 +198,6 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
     }
   };
 
-  const handleCreate = async () => {
-    if (!newTitle.trim()) return;
-    setSubmittingCreate(true);
-    setError('');
-    try {
-      const created = await createDashboard(newTitle.trim(), t('dashboards.error_create'));
-      publishDashboards((current) => [...current, created]);
-      setActive(created);
-      setActiveTabIdx(0);
-      setNewTitle('');
-      setCreating(false);
-      setIsEditing(true);
-    } catch (error_: unknown) {
-      setError(error_ instanceof Error ? error_.message : t('dashboards.error_create'));
-    } finally {
-      setSubmittingCreate(false);
-    }
-  };
-
   const handleRenameConfirm = async () => {
     if (!active || !draftTitle.trim()) { setEditingTitle(false); return; }
     await patch(active.id, { title: draftTitle.trim() });
@@ -298,23 +272,6 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
   const handleUpdateWidgetConfig = async (widgetId: string, newConfig: Partial<DashboardWidgetConfig>) => {
     if (!active) return;
     await patch(active.id, { tabs: updateWidgetConfig(active.tabs, activeTabIdx, widgetId, newConfig) });
-  };
-
-  const handleDelete = async () => {
-    if (!dashboardPendingDelete) return;
-    setIsDeleting(true);
-    try {
-      await deleteDashboard(dashboardPendingDelete.id, t('dashboards.error_delete'));
-      const remaining = publishDashboards((current) => current.filter((dashboard) => dashboard.id !== dashboardPendingDelete.id));
-      setActive(remaining.length > 0 ? remaining[0] : null);
-      setActiveTabIdx(0);
-      setDashboardPendingDelete(null);
-      setError('');
-    } catch (error_: unknown) {
-      setError(error_ instanceof Error ? error_.message : t('dashboards.error_delete'));
-    } finally {
-      setIsDeleting(false);
-    }
   };
 
   const activeTab = active?.tabs[activeTabIdx];
@@ -400,23 +357,9 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
         </div>
       )}
 
-      {/* Dashboard creation form */}
-      {creating && (
-        <DashboardCreateForm
-          title={t('dashboards.action_new')}
-          value={newTitle}
-          placeholder={t('dashboards.placeholder_title')}
-          confirmLabel={t('common.confirm')}
-          isSubmitting={submittingCreate}
-          onValueChange={setNewTitle}
-          onConfirm={handleCreate}
-          onCancel={() => { setCreating(false); setNewTitle(''); }}
-        />
-      )}
-
       {/* Main dashboard content */}
       {dashboards.length === 0 ? (
-        <EmptyDashboards onCreate={() => setCreating(true)} />
+        <EmptyDashboards onRetry={() => { void fetchDashboards(true); }} />
       ) : (
         <div className="grid grid-cols-1 relative z-10">
           {active && (
@@ -437,7 +380,6 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
               onStartEditingTitle={() => { setDraftTitle(active.title); setEditingTitle(true); }}
               onCancelEditingTitle={() => setEditingTitle(false)}
               onConfirmTitle={() => { void handleRenameConfirm(); }}
-              onDeleteDashboard={() => setDashboardPendingDelete(active)}
               onToggleEditing={() => {
                 setIsEditing(!isEditing);
                 if (isEditing) {
@@ -445,7 +387,6 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
                   setTabConfigIdx(null);
                 }
               }}
-              onCreateDashboard={() => setCreating(true)}
               onExport={() => { void handleExport(); }}
               onImport={(file) => { void handleImport(file); }}
               onOpenHistory={() => { void handleOpenHistory(); }}
@@ -488,8 +429,6 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
         setTabConfigIdx={setTabConfigIdx}
         tabPendingDelete={tabPendingDelete}
         setTabPendingDelete={setTabPendingDelete}
-        dashboardPendingDelete={dashboardPendingDelete}
-        setDashboardPendingDelete={setDashboardPendingDelete}
         isDeleting={isDeleting}
         isHistoryOpen={isHistoryOpen}
         setIsHistoryOpen={setIsHistoryOpen}
@@ -500,7 +439,6 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
         isRestoringRevision={isRestoringRevision}
         handleSaveTabConfig={handleSaveTabConfig}
         handleDeleteTab={handleDeleteTab}
-        handleDelete={handleDelete}
         handleRestoreRevision={handleRestoreRevision}
       />
       </div>

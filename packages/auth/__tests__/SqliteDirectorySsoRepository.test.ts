@@ -25,7 +25,7 @@ describe('SqliteDirectorySsoRepository', () => {
     }
   });
 
-  afterEach(() => db.exec('DELETE FROM directory_account_links; DELETE FROM directory_sso_used_tokens; DELETE FROM users;'));
+  afterEach(() => db.exec('DELETE FROM directory_account_links; DELETE FROM directory_sso_used_tokens; DELETE FROM dashboards; DELETE FROM users;'));
   afterAll(() => { SqliteDatabaseManager.close(dbPath); if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath); });
 
   it('creates, updates, lists, and deletes links only for their matching local user', async () => {

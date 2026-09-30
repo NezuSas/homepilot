@@ -3,6 +3,10 @@ import type { View } from '../types';
 export const DASHBOARDS_TAB_PATTERN = '/dashboards/:dashboardId/:tabId';
 export const DASHBOARDS_ONE_PATTERN = '/dashboards/:dashboardId';
 
+export function dashboardTabPath(dashboardId: string, tabId: string): string {
+  return `/dashboards/${encodeURIComponent(dashboardId)}/${encodeURIComponent(tabId)}`;
+}
+
 export function resolveView(view: View): View {
   switch (view) {
     case 'scenes': return 'routines'; case 'automations': return 'routines'; case 'topology': return 'spaces';

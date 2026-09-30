@@ -167,6 +167,75 @@ async function prepareAuthenticatedDashboard(page: import('@playwright/test').Pa
   });
 }
 
+test('keeps the Home dashboard indicator neutral without an owned main tab', async ({ page }) => {
+  const shared = { ...responsiveDashboard, ownerId: 'another-user' };
+  await prepareAuthenticatedDashboard(page, shared);
+  await page.goto('/');
+
+  const context = page.getByLabel(/contexto local del hogar|local home context/i);
+  await expect(context.getByText(/sin pestaña principal|no main tab/i)).toBeVisible();
+  await expect(context.getByRole('button', { name: /abrir la pestaña|open .* in my dashboard/i })).toHaveCount(0);
+});
+
+test('opens the owned main tab even when a shared dashboard is also accessible', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await prepareAuthenticatedDashboard(page);
+  const shared = { ...responsiveDashboard, id: 'shared-dashboard', ownerId: 'another-user', title: 'Hogar compartido', tabs: [
+    { ...responsiveDashboard.tabs[0], id: 'shared-tab', title: 'Compartida' },
+  ] };
+  await page.route('**/api/v1/dashboards', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([shared, responsiveDashboard]) });
+  });
+  await page.goto('/');
+
+  const dashboardGroup = page.getByRole('button', { name: /dashboards|tableros/i }).first();
+  await dashboardGroup.click();
+  await expect(page.getByRole('button', { name: 'Hogar de prueba' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Hogar compartido' })).toBeVisible();
+  const context = page.getByLabel(/contexto local del hogar|local home context/i);
+  await context.getByRole('button', { name: /abrir la pestaña Principal de mi tablero|open Principal in my dashboard/i }).click();
+  await expect(page).toHaveURL(/\/dashboards\/responsive-dashboard\/responsive-tab$/);
+});
+
+test('allows clearing the current open-on-load tab before enabling another', async ({ page }) => {
+  let dashboard = { ...responsiveDashboard, tabs: [
+    responsiveDashboard.tabs[0],
+    { ...responsiveDashboard.tabs[0], id: 'second-tab', title: 'Sala', isDefault: false, widgets: [] },
+  ] };
+  await prepareAuthenticatedDashboard(page, dashboard);
+  await page.route('**/api/v1/dashboards', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([dashboard]) });
+  });
+  await page.route('**/api/v1/dashboards/responsive-dashboard', async (route) => {
+    if (route.request().method() !== 'PATCH') return route.fallback();
+    const payload = route.request().postDataJSON() as { tabs: typeof dashboard.tabs };
+    dashboard = { ...dashboard, tabs: payload.tabs };
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(dashboard) });
+  });
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).click();
+  const tabs = page.locator('.homepilot-dashboard-tabs');
+  await tabs.getByRole('button', { name: /configurar vista: Sala|configure view: Sala/i }).click();
+  let dialog = page.getByRole('dialog', { name: /configuración de la vista Sala|view configuration for Sala/i });
+  const otherSwitch = dialog.getByRole('switch', { name: /abrir al cargar|open on load/i });
+  await expect(otherSwitch).toBeDisabled();
+  await expect(dialog.getByText(/Principal.*ya está configurada|Principal.*already set/i)).toBeVisible();
+  await dialog.getByRole('button', { name: /^(Cerrar|Close)$/i }).click();
+
+  await tabs.getByRole('button', { name: /configurar vista: Principal|configure view: Principal/i }).click();
+  dialog = page.getByRole('dialog', { name: /configuración de la vista Principal|view configuration for Principal/i });
+  const ownSwitch = dialog.getByRole('switch', { name: /abrir al cargar|open on load/i });
+  await expect(ownSwitch).toBeEnabled();
+  await expect(ownSwitch).toBeChecked();
+  await ownSwitch.click();
+  await dialog.getByRole('button', { name: /^(Guardar|Save)$/i }).click();
+  await expect.poll(() => dashboard.tabs[0].isDefault).toBe(false);
+
+  await tabs.getByRole('button', { name: /configurar vista: Sala|configure view: Sala/i }).click();
+  dialog = page.getByRole('dialog', { name: /configuración de la vista Sala|view configuration for Sala/i });
+  await expect(dialog.getByRole('switch', { name: /abrir al cargar|open on load/i })).toBeEnabled();
+});
+
 for (const viewport of [...viewports, { name: 'portrait kiosk', ...portraitKioskViewport }]) {
   test(`premium dashboard surfaces preserve section bounds and avoid overflow on ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
@@ -1187,6 +1256,7 @@ for (const viewport of [...viewports, { name: 'portrait kiosk', ...portraitKiosk
 
     const titlebar = page.locator('.homepilot-dashboard-titlebar');
     const more = titlebar.locator('details > summary');
+    await expect(titlebar.getByRole('button', { name: /new panel|nuevo panel|delete panel|eliminar panel/i })).toHaveCount(0);
     if (viewport.width >= 1280) {
       await expect(more).toBeHidden();
       await expect(titlebar.getByRole('button', { name: /dashboard history|historial del tablero/i })).toBeVisible();
@@ -1200,12 +1270,8 @@ for (const viewport of [...viewports, { name: 'portrait kiosk', ...portraitKiosk
       await expect(titlebar.getByRole('menuitem', { name: /import dashboard|importar tablero/i })).toBeVisible();
       await expect(titlebar.getByRole('button', { name: /dashboard history|historial del tablero/i })).toHaveCount(0);
       await expect(titlebar.getByRole('menuitem', { name: /^(Edit|Editar)$/i })).toHaveCount(0);
-      if (viewport.width >= 640) {
-        await expect(titlebar.getByRole('menuitem', { name: /new panel|nuevo panel/i })).toBeHidden();
-        await expect(titlebar.getByRole('button', { name: /new panel|nuevo panel/i })).toBeVisible();
-      } else {
-        await expect(titlebar.getByRole('menuitem', { name: /new panel|nuevo panel/i })).toBeVisible();
-      }
+      await expect(titlebar.getByRole('menuitem', { name: /new panel|nuevo panel/i })).toHaveCount(0);
+      await expect(titlebar.getByRole('button', { name: /new panel|nuevo panel/i })).toHaveCount(0);
     }
 
     await expect(titlebar.getByRole('button', { name: /^(Edit|Editar)$/i }).last()).toBeVisible();
@@ -1650,6 +1716,11 @@ for (const viewport of viewports) {
     await page.goto('/');
     const climateSummary = page.getByLabel(/contexto local del hogar|local home context/i);
     await expect(climateSummary).toBeVisible();
+    await expect(climateSummary.getByText('Cuenca')).toBeVisible();
+    await expect(climateSummary.locator('time')).toBeVisible();
+    await expect(climateSummary.getByText(/°C|temperatura no disponible|temperature unavailable/i)).toBeVisible();
+    const ownDashboard = climateSummary.getByRole('button', { name: /abrir la pestaña Principal de mi tablero|open.*Principal.*dashboard/i });
+    await expect(ownDashboard).toBeVisible();
     const ambientImage = page.locator('img[src="/home-dashboard-ambient.png"]');
     await expect(ambientImage).toBeVisible();
     await expect(ambientImage).toHaveAttribute('alt', '');
@@ -1659,6 +1730,8 @@ for (const viewport of viewports) {
       clientWidth: document.documentElement.clientWidth,
     }));
     expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth);
+    await ownDashboard.click();
+    await expect(page).toHaveURL(/\/dashboards\/responsive-dashboard\/responsive-tab$/);
   });
 
   test(`keeps dashboard history accessible on ${viewport.name}`, async ({ page }) => {

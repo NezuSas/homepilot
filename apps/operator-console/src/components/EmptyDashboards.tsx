@@ -1,13 +1,13 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { LayoutDashboard, Plus } from 'lucide-react';
+import { LayoutDashboard } from 'lucide-react';
 import { Button } from './ui/Button';
 
 interface EmptyDashboardsProps {
-  onCreate: () => void;
+  onRetry: () => void;
 }
 
-export const EmptyDashboards: React.FC<EmptyDashboardsProps> = ({ onCreate }) => {
+export const EmptyDashboards: React.FC<EmptyDashboardsProps> = ({ onRetry }) => {
   const { t } = useTranslation();
 
   return (
@@ -16,19 +16,13 @@ export const EmptyDashboards: React.FC<EmptyDashboardsProps> = ({ onCreate }) =>
         <div className="w-28 h-28 rounded-dashboard bg-gradient-to-br from-primary/15 via-primary/5 to-transparent border border-primary/20 flex items-center justify-center shadow-2xl shadow-primary/10">
           <LayoutDashboard className="w-12 h-12 text-primary/50" />
         </div>
-        <div className="absolute -bottom-2 -right-2 w-10 h-10 rounded-2xl bg-primary flex items-center justify-center shadow-xl shadow-primary/40">
-          <Plus className="w-5 h-5 text-primary-foreground" />
-        </div>
         <div className="absolute inset-0 rounded-dashboard bg-primary/5 blur-2xl -z-10 scale-150" />
       </div>
       <div className="space-y-3 max-w-sm">
-        <h3 className="text-view-title font-black text-foreground tracking-tight">{t('dashboards.empty_title')}</h3>
-        <p className="text-body text-muted-foreground leading-relaxed">{t('dashboards.empty_description')}</p>
+        <h3 className="text-view-title font-black text-foreground tracking-tight">{t('dashboards.error_load')}</h3>
+        <p className="text-body text-muted-foreground leading-relaxed">{t('dashboards.own_dashboard_retry_hint')}</p>
       </div>
-      <Button variant="primary" onClick={onCreate} className="flex items-center gap-2 px-8 py-3 text-body">
-        <Plus className="w-4 h-4" />
-        {t('dashboards.action_create')}
-      </Button>
+      <Button variant="primary" onClick={onRetry} className="px-8 py-3 text-body">{t('common.retry')}</Button>
     </div>
   );
 };

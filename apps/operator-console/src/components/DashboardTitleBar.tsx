@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Check, Download, History, MoreVertical, PenLine, Plus, Trash2, Upload, X } from 'lucide-react';
+import { Check, Download, History, MoreVertical, PenLine, Upload, X } from 'lucide-react';
 import { Button } from './ui/Button';
 import { IconButton } from './ui/IconButton';
 import { Input } from './ui/Input';
@@ -13,17 +13,13 @@ interface DashboardTitleBarProps {
   onStartEditingTitle: () => void;
   onCancelEditingTitle: () => void;
   onConfirmTitle: () => void;
-  onDelete: () => void;
-  deleteLabel: string;
   renameLabel: string;
   editLabel: string;
   doneLabel: string;
-  newLabel: string;
   moreLabel: string;
   confirmLabel: string;
   cancelLabel: string;
   onToggleEditing: () => void;
-  onCreate: () => void;
   onExport: () => void;
   onImport: (file: File) => void;
   exportLabel: string;
@@ -42,17 +38,13 @@ export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
   onStartEditingTitle,
   onCancelEditingTitle,
   onConfirmTitle,
-  onDelete,
-  deleteLabel,
   renameLabel,
   editLabel,
   doneLabel,
-  newLabel,
   moreLabel,
   confirmLabel,
   cancelLabel,
   onToggleEditing,
-  onCreate,
   onExport,
   onImport,
   exportLabel,
@@ -105,13 +97,11 @@ export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
       <IconButton icon={Download} label={exportLabel} onClick={onExport} variant="ghost" size="lg" className="hidden rounded-full xl:inline-flex" disabled={isTransferring} />
       <IconButton icon={Upload} label={importLabel} onClick={() => importInputRef.current?.click()} variant="ghost" size="lg" className="hidden rounded-full xl:inline-flex" disabled={isTransferring} />
       <IconButton icon={History} label={historyLabel} onClick={onOpenHistory} variant="ghost" size="lg" className="hidden rounded-full xl:inline-flex" disabled={isTransferring} />
-      <IconButton icon={Plus} label={newLabel} onClick={onCreate} variant="ghost" size="lg" className="hidden rounded-full sm:inline-flex" />
       {isEditingDashboard ? (
         <Button type="button" onClick={onToggleEditing} variant="primary" size="lg" className="rounded-full">{doneLabel}</Button>
       ) : (
         <>
           <IconButton icon={PenLine} label={editLabel} onClick={onToggleEditing} variant="ghost" size="lg" className="rounded-full" />
-          <IconButton icon={Trash2} label={deleteLabel} onClick={onDelete} variant="danger" size="lg" className="hidden rounded-full xl:inline-flex" />
         </>
       )}
       <details ref={overflowDetailsRef} className="relative xl:hidden">
@@ -120,8 +110,6 @@ export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
           <Button role="menuitem" variant="ghost" size="md" onClick={() => { closeOverflow(); onExport(); }} className="min-h-11 w-full justify-start" disabled={isTransferring}><Download className="h-4 w-4" />{exportLabel}</Button>
           <Button role="menuitem" variant="ghost" size="md" onClick={() => { closeOverflow(); importInputRef.current?.click(); }} className="min-h-11 w-full justify-start" disabled={isTransferring}><Upload className="h-4 w-4" />{importLabel}</Button>
           <Button role="menuitem" variant="ghost" size="md" onClick={() => { closeOverflow(); onOpenHistory(); }} className="min-h-11 w-full justify-start" disabled={isTransferring}><History className="h-4 w-4" />{historyLabel}</Button>
-          <Button role="menuitem" variant="ghost" size="md" onClick={() => { closeOverflow(); onCreate(); }} className="min-h-11 w-full justify-start sm:hidden"><Plus className="h-4 w-4" />{newLabel}</Button>
-          {!isEditingDashboard && <Button role="menuitem" variant="ghost" size="md" onClick={() => { closeOverflow(); onDelete(); }} className="min-h-11 w-full justify-start text-danger hover:bg-danger/10 hover:text-danger"><Trash2 className="h-4 w-4" />{deleteLabel}</Button>}
         </div>
       </details>
     </div>}

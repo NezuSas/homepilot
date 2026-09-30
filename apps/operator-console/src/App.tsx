@@ -22,7 +22,7 @@ import { OnboardingView } from './views/OnboardingView';
 import { Button } from './components/ui/Button';
 import type { View } from './types';
 import type { AssistantConversationResponse } from './types/assistantConversation';
-import { DASHBOARDS_ONE_PATTERN, DASHBOARDS_TAB_PATTERN, isSystemView, pathToView, resolveView, viewToPath } from './lib/viewNavigation';
+import { DASHBOARDS_ONE_PATTERN, DASHBOARDS_TAB_PATTERN, dashboardTabPath, isSystemView, pathToView, resolveView, viewToPath } from './lib/viewNavigation';
 import { useRealtimeEvents } from './lib/useRealtimeEvents';
 import { useAppShellStore } from './stores/useAppShellStore';
 import { useAssistantStore } from './stores/useAssistantStore';
@@ -809,6 +809,7 @@ function App() {
                  pendingPrompt={pendingHomeConversationPrompt}
                  assistantTurnCoordinator={assistantTurnCoordinator}
                  onNavigate={navigateTo}
+                 onOpenOwnDashboardTab={(dashboardId, tabId) => navigate(dashboardTabPath(dashboardId, tabId))}
                  onRoutineSectionChange={(section) => navigate(`/routines/${section}`)}
                  onOpenMobileMenu={() => setIsSidebarOpen(true)}
                  onDashboardCatalogChange={(dashboards) => setSidebarDashboards(dashboards)}

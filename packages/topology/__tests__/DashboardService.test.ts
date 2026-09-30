@@ -57,6 +57,79 @@ describe('DashboardService', () => {
     await expect(service.createDashboard('user-1', '   ')).rejects.toThrow('DASHBOARD_TITLE_REQUIRED');
   });
 
+  it('rejects a second owned dashboard without counting dashboards shared with the user', async () => {
+    const owned = createDashboard('owned', 'Oscar');
+    const shared = { ...createDashboard('shared', 'Sala'), ownerId: 'another-user' };
+    const service = new DashboardService({
+      ...createDashboardRepository(owned),
+      findAllVisibleTo: async () => [shared, owned],
+    }, createHomeRepository());
+    await expect(service.createDashboard('user-1', 'Second')).rejects.toThrow('DASHBOARD_OWNER_EXISTS');
+  });
+
+  it('rejects deleting the required owned dashboard while preserving shared access checks', async () => {
+    const owned = createDashboard('owned', 'Oscar');
+    const deleteDashboard = jest.fn();
+    const service = new DashboardService({
+      ...createDashboardRepository(owned), deleteDashboard,
+    }, createHomeRepository());
+    await expect(service.deleteDashboard('user-1', 'admin', owned.id)).rejects.toThrow('DASHBOARD_OWNED_REQUIRED');
+    expect(deleteDashboard).not.toHaveBeenCalled();
+  });
+
+  it('rejects two open-on-load tabs without persisting a revision or the invalid tabs', async () => {
+    const owned = createDashboard('owned', 'Oscar');
+    const saveDashboard = jest.fn();
+    const saveRevision = jest.fn();
+    const service = new DashboardService({
+      ...createDashboardRepository(owned), saveDashboard, saveRevision,
+    }, createHomeRepository());
+    await expect(service.updateDashboard('user-1', 'admin', owned.id, { tabs: [
+      { id: 'a', title: 'A', widgets: [], isDefault: true },
+      { id: 'b', title: 'B', widgets: [], isDefault: true },
+    ] })).rejects.toThrow('DASHBOARD_MULTIPLE_DEFAULT_TABS');
+    expect(saveDashboard).not.toHaveBeenCalled();
+    expect(saveRevision).not.toHaveBeenCalled();
+  });
+
+  it('keeps the required owned dashboard visible even when it has no tabs', async () => {
+    const owned = createDashboard('owned', 'Oscar');
+    owned.tabs = [];
+    const service = new DashboardService({
+      ...createDashboardRepository(owned),
+      findAllVisibleTo: async () => [owned],
+    }, createHomeRepository());
+
+    expect((await service.getDashboardsForUser('user-1', 'admin')).map((dashboard) => dashboard.id)).toEqual(['owned']);
+  });
+
+  it('imports tabs into the existing owned dashboard without replacing its identity or title', async () => {
+    const owned = createDashboard('owned', 'Mi hogar');
+    owned.tabs[0].isDefault = true;
+    const saveDashboard = jest.fn().mockResolvedValue(undefined);
+    const saveRevision = jest.fn().mockResolvedValue(undefined);
+    const service = new DashboardService({
+      ...createDashboardRepository(owned),
+      findAllVisibleTo: async () => [owned],
+      saveDashboard,
+      saveRevision,
+    }, createHomeRepository());
+
+    const imported = await service.importDashboard('user-1', {
+      format: DASHBOARD_TRANSFER_FORMAT,
+      version: DASHBOARD_TRANSFER_VERSION,
+      dashboard: { title: 'Otro hogar', tabs: [{ id: 'source-tab', title: 'Nueva', widgets: [], isDefault: true }] },
+    });
+
+    expect(imported.id).toBe('owned');
+    expect(imported.title).toBe('Mi hogar');
+    expect(imported.tabs).toHaveLength(2);
+    expect(imported.tabs[0]).toMatchObject({ id: 'tab-1', isDefault: false });
+    expect(imported.tabs[1]).toMatchObject({ title: 'Nueva', isDefault: true });
+    expect(saveDashboard).toHaveBeenCalledWith(expect.objectContaining({ id: 'owned', tabs: imported.tabs }));
+    expect(saveRevision).toHaveBeenCalledWith(expect.objectContaining({ dashboardId: 'owned', snapshot: expect.objectContaining({ title: 'Mi hogar' }) }));
+  });
+
   it('exports owned dashboard layout without local backgrounds or visibility', async () => {
     const stored: Dashboard = {
       id: 'dashboard-1', ownerId: 'user-1', title: 'Control principal',
@@ -82,7 +155,7 @@ describe('DashboardService', () => {
     expect(exported.dashboard.tabs[0].background).toBeUndefined();
     expect(exported.dashboard.tabs[0].backgroundUnavailable).toBe(true);
     expect(exported.dashboard.tabs[0].visibility).toBeUndefined();
-    expect(exported.dashboard.tabs[0].isDefault).toBeUndefined();
+    expect(exported.dashboard.tabs[0].isDefault).toBe(true);
   });
 
   it('imports a versioned dashboard as a private copy with new identifiers', async () => {
@@ -113,7 +186,7 @@ describe('DashboardService', () => {
 
     expect(imported.ownerId).toBe('user-2');
     expect(imported.visibility).toEqual({ roles: [], users: ['user-2'], homes: [] });
-    expect(imported.tabs[0]).toMatchObject({ title: 'Principal', background: undefined, visibility: undefined, isDefault: false });
+    expect(imported.tabs[0]).toMatchObject({ title: 'Principal', background: undefined, visibility: undefined, isDefault: true });
     expect(imported.tabs[0].id).not.toBe('source-tab');
     expect(imported.tabs[0].widgets[0].id).not.toBe('source-widget');
     expect(savedDashboard).toEqual(expect.objectContaining({ id: imported.id, tabs: imported.tabs }));
@@ -129,7 +202,9 @@ describe('DashboardService', () => {
   ])('uses a recognizable, deterministic import title: $expected', async ({ existing, language, expected }) => {
     const dashboardRepository: DashboardRepository = {
       ...createDashboardRepository(null),
-      findAllVisibleTo: async () => existing.map((title, index) => createDashboard(`existing-${index}`, title)),
+      findAllVisibleTo: async () => existing.map((title, index) => ({
+        ...createDashboard(`existing-${index}`, title), ownerId: `shared-owner-${index}`,
+      })),
     };
     const service = new DashboardService(dashboardRepository, createHomeRepository());
     const imported = await service.importDashboard('user-1', {
@@ -175,16 +250,19 @@ describe('DashboardService', () => {
       ],
       createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
     };
-    const service = new DashboardService(createDashboardRepository(source), createHomeRepository());
+    const service = new DashboardService({
+      ...createDashboardRepository(source),
+      findAllVisibleTo: async () => [source],
+    }, createHomeRepository());
     const serialized = JSON.stringify(await service.exportDashboard('user-1', source.id));
     const imported = await service.importDashboard('user-1', JSON.parse(serialized) as unknown);
 
-    expect(imported.id).not.toBe(source.id);
+    expect(imported.id).toBe(source.id);
     expect(imported.title).toBe(source.title);
-    expect(imported.tabs.map((tab) => tab.title)).toEqual(['Planta baja', 'Planta alta']);
-    expect(imported.tabs[0]?.icon).toBe('mdi:home');
-    expect(imported.tabs[0]?.widgets.map((widget) => widget.id)).not.toEqual(source.tabs[0]?.widgets.map((widget) => widget.id));
-    expect(imported.tabs[0]?.widgets.map((widget) => widget.config)).toEqual(source.tabs[0]?.widgets.map((widget) => widget.config));
+    expect(imported.tabs.map((tab) => tab.title)).toEqual(['Planta baja', 'Planta alta', 'Planta baja', 'Planta alta']);
+    expect(imported.tabs[2]?.icon).toBe('mdi:home');
+    expect(imported.tabs[2]?.widgets.map((widget) => widget.id)).not.toEqual(source.tabs[0]?.widgets.map((widget) => widget.id));
+    expect(imported.tabs[2]?.widgets.map((widget) => widget.config)).toEqual(source.tabs[0]?.widgets.map((widget) => widget.config));
   });
 
   it('preserves compatible local bindings, unassigns missing targets without name remapping, and reports each one', async () => {
@@ -503,6 +581,19 @@ describe('DashboardService', () => {
     const dashboards = await service.getDashboardsForUser('gustavo-user', 'admin');
     expect(dashboards).toHaveLength(1);
     expect(dashboards[0].tabs.map((tab) => tab.id)).toEqual(['tab-gustavo']);
+  });
+
+  it('keeps one owned dashboard and two shared dashboards visible together', async () => {
+    const owned = createDashboard('owned', 'Mi hogar');
+    const sharedA = { ...createDashboard('shared-a', 'Familia'), ownerId: 'owner-a' };
+    const sharedB = { ...createDashboard('shared-b', 'Invitado'), ownerId: 'owner-b' };
+    const service = new DashboardService({
+      ...createDashboardRepository(owned),
+      findAllVisibleTo: async () => [sharedA, owned, sharedB],
+    }, createHomeRepository());
+
+    expect((await service.getDashboardsForUser('user-1', 'admin')).map((dashboard) => dashboard.id))
+      .toEqual(['shared-a', 'owned', 'shared-b']);
   });
 
   it('restores a selected revision and archives the current state first', async () => {

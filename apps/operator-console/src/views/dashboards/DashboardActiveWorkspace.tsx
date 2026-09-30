@@ -22,9 +22,7 @@ interface DashboardActiveWorkspaceProps {
   onStartEditingTitle: () => void;
   onCancelEditingTitle: () => void;
   onConfirmTitle: () => void;
-  onDeleteDashboard: () => void;
   onToggleEditing: () => void;
-  onCreateDashboard: () => void;
   onExport: () => void;
   onImport: (file: File) => void;
   onOpenHistory: () => void;
@@ -58,9 +56,7 @@ export function DashboardActiveWorkspace({
   onStartEditingTitle,
   onCancelEditingTitle,
   onConfirmTitle,
-  onDeleteDashboard,
   onToggleEditing,
-  onCreateDashboard,
   onExport,
   onImport,
   onOpenHistory,
@@ -87,17 +83,13 @@ export function DashboardActiveWorkspace({
           onStartEditingTitle={onStartEditingTitle}
           onCancelEditingTitle={onCancelEditingTitle}
           onConfirmTitle={onConfirmTitle}
-          onDelete={onDeleteDashboard}
-          deleteLabel={t('dashboards.delete')}
           renameLabel={t('dashboards.rename')}
           editLabel={t('dashboards.action_edit')}
           doneLabel={t('common.done')}
-          newLabel={t('dashboards.action_new')}
           moreLabel={t('common.more')}
           confirmLabel={t('common.confirm')}
           cancelLabel={t('common.cancel')}
           onToggleEditing={onToggleEditing}
-          onCreate={onCreateDashboard}
           onExport={onExport}
           onImport={onImport}
           exportLabel={t('dashboards.transfer.export')}

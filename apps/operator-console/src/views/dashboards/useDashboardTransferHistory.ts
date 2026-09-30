@@ -65,9 +65,14 @@ export function useDashboardTransferHistory({
       }
       const imported = await importDashboard(transfer, t('dashboards.transfer.error_import'), language);
       const { importReport: report, ...dashboard } = imported;
-      publishDashboards((current) => [...current, dashboard]);
+      publishDashboards((current) => {
+        const existing = current.find((candidate) => candidate.id === dashboard.id);
+        return existing
+          ? current.map((candidate) => candidate.id === dashboard.id ? dashboard : candidate)
+          : [...current, dashboard];
+      });
       setActive(dashboard);
-      setActiveTabIdx(0);
+      setActiveTabIdx(getDefaultTabIndex(dashboard));
       setIsEditing(true);
       if (report && (report.unresolvedBindings.length > 0 || report.nonPortableBackgrounds > 0)) {
         setImportReport({ dashboardId: dashboard.id, report });

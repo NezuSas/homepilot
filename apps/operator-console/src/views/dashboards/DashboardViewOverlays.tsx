@@ -13,8 +13,6 @@ interface DashboardViewOverlaysProps {
   setTabConfigIdx: Dispatch<SetStateAction<number | null>>;
   tabPendingDelete: number | null;
   setTabPendingDelete: Dispatch<SetStateAction<number | null>>;
-  dashboardPendingDelete: Dashboard | null;
-  setDashboardPendingDelete: Dispatch<SetStateAction<Dashboard | null>>;
   isDeleting: boolean;
   isHistoryOpen: boolean;
   setIsHistoryOpen: Dispatch<SetStateAction<boolean>>;
@@ -25,16 +23,15 @@ interface DashboardViewOverlaysProps {
   isRestoringRevision: boolean;
   handleSaveTabConfig: (tabIdx: number, fields: TabConfigFields) => void | Promise<void>;
   handleDeleteTab: (tabIdx: number) => void | Promise<void>;
-  handleDelete: () => void | Promise<void>;
   handleRestoreRevision: () => void | Promise<void>;
 }
 
 export function DashboardViewOverlays({
   active, tabConfigIdx, setTabConfigIdx, tabPendingDelete, setTabPendingDelete,
-  dashboardPendingDelete, setDashboardPendingDelete, isDeleting, isHistoryOpen,
+  isDeleting, isHistoryOpen,
   setIsHistoryOpen, isHistoryLoading, revisions, revisionPendingRestore,
   setRevisionPendingRestore, isRestoringRevision, handleSaveTabConfig, handleDeleteTab,
-  handleDelete, handleRestoreRevision,
+  handleRestoreRevision,
 }: DashboardViewOverlaysProps) {
   const { t } = useTranslation();
   return (
@@ -42,6 +39,7 @@ export function DashboardViewOverlays({
       <DashboardViewConfigModal
         isOpen={tabConfigIdx !== null && Boolean(active?.tabs[tabConfigIdx ?? 0])}
         tab={active?.tabs[tabConfigIdx ?? 0] ?? { title: '' }}
+        defaultTabOwnerTitle={active?.tabs.find((tab, index) => index !== tabConfigIdx && tab.isDefault)?.title}
         onClose={() => setTabConfigIdx(null)}
         onSave={(fields) => {
           if (tabConfigIdx === null) return;
@@ -53,18 +51,6 @@ export function DashboardViewOverlays({
           setTabPendingDelete(tabConfigIdx);
           setTabConfigIdx(null);
         }}
-      />
-
-      <ConfirmModal
-        isOpen={dashboardPendingDelete !== null}
-        onClose={() => { if (!isDeleting) setDashboardPendingDelete(null); }}
-        onConfirm={handleDelete}
-        title={t('dashboards.delete_dashboard_title')}
-        description={t('dashboards.delete_dashboard_description', { title: dashboardPendingDelete?.title || '' })}
-        confirmText={t('dashboards.delete')}
-        cancelText={t('common.cancel')}
-        variant="danger"
-        isSubmitting={isDeleting}
       />
 
       <ConfirmModal

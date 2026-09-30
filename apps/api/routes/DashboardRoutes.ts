@@ -37,11 +37,14 @@ export class DashboardRoutes extends ApiRoutes {
           displayName: req.user!.displayName ?? null,
         };
 
-        for (const user of [currentDashboardOwner]) {
-          const hasDashboard = dashboards.some(dashboard => dashboard.ownerId === user.id);
-          if (!hasDashboard) {
-            const title = user.displayName?.trim() || user.username;
-            await container.services.dashboardService.createDashboard(user.id, title);
+        const hasDashboard = dashboards.some(dashboard => dashboard.ownerId === currentDashboardOwner.id);
+        if (!hasDashboard) {
+          const title = currentDashboardOwner.displayName?.trim() || currentDashboardOwner.username;
+          try {
+            await container.services.dashboardService.createDashboard(currentDashboardOwner.id, title);
+          } catch (error) {
+            // A concurrent request may have provisioned the same owner already.
+            if (!(error instanceof Error) || error.message !== 'DASHBOARD_OWNER_EXISTS') throw error;
           }
         }
 
@@ -85,7 +88,8 @@ export class DashboardRoutes extends ApiRoutes {
         this.sendJson(res, dashboard, 201);
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Failed to import dashboard';
-        const status = message === 'DASHBOARD_IMPORT_INVALID' || message === 'DASHBOARD_IMPORT_UNSUPPORTED_VERSION' ? 400 : 500;
+        const status = message === 'DASHBOARD_IMPORT_INVALID' || message === 'DASHBOARD_IMPORT_UNSUPPORTED_VERSION'
+          || message === 'DASHBOARD_MULTIPLE_DEFAULT_TABS' ? 400 : message === 'DASHBOARD_OWNER_CONFLICT' ? 409 : 500;
         this.sendError(res, status, message, message);
       }
       return true;
@@ -136,7 +140,7 @@ export class DashboardRoutes extends ApiRoutes {
         this.sendJson(res, dashboard, 201);
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Failed to create dashboard';
-        const status = message === 'DASHBOARD_TITLE_REQUIRED' ? 400 : 500;
+        const status = message === 'DASHBOARD_TITLE_REQUIRED' ? 400 : message === 'DASHBOARD_OWNER_EXISTS' ? 409 : 500;
         this.sendError(res, status, 'DASHBOARD_ERROR', message);
       }
       return true;
@@ -152,6 +156,9 @@ export class DashboardRoutes extends ApiRoutes {
           visibility?: DashboardVisibility;
         }>(req);
 
+        if (body.tabs && body.tabs.filter((tab) => tab.isDefault).length > 1) {
+          return this.sendError(res, 400, 'DASHBOARD_MULTIPLE_DEFAULT_TABS', 'DASHBOARD_MULTIPLE_DEFAULT_TABS'), true;
+        }
         if (body.tabs) {
           const dashboardId = patchMatch[1];
 
@@ -191,7 +198,8 @@ export class DashboardRoutes extends ApiRoutes {
         this.sendJson(res, updated);
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Failed to update dashboard';
-        const status = message === 'FORBIDDEN' ? 403 : message === 'DASHBOARD_NOT_FOUND' ? 404 : 500;
+        const status = message === 'FORBIDDEN' ? 403 : message === 'DASHBOARD_NOT_FOUND' ? 404
+          : message === 'DASHBOARD_MULTIPLE_DEFAULT_TABS' ? 400 : 500;
         this.sendError(res, status, message, message);
       }
       return true;
@@ -202,13 +210,11 @@ export class DashboardRoutes extends ApiRoutes {
     if (deleteMatch) {
       try {
         const dashboardId = deleteMatch[1];
-        await this.mediaService.deleteDashboardBackgrounds(dashboardId);
-
         await container.services.dashboardService.deleteDashboard(req.user!.id, req.user!.role, dashboardId);
         this.sendJson(res, { success: true });
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Failed to delete dashboard';
-        const status = message === 'FORBIDDEN' ? 403 : 500;
+        const status = message === 'FORBIDDEN' || message === 'DASHBOARD_OWNED_REQUIRED' ? 403 : 500;
         this.sendError(res, status, message, message);
       }
       return true;

@@ -179,19 +179,19 @@ describe('Feature: dashboard route contract', () => {
     expect(response.end).toHaveBeenCalledWith(expect.stringContaining('DASHBOARD_IMPORT_INVALID'));
   });
 
-  it('Scenario: Given an owned dashboard When deleting it Then related media is removed before the dashboard', async () => {
+  it('Scenario: Given an owned dashboard When deletion is rejected Then related media is retained', async () => {
     const mediaService = createMediaService();
     const routes = new DashboardRoutes(mediaService);
     const container = createContainer();
-    container.services.dashboardService.deleteDashboard = jest.fn().mockResolvedValue(undefined);
+    container.services.dashboardService.deleteDashboard = jest.fn().mockRejectedValue(new Error('DASHBOARD_OWNED_REQUIRED'));
     const response = new MockResponse();
 
     await routes.handle(createRequest(), response as unknown as http.ServerResponse, '/api/v1/dashboards/dashboard-1', 'DELETE', container);
 
-    expect(mediaService.deleteDashboardBackgrounds).toHaveBeenCalledWith('dashboard-1');
+    expect(mediaService.deleteDashboardBackgrounds).not.toHaveBeenCalled();
     expect(container.services.dashboardService.deleteDashboard).toHaveBeenCalledWith('owner-1', 'admin', 'dashboard-1');
-    expect(response.writeHead).toHaveBeenCalledWith(200, expect.any(Object));
-    expect(response.end).toHaveBeenCalledWith(expect.stringContaining('"success":true'));
+    expect(response.writeHead).toHaveBeenCalledWith(403, expect.any(Object));
+    expect(response.end).toHaveBeenCalledWith(expect.stringContaining('DASHBOARD_OWNED_REQUIRED'));
   });
 });
 
@@ -251,7 +251,7 @@ describe('Feature: dashboard route contract', () => {
     container.services.dashboardService.deleteDashboard = jest.fn().mockRejectedValue(new Error('FORBIDDEN'));
     const remove = new MockResponse();
     await routes.handle(createRequest(), remove as unknown as http.ServerResponse, '/api/v1/dashboards/dashboard-1', 'DELETE', container);
-    expect(media.deleteDashboardBackgrounds).toHaveBeenCalledWith('dashboard-1');
+    expect(media.deleteDashboardBackgrounds).not.toHaveBeenCalled();
     expect(remove.writeHead).toHaveBeenCalledWith(403, expect.any(Object));
     expect(remove.end).toHaveBeenCalledWith(expect.stringContaining('FORBIDDEN'));
   });
@@ -301,5 +301,25 @@ describe('Feature: dashboard list ordering contracts', () => {
 
     expect(container.services.dashboardService.createDashboard).not.toHaveBeenCalled();
     expect(JSON.parse(response.end.mock.calls[0][0] as string).map((item: { id: string }) => item.id)).toEqual(['owner', 'shared-a', 'shared-z']);
+  });
+});
+
+describe('Feature: single open-on-load tab', () => {
+  it('rejects two defaults before changing any background media', async () => {
+    const media = createMediaService();
+    const routes = new DashboardRoutes(media);
+    const container = createContainer();
+    container.services.dashboardService.updateDashboard = jest.fn();
+    const response = new MockResponse();
+
+    await routes.handle(createRequest({ tabs: [
+      { id: 'a', title: 'A', widgets: [], isDefault: true, background: 'data:image/png;base64,YQ==' },
+      { id: 'b', title: 'B', widgets: [], isDefault: true },
+    ] }), response as unknown as http.ServerResponse, '/api/v1/dashboards/dashboard-1', 'PATCH', container);
+
+    expect(response.writeHead).toHaveBeenCalledWith(400, expect.any(Object));
+    expect(container.services.dashboardService.updateDashboard).not.toHaveBeenCalled();
+    expect(media.deleteTabBackground).not.toHaveBeenCalled();
+    expect(media.saveTabBackground).not.toHaveBeenCalled();
   });
 });

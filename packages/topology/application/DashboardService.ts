@@ -42,12 +42,15 @@ export class DashboardService {
         ...dashboard,
         tabs: dashboard.tabs.filter((tab) => tab.visibility?.users.includes(userId)),
       };
-    }).filter((dashboard) => dashboard.tabs.length > 0);
+    }).filter((dashboard) => dashboard.ownerId === userId || dashboard.tabs.length > 0);
   }
 
   public async createDashboard(userId: string, title: string): Promise<Dashboard> {
     const normalizedTitle = title.trim();
     if (!normalizedTitle) throw new Error('DASHBOARD_TITLE_REQUIRED');
+    const owned = (await this.dashboardRepository.findAllVisibleTo(userId, '', []))
+      .filter((candidate) => candidate.ownerId === userId);
+    if (owned.length > 0) throw new Error('DASHBOARD_OWNER_EXISTS');
     const now = new Date().toISOString();
     const dashboard: Dashboard = {
       id: randomUUID(),
@@ -77,6 +80,7 @@ export class DashboardService {
             title: tab.title,
             widgets: tab.widgets,
             icon: tab.icon,
+            isDefault: tab.isDefault === true,
             ...(presetId ? { backgroundPresetId: presetId, backgroundOpacity: tab.backgroundOpacity } : {}),
             ...(tab.background && !presetId ? { backgroundUnavailable: true as const } : {}),
           };
@@ -103,6 +107,11 @@ export class DashboardService {
     }
 
     const visibleDashboards = await this.dashboardRepository.findAllVisibleTo(userId, '', []);
+    const ownedDashboards = visibleDashboards.filter((candidate) => candidate.ownerId === userId);
+    if (ownedDashboards.length > 1) throw new Error('DASHBOARD_OWNER_CONFLICT');
+    if (transfer.dashboard.tabs.filter((tab) => tab.isDefault).length > 1) {
+      throw new Error('DASHBOARD_MULTIPLE_DEFAULT_TABS');
+    }
     const existingTitles = new Set(visibleDashboards.map((dashboard) => dashboard.title.trim().toLowerCase()));
     const suffix = language.toLowerCase().startsWith('en') ? 'Imported' : 'Importado';
     let title = sourceTitle;
@@ -133,14 +142,23 @@ export class DashboardService {
           && Number.isFinite(tab.backgroundOpacity) && tab.backgroundOpacity >= 0 && tab.backgroundOpacity <= 100
           ? tab.backgroundOpacity : undefined,
         visibility: undefined,
-        isDefault: false,
+        isDefault: tab.isDefault === true,
         widgets: await normalizeImportedWidgets(
           tab.widgets, tab.title, authorizedHomeIds, tabIds, this.importBindingResolver, report,
         ),
       };
     }));
     const now = new Date().toISOString();
-    const dashboard: Dashboard = {
+    const owned = ownedDashboards[0];
+    const importedHasDefault = tabs.some((tab) => tab.isDefault);
+    const dashboard: Dashboard = owned ? {
+      ...owned,
+      tabs: [
+        ...owned.tabs.map((tab) => importedHasDefault ? { ...tab, isDefault: false } : tab),
+        ...tabs,
+      ],
+      updatedAt: now,
+    } : {
       id: randomUUID(),
       ownerId: userId,
       title,
@@ -149,6 +167,15 @@ export class DashboardService {
       createdAt: now,
       updatedAt: now,
     };
+    if (owned) {
+      dashboard.visibility = createVisibilityForTabs(userId, dashboard.tabs, owned.visibility);
+      await this.dashboardRepository.saveRevision({
+        id: randomUUID(),
+        dashboardId: owned.id,
+        createdAt: now,
+        snapshot: createRevisionSnapshot(owned),
+      });
+    }
 
     await this.dashboardRepository.saveDashboard(dashboard);
     return { ...dashboard, importReport: report };
@@ -165,6 +192,9 @@ export class DashboardService {
 
     if (dashboard.ownerId !== userId) {
       throw new Error('FORBIDDEN');
+    }
+    if (updates.tabs && updates.tabs.filter((tab) => tab.isDefault).length > 1) {
+      throw new Error('DASHBOARD_MULTIPLE_DEFAULT_TABS');
     }
 
     const now = new Date().toISOString();
@@ -201,13 +231,6 @@ export class DashboardService {
     if (!revision) throw new Error('DASHBOARD_REVISION_NOT_FOUND');
 
     const now = new Date().toISOString();
-    await this.dashboardRepository.saveRevision({
-      id: randomUUID(),
-      dashboardId: dashboard.id,
-      createdAt: now,
-      snapshot: createRevisionSnapshot(dashboard),
-    });
-
     const currentBackgroundByTabId = new Map(
       dashboard.tabs.map((tab) => [tab.id, tab.background]),
     );
@@ -221,7 +244,16 @@ export class DashboardService {
       })),
       updatedAt: now,
     };
+    if (restored.tabs.filter((tab) => tab.isDefault).length > 1) {
+      throw new Error('DASHBOARD_MULTIPLE_DEFAULT_TABS');
+    }
 
+    await this.dashboardRepository.saveRevision({
+      id: randomUUID(),
+      dashboardId: dashboard.id,
+      createdAt: now,
+      snapshot: createRevisionSnapshot(dashboard),
+    });
     await this.dashboardRepository.saveDashboard(restored);
     return restored;
   }
@@ -244,8 +276,7 @@ export class DashboardService {
     if (dashboard.ownerId !== userId) {
       throw new Error('FORBIDDEN');
     }
-
-    await this.dashboardRepository.deleteDashboard(dashboardId);
+    throw new Error('DASHBOARD_OWNED_REQUIRED');
   }
 }
 
@@ -299,6 +330,7 @@ function isDashboardTransferPackage(value: unknown): value is DashboardTransferP
       && typeof tab.title === 'string' && Boolean(tab.title.trim())
       && (tab.backgroundPresetId === undefined || (typeof tab.backgroundPresetId === 'string' && Boolean(tab.backgroundPresetId.trim())))
       && (tab.backgroundUnavailable === undefined || tab.backgroundUnavailable === true)
+      && (tab.isDefault === undefined || typeof tab.isDefault === 'boolean')
       && (tab.backgroundOpacity === undefined || (typeof tab.backgroundOpacity === 'number' && Number.isFinite(tab.backgroundOpacity) && tab.backgroundOpacity >= 0 && tab.backgroundOpacity <= 100))
       && Array.isArray(tab.widgets)
       && tab.widgets.every((widget) =>

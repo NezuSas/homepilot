@@ -204,7 +204,7 @@ describe('SQLite Topology Persistence Integration', () => {
     const now = new Date().toISOString();
     const dashboard: Dashboard = {
       id: 'dashboard-oscar',
-      ownerId: 'oscar-user',
+      ownerId: randomUUID(),
       title: 'Oscar',
       visibility: { roles: ['admin'], users: ['oscar-user'], homes: [] },
       tabs: [

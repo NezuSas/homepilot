@@ -24,6 +24,7 @@ interface AppViewRouterProps {
   pendingPrompt: { id: string; text: string; interactionMode: 'voice' } | null;
   assistantTurnCoordinator: AssistantTurnCoordinator;
   onNavigate: (view: View) => void;
+  onOpenOwnDashboardTab: (dashboardId: string, tabId: string) => void;
   onRoutineSectionChange: (section: 'scenes' | 'automations') => void;
   onOpenMobileMenu: () => void;
   onDashboardCatalogChange: (dashboards: Array<{ id: string; ownerId: string; title: string }>) => void;
@@ -37,7 +38,7 @@ export function AppViewRouter(props: AppViewRouterProps) {
   const layout = getAppViewRouterLayout(props.currentView);
   const fallback = <LoadingState label={t('common.loading')} className="min-h-screen-half" size="md" />;
   return <PageFrame immersive={layout.immersive} className={layout.pageClassName}><Suspense fallback={fallback}>
-    {props.currentView === 'dashboard' && <DashboardView onActionExecute={props.onDeviceAction} onNavigate={props.onNavigate} displayName={props.displayName} canManageAutomations={props.canManageAutomations} />}
+    {props.currentView === 'dashboard' && <DashboardView onActionExecute={props.onDeviceAction} onNavigate={props.onNavigate} displayName={props.displayName} currentUserId={props.user?.id ?? null} onOpenOwnDashboardTab={props.onOpenOwnDashboardTab} canManageAutomations={props.canManageAutomations} />}
     {props.currentView === 'spaces' && <TopologyView currentUser={props.user} />}
     {props.currentView === 'routines' && <RoutinesView section={getRoutineSection(props.currentPath, props.canManageAutomations)} canManageAutomations={props.canManageAutomations} onSectionChange={props.onRoutineSectionChange} onSceneActionExecute={props.onDeviceAction} currentUserId={props.user?.id ?? null} />}
     {props.currentView === 'assistant' && <AssistantView onNavigate={props.onNavigate} />}

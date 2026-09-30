@@ -21,6 +21,7 @@ type ConfigTab = 'settings' | 'background' | 'visibility';
 
 interface DashboardViewConfigModalProps {
   isOpen: boolean;
+  defaultTabOwnerTitle?: string;
   tab: {
     title: string;
     icon?: string;
@@ -43,6 +44,7 @@ interface DashboardViewConfigModalProps {
 
 export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> = ({
   isOpen,
+  defaultTabOwnerTitle,
   tab,
   onClose,
   onSave,
@@ -238,11 +240,14 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
                 <span className="min-w-0">
                   <span className="block text-body font-bold text-foreground">{t('dashboards.view_config.default_view')}</span>
                   <span className="mt-0.5 block text-caption text-muted-foreground">{t('dashboards.view_config.default_view_hint')}</span>
+                  {defaultTabOwnerTitle && !tab.isDefault && <span id="dashboard-default-tab-owner" className="mt-1 block text-caption text-muted-foreground">{t('dashboards.view_config.default_view_taken', { title: defaultTabOwnerTitle })}</span>}
                 </span>
                 <ToggleSwitch
                   checked={isDefaultTab}
                   onCheckedChange={setIsDefaultTab}
                   label={t('dashboards.view_config.default_view')}
+                  disabled={Boolean(defaultTabOwnerTitle && !tab.isDefault)}
+                  aria-describedby={defaultTabOwnerTitle && !tab.isDefault ? 'dashboard-default-tab-owner' : undefined}
                   size="sm"
                 />
               </div>
