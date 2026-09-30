@@ -1459,7 +1459,7 @@
     height: 100%;
     object-fit: cover;
     object-position: center;
-    filter: brightness(1.42) saturate(0.92);
+    filter: brightness(1.02) saturate(0.96);
     transition: opacity 700ms ease-in-out;
   }
 
@@ -1471,11 +1471,133 @@
     z-index: 1;
     background: linear-gradient(
       90deg,
-      hsl(var(--background) / 0.88) 0%,
-      hsl(var(--background) / 0.72) 34%,
-      hsl(var(--background) / 0.22) 66%,
-      hsl(var(--background) / 0.34) 100%
+      rgb(9 9 10 / 0.75) 0%,
+      rgb(9 9 10 / 0.54) 34%,
+      rgb(9 9 10 / 0.08) 68%,
+      rgb(9 9 10 / 0.25) 100%
     );
+  }
+
+  .homepilot-home-hero .homepilot-home-greeting,
+  .homepilot-home-hero .homepilot-home-greeting + p {
+    color: #f9f8f6;
+  }
+
+  .homepilot-home-hero .homepilot-home-greeting + p {
+    color: rgb(249 248 246 / 0.82);
+  }
+
+  .homepilot-flip-clock {
+    --home-flip-height: clamp(4.25rem, 6.2vw, 5.85rem);
+    --home-flip-width: clamp(2.75rem, 4.5vw, 4.15rem);
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: clamp(0.3rem, 0.7vw, 0.65rem);
+    max-width: 100%;
+    padding: clamp(0.55rem, 1vw, 0.8rem);
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: 1.25rem;
+    background: rgb(21 20 20 / 0.79);
+    box-shadow: 0 12px 32px rgb(0 0 0 / 0.24), inset 0 1px 0 rgb(255 255 255 / 0.08);
+    color: #f9f8f6;
+    font-variant-numeric: tabular-nums;
+    backdrop-filter: blur(12px);
+  }
+
+  .homepilot-flip-pair { display: inline-flex; gap: 0.16rem; }
+
+  .homepilot-flip-digit {
+    position: relative;
+    display: block;
+    flex: none;
+    width: var(--home-flip-width);
+    height: var(--home-flip-height);
+    border: 1px solid rgb(255 255 255 / 0.06);
+    border-radius: 0.65rem;
+    background: #252527;
+    box-shadow: 0 3px 7px rgb(0 0 0 / 0.35);
+    perspective: 300px;
+  }
+
+  .homepilot-flip-half {
+    position: absolute;
+    left: 0;
+    right: 0;
+    display: block;
+    height: 50%;
+    overflow: hidden;
+    backface-visibility: hidden;
+  }
+
+  .homepilot-flip-half > span {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: var(--home-flip-height);
+    color: #f9f8f6;
+    font-size: calc(var(--home-flip-height) * 0.78);
+    font-weight: 500;
+    line-height: var(--home-flip-height);
+    text-align: center;
+    text-shadow: 0 2px 3px rgb(0 0 0 / 0.24);
+  }
+
+  .homepilot-flip-top {
+    top: 0;
+    border-radius: 0.58rem 0.58rem 0 0;
+    background: linear-gradient(#303032, #29292b);
+  }
+
+  .homepilot-flip-bottom {
+    bottom: 0;
+    border-radius: 0 0 0.58rem 0.58rem;
+    background: linear-gradient(#242426, #2c2c2e);
+  }
+
+  .homepilot-flip-bottom > span { top: calc(var(--home-flip-height) * -0.5); }
+
+  .homepilot-flip-digit::after {
+    position: absolute;
+    z-index: 4;
+    top: 50%;
+    right: 0;
+    left: 0;
+    height: 1px;
+    background: rgb(0 0 0 / 0.35);
+    content: '';
+    pointer-events: none;
+  }
+
+  .homepilot-flip-fold-out {
+    z-index: 2;
+    transform-origin: center bottom;
+    animation: homepilot-flip-out 320ms ease-in forwards;
+  }
+
+  .homepilot-flip-fold-in {
+    z-index: 3;
+    transform-origin: center top;
+    animation: homepilot-flip-in 320ms 320ms ease-out both;
+  }
+
+  @keyframes homepilot-flip-out { to { transform: rotateX(-90deg); } }
+  @keyframes homepilot-flip-in { from { transform: rotateX(90deg); } to { transform: rotateX(0); } }
+
+  .homepilot-flip-colon {
+    margin-inline: -0.12rem;
+    font-size: calc(var(--home-flip-height) * 0.67);
+    font-weight: 500;
+    line-height: 1;
+    animation: homepilot-colon-blink 1s steps(1, end) infinite;
+  }
+
+  @keyframes homepilot-colon-blink { 50% { opacity: 0.16; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .homepilot-flip-fold-out,
+    .homepilot-flip-fold-in,
+    .homepilot-flip-colon { animation: none; }
   }
 
   .homepilot-home-context > div {
@@ -1484,6 +1606,44 @@
     box-shadow: none;
     backdrop-filter: blur(12px);
   }
+
+  .homepilot-home-context > .homepilot-home-chip {
+    flex: 0 1 auto;
+    min-height: 2.55rem;
+    max-width: 100%;
+    gap: 0.35rem;
+    padding: 0.27rem 0.75rem;
+    border-color: rgb(255 255 255 / 0.11);
+    border-radius: 999px;
+    background: rgb(24 23 23 / 0.77);
+    color: rgb(249 248 246 / 0.86);
+    box-shadow: 0 3px 12px rgb(0 0 0 / 0.15);
+  }
+
+  .homepilot-home-chip > span:first-child {
+    width: 1.4rem;
+    height: 1.4rem;
+    background: none;
+    color: #f9f8f6;
+  }
+
+  .homepilot-home-chip:first-child > span:first-child { color: hsl(var(--primary)); }
+  .homepilot-home-chip > span:last-child > span { color: inherit; }
+  .homepilot-home-chip:nth-child(2) > span:last-child > span {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+  .homepilot-home-chip-divider {
+    display: inline-block;
+    height: 0.9em;
+    margin-inline: 0.35rem;
+    border-left: 1px solid rgb(255 255 255 / 0.28);
+    vertical-align: -0.06em;
+  }
+
+  .homepilot-home-hero [aria-label='HomePilot by NEZU'] { color: rgb(249 248 246 / 0.78); }
+  .homepilot-home-hero [aria-label='HomePilot by NEZU'] > span:first-child { color: rgb(249 248 246 / 0.91); }
 
   .homepilot-home-insights > div:first-child {
     padding-inline: 0;
@@ -1494,8 +1654,8 @@
     }
 
     .homepilot-home-hero {
-      min-height: clamp(22rem, 28vw, 30rem);
-      padding: clamp(2rem, 4vw, 4rem);
+      min-height: clamp(22rem, 26vw, 26rem);
+      padding: 2rem clamp(2rem, 4vw, 4rem) 1.25rem;
     }
   }
 }

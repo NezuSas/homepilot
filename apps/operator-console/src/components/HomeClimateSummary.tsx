@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { LayoutDashboard, MapPin } from 'lucide-react';
+import { CalendarDays, Cloud, LayoutDashboard, MapPin } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useClockData } from '../views/dashboards/widgets/clock/useClockData';
-import { ClockDateTimeSummary, ClockWeatherSummary } from '../views/dashboards/widgets/clock/designs/ClockSummaries';
+import { formatMonth, formatTemperature, formatWeekday } from '../views/dashboards/widgets/clock/clockUtils';
 import { loadDashboards } from '../views/dashboards/dashboardOperations';
 import { Button } from './ui/Button';
 import { HomeContextIndicator } from './HomeContextIndicator';
+import { HomeFlipClock } from './HomeFlipClock';
 
 const configuredCity = (import.meta.env.VITE_HOME_CITY as string | undefined)?.trim() || 'Cuenca';
 
@@ -17,6 +18,12 @@ interface HomeClimateSummaryProps {
 export const HomeClimateSummary: React.FC<HomeClimateSummaryProps> = ({ currentUserId, onOpenOwnDashboardTab }) => {
   const { i18n, t } = useTranslation();
   const { now, locale, copy, weather, weatherStatus } = useClockData(i18n.language);
+  const isEnglish = locale.toLowerCase().startsWith('en');
+  const dateLabel = isEnglish
+    ? `${formatWeekday(now, locale, 'long')}, ${formatMonth(now, locale, 'long')} ${now.getDate()}`
+    : `${formatWeekday(now, locale, 'long')}, ${now.getDate()} de ${formatMonth(now, locale, 'long')}`;
+  const weatherReady = weatherStatus === 'ready' && weather !== null;
+  const weatherLabel = weatherReady ? weather.label : weatherStatus === 'loading' || weatherStatus === 'idle' ? copy.weatherLoading : copy.weatherUnavailable;
   const [ownDefault, setOwnDefault] = useState<{ dashboardId: string; tabId: string; title: string } | null>(null);
 
   useEffect(() => {
@@ -33,15 +40,22 @@ export const HomeClimateSummary: React.FC<HomeClimateSummaryProps> = ({ currentU
 
   return (
     <div className="relative z-10 flex min-w-0 w-full flex-col gap-5 lg:flex-row lg:items-end lg:justify-between" aria-label={t('dashboard.home_context')}>
-      <div className="flex min-w-0 flex-col items-start gap-3">
-        <div className="homepilot-home-context flex min-w-0 flex-wrap items-start justify-start gap-2">
-          <ClockDateTimeSummary now={now} locale={locale} home />
-          <ClockWeatherSummary now={now} weather={weather} status={weatherStatus} copy={copy} home />
+      <div className="flex min-w-0 flex-col items-start gap-2">
+        <HomeFlipClock now={now} />
+        <div className="homepilot-home-context flex min-w-0 max-w-full flex-wrap items-center justify-start gap-2">
+          <HomeContextIndicator icon={MapPin} primaryIcon className="homepilot-home-chip">
+            {weather?.location ?? configuredCity}
+          </HomeContextIndicator>
+          <HomeContextIndicator icon={CalendarDays} className="homepilot-home-chip">
+            {dateLabel}
+          </HomeContextIndicator>
+          <HomeContextIndicator icon={Cloud} className="homepilot-home-chip">
+            <span className="tabular-nums">{weatherReady ? formatTemperature(weather.temperature) : '—'}</span>
+            <span className="homepilot-home-chip-divider" aria-hidden="true" />
+            <span className="font-normal text-muted-foreground">{weatherLabel}</span>
+          </HomeContextIndicator>
         </div>
-        <HomeContextIndicator icon={MapPin} primaryIcon className="w-fit max-w-full flex-none">
-          {weather?.location ?? configuredCity}
-        </HomeContextIndicator>
-        <div className="mt-2 text-left text-micro leading-tight text-muted-foreground" aria-label="HomePilot by NEZU">
+        <div className="mt-1 text-left text-micro leading-tight text-muted-foreground" aria-label="HomePilot by NEZU">
           <span className="block font-semibold text-foreground/70">HomePilot</span>
           <span className="block">by NEZU</span>
         </div>

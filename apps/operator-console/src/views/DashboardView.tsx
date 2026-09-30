@@ -244,8 +244,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
         />)}
         <div className="homepilot-home-hero-overlay" aria-hidden="true" />
         <div className="relative z-10 min-w-0 lg:max-w-[50%]">
-          <h1 className="text-display-title font-black leading-tight tracking-display-tight text-foreground sm:text-hero-title lg:text-hero-title-lg">
-            {t(`dashboard.greeting_${greetingKey}`, { name: displayName || t('dashboard.resident') })}
+          <h1 className="homepilot-home-greeting text-display-title font-black leading-tight tracking-display-tight text-foreground sm:text-hero-title lg:text-hero-title-lg">
+            <span className="block">{t(`dashboard.greeting_${greetingKey}`, { name: '' }).trim()}</span>
+            <span className="block break-words">{displayName || t('dashboard.resident')}</span>
           </h1>
           <p className="mt-3 max-w-3xl whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-body text-muted-foreground lg:text-card-title">{phrase}</p>
         </div>

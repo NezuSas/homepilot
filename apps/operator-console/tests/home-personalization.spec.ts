@@ -327,18 +327,24 @@ for (const viewport of [
     await page.goto('/');
     const hero = page.locator('.homepilot-home-hero');
     const heading = hero.getByRole('heading', { level: 1 });
+    const greetingLine = heading.locator('span').nth(0);
+    const nameLine = heading.locator('span').nth(1);
     const phrase = hero.getByText(/Frase de (mañana|tarde|noche)/);
     await expect(phrase).toBeVisible();
     const heroBox = await hero.boundingBox();
     const headingBox = await heading.boundingBox();
+    const greetingBox = await greetingLine.boundingBox();
+    const nameBox = await nameLine.boundingBox();
     const phraseBox = await phrase.boundingBox();
-    expect(heroBox && headingBox && phraseBox).toBeTruthy();
+    expect(heroBox && headingBox && greetingBox && nameBox && phraseBox).toBeTruthy();
     expect(headingBox!.y - heroBox!.y).toBeLessThan(80);
+    expect(nameBox!.y).toBeGreaterThan(greetingBox!.y);
+    expect(Math.abs(nameBox!.x - greetingBox!.x)).toBeLessThan(1);
     expect(phraseBox!.y).toBeGreaterThan(headingBox!.y);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   });
 
-  test(`Home keeps a 1000-character phrase above the Clock modules without overflow on ${viewport.name}`, async ({ page }) => {
+  test(`Home keeps a 1000-character phrase above the flip clock without overflow on ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await prepare(page);
     const phrase = ('Control sereno y claro para cada espacio. ').repeat(25).slice(0, 1000);
@@ -348,11 +354,11 @@ for (const viewport of [
     await page.goto('/');
     const hero = page.locator('.homepilot-home-hero');
     const paragraph = hero.locator('p').filter({ hasText: phrase });
-    const modules = hero.locator('.homepilot-home-context .homepilot-home-summary');
+    const clock = hero.locator('[data-home-flip-clock]');
     await expect(paragraph).toBeVisible();
-    await expect(modules).toHaveCount(2);
+    await expect(clock).toBeVisible();
     const phraseBounds = await paragraph.boundingBox();
-    const moduleBounds = await modules.first().boundingBox();
+    const moduleBounds = await clock.boundingBox();
     const heroBounds = await hero.boundingBox();
     expect(phraseBounds && moduleBounds && heroBounds).toBeTruthy();
     expect(moduleBounds!.y).toBeGreaterThan(phraseBounds!.y + phraseBounds!.height);
@@ -367,18 +373,23 @@ for (const viewport of [
   { name: 'tablet landscape', width: 1024, height: 768 },
   { name: 'desktop', width: 1440, height: 900 },
 ]) {
-  test(`Home hero composition keeps square Clock summaries and a separate dashboard action on ${viewport.name}`, async ({ page }) => {
+  test(`Home hero composition keeps the flip clock, three context chips and a separate dashboard action on ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await prepare(page);
     await page.goto('/');
     const hero = page.locator('.homepilot-home-hero');
-    const summaries = hero.locator('.homepilot-home-context .homepilot-home-summary');
+    const clock = hero.locator('[data-home-flip-clock]');
+    const digits = clock.locator('.homepilot-flip-digit');
+    const chips = hero.locator('.homepilot-home-context .homepilot-home-chip');
     const phrase = hero.getByText(/Frase de (mañana|tarde|noche)/);
-    const location = hero.getByText('Cuenca').last();
+    const location = chips.nth(0).getByText('Cuenca');
     const action = hero.getByRole('button', { name: /sin pestaña principal|no main tab/i });
-    await expect(summaries).toHaveCount(2);
-    await expect(summaries.nth(0)).not.toContainText(/Fecha\/Hora|Date\/Time/);
-    await expect(summaries.nth(1)).not.toContainText(/Clima|Weather/);
+    await expect(clock).toBeVisible();
+    await expect(digits).toHaveCount(4);
+    await expect(chips).toHaveCount(3);
+    await expect(chips.nth(1)).toContainText(/de |, /);
+    await expect(chips.nth(2)).toContainText(/°C|—/);
+    expect(await chips.nth(1).evaluate((chip) => [...chip.querySelectorAll('span')].every((part) => part.scrollWidth <= part.clientWidth + 1))).toBe(true);
     await expect(location).toBeVisible();
     await expect(hero.getByText(/^(Ubicación|Location)$/)).toHaveCount(0);
     await expect(hero.getByRole('button', { name: /Ubicación|Location/i })).toHaveCount(0);
@@ -391,32 +402,17 @@ for (const viewport of [
     await expect(action).toContainText(/Ir a tablero|Go to dashboard/);
     const heroBox = await hero.boundingBox();
     const phraseBox = await phrase.boundingBox();
-    const firstBox = await summaries.nth(0).boundingBox();
-    const secondBox = await summaries.nth(1).boundingBox();
+    const firstBox = await clock.boundingBox();
+    const secondBox = await chips.nth(0).boundingBox();
     const actionBox = await action.boundingBox();
     expect(heroBox && phraseBox && firstBox && secondBox && actionBox).toBeTruthy();
     expect(Math.abs(brandBox!.x - firstBox!.x)).toBeLessThan(1);
-    expect(Math.abs(firstBox!.width - firstBox!.height)).toBeLessThan(1);
-    expect(Math.abs(secondBox!.width - secondBox!.height)).toBeLessThan(1);
-    expect(firstBox!.width).toBeLessThanOrEqual(112);
-    expect(secondBox!.width).toBeLessThanOrEqual(112);
-    await expect(summaries.nth(0)).toHaveCSS('padding-top', '2px');
-    await expect(summaries.nth(1)).toHaveCSS('padding-bottom', '2px');
-    await expect(summaries.nth(0)).toHaveCSS('padding-left', '8px');
-    await expect(summaries.nth(1)).toHaveCSS('padding-right', '8px');
-    const verticalPadding = await summaries.evaluateAll((elements) => elements.map((element) => {
-      const style = getComputedStyle(element);
-      return Number.parseFloat(style.paddingTop) + Number.parseFloat(style.paddingBottom);
-    }));
-    expect(verticalPadding.every((value) => value <= 20)).toBe(true);
-    expect(await summaries.evaluateAll((elements) => elements.every((element) => (
-      element.scrollHeight <= element.clientHeight + 1 && element.scrollWidth <= element.clientWidth + 1
-    )))).toBe(true);
-    expect(firstBox!.x).toBeLessThan(secondBox!.x + secondBox!.width);
+    expect(firstBox!.width).toBeGreaterThan(firstBox!.height);
+    expect(secondBox!.y).toBeGreaterThanOrEqual(firstBox!.y + firstBox!.height);
     expect(firstBox!.y).toBeGreaterThan(phraseBox!.y + phraseBox!.height);
     if (viewport.width >= 1024) {
       expect(phraseBox!.width).toBeLessThanOrEqual(heroBox!.width * 0.55);
-      expect(actionBox!.x).toBeGreaterThan(secondBox!.x + secondBox!.width);
+      expect(actionBox!.x).toBeGreaterThan(firstBox!.x + firstBox!.width);
     } else {
       expect(actionBox!.y).toBeGreaterThan(firstBox!.y);
     }
@@ -425,6 +421,31 @@ for (const viewport of [
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   });
 }
+
+test('Home flip clock advances by the minute and keeps a blinking visual separator', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-09-30T16:59:40.000Z') });
+  await prepare(page);
+  await page.goto('/');
+  const clock = page.locator('.homepilot-home-hero [data-home-flip-clock]');
+  await expect(clock).toHaveAttribute('datetime', '11:59');
+  await expect(clock.locator('.homepilot-flip-digit')).toHaveCount(4);
+  await expect(clock.locator('.homepilot-flip-colon')).toHaveCSS('animation-name', 'homepilot-colon-blink');
+  await page.clock.fastForward(20_000);
+  await expect(clock).toHaveAttribute('datetime', '12:00');
+  await expect(clock.locator('.homepilot-flip-fold-out')).toHaveCount(3);
+});
+
+test('Home flip clock shows updated time without flap motion when reduced motion is requested', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-09-30T16:59:40.000Z') });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await prepare(page);
+  await page.goto('/');
+  const clock = page.locator('.homepilot-home-hero [data-home-flip-clock]');
+  await page.clock.fastForward(20_000);
+  await expect(clock).toHaveAttribute('datetime', '12:00');
+  await expect(clock.locator('.homepilot-flip-fold-out')).toHaveCount(0);
+  await expect(clock.locator('.homepilot-flip-colon')).toHaveCSS('animation-name', 'none');
+});
 
 for (const viewport of [
   { name: 'mobile', width: 320, height: 720 },

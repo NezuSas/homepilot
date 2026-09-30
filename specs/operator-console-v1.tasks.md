@@ -159,7 +159,7 @@
 - **Criterio Relacionado**: **AC23, AC36**.
 
 ### [UI-Home-03] Navegación e indicadores modulares de Inicio
-- **Descripción**: Reiniciar el scroll al navegar por Sidebar, ampliar frases a 1000 caracteres, reutilizar hora/fecha y clima del Clock y diferenciar el botón de acceso al Dashboard de los indicadores estáticos.
+- **Descripción**: Reiniciar el scroll al navegar por Sidebar, ampliar frases a 1000 caracteres, reutilizar la fuente de hora/fecha y clima de Clock en el reloj digital y chips informativos, y diferenciar el botón de acceso al Dashboard de los indicadores estáticos.
 - **Módulos**: shell, personalización, Clock, hero de Inicio y pruebas responsive.
 - **Criterio Relacionado**: **AC31, AC35, AC38–AC39**.
 
@@ -174,8 +174,8 @@
 - **Criterio Relacionado**: **AC31, AC35–AC39**.
 
 ### [UI-Home-04] Composición y ejecución compacta de Inicio
-- **Descripción**: Mostrar solo la ciudad en el chip informativo; retirar títulos redundantes y compactar padding vertical de Hora/Clima cuadrados; mantener frase a la izquierda e «Ir a tablero» a la derecha. Incorporar branding discreto HomePilot/NEZU en hero y Sidebar. Presentar favoritas con solo icono y nombre mediante el tile de acción momentánea compartido con Dashboard; ejecutar automatizaciones sin alterar su habilitación.
-- **Módulos**: hero, ClockSummaries, HomeContextIndicator, DashboardRoutinesSection y SectionActionCard.
+- **Descripción**: Presentar saludo y nombre en dos líneas; sustituir Hora/Clima cuadrados por reloj digital de fichas con flip por minuto y separador intermitente por segundo. Mostrar ciudad, fecha y clima en chips compactos; mantener frase a la izquierda e «Ir a tablero» a la derecha. Incorporar branding discreto HomePilot/NEZU en hero y Sidebar. Presentar favoritas con solo icono y nombre mediante el tile de acción momentánea compartido con Dashboard; ejecutar automatizaciones sin alterar su habilitación.
+- **Módulos**: hero, reloj digital de Inicio, HomeContextIndicator, DashboardRoutinesSection y SectionActionCard.
 - **Criterio Relacionado**: **AC40–AC41**.
 
 ### [UI-Dashboard-04] Section de un solo slot
@@ -201,3 +201,8 @@
 - **Descripción**: Verificar creación, edición, persistencia y fallback de iconos; hero/branding, favoritas momentáneas y responsive de Inicio en escenarios focalizados, además de typecheck, lint y builds.
 - **Dependencias**: `BE-Home-03`, `UI-Home-05`.
 - **Criterio Relacionado**: **AC40**, **AC43–AC44**.
+
+### [QA-Home-05] Reloj digital y chips del hero
+- **Descripción**: Verificar saludo en dos líneas, hora accesible y actualizada, flip de cifras al cambiar el minuto, parpadeo del separador y respeto de movimiento reducido; comprobar los chips de ciudad, fecha y clima, el fallback meteorológico, la frase configurable completa y la composición responsive sin desbordamiento.
+- **Módulos**: `DashboardView`, reloj digital de Inicio, `HomeClimateSummary` y pruebas del hero.
+- **Criterio Relacionado**: **AC22, AC25, AC31, AC38–AC40**.

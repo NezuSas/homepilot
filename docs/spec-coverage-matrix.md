@@ -48,12 +48,12 @@ The command fails if a file cannot be mapped to an existing spec.
 | Diagnostics and audit | observability packages and diagnostic views | Observability diagnostics and release hardening |
 | Public ingress and deployment | Compose, ingress, and installation scripts | Public ingress, Docker, and durable persistence |
 | Operator Console | console application and design system | Operator Console specs |
-| Inicio hero, favoritas momentáneas, iconos de rutinas y Sections de un slot | Home hero, Clock summaries, routine/action tiles, Scene/Automation icon persistence and forms, Dashboard canvas and transfer normalization | `specs/operator-console-v1.md` AC40–AC44; `specs/operator-console-v1.tasks.md` UI-Home-04, BE-Home-03, UI-Home-05, QA-Home-04, UI-Dashboard-04, QA-Home-03 |
+| Inicio hero, favoritas momentáneas, iconos de rutinas y Sections de un slot | Home hero, flip clock and context chips, routine/action tiles, Scene/Automation icon persistence and forms, Dashboard canvas and transfer normalization | `specs/operator-console-v1.md` AC38–AC44; `specs/operator-console-v1.tasks.md` UI-Home-04, QA-Home-05, BE-Home-03, UI-Home-05, QA-Home-04, UI-Dashboard-04, QA-Home-03 |
 | Shared Edge foundations | API gateway, route handler, shared contracts | Edge platform foundations |
 
 ## Audited Coverage
 
-- The **854** audited TypeScript/TSX files have a mapping rule to an existing
+- The **855** audited TypeScript/TSX files have a mapping rule to an existing
   spec.
 - All bounded contexts under `packages/` and all API route families are
   covered.

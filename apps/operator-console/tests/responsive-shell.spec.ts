@@ -2233,17 +2233,17 @@ for (const viewport of viewports) {
     await page.evaluate(() => document.documentElement.classList.remove('light'));
   });
 
-  test(`keeps the home climate summary responsive on ${viewport.name}`, async ({ page }) => {
+  test(`keeps the home flip clock and context chips responsive on ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await prepareAuthenticatedDashboard(page);
 
     await page.goto('/');
     const climateSummary = page.getByLabel(/contexto local del hogar|local home context/i);
     await expect(climateSummary).toBeVisible();
-    await expect(climateSummary.getByText('Cuenca')).toHaveCount(2);
+    await expect(climateSummary.getByText('Cuenca')).toHaveCount(1);
     await expect(climateSummary.locator('time')).toBeVisible();
     await expect(climateSummary.getByText(/°C|clima no disponible|weather unavailable|cargando clima|loading weather/i)).toBeVisible();
-    await expect(climateSummary.locator('.homepilot-home-summary')).toHaveCount(2);
+    await expect(climateSummary.locator('.homepilot-home-chip')).toHaveCount(3);
     await expect(climateSummary.getByText(/^(Ubicación|Location)$/)).toHaveCount(0);
     await expect(climateSummary.getByRole('button')).toHaveCount(1);
     const ownDashboard = climateSummary.getByRole('button', { name: /abrir la pestaña Principal de mi tablero|open.*Principal.*dashboard/i });
