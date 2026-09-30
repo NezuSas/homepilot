@@ -99,7 +99,7 @@ describe('MediaService image upload validation', () => {
     for (let slot = 1; slot <= 5; slot += 1) {
       const image = `data:image/png;base64,${Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from([slot])]).toString('base64')}`;
       const images = await service.addHomeImage(image);
-      expect(images.at(-1)?.url).toBe(`/media/home/image_home_${slot}.png`);
+      expect(images.at(-1)?.url).toMatch(new RegExp(`^/media/home/image_home_${slot}\\.png\\?v=[^&]+$`));
     }
     await expect(service.addHomeImage(pngDataUri)).rejects.toThrow('HOME_IMAGE_LIMIT');
     expect(await fs.readdir(path.join(mediaDirectory, 'home'))).toHaveLength(5);
@@ -130,9 +130,28 @@ describe('MediaService image upload validation', () => {
     await service.addHomeImage(jpeg);
     await service.addHomeImage(pngDataUri);
     await service.addHomeImage(webp);
-    expect((await service.deleteHomeImage(1)).map(({ url }) => url)).toEqual([
+    expect((await service.deleteHomeImage(1)).map(({ url }) => url.split('?')[0])).toEqual([
       '/media/home/image_home_1.png', '/media/home/image_home_2.webp',
     ]);
     expect((await fs.readdir(path.join(mediaDirectory, 'home'))).sort()).toEqual(['image_home_1.png', 'image_home_2.webp']);
+  });
+
+  it('keeps image URLs stable until the file changes and versions compacted content', async () => {
+    const service = new MediaService(mediaDirectory);
+    await service.addHomeImage(pngDataUri);
+    const before = await service.listHomeImages();
+    expect(await service.listHomeImages()).toEqual(before);
+    const firstPath = path.join(mediaDirectory, 'home', 'image_home_1.png');
+    await fs.writeFile(firstPath, Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from([3])]));
+    const changed = await service.listHomeImages();
+    expect(changed[0].url).not.toBe(before[0].url);
+    const second = `data:image/png;base64,${Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from([9])]).toString('base64')}`;
+    await service.addHomeImage(second);
+    const secondUrl = (await service.listHomeImages())[1].url;
+    await service.deleteHomeImage(1);
+    const compacted = (await service.listHomeImages())[0];
+    expect(compacted.url).toContain('/media/home/image_home_1.png?v=');
+    expect(compacted.url).not.toBe(before[0].url);
+    expect(compacted.url.split('?')[1]).toBe(secondUrl.split('?')[1]);
   });
 });

@@ -138,7 +138,7 @@
 - **Criterio Relacionado**: **AC31–AC32**.
 
 ### [UI-Home-01] Personalización administrativa y hero de Inicio
-- **Descripción**: Ocultar «Mi Hogar», ofrecer en Sistema la edición Admin de frases con contador y textarea adaptable y la gestión de imágenes con posición y preview. Compartir la regla horaria del saludo y la frase; conservar fallback ambiental, carrusel de cinco segundos y contenido superior legible y responsive.
+- **Descripción**: Ocultar «Mi Hogar», ofrecer en Sistema la edición Admin de frases con contador, feedback async y textarea adaptable, y la gestión de imágenes con posición, preview, confirmación modular y progreso. Compartir la regla horaria del saludo y la frase, resolver frases vacías por prioridad entre periodos; conservar fallback ambiental, caché privada de imágenes con URL versionada, carrusel de diez segundos y contenido superior legible y responsive.
 - **Módulos**: navegación de Sistema, vista de personalización, `DashboardView.tsx` y estilos acotados.
 - **Dependencias**: `BE-Home-01`.
 - **Criterio Relacionado**: **AC31–AC33**.
@@ -149,6 +149,6 @@
 - **Criterio Relacionado**: **AC34**.
 
 ### [QA-Home-01] Regresión de personalización de Inicio
-- **Descripción**: Cubrir frases y límites, RBAC de lectura/escritura, slots persistentes y compactación sin huérfanos, fallback/carrusel, temporizador de inactividad, accesibilidad y geometría responsive; ejecutar validaciones de spec, tests, typecheck y builds aplicables.
+- **Descripción**: Cubrir frases y límites, feedback de éxito/error/ocupado, RBAC de lectura/escritura, confirmación de borrado, slots persistentes y compactación sin huérfanos, versiones/caché HTTP, fallback de frases y carrusel de diez segundos, temporizador de inactividad, accesibilidad y geometría responsive; ejecutar validaciones de spec, tests, typecheck y builds aplicables.
 - **Dependencias**: `BE-Home-01`, `UI-Home-01`, `UI-Home-02`.
 - **Criterio Relacionado**: **AC31–AC34**.

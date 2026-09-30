@@ -39,15 +39,17 @@ test('Home uses one period for greeting and phrase and rotates ordered images wi
   });
   await expect(hero.getByText(`Frase de ${period}`)).toBeVisible();
   const before = await hero.boundingBox();
-  const first = hero.locator('img[src$="image_home_1.png"]');
-  const second = hero.locator('img[src$="image_home_2.png"]');
-  const third = hero.locator('img[src$="image_home_3.png"]');
+  const first = hero.locator('img[src*="image_home_1.png"]');
+  const second = hero.locator('img[src*="image_home_2.png"]');
+  const third = hero.locator('img[src*="image_home_3.png"]');
   await expect(first).toHaveCSS('opacity', '1');
-  await page.clock.fastForward(5000);
+  await page.clock.fastForward(9_999);
+  await expect(first).toHaveCSS('opacity', '1');
+  await page.clock.fastForward(1);
   await expect(second).toHaveCSS('opacity', '1');
-  await page.clock.fastForward(5000);
+  await page.clock.fastForward(10_000);
   await expect(third).toHaveCSS('opacity', '1');
-  await page.clock.fastForward(5000);
+  await page.clock.fastForward(10_000);
   await expect(first).toHaveCSS('opacity', '1');
   expect((await hero.boundingBox())?.height).toBe(before?.height);
   await expect(hero).toBeInViewport();
@@ -70,10 +72,10 @@ test('reduced motion removes the fade but keeps image rotation functional', asyn
   await prepare(page, [1, 2].map((slot) => ({ slot, url: `/media/home/image_home_${slot}.png` })));
   await page.goto('/');
   const hero = page.locator('.homepilot-home-hero');
-  const first = hero.locator('img[src$="image_home_1.png"]');
-  const second = hero.locator('img[src$="image_home_2.png"]');
+  const first = hero.locator('img[src*="image_home_1.png"]');
+  const second = hero.locator('img[src*="image_home_2.png"]');
   expect(await first.evaluate((image) => Number.parseFloat(getComputedStyle(image).transitionDuration))).toBeLessThanOrEqual(0.01);
-  await page.clock.fastForward(5000);
+  await page.clock.fastForward(10_000);
   await expect(second).toHaveCSS('opacity', '1');
 });
 
@@ -109,6 +111,7 @@ test('Admin can edit Home phrases with a 100-character limit and responsive imag
   expect(await morning.evaluate((element) => getComputedStyle(element).resize)).toBe('none');
   await page.getByRole('button', { name: /guardar frases|save phrases/i }).click();
   await expect.poll(() => saved).toMatchObject({ morningPhrase: 'A'.repeat(100) });
+  await expect(page.getByRole('status')).toContainText(/frases guardadas correctamente|phrases saved successfully/i);
   await expect(page.getByText('image_home_1')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });
@@ -119,15 +122,46 @@ test('non-Admin cannot open the personalization view through its direct URL', as
   await expect(page.getByRole('heading', { name: /personalización de inicio|home personalization/i })).toHaveCount(0);
 });
 
-test('Admin adds and removes an image through the visible controls', async ({ page }) => {
+test('phrase save exposes busy, success and recoverable error states', async ({ page }) => {
   await prepare(page);
+  let releaseSave!: () => void;
+  const saveGate = new Promise<void>((resolve) => { releaseSave = resolve; });
+  let attempts = 0;
+  await page.route(endpoint, async (route) => {
+    if (route.request().method() !== 'PUT') return route.fallback();
+    attempts += 1;
+    if (attempts === 1) {
+      await saveGate;
+      await route.fulfill({ json: { ...route.request().postDataJSON() as object, heroImages: [] } });
+    } else await route.fulfill({ status: 500, json: { error: { message: 'No se pudo guardar' } } });
+  });
+  await page.goto('/system/home-personalization');
+  await page.getByRole('button', { name: /guardar frases|save phrases/i }).click();
+  const saving = page.getByRole('button', { name: /guardando|saving/i });
+  await expect(saving).toBeDisabled();
+  await expect(saving).toHaveAttribute('aria-busy', 'true');
+  releaseSave();
+  await expect(page.getByRole('status')).toContainText(/frases guardadas correctamente|phrases saved successfully/i);
+  await page.getByRole('button', { name: /guardar frases|save phrases/i }).click();
+  await expect(page.getByRole('alert')).toContainText('No se pudo guardar');
+  await expect(page.getByRole('button', { name: /guardar frases|save phrases/i })).toBeEnabled();
+  expect(attempts).toBe(2);
+});
+
+test('Admin adds and confirms removal of an image through the visible controls', async ({ page }) => {
+  await prepare(page);
+  let deleteRequests = 0;
+  let releaseDelete!: () => void;
+  const deleteGate = new Promise<void>((resolve) => { releaseDelete = resolve; });
   await page.route('**/api/v1/settings/home-personalization/images', async (route) => {
     expect(route.request().method()).toBe('POST');
     expect((route.request().postDataJSON() as { dataUri: string }).dataUri).toMatch(/^data:image\/png;base64,/);
     await route.fulfill({ json: { heroImages: [{ slot: 1, url: '/media/home/image_home_1.png' }] } });
   });
   await page.route('**/api/v1/settings/home-personalization/images/1', async (route) => {
+    deleteRequests += 1;
     expect(route.request().method()).toBe('DELETE');
+    await deleteGate;
     await route.fulfill({ json: { heroImages: [] } });
   });
   await page.goto('/system/home-personalization');
@@ -136,9 +170,61 @@ test('Admin adds and removes an image through the visible controls', async ({ pa
   const chooser = await chooserPromise;
   await chooser.setFiles({ name: 'home.png', mimeType: 'image/png', buffer: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) });
   await expect(page.getByText('image_home_1')).toBeVisible();
+  await expect(page.getByRole('status')).toContainText(/imagen cargada correctamente|image uploaded successfully/i);
   await page.getByRole('button', { name: /eliminar imagen 1|delete image 1/i }).click();
+  const confirm = page.getByRole('dialog', { name: /eliminar esta imagen|delete this image/i });
+  await expect(confirm).toBeVisible();
+  await confirm.getByRole('button', { name: /cancelar|cancel/i }).click();
+  expect(deleteRequests).toBe(0);
+  await expect(page.getByText('image_home_1')).toBeVisible();
+  await page.getByRole('button', { name: /eliminar imagen 1|delete image 1/i }).click();
+  await confirm.getByRole('button', { name: /^eliminar$|^delete$/i }).click();
+  await expect(confirm.getByRole('button', { name: /eliminando|deleting/i })).toBeDisabled();
+  await expect(page.getByText('image_home_1')).toBeVisible();
+  releaseDelete();
   await expect(page.getByText('image_home_1')).toHaveCount(0);
+  expect(deleteRequests).toBe(1);
+  await expect(page.getByRole('status')).toContainText(/imagen eliminada correctamente|image deleted successfully/i);
 });
+
+test('failed upload reports the error, reenables actions and preserves existing images', async ({ page }) => {
+  await prepare(page, [{ slot: 1, url: '/media/home/image_home_1.png' }]);
+  let releaseUpload!: () => void;
+  const uploadGate = new Promise<void>((resolve) => { releaseUpload = resolve; });
+  await page.route('**/api/v1/settings/home-personalization/images', async (route) => {
+    await uploadGate;
+    await route.fulfill({ status: 500, json: { error: { message: 'No se pudo subir' } } });
+  });
+  await page.goto('/system/home-personalization');
+  const chooserPromise = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: /añadir imagen|add image/i }).and(page.locator('button')).click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles({ name: 'home.png', mimeType: 'image/png', buffer: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) });
+  await expect(page.getByRole('button', { name: /subiendo|uploading/i })).toBeDisabled();
+  releaseUpload();
+  await expect(page.getByRole('alert')).toContainText('No se pudo subir');
+  await expect(page.getByText('image_home_1')).toBeVisible();
+  await expect(page.getByRole('button', { name: /añadir imagen|add image/i }).and(page.locator('button'))).toBeEnabled();
+});
+
+for (const viewport of [
+  { name: 'mobile', width: 320, height: 720 },
+  { name: 'tablet portrait', width: 768, height: 1024 },
+  { name: 'tablet landscape', width: 1024, height: 768 },
+  { name: 'desktop', width: 1440, height: 900 },
+  { name: 'portrait kiosk', width: 1080, height: 1920 },
+]) {
+  test(`personalization feedback and delete confirmation fit ${viewport.name}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await prepare(page, [{ slot: 1, url: '/media/home/image_home_1.png' }]);
+    await page.goto('/system/home-personalization');
+    await page.getByRole('button', { name: /guardar frases|save phrases/i }).click();
+    await expect(page.getByRole('status')).toContainText(/frases guardadas correctamente|phrases saved successfully/i);
+    await page.getByRole('button', { name: /eliminar imagen 1|delete image 1/i }).click();
+    await expect(page.getByRole('dialog', { name: /eliminar esta imagen|delete this image/i })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  });
+}
 
 test('inactivity returns from another view to Home without a full reload', async ({ page }) => {
   await page.clock.install();
@@ -156,7 +242,7 @@ test('one configured image stays static and replaces the default asset', async (
   await prepare(page, [{ slot: 1, url: '/media/home/image_home_1.png' }]);
   await page.goto('/');
   const hero = page.locator('.homepilot-home-hero');
-  await expect(hero.locator('img[src$="image_home_1.png"]')).toHaveCount(1);
+  await expect(hero.locator('img[src*="image_home_1.png"]')).toHaveCount(1);
   await expect(hero.locator('img[src="/home-dashboard-ambient.png"]')).toHaveCount(0);
   await page.clock.fastForward(10_000);
   await expect(hero.locator('img')).toHaveCount(1);

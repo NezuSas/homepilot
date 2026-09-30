@@ -16,7 +16,7 @@ import {
   SCENE_FAVORITES_STORAGE_KEY,
 } from '../lib/favorites';
 import { apiFetch } from '../lib/apiClient';
-import { EMPTY_HOME_PERSONALIZATION, getHomePeriod, msUntilNextHomePeriod, type HomePersonalization } from '../lib/homePersonalization';
+import { EMPTY_HOME_PERSONALIZATION, getHomePeriod, HOME_HERO_INTERVAL_MS, msUntilNextHomePeriod, resolveHomePhrase, type HomePersonalization } from '../lib/homePersonalization';
 import { fetchDiagnosticResource, invalidateDiagnosticCatalog } from '../lib/diagnosticResourceRequests';
 import type { View } from '../types';
 import { useAssistantStore } from '../stores/useAssistantStore';
@@ -138,7 +138,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
       if (interval !== undefined) window.clearInterval(interval);
       interval = document.hidden ? undefined : window.setInterval(() => {
         setActiveHeroImage((current) => (current + 1) % homePersonalization.heroImages.length);
-      }, 5000);
+      }, HOME_HERO_INTERVAL_MS);
     };
     document.addEventListener('visibilitychange', sync);
     sync();
@@ -218,7 +218,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
     }), [findings]);
 
   const greetingKey = homePeriod === 'night' ? 'evening' : homePeriod;
-  const phrase = homePersonalization[`${homePeriod}Phrase`].trim() || t('dashboard.home_calm');
+  const phrase = resolveHomePhrase(homePersonalization, homePeriod, t('dashboard.home_calm'));
   const heroImages = homePersonalization.heroImages.length > 0
     ? homePersonalization.heroImages.map((image) => `${API_BASE_URL}${image.url}`)
     : ['/home-dashboard-ambient.png'];

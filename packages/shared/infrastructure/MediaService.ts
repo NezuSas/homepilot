@@ -97,10 +97,13 @@ export class MediaService {
       if (error.code === 'ENOENT') return [];
       throw error;
     });
-    const images = entries.flatMap((name) => {
+    const images = await Promise.all(entries.flatMap((name) => {
       const match = /^image_home_([1-5])\.(jpg|png|webp)$/.exec(name);
-      return match ? [{ slot: Number(match[1]), url: `/media/home/${name}` }] : [];
-    });
+      return match ? [{ name, slot: Number(match[1]) }] : [];
+    }).map(async ({ name, slot }) => {
+      const { mtimeMs, size } = await fs.stat(path.join(homeDir, name));
+      return { slot, url: `/media/home/${name}?v=${mtimeMs.toString(36)}-${size.toString(36)}` };
+    }));
     return images.sort((left, right) => left.slot - right.slot);
   }
 
@@ -129,14 +132,15 @@ export class MediaService {
       const images = await this.listHomeImages();
       if (!Number.isInteger(slot) || !images.some((image) => image.slot === slot)) throw new Error('HOME_IMAGE_NOT_FOUND');
       const homeDir = path.join(this.baseMediaDir, 'home');
-      const source = path.join(homeDir, path.basename(images.find((image) => image.slot === slot)!.url));
+      const source = path.join(homeDir, path.basename(images.find((image) => image.slot === slot)!.url.split('?')[0]));
       const staging = path.join(homeDir, `.image_home_tmp_deleted_${process.pid}`);
       const moved: Array<{ from: string; to: string }> = [];
       await fs.rename(source, staging);
       try {
         for (const image of images.filter((item) => item.slot > slot)) {
-          const from = path.join(homeDir, path.basename(image.url));
-          const to = path.join(homeDir, path.basename(image.url).replace(`image_home_${image.slot}.`, `image_home_${image.slot - 1}.`));
+          const filename = path.basename(image.url.split('?')[0]);
+          const from = path.join(homeDir, filename);
+          const to = path.join(homeDir, filename.replace(`image_home_${image.slot}.`, `image_home_${image.slot - 1}.`));
           await fs.rename(from, to);
           moved.push({ from, to });
         }

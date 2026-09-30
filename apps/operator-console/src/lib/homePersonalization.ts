@@ -11,6 +11,18 @@ export const EMPTY_HOME_PERSONALIZATION: HomePersonalization = {
   morningPhrase: '', afternoonPhrase: '', nightPhrase: '', heroImages: [],
 };
 
+export const HOME_HERO_INTERVAL_MS = 10_000;
+
+/** Resolve the nearest configured phrase before falling back to product copy. */
+export function resolveHomePhrase(settings: HomePersonalization, period: HomePeriod, neutral: string): string {
+  const order: Record<HomePeriod, Array<keyof Pick<HomePersonalization, 'morningPhrase' | 'afternoonPhrase' | 'nightPhrase'>>> = {
+    morning: ['morningPhrase', 'afternoonPhrase', 'nightPhrase'],
+    afternoon: ['afternoonPhrase', 'morningPhrase', 'nightPhrase'],
+    night: ['nightPhrase', 'afternoonPhrase', 'morningPhrase'],
+  };
+  return order[period].map((key) => settings[key].trim()).find(Boolean) || neutral;
+}
+
 /** Keep the existing browser-local greeting boundaries shared with the phrase. */
 export function getHomePeriod(date: Date): HomePeriod {
   const hour = date.getHours();

@@ -84,6 +84,25 @@ describe('Feature: media route contract', () => {
     }
   });
 
+  it('allows private browser caching of versioned Home images', async () => {
+    const tempDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'homepilot-home-media-route-'));
+    const imagePath = path.join(tempDirectory, 'image_home_1.png');
+    fs.writeFileSync(imagePath, Buffer.from('home-image'));
+    const mediaService = { resolvePhysicalPath: jest.fn().mockReturnValue(imagePath) } as unknown as MediaService;
+    const response = Object.assign(new PassThrough(), { writeHead: jest.fn() }) as unknown as http.ServerResponse & PassThrough;
+    response.resume();
+    try {
+      const streamEnded = once(response, 'end');
+      await new MediaRoutes(mediaService).handle(createRequest(), response, '/media/home/image_home_1.png', 'GET', {} as BootstrapContainer);
+      await streamEnded;
+      expect(response.writeHead).toHaveBeenCalledWith(200, expect.objectContaining({
+        'Cache-Control': 'private, max-age=86400, stale-while-revalidate=604800',
+      }));
+    } finally {
+      fs.rmSync(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
   it('Scenario: Given a media path with a non-GET method When handled Then it remains available to later handlers', async () => {
     const mediaService = { resolvePhysicalPath: jest.fn() } as unknown as MediaService;
 
