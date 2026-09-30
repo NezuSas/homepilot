@@ -117,6 +117,12 @@ hp_ui_shutdown() {
 }
 
 hp_banner() { hp_ui_header; }
+hp_ui_view() {
+  hp_ui_clear_dynamic
+  hp_ui_center "$HP_PRIMARY$HP_BOLD" "$1"
+  hp_ui_separator
+  printf '\n'
+}
 hp_step() {
   local number
   printf -v number '%02d / 08' "$1"

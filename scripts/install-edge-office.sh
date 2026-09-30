@@ -132,6 +132,7 @@ configure_profile() {
 }
 
 banner() {
+  [[ "${HOMEPILOT_INSTALLER_EMBEDDED:-0}" != 1 ]] || return 0
   if [[ -t 1 ]]; then
     clear
   fi
@@ -812,7 +813,7 @@ if [[ "$community_integrations_only" == true ]]; then
   exit 0
 fi
 
-if [[ "$wizard" != true && "$global_install" != true ]]; then
+if [[ "$wizard" != true && "$global_install" != true && "${HOMEPILOT_INSTALLER_EMBEDDED:-0}" != 1 ]]; then
   banner
 fi
 info "Directorio de instalación: $(pwd)"

@@ -47,7 +47,7 @@ Producción requiere TPM real, nunca `SoftwareDeviceIdentityProvider`. El instal
 - [x] AC4: nueva instalación sin TPM 2.0 funcional falla; con TPM habilita overlay y enrollment explícito exactamente una vez tras salud y pairing.
 - [x] AC5: Cloudflare usa solo Tunnel Token oculto para servicio cloudflared; Directory usa exclusivamente su pairing actual; ninguno imprime ni persiste secretos indebidamente.
 - [x] AC6: Compose y salud se ajustan a las capacidades seleccionadas; STT/TTS no son obligatorios cuando voz está deshabilitada.
-- [x] AC7: segunda ejecución preserva datos/configuración y ofrece opciones seguras sin reinstalar ni re-enrolar silenciosamente.
+- [x] AC7: segunda ejecución preserva datos/configuración y ofrece opciones seguras sin reinstalar ni re-enrolar silenciosamente. El diagnóstico global conserva una única cabecera, resume módulos configurados, ofrece detalles técnicos solo por petición y verifica la API desde el contenedor, no desde el puerto 3000 del host.
 - [x] AC8: tests con operaciones simuladas cubren perfiles, opciones, cloudflared, TPM, binding, idempotencia y secretos; pasan checks de spec/Compose, suites de instalación, typecheck y build.
 
 ## Validación local

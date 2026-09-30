@@ -159,6 +159,7 @@ configure_profile() {
 }
 
 banner() {
+  [[ "${HOMEPILOT_INSTALLER_EMBEDDED:-0}" != 1 ]] || return 0
   printf '%b\n' "${BLUE}${BOLD}"
   printf '%s\n' '   _   _ _____ _____ _   _'
   printf '%s\n' '  | \ | | ____|__  /| | | |'

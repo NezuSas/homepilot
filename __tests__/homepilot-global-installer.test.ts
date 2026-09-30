@@ -27,7 +27,92 @@ const simulatedSystem = `
   hp_main
 `;
 
+const diagnosticSystem = `
+  hp_saved_value() {
+    case "$1" in
+      HOMEPILOT_INSTALLATION_PROFILE) printf bridge_ha ;;
+      HOMEPILOT_ANDROID_DISPLAY_ENABLED) printf false ;;
+      HOMEPILOT_VOICE_ENABLED) printf true ;;
+      HOMEPILOT_MQTT_ENABLED) printf false ;;
+      HOMEPILOT_GLOBAL_INSTALLER_VERSION) printf v1 ;;
+      *) printf '%s' "$2" ;;
+    esac
+  }
+  hp_diag_api_status() { printf 200; }
+  hp_diag_http_status() { printf 200; }
+  hp_diag_ha_status() { printf 200; }
+  hp_diag_cloudflared_state() { printf active; }
+  hp_diag_binding_status() { printf bound; }
+  hp_tpm_device_available() { return 0; }
+  hp_is_paired() { return 0; }
+  hp_diag_container_state() { printf running; }
+`;
+
 describe('HomePilot global installation wizard without system operations', () => {
+  it('shows one branded diagnostic summary without legacy banners or technical inventories by default', () => {
+    const result = runShell(`${diagnosticSystem}
+      bash() { printf 'UNEXPECTED_DOCKER_PS\\n'; }
+      hp_existing_menu
+    `, '1\nn\n');
+    expect(result.status).toBe(0);
+    expect(result.stdout.match(/Welcome to/g)).toHaveLength(1);
+    expect(result.stdout).toContain('ESTADO / DIAGNÓSTICO');
+    expect(result.stdout).toContain('HomePilot API');
+    expect(result.stdout).toContain('Healthy');
+    expect(result.stdout).toContain('Home Assistant');
+    expect(result.stdout).toContain('Online');
+    expect(result.stdout).toContain('Directory Edge');
+    expect(result.stdout).toContain('TPM 2.0');
+    expect(result.stdout).toContain('Android Display');
+    expect(result.stdout).toContain('Not installed');
+    expect(result.stdout).toContain('Sistema operativo correctamente');
+    expect(result.stdout).not.toContain('Instalador técnico');
+    expect(result.stdout).not.toContain('UNEXPECTED_DOCKER_PS');
+    expect(result.stdout).not.toContain('Docker containers');
+    expect(result.stdout).not.toMatch(/\x1b\[/);
+  });
+
+  it('reports configured Android and MQTT modules, and opens embedded technical detail only on request', () => {
+    const result = runShell(`${diagnosticSystem}
+      hp_saved_value() {
+        case "$1" in
+          HOMEPILOT_ANDROID_DISPLAY_ENABLED|HOMEPILOT_MQTT_ENABLED) printf true ;;
+          HOMEPILOT_INSTALLATION_PROFILE) printf bridge_ha ;;
+          HOMEPILOT_VOICE_ENABLED) printf true ;;
+          HOMEPILOT_GLOBAL_INSTALLER_VERSION) printf v1 ;;
+          *) printf '%s' "$2" ;;
+        esac
+      }
+      bash() { printf 'TECHNICAL:%s:embedded=%s\\n' "$*" "$HOMEPILOT_INSTALLER_EMBEDDED"; }
+      hp_existing_menu
+    `, '1\ns\n');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toMatch(/Android Display\s+Running/);
+    expect(result.stdout).toMatch(/MQTT\s+Running/);
+    expect(result.stdout).toContain('TECHNICAL:scripts/check-edge-install.sh:embedded=1');
+    expect(result.stdout.match(/Welcome to/g)).toHaveLength(1);
+  });
+
+  it('uses container-aware API health in the detailed checker, never the obsolete host port 3000', () => {
+    const result = runShell(`
+      HOMEPILOT_INSTALLER_EMBEDDED=1
+      docker() {
+        case "$1" in
+          exec) printf 200 ;;
+          ps) printf 'CONTAINER_TABLE\\n' ;;
+          compose) return 0 ;;
+        esac
+      }
+      curl() { [[ "$*" != *'127.0.0.1:3000'* ]]; }
+      source scripts/check-edge-install.sh
+    `);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('HomePilot API: container HTTP 200');
+    expect(result.stdout).toContain('CONTAINER_TABLE');
+    expect(result.stdout).not.toContain('127.0.0.1:3000');
+    expect(result.stdout).not.toContain('HomePilot Edge install check');
+  });
+
   it.each([
     ['existing Home Assistant', '1\nn\nn\nn\nn\ns\nn\ns\n', 'bridge_ha'],
     ['managed Home Assistant', '2\nn\nn\nn\ns\nn\ns\n', 'ha_companion'],

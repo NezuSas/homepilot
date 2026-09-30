@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/lib/api-health.sh"
 
 compose_file="${1:-docker-compose.office.yml}"
+embedded="${HOMEPILOT_INSTALLER_EMBEDDED:-0}"
 read_env() {
   local value=''
   if [[ -f .env ]]; then value="$(sed -n "s/^$1=//p" .env | tail -n 1)"; fi
@@ -39,10 +41,11 @@ else
   compose_args=(-f "$compose_file")
 fi
 
-echo "HomePilot Edge install check"
-echo
-
-echo "Working directory: $(pwd)"
+if [[ "$embedded" != 1 ]]; then
+  echo "HomePilot Edge install check"
+  echo
+  echo "Working directory: $(pwd)"
+fi
 if [[ -f "$compose_file" ]]; then
   echo "Compose file: $compose_file"
 else
@@ -51,7 +54,7 @@ fi
 
 echo
 echo "Listening ports"
-ports=(3000 "$ui_port")
+ports=("$ui_port")
 if [[ "$global_install" == false ]]; then ports+=(11434 18123 13000); fi
 if [[ "$voice_enabled" == true ]]; then ports+=(8088 8090); fi
 if [[ "$ha_managed" == true ]]; then ports+=(8123); fi
@@ -85,7 +88,12 @@ probe() {
   fi
 }
 
-probe "HomePilot API" "http://127.0.0.1:3000/health"
+api_status="$(homepilot_api_health_status 2>/dev/null || true)"
+if [[ "$api_status" == 200 ]]; then
+  echo 'OK   HomePilot API: container HTTP 200'
+else
+  echo "FAIL HomePilot API: container HTTP ${api_status:-000}"
+fi
 probe "HomePilot UI" "http://127.0.0.1:${ui_port}"
 if [[ "$ha_managed" == true ]]; then probe "Home Assistant" "http://127.0.0.1:8123"; fi
 if [[ "$voice_enabled" == true ]]; then
@@ -93,6 +101,8 @@ if [[ "$voice_enabled" == true ]]; then
   probe "TTS" "http://127.0.0.1:8088/health"
 fi
 
-echo
-echo "Use bash scripts/homepilot-maintenance.sh --status for the profile-aware operational check."
-echo "Review docs/client-appliance-delivery.md before exposing ports or handing over an appliance."
+if [[ "$embedded" != 1 ]]; then
+  echo
+  echo "Use bash scripts/homepilot-maintenance.sh --status for the profile-aware operational check."
+  echo "Review docs/client-appliance-delivery.md before exposing ports or handing over an appliance."
+fi

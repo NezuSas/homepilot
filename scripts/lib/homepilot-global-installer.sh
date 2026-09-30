@@ -396,6 +396,145 @@ hp_finish() {
   hp_ui_center "$HP_GREEN" 'Installation completed successfully.'
 }
 
+hp_diag_api_status() { homepilot_api_health_status 2>/dev/null || true; }
+hp_diag_http_status() {
+  curl --silent --output /dev/null --write-out '%{http_code}' --max-time 6 "$1" 2>/dev/null || true
+}
+hp_diag_ha_status() {
+  docker exec homepilot-api sh -c '
+    url="${INTERNAL_HA_URL:-}"
+    [ -n "$url" ] || exit 1
+    curl --silent --output /dev/null --write-out "%{http_code}" --max-time 6 "$url"
+  ' 2>/dev/null || true
+}
+hp_diag_container_state() {
+  docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' \
+    "$1" 2>/dev/null || printf absent
+}
+hp_diag_cloudflared_state() {
+  if systemctl is-active --quiet cloudflared 2>/dev/null; then
+    printf active
+  elif systemctl cat cloudflared >/dev/null 2>&1; then
+    printf inactive
+  else
+    printf absent
+  fi
+}
+hp_diag_binding_status() { hp_binding_status 2>/dev/null || true; }
+
+hp_diag_failure() {
+  hp_ui_status '✕' "$HP_RED" "$1" "$2"
+  hp_diagnostic_failures=$((hp_diagnostic_failures + 1))
+}
+
+hp_global_diagnostic() {
+  local profile android voice mqtt ui_port code state binding
+  hp_diagnostic_failures=0
+  profile="$(hp_saved_value HOMEPILOT_INSTALLATION_PROFILE '')"
+  android="$(hp_saved_value HOMEPILOT_ANDROID_DISPLAY_ENABLED false)"
+  voice="$(hp_saved_value HOMEPILOT_VOICE_ENABLED true)"
+  mqtt="$(hp_saved_value HOMEPILOT_MQTT_ENABLED false)"
+  ui_port="$(hp_saved_value HOMEPILOT_UI_PORT 8080)"
+
+  hp_ui_view 'ESTADO / DIAGNÓSTICO'
+  hp_ui_center "$HP_SOFT" 'ESTADO DEL SISTEMA'
+  printf '\n'
+
+  code="$(hp_diag_api_status)"
+  if [[ "$code" == 200 ]]; then
+    hp_ui_status '✓' "$HP_GREEN" 'HomePilot API' 'Healthy'
+  else
+    hp_diag_failure 'HomePilot API' "Unavailable (HTTP ${code:-000})"
+  fi
+  code="$(hp_diag_http_status "http://127.0.0.1:${ui_port}")"
+  if [[ "$code" == 200 || "$code" == 301 || "$code" == 302 ]]; then
+    hp_ui_status '✓' "$HP_GREEN" 'HomePilot UI' 'Online'
+  else
+    hp_diag_failure 'HomePilot UI' "Unavailable (HTTP ${code:-000})"
+  fi
+
+  if [[ "$profile" == bridge_ha || "$profile" == ha_companion ]]; then
+    code="$(hp_diag_ha_status)"
+    if [[ "$code" == 200 || "$code" == 301 || "$code" == 302 || "$code" == 401 || "$code" == 403 ]]; then
+      hp_ui_status '✓' "$HP_GREEN" 'Home Assistant' 'Online'
+    else
+      hp_diag_failure 'Home Assistant' "Unavailable (HTTP ${code:-000})"
+    fi
+  else
+    hp_ui_status '—' "$HP_SECONDARY" 'Home Assistant' 'Not installed'
+  fi
+
+  if [[ "$android" == true ]]; then
+    state="$(hp_diag_container_state homepilot-display-bridge)"
+    case "$state" in
+      healthy) hp_ui_status '✓' "$HP_GREEN" 'Android Display' 'Healthy' ;;
+      running) hp_ui_status '✓' "$HP_GREEN" 'Android Display' 'Running' ;;
+      *) hp_diag_failure 'Android Display' 'Unavailable' ;;
+    esac
+  else
+    hp_ui_status '—' "$HP_SECONDARY" 'Android Display' 'Not installed'
+  fi
+
+  if [[ "$voice" == true ]]; then
+    code="$(hp_diag_http_status "http://127.0.0.1:$(hp_saved_value HOMEPILOT_STT_PORT 8090)/health")"
+    [[ "$code" != 200 ]] && hp_diag_failure 'STT' "Unavailable (HTTP ${code:-000})" \
+      || hp_ui_status '✓' "$HP_GREEN" 'STT' 'Healthy'
+    code="$(hp_diag_http_status "http://127.0.0.1:$(hp_saved_value HOMEPILOT_TTS_PORT 8088)/health")"
+    [[ "$code" != 200 ]] && hp_diag_failure 'TTS' "Unavailable (HTTP ${code:-000})" \
+      || hp_ui_status '✓' "$HP_GREEN" 'TTS' 'Healthy'
+  else
+    hp_ui_status '—' "$HP_SECONDARY" 'STT' 'Not installed'
+    hp_ui_status '—' "$HP_SECONDARY" 'TTS' 'Not installed'
+  fi
+
+  if hp_is_paired; then
+    hp_ui_status '✓' "$HP_GREEN" 'Directory Edge' 'Paired'
+  else
+    hp_ui_status '—' "$HP_SECONDARY" 'Directory Edge' 'Not installed'
+  fi
+  if hp_tpm_device_available; then
+    binding="$(hp_diag_binding_status)"
+    if [[ "$binding" == bound ]]; then
+      hp_ui_status '✓' "$HP_GREEN" 'TPM 2.0' 'Bound'
+    else
+      hp_ui_status '!' "$HP_YELLOW" 'TPM 2.0' 'Detected · binding pending'
+    fi
+  elif [[ "$(hp_saved_value HOMEPILOT_GLOBAL_INSTALLER_VERSION '')" == v1 ]]; then
+    hp_diag_failure 'TPM 2.0' 'Unavailable'
+  else
+    hp_ui_status '—' "$HP_SECONDARY" 'TPM 2.0' 'Not installed'
+  fi
+  state="$(hp_diag_cloudflared_state)"
+  case "$state" in
+    active) hp_ui_status '✓' "$HP_GREEN" 'Cloudflare Tunnel' 'Connected' ;;
+    inactive) hp_diag_failure 'Cloudflare Tunnel' 'Inactive' ;;
+    *) hp_ui_status '—' "$HP_SECONDARY" 'Cloudflare Tunnel' 'Not installed' ;;
+  esac
+  if [[ "$mqtt" == true ]]; then
+    state="$(hp_diag_container_state homepilot-mqtt)"
+    case "$state" in
+      healthy|running) hp_ui_status '✓' "$HP_GREEN" 'MQTT' 'Running' ;;
+      *) hp_diag_failure 'MQTT' 'Unavailable' ;;
+    esac
+  else
+    hp_ui_status '—' "$HP_SECONDARY" 'MQTT' 'Not installed'
+  fi
+
+  printf '\n'
+  hp_ui_separator
+  if (( hp_diagnostic_failures == 0 )); then
+    hp_ok 'Sistema operativo correctamente'
+  else
+    hp_ui_status '!' "$HP_YELLOW" 'Sistema requiere atención' "$hp_diagnostic_failures módulo(s)"
+  fi
+  printf '\n'
+  if hp_yes_no '¿Mostrar detalles técnicos?' false; then
+    hp_ui_separator
+    HOMEPILOT_INSTALLER_EMBEDDED=1 bash scripts/check-edge-install.sh
+  fi
+  (( hp_diagnostic_failures == 0 ))
+}
+
 hp_existing_menu() {
   hp_banner
   hp_ui_center "$HP_SOFT" 'Existing HomePilot installation detected'
@@ -403,7 +542,7 @@ hp_existing_menu() {
     'Completar configuración pendiente' 'Reparar componentes seleccionados' 'Cancelar' \
     || hp_fail 'Falta selección.'
   case "$REPLY" in
-    1) bash scripts/install-edge-office.sh --status; bash scripts/check-edge-install.sh ;;
+    1) hp_global_diagnostic ;;
     2)
       [[ "$(hp_saved_value HOMEPILOT_GLOBAL_INSTALLER_VERSION '')" == v1 ]] \
         || hp_fail 'Instalación histórica: usa su procedimiento de pairing; el wizard no cambiará el perfil.'
@@ -426,7 +565,7 @@ hp_existing_menu() {
       case "$REPLY" in
         1) hp_yes_no '¿Reparar paquetes base y Docker?' false && { hp_install_base; hp_install_docker; } ;;
         2) hp_remote=true; hp_yes_no '¿Reparar servicio Cloudflare?' false && hp_configure_cloudflared ;;
-        3) bash scripts/install-edge-office.sh --status ;;
+        3) hp_global_diagnostic ;;
         *) hp_fail 'Componente inválido.' ;;
       esac
       ;;
