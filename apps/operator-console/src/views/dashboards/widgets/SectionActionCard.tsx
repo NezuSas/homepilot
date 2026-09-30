@@ -16,6 +16,7 @@ interface SectionActionCardProps {
   isEditorPreview?: boolean;
   onAction?: () => void;
   actionFeedback?: 'pending' | 'success' | 'error';
+  isBlocked?: boolean;
 }
 
 export function SectionActionCard({
@@ -29,6 +30,7 @@ export function SectionActionCard({
   isEditorPreview,
   onAction,
   actionFeedback,
+  isBlocked,
 }: SectionActionCardProps) {
   const { t } = useTranslation();
   const Icon = getDashboardIconComponent(icon ?? getDefaultIcon(normalizeKind(kind)));
@@ -40,8 +42,8 @@ export function SectionActionCard({
     <Button
       type="button"
       onClick={(event) => { event.stopPropagation(); onAction?.(); }}
-      disabled={!isPresentationOnly && (unavailable || actionFeedback === 'pending')}
-      aria-disabled={!isInteractiveAction || actionFeedback === 'pending' || undefined}
+      disabled={!isPresentationOnly && (unavailable || isBlocked || actionFeedback === 'pending')}
+      aria-disabled={!isInteractiveAction || isBlocked || actionFeedback === 'pending' || undefined}
       aria-busy={actionFeedback === 'pending' || undefined}
       aria-label={t('dashboard.editor.sections.action_button_aria', { name: title })}
       data-action-state={actionFeedback ?? 'idle'}

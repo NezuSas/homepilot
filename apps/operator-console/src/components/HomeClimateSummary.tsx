@@ -41,11 +41,15 @@ export const HomeClimateSummary: React.FC<HomeClimateSummaryProps> = ({ currentU
         <HomeContextIndicator icon={MapPin} primaryIcon className="w-fit max-w-full flex-none">
           {weather?.location ?? configuredCity}
         </HomeContextIndicator>
+        <div className="text-left text-micro leading-tight text-muted-foreground" aria-label="HomePilot by NEZU">
+          <span className="block font-semibold text-foreground/70">HomePilot</span>
+          <span className="block">by NEZU</span>
+        </div>
       </div>
       <Button
         type="button"
         size="md"
-        className="self-start active:scale-[0.98] lg:mb-0.5 lg:self-end"
+        className="relative z-20 self-start isolate ring-2 ring-background/85 shadow-md active:scale-[0.98] disabled:border-border disabled:bg-card disabled:text-foreground disabled:opacity-100 disabled:shadow-sm lg:mb-0.5 lg:self-end"
         disabled={!ownDefault}
         aria-label={ownDefault ? t('dashboard.open_own_default_tab', { title: ownDefault.title }) : t('dashboard.no_default_tab')}
         title={!ownDefault ? t('dashboard.no_default_tab') : undefined}

@@ -383,6 +383,10 @@ for (const viewport of [
     await expect(hero.getByText(/^(Ubicación|Location)$/)).toHaveCount(0);
     await expect(hero.getByRole('button', { name: /Ubicación|Location/i })).toHaveCount(0);
     await expect(hero.getByLabel('HomePilot by NEZU')).toBeVisible();
+    const brandBox = await hero.getByLabel('HomePilot by NEZU').boundingBox();
+    const locationBox = await location.boundingBox();
+    expect(brandBox && locationBox).toBeTruthy();
+    expect(brandBox!.y).toBeGreaterThan(locationBox!.y + locationBox!.height);
     await expect(page.getByText('Powered by NEZU')).toBeVisible();
     await expect(action).toContainText(/Ir a tablero|Go to dashboard/);
     const heroBox = await hero.boundingBox();
@@ -391,8 +395,13 @@ for (const viewport of [
     const secondBox = await summaries.nth(1).boundingBox();
     const actionBox = await action.boundingBox();
     expect(heroBox && phraseBox && firstBox && secondBox && actionBox).toBeTruthy();
+    expect(Math.abs(brandBox!.x - firstBox!.x)).toBeLessThan(1);
     expect(Math.abs(firstBox!.width - firstBox!.height)).toBeLessThan(1);
     expect(Math.abs(secondBox!.width - secondBox!.height)).toBeLessThan(1);
+    expect(firstBox!.width).toBeLessThanOrEqual(128);
+    expect(secondBox!.width).toBeLessThanOrEqual(128);
+    await expect(summaries.nth(0)).toHaveCSS('padding-top', '4px');
+    await expect(summaries.nth(1)).toHaveCSS('padding-bottom', '4px');
     const verticalPadding = await summaries.evaluateAll((elements) => elements.map((element) => {
       const style = getComputedStyle(element);
       return Number.parseFloat(style.paddingTop) + Number.parseFloat(style.paddingBottom);
@@ -407,5 +416,27 @@ for (const viewport of [
       expect(actionBox!.y).toBeGreaterThan(firstBox!.y);
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  });
+}
+
+for (const viewport of [
+  { name: 'mobile', width: 320, height: 720 },
+  { name: 'desktop', width: 1440, height: 900 },
+]) {
+  test(`Home dashboard action stays opaque over the hero in light mode on ${viewport.name}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await prepare(page);
+    await page.goto('/');
+    await page.evaluate(() => document.documentElement.classList.add('light'));
+    const action = page.locator('.homepilot-home-hero').getByRole('button', { name: /sin pestaña principal|no main tab/i });
+    await expect(action).toBeDisabled();
+    await expect(action).toHaveCSS('opacity', '1');
+    const surface = await action.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { background: style.backgroundColor, foreground: style.color, zIndex: style.zIndex };
+    });
+    expect(surface.background).not.toBe('rgba(0, 0, 0, 0)');
+    expect(surface.foreground).not.toBe(surface.background);
+    expect(Number(surface.zIndex)).toBeGreaterThan(1);
   });
 }

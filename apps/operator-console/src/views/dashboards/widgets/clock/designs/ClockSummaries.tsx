@@ -9,7 +9,7 @@ export function ClockDateTimeSummary({ now, locale, home = false }: { now: Date;
     ? `${formatMonth(now, locale, 'long')} ${now.getDate()}`
     : `${now.getDate()} de ${formatMonth(now, locale, 'long')}`;
   const time = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-  if (home) return <div className="homepilot-home-summary flex size-36 shrink-0 flex-col justify-center rounded-card border border-border/60 bg-card/80 px-3 py-2 backdrop-blur-md sm:size-40 sm:px-4 sm:py-2.5">
+  if (home) return <div className="homepilot-home-summary flex size-28 shrink-0 flex-col justify-center rounded-card border border-border/60 bg-card/80 px-3 py-1 backdrop-blur-md sm:size-32">
     <time className="block tabular-nums text-panel-title font-bold text-foreground" dateTime={now.toISOString()}>{time}</time>
     <span className="block text-body-compact text-muted-foreground">{formatWeekday(now, locale, 'long')}</span>
     <span className="block text-caption text-muted-foreground">{date}</span>
@@ -36,7 +36,7 @@ export function ClockWeatherSummary({ now, weather, status, copy, home = false }
     : <Cloud aria-hidden="true" className={home ? 'h-5 w-5 shrink-0' : 'homepilot-clock-reference-weather-icon'} />;
   const condition = ready ? weather.label : status === 'idle' || status === 'loading' ? copy.weatherLoading : copy.weatherUnavailable;
 
-  if (home) return <div className="homepilot-home-summary flex size-36 shrink-0 flex-col justify-center rounded-card border border-border/60 bg-card/80 px-3 py-2 backdrop-blur-md sm:size-40 sm:px-4 sm:py-2.5" aria-live="polite">
+  if (home) return <div className="homepilot-home-summary flex size-28 shrink-0 flex-col justify-center rounded-card border border-border/60 bg-card/80 px-3 py-1 backdrop-blur-md sm:size-32" aria-live="polite">
     <div className="flex min-w-0 items-center gap-2 text-body-compact text-muted-foreground">{icon}<span className="truncate">{weather?.location ?? copy.cuenca}</span></div>
     <strong className="block tabular-nums text-panel-title text-foreground">{ready ? formatTemperature(weather.temperature) : '—'}</strong>
     <span className="line-clamp-2 text-caption leading-tight text-muted-foreground">{condition}</span>

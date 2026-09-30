@@ -77,13 +77,17 @@ export function DashboardRoutinesSection({
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,8rem),1fr))] gap-3" data-testid="favorite-routine-grid">
+        <div className="flex flex-wrap gap-3" data-testid="favorite-routine-grid">
           {routines.map((routine) => {
             const key = `${routine.type}_${routine.value.id}`;
             const isProcessing = processingId === key;
             const feedback = isProcessing ? 'pending' : actionFeedback?.id === key ? actionFeedback.status : undefined;
             return (
-              <div key={key} className="h-24 min-w-0" data-home-routine={routine.type}>
+              <div
+                key={key}
+                className={`group/card relative grid h-24 w-36 max-w-full min-w-0 overflow-hidden rounded-section border border-transparent shadow-sm transition-[border-color,background-color,box-shadow,transform] hover:-translate-y-0.5 hover:shadow-depth-2 active:scale-[0.985] ${isProcessing || feedback === 'success' ? 'homepilot-section-light-tile-active' : ''}`}
+                data-home-routine={routine.type}
+              >
                 <SectionActionCard
                   kind="action"
                   title={routine.value.name}
@@ -91,10 +95,11 @@ export function DashboardRoutinesSection({
                   isAssigned
                   isActive={isProcessing || feedback === 'success'}
                   actionFeedback={feedback}
-                  onAction={processingId === null ? () => {
+                  isBlocked={processingId !== null}
+                  onAction={() => {
                     if (routine.type === 'scene') onSceneExecute(routine.value);
                     else onAutomationExecute(routine.value);
-                  } : undefined}
+                  }}
                 />
               </div>
             );
