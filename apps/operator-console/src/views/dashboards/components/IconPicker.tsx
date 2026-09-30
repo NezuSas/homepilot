@@ -31,6 +31,8 @@ export function IconPicker({ value = '', onChange, placeholder, label, className
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const popupRef = useRef<HTMLDivElement | null>(null);
   const searchRef = useRef<HTMLInputElement | null>(null);
+  const openedWithTouchRef = useRef(false);
+  const focusInitializedRef = useRef(false);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
@@ -120,7 +122,10 @@ export function IconPicker({ value = '', onChange, placeholder, label, className
   }, [open]);
 
   useEffect(() => {
-    if (open && position && document.activeElement === triggerRef.current) searchRef.current?.focus();
+    if (!open || !position || focusInitializedRef.current) return;
+    focusInitializedRef.current = true;
+    if (openedWithTouchRef.current) popupRef.current?.focus();
+    else searchRef.current?.focus();
   }, [open, position]);
 
   const popup = open && position && typeof document !== 'undefined' ? createPortal(
@@ -129,6 +134,7 @@ export function IconPicker({ value = '', onChange, placeholder, label, className
       id={listboxId}
       role="dialog"
       aria-label={resolvedLabel}
+      tabIndex={-1}
       className="fixed z-[100000] flex flex-col overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl"
       style={position}
     >
@@ -217,7 +223,12 @@ export function IconPicker({ value = '', onChange, placeholder, label, className
       aria-haspopup="dialog"
       aria-expanded={open}
       aria-controls={open ? listboxId : undefined}
-      onClick={() => { setQuery(''); setVisibleLimit(INITIAL_ICON_COUNT); setOpen((current) => !current); }}
+      onPointerDown={(event) => { openedWithTouchRef.current = event.pointerType !== 'mouse'; }}
+      onClick={(event) => {
+        if (event.detail === 0) openedWithTouchRef.current = false;
+        focusInitializedRef.current = false;
+        setQuery(''); setVisibleLimit(INITIAL_ICON_COUNT); setOpen((current) => !current);
+      }}
       className="w-full justify-start rounded-xl bg-card text-left"
     >
       <SelectedIcon className="h-5 w-5 shrink-0" />

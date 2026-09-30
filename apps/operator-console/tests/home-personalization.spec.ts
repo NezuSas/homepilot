@@ -386,7 +386,7 @@ for (const viewport of [
     const brandBox = await hero.getByLabel('HomePilot by NEZU').boundingBox();
     const locationBox = await location.boundingBox();
     expect(brandBox && locationBox).toBeTruthy();
-    expect(brandBox!.y).toBeGreaterThan(locationBox!.y + locationBox!.height);
+    expect(brandBox!.y - locationBox!.y - locationBox!.height).toBeGreaterThan(20);
     await expect(page.getByText('Powered by NEZU')).toBeVisible();
     await expect(action).toContainText(/Ir a tablero|Go to dashboard/);
     const heroBox = await hero.boundingBox();
@@ -398,15 +398,20 @@ for (const viewport of [
     expect(Math.abs(brandBox!.x - firstBox!.x)).toBeLessThan(1);
     expect(Math.abs(firstBox!.width - firstBox!.height)).toBeLessThan(1);
     expect(Math.abs(secondBox!.width - secondBox!.height)).toBeLessThan(1);
-    expect(firstBox!.width).toBeLessThanOrEqual(128);
-    expect(secondBox!.width).toBeLessThanOrEqual(128);
-    await expect(summaries.nth(0)).toHaveCSS('padding-top', '4px');
-    await expect(summaries.nth(1)).toHaveCSS('padding-bottom', '4px');
+    expect(firstBox!.width).toBeLessThanOrEqual(112);
+    expect(secondBox!.width).toBeLessThanOrEqual(112);
+    await expect(summaries.nth(0)).toHaveCSS('padding-top', '2px');
+    await expect(summaries.nth(1)).toHaveCSS('padding-bottom', '2px');
+    await expect(summaries.nth(0)).toHaveCSS('padding-left', '8px');
+    await expect(summaries.nth(1)).toHaveCSS('padding-right', '8px');
     const verticalPadding = await summaries.evaluateAll((elements) => elements.map((element) => {
       const style = getComputedStyle(element);
       return Number.parseFloat(style.paddingTop) + Number.parseFloat(style.paddingBottom);
     }));
     expect(verticalPadding.every((value) => value <= 20)).toBe(true);
+    expect(await summaries.evaluateAll((elements) => elements.every((element) => (
+      element.scrollHeight <= element.clientHeight + 1 && element.scrollWidth <= element.clientWidth + 1
+    )))).toBe(true);
     expect(firstBox!.x).toBeLessThan(secondBox!.x + secondBox!.width);
     expect(firstBox!.y).toBeGreaterThan(phraseBox!.y + phraseBox!.height);
     if (viewport.width >= 1024) {
@@ -415,6 +420,8 @@ for (const viewport of [
     } else {
       expect(actionBox!.y).toBeGreaterThan(firstBox!.y);
     }
+    const rightPadding = await hero.evaluate((element) => Number.parseFloat(getComputedStyle(element).paddingRight));
+    expect(Math.abs(actionBox!.x + actionBox!.width - (heroBox!.x + heroBox!.width - rightPadding))).toBeLessThan(2);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   });
 }

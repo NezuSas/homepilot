@@ -1312,6 +1312,7 @@ test('Feature: Section appearance — Scenario: An owner can select and clear an
   await editor.getByRole('button', { name: /^(Icon|Icono)$/i }).click();
   const iconPicker = page.getByRole('dialog', { name: /^(Icon|Icono)$/i });
   const iconSearch = iconPicker.getByRole('searchbox');
+  await expect(iconSearch).toBeFocused();
   await iconSearch.fill('home');
   await expect(iconSearch).toHaveValue('home');
   await expect(editor.getByRole('textbox', { name: /^(Section title|Título de sección)$/i })).toHaveValue('Lecturas del hogar');
@@ -1328,6 +1329,43 @@ test('Feature: Section appearance — Scenario: An owner can select and clear an
   await expect(sectionWithoutIcon.locator('.homepilot-dashboard-section-heading svg')).toHaveCount(0);
   await expect(sectionWithIcon.locator('.homepilot-dashboard-section-heading svg')).toHaveCount(1);
   expect(savedDashboard.tabs[0]?.widgets.find((widget) => widget.id === 'responsive-section')?.config.appearance).not.toHaveProperty('icon');
+});
+
+test.describe('Icon picker on touch tablets', () => {
+  test.use({ hasTouch: true });
+
+  for (const viewport of [
+    { name: 'portrait', width: 820, height: 1180, keyboardHeight: 520 },
+    { name: 'landscape', width: 1180, height: 820, keyboardHeight: 400 },
+  ]) {
+    test(`opens the icon grid before the keyboard and keeps results visible in tablet ${viewport.name}`, async ({ page }) => {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await prepareAuthenticatedDashboard(page);
+      await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+      await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().tap();
+      const section = page.locator('.homepilot-dashboard-widget').filter({ has: page.getByRole('heading', { name: 'Lecturas del hogar', exact: true }) });
+      await section.getByRole('button', { name: /^(Edit section|Editar sección)$/i }).tap();
+      const editor = page.getByRole('dialog', { name: /^(Edit section|Editar sección)$/i });
+      await editor.getByRole('button', { name: /^(Icon|Icono)$/i }).tap();
+      const picker = page.getByRole('dialog', { name: /^(Icon|Icono)$/i });
+      const search = picker.getByRole('searchbox');
+      await expect(picker).toBeFocused();
+      await expect(search).not.toBeFocused();
+      await expect(picker.getByRole('option').first()).toBeVisible();
+
+      await search.tap();
+      await expect(search).toBeFocused();
+      await search.fill('home');
+      await page.setViewportSize({ width: viewport.width, height: viewport.keyboardHeight });
+      const option = picker.getByRole('listbox').getByRole('option', { name: 'home', exact: true });
+      await expect(option).toBeVisible();
+      const optionBounds = await option.boundingBox();
+      expect(optionBounds).toBeTruthy();
+      expect(optionBounds!.y + optionBounds!.height).toBeLessThanOrEqual(viewport.keyboardHeight);
+      await option.tap();
+      await expect(picker).toHaveCount(0);
+    });
+  }
 });
 
 test('Feature: Button cards — Scenario: Light and scene-action buttons share a 24px surface in active and inactive states', async ({ page }) => {
