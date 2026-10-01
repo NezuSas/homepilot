@@ -565,6 +565,12 @@
     "delete_title": "¿Eliminar Escena?",
     "delete_description": "Esto eliminará permanentemente la escena. Los dispositivos individuales no se verán afectados.",
     "builder": {
+      "selected": "Seleccionadas",
+      "selected_empty": "Añade entidades desde los espacios de abajo.",
+      "available": "Entidades disponibles",
+      "unassigned": "Sin espacio",
+      "all_spaces": "Todos los espacios",
+      "search_devices": "Buscar entidad o espacio",
       "title_create": "Crear Escena",
       "title_edit": "Editar Escena",
       "subtitle": "Definición de Escena",

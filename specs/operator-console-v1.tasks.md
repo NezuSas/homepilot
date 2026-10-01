@@ -232,3 +232,8 @@
 - **Módulos**: `SceneCard`, `ScenesGroup`, traducciones ES/EN y tests focalizados de componente/responsive.
 - **Criterio Relacionado**: **AC47**.
 - **Evidencia (2026-10-01)**: 4 tests Jest de `SceneCard`; 7 escenarios responsive focalizados de interacción/geometría en ambos temas y 2 escenarios existentes de iconos PASS. Typecheck raíz/consola, lint consola, builds raíz/consola, i18n, spec coverage, BDD y module-test-coverage PASS. Revisión visual de capturas desktop y celular. No se ejecutó responsive completo, Git, Docker ni deploy.
+
+### [UI-Routines-03] Editor y selección de entidades por espacios
+- **Descripción**: Reutilizar Modal/Input/Button/Select/SegmentedControl e incorporar `SceneDeviceSelector` compartido entre crear/editar. Seleccionadas arriba, catálogo por espacios ordenados con grupo «Sin espacio», búsqueda, filtro de navegación sin alterar alcance/acciones y grupos plegables para listas largas. Verificar selección, edición de comandos, guardado, teclado táctil y responsive focalizado.
+- **Criterio Relacionado**: **AC48**.
+- **Evidencia (2026-10-01)**: 9 tests Jest de `SceneCard`/`SceneDeviceSelector` PASS. 17 escenarios responsive focalizados PASS; tras ajustar la legibilidad de comandos se repitieron únicamente los 5 tamaños del editor y el escenario de teclado táctil (6 PASS). Guardado conserva alcance, descripción y comandos. Typecheck, lint consola, builds raíz/consola, i18n, spec coverage, BDD y module-test-coverage PASS. Capturas desktop/celular revisadas. No se ejecutó responsive completo, Git, GitHub, Docker ni deploy.

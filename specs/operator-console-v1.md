@@ -119,7 +119,10 @@ Se propone una consola de administración pragmática:
 
 - [x] AC47: El listado de Escenas reutiliza una tarjeta modular compacta, sin imágenes ni descripción genérica repetida. Muestra nombre, icono, número de acciones y estancia cuando exista; las descripciones configuradas se conservan. Solo el botón explícito «Ejecutar» activa la escena mediante clic, toque o teclado; el resto de la tarjeta no ejecuta comandos. Favoritos, edición y eliminación son acciones independientes. La ejecución muestra estado ocupado y éxito accesibles e impide repetir la solicitud mientras está ocupada. La grilla aprovecha el ancho disponible sin desbordar en celular, tablet, kiosk y escritorio, tanto vertical como horizontal, en ambos temas. No cambia el comportamiento de favoritas de Inicio ni las tarjetas del Dashboard.
 
+- [x] AC48: Crear y editar Escenas usan el mismo editor modular con formulario sobrio, controles compartidos y footer de guardar/cancelar accesible. El selector de entidades muestra primero las seleccionadas con su comando; las disponibles se agrupan y ordenan por espacio y nombre, con «Sin espacio» para entidades no asignadas o con estancia inexistente. Búsqueda por entidad/espacio, filtro de navegación independiente del alcance persistido y grupos plegables facilitan catálogos extensos sin perder entidades. Buscar/filtrar no oculta las seleccionadas ni cambia comandos. Cámaras siguen excluidas y sensores sin comando permanecen visibles pero no seleccionables. No cambia API, persistencia, ownership ni Automatizaciones.
+
 ## 9. Notas Técnicas y Arquitectura
+
 - El backend actual debe exponer (si no lo hace aún) los endpoints mínimos para soportar estas vistas (ej. REST V1 `GET /api/devices/inbox`, `POST /api/devices/{id}/assign`, etc.).
 - Como el frontend es meramente una consola Edge Operator, se asumirá una entrega estática (Static Bundle) servida directamente por el backend de HomePilot o un puerto contiguo.
 - Se fomentará el uso de tecnologías que respeten las exigencias del proyecto: tipado estricto (TypeScript) en el frontend, y coherencia arquitectónica entre el modelo de llamadas locales.

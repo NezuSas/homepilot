@@ -578,9 +578,10 @@ for (const viewport of [
       for (const control of ['Ejecutar|Run', 'Añadir a favoritas|Add to favorites', 'Editar|Edit', 'Eliminar|Delete']) {
         const button = card.getByRole('button', { name: new RegExp(`^(${control})$`, 'i') });
         await expect(button).toBeVisible();
-        const bounds = await button.boundingBox();
-        expect(bounds?.width).toBeGreaterThanOrEqual(44);
-        expect(bounds?.height).toBeGreaterThanOrEqual(44);
+        // The CSS layout box excludes transient transforms and subpixel rect subtraction.
+        const bounds = await button.evaluate(element => ({ width: element.offsetWidth, height: element.offsetHeight }));
+        expect(bounds.width).toBeGreaterThanOrEqual(44);
+        expect(bounds.height).toBeGreaterThanOrEqual(44);
       }
       if (viewport.name === 'desktop' || viewport.name === 'mobile portrait') {
         await page.screenshot({ path: testInfo.outputPath(`scene-cards-${theme}.png`) });
@@ -614,6 +615,78 @@ for (const viewport of [
     finishExecution();
     await expect(card.getByRole('status')).toHaveText(/^(Ejecutada|Completed)$/i);
     await expect(card.getByRole('button', { name: /^(Ejecutada|Completed)$/i })).toBeEnabled();
+  });
+}
+
+for (const viewport of [
+  { name: 'mobile', width: 320, height: 720 },
+  { name: 'tablet portrait', width: 768, height: 1024 },
+  { name: 'tablet landscape', width: 1024, height: 768 },
+  { name: 'desktop', width: 1440, height: 900 },
+  { name: 'kiosk portrait', width: 1080, height: 1920 },
+]) {
+  test(`Feature: Scene editor spaces — Scenario: Selected entities stay first and a large catalog saves unchanged scope on ${viewport.name} (AC48)`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport);
+    await prepareAuthenticatedDashboard(page);
+    await page.route('**/api/v1/homes', (route) => route.fulfill({ json: [{ id: 'responsive-home', ownerId: dashboardUser.id, name: 'Casa' }] }));
+    await page.route('**/api/v1/rooms', (route) => route.fulfill({ json: [
+      { id: 'office', homeId: 'responsive-home', name: 'Oficina' }, { id: 'kitchen', homeId: 'responsive-home', name: 'Cocina' },
+    ] }));
+    const device = (id: string, name: string, roomId: string | null) => ({ id, name, roomId, homeId: 'responsive-home', type: 'light', status: 'ASSIGNED' });
+    await page.route('**/api/v1/devices', (route) => route.fulfill({ json: [
+      ...Array.from({ length: 20 }, (_, i) => device(`office-${i}`, `Luz ${i}`, 'office')),
+      ...Array.from({ length: 10 }, (_, i) => device(`kitchen-${i}`, `Cocina luz ${i}`, 'kitchen')),
+      device('chosen', 'Zeta elegida', 'office'), device('unassigned', 'Luz sin asignar', null),
+      device('orphan', 'Luz huérfana', 'deleted-room'),
+    ] }));
+    let scene = { id: 'organized-scene', homeId: 'responsive-home', roomId: null, name: 'Trabajo organizada', description: 'Descripción conservada', actions: [{ deviceId: 'chosen', command: 'turn_off' }] };
+    await page.route('**/api/v1/scenes', (route) => route.fulfill({ json: [scene] }));
+    await page.route('**/api/v1/scenes/favorites', (route) => route.fulfill({ json: { sceneIds: [], initialized: true } }));
+    let saved = false;
+    await page.route('**/api/v1/scenes/organized-scene', (route) => {
+      scene = { ...scene, ...route.request().postDataJSON() as typeof scene };
+      saved = true;
+      return route.fulfill({ json: scene });
+    });
+    await page.goto('/routines/scenes');
+    await page.getByRole('article', { name: scene.name }).getByRole('button', { name: /^(Editar|Edit)$/i }).click();
+    const editor = page.getByRole('dialog', { name: /^(Editar Escena|Edit Scene)$/i });
+    const selected = editor.getByRole('region', { name: /^(Seleccionadas|Selected)$/i });
+    const available = editor.getByRole('region', { name: /^(Entidades disponibles|Available entities)$/i });
+    await expect(selected.getByRole('button', { name: /Zeta elegida/ })).toHaveAttribute('aria-pressed', 'true');
+    await expect(selected.getByRole('radio', { name: /^(Apagar|Turn Off)$/i })).toHaveAttribute('aria-checked', 'true');
+    expect(await editor.getByRole('region').evaluateAll(elements => elements.map(element => element.getAttribute('aria-label')))).toEqual(['Selected', 'Available entities']);
+    const office = available.locator('summary').filter({ hasText: 'Oficina' });
+    await office.click();
+    const last = available.getByRole('button', { name: /Luz 19 / });
+    await last.scrollIntoViewIfNeeded();
+    await expect(last).toBeVisible();
+    await available.getByRole('searchbox', { name: /Buscar entidad|Search entities/i }).fill('Luz 19');
+    await expect(selected.getByRole('button', { name: /Zeta elegida/ })).toBeVisible();
+    await last.click();
+    await expect(selected.getByRole('button', { name: /Luz 19 / })).toHaveAttribute('aria-pressed', 'true');
+    await expect(available.getByRole('button', { name: /Luz 19 / })).toHaveCount(0);
+    await available.getByRole('searchbox', { name: /Buscar entidad|Search entities/i }).fill('');
+    await available.getByRole('button', { name: /^(Todos los espacios|All spaces)$/i }).click();
+    await page.getByRole('listbox').getByRole('option', { name: /^(Sin espacio|Unassigned space)$/i }).click();
+    await expect(available.getByRole('button', { name: /Luz huérfana/ })).toBeVisible();
+    await available.getByRole('button', { name: /Luz sin asignar/ }).click();
+    await expect(selected.getByRole('button', { name: /Zeta elegida/ })).toHaveAttribute('aria-pressed', 'true');
+    if (viewport.name === 'desktop' || viewport.name === 'mobile') {
+      await editor.screenshot({ path: testInfo.outputPath('scene-editor.png') });
+    }
+    await editor.getByRole('button', { name: /^(Guardar Escena|Save Scene)$/i }).click();
+    await expect.poll(() => saved).toBe(true);
+    expect(scene.roomId).toBeNull();
+    expect(scene.description).toBe('Descripción conservada');
+    expect(scene.actions).toEqual([
+      { deviceId: 'chosen', command: 'turn_off' }, { deviceId: 'office-19', command: 'turn_on' }, { deviceId: 'unassigned', command: 'turn_on' },
+    ]);
+    await page.getByRole('button', { name: /^(Crear Escena|Create Scene)$/i }).click();
+    const create = page.getByRole('dialog', { name: /^(Crear Escena|Create Scene)$/i });
+    await expect(create.getByRole('region', { name: /^(Seleccionadas|Selected)$/i }).getByRole('button')).toHaveCount(0);
+    await expect(create.getByRole('region', { name: /^(Entidades disponibles|Available entities)$/i }).locator('summary').filter({ hasText: 'Oficina' })).toBeVisible();
+    await expect(create.getByRole('button', { name: /^(Guardar Escena|Save Scene)$/i })).toBeDisabled();
   });
 }
 

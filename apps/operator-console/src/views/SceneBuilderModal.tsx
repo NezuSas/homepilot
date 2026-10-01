@@ -1,32 +1,20 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Save, PlayCircle, List, Settings } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { Save } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { apiFetch, readApiError } from '../lib/apiClient';
 import { invalidateDiagnosticCatalog } from '../lib/diagnosticResourceRequests';
-import { humanize } from '../lib/naming-utils';
 import { SearchableSelectField } from '../components/ui/SearchableSelectField';
 import { Button } from '../components/ui/Button';
-import { SegmentedControl } from '../components/ui/SegmentedControl';
-import { Input, SearchInput } from '../components/ui/Input';
+import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
+import { SceneDeviceSelector, type SceneDeviceAction } from '../components/SceneDeviceSelector';
 import { IconPicker } from './dashboards/components/IconPicker';
 import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
-import { getRoutineDeviceCommands, isCameraDevice, type RoutineDeviceCommand } from '../lib/deviceCapabilities';
+import { getRoutineDeviceCommands, type RoutineDeviceCommand } from '../lib/deviceCapabilities';
 
 const API_URL = `${API_BASE_URL}/api/v1`;
-
-interface Room {
-  id: string;
-  name: string;
-}
-
-interface SceneAction {
-  deviceId: string;
-  command: RoutineDeviceCommand;
-}
-
+interface Room { id: string; name: string }
 interface Scene {
   id: string;
   homeId: string;
@@ -34,9 +22,8 @@ interface Scene {
   name: string;
   icon?: string;
   description?: string;
-  actions: SceneAction[];
+  actions: SceneDeviceAction[];
 }
-
 interface SceneBuilderModalProps {
   onClose: () => void;
   onSaved: () => void;
@@ -53,63 +40,37 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
   const [icon, setIcon] = useState(existingScene?.icon || '');
   const [description, setDescription] = useState(existingScene?.description || '');
   const [roomId, setRoomId] = useState<string | null>(existingScene ? existingScene.roomId : initialRoomId);
-  const [actions, setActions] = useState<SceneAction[]>(existingScene?.actions || []);
+  const [actions, setActions] = useState<SceneDeviceAction[]>(existingScene?.actions || []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [deviceSearch, setDeviceSearch] = useState('');
-
-  const canAddSceneAction = (device: SnapshotDevice) => getRoutineDeviceCommands(device).length > 0;
-  const nonCameraDevices = devices.filter(device => !isCameraDevice(device));
-  let availableDevices = roomId ? nonCameraDevices.filter(d => d.roomId === roomId) : nonCameraDevices;
-  
-  if (deviceSearch) {
-    availableDevices = availableDevices.filter(d => 
-      humanize(d.id, d.name).toLowerCase().includes(deviceSearch.toLowerCase())
-    );
-  }
 
   const toggleDevice = (deviceId: string) => {
-    const exists = actions.find(a => a.deviceId === deviceId);
+    const exists = actions.find(action => action.deviceId === deviceId);
     if (exists) {
-      setActions(actions.filter(a => a.deviceId !== deviceId));
+      setActions(actions.filter(action => action.deviceId !== deviceId));
     } else {
-      const device = devices.find(d => d.id === deviceId);
-      if (!device || !canAddSceneAction(device)) return;
+      const device = devices.find(candidate => candidate.id === deviceId);
+      if (!device) return;
       const defaultCommand = getRoutineDeviceCommands(device)[0];
       if (defaultCommand) setActions([...actions, { deviceId, command: defaultCommand }]);
     }
   };
-
   const setCommand = (deviceId: string, command: RoutineDeviceCommand) => {
-    setActions(actions.map(a => a.deviceId === deviceId ? { ...a, command } : a));
+    setActions(actions.map(action => action.deviceId === deviceId ? { ...action, command } : action));
   };
-
   const handleSave = async () => {
     if (!name.trim()) return setError(t('scenes.builder.errors.no_name'));
     if (actions.length === 0) return setError(t('scenes.builder.errors.no_actions'));
-
     setSaving(true);
     setError(null);
     try {
-      const payload = {
-        homeId,
-        roomId,
-        name: name.trim(),
-        icon: icon || undefined,
-        description: description.trim(),
-        actions
-      };
-
-      const url = existingScene 
-        ? `${API_URL}/scenes/${existingScene.id}` 
-        : `${API_URL}/scenes`;
-      
+      const payload = { homeId, roomId, name: name.trim(), icon: icon || undefined, description: description.trim(), actions };
+      const url = existingScene ? `${API_URL}/scenes/${existingScene.id}` : `${API_URL}/scenes`;
       const res = await apiFetch(url, {
         method: existingScene ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
-
       if (!res.ok) throw new Error(await readApiError(res, t('scenes.builder.errors.sync_failed')));
       invalidateDiagnosticCatalog();
       onSaved();
@@ -133,166 +94,29 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
       layerClassName="z-[200]"
       hideCloseButton={saving}
       footer={(
-        <div className="w-full p-5 sm:p-6">
-          <Button
-            disabled={!name || actions.length === 0 || saving}
-            onClick={handleSave}
-            isLoading={saving}
-            className="w-full rounded-panel py-4 text-caption font-black uppercase tracking-label-wider shadow-primary/20 sm:py-5"
-          >
-            {!saving && <Save className="h-5 w-5" />}
-            {t('scenes.builder.commit')}
+        <div className="flex w-full items-center justify-end gap-2 p-4 sm:px-6">
+          <Button type="button" variant="ghost" size="lg" disabled={saving} onClick={onClose}>{t('common.cancel')}</Button>
+          <Button type="button" size="lg" disabled={!name.trim() || !actions.length || saving} onClick={handleSave} isLoading={saving}>
+            {!saving && <Save aria-hidden="true" className="size-4" />}{t('scenes.builder.commit')}
           </Button>
         </div>
       )}
     >
-      <div className="space-y-5 sm:space-y-6">
-          {error && (
-            <div className="p-4 rounded-2xl bg-danger/10 border border-danger/20 flex items-center gap-3 text-danger animate-shake">
-              <X className="w-4 h-4 shrink-0" />
-              <p className="text-micro font-black uppercase tracking-wider leading-none">{error}</p>
-            </div>
-          )}
-
-          {/* Identity Section */}
-          <div className="relative space-y-4 rounded-section border border-border/10 bg-muted/10 p-4 sm:rounded-panel sm:p-6">
-             <div className="flex items-center gap-3 mb-2">
-                <div className="h-8 px-3 rounded-full bg-background border flex items-center justify-center shrink-0">
-                  <Settings className="w-3 h-3 text-foreground/40" />
-                </div>
-                <label className="text-micro font-black uppercase tracking-label-wider text-muted-foreground opacity-60">{t('scenes.builder.identity')}</label>
-             </div>
-             
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label={t('scenes.builder.placeholders.name')}
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder={t('scenes.builder.placeholders.name')}
-                  className="h-12 border-foreground/10 bg-foreground/[0.03] px-4 text-body-lg font-black tracking-tight placeholder:opacity-35"
-                  autoFocus
-                />
-                <div className="space-y-2">
-                  <label className="text-nano font-black uppercase tracking-widest text-muted-foreground opacity-50 ml-1">{t('scenes.builder.scope')}</label>
-                  <SearchableSelectField
-                    value={roomId || ''} 
-                    onChange={(val) => {
-                      setRoomId(val || null);
-                      setActions([]);
-                    }}
-                    options={[
-                      { value: '', label: t('dashboard.scene_global') },
-                      ...rooms.map(r => ({ value: r.id, label: r.name.toUpperCase() }))
-                    ]}
-                    placeholder={t('dashboard.scene_global')}
-                  />
-                </div>
-             </div>
-
-             <Input
-               containerClassName="mt-2"
-               label={t('scenes.builder.placeholders.description')}
-               type="text"
-               value={description}
-               onChange={(e) => setDescription(e.target.value)}
-               placeholder={t('scenes.builder.placeholders.description')}
-               className="h-12 border-foreground/10 bg-foreground/[0.03] px-4 text-body font-medium placeholder:opacity-20"
-             />
-             <IconPicker value={icon} onChange={setIcon} />
+      <div className="space-y-5">
+        {error && <p role="alert" className="rounded-control bg-danger/10 p-3 text-caption text-danger">{error}</p>}
+        <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
+          <Input label={t('scenes.builder.placeholders.name')} value={name} onChange={event => setName(event.target.value)} placeholder={t('scenes.builder.placeholders.name')} className="h-11" autoFocus />
+          <div className="space-y-1.5">
+            <p className="text-micro font-semibold text-muted-foreground">{t('scenes.builder.scope')}</p>
+            <SearchableSelectField value={roomId || ''} onChange={value => { setRoomId(value || null); setActions([]); }} options={[
+              { value: '', label: t('dashboard.scene_global') },
+              ...rooms.map(room => ({ value: room.id, label: room.name })),
+            ]} placeholder={t('dashboard.scene_global')} />
           </div>
-
-          {/* Device Selection Section */}
-          <div className="relative space-y-4 rounded-section border border-primary/10 bg-primary/[0.02] p-4 sm:rounded-panel sm:p-6">
-             <div className="mb-2 flex flex-col gap-3 min-[460px]:flex-row min-[460px]:items-center min-[460px]:justify-between">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="h-8 px-3 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
-                    <List className="w-3 h-3" />
-                  </div>
-                  <label className="text-micro font-black uppercase tracking-label-wider text-primary/60">
-                    {t('scenes.builder.select_units', { count: actions.length })}
-                  </label>
-                </div>
-                <SearchInput
-                  containerClassName="w-full min-[460px]:w-52"
-                  value={deviceSearch}
-                  onChange={(e) => setDeviceSearch(e.target.value)}
-                  placeholder={t('common.search')}
-                  className="h-9 rounded-lg border-none bg-primary/5 text-caption font-bold focus-visible:ring-1"
-                />
-             </div>
-
-             {availableDevices.length === 0 ? (
-                <div className="p-8 text-center bg-primary/[0.03] border-2 border-dashed border-primary/10 rounded-2xl">
-                  <p className="text-micro font-black uppercase tracking-widest text-primary/40">{t('dashboard.scene_no_devices')}</p>
-                </div>
-             ) : (
-                <div className="grid grid-cols-1 gap-2">
-                  {availableDevices.map(d => {
-                    const action = actions.find(a => a.deviceId === d.id);
-                    const isSelected = !!action;
-                    const canAdd = canAddSceneAction(d);
-                    
-                    return (
-                      <div key={d.id} className={cn(
-                        "group flex flex-col gap-3 rounded-2xl border p-3 transition-all duration-300 min-[520px]:flex-row min-[520px]:items-center min-[520px]:justify-between min-[520px]:gap-4",
-                        canAdd ? 'cursor-pointer' : 'cursor-not-allowed opacity-60',
-                        isSelected ? "bg-primary/10 border-primary/30 shadow-lg" : "bg-foreground/[0.02] border-foreground/5 hover:border-primary/20"
-                      )}
-                        role="button"
-                        tabIndex={canAdd ? 0 : -1}
-                        aria-disabled={!canAdd}
-                        onClick={() => toggleDevice(d.id)}
-                        onKeyDown={(event) => {
-                          if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
-                            event.preventDefault();
-                            toggleDevice(d.id);
-                          }
-                        }}
-                      >
-                        <div className="flex items-center gap-4 min-w-0">
-                          <div className={cn(
-                            "w-10 h-10 rounded-xl border flex items-center justify-center transition-all duration-700 shrink-0",
-                            isSelected ? "bg-primary border-primary text-primary-foreground premium-glow shadow-primary/20" : "bg-background border-border/40 text-foreground/30"
-                          )}>
-                             <PlayCircle className={cn("w-5 h-5", isSelected && "animate-pulse")} />
-                          </div>
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-body font-black tracking-tighter leading-none mb-1 truncate">{humanize(d.id, d.name)}</span>
-                            <span className="text-nano font-black uppercase tracking-label text-muted-foreground opacity-40">
-                               {(d.semanticType || d.type).toUpperCase()}
-                            </span>
-                            {!canAdd && <span className="text-nano text-muted-foreground">{t('scenes.builder.no_compatible_command')}</span>}
-                          </div>
-                        </div>
-
-                        {isSelected && (
-                          <div className="w-full min-[520px]:w-52" onClick={e => e.stopPropagation()}>
-                            {action && ['press', 'activate'].includes(action.command) ? (
-                              <span className="text-nano font-bold text-primary">{t('scenes.builder.momentary_action')}</span>
-                            ) : (
-                              <SegmentedControl<RoutineDeviceCommand>
-                                value={action?.command ?? getRoutineDeviceCommands(d)[0]}
-                                onChange={(command) => setCommand(d.id, command)}
-                                options={getRoutineDeviceCommands(d).map(command => ({
-                                  value: command,
-                                  label: t(`automations.builder.commands.${command}`),
-                                }))}
-                                label={t('automations.form.action_type')}
-                                tone="primary"
-                                className="w-full rounded-lg p-1"
-                                optionClassName="min-h-9 px-2 py-1.5 text-nano font-black tracking-widest"
-                              />
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-             )}
-          </div>
-
+        </div>
+        <Input label={t('scenes.builder.placeholders.description')} value={description} onChange={event => setDescription(event.target.value)} placeholder={t('scenes.builder.placeholders.description')} className="h-11" />
+        <IconPicker value={icon} onChange={setIcon} />
+        <SceneDeviceSelector key={roomId ?? 'global'} devices={devices} rooms={rooms} roomId={roomId} actions={actions} onToggle={toggleDevice} onCommand={setCommand} />
       </div>
     </Modal>
   );
