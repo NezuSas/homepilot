@@ -87,7 +87,7 @@ describe('Automation Lifecycle: Application Use Cases', () => {
     it('propaga ForbiddenOwnershipError si el usuario no tiene ownership (AC7)', async () => {
       await setupBaseRule();
       topologyMock.validateHomeOwnership.mockRejectedValue(new ForbiddenOwnershipError('Forbidden'));
-      await expect(enableAutomationRuleUseCase('rule-1', 'intruder', enableDeps())).rejects.toThrow(ForbiddenOwnershipError);
+      await expect(enableAutomationRuleUseCase('rule-1', 'user-owner', enableDeps())).rejects.toThrow(ForbiddenOwnershipError);
     });
   });
 
@@ -116,7 +116,7 @@ describe('Automation Lifecycle: Application Use Cases', () => {
     it('propaga ForbiddenOwnershipError si el usuario no tiene ownership (AC7)', async () => {
       await setupBaseRule();
       topologyMock.validateHomeOwnership.mockRejectedValue(new ForbiddenOwnershipError('Forbidden'));
-      await expect(disableAutomationRuleUseCase('rule-1', 'intruder', enableDeps())).rejects.toThrow(ForbiddenOwnershipError);
+      await expect(disableAutomationRuleUseCase('rule-1', 'user-owner', enableDeps())).rejects.toThrow(ForbiddenOwnershipError);
     });
   });
 
@@ -143,7 +143,7 @@ describe('Automation Lifecycle: Application Use Cases', () => {
       await setupBaseRule();
       topologyMock.validateHomeOwnership.mockRejectedValue(new ForbiddenOwnershipError('Forbidden'));
       await expect(
-        updateAutomationRuleUseCase('rule-1', 'intruder', { name: 'X' }, updateDeps())
+        updateAutomationRuleUseCase('rule-1', 'user-owner', { name: 'X' }, updateDeps())
       ).rejects.toThrow(ForbiddenOwnershipError);
     });
 

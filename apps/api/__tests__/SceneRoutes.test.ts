@@ -27,7 +27,7 @@ function createContainer(isAuthorized = true): BootstrapContainer {
         findHomeById: jest.fn().mockResolvedValue({ id: 'home-1' }),
       },
       sceneRepository: {
-        findScenesByHomeId: jest.fn().mockResolvedValue([{ id: 'scene-1', homeId: 'home-1' }]),
+        findScenesByHomeId: jest.fn().mockResolvedValue([{ id: 'scene-1', homeId: 'home-1', userId: 'owner-1' }]),
         saveScene: jest.fn().mockResolvedValue(undefined),
         findSceneById: jest.fn(),
       },
@@ -40,9 +40,35 @@ function createContainer(isAuthorized = true): BootstrapContainer {
 }
 
 describe('Feature: scene route contract', () => {
+  it('keeps scenes private between users of the same home', async () => {
+    const container = createContainer();
+    (container.repositories.sceneRepository.findScenesByHomeId as jest.Mock).mockResolvedValue([
+      { id: 'mine', homeId: 'home-1', userId: 'owner-1' },
+      { id: 'theirs', homeId: 'home-1', userId: 'owner-2' },
+      { id: 'legacy', homeId: 'home-1' },
+    ]);
+    const listed = new MockResponse();
+    await new SceneRoutes().handle(createRequest(), listed as unknown as http.ServerResponse, '/api/v1/scenes', 'GET', container);
+    expect(JSON.parse(listed.end.mock.calls[0][0]).map((scene: { id: string }) => scene.id)).toEqual(['mine']);
+
+    (container.repositories.sceneRepository.findSceneById as jest.Mock).mockResolvedValue({ id: 'theirs', homeId: 'home-1', userId: 'owner-2' });
+    const favorite = new MockResponse();
+    await new SceneRoutes().handle(createRequest({ sceneIds: ['theirs'] }), favorite as unknown as http.ServerResponse, '/api/v1/scenes/favorites', 'PUT', container);
+    expect(favorite.writeHead).toHaveBeenCalledWith(403, expect.any(Object));
+    const execution = new MockResponse();
+    await new SceneRoutes().handle(createRequest(), execution as unknown as http.ServerResponse, '/api/v1/scenes/theirs/execute', 'POST', container);
+    expect(execution.writeHead).toHaveBeenCalledWith(404, expect.any(Object));
+    const edited = new MockResponse();
+    await new SceneRoutes().handle(createRequest({ name: 'Changed' }), edited as unknown as http.ServerResponse, '/api/v1/scenes/theirs', 'PATCH', container);
+    expect(edited.writeHead).toHaveBeenCalledWith(404, expect.any(Object));
+    const deleted = new MockResponse();
+    await new SceneRoutes().handle(createRequest(), deleted as unknown as http.ServerResponse, '/api/v1/scenes/theirs', 'DELETE', container);
+    expect(deleted.writeHead).toHaveBeenCalledWith(404, expect.any(Object));
+    expect(container.repositories.sceneRepository.saveScene).not.toHaveBeenCalled();
+  });
   it('stores favorites per authenticated user and rejects inaccessible scenes', async () => {
     const container = createContainer();
-    (container.repositories.sceneRepository.findSceneById as jest.Mock).mockResolvedValue({ id: 'scene-1', homeId: 'home-1' });
+    (container.repositories.sceneRepository.findSceneById as jest.Mock).mockResolvedValue({ id: 'scene-1', homeId: 'home-1', userId: 'owner-1' });
     const route = new SceneRoutes();
     const saved = new MockResponse();
     await route.handle(createRequest({ sceneIds: ['scene-1'] }), saved as unknown as http.ServerResponse, '/api/v1/scenes/favorites', 'PUT', container);
@@ -62,7 +88,7 @@ describe('Feature: scene route contract', () => {
     const container = createContainer();
     (container.repositories.assistantMemoryRepository.findByKey as jest.Mock).mockResolvedValue({ value: '["scene-1","scene-2"]' });
     (container.repositories.sceneRepository.findSceneById as jest.Mock).mockImplementation(async (id: string) =>
-      id === 'scene-1' ? { id, homeId: 'home-1' } : { id, homeId: 'foreign-home' });
+      id === 'scene-1' ? { id, homeId: 'home-1', userId: 'owner-1' } : { id, homeId: 'foreign-home' });
     const reply = new MockResponse();
     await new SceneRoutes().handle(createRequest(), reply as unknown as http.ServerResponse, '/api/v1/scenes/favorites', 'GET', container);
     expect(JSON.parse(reply.end.mock.calls[0][0])).toEqual({ sceneIds: ['scene-1'], initialized: true });
@@ -146,7 +172,7 @@ describe('Feature: scene route contract', () => {
 
   it('Scenario: Given an existing scene When updating and deleting it Then the route persists then returns no content', async () => {
     const container = createContainer();
-    const existing = { id: 'scene-1', homeId: 'home-1', roomId: null, name: 'Old', actions: [{ deviceId: 'light-1', command: 'turn_on' }], createdAt: '', updatedAt: '' };
+    const existing = { id: 'scene-1', homeId: 'home-1', userId: 'owner-1', roomId: null, name: 'Old', actions: [{ deviceId: 'light-1', command: 'turn_on' }], createdAt: '', updatedAt: '' };
     (container.repositories.sceneRepository.findSceneById as jest.Mock).mockResolvedValue(existing);
     (container.repositories.sceneRepository as unknown as { deleteScene: jest.Mock }).deleteScene = jest.fn().mockResolvedValue(undefined);
     const updateResponse = new MockResponse();
@@ -162,7 +188,7 @@ describe('Feature: scene route contract', () => {
 
   it('Scenario: Given a scene without actions When executing it Then it completes without invoking the executor', async () => {
     const container = createContainer();
-    (container.repositories.sceneRepository.findSceneById as jest.Mock).mockResolvedValue({ id: 'scene-1', homeId: 'home-1', name: 'Empty', actions: [] });
+    (container.repositories.sceneRepository.findSceneById as jest.Mock).mockResolvedValue({ id: 'scene-1', homeId: 'home-1', userId: 'owner-1', name: 'Empty', actions: [] });
     const response = new MockResponse();
 
     await new SceneRoutes().handle(createRequest(), response as unknown as http.ServerResponse, '/api/v1/scenes/scene-1/execute', 'POST', container);
@@ -193,7 +219,7 @@ describe('Feature: scene route contract', () => {
 });
 
 describe('Feature: scene execution result contracts', () => {
-  const scene = { id: 'scene-1', homeId: 'home-1', roomId: null, name: 'Movie', actions: [{ deviceId: 'light-1', command: 'turn_off' }] };
+  const scene = { id: 'scene-1', homeId: 'home-1', userId: 'owner-1', roomId: null, name: 'Movie', actions: [{ deviceId: 'light-1', command: 'turn_off' }] };
   const makeContainer = (result: { status: 'success' | 'partial'; actions: Array<{ status: 'success' | 'failed' }> }) => ({
     guards: { authGuard: { protect: jest.fn().mockResolvedValue(true) } },
     repositories: {
@@ -243,7 +269,7 @@ describe('Feature: scene ownership and failed execution contracts', () => {
   });
 
   it('returns a failed result with HTTP 500 when every scene action fails', async () => {
-    const scene = { id: 'scene-1', homeId: 'home-1', roomId: null, name: 'Movie', actions: [{ deviceId: 'light-1', command: 'turn_off' }] };
+    const scene = { id: 'scene-1', homeId: 'home-1', userId: 'owner-1', roomId: null, name: 'Movie', actions: [{ deviceId: 'light-1', command: 'turn_off' }] };
     const container = {
       guards: { authGuard: { protect: jest.fn().mockResolvedValue(true) } },
       repositories: {
@@ -274,13 +300,14 @@ describe('Feature: scene route resilience contracts', () => {
     expect(createResponse.end).toHaveBeenCalledWith(expect.stringContaining('SCENE_CREATE_ERROR'));
 
     const updateFailure = createContainer();
-    (updateFailure.repositories.sceneRepository.findSceneById as jest.Mock).mockResolvedValue({ id: 'scene-1', homeId: 'home-1', name: 'Movie', roomId: null, actions: [] });
+    (updateFailure.repositories.sceneRepository.findSceneById as jest.Mock).mockResolvedValue({ id: 'scene-1', homeId: 'home-1', userId: 'owner-1', name: 'Movie', roomId: null, actions: [] });
     (updateFailure.repositories.sceneRepository.saveScene as jest.Mock).mockRejectedValue(new Error('write unavailable'));
     const updateResponse = new MockResponse();
     await routes.handle(createRequest({ name: 'Updated' }), updateResponse as unknown as http.ServerResponse, '/api/v1/scenes/scene-1', 'PATCH', updateFailure);
     expect(updateResponse.end).toHaveBeenCalledWith(expect.stringContaining('SCENE_UPDATE_ERROR'));
 
     const deleteFailure = createContainer() as unknown as { repositories: { sceneRepository: { deleteScene: jest.Mock } } } & BootstrapContainer;
+    (deleteFailure.repositories.sceneRepository.findSceneById as jest.Mock).mockResolvedValue({ id: 'scene-1', homeId: 'home-1', userId: 'owner-1' });
     deleteFailure.repositories.sceneRepository.deleteScene = jest.fn().mockRejectedValue(new Error('write unavailable'));
     const deleteResponse = new MockResponse();
     await routes.handle(createRequest(), deleteResponse as unknown as http.ServerResponse, '/api/v1/scenes/scene-1', 'DELETE', deleteFailure);
@@ -296,7 +323,7 @@ describe('Feature: scene route resilience contracts', () => {
     expect(denied.repositories.sceneRepository.saveScene).not.toHaveBeenCalled();
 
     const executionFailure = createContainer() as unknown as BootstrapContainer;
-    (executionFailure.repositories.sceneRepository.findSceneById as jest.Mock).mockResolvedValue({ id: 'scene-1', homeId: 'home-1', name: 'Movie', actions: [{ deviceId: 'light-1', command: 'turn_off' }] });
+    (executionFailure.repositories.sceneRepository.findSceneById as jest.Mock).mockResolvedValue({ id: 'scene-1', homeId: 'home-1', userId: 'owner-1', name: 'Movie', actions: [{ deviceId: 'light-1', command: 'turn_off' }] });
     (executionFailure.repositories as unknown as { activityLogRepository: { saveActivity: jest.Mock } }).activityLogRepository = { saveActivity: jest.fn().mockResolvedValue(undefined) };
     (executionFailure as unknown as { services: { sceneExecutionService: { execute: jest.Mock } } }).services = { sceneExecutionService: { execute: jest.fn().mockRejectedValue(new Error('dispatcher unavailable')) } };
     const executionResponse = new MockResponse();
@@ -342,7 +369,7 @@ describe('Feature: scene route boundary contracts', () => {
 
   it('keeps a completed execution successful when only the trailing audit record fails', async () => {
     const scene = {
-      id: 'scene-1', homeId: 'home-1', roomId: null, name: 'Movie',
+      id: 'scene-1', homeId: 'home-1', userId: 'owner-1', roomId: null, name: 'Movie',
       actions: [{ deviceId: 'light-1', command: 'turn_off' }],
     };
     const container = {

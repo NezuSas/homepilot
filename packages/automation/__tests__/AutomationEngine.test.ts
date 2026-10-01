@@ -64,7 +64,7 @@ function createHarness(rules: ReadonlyArray<AutomationRule>, targetDevice: Devic
   const deviceRepository = {
     findDeviceById: jest.fn().mockResolvedValue(targetDevice),
   } as unknown as DeviceRepository;
-  const sceneRepository = { deleteScene: jest.fn().mockResolvedValue(undefined) };
+  const sceneRepository = { findSceneById: jest.fn().mockResolvedValue(null), deleteScene: jest.fn().mockResolvedValue(undefined) };
   const dispatcher: jest.Mocked<AutomationCommandDispatcher> = {
     dispatchCommand: jest.fn().mockResolvedValue(undefined),
     executeScene: jest.fn().mockResolvedValue(undefined),
@@ -168,6 +168,7 @@ describe('Feature: automation rule execution', () => {
       action: { type: 'execute_scene', sceneId: 'scene-timer' },
     });
     const harness = createHarness([timerRule]);
+    harness.sceneRepository.findSceneById.mockResolvedValue({ id: 'scene-timer', homeId: 'home-1', userId: 'user-1' });
 
     await harness.engine.handleTimeEvent('12:00', new Date('2026-08-15T12:00:00.000Z'));
     await harness.engine.handleTimeEvent('12:00', new Date('2026-08-16T12:00:00.000Z'));

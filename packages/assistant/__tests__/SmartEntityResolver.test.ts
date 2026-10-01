@@ -5,7 +5,7 @@ import { Scene } from '../../devices/domain/Scene';
 
 const device = (id: string, name: string, type: Device['type'], roomId: string | null = 'room-1'): Device => ({ id, homeId: 'home-1', roomId, externalId: `ha:${type}.${id}`, name, type, vendor: 'HA', status: 'ASSIGNED', integrationSource: 'ha', invertState: false, lastKnownState: null, entityVersion: 1, createdAt: '', updatedAt: '' });
 const room = (id: string, name: string): Room => ({ id, homeId: 'home-1', name, entityVersion: 1, createdAt: '', updatedAt: '' });
-const scene = (id: string, name: string): Scene => ({ id, homeId: 'home-1', roomId: null, name, actions: [], createdAt: '', updatedAt: '' });
+const scene = (id: string, name: string): Scene => ({ id, homeId: 'home-1', userId: 'user-1', roomId: null, name, actions: [], createdAt: '', updatedAt: '' });
 
 function resolver(devices: Device[] = [], rooms: Room[] = [], scenes: Scene[] = [], alias: string | null = null, used: string[] = []) {
   return new SmartEntityResolver(

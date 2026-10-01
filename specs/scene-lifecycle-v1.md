@@ -30,6 +30,7 @@ Una escena debe encapsular un conjunto nombrado de acciones sobre dispositivos p
 - **REQ-03:** Cada acción debe validarse contra las capacidades del dispositivo antes de persistirse o ejecutarse.
 - **REQ-04:** La ejecución debe devolver un resultado por acción y registrar el evento con actor, origen y marca de tiempo.
 - **REQ-05:** La UI debe conservar el estado anterior durante refrescos y actualizar estados de dispositivos por eventos en tiempo real.
+- **REQ-06:** Cada escena nueva pertenece al usuario autenticado que la crea, aunque todos compartan el mismo hogar local. Listado, favoritos, consulta indirecta, edición, eliminación y ejecución manual solo admiten escenas propias; una escena sin creador registrado no se atribuye automáticamente a nadie ni se expone.
 
 ## 5. Requisitos No Funcionales
 
@@ -44,6 +45,7 @@ Una escena debe encapsular un conjunto nombrado de acciones sobre dispositivos p
 - [x] AC3: Ejecutar una escena registra ejecución y sincroniza el estado visible de los dispositivos.
 - [x] AC4: Eliminar una escena impide que aparezca en favoritos, automatizaciones y selectores.
 - [x] AC5: Un usuario no autorizado no puede administrar escenas ajenas.
+- [x] AC6: Dos usuarios del mismo hogar ven y pueden marcar como favoritas únicamente sus propias escenas. Conocer el ID de una escena ajena no permite modificarla, eliminarla ni ejecutarla mediante API o asistente. Las escenas sin creador histórico permanecen inaccesibles, sin migración automática.
 
 ## 7. Notas Técnicas y Arquitectura
 

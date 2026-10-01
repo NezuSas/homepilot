@@ -51,14 +51,14 @@ export class PlannerV2Resolver {
   }
 
   /**
-   * Home-scoped scene list. Same fallback rule as getAuthorizedDevices.
+   * Scene list constrained to the caller, including without a home repository.
    */
   private async getAuthorizedScenes(userId: string): Promise<Scene[]> {
-    if (!this.homeRepo) return this.sceneRepo.findAll();
+    if (!this.homeRepo) return (await this.sceneRepo.findAll()).filter((scene) => scene.userId === userId);
     const homes = await this.homeRepo.findHomesByUserId(userId);
     if (homes.length === 0) return [];
     const perHome = await Promise.all(homes.map((home) => this.sceneRepo.findScenesByHomeId(home.id)));
-    return perHome.flat();
+    return perHome.flat().filter((scene) => scene.userId === userId);
   }
 
   /**

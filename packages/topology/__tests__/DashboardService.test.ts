@@ -383,7 +383,7 @@ describe('DashboardService', () => {
     expect(cards).toEqual([expect.objectContaining({ id: 'button-scene', entityId: 'scene-1', order: 7, span: 'small' })]);
     expect(imported.importReport?.unresolvedBindings).toEqual([]);
     expect(resolver.exists).toHaveBeenCalledWith(new Set(['home-1']), {
-      type: 'action', id: 'scene-1', cardKind: 'action',
+      type: 'action', id: 'scene-1', cardKind: 'action', userId: 'user-1',
     });
   });
 

@@ -92,8 +92,11 @@ export function buildAutomationModule(deps: AutomationModuleDeps): AutomationMod
        * Respeta el executionMode configurado en la escena (parallel por defecto).
        */
       executeScene: async (homeId: string, sceneId: string, correlationId: string, ruleId: string) => {
+        const rule = await automationRuleRepository.findById(ruleId);
         const scene = await sceneRepository.findSceneById(sceneId);
-        if (!scene) return;
+        if (!rule || !scene || rule.homeId !== homeId || scene.homeId !== homeId || scene.userId !== rule.userId) {
+          throw new Error('Scene is not accessible to this automation');
+        }
 
         try {
           await activityLogRepository.saveActivity({

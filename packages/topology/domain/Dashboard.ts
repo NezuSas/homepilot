@@ -74,6 +74,7 @@ export type DashboardImportResponse = Dashboard & { importReport?: DashboardImpo
 export interface DashboardImportTarget {
   type: 'device' | 'room' | 'scene' | 'automation' | 'action' | 'device-action';
   id: string;
+  userId?: string;
   cardKind?: string;
   actionKey?: string;
 }

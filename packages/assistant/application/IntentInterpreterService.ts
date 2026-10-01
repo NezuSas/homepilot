@@ -39,14 +39,15 @@ export class IntentInterpreterService implements IntentInterpreterPort {
   }
 
   /**
-   * Home-scoped scene list. Same fallback rule as getAuthorizedDevices.
+   * Scene list constrained to the caller, including without a home repository.
    */
   private async getAuthorizedScenes(userId?: string) {
-    if (!this.homeRepository || !userId) return this.sceneRepository.findAll();
+    if (!userId) return [];
+    if (!this.homeRepository) return (await this.sceneRepository.findAll()).filter((scene) => scene.userId === userId);
     const homes = await this.homeRepository.findHomesByUserId(userId);
     if (homes.length === 0) return [];
     const perHome = await Promise.all(homes.map((home) => this.sceneRepository.findScenesByHomeId(home.id)));
-    return perHome.flat();
+    return perHome.flat().filter((scene) => scene.userId === userId);
   }
 
   public async interpret(prompt: string, userId?: string): Promise<Intent | AssistantMultiCommandResult> {

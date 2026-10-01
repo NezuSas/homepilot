@@ -49,7 +49,7 @@ export class AutomationEngine {
 
   constructor(
     private readonly ruleRepository: AutomationRuleRepository,
-    private readonly sceneRepository: Pick<SceneRepository, 'deleteScene'>,
+    private readonly sceneRepository: Pick<SceneRepository, 'findSceneById' | 'deleteScene'>,
     private readonly deviceRepository: DeviceRepository,
     private readonly commandDispatcher: AutomationCommandDispatcher,
     private readonly activityLogRepository: ActivityLogRepository,
@@ -119,7 +119,12 @@ export class AutomationEngine {
           await this.fireRule(rule, `auto-time-${this.idGenerator.generate()}`);
           if (trigger.dateLocal) {
             await this.ruleRepository.delete(rule.id);
-            if (rule.action.type === 'execute_scene') await this.sceneRepository.deleteScene(rule.action.sceneId);
+            if (rule.action.type === 'execute_scene') {
+              const scene = await this.sceneRepository.findSceneById(rule.action.sceneId);
+              if (scene?.homeId === rule.homeId && scene.userId === rule.userId) {
+                await this.sceneRepository.deleteScene(scene.id);
+              }
+            }
           }
         }
       }

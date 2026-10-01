@@ -97,14 +97,14 @@ describe('buildAutomationModule', () => {
       name: 'turn_on', metadata: expect.objectContaining({ source: 'automation', correlationId: 'corr-1' }),
     }));
   });
-  it('adapts automation scene execution with auditable lifecycle and treats a missing scene as a no-op', async () => {
+  it('adapts automation scene execution with auditable lifecycle and rejects inaccessible scenes', async () => {
     const syncManager = new EventEmitter() as EventEmitter & { removeAllListeners: jest.Mock };
     syncManager.removeAllListeners = jest.fn();
     const sceneRepository = {
       findSceneById: jest.fn()
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce({
-          id: 'scene-1', homeId: 'home-1', roomId: null, name: 'Night', executionMode: 'parallel',
+          id: 'scene-1', homeId: 'home-1', userId: 'user-1', roomId: null, name: 'Night', executionMode: 'parallel',
           actions: [{ deviceId: 'device-1', command: { name: 'turn_off', params: {} } }], createdAt: '', updatedAt: '',
         }),
     };
@@ -112,7 +112,7 @@ describe('buildAutomationModule', () => {
     const commandDispatcher = { dispatch: jest.fn().mockResolvedValue(undefined) };
     const eventBus = { publish: jest.fn(), subscribe: jest.fn().mockReturnValue(jest.fn()) };
     const assembled = buildAutomationModule({
-      automationRuleRepository: {}, deviceRepository: {}, sceneRepository, activityLogRepository,
+      automationRuleRepository: { findById: jest.fn().mockResolvedValue({ id: 'rule-1', homeId: 'home-1', userId: 'user-1' }) }, deviceRepository: {}, sceneRepository, activityLogRepository,
       executionRecordRepository: { save: jest.fn().mockResolvedValue(undefined) }, commandDispatcher,
       systemVariableService: {}, syncManager, eventBus,
     } as never);
@@ -120,7 +120,7 @@ describe('buildAutomationModule', () => {
       commandDispatcher: { executeScene(homeId: string, sceneId: string, correlationId: string, ruleId: string): Promise<void> };
     };
 
-    await adapter.commandDispatcher.executeScene('home-1', 'missing', 'corr-missing', 'rule-1');
+    await expect(adapter.commandDispatcher.executeScene('home-1', 'missing', 'corr-missing', 'rule-1')).rejects.toThrow('Scene is not accessible');
     expect(activityLogRepository.saveActivity).not.toHaveBeenCalled();
 
     await adapter.commandDispatcher.executeScene('home-1', 'scene-1', 'corr-scene', 'rule-1');

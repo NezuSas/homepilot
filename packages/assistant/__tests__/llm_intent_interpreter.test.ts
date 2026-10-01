@@ -49,11 +49,11 @@ describe('LlmIntentInterpreter', () => {
   });
 
   it('should return scene intent if valid', async () => {
-    const testScene = createTestScene({ id: 's1', name: 'Scene 1' });
+    const testScene = createTestScene({ id: 's1', name: 'Scene 1', userId: 'user-1' });
     mockOllama.generateJson.mockResolvedValue({ type: 'scene', sceneId: 's1' });
     mockSceneRepo.findSceneById.mockResolvedValue(testScene);
 
-    const intent = await interpreter.interpret('activate scene 1');
+    const intent = await interpreter.interpret('activate scene 1', 'user-1');
     expect(intent).toEqual({ type: 'scene', target: 's1', prompt: 'activate scene 1' });
     expect(mockOllama.generateJson).toHaveBeenCalledWith(expect.any(String), { numPredict: 96 });
   });

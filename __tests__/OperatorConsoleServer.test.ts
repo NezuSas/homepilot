@@ -70,7 +70,7 @@ describe('OperatorConsoleServer Integration Tests', () => {
     });
 
     const ownScene: Scene = {
-      id: 'scene-own', homeId: 'h-01', roomId: 'r-01', name: 'Own Scene', actions: [], createdAt: now, updatedAt: now,
+      id: 'scene-own', homeId: 'h-01', userId: 'u-01', roomId: 'r-01', name: 'Own Scene', actions: [], createdAt: now, updatedAt: now,
     };
     await container.repositories.sceneRepository.saveScene(ownScene);
     server = new OperatorConsoleServer(container, DB_PATH, PORT);

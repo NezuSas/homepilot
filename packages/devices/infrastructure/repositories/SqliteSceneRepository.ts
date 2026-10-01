@@ -18,6 +18,7 @@ interface LocalSceneRow {
  */
 interface SceneJsonPayload {
   actions: SceneAction[];
+  userId?: string;
   executionMode?: 'sequential' | 'parallel';
   icon?: string;
 }
@@ -46,6 +47,7 @@ export class SqliteSceneRepository implements SceneRepository {
     return {
       id: row.id,
       homeId: row.home_id,
+      userId: payload.userId,
       roomId: row.room_id,
       name: row.name,
       actions: payload.actions,
@@ -87,6 +89,7 @@ export class SqliteSceneRepository implements SceneRepository {
 
     const payload: SceneJsonPayload = {
       actions: scene.actions,
+      ...(scene.userId !== undefined ? { userId: scene.userId } : {}),
       ...(scene.executionMode !== undefined ? { executionMode: scene.executionMode } : {}),
       ...(scene.icon !== undefined ? { icon: scene.icon } : {}),
     };

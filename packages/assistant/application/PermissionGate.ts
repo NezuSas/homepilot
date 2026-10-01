@@ -54,19 +54,24 @@ export class PermissionGate {
   }
 
   public async getAuthorizedScenes(userId: string): Promise<Scene[]> {
-    if (!this.homeRepository) return Array.from(await this.sceneRepository.findAll());
+    if (!this.homeRepository) return Array.from(await this.sceneRepository.findAll()).filter((scene) => scene.userId === userId);
     const homeIds = await this.authorizedHomeIdsFor(userId);
     if (homeIds.length === 0) return [];
     const perHome = await Promise.all(homeIds.map((homeId) => this.sceneRepository.findScenesByHomeId(homeId)));
-    return perHome.flat();
+    return perHome.flat().filter((scene) => scene.userId === userId);
   }
 
   public async getAuthorizedAutomations(userId: string) {
-    if (!this.homeRepository) return Array.from(await this.automationRepository.findAll());
+    if (!this.homeRepository) return Array.from(await this.automationRepository.findAll()).filter((rule) => rule.userId === userId);
     const homeIds = await this.authorizedHomeIdsFor(userId);
     if (homeIds.length === 0) return [];
     const perHome = await Promise.all(homeIds.map((homeId) => this.automationRepository.findByHomeId(homeId)));
-    return perHome.flatMap((rules) => Array.from(rules));
+    return perHome.flatMap((rules) => Array.from(rules)).filter((rule) => rule.userId === userId);
+  }
+
+  public async assertSceneAuthorized(userId: string, scene: Scene): Promise<void> {
+    if (scene.userId !== userId) throw new Error('ASSISTANT_SCENE_FORBIDDEN');
+    await this.assertHomeAuthorized(userId, scene.homeId);
   }
 
   /**

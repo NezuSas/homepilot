@@ -21,8 +21,7 @@ export class SceneRoutes extends ApiRoutes {
     const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return true;
 
-    // Favorites are a per-user preference, not a property of the shared scene.
-    // Reuse the existing user-scoped persistence rather than changing scenes.
+    // Favorites are a per-user preference over scenes owned by that same user.
     if (pathname === '/api/v1/scenes/favorites' && (method === 'GET' || method === 'PUT')) {
       try {
         const key = 'pref:scene-favorites';
@@ -35,7 +34,7 @@ export class SceneRoutes extends ApiRoutes {
         if (method === 'GET') {
           const accessible = await Promise.all(ids.map(async (id) => {
             const scene = await container.repositories.sceneRepository.findSceneById(id);
-            return scene && homeIds.has(scene.homeId) ? id : null;
+            return scene?.userId === req.user!.id && homeIds.has(scene.homeId) ? id : null;
           }));
           return this.sendJson(res, {
             sceneIds: accessible.filter((id): id is string => id !== null),
@@ -49,7 +48,7 @@ export class SceneRoutes extends ApiRoutes {
         const nextIds = payload.sceneIds as string[];
         for (const id of nextIds) {
           const scene = await container.repositories.sceneRepository.findSceneById(id);
-          if (!scene || !homeIds.has(scene.homeId)) {
+          if (!scene || scene.userId !== req.user!.id || !homeIds.has(scene.homeId)) {
             return this.sendError(res, 403, 'FORBIDDEN', 'Scene is not accessible'), true;
           }
         }
@@ -78,7 +77,7 @@ export class SceneRoutes extends ApiRoutes {
         if (!homeId) return this.sendJson(res, []), true;
 
         const scenes = await container.repositories.sceneRepository.findScenesByHomeId(homeId);
-        this.sendJson(res, scenes);
+        this.sendJson(res, scenes.filter((scene) => scene.userId === req.user!.id));
       } catch (error: unknown) {
         this.sendError(res, 500, 'DB_ERROR', error instanceof Error ? error.message : 'Unknown error');
       }
@@ -118,6 +117,7 @@ export class SceneRoutes extends ApiRoutes {
         const newScene: Scene = {
           id: crypto.randomUUID(),
           homeId: payload.homeId,
+          userId: req.user!.id,
           roomId: payload.roomId ?? null,
           name: payload.name,
           ...(payload.icon !== undefined ? { icon: payload.icon } : {}),
@@ -141,7 +141,7 @@ export class SceneRoutes extends ApiRoutes {
       try {
         const sceneId = patchSceneMatch[1];
         const scene = await container.repositories.sceneRepository.findSceneById(sceneId);
-        if (!scene) return this.sendError(res, 404, 'NOT_FOUND', 'Scene not found'), true;
+        if (!scene || scene.userId !== req.user!.id) return this.sendError(res, 404, 'NOT_FOUND', 'Scene not found'), true;
 
         const payload = await this.parseBody<{
           name?: string;
@@ -178,7 +178,9 @@ export class SceneRoutes extends ApiRoutes {
     if (deleteSceneMatch) {
       if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
-        await container.repositories.sceneRepository.deleteScene(deleteSceneMatch[1]);
+        const scene = await container.repositories.sceneRepository.findSceneById(deleteSceneMatch[1]);
+        if (!scene || scene.userId !== req.user!.id) return this.sendError(res, 404, 'NOT_FOUND', 'Scene not found'), true;
+        await container.repositories.sceneRepository.deleteScene(scene.id);
         res.writeHead(204).end();
       } catch (error: unknown) {
         this.sendError(res, 500, 'SCENE_DELETE_ERROR', error instanceof Error ? error.message : 'Unknown error');
@@ -192,7 +194,7 @@ export class SceneRoutes extends ApiRoutes {
       try {
         const sceneId = executeSceneMatch[1];
         const scene = await container.repositories.sceneRepository.findSceneById(sceneId);
-        if (!scene) return this.sendError(res, 404, 'NOT_FOUND', 'Scene not found'), true;
+        if (!scene || scene.userId !== req.user!.id) return this.sendError(res, 404, 'NOT_FOUND', 'Scene not found'), true;
 
         if (scene.actions.length === 0) {
           return this.sendJson(res, {

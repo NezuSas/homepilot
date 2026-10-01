@@ -17,6 +17,7 @@ export async function listAutomationRulesUseCase(
   // 1. Validar que el usuario tiene acceso al hogar solicitado
   await deps.topologyReferencePort.validateHomeOwnership(homeId, userId);
 
-  // 2. Recuperar reglas asociadas al hogar indicado
-  return deps.automationRuleRepository.findByHomeId(homeId);
+  // 2. El hogar es compartido; la gestión y visibilidad de reglas no lo son.
+  const rules = await deps.automationRuleRepository.findByHomeId(homeId);
+  return rules.filter((rule) => rule.userId === userId);
 }

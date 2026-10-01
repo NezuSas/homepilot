@@ -76,6 +76,7 @@ describe('Feature: ejecución de solicitudes del asistente', () => {
     it('Scenario: Given una escena registrada When el asistente recibe "apaga todo" Then resuelve la intención de escena', async () => {
       mockSceneRepo.findAll.mockResolvedValue([{
         id: 'scene-123',
+        userId: 'user-1',
         name: 'Apaga todo el hogar',
         homeId: 'h1',
         roomId: null,
@@ -84,7 +85,7 @@ describe('Feature: ejecución de solicitudes del asistente', () => {
         updatedAt: ''
       }]);
 
-      const intent = await interpreter.interpret('apaga todo');
+      const intent = await interpreter.interpret('apaga todo', 'user-1');
       expect(intent).toEqual({ type: 'scene', target: 'scene-123', prompt: 'apaga todo' });
     });
 

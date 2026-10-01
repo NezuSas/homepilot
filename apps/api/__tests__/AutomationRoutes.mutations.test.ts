@@ -36,7 +36,7 @@ function container(): BootstrapContainer {
     repositories: {
       homeRepository: { findHomeById: jest.fn().mockResolvedValue({ id: 'home-1' }), findHomesByUserId: jest.fn().mockResolvedValue([{ id: 'home-1' }]) },
       roomRepository: { findRoomById: jest.fn() },
-      automationRuleRepository: {},
+      automationRuleRepository: { findById: jest.fn().mockResolvedValue({ id: 'rule-1', homeId: 'home-1', userId: 'owner-1' }) },
       deviceRepository: {},
     },
   } as unknown as BootstrapContainer;

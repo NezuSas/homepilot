@@ -10,7 +10,7 @@ export class AssistantConfirmationPolicy implements AssistantConfirmationPolicyP
     private readonly deviceRepository: DeviceRepository
   ) {}
 
-  public async evaluate(intent: Intent, lang: string = 'es'): Promise<AssistantPreviewResult> {
+  public async evaluate(intent: Intent, lang: string = 'es', userId?: string): Promise<AssistantPreviewResult> {
     const t_eval = Date.now();
     const isEn = lang === 'en';
 
@@ -32,7 +32,8 @@ export class AssistantConfirmationPolicy implements AssistantConfirmationPolicyP
     }
 
     if (intent.type === 'scene') {
-      const scene = await this.sceneRepository.findSceneById(intent.target);
+      const candidate = await this.sceneRepository.findSceneById(intent.target);
+      const scene = userId && candidate?.userId === userId ? candidate : null;
       const targetName = scene ? scene.name : (isEn ? 'Unknown' : 'Desconocido');
       const estimatedActionCount = scene ? scene.actions.length : 0;
 

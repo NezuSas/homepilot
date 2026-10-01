@@ -30,6 +30,8 @@ export interface SceneAction {
 export interface Scene {
   id: string;
   homeId: string;
+  /** Creator identity. Absent only on legacy records, which are not user-accessible. */
+  userId?: string;
   roomId: string | null;
   name: string;
   icon?: string;

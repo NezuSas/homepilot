@@ -93,7 +93,7 @@ export class SmartEntityResolver {
   }
 
   public async resolveScene(prompt: string, userId: string): Promise<EntityResolutionResult<Scene>> {
-    const scenes = await this.sceneRepo.findAll();
+    const scenes = (await this.sceneRepo.findAll()).filter((scene) => scene.userId === userId);
     const normalizedPrompt = this.normalize(prompt);
 
     const exactMatch = scenes.find(s => this.normalize(s.name) === normalizedPrompt);

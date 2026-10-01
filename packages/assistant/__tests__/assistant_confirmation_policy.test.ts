@@ -24,11 +24,18 @@ describe('AssistantConfirmationPolicy', () => {
   });
 
   it('executes an explicitly requested scene without confirmation', async () => {
-    mockSceneRepo.findSceneById.mockResolvedValue(createTestScene({ name: 'Noche', actions: [{ deviceId: '1', command: 'turn_on' }] }));
+    mockSceneRepo.findSceneById.mockResolvedValue(createTestScene({ name: 'Noche', userId: 'user-1', actions: [{ deviceId: '1', command: 'turn_on' }] }));
 
-    const result = await policy.evaluate({ type: 'scene', target: 'scene_1', prompt: 'activa modo noche' });
+    const result = await policy.evaluate({ type: 'scene', target: 'scene_1', prompt: 'activa modo noche' }, 'es', 'user-1');
 
     expect(result).toEqual(expect.objectContaining({ requiresConfirmation: false, intentType: 'scene', targetName: 'Noche', estimatedActionCount: 1 }));
+  });
+
+  it('does not reveal another user’s scene name in a preview', async () => {
+    mockSceneRepo.findSceneById.mockResolvedValue(createTestScene({ name: 'Private', userId: 'user-2', actions: [] }));
+    const result = await policy.evaluate({ type: 'scene', target: 'scene-private', prompt: 'activa escena' }, 'es', 'user-1');
+    expect(result.targetName).toBe('Desconocido');
+    expect(result.summary).not.toContain('Private');
   });
 
   it.each([

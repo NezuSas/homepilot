@@ -31,9 +31,10 @@ function createContainer(isAuthorized = true): BootstrapContainer {
         findHomeById: jest.fn().mockResolvedValue({ id: 'home-1' }),
       },
       automationRuleRepository: {
-        findByHomeId: jest.fn().mockResolvedValue([{ id: 'automation-1', homeId: 'home-1' }]),
-        findById: jest.fn().mockResolvedValue({ id: 'automation-1', homeId: 'home-1' }),
+        findByHomeId: jest.fn().mockResolvedValue([{ id: 'automation-1', homeId: 'home-1', userId: 'owner-1' }]),
+        findById: jest.fn().mockResolvedValue({ id: 'automation-1', homeId: 'home-1', userId: 'owner-1' }),
       },
+      sceneRepository: { findSceneById: jest.fn().mockResolvedValue(null) },
       assistantMemoryRepository: {
         findByKey: jest.fn().mockResolvedValue(null),
         upsert: jest.fn().mockResolvedValue(undefined),
@@ -47,6 +48,56 @@ function createContainer(isAuthorized = true): BootstrapContainer {
 }
 
 describe('Feature: automation route contract', () => {
+  it('keeps automations private between users of the same home', async () => {
+    const container = createContainer();
+    (container.repositories.automationRuleRepository.findByHomeId as jest.Mock).mockResolvedValue([
+      { id: 'mine', homeId: 'home-1', userId: 'owner-1' },
+      { id: 'theirs', homeId: 'home-1', userId: 'owner-2' },
+    ]);
+    const listed = new MockResponse();
+    await new AutomationRoutes().handle(createRequest(), listed as unknown as http.ServerResponse, '/api/v1/automations', 'GET', container);
+    expect(JSON.parse(listed.end.mock.calls[0][0]).map((rule: { id: string }) => rule.id)).toEqual(['mine']);
+
+    (container.repositories.automationRuleRepository.findById as jest.Mock).mockResolvedValue({ id: 'theirs', homeId: 'home-1', userId: 'owner-2' });
+    const favoriteRequest = createRequest();
+    favoriteRequest._fastifyParsedBody = JSON.stringify({ automationIds: ['theirs'] });
+    const favorite = new MockResponse();
+    await new AutomationRoutes().handle(favoriteRequest, favorite as unknown as http.ServerResponse, '/api/v1/automations/favorites', 'PUT', container);
+    expect(favorite.writeHead).toHaveBeenCalledWith(403, expect.any(Object));
+    const run = new MockResponse();
+    await new AutomationRoutes().handle(createRequest(), run as unknown as http.ServerResponse, '/api/v1/automations/theirs/run', 'POST', container);
+    expect(run.writeHead).toHaveBeenCalledWith(404, expect.any(Object));
+    expect(container.engine?.runRuleNow).not.toHaveBeenCalled();
+  });
+
+  it('rejects a scene owned by another user as an automation action', async () => {
+    const container = createContainer();
+    (container.repositories.sceneRepository.findSceneById as jest.Mock).mockResolvedValue({ id: 'foreign-scene', homeId: 'home-1', userId: 'owner-2' });
+    const request = createRequest();
+    request._fastifyParsedBody = JSON.stringify({
+      name: 'Foreign scene', trigger: { type: 'time', timeLocal: '12:00', timezone: 'UTC', timeUTC: '12:00' },
+      action: { type: 'execute_scene', sceneId: 'foreign-scene' },
+    });
+    const response = new MockResponse();
+    await new AutomationRoutes().handle(request, response as unknown as http.ServerResponse, '/api/v1/automations', 'POST', container);
+    expect(response.writeHead).toHaveBeenCalledWith(404, expect.any(Object));
+    expect(response.end).toHaveBeenCalledWith(expect.stringContaining('SCENE_NOT_FOUND'));
+  });
+
+  it.each([
+    ['PATCH', '/api/v1/automations/theirs', { name: 'Changed' }],
+    ['PATCH', '/api/v1/automations/theirs/enable', {}],
+    ['PATCH', '/api/v1/automations/theirs/disable', {}],
+    ['DELETE', '/api/v1/automations/theirs', {}],
+  ])('denies %s %s for another user’s automation', async (method, path, body) => {
+    const container = createContainer();
+    (container.repositories.automationRuleRepository.findById as jest.Mock).mockResolvedValue({ id: 'theirs', homeId: 'home-1', userId: 'owner-2' });
+    const request = createRequest();
+    request._fastifyParsedBody = JSON.stringify(body);
+    const response = new MockResponse();
+    await new AutomationRoutes().handle(request, response as unknown as http.ServerResponse, path, method, container);
+    expect(response.writeHead).toHaveBeenCalledWith(404, expect.any(Object));
+  });
   it('stores automation favorites under their own user-scoped key and rejects inaccessible rules', async () => {
     const container = createContainer();
     const request = createRequest();
@@ -70,7 +121,7 @@ describe('Feature: automation route contract', () => {
     const container = createContainer();
     (container.repositories.assistantMemoryRepository.findByKey as jest.Mock).mockResolvedValue({ value: '["automation-1","deleted","foreign"]' });
     (container.repositories.automationRuleRepository.findById as jest.Mock).mockImplementation(async (id: string) =>
-      id === 'automation-1' ? { id, homeId: 'home-1' } : id === 'foreign' ? { id, homeId: 'other-home' } : null);
+      id === 'automation-1' ? { id, homeId: 'home-1', userId: 'owner-1' } : id === 'foreign' ? { id, homeId: 'other-home' } : null);
     const response = new MockResponse();
     await new AutomationRoutes().handle(createRequest(), response as unknown as http.ServerResponse, '/api/v1/automations/favorites', 'GET', container);
     expect(JSON.parse(response.end.mock.calls[0][0])).toEqual({ automationIds: ['automation-1'], initialized: true });
@@ -193,7 +244,7 @@ describe('Feature: automation route contract', () => {
     it('rejects a rule that does not belong to the requesting user\'s home', async () => {
       const container = createContainer();
       const response = new MockResponse();
-      (container.repositories.automationRuleRepository.findById as jest.Mock).mockResolvedValue({ id: 'automation-1', homeId: 'other-home' });
+      (container.repositories.automationRuleRepository.findById as jest.Mock).mockResolvedValue({ id: 'automation-1', homeId: 'other-home', userId: 'owner-1' });
       (container.repositories.homeRepository.findHomeById as jest.Mock).mockResolvedValue({ id: 'other-home' });
 
       await new AutomationRoutes().handle(createRequest(), response as unknown as http.ServerResponse, '/api/v1/automations/automation-1/run', 'POST', container);

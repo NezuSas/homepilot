@@ -25,7 +25,8 @@ describe('AssistantContextBuilder', () => {
     const manyScenes = Array.from({ length: 60 }, (_, i) => 
       createTestScene({
         id: `scene-${i}`,
-        name: `Scene ${i}`
+        name: `Scene ${i}`,
+        userId: 'system'
       })
     );
 
@@ -64,7 +65,7 @@ describe('AssistantContextBuilder scoped and lightweight maps', () => {
       findAllByHomeId: jest.fn(async (homeId) => homeId === 'home-1' ? [createTestDevice({ id: 'device-1', name: 'Kitchen light', roomId: 'room-1', lastKnownState: { power: 'on' } })] : [createTestDevice({ id: 'device-2', name: 'Private device', homeId: 'home-2' })])
     });
     const scenes = createMockSceneRepository({
-      findScenesByHomeId: jest.fn(async (homeId) => homeId === 'home-1' ? [createTestScene({ name: 'Movie', actions: [{ deviceId: 'device-1', command: 'turn_on' }] })] : [createTestScene({ name: 'Private scene', homeId: 'home-2' })])
+      findScenesByHomeId: jest.fn(async (homeId) => homeId === 'home-1' ? [createTestScene({ name: 'Movie', userId: 'user-1', actions: [{ deviceId: 'device-1', command: 'turn_on' }] })] : [createTestScene({ name: 'Private scene', homeId: 'home-2' })])
     });
     const rooms = createMockRoomRepository({
       findRoomsByHomeId: jest.fn(async (homeId) => homeId === 'home-1' ? [createTestRoom({ id: 'room-1', name: 'Kitchen' })] : [createTestRoom({ id: 'room-2', homeId: 'home-2', name: 'Private room' })])
@@ -89,12 +90,12 @@ describe('AssistantContextBuilder scoped and lightweight maps', () => {
     const builder = new AssistantContextBuilder(devices, scenes, undefined, undefined, homes);
 
     expect(JSON.parse(await builder.buildLlmHomeMap('user-without-homes'))).toEqual({ devices: [], scenes: [], recentActions: [], lastConversationEntities: [] });
-    expect(JSON.parse(await builder.build(null))).toEqual(expect.objectContaining({ devices: [expect.objectContaining({ id: 'legacy' })], scenes: [expect.objectContaining({ name: 'Legacy scene' })] }));
+    expect(JSON.parse(await builder.build(null))).toEqual(expect.objectContaining({ devices: [expect.objectContaining({ id: 'legacy' })], scenes: [] }));
   });
 
   it('produces an ultra-light map only when the prompt needs matching scenes or memory', async () => {
     const devices = createMockDeviceRepository({ findAll: jest.fn().mockResolvedValue([createTestDevice({ id: 'device-1', name: 'Kitchen light', roomId: null, lastKnownState: { on: true } })]) });
-    const scenes = createMockSceneRepository({ findAll: jest.fn().mockResolvedValue([createTestScene({ name: 'Movie' })]) });
+    const scenes = createMockSceneRepository({ findAll: jest.fn().mockResolvedValue([createTestScene({ name: 'Movie', userId: 'user-1' })]) });
     const assistantMemory = memory();
     const builder = new AssistantContextBuilder(devices, scenes, assistantMemory as never);
 
@@ -151,7 +152,7 @@ describe('AssistantContextBuilder scoped and lightweight maps', () => {
         roomId: null,
       }))),
     });
-    const scenes = createMockSceneRepository({ findAll: jest.fn().mockResolvedValue(Array.from({ length: 12 }, (_, index) => createTestScene({ name: `Scene ${index}` }))) });
+    const scenes = createMockSceneRepository({ findAll: jest.fn().mockResolvedValue(Array.from({ length: 12 }, (_, index) => createTestScene({ name: `Scene ${index}`, userId: 'user-1' }))) });
     const assistantMemory = memory({ getAliases: jest.fn().mockResolvedValue({ 'an-alias-that-is-too-long': 'device-0' }) });
     const contextBuilder = new AssistantContextBuilder(devices, scenes, assistantMemory as never);
 

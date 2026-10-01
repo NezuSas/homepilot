@@ -733,7 +733,7 @@ export class AssistantConversationService {
 
     // D) Confirmation Policy
     const t_policy = Date.now();
-    const preview = await this.confirmationPolicy.evaluate(intent, language);
+    const preview = await this.confirmationPolicy.evaluate(intent, language, userId);
     if (preview.requiresConfirmation && request.confirmed !== true) {
       // Save pending intent to memory
       await this.memoryService.saveShortTermMemory(userId, {
@@ -770,9 +770,9 @@ export class AssistantConversationService {
     // E) Execution
     if (intent.type === 'scene') {
       const scene = await this.sceneRepository.findSceneById(intent.target);
-      if (!scene) return { type: 'error', message: getAssistantResponseText('scene.not_found', language, {}) };
+      if (!scene || scene.userId !== userId) return { type: 'error', message: getAssistantResponseText('scene.not_found', language, {}) };
 
-      await this.permissionGate.assertHomeAuthorized(userId, scene.homeId);
+      await this.permissionGate.assertSceneAuthorized(userId, scene);
 
       const result = await this.sceneExecutionService.execute(scene, {
         sourceType: 'manual',
@@ -794,7 +794,7 @@ export class AssistantConversationService {
     }
 
     if (intent.type === 'command') {
-      const preview = await this.confirmationPolicy.evaluate(intent, language);
+      const preview = await this.confirmationPolicy.evaluate(intent, language, userId);
       if (preview.requiresConfirmation && !request.confirmed) {
         const device = await this.deviceRepository.findDeviceById(intent.deviceId);
         const deviceName = device?.name ?? intent.deviceId;
@@ -870,7 +870,7 @@ export class AssistantConversationService {
     }
 
     if (intent.type === 'multi_command') {
-      const preview = await this.confirmationPolicy.evaluate(intent, language);
+      const preview = await this.confirmationPolicy.evaluate(intent, language, userId);
       if (preview.requiresConfirmation && !request.confirmed) {
         await this.memoryService.saveShortTermMemory(userId, {
           lastQueryType: 'confirmation',
@@ -1654,9 +1654,9 @@ export class AssistantConversationService {
 
     // Check if it's a scene or device
     const scene = await this.sceneRepository.findSceneById(targetId);
-    if (scene) {
+    if (scene?.userId === userId) {
       this.learningService.recordClarificationSelected(userId, scene.id, scene.name, 'scene', request.pendingAction?.originalPrompt || '').catch(() => {});
-      await this.permissionGate.assertHomeAuthorized(userId, scene.homeId);
+      await this.permissionGate.assertSceneAuthorized(userId, scene);
       const result = await this.sceneExecutionService.execute(scene, {
         sourceType: 'manual',
         sourceId: 'assistant',
@@ -4028,7 +4028,7 @@ export class AssistantConversationService {
         if (!newName) throw new Error('INVALID_PAYLOAD: newName is required');
 
         const scene = await this.sceneRepository.findSceneById(targetId);
-        if (scene) {
+        if (scene?.userId === userId) {
           scene.name = newName;
           scene.updatedAt = new Date().toISOString();
           await this.sceneRepository.saveScene(scene);
@@ -4065,7 +4065,7 @@ export class AssistantConversationService {
         if (enabled === undefined) throw new Error('INVALID_PAYLOAD: enabled is required');
 
         const auto = await this.automationRepository.findById(targetId);
-        if (auto) {
+        if (auto?.userId === userId) {
           const updatedAuto = { ...auto, enabled, updatedAt: new Date().toISOString() };
           await this.automationRepository.save(updatedAuto);
           await this.clearPendingAction(userId);
@@ -4083,7 +4083,7 @@ export class AssistantConversationService {
             throw new Error('INVALID_PAYLOAD: deviceId and valid command are required for add mode');
           }
           const scene = await this.sceneRepository.findSceneById(targetId);
-          if (scene) {
+          if (scene?.userId === userId) {
             scene.actions.push({
               deviceId,
               command: { name: command, params: {} }
@@ -4096,7 +4096,7 @@ export class AssistantConversationService {
         } else if (mode === 'remove') {
           if (!deviceId) throw new Error('INVALID_PAYLOAD: deviceId is required for remove mode');
           const scene = await this.sceneRepository.findSceneById(targetId);
-          if (scene) {
+          if (scene?.userId === userId) {
             scene.actions = scene.actions.filter(a => a.deviceId !== deviceId);
             scene.updatedAt = new Date().toISOString();
             await this.sceneRepository.saveScene(scene);

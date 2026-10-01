@@ -138,7 +138,7 @@ describe('Automation Application: CRUD Use Cases', () => {
   describe('List y Delete', () => {
     it('listRules debe invocar el repositorio filtrando por homeId validado', async () => {
       await ruleRepo.save({
-        id: 'r1', homeId: 'home-1', userId: 'u1', name: 'Rule 1', enabled: true,
+        id: 'r1', homeId: 'home-1', userId: 'user-1', name: 'Rule 1', enabled: true,
         trigger: { type: 'device_state_changed', deviceId: 'd1', stateKey: 's1', expectedValue: 'v1' },
         action: { type: 'device_command', targetDeviceId: 'd2', command: 'turn_on' }
       });
@@ -154,7 +154,7 @@ describe('Automation Application: CRUD Use Cases', () => {
 
     it('deleteRule debe realizar borrado físico tras validar el ownership', async () => {
       await ruleRepo.save({
-        id: 'r1', homeId: 'home-1', userId: 'u1', name: 'Trash', enabled: true,
+        id: 'r1', homeId: 'home-1', userId: 'user-1', name: 'Trash', enabled: true,
         trigger: { type: 'device_state_changed', deviceId: 'd1', stateKey: 's1', expectedValue: 'v1' },
         action: { type: 'device_command', targetDeviceId: 'd2', command: 'turn_on' }
       });

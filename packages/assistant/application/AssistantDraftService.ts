@@ -176,6 +176,7 @@ export class AssistantDraftService {
         const scene: Scene = {
           id: sceneId,
           homeId: p.homeId,
+          userId,
           roomId: p.roomId,
           name: p.name,
           actions: p.actions,
@@ -186,6 +187,13 @@ export class AssistantDraftService {
         await this.sceneRepository.saveScene(scene);
         await this.automationRepository.save(rule);
       } else if (typeof p.homeId === 'string' && typeof p.name === 'string' && isAutomationTrigger(p.trigger) && isAutomationAction(p.action)) {
+        const sceneAction = p.action.type === 'delay' ? p.action.then : p.action;
+        if (sceneAction.type === 'execute_scene') {
+          const scene = await this.sceneRepository.findSceneById(sceneAction.sceneId);
+          if (!scene || scene.userId !== userId || scene.homeId !== p.homeId) {
+            throw new Error('SCENE_NOT_FOUND');
+          }
+        }
         const rule = createAutomationRule({
           homeId: p.homeId,
           userId,
@@ -203,6 +211,7 @@ export class AssistantDraftService {
       const scene: Scene = {
         id: this.idGenerator.generate(),
         homeId: p['homeId'] as string,
+        userId,
         roomId: (p['roomId'] as string | undefined) || null,
         name: p['name'] as string,
         actions: p['actions'] as SceneAction[],

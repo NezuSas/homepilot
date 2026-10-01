@@ -47,7 +47,7 @@ describe('DomesticSkillResolver', () => {
       createTestDevice({ id: 'light-1', name: 'Estar', roomId: 'room-living', type: 'light' }),
       createTestDevice({ id: 'cover-1', name: 'Cortina Sala', roomId: 'room-living', type: 'cover' })
     ]);
-    scenes.findScenesByHomeId.mockResolvedValue([createTestScene({ id: 'scene-1', roomId: 'room-living', name: 'Cine' })]);
+    scenes.findScenesByHomeId.mockResolvedValue([createTestScene({ id: 'scene-1', roomId: 'room-living', name: 'Cine', userId: 'user-1' })]);
 
     const result = await resolver.resolve('Quiero que la sala se sienta acogedora esta noche', 'user-1', 'es');
 
@@ -61,7 +61,7 @@ describe('DomesticSkillResolver', () => {
 
   it('offers factual scene discovery without intercepting execution requests', async () => {
     const { resolver, scenes } = createResolver();
-    scenes.findScenesByHomeId.mockResolvedValue([createTestScene({ name: 'Trabajo' })]);
+    scenes.findScenesByHomeId.mockResolvedValue([createTestScene({ name: 'Trabajo', userId: 'user-1' })]);
 
     const result = await resolver.resolve('¿Qué escena puedo usar para ver una película?', 'user-1', 'es');
 
@@ -79,7 +79,7 @@ describe('DomesticSkillResolver', () => {
       createTestDevice({ id: 'light-1', name: 'Lámpara', roomId: 'room-1', lastKnownState: { on: true } }),
       createTestDevice({ id: 'cover-1', name: 'Cortina Master', roomId: 'room-1', type: 'cover' })
     ]);
-    scenes.findScenesByHomeId.mockResolvedValue([createTestScene({ id: 'night-1', name: 'Buenas noches' })]);
+    scenes.findScenesByHomeId.mockResolvedValue([createTestScene({ id: 'night-1', name: 'Buenas noches', userId: 'user-1' })]);
 
     const result = await resolver.resolve('¿Qué opciones tengo para la noche?', 'user-1', 'es');
 
@@ -130,8 +130,8 @@ describe('DomesticSkillResolver', () => {
     const { resolver, devices, rooms, scenes } = createResolver();
     rooms.findRoomsByHomeId.mockResolvedValue([createTestRoom({ id: 'room-living', name: 'Salón Principal' })]);
     scenes.findScenesByHomeId.mockResolvedValue([
-      createTestScene({ id: 'scene-relax', roomId: 'room-living', name: 'Relajación' }),
-      createTestScene({ id: 'scene-movie', roomId: 'room-living', name: 'Cine en casa' })
+      createTestScene({ id: 'scene-relax', roomId: 'room-living', name: 'Relajación', userId: 'user-1' }),
+      createTestScene({ id: 'scene-movie', roomId: 'room-living', name: 'Cine en casa', userId: 'user-1' })
     ]);
     devices.findAllByHomeId.mockResolvedValue([]);
 
@@ -144,7 +144,7 @@ describe('DomesticSkillResolver', () => {
 
   it('lists authorized scenes for a general scene discovery request without executing one', async () => {
     const { resolver, scenes } = createResolver();
-    scenes.findScenesByHomeId.mockResolvedValue([createTestScene({ id: 'scene-1', name: 'Buenas noches' })]);
+    scenes.findScenesByHomeId.mockResolvedValue([createTestScene({ id: 'scene-1', name: 'Buenas noches', userId: 'user-1' })]);
 
     const result = await resolver.resolve('¿Qué escenas tengo disponibles?', 'user-1', 'es');
 

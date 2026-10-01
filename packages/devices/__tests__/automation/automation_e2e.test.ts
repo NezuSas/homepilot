@@ -45,7 +45,7 @@ describe('Automation E2E: Full Reactive Flow', () => {
 
     engine = new AutomationEngine(
       ruleRepo,
-      { deleteScene: jest.fn().mockResolvedValue(undefined) },
+      { findSceneById: jest.fn().mockResolvedValue(null), deleteScene: jest.fn().mockResolvedValue(undefined) },
       deviceRepo,
       dispatcherMock,
       logRepo,

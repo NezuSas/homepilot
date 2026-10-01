@@ -9,7 +9,7 @@ function createService(overrides?: { draft?: AssistantDraft | null; device?: unk
     updateStatus: jest.fn().mockResolvedValue(undefined),
   };
   const automationRepository = { save: jest.fn().mockResolvedValue(undefined) };
-  const sceneRepository = { saveScene: jest.fn().mockResolvedValue(undefined) };
+  const sceneRepository = { findSceneById: jest.fn().mockResolvedValue(null), saveScene: jest.fn().mockResolvedValue(undefined) };
   const idGenerator = { generate: jest.fn().mockReturnValueOnce('draft-1').mockReturnValueOnce('resource-1') };
   const deviceRepository = { findDeviceById: jest.fn().mockResolvedValue(overrides?.device === undefined ? { id: 'device-1' } : overrides.device) };
   const roomRepository = { findRoomById: jest.fn().mockResolvedValue(overrides?.room === undefined ? { homeId: 'home-1' } : overrides.room) };
@@ -93,6 +93,18 @@ describe('AssistantDraftService', () => {
       action: { type: 'execute_scene', sceneId: 'draft-1' }
     }));
     expect(draftRepository.updateStatus).toHaveBeenCalledWith('routine-draft', 'active');
+  });
+
+  it('does not activate a draft automation against another user’s scene', async () => {
+    const draft = {
+      id: 'scene-rule', type: 'automation', status: 'draft', fingerprint: 'scene-rule', createdAt: '2026-01-01T00:00:00.000Z',
+      payload: { homeId: 'home-1', name: 'Private', trigger: { type: 'time', timeLocal: '08:00', timezone: 'UTC', timeUTC: '08:00' }, action: { type: 'execute_scene', sceneId: 'their-scene' } },
+    } as AssistantDraft;
+    const { service, sceneRepository, automationRepository, draftRepository } = createService({ draft });
+    sceneRepository.findSceneById.mockResolvedValue({ id: 'their-scene', homeId: 'home-1', userId: 'user-2' });
+    await expect(service.activateDraft('scene-rule', 'user-1')).rejects.toThrow('SCENE_NOT_FOUND');
+    expect(automationRepository.save).not.toHaveBeenCalled();
+    expect(draftRepository.updateStatus).not.toHaveBeenCalled();
   });
 
   it('rejects malformed automation drafts before they can be activated', async () => {

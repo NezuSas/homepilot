@@ -107,18 +107,18 @@ describe('Automation API: AutomationController', () => {
 
   it('listRules: debe retornar 200 con el listado de reglas del hogar', async () => {
     await saveBaseRule();
-    const req: AuthenticatedHttpRequest = { userId: 'user-1', params: { homeId: 'home-1' } };
+    const req: AuthenticatedHttpRequest = { userId: 'u1', params: { homeId: 'home-1' } };
     const res = await controller.listRules(req);
     expect(res.statusCode).toBe(200);
     const body = bodyAs<AutomationRule[]>(res);
     expect(Array.isArray(body)).toBe(true);
     expect(body).toHaveLength(1);
-    expect(topologyMock.validateHomeOwnership).toHaveBeenCalledWith('home-1', 'user-1');
+    expect(topologyMock.validateHomeOwnership).toHaveBeenCalledWith('home-1', 'u1');
   });
 
   it('deleteRule: debe retornar 204 ante eliminación exitosa', async () => {
     await saveBaseRule();
-    const req: AuthenticatedHttpRequest = { userId: 'user-1', params: { ruleId: 'r1' } };
+    const req: AuthenticatedHttpRequest = { userId: 'u1', params: { ruleId: 'r1' } };
     const res = await controller.deleteRule(req);
     expect(res.statusCode).toBe(204);
   });
@@ -155,7 +155,7 @@ describe('Automation API: AutomationController', () => {
   it('enableRule: debe retornar 403 si el usuario no tiene ownership', async () => {
     await saveBaseRule();
     topologyMock.validateHomeOwnership.mockRejectedValue(new ForbiddenOwnershipError('Forbidden'));
-    const req: AuthenticatedHttpRequest = { userId: 'intruder', params: { ruleId: 'r1' } };
+    const req: AuthenticatedHttpRequest = { userId: 'u1', params: { ruleId: 'r1' } };
     const res = await controller.enableRule(req);
     expect(res.statusCode).toBe(403);
   });
@@ -182,7 +182,7 @@ describe('Automation API: AutomationController', () => {
   it('disableRule: debe retornar 403 si el usuario no tiene ownership', async () => {
     await saveBaseRule();
     topologyMock.validateHomeOwnership.mockRejectedValue(new ForbiddenOwnershipError('Forbidden'));
-    const req: AuthenticatedHttpRequest = { userId: 'intruder', params: { ruleId: 'r1' } };
+    const req: AuthenticatedHttpRequest = { userId: 'u1', params: { ruleId: 'r1' } };
     const res = await controller.disableRule(req);
     expect(res.statusCode).toBe(403);
   });
@@ -241,7 +241,7 @@ describe('Automation API: AutomationController', () => {
     await saveBaseRule();
     topologyMock.validateHomeOwnership.mockRejectedValue(new ForbiddenOwnershipError('Forbidden'));
     const req: AuthenticatedHttpRequest = {
-      userId: 'intruder',
+      userId: 'u1',
       params: { ruleId: 'r1' },
       body: { name: 'X' }
     };

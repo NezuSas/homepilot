@@ -73,10 +73,10 @@ describe('PermissionGate', () => {
     await expect(gate.assertHomeAuthorized('user-a', 'home-b')).rejects.toThrow('ASSISTANT_HOME_FORBIDDEN');
   });
   it('scopes scenes and automations to authorized homes and retains legacy fallback only without home context', async () => {
-    const sceneA = createTestScene({ id: 'scene-a', homeId: 'home-a' });
-    const sceneB = createTestScene({ id: 'scene-b', homeId: 'home-b' });
-    const automationA = { id: 'automation-a', homeId: 'home-a' };
-    const automationB = { id: 'automation-b', homeId: 'home-b' };
+    const sceneA = createTestScene({ id: 'scene-a', homeId: 'home-a', userId: 'user-a' });
+    const sceneB = createTestScene({ id: 'scene-b', homeId: 'home-b', userId: 'user-b' });
+    const automationA = { id: 'automation-a', homeId: 'home-a', userId: 'user-a' };
+    const automationB = { id: 'automation-b', homeId: 'home-b', userId: 'user-b' };
     sceneRepo.findScenesByHomeId.mockImplementation((homeId: string) => Promise.resolve(homeId === 'home-a' ? [sceneA] : [sceneB]));
     automationRepo.findByHomeId.mockImplementation((homeId: string) => Promise.resolve(homeId === 'home-a' ? [automationA] : [automationB]));
     sceneRepo.findAll.mockResolvedValue([sceneA, sceneB]);
@@ -89,8 +89,8 @@ describe('PermissionGate', () => {
     await expect(scopedGate.getAuthorizedAutomations('user-without-home')).resolves.toEqual([]);
 
     const legacyGate = new PermissionGate(deviceRepo, roomRepo, sceneRepo, automationRepo);
-    await expect(legacyGate.getAuthorizedScenes('user-a')).resolves.toEqual([sceneA, sceneB]);
-    await expect(legacyGate.getAuthorizedAutomations('user-a')).resolves.toEqual([automationA, automationB]);
+    await expect(legacyGate.getAuthorizedScenes('user-a')).resolves.toEqual([sceneA]);
+    await expect(legacyGate.getAuthorizedAutomations('user-a')).resolves.toEqual([automationA]);
   });
 
   it('does not silently grant authorization without a home repository outside test mode', async () => {

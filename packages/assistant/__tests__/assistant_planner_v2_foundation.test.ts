@@ -172,7 +172,7 @@ describe('Assistant Planner V2 Foundation', () => {
       });
       const sceneRepo = createMockSceneRepository({
         findAll: jest.fn().mockResolvedValue([
-          createTestScene({ id: 'real-scene-uuid-789', name: 'Cena' })
+          createTestScene({ id: 'real-scene-uuid-789', name: 'Cena', userId: 'user-1' })
         ])
       });
       const memory = createMockAssistantMemory();
@@ -405,8 +405,8 @@ describe('PlannerV2Resolver remaining target contracts', () => {
     const roomRepo = createMockRoomRepository({ findAll: jest.fn().mockResolvedValue([]) });
     const sceneRepo = createMockSceneRepository({
       findAll: jest.fn().mockResolvedValue([
-        createTestScene({ id: 'scene-1', name: 'Cine Sala' }),
-        createTestScene({ id: 'scene-2', name: 'Cine Patio' }),
+        createTestScene({ id: 'scene-1', name: 'Cine Sala', userId: 'user-1' }),
+        createTestScene({ id: 'scene-2', name: 'Cine Patio', userId: 'user-1' }),
       ]),
     });
     const memory = createMockAssistantMemory({ getShortTermMemory: jest.fn().mockResolvedValue(null) });
@@ -449,7 +449,7 @@ describe('PlannerV2Resolver authorized-home resolution', () => {
     });
     const sceneRepo = createMockSceneRepository({
       findScenesByHomeId: jest.fn((homeId: string) => Promise.resolve(
-        homeId === 'home-b' ? [createTestScene({ id: 'scene-b', name: 'Cine', homeId })] : []
+        homeId === 'home-b' ? [createTestScene({ id: 'scene-b', name: 'Cine', homeId, userId: 'user-a' })] : []
       )),
     });
     const resolver = new PlannerV2Resolver(deviceRepo, roomRepo, sceneRepo, createMockAssistantMemory(), homeRepo);

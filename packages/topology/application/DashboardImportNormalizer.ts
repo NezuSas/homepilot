@@ -40,6 +40,7 @@ export async function normalizeImportedWidgets(
   resolver: DashboardImportBindingResolver | undefined,
   report: DashboardImportReport,
   widgetIds?: ReadonlyMap<string, string>,
+  userId?: string,
 ): Promise<DashboardWidget[]> {
   const normalized = normalizeSectionWidgets(widgets);
   return Promise.all(normalized.map(async (widget) => {
@@ -54,7 +55,7 @@ export async function normalizeImportedWidgets(
         config.binding = { ...binding, entityId: widgetId };
       }
       const target = ['device', 'room', 'scene', 'automation'].includes(String(bindingType))
-        ? { type: bindingType as DashboardImportTarget['type'], id: binding.entityId }
+        ? { type: bindingType as DashboardImportTarget['type'], id: binding.entityId, userId }
         : null;
       const isPortableInternalBinding = ['system', 'assistant', 'energy'].includes(String(bindingType));
       if (!isPortableInternalBinding && !(target && await resolver?.exists(authorizedHomeIds, target))) {
@@ -80,7 +81,8 @@ export async function normalizeImportedWidgets(
       const cards = await Promise.all(extra.cards.map(async (rawCard: unknown) => {
         const card = record(rawCard);
         if (!card || typeof card.entityId !== 'string' || !card.entityId.trim()) return rawCard;
-        const target = cardTarget(card.kind, card.entityId);
+        const rawTarget = cardTarget(card.kind, card.entityId);
+        const target = rawTarget ? { ...rawTarget, userId } : null;
         if (target && await resolver?.exists(authorizedHomeIds, target)) return rawCard;
         report.unresolvedBindings.push({
           tabTitle, widgetId, cardId: typeof card.id === 'string' ? card.id : undefined,

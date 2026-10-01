@@ -66,11 +66,11 @@ export class RepositoryDashboardImportBindingResolver implements DashboardImport
         if (device && authorizedHomeIds.has(device.homeId) && supports(device, 'action')) return true;
       }
       const scene = await this.scenes.findSceneById(target.id);
-      return Boolean(scene && authorizedHomeIds.has(scene.homeId));
+      return Boolean(scene && target.userId && scene.userId === target.userId && authorizedHomeIds.has(scene.homeId));
     }
     if (target.type === 'automation') {
       const automation = await this.automations.findById(target.id);
-      return Boolean(automation && authorizedHomeIds.has(automation.homeId));
+      return Boolean(automation && target.userId && automation.userId === target.userId && authorizedHomeIds.has(automation.homeId));
     }
     return false;
   }

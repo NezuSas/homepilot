@@ -16,7 +16,7 @@ export async function deleteAutomationRuleUseCase(
 ): Promise<void> {
   // 1. Buscar la regla para validar su existencia y origen
   const rule = await deps.automationRuleRepository.findById(ruleId);
-  if (!rule) {
+  if (!rule || rule.userId !== userId) {
     throw new AutomationRuleNotFoundError(ruleId);
   }
 

@@ -21,7 +21,7 @@ export async function enableAutomationRuleUseCase(
 ): Promise<AutomationRule> {
   // 1. Localizar la regla; falla explícitamente si no existe (AC8)
   const existing = await deps.automationRuleRepository.findById(ruleId);
-  if (!existing) throw new AutomationRuleNotFoundError(ruleId);
+  if (!existing || existing.userId !== userId) throw new AutomationRuleNotFoundError(ruleId);
 
   // 2. Validar ownership del hogar asignado a la regla (Zero-Trust, AC7)
   await deps.topologyReferencePort.validateHomeOwnership(existing.homeId, userId);

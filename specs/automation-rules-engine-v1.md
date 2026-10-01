@@ -101,6 +101,7 @@ HomePilot permite actualmente el control manual de dispositivos y la visualizaci
 *   [x] **AC3: Gestión de Fallos de Acción**: Si una regla intenta ejecutar un comando no soportado, el sistema debe registrar un registro de tipo `AUTOMATION_FAILED` en el `ActivityLog` del dispositivo objetivo.
 *   [x] **AC4: Protección Zero-Trust**: Un usuario intenta borrar o crear una regla en un hogar que no le pertenece y recibe un `403 Forbidden`.
 *   [x] **AC5: Prevención de Auto-Bucle**: El sistema rechaza la creación de una regla que use el mismo dispositivo para trigger y action sobre la misma clave de estado.
+*   [x] **AC6: Privacidad por creador**: Dos usuarios del mismo hogar solo listan, marcan como favoritas y administran sus propias automatizaciones. Conocer el ID de una regla ajena no permite editarla, habilitarla, deshabilitarla, eliminarla ni ejecutarla manualmente; el motor conserva la ejecución automática con la identidad persistida de su creador.
 
 ## Evidencia verificada
 

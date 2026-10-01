@@ -31,6 +31,13 @@ interface UpdateAutomationPayload {
  * Automation routes: /api/v1/automations/*
  */
 export class AutomationRoutes extends ApiRoutes {
+  private async validateSceneAction(action: AutomationAction | undefined, userId: string, homeId: string, container: BootstrapContainer): Promise<boolean> {
+    const sceneAction = action?.type === 'delay' ? action.then : action;
+    if (sceneAction?.type !== 'execute_scene') return true;
+    const scene = await container.repositories.sceneRepository.findSceneById(sceneAction.sceneId);
+    return scene?.userId === userId && scene.homeId === homeId;
+  }
+
   private createTopologyReferencePort(container: BootstrapContainer): TopologyReferencePort {
     return {
       validateHomeExists: async (homeId) => {
@@ -75,7 +82,7 @@ export class AutomationRoutes extends ApiRoutes {
         if (method === 'GET') {
           const accessible = await Promise.all(ids.map(async (id) => {
             const rule = await container.repositories.automationRuleRepository.findById(id);
-            return rule && homeIds.has(rule.homeId) ? id : null;
+            return rule?.userId === userId && homeIds.has(rule.homeId) ? id : null;
           }));
           return this.sendJson(res, {
             automationIds: accessible.filter((id): id is string => id !== null),
@@ -91,7 +98,7 @@ export class AutomationRoutes extends ApiRoutes {
         const nextIds = payload.automationIds as string[];
         for (const id of nextIds) {
           const rule = await container.repositories.automationRuleRepository.findById(id);
-          if (!rule || !homeIds.has(rule.homeId)) {
+          if (!rule || rule.userId !== userId || !homeIds.has(rule.homeId)) {
             return this.sendError(res, 403, 'FORBIDDEN', 'Automation is not accessible'), true;
           }
         }
@@ -128,6 +135,9 @@ export class AutomationRoutes extends ApiRoutes {
         const homes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
         const home = homes[0];
         if (!home) return this.sendError(res, 404, 'HOME_NOT_FOUND', 'No home belongs to the current user'), true;
+        if (!await this.validateSceneAction(payload.action, req.user!.id, home.id, container)) {
+          return this.sendError(res, 404, 'SCENE_NOT_FOUND', 'Scene is not accessible'), true;
+        }
 
         const result = await createAutomationRuleUseCase(
           {
@@ -166,6 +176,13 @@ export class AutomationRoutes extends ApiRoutes {
       try {
         const payload = await this.parseBody<UpdateAutomationPayload>(req);
         const ports = this.createTopologyReferencePort(container);
+        const existing = await container.repositories.automationRuleRepository.findById(ruleId);
+        if (!existing || existing.userId !== req.user!.id) {
+          return this.sendError(res, 404, 'AUTOMATION_NOT_FOUND', 'Automation not found'), true;
+        }
+        if (!await this.validateSceneAction(payload.action, req.user!.id, existing.homeId, container)) {
+          return this.sendError(res, 404, 'SCENE_NOT_FOUND', 'Scene is not accessible'), true;
+        }
 
         const result = await updateAutomationRuleUseCase(ruleId, req.user!.id, payload, {
           automationRuleRepository: container.repositories.automationRuleRepository,
@@ -217,7 +234,7 @@ export class AutomationRoutes extends ApiRoutes {
       const ruleId = runMatch[1];
       try {
         const rule = await container.repositories.automationRuleRepository.findById(ruleId);
-        if (!rule) { this.sendError(res, 404, 'AUTOMATION_NOT_FOUND', `Automation ${ruleId} not found`); return true; }
+        if (!rule || rule.userId !== req.user!.id) { this.sendError(res, 404, 'AUTOMATION_NOT_FOUND', `Automation ${ruleId} not found`); return true; }
         await this.createTopologyReferencePort(container).validateHomeOwnership(rule.homeId, req.user!.id);
 
         if (!container.engine) {

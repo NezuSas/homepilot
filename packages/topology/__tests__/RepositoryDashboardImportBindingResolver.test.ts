@@ -28,12 +28,12 @@ function createResolver(catalogState: CatalogState = 'available') {
   } as unknown as RoomRepository;
   const scenes = {
     findSceneById: jest.fn(async (id: string) => ['missing-scene', 'ha-scene', 'scene-capability-only', 'incomplete-ha-scene', 'malformed-external-id', 'incompatible-action', 'unknown-capability'].includes(id) ? null : ({
-      id, homeId: id === 'foreign-scene' ? 'home-2' : 'home-1',
+      id, homeId: id === 'foreign-scene' ? 'home-2' : 'home-1', userId: id === 'other-user-scene' ? 'user-2' : 'user-1',
     })),
   } as unknown as SceneRepository;
   const automations = {
     findById: jest.fn(async (id: string) => id === 'missing-automation' ? null : ({
-      id, homeId: id === 'foreign-automation' ? 'home-2' : 'home-1',
+      id, homeId: id === 'foreign-automation' ? 'home-2' : 'home-1', userId: id === 'other-user-automation' ? 'user-2' : 'user-1',
     })),
   } as unknown as AutomationRuleRepository;
   const catalog = {
@@ -54,11 +54,11 @@ describe('RepositoryDashboardImportBindingResolver', () => {
     const resolver = createResolver();
     await expect(resolver.exists(authorized, { type: 'device', id: 'light-1', cardKind: 'light' })).resolves.toBe(true);
     await expect(resolver.exists(authorized, { type: 'room', id: 'room-1' })).resolves.toBe(true);
-    await expect(resolver.exists(authorized, { type: 'scene', id: 'scene-1' })).resolves.toBe(true);
-    await expect(resolver.exists(authorized, { type: 'action', id: 'scene-1', cardKind: 'action' })).resolves.toBe(true);
+    await expect(resolver.exists(authorized, { type: 'scene', id: 'scene-1', userId: 'user-1' })).resolves.toBe(true);
+    await expect(resolver.exists(authorized, { type: 'action', id: 'scene-1', cardKind: 'action', userId: 'user-1' })).resolves.toBe(true);
     await expect(resolver.exists(authorized, { type: 'action', id: 'ha-scene', cardKind: 'action' })).resolves.toBe(true);
     await expect(resolver.exists(authorized, { type: 'action', id: 'scene-capability-only', cardKind: 'action' })).resolves.toBe(true);
-    await expect(resolver.exists(authorized, { type: 'automation', id: 'automation-1' })).resolves.toBe(true);
+    await expect(resolver.exists(authorized, { type: 'automation', id: 'automation-1', userId: 'user-1' })).resolves.toBe(true);
   });
 
   it('tolerates missing Home Assistant metadata on normal and foreign devices', async () => {
@@ -84,6 +84,8 @@ describe('RepositoryDashboardImportBindingResolver', () => {
     await expect(resolver.exists(authorized, { type: 'action', id: 'unknown-capability', cardKind: 'action' })).resolves.toBe(false);
     await expect(resolver.exists(authorized, { type: 'automation', id: 'foreign-automation' })).resolves.toBe(false);
     await expect(resolver.exists(authorized, { type: 'automation', id: 'missing-automation' })).resolves.toBe(false);
+    await expect(resolver.exists(authorized, { type: 'scene', id: 'other-user-scene', userId: 'user-1' })).resolves.toBe(false);
+    await expect(resolver.exists(authorized, { type: 'automation', id: 'other-user-automation', userId: 'user-1' })).resolves.toBe(false);
   });
 
   it('keeps a device action only for an existing dashboard-eligible action key', async () => {

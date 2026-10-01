@@ -141,8 +141,8 @@ describe('Assistant Management V1', () => {
   describe('C/D. Listing', () => {
     it('should list scenes', async () => {
       sceneRepo.findAll.mockResolvedValue([
-        { id: 's1', name: 'Modo Cine' },
-        { id: 's2', name: 'Apagar Todo' }
+        { id: 's1', name: 'Modo Cine', userId: 'system' },
+        { id: 's2', name: 'Apagar Todo', userId: 'system' }
       ]);
       const response = await service.converse({ prompt: 'lista mis escenas' }, 'es');
       expect(response.message).toContain('Modo Cine');
@@ -151,8 +151,8 @@ describe('Assistant Management V1', () => {
 
     it('should list automations with their state', async () => {
       automationRepo.findAll.mockResolvedValue([
-        { id: 'a1', name: 'Auto Luz', enabled: true },
-        { id: 'a2', name: 'Auto Clima', enabled: false }
+        { id: 'a1', name: 'Auto Luz', enabled: true, userId: 'system' },
+        { id: 'a2', name: 'Auto Clima', enabled: false, userId: 'system' }
       ]);
       const response = await service.converse({ prompt: 'qué automatizaciones tengo?' }, 'es');
       expect(response.message).toContain('Auto Luz — activa');
@@ -162,7 +162,7 @@ describe('Assistant Management V1', () => {
 
   describe('E/F/G. Management & Confirmations', () => {
     it('rename scene should create pendingManagementAction and require confirmation', async () => {
-      sceneRepo.findAll.mockResolvedValue([{ id: 's1', name: 'Modo Cine' }]);
+      sceneRepo.findAll.mockResolvedValue([{ id: 's1', name: 'Modo Cine', userId: 'system' }]);
       const response = await service.converse({ prompt: 'renombra la escena Modo Cine a Cine Familiar' }, 'es');
       
       expect(response.type).toBe('clarification');
@@ -186,7 +186,7 @@ describe('Assistant Management V1', () => {
           timestamp: new Date().toISOString()
         }
       });
-      sceneRepo.findSceneById.mockResolvedValue({ id: 's1', name: 'Modo Cine', actions: [] });
+      sceneRepo.findSceneById.mockResolvedValue({ id: 's1', name: 'Modo Cine', userId: 'system', actions: [] });
 
       const response = await service.converse({ prompt: 'sí' }, 'es');
       
@@ -195,7 +195,7 @@ describe('Assistant Management V1', () => {
     });
 
     it('toggling automation should require confirmation', async () => {
-      automationRepo.findAll.mockResolvedValue([{ id: 'a1', name: 'Auto Luz', enabled: true }]);
+      automationRepo.findAll.mockResolvedValue([{ id: 'a1', name: 'Auto Luz', enabled: true, userId: 'system' }]);
       const response = await service.converse({ prompt: 'desactiva la automatizacion Auto Luz' }, 'es');
       
       expect(response.type).toBe('clarification');
@@ -363,7 +363,7 @@ describe('Assistant Management V1', () => {
   });
   describe('H. Edit Scene', () => {
     it('adding device to scene should create pending action', async () => {
-      sceneRepo.findAll.mockResolvedValue([{ id: 's1', name: 'Modo Noche', actions: [] }]);
+      sceneRepo.findAll.mockResolvedValue([{ id: 's1', name: 'Modo Noche', userId: 'system', actions: [] }]);
       deviceRepo.findAll.mockResolvedValue([{ id: 'd1', name: 'Luz Cocina' }]);
       
       const response = await service.converse({ prompt: 'agrega Luz Cocina a la escena Modo Noche' }, 'es');
@@ -376,6 +376,7 @@ describe('Assistant Management V1', () => {
       sceneRepo.findAll.mockResolvedValue([{ 
         id: 's1', 
         name: 'Modo Noche', 
+        userId: 'system',
         actions: [{ deviceId: 'd1', command: { name: 'turn_off', params: {} } }] 
       }]);
       deviceRepo.findAll.mockResolvedValue([{ id: 'd1', name: 'Luz Cocina' }]);
@@ -396,7 +397,7 @@ describe('Assistant Management V1', () => {
     });
 
     it('persists a confirmed automation state change and clears the pending action', async () => {
-      automationRepo.findById.mockResolvedValue({ id: 'a1', name: 'Noche', enabled: false });
+      automationRepo.findById.mockResolvedValue({ id: 'a1', name: 'Noche', userId: 'manager', enabled: false });
       memory.getShortTermMemory.mockResolvedValue({ lastQueryType: 'management_confirm', entities: [], timestamp: '2026-08-17T00:00:00.000Z', pendingManagementAction: pendingAction('toggle_automation', 'a1', { enabled: true }) });
       const response = await (service as unknown as {
         executeManagementAction(action: never, userId: string, language: string): Promise<{ type: string; message: string }>;
@@ -408,7 +409,7 @@ describe('Assistant Management V1', () => {
     });
 
     it('adds a confirmed command to a scene and preserves its command contract', async () => {
-      const scene = { id: 's1', name: 'Cine', actions: [], updatedAt: '' };
+      const scene = { id: 's1', name: 'Cine', userId: 'manager', actions: [], updatedAt: '' };
       sceneRepo.findSceneById.mockResolvedValue(scene);
       const response = await (service as unknown as {
         executeManagementAction(action: never, userId: string, language: string): Promise<{ type: string; message: string }>;
@@ -424,6 +425,7 @@ describe('Assistant Management V1', () => {
       const scene = {
         id: 's1',
         name: 'Cine',
+        userId: 'manager',
         actions: [
           { deviceId: 'light-1', command: { name: 'turn_off', params: {} } },
           { deviceId: 'light-2', command: { name: 'turn_on', params: {} } },

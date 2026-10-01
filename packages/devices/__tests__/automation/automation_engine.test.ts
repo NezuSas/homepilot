@@ -40,7 +40,7 @@ describe('Feature: Automation Engine V2 reactive execution', () => {
 
     engine = new AutomationEngine(
       ruleRepo,
-      { deleteScene: jest.fn().mockResolvedValue(undefined) },
+      { findSceneById: jest.fn().mockResolvedValue(null), deleteScene: jest.fn().mockResolvedValue(undefined) },
       deviceRepo,
       dispatcherMock,
       logRepo,

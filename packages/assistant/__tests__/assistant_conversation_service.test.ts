@@ -187,7 +187,7 @@ describe('AssistantConversationService', () => {
 
       const response = await service.converse({ prompt: intent.prompt, userId: 'user-ana', confirmed: true }, 'es');
 
-      expect(mockConfirmationPolicy.evaluate).toHaveBeenCalledWith(intent, 'es');
+      expect(mockConfirmationPolicy.evaluate).toHaveBeenCalledWith(intent, 'es', 'user-ana');
       expect(mockDispatcher.dispatch).toHaveBeenCalledWith(
         'light-1',
         expect.objectContaining({
@@ -453,7 +453,7 @@ describe('AssistantConversationService', () => {
     });
 
     it('Scenario: Given scenes and automations When the user lists them Then returns their names and statuses without executing them', async () => {
-      mockSceneRepo.findAll.mockResolvedValue([{ id: 'scene-1', homeId: 'h1', roomId: 'r1', name: 'Cine', actions: [], executionMode: 'parallel', createdAt: '', updatedAt: '' }]);
+      mockSceneRepo.findAll.mockResolvedValue([{ id: 'scene-1', homeId: 'h1', userId: 'reader', roomId: 'r1', name: 'Cine', actions: [], executionMode: 'parallel', createdAt: '', updatedAt: '' }]);
       mockAutomationRepo.findAll.mockResolvedValue([{ id: 'automation-1', homeId: 'h1', userId: 'reader', name: 'Noche', enabled: true, trigger: { type: 'time', timeLocal: '22:00', timezone: 'America/Guayaquil', timeUTC: '03:00' }, action: { type: 'device_command', targetDeviceId: 'light-1', command: 'turn_off' } }]);
 
       const scenes = await service.converse({ prompt: 'lista escenas', userId: 'reader' }, 'es');
@@ -1189,7 +1189,7 @@ describe('AssistantConversationService', () => {
         createTestDevice({ id: 'dev-light', name: 'Luz Escritorio', type: 'light', lastKnownState: { on: false } })
       ]);
       mockSceneRepo.findAll.mockResolvedValue([
-        { id: 'scene-1', homeId: 'h1', roomId: 'r1', name: 'Cine', actions: [], executionMode: 'parallel', createdAt: '', updatedAt: '' }
+        { id: 'scene-1', homeId: 'h1', userId: 'system', roomId: 'r1', name: 'Cine', actions: [], executionMode: 'parallel', createdAt: '', updatedAt: '' }
       ]);
       mockMemory.getAliases.mockResolvedValue({ 'mi cuarto': 'r1' });
 
@@ -1460,7 +1460,7 @@ describe('AssistantConversationService', () => {
           { id: 'scene-cine', name: 'Cine en casa', type: 'scene', roomId: 'room-1', roomName: 'Sala' }
         ]
       });
-      mockSceneRepo.findAll.mockResolvedValue([createTestScene({ id: 'scene-cine', name: 'Cine en casa', roomId: 'room-1' })]);
+      mockSceneRepo.findAll.mockResolvedValue([createTestScene({ id: 'scene-cine', name: 'Cine en casa', roomId: 'room-1', userId: 'user-1' })]);
 
       const response = await service.converse({ prompt: '¿Cuál recomiendas?', userId: 'user-1' }, 'es');
 
@@ -1652,7 +1652,7 @@ describe('AssistantConversationService', () => {
   describe('Feature: confirmed scene management and execution', () => {
     it('Scenario: Given a pending scene rename When the user confirms Then persists the renamed scene and clears the pending action', async () => {
       const scene = {
-        id: 'scene-1', homeId: 'h1', roomId: null, name: 'Cine', actions: [], executionMode: 'parallel' as const, createdAt: '', updatedAt: '',
+        id: 'scene-1', homeId: 'h1', userId: 'scene-owner', roomId: null, name: 'Cine', actions: [], executionMode: 'parallel' as const, createdAt: '', updatedAt: '',
       };
       mockMemory.getShortTermMemory.mockResolvedValue({
         lastQueryType: 'management_confirm',
@@ -1673,7 +1673,7 @@ describe('AssistantConversationService', () => {
 
     it('Scenario: Given a valid scene intent When execution is authorized Then dispatches scene actions and returns the execution response', async () => {
       const scene = {
-        id: 'scene-1', homeId: 'h1', roomId: 'r1', name: 'Cine',
+        id: 'scene-1', homeId: 'h1', userId: 'scene-owner', roomId: 'r1', name: 'Cine',
         actions: [{ deviceId: 'light-1', command: { name: 'turn_off' as const, params: {} } }],
         executionMode: 'parallel' as const, createdAt: '', updatedAt: '',
       };
@@ -1865,7 +1865,7 @@ describe('AssistantConversationService', () => {
         handleManagementIntent(prompt: string, userId: string, language: string): Promise<{ type: string; message: string }>;
       };
       const scene = {
-        id: 'scene-cine', homeId: 'h1', roomId: null, name: 'Cine', actions: [{ deviceId: 'light-1', command: { name: 'turn_off' as const, params: {} } }], executionMode: 'parallel' as const, createdAt: '', updatedAt: '',
+        id: 'scene-cine', homeId: 'h1', userId: 'user-1', roomId: null, name: 'Cine', actions: [{ deviceId: 'light-1', command: { name: 'turn_off' as const, params: {} } }], executionMode: 'parallel' as const, createdAt: '', updatedAt: '',
       };
       mockSceneRepo.findAll.mockResolvedValue([scene]);
       mockAutomationRepo.findAll.mockResolvedValue([{
@@ -2210,7 +2210,7 @@ describe('AssistantConversationService', () => {
         type: 'command',
         deviceId: 'curtain-master',
         command: 'close'
-      }), 'es');
+      }), 'es', 'curtain-user');
       expect(mockDispatcher.dispatch).toHaveBeenCalledWith('curtain-master', expect.objectContaining({
         name: 'close'
       }));

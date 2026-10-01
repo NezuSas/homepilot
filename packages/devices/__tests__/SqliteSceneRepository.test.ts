@@ -21,11 +21,11 @@ describe('SqliteSceneRepository', () => {
   afterEach(() => database.close());
 
   it('persists the modern payload including sequential execution mode and updates atomically', async () => {
-    await repository.saveScene(scene('scene-1', { executionMode: 'sequential', icon: 'mdi:home' }));
-    await repository.saveScene(scene('scene-1', { name: 'Updated', executionMode: 'parallel', icon: 'mdi:weather-windy', updatedAt: '2026-08-17T01:00:00.000Z' }));
+    await repository.saveScene(scene('scene-1', { userId: 'user-1', executionMode: 'sequential', icon: 'mdi:home' }));
+    await repository.saveScene(scene('scene-1', { userId: 'user-1', name: 'Updated', executionMode: 'parallel', icon: 'mdi:weather-windy', updatedAt: '2026-08-17T01:00:00.000Z' }));
 
     await expect(repository.findSceneById('scene-1')).resolves.toEqual(expect.objectContaining({
-      name: 'Updated', executionMode: 'parallel', icon: 'mdi:weather-windy', actions: [expect.objectContaining({ delayMs: 25, continueOnFailure: true })]
+      name: 'Updated', userId: 'user-1', executionMode: 'parallel', icon: 'mdi:weather-windy', actions: [expect.objectContaining({ delayMs: 25, continueOnFailure: true })]
     }));
     expect(database.prepare('SELECT COUNT(*) AS count FROM scenes').get()).toEqual({ count: 1 });
   });

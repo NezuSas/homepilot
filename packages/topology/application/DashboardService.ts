@@ -151,7 +151,7 @@ export class DashboardService {
         visibility: undefined,
         isDefault: tab.isDefault === true,
         widgets: await normalizeImportedWidgets(
-          tab.widgets, tab.title, authorizedHomeIds, tabIds, this.importBindingResolver, report, widgetIds,
+          tab.widgets, tab.title, authorizedHomeIds, tabIds, this.importBindingResolver, report, widgetIds, userId,
         ),
       };
     }));

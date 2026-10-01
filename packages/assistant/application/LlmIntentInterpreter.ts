@@ -82,7 +82,7 @@ User command: "${prompt.replace(/"/g, '\"')}"`;
         // model from spending the request budget on unused prose.
         numPredict: 96
       });
-      return await this.validateAndMap(response, prompt);
+      return await this.validateAndMap(response, prompt, userId);
     } catch (error: unknown) {
       // We log errors but return null to trigger deterministic fallback
       console.warn('[LlmIntentInterpreter] LLM failed or timed out:', error instanceof Error ? error.message : String(error));
@@ -90,7 +90,7 @@ User command: "${prompt.replace(/"/g, '\"')}"`;
     }
   }
 
-  private async validateAndMap(output: unknown, prompt: string): Promise<Intent | null> {
+  private async validateAndMap(output: unknown, prompt: string, userId?: string): Promise<Intent | null> {
     if (!output || typeof output !== 'object') {
       return null;
     }
@@ -100,7 +100,7 @@ User command: "${prompt.replace(/"/g, '\"')}"`;
     if (typedOutput.type === 'scene') {
       if (!typedOutput.sceneId) return null;
       const scene = await this.sceneRepository.findSceneById(typedOutput.sceneId);
-      if (!scene) return null;
+      if (!scene || !userId || scene.userId !== userId) return null;
       
       return { 
         type: 'scene', 

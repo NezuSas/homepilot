@@ -74,10 +74,10 @@ describe('IntentInterpreterService Integration', () => {
     mockLlmInterpreter.interpret.mockRejectedValue(new Error('LLM Error'));
     // Setup deterministic parser to succeed
     mockSceneRepo.findAll.mockResolvedValue([{
-      id: 'scene-all-off', name: 'Apagar todo', homeId: 'h1', roomId: 'r1', actions: [], createdAt: '', updatedAt: ''
+      id: 'scene-all-off', name: 'Apagar todo', homeId: 'h1', userId: 'user-1', roomId: 'r1', actions: [], createdAt: '', updatedAt: ''
     }]);
 
-    const intent = await service.interpret('apaga todo');
+    const intent = await service.interpret('apaga todo', 'user-1');
 
     expect(intent.type).toBe('scene');
     if (intent.type === 'scene') {
@@ -272,7 +272,7 @@ describe('IntentInterpreterService Integration', () => {
         integrationSource: 'ha', invertState: false, lastKnownState: null, entityVersion: 1,
         createdAt: '', updatedAt: '',
       };
-      const authorizedScene = { id: 'scene-authorized', name: 'Apaga todo', homeId: 'home-authorized', roomId: null, actions: [], createdAt: '', updatedAt: '' };
+      const authorizedScene = { id: 'scene-authorized', name: 'Apaga todo', homeId: 'home-authorized', userId: 'authorized-user', roomId: null, actions: [], createdAt: '', updatedAt: '' };
       mockDeviceRepo.findAllByHomeId.mockResolvedValue([authorizedDevice]);
       mockSceneRepo.findScenesByHomeId.mockResolvedValue([authorizedScene]);
       const scopedService = new IntentInterpreterService(

@@ -88,7 +88,7 @@ describe('Automation → SceneExecutionService integration', () => {
 
     engine = new AutomationEngine(
       ruleRepo,
-      { deleteScene: jest.fn().mockResolvedValue(undefined) },
+      { findSceneById: jest.fn().mockResolvedValue(null), deleteScene: jest.fn().mockResolvedValue(undefined) },
       deviceRepo,
       automationDispatcher,
       logRepo,

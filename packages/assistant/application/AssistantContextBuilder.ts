@@ -53,14 +53,15 @@ export class AssistantContextBuilder implements AssistantContextBuilderPort {
   }
 
   /**
-   * Home-scoped replacement for sceneRepository.findAll().
+   * Creator-scoped scene list for assistant context.
    */
   private async getAuthorizedScenes(userId: string | null): Promise<ReadonlyArray<Scene>> {
-    if (!this.homeRepository || !userId) return this.sceneRepository.findAll();
+    if (!userId) return [];
+    if (!this.homeRepository) return (await this.sceneRepository.findAll()).filter((scene) => scene.userId === userId);
     const homes = await this.homeRepository.findHomesByUserId(userId);
     if (homes.length === 0) return [];
     const perHome = await Promise.all(homes.map((home) => this.sceneRepository.findScenesByHomeId(home.id)));
-    return perHome.flat();
+    return perHome.flat().filter((scene) => scene.userId === userId);
   }
 
   /**
