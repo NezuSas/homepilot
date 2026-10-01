@@ -942,36 +942,183 @@
   }
 
   .homepilot-sensor-reading {
+    min-height: clamp(14rem, 72cqi, 17rem);
+    padding: clamp(0.75rem, 5cqi, 1.25rem);
+    border-radius: 1rem;
     border-color: hsl(var(--dashboard-edge) / 0.72);
     background: linear-gradient(145deg, hsl(var(--dashboard-surface-raised) / 0.97), hsl(var(--dashboard-surface) / 0.95));
     box-shadow: 0 12px 26px -22px hsl(var(--foreground) / 0.16), inset 0 1px 0 hsl(var(--dashboard-surface-raised) / 0.65);
   }
 
+  .homepilot-sensor-reading .sensor-premium-header {
+    display: flex;
+    min-height: 3.5rem;
+    min-width: 0;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .homepilot-sensor-reading .sensor-category-icon {
+    width: clamp(1.5rem, 11cqi, 2.25rem);
+    height: clamp(1.5rem, 11cqi, 2.25rem);
+  }
+
+  .homepilot-sensor-reading .sensor-reading-title {
+    overflow-wrap: break-word;
+    font-size: clamp(0.8125rem, 5cqi, 1rem);
+    font-weight: 500;
+    line-height: 1.3;
+  }
+
+  .homepilot-sensor-reading .sensor-reading-room {
+    margin-top: 0.2rem;
+    overflow-wrap: break-word;
+    font-size: clamp(0.6875rem, 4cqi, 0.8125rem);
+    line-height: 1.25;
+  }
+
+  .homepilot-sensor-reading .sensor-reading-layout {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    padding-block: 0.625rem;
+  }
+
+  .homepilot-sensor-reading .sensor-reading-value {
+    display: flex;
+    max-width: 100%;
+    min-width: 0;
+    align-items: baseline;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .homepilot-sensor-reading .sensor-reading-number {
+    min-width: 0;
+    max-width: 100%;
+    flex-shrink: 0;
+    font-size: clamp(2rem, var(--sensor-reading-scale, 30cqi), 4rem);
+    font-weight: 450;
+    line-height: 1;
+  }
+
+  .homepilot-sensor-reading .sensor-reading-unit {
+    flex-shrink: 0;
+    font-size: clamp(0.8125rem, 6cqi, 1.375rem);
+    line-height: 1;
+  }
+
+  .homepilot-sensor-reading .sensor-reading-dense {
+    font-size: clamp(1.5rem, var(--sensor-reading-scale, 30cqi), 4rem);
+  }
+
+  .homepilot-sensor-reading .sensor-reading-state {
+    text-align: center;
+    overflow-wrap: break-word;
+    font-size: clamp(0.9375rem, 6cqi, 1.25rem);
+    font-weight: 500;
+    line-height: 1.25;
+  }
+
+  .homepilot-sensor-reading .sensor-reading-plain {
+    font-size: clamp(1rem, var(--sensor-reading-scale, 30cqi), 3rem);
+  }
+
+  .homepilot-sensor-reading .sensor-state-symbol {
+    width: clamp(2.25rem, 20cqi, 3.5rem);
+    height: clamp(2.25rem, 20cqi, 3.5rem);
+    padding: 0.65rem;
+    border-radius: 50%;
+    color: hsl(var(--primary));
+    border: 1px solid hsl(var(--primary) / 0.4);
+    background: hsl(var(--primary) / 0.1);
+  }
+
+  .homepilot-sensor-reading .sensor-state-symbol-idle {
+    color: hsl(var(--muted-foreground));
+    border-color: hsl(var(--dashboard-edge));
+    background: hsl(var(--dashboard-surface-raised));
+  }
+
   .homepilot-sensor-reading .sensor-reading-digit {
     position: relative;
     display: inline-block;
-    padding: 0.08em 0.04em;
-    line-height: 1.05;
+    min-width: 0.68em;
+    padding: 0.12em 0.04em;
+    line-height: 1.1;
+    text-align: center;
     border-radius: 0.18em;
-    background: hsl(var(--dashboard-surface-raised));
-    border: 1px solid hsl(var(--dashboard-edge) / 0.7);
-    box-shadow: 0 3px 5px -4px hsl(var(--foreground) / 0.25);
+    background: linear-gradient(to bottom, hsl(var(--dashboard-surface-raised)), hsl(var(--dashboard-surface)));
+    border: 1px solid hsl(var(--dashboard-edge) / 0.55);
+    box-shadow: 0 4px 7px -5px hsl(var(--foreground) / 0.2);
   }
 
   .homepilot-sensor-reading .sensor-reading-digit::after {
     content: '';
     position: absolute;
     inset: 50% 0 auto;
-    border-top: 1px solid hsl(var(--dashboard-edge) / 0.45);
+    border-top: 1px solid hsl(var(--dashboard-edge) / 0.3);
     pointer-events: none;
   }
 
-  .homepilot-sensor-reading .sensor-premium-gauge-track {
-    stroke: hsl(var(--border-subtle));
+  .homepilot-sensor-reading .sensor-reading-footer {
+    display: grid;
+    min-height: 2.25rem;
+    flex-shrink: 0;
+    grid-template-rows: 0.5rem minmax(1rem, auto);
+    gap: 0.75rem;
   }
 
-  .homepilot-sensor-reading .sensor-premium-gauge-progress {
-    stroke: hsl(var(--primary));
+  .homepilot-sensor-reading .sensor-reading-status {
+    grid-row: 2;
+    line-height: 1.25;
+  }
+
+  .homepilot-sensor-reading .sensor-percentage-meter {
+    display: block;
+    width: 100%;
+    height: 0.5rem;
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: hsl(var(--dashboard-edge) / 0.55);
+  }
+
+  .homepilot-sensor-reading .sensor-percentage-fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: hsl(var(--primary));
+  }
+
+  @container sensor-card (max-width: 11rem) {
+    .homepilot-sensor-reading .sensor-premium-header {
+      min-height: 5.5rem;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.375rem;
+    }
+
+    .homepilot-sensor-reading .sensor-category-icon {
+      width: 1.25rem;
+      height: 1.25rem;
+    }
+
+    .homepilot-sensor-reading .sensor-reading-value:has(.sensor-reading-plain) {
+      flex-direction: column;
+      align-items: center;
+      gap: 0.375rem;
+    }
+
+    .homepilot-sensor-reading .sensor-reading-plain {
+      font-size: clamp(1rem, var(--sensor-reading-stacked-scale, 30cqi), 3rem);
+    }
   }
 
   /* Light dashboards keep device controls legible over owner-selected image backgrounds. */
@@ -1451,8 +1598,8 @@
     background: radial-gradient(circle at 24% 72%, rgb(var(--dashboard-premium-accent) / 0.06), transparent 42%), linear-gradient(145deg, rgb(var(--dashboard-premium-card) / 0.94), rgb(var(--dashboard-premium-section) / 0.95));
   }
 
-  .dark:not(.light) .homepilot-dashboard-screen .homepilot-sensor-reading .sensor-premium-gauge-track {
-    stroke: rgb(var(--dashboard-premium-edge) / 0.14);
+  .dark:not(.light) .homepilot-dashboard-screen .homepilot-sensor-reading .sensor-percentage-meter {
+    background: rgb(var(--dashboard-premium-edge) / 0.14);
   }
 
   .homepilot-home {

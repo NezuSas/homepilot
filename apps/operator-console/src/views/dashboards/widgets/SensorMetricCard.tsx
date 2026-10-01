@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { Activity, BatteryFull, BatteryLow, BatteryMedium, Droplets, Gauge, MemoryStick, Sun, Thermometer, UserRound, Wifi, Wind, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
@@ -23,6 +24,7 @@ interface SensorMetricCardProps {
   title: string;
   isPreview?: boolean;
   icon?: SectionCardIcon;
+  roomName?: string;
 }
 
 const unavailableStates = new Set(['', 'none', 'null', 'unknown', 'unavailable', 'offline']);
@@ -194,6 +196,10 @@ function displayValue(value: string | null, t: (key: string) => string): string 
   switch (value?.toLowerCase()) {
     case 'open': return t('dashboard.editor.sections.sensor_open');
     case 'closed': return t('dashboard.editor.sections.sensor_closed');
+    case 'charging': return t('dashboard.editor.sections.sensor_charging');
+    case 'not charging':
+    case 'not_charging': return t('dashboard.editor.sections.sensor_not_charging');
+    case 'discharging': return t('dashboard.editor.sections.sensor_discharging');
     default: return value ?? '—';
   }
 }
@@ -216,30 +222,27 @@ function getCategoryLabel(category: SensorCategory, t: (key: string) => string):
   }
 }
 
-function SensorPresentationHero({ reading, title, t }: {
+function SensorPresentationHero({ reading, t }: {
   reading: SensorReading;
-  title: string;
   t: (key: string) => string;
 }) {
   const available = reading.value !== null;
   const isPercentage = available && reading.presentation === 'percentage';
-  const fill = isPercentage ? numericPercentage(reading.value) ?? 0 : 0;
   const value = reading.binaryState
     ? t(`dashboard.editor.sections.sensor_${reading.binaryState}`)
     : displayValue(reading.value, t);
   const unit = isPercentage ? '%' : reading.unit;
   const useDigitTiles = available && numericValue(reading.value) !== null && value.replace(/\D/g, '').length <= 5;
+  const digitCount = value.replace(/\D/g, '').length;
+  const readingWidth = useDigitTiles ? digitCount * 0.72 + (value.length - digitCount) * 0.3 : value.length * 0.6;
+  const readingScale = Math.min(30, 94 / (readingWidth + (unit ? 1.05 : 0)));
+  const isState = available && (reading.presentation === 'binary' || reading.presentation === 'categorical');
 
   return (
     <>
-      <span className="sensor-reading-value flex min-w-0 items-baseline gap-1">
-        <span className={`min-w-0 font-semibold tabular-nums tracking-tight ${
-          !available ? 'text-sensor-value-fluid text-muted-foreground'
-            : isPercentage ? 'truncate text-sensor-percentage-value-fluid text-foreground'
-            : reading.presentation === 'binary' || reading.presentation === 'categorical'
-              ? 'line-clamp-2 break-words text-widget-title-small-fluid text-foreground'
-              : 'truncate text-sensor-value-fluid text-foreground'
-        }`}>
+      {isState ? <span aria-hidden="true" className={cn('sensor-state-symbol', reading.binaryState === 'off' && 'sensor-state-symbol-idle')}><CategoryIcon category={reading.category} percentage={reading.percentage} /></span> : null}
+      <span className="sensor-reading-value" style={{ '--sensor-reading-scale': `${readingScale}cqi`, '--sensor-reading-stacked-scale': `${Math.min(30, 94 / readingWidth)}cqi` } as CSSProperties}>
+        <span className={cn('sensor-reading-number tabular-nums tracking-tight', !available && 'text-muted-foreground', isState && 'sensor-reading-state', useDigitTiles && digitCount >= 4 && 'sensor-reading-dense', available && numericValue(reading.value) !== null && !useDigitTiles && 'sensor-reading-plain')}>
           {useDigitTiles ? <span className="sensor-digit-reading" role="img" aria-label={value}>
             <span aria-hidden="true" className="inline-flex items-center gap-[0.04em]">
               {Array.from(value).map((character, index) => (
@@ -248,32 +251,18 @@ function SensorPresentationHero({ reading, title, t }: {
             </span>
           </span> : value}
         </span>
-        {available && unit ? <span className="shrink-0 text-widget-body-lg-fluid font-medium text-muted-foreground">{unit}</span> : null}
+        {available && unit ? <span className="sensor-reading-unit font-medium text-muted-foreground">{unit}</span> : null}
       </span>
-      {isPercentage ? (
-        <span
-          role="meter"
-          aria-label={title}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={fill}
-          aria-valuetext={`${reading.value}%`}
-          className="sensor-premium-gauge relative block aspect-square h-[clamp(1.25rem,14cqi,2rem)] max-h-full shrink-0"
-        >
-          <svg aria-hidden="true" className="h-full w-full -rotate-90" viewBox="0 0 80 80">
-            <circle className="sensor-premium-gauge-track" cx="40" cy="40" r="34" fill="none" strokeWidth="4" />
-            <circle className="sensor-premium-gauge-progress" cx="40" cy="40" r="34" fill="none" strokeWidth="4" strokeLinecap="round" strokeDasharray={`${fill * 2.1363} 213.63`} />
-          </svg>
-        </span>
-      ) : null}
     </>
   );
 }
 
-export function SensorMetricCard({ device, title, isPreview = false, icon }: SensorMetricCardProps) {
+export function SensorMetricCard({ device, title, isPreview = false, icon, roomName }: SensorMetricCardProps) {
   const { t } = useTranslation();
   const reading = getSensorReading(device, isPreview);
   const severity = getSensorSeverity(reading);
+  const isPercentage = reading.value !== null && reading.presentation === 'percentage';
+  const fill = isPercentage ? numericPercentage(reading.value) ?? 0 : 0;
   const categoryLabel = getCategoryLabel(reading.category, t);
   const displayTitle = title.trim() || device?.name?.trim() || categoryLabel;
   const ConfiguredIcon = icon && icon !== getDefaultIcon('sensor') ? getDashboardIconComponent(icon) : null;
@@ -284,29 +273,36 @@ export function SensorMetricCard({ device, title, isPreview = false, icon }: Sen
 
   return (
     <div
-      className="sensor-metric-card homepilot-sensor-reading relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-section border border-border/55 bg-card/95 p-[clamp(0.75rem,4cqi,1rem)] text-foreground shadow-surface-card"
-      style={{ containerType: 'inline-size' }}
+      className="sensor-metric-card homepilot-sensor-reading relative flex h-full min-w-0 flex-col border border-border/55 bg-card/95 text-foreground shadow-surface-card"
+      style={{ containerType: 'inline-size', containerName: 'sensor-card' }}
     >
-      <div className="sensor-premium-header flex min-w-0 shrink-0 items-center gap-2">
+      <div className="sensor-premium-header">
         <span
-          className={cn('grid h-5 w-5 shrink-0 place-items-center', severity === 'unavailable' ? 'text-muted-foreground' : 'text-primary')}
+          className={cn('sensor-category-icon grid shrink-0 place-items-center', severity === 'unavailable' ? 'text-muted-foreground' : 'text-primary')}
           title={categoryLabel}
           aria-hidden="true"
         >
           {ConfiguredIcon ? <ConfiguredIcon className="h-full w-full" /> : <CategoryIcon category={reading.category} percentage={reading.percentage} />}
         </span>
-        <span className="sensor-reading-title min-w-0 truncate text-sensor-title-fluid font-medium text-foreground" title={displayTitle}>{displayTitle}</span>
+        <div className="min-w-0"><span className="sensor-reading-title block text-foreground">{displayTitle}</span>
+          {roomName ? <span className="sensor-reading-room block text-muted-foreground">{roomName}</span> : null}
+        </div>
       </div>
-      <div className="sensor-reading-layout mt-2 flex min-h-0 min-w-0 flex-1 items-center gap-2">
-        <SensorPresentationHero reading={reading} title={displayTitle} t={t} />
+      <div className="sensor-reading-layout">
+        <SensorPresentationHero reading={reading} t={t} />
       </div>
-      <div className="sensor-reading-status mt-1 flex min-h-4 shrink-0 items-center gap-1.5 text-widget-caption-fluid text-muted-foreground">
-        {hasStatus ? (
+      <div className="sensor-reading-footer">
+        {isPercentage ? <span role="meter" aria-label={displayTitle} aria-valuemin={0} aria-valuemax={100} aria-valuenow={fill} aria-valuetext={`${reading.value}%`} className="sensor-percentage-meter">
+          <span aria-hidden="true" className="sensor-percentage-fill" style={{ width: `${fill}%` }} />
+        </span> : null}
+        <div className="sensor-reading-status flex min-h-4 items-center gap-1.5 text-widget-caption-fluid text-muted-foreground">
+          {hasStatus ? (
           <>
             {(severity === 'low' || severity === 'critical') && <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', severity === 'critical' ? 'bg-danger' : 'bg-warning')} aria-hidden="true" />}
-            <span className="min-w-0 truncate">{statusLabel}</span>
+            <span className="min-w-0">{statusLabel}</span>
           </>
-        ) : null}
+          ) : null}
+        </div>
       </div>
     </div>
   );

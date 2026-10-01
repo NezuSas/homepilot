@@ -1199,9 +1199,11 @@ for (const viewport of [
     const readings = [
       { id: 'clarity-temperature', title: 'Sala principal', deviceClass: 'temperature', state: '22.4', unit: '°C' },
       { id: 'clarity-battery', title: 'Batería de la tablet', deviceClass: 'battery', state: '18', unit: '%' },
-      { id: 'clarity-memory', title: 'RAM del estudio', deviceClass: 'memory', state: '70', unit: '%' },
+      { id: 'clarity-memory', title: 'RAM del estudio', deviceClass: 'memory', state: '74.03', unit: '%' },
       { id: 'clarity-load', title: 'Procesador', deviceClass: 'cpu', state: '100', unit: '%' },
       { id: 'clarity-missing', title: 'Temperatura exterior', deviceClass: 'temperature', state: 'unavailable', unit: '°C' },
+      { id: 'clarity-state', title: 'Estado de batería', deviceClass: 'battery', state: 'not charging', unit: '' },
+      { id: 'clarity-numeric', title: 'Energía acumulada', deviceClass: 'energy', state: '123456.7', unit: 'kWh' },
     ];
     const baseSection = responsiveDashboard.tabs[0]!.widgets[1]!;
     const dashboard = {
@@ -1212,8 +1214,9 @@ for (const viewport of [
       }] }],
     };
     await prepareAuthenticatedDashboard(page, dashboard);
+    await page.route('**/api/v1/rooms', (route) => route.fulfill({ json: [{ id: 'clarity-room', homeId: 'responsive-home', name: 'Oficina' }] }));
     await page.route('**/api/v1/devices', (route) => route.fulfill({ json: readings.map((reading) => ({
-      id: reading.id, homeId: 'responsive-home', roomId: null, name: `Technical ${reading.id}`, type: 'sensor', status: 'ASSIGNED',
+      id: reading.id, homeId: 'responsive-home', roomId: 'clarity-room', name: `Technical ${reading.id}`, type: 'sensor', status: 'ASSIGNED',
       lastKnownState: { state: reading.state, unit_of_measurement: reading.unit, device_class: reading.deviceClass },
     })) }));
     await page.goto('/dashboards/responsive-dashboard/responsive-tab');
@@ -1231,19 +1234,27 @@ for (const viewport of [
       return { title: Number.parseFloat(getComputedStyle(title).fontSize), value: Number.parseFloat(getComputedStyle(value).fontSize) };
     });
     expect(hierarchy.value).toBeGreaterThan(hierarchy.title);
-    expect(hierarchy.value).toBeGreaterThanOrEqual(24);
+    expect(hierarchy.value).toBeGreaterThanOrEqual(32);
     for (const theme of ['dark', 'light']) {
       await page.evaluate((isLight) => document.documentElement.classList.toggle('light', isLight), theme === 'light');
       for (const reading of readings) {
         const card = page.locator(`[data-dashboard-card-id="${reading.id}"] .sensor-metric-card`);
         await expect(card.getByText(reading.title, { exact: true })).toHaveCount(1);
         await expect(card.getByText(reading.title, { exact: true })).toBeVisible();
+        const titleFits = await card.getByText(reading.title, { exact: true }).evaluate((element) => ({ width: element.clientWidth, contentWidth: element.scrollWidth, height: element.clientHeight, contentHeight: element.scrollHeight }));
+        expect(titleFits.contentWidth).toBeLessThanOrEqual(titleFits.width);
+        expect(titleFits.contentHeight).toBeLessThanOrEqual(titleFits.height);
+        expect(await card.evaluate(element => getComputedStyle(element).borderRadius)).toBe('16px');
+        await expect(card.getByText('Oficina', { exact: true })).toHaveCount(1);
         await expect(card).not.toContainText(`Technical ${reading.id}`);
         await expect(card.getByRole('button')).toHaveCount(0);
         if (reading.unit === '%') {
           await expect(card.getByText(reading.state, { exact: true })).toBeVisible();
           await expect(card.getByRole('meter', { name: reading.title })).toHaveAttribute('aria-valuenow', reading.state);
           await expect(card.getByRole('meter', { name: reading.title })).toHaveAttribute('aria-valuetext', `${reading.state}%`);
+          const meterBounds = await card.getByRole('meter', { name: reading.title }).boundingBox();
+          const digitsBounds = await card.getByRole('img', { name: reading.state, exact: true }).boundingBox();
+          expect(meterBounds!.y).toBeGreaterThanOrEqual(digitsBounds!.y + digitsBounds!.height);
         }
       }
       const missing = page.locator('[data-dashboard-card-id="clarity-missing"] .sensor-metric-card');
@@ -1252,7 +1263,11 @@ for (const viewport of [
       await expect(missing).not.toContainText('°C');
       await expect(missing.getByRole('meter')).toHaveCount(0);
       await expect(page.locator('[data-dashboard-card-id="clarity-memory"]').getByText(/^(Uso elevado|High usage)$/i)).toBeVisible();
-      expect(await cards.evaluateAll((elements) => elements.every((element) => element.scrollWidth <= element.clientWidth && element.scrollHeight <= element.clientHeight))).toBe(true);
+      await expect(page.locator('[data-dashboard-card-id="clarity-state"]').getByText(/^(Sin cargar|Not charging)$/i)).toBeVisible();
+      await expect(page.locator('[data-dashboard-card-id="clarity-state"]').getByRole('switch')).toHaveCount(0);
+      await expect(page.locator('[data-dashboard-card-id="clarity-numeric"]').getByText('123456.7', { exact: true })).toBeVisible();
+      const cardOverflow = await cards.evaluateAll((elements) => elements.map((element) => ({ text: element.textContent, width: element.clientWidth, contentWidth: element.scrollWidth, height: element.clientHeight, contentHeight: element.scrollHeight })));
+      expect(cardOverflow.every(element => element.contentWidth <= element.width && element.contentHeight <= element.height), JSON.stringify(cardOverflow)).toBe(true);
       const valueBounds = await cards.locator('.sensor-reading-value > span').evaluateAll((elements) => elements.map(element => ({ reading: element.textContent, width: element.clientWidth, contentWidth: element.scrollWidth })));
       expect(valueBounds.every(value => value.contentWidth <= value.width), JSON.stringify(valueBounds)).toBe(true);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
@@ -2159,7 +2174,7 @@ for (const viewport of [...viewports, { name: 'portrait kiosk', ...portraitKiosk
     expect(overflow).toBeLessThanOrEqual(0);
   });
 
-  test(`dashboard initial skeleton preserves card, section and canvas geometry on ${viewport.name}`, async ({ page }) => {
+  test(`dashboard initial skeleton preserves card, section and canvas geometry on ${viewport.name}`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await prepareAuthenticatedDashboard(page);
     let releaseDevices: (() => void) | undefined;
@@ -2207,6 +2222,7 @@ for (const viewport of [...viewports, { name: 'portrait kiosk', ...portraitKiosk
     expect(before.section).not.toBeNull();
     expect(before.canvas).not.toBeNull();
     expect(before.overflow).toBe(false);
+    await card.screenshot({ path: testInfo.outputPath('sensor-skeleton.png') });
 
     releaseDevices?.();
     await expect(card.locator('.sensor-metric-card')).toBeVisible();
@@ -2240,6 +2256,7 @@ for (const viewport of [...viewports, { name: 'portrait kiosk', ...portraitKiosk
       `maxChildBottom before=${before.maxChildBottom} after=${after.maxChildBottom}`;
     expect(geometryChanges.filter(({ delta }) => delta > 2), `${viewport.name} geometry:\n${geometryReport}\n${sectionReport}\n${itemReport}`).toEqual([]);
     expect(after.overflow).toBe(false);
+    await card.screenshot({ path: testInfo.outputPath('sensor-loaded.png') });
   });
 }
 

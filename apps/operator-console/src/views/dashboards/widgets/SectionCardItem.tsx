@@ -137,6 +137,7 @@ export function SectionCardItem({
     kind={card.kind}
     title={card.title || catalogLabel(card.kind)}
     subtitle={isCamera ? assignedRoomName : subtitle}
+    roomName={assignedRoomName}
     span={span}
     icon={actionIcon ?? card.icon}
     mediaVariant={card.mediaVariant}
@@ -197,7 +198,8 @@ export function SectionCardItem({
         // was determined. Without this, the card's colored background
         // (painted by CardPreview) could end up shorter than this outer
         // box, leaving a transparent gap at the bottom.
-        "group/card relative grid min-w-0 overflow-hidden rounded-section shadow-sm transition-all",
+        "group/card relative grid min-w-0 overflow-hidden shadow-sm transition-all",
+        normalizedKind === 'sensor' ? 'rounded-2xl' : 'rounded-section',
         isTileKind
           ? "min-h-device-card-compact"
           : span === 'small' && "min-h-section-card-sm",

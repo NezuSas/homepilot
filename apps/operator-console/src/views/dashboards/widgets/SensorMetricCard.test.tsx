@@ -22,6 +22,9 @@ jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) =>
   'dashboard.editor.sections.sensor_active': 'Activo',
   'dashboard.editor.sections.sensor_on': 'Encendido',
   'dashboard.editor.sections.sensor_off': 'Apagado',
+  'dashboard.editor.sections.sensor_charging': 'Cargando',
+  'dashboard.editor.sections.sensor_not_charging': 'Sin cargar',
+  'dashboard.editor.sections.sensor_discharging': 'Descargando',
 } as Record<string, string>)[key] ?? key }) }));
 
 function sensor(name: string, state: Record<string, unknown>): SnapshotDevice {
@@ -76,7 +79,7 @@ describe('Sensor Metric Card status presentation', () => {
     ['Carga CPU', 'cpu', '63'],
     ['Carga GPU', 'gpu', '82'],
     ['Memoria', 'memory', '47'],
-  ])('shows %s as a circular percentage meter', (name, deviceClass, value) => {
+  ])('shows %s as an accessible proportional percentage meter', (name, deviceClass, value) => {
     const device = sensor(name, { state: value, unit_of_measurement: '%', attributes: { device_class: deviceClass } });
     const reading = getSensorReading(device);
     const html = renderToStaticMarkup(<SensorMetricCard title={name} device={device} />);
@@ -84,7 +87,6 @@ describe('Sensor Metric Card status presentation', () => {
     expect(html).toContain('role="meter"');
     expect(html).toContain(`aria-valuenow="${value}"`);
     expect(html).toContain(`aria-valuetext="${value}%"`);
-    expect(html).toContain('stroke-linecap="round"');
     expect(html.replace(/<[^>]*>/g, '')).toContain(name);
     expect(html).not.toContain('Nivel de batería');
     expect(html).not.toContain('Uso de memoria');
@@ -183,6 +185,19 @@ describe('Sensor Metric Card status presentation', () => {
   it('shows a binary state only once', () => {
     const html = renderToStaticMarkup(<SensorMetricCard title="Conexión" device={sensor('Device', { state: 'on', device_class: 'connectivity' })} />);
     expect(html.replace(/<[^>]*>/g, '').match(/Encendido/g)).toHaveLength(1);
+  });
+
+  it('shows the real room once without repeating the sensor category', () => {
+    const html = renderToStaticMarkup(<SensorMetricCard title="Temperatura" roomName="Sala de reuniones" device={sensor('Device', { state: '22.4', unit: '°C' })} />);
+    expect(html.replace(/<[^>]*>/g, '').match(/Sala de reuniones/g)).toHaveLength(1);
+  });
+
+  it.each([['charging', 'Cargando'], ['not charging', 'Sin cargar'], ['not_charging', 'Sin cargar'], ['discharging', 'Descargando']])('localizes the battery state %s without an interactive switch', (value, label) => {
+    const html = renderToStaticMarkup(<SensorMetricCard title="Estado batería" device={sensor('Battery', { state: value })} />);
+    expect(html).toContain(label);
+    expect(html).not.toContain('<button');
+    expect(html).not.toContain('role="switch"');
+    expect(html).not.toContain('role="meter"');
   });
 
   it.each(['22.4', '-12.5', '0', '100', '123456.7'])('preserves the accessible numeric reading %s without fictional history', (value) => {

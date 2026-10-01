@@ -19,12 +19,15 @@ export function DashboardCardSkeleton({ variant, className, mediaOnly = false, v
     <div
       data-dashboard-skeleton={visible ? variant : undefined}
       aria-hidden="true"
+      style={variant === 'sensor' ? { containerType: 'inline-size', containerName: 'sensor-card' } : undefined}
       className={cn(
-        'homepilot-dashboard-card-skeleton pointer-events-none flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-section bg-card/95 p-4 shadow-surface-card',
+        'homepilot-dashboard-card-skeleton pointer-events-none flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden bg-card/95 p-4 shadow-surface-card',
+        variant !== 'sensor' && 'rounded-section',
         !mediaOnly && 'border border-border/60',
         visible && 'homepilot-dashboard-skeleton-motion',
         variant === 'camera' && 'relative aspect-[4/3] min-h-curtain-card max-h-[22rem] p-0',
         variant === 'media' && 'min-h-media-card',
+        variant === 'sensor' && 'homepilot-sensor-reading',
         className,
       )}
     >
@@ -35,9 +38,9 @@ export function DashboardCardSkeleton({ variant, className, mediaOnly = false, v
         </>
       ) : variant === 'sensor' ? (
         <>
-          <div className="flex shrink-0 items-center gap-2"><DashboardSkeletonBar className="h-5 w-5 shrink-0" /><DashboardSkeletonBar className="h-3 w-20" /></div>
-          <div className="mt-2 flex min-h-0 flex-1 items-center gap-2"><DashboardSkeletonBar className="h-10 w-6" /><DashboardSkeletonBar className="h-10 w-6" /><DashboardSkeletonBar className="h-4 w-5" /></div>
-          <div className="mt-1 flex min-h-4 shrink-0 items-center"><DashboardSkeletonBar className="h-3 w-1/3" /></div>
+          <div className="sensor-premium-header"><DashboardSkeletonBar className="sensor-category-icon shrink-0" /><div className="w-full min-w-0 space-y-2"><DashboardSkeletonBar className="h-3 w-3/4" /><DashboardSkeletonBar className="h-2 w-1/2" /></div></div>
+          <div className="sensor-reading-layout"><div className="flex items-baseline justify-center gap-1"><DashboardSkeletonBar className="h-[clamp(2.75rem,40cqi,5.5rem)] w-[clamp(1.375rem,20cqi,2.75rem)]" /><DashboardSkeletonBar className="h-[clamp(2.75rem,40cqi,5.5rem)] w-[clamp(1.375rem,20cqi,2.75rem)]" /><DashboardSkeletonBar className="h-4 w-3" /></div></div>
+          <div className="sensor-reading-footer"><DashboardSkeletonBar className="h-2 w-full rounded-full" /><div className="sensor-reading-status flex items-center"><DashboardSkeletonBar className="h-3 w-1/3" /></div></div>
         </>
       ) : variant === 'media' ? (
         <>
