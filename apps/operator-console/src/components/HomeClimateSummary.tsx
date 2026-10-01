@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { CalendarDays, Cloud, LayoutDashboard, MapPin } from 'lucide-react';
+import { CalendarDays, Cloud, MapPin } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useClockData } from '../views/dashboards/widgets/clock/useClockData';
 import { formatMonth, formatTemperature, formatWeekday } from '../views/dashboards/widgets/clock/clockUtils';
 import { loadDashboards } from '../views/dashboards/dashboardOperations';
-import { Button } from './ui/Button';
+import { SlideToDashboardButton } from './SlideToDashboardButton';
 import { HomeContextIndicator } from './HomeContextIndicator';
 import { HomeFlipClock } from './HomeFlipClock';
 
@@ -60,18 +60,13 @@ export const HomeClimateSummary: React.FC<HomeClimateSummaryProps> = ({ currentU
           <span className="block">by NEZU</span>
         </div>
       </div>
-      <Button
-        type="button"
-        size="md"
-        className="relative z-20 self-end isolate ring-2 ring-background/85 shadow-md active:scale-[0.98] disabled:border-border disabled:bg-card disabled:text-foreground disabled:opacity-100 disabled:shadow-sm lg:mb-0.5"
+      <SlideToDashboardButton
+        label={t('dashboard.open_dashboard')}
+        accessibleLabel={ownDefault ? t('dashboard.slide_own_default_tab', { title: ownDefault.title }) : t('dashboard.no_default_tab')}
+        instruction={t('dashboard.slide_dashboard_instruction')}
         disabled={!ownDefault}
-        aria-label={ownDefault ? t('dashboard.open_own_default_tab', { title: ownDefault.title }) : t('dashboard.no_default_tab')}
-        title={!ownDefault ? t('dashboard.no_default_tab') : undefined}
-        onClick={() => { if (ownDefault) onOpenOwnDashboardTab(ownDefault.dashboardId, ownDefault.tabId); }}
-      >
-        <LayoutDashboard className="h-4 w-4 shrink-0" aria-hidden="true" />
-        {t('dashboard.open_dashboard')}
-      </Button>
+        onActivate={() => { if (ownDefault) onOpenOwnDashboardTab(ownDefault.dashboardId, ownDefault.tabId); }}
+      />
     </div>
   );
 };

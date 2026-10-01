@@ -66,6 +66,60 @@ test('empty personalization keeps the shipped image and neutral phrase', async (
   await expect(hero.getByText(/Todo está bajo control|Everything is under control/i)).toBeVisible();
 });
 
+test('Home dashboard control opens the own default tab only after a complete slide or keyboard activation', async ({ page }) => {
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await prepare(page);
+  await page.route('**/api/v1/dashboards', (route) => route.fulfill({ json: [{
+    id: 'home-owned-dashboard', ownerId: user.id, title: 'Mi tablero',
+    visibility: { roles: [], users: [], homes: [] },
+    tabs: [{ id: 'home-default-tab', title: 'Principal', isDefault: true, widgets: [] }],
+  }] }));
+  await page.goto('/');
+  const action = page.locator('.homepilot-home-hero').getByRole('button', { name: /deslizar para abrir|slide to open/i });
+  const handle = action.locator('.homepilot-slide-dashboard-handle');
+  await expect(action).toBeEnabled();
+  await expect(action).toHaveAccessibleDescription(/desliza el icono|slide the icon/i);
+
+  await action.click();
+  await expect(page).toHaveURL('/');
+
+  const railBox = await action.boundingBox();
+  const handleBox = await handle.boundingBox();
+  expect(railBox && handleBox).toBeTruthy();
+  const startX = handleBox!.x + handleBox!.width / 2;
+  const centerY = handleBox!.y + handleBox!.height / 2;
+  const distance = railBox!.width - handleBox!.width - 12;
+  await page.mouse.move(startX, centerY);
+  await page.mouse.down();
+  await page.mouse.move(startX + distance * 0.4, centerY, { steps: 6 });
+  await page.mouse.up();
+  await expect(page).toHaveURL('/');
+
+  await page.reload();
+  await expect(action).toBeEnabled();
+  const fullRailBox = await action.boundingBox();
+  const fullHandleBox = await handle.boundingBox();
+  expect(fullRailBox && fullHandleBox).toBeTruthy();
+  const fullStartX = fullHandleBox!.x + fullHandleBox!.width / 2;
+  const fullCenterY = fullHandleBox!.y + fullHandleBox!.height / 2;
+  const fullDistance = fullRailBox!.width - fullHandleBox!.width - 12;
+  await page.mouse.move(fullStartX, fullCenterY);
+  await page.mouse.down();
+  await page.mouse.move(fullStartX + fullDistance, fullCenterY, { steps: 8 });
+  await page.mouse.up();
+  await expect(page).toHaveURL(/\/dashboards\/home-owned-dashboard\/home-default-tab$/);
+
+  await page.goto('/');
+  await action.focus();
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/\/dashboards\/home-owned-dashboard\/home-default-tab$/);
+
+  await page.goto('/');
+  await action.focus();
+  await page.keyboard.press('Space');
+  await expect(page).toHaveURL(/\/dashboards\/home-owned-dashboard\/home-default-tab$/);
+});
+
 test('reduced motion removes the fade but keeps image rotation functional', async ({ page }) => {
   await page.clock.install();
   await page.emulateMedia({ reducedMotion: 'reduce' });

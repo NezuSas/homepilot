@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { mdiAutoFix, mdiHome, mdiRobot, mdiWeatherWindy } from '@mdi/js';
 
 const setupStatus = {
@@ -10,6 +10,19 @@ const setupStatus = {
   installationProfile: 'native_only',
   requiresHomeAssistant: false,
 };
+
+async function slideToDashboard(page: Page, action: Locator): Promise<void> {
+  const rail = await action.boundingBox();
+  const handle = await action.locator('.homepilot-slide-dashboard-handle').boundingBox();
+  expect(rail && handle).toBeTruthy();
+  const startX = handle!.x + handle!.width / 2;
+  const centerY = handle!.y + handle!.height / 2;
+  const travel = rail!.width - handle!.width - 12;
+  await page.mouse.move(startX, centerY);
+  await page.mouse.down();
+  await page.mouse.move(startX + travel, centerY, { steps: 8 });
+  await page.mouse.up();
+}
 
 const viewports = [
   { name: 'mobile', width: 320, height: 720 },
@@ -195,7 +208,7 @@ test('opens the owned main tab even when a shared dashboard is also accessible',
   await expect(page.getByRole('button', { name: 'Hogar de prueba' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Hogar compartido' })).toBeVisible();
   const context = page.getByLabel(/contexto local del hogar|local home context/i);
-  await context.getByRole('button', { name: /abrir la pestaña Principal de mi tablero|open Principal in my dashboard/i }).click();
+  await slideToDashboard(page, context.getByRole('button', { name: /abrir la pestaña Principal de mi tablero|open Principal in my dashboard/i }));
   await expect(page).toHaveURL(/\/dashboards\/responsive-dashboard\/responsive-tab$/);
 });
 
@@ -2463,7 +2476,7 @@ for (const viewport of viewports) {
       clientWidth: document.documentElement.clientWidth,
     }));
     expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth);
-    await ownDashboard.click();
+    await slideToDashboard(page, ownDashboard);
     await expect(page).toHaveURL(/\/dashboards\/responsive-dashboard\/responsive-tab$/);
   });
 

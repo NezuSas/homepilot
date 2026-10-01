@@ -207,6 +207,16 @@
 - **Módulos**: `DashboardView`, reloj digital de Inicio, `HomeClimateSummary` y pruebas del hero.
 - **Criterio Relacionado**: **AC22, AC25, AC31, AC38–AC40**.
 
+### [UI-Home-07] Acceso deslizable al tablero
+- **Descripción**: Convertir «Ir a tablero» en un control modular de deslizamiento real, con retroceso si el gesto no se completa, acceso equivalente por teclado, estados deshabilitado y movimiento reducido. Conservar la navegación a la pestaña propia predeterminada y la posición derecha del hero.
+- **Módulos**: `HomeClimateSummary`, `SlideToDashboardButton` y estilos del hero.
+- **Criterio Relacionado**: **AC39**.
+
+### [QA-Home-06] Gesto de entrada al tablero
+- **Descripción**: Verificar focalizadamente que toque y deslizamiento corto no navegan, que el deslizamiento completo y el teclado sí abren la pestaña correcta y que el control deshabilitado no activa la navegación.
+- **Dependencias**: `UI-Home-07`.
+- **Criterio Relacionado**: **AC39**.
+
 ### [UI-Home-06] Límite nocturno e identidades de rutinas
 - **Descripción**: Cambiar el saludo y frase a noche a las 18:30 local; excluir cámaras de los selectores de escenas y automatizaciones, mostrando identidades no cámara sin permitir acciones incompatibles en escenas.
 - **Módulos**: personalización de Inicio, constructores de escenas y automatizaciones, pruebas de período y capacidades.

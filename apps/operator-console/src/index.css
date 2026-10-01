@@ -1487,6 +1487,115 @@
     color: rgb(249 248 246 / 0.82);
   }
 
+  .homepilot-slide-dashboard {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: min(19rem, 100%);
+    min-height: 4.25rem;
+    overflow: visible;
+    border: 1px solid rgb(255 151 74 / 0.82);
+    border-radius: 999px;
+    background: linear-gradient(100deg, rgb(30 24 21 / 0.95), rgb(47 29 19 / 0.94));
+    box-shadow: 0 9px 22px rgb(0 0 0 / 0.38), 0 4px 18px rgb(255 115 35 / 0.34), inset 0 1px 0 rgb(255 231 201 / 0.25);
+    color: #fffaf5;
+    font-weight: 700;
+    isolation: isolate;
+    cursor: default;
+  }
+
+  .homepilot-slide-dashboard:focus-visible {
+    outline: 3px solid #fffaf5;
+    outline-offset: 3px;
+  }
+
+  .homepilot-slide-dashboard:disabled {
+    opacity: 1;
+    border-color: rgb(255 255 255 / 0.24);
+    background: rgb(30 27 25 / 0.94);
+    box-shadow: 0 6px 16px rgb(0 0 0 / 0.28);
+    color: rgb(255 250 245 / 0.68);
+  }
+
+  .homepilot-slide-dashboard-fill {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, rgb(255 110 28 / 0.58), rgb(255 160 63 / 0.28));
+    transform: scaleX(var(--slide-progress));
+    transform-origin: left center;
+    pointer-events: none;
+  }
+
+  .homepilot-slide-dashboard-handle {
+    position: absolute;
+    top: 0.35rem;
+    bottom: 0.35rem;
+    left: 0.35rem;
+    z-index: 2;
+    display: grid;
+    width: 3.55rem;
+    place-items: center;
+    border: 1px solid rgb(255 209 162 / 0.5);
+    border-radius: 999px;
+    background: linear-gradient(120deg, #ffad65, #f05a21);
+    box-shadow: 0 4px 12px rgb(0 0 0 / 0.32), inset 0 1px 0 rgb(255 255 255 / 0.4);
+    color: #21140e;
+    transform: translateX(var(--slide-offset));
+    transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+    touch-action: none;
+    cursor: grab;
+  }
+
+  .homepilot-slide-dashboard[data-dragging='true'] .homepilot-slide-dashboard-handle {
+    transition: none;
+    cursor: grabbing;
+  }
+
+  .homepilot-slide-dashboard:disabled .homepilot-slide-dashboard-handle {
+    background: rgb(121 109 101 / 0.7);
+    color: #f9f4ef;
+    cursor: not-allowed;
+  }
+
+  .homepilot-slide-dashboard-label {
+    position: relative;
+    z-index: 1;
+    padding-inline: 3.65rem 2.1rem;
+    text-align: center;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .homepilot-slide-dashboard-arrow {
+    position: absolute;
+    z-index: 1;
+    right: 1.05rem;
+    pointer-events: none;
+  }
+
+  .homepilot-slide-dashboard-chevrons {
+    position: absolute;
+    right: -1.9rem;
+    color: #ffad65;
+    opacity: 0.78;
+    transform: translateX(-0.25rem);
+    transition: opacity 180ms ease, transform 180ms ease;
+    pointer-events: none;
+  }
+
+  .homepilot-slide-dashboard:hover:not(:disabled) .homepilot-slide-dashboard-chevrons,
+  .homepilot-slide-dashboard[data-dragging='true'] .homepilot-slide-dashboard-chevrons {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .homepilot-slide-dashboard-handle,
+    .homepilot-slide-dashboard-chevrons { transition: none; }
+  }
+
   .homepilot-flip-clock {
     --home-flip-height: clamp(4.25rem, 6.2vw, 5.85rem);
     --home-flip-width: clamp(2.75rem, 4.5vw, 4.15rem);
