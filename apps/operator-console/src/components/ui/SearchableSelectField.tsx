@@ -63,6 +63,7 @@ export function SearchableSelectField({
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const optionRefs = useRef(new Map<string, HTMLButtonElement>());
+  const popupId = useId();
   const listboxId = useId();
   const [dropdownPosition, setDropdownPosition] = useState<DropdownPosition | null>(null);
   const [query, setQuery] = useState('');
@@ -77,18 +78,27 @@ export function SearchableSelectField({
 
     const viewportPadding = 16;
     const preferredMaxHeight = 288;
-    const viewportWidth = window.innerWidth;
-    const spaceBelow = window.innerHeight - rect.bottom - viewportPadding;
-    const spaceAbove = rect.top - viewportPadding;
+    const visualViewport = window.visualViewport;
+    const viewportLeft = visualViewport?.offsetLeft ?? 0;
+    const viewportTop = visualViewport?.offsetTop ?? 0;
+    const viewportWidth = visualViewport?.width ?? window.innerWidth;
+    const viewportBottom = viewportTop + (visualViewport?.height ?? window.innerHeight);
+    const spaceBelow = viewportBottom - rect.bottom - viewportPadding;
+    const spaceAbove = rect.top - viewportTop - viewportPadding;
     const opensUp = placement === 'auto' && spaceBelow < 180 && spaceAbove > spaceBelow;
     const availableHeight = opensUp ? spaceAbove : spaceBelow;
-    const maxHeight = Math.max(140, Math.min(preferredMaxHeight, availableHeight - 8));
+    const maxHeight = Math.max(0, Math.min(preferredMaxHeight, availableHeight - 8, (visualViewport?.height ?? window.innerHeight) - viewportPadding * 2));
     const width = Math.min(rect.width, viewportWidth - viewportPadding * 2);
-    const left = Math.min(Math.max(viewportPadding, rect.left), viewportWidth - width - viewportPadding);
+    const left = Math.min(Math.max(viewportLeft + viewportPadding, rect.left), viewportLeft + viewportWidth - width - viewportPadding);
+    const preferredTop = opensUp ? rect.top - maxHeight - 8 : rect.bottom + 8;
+    const top = Math.min(
+      Math.max(viewportTop + viewportPadding, preferredTop),
+      viewportBottom - maxHeight - viewportPadding,
+    );
 
     setDropdownPosition({
       left,
-      top: opensUp ? Math.max(viewportPadding, rect.top - maxHeight - 8) : rect.bottom + 8,
+      top,
       width,
       maxHeight,
     });
@@ -112,12 +122,16 @@ export function SearchableSelectField({
 
     window.addEventListener('resize', updateDropdownPosition);
     window.addEventListener('scroll', updateDropdownPosition, true);
+    window.visualViewport?.addEventListener('resize', updateDropdownPosition);
+    window.visualViewport?.addEventListener('scroll', updateDropdownPosition);
     document.addEventListener('pointerdown', closeOnOutsidePointer);
     document.addEventListener('keydown', closeOnEscape);
 
     return () => {
       window.removeEventListener('resize', updateDropdownPosition);
       window.removeEventListener('scroll', updateDropdownPosition, true);
+      window.visualViewport?.removeEventListener('resize', updateDropdownPosition);
+      window.visualViewport?.removeEventListener('scroll', updateDropdownPosition);
       document.removeEventListener('pointerdown', closeOnOutsidePointer);
       document.removeEventListener('keydown', closeOnEscape);
     };
@@ -154,7 +168,7 @@ export function SearchableSelectField({
     // (type immediately to filter), but on touch devices it pops the virtual
     // keyboard on top of the option list the user just tapped to see. Only
     // devices with a fine pointer (mouse/trackpad) get the auto-focus.
-    if (typeof window !== 'undefined' && window.matchMedia?.('(pointer: fine)').matches) {
+    if (typeof window !== 'undefined' && window.matchMedia?.('(hover: hover) and (pointer: fine)').matches) {
       requestAnimationFrame(() => searchInputRef.current?.focus());
     }
   };
@@ -172,7 +186,10 @@ export function SearchableSelectField({
     ? createPortal(
         <div
           ref={dropdownRef}
-          className="fixed z-[100000] min-w-0 overflow-hidden rounded-panel border border-border/60 bg-popover/95 p-1.5 shadow-depth-3 backdrop-blur-xl"
+          id={popupId}
+          role="dialog"
+          aria-label={label ?? resolvedPlaceholder}
+          className="fixed z-[100000] flex min-w-0 flex-col overflow-hidden rounded-panel border border-border/60 bg-popover/95 p-1.5 shadow-depth-3 backdrop-blur-xl"
           style={{
             left: dropdownPosition.left,
             top: dropdownPosition.top,
@@ -184,7 +201,6 @@ export function SearchableSelectField({
             <Search className="pointer-events-none absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
               ref={searchInputRef}
-              autoFocus
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -207,7 +223,7 @@ export function SearchableSelectField({
             />
           </div>
 
-          <div id={listboxId} role="listbox" aria-label={label ?? resolvedPlaceholder} className="max-h-[inherit] overflow-y-auto p-1">
+          <div id={listboxId} role="listbox" aria-label={label ?? resolvedPlaceholder} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1">
             {filteredOptions.length > 0 ? filteredOptions.map((option) => {
               const isSelected = option.value === value;
 
@@ -288,9 +304,9 @@ export function SearchableSelectField({
         type="button"
         disabled={disabled || loading}
         title={title ?? selected?.label}
-        aria-haspopup="listbox"
+        aria-haspopup="dialog"
         aria-expanded={isOpen}
-        aria-controls={isOpen ? listboxId : undefined}
+        aria-controls={isOpen ? popupId : undefined}
         onClick={handleToggle}
         onKeyDown={(event) => {
           if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') {

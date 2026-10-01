@@ -190,6 +190,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC72: La conversación residencial ocupa el alto disponible en móvil, tableta y escritorio; el compositor permanece anclado al borde inferior seguro y los accesos rápidos se sitúan inmediatamente encima cuando no hay mensajes.
 - [x] AC73: En móvil, los controles de voz, lectura y envío del compositor se agrupan al borde de acción; no se presenta una etiqueta de versión decorativa y el estado operativo conserva una alternativa accesible.
 - [x] AC74: Antes del primer mensaje, los atajos de conversación se muestran como sugerencias contextuales inmediatamente sobre el compositor; no ocupan una barra separada en la parte superior de la conversación.
+- [x] AC75: El selector modular con búsqueda usa el viewport visual al abrirse y al aparecer el teclado táctil; la lista reduce su altura y permite desplazarse hasta la última opción sin recortar el buscador ni perder foco en modales y cajones, incluido «Función del dispositivo» en tablet. Los formularios compartidos de Modal y Drawer también se ajustan al viewport visual para mantener alcanzables sus campos.
 
 ## 8. Notas Técnicas y Arquitectura
 

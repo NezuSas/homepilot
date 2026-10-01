@@ -589,6 +589,39 @@ test('Feature: routine icons — new scenes and automations save a selected icon
   await expect(page.getByRole('heading', { name: 'Auto nueva' })).toBeVisible();
 });
 
+test('Feature: Routine device identities — Scenes and automations list non-camera devices without offering sensors an invalid scene command', async ({ page }) => {
+  await prepareAuthenticatedDashboard(page);
+  await page.route('**/api/v1/homes', (route) => route.fulfill({ json: [{ id: 'responsive-home', ownerId: dashboardUser.id, name: 'Casa' }] }));
+  await page.route('**/api/v1/devices', (route) => route.fulfill({ json: [
+    { id: 'identity-light', homeId: 'responsive-home', roomId: null, name: 'Luz de sala', type: 'light', status: 'ASSIGNED' },
+    { id: 'identity-switch', homeId: 'responsive-home', roomId: null, name: 'Interruptor de sala', type: 'switch', status: 'ASSIGNED' },
+    { id: 'identity-sensor', homeId: 'responsive-home', roomId: null, name: 'Sensor de sala', type: 'sensor', status: 'ASSIGNED', capabilities: [{ type: 'sensor', name: 'Sensor' }] },
+    { id: 'identity-cover', homeId: 'responsive-home', roomId: null, name: 'Cortina de sala', type: 'cover', status: 'ASSIGNED' },
+    { id: 'identity-camera', homeId: 'responsive-home', roomId: null, name: 'Cámara de sala', type: 'camera', status: 'ASSIGNED' },
+  ] }));
+  await page.route('**/api/v1/scenes', (route) => route.fulfill({ json: [] }));
+  await page.route('**/api/v1/automations', (route) => route.fulfill({ json: [] }));
+
+  await page.goto('/routines/scenes');
+  await page.getByRole('button', { name: /^(Crear Escena|Create Scene)$/i }).first().click();
+  const sceneEditor = page.getByRole('dialog', { name: /^(Crear Escena|Create Scene)$/i });
+  for (const name of ['Luz de sala', 'Interruptor de sala', 'Sensor de sala', 'Cortina de sala']) {
+    await expect(sceneEditor.getByText(name, { exact: true })).toBeVisible();
+  }
+  await expect(sceneEditor.getByText('Cámara de sala', { exact: true })).toHaveCount(0);
+  await expect(sceneEditor.getByRole('button', { name: /Sensor de sala/i })).toHaveAttribute('aria-disabled', 'true');
+
+  await page.goto('/routines/automations');
+  await page.getByRole('button', { name: /^(Crear Regla|Create Rule)$/i }).first().click();
+  const automationEditor = page.getByRole('dialog', { name: /^(Nueva Automatización|New Automation)$/i });
+  await automationEditor.getByText(/^(Dispositivo de Origen|Source Device)$/i).locator('..').getByRole('button').click();
+  const options = page.getByRole('listbox');
+  for (const name of ['Luz de sala', 'Interruptor de sala', 'Sensor de sala', 'Cortina de sala']) {
+    await expect(options.getByRole('option', { name })).toBeVisible();
+  }
+  await expect(options.getByRole('option', { name: 'Cámara de sala' })).toHaveCount(0);
+});
+
 test('Feature: automation favorites — valid legacy IDs migrate once, merge with server data and never overwrite it with an empty local list', async ({ page }) => {
   await page.addInitScript(() => {
     if (sessionStorage.getItem('legacy-automation-favorites-seeded')) return;
@@ -1012,6 +1045,131 @@ test('Feature: Device inspector — Scenario: Operator switches between device i
   await expect(inspector).toContainText('Cortina actualizada');
   await inspector.getByRole('radio', { name: /estado|state/i }).click();
   await expect(inspector.locator('pre')).toContainText('current_position');
+});
+
+test('Feature: Modular selectors — Scenario: The tablet device-function list stays searchable and scrollable above the keyboard', async ({ page }) => {
+  await page.setViewportSize(viewports[1]);
+  await page.addInitScript(() => {
+    const visualViewport = new EventTarget() as VisualViewport;
+    Object.defineProperties(visualViewport, {
+      height: { configurable: true, value: 1024 },
+      width: { configurable: true, value: 768 },
+      offsetTop: { configurable: true, value: 0 },
+      offsetLeft: { configurable: true, value: 0 },
+    });
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: visualViewport });
+  });
+  await prepareAuthenticatedDashboard(page);
+  const cover = { ...responsiveDevices.find((device) => device.id === 'cover-living'), externalId: 'ha:cover.living' };
+  await page.route('**/api/v1/rooms', (route) => route.fulfill({ json: [{ id: 'responsive-room', homeId: 'responsive-home', name: 'Sala' }] }));
+  await page.route('**/api/v1/devices/cover-living', (route) => route.fulfill({ json: cover }));
+  await page.route('**/api/v1/devices/cover-living/activity-logs', (route) => route.fulfill({ json: [] }));
+
+  await page.goto('/system/devices');
+  await page.getByRole('article').filter({ hasText: 'Cortina de sala' }).getByRole('button', { name: /gestionar dispositivo|manage device/i }).click();
+  const inspector = page.getByRole('dialog', { name: /inspector técnico|technical inspector/i });
+  await inspector.getByRole('button', { name: /^(cortina|cover\/blind)$/i }).click();
+  const popup = page.getByRole('dialog', { name: /seleccionar opción|select option/i });
+  await expect(popup).toBeVisible();
+  const search = popup.getByRole('searchbox');
+  await search.focus();
+  await expect(search).toBeFocused();
+  await page.evaluate(() => {
+    Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 420 });
+    window.visualViewport?.dispatchEvent(new Event('resize'));
+  });
+
+  await expect.poll(() => popup.evaluate((element) => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(420);
+  await expect.poll(() => inspector.evaluate((element) => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(420);
+  const list = popup.getByRole('listbox');
+  const lastOption = list.getByRole('option', { name: /desconocido|unknown/i });
+  await lastOption.scrollIntoViewIfNeeded();
+  const geometry = await popup.evaluate((element) => {
+    const listbox = element.querySelector('[role="listbox"]');
+    const last = listbox?.lastElementChild;
+    return {
+      scrollTop: listbox?.scrollTop ?? 0,
+      lastBottom: last?.getBoundingClientRect().bottom ?? Infinity,
+      listBottom: listbox?.getBoundingClientRect().bottom ?? 0,
+    };
+  });
+  expect(geometry.scrollTop).toBeGreaterThan(0);
+  expect(geometry.lastBottom).toBeLessThanOrEqual(geometry.listBottom + 1);
+});
+
+test('Feature: Modal visual viewport — Scenario: The tablet scene editor remains usable above the touch keyboard', async ({ page }) => {
+  await page.setViewportSize(viewports[1]);
+  await page.addInitScript(() => {
+    const visualViewport = new EventTarget() as VisualViewport;
+    Object.defineProperties(visualViewport, {
+      height: { configurable: true, value: 1024 },
+      width: { configurable: true, value: 768 },
+      offsetTop: { configurable: true, value: 0 },
+      offsetLeft: { configurable: true, value: 0 },
+    });
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: visualViewport });
+  });
+  await prepareAuthenticatedDashboard(page);
+  await page.route('**/api/v1/homes', (route) => route.fulfill({ json: [{ id: 'responsive-home', ownerId: dashboardUser.id, name: 'Casa' }] }));
+  await page.route('**/api/v1/scenes', (route) => route.fulfill({ json: [] }));
+  await page.route('**/api/v1/devices', (route) => route.fulfill({ json: [
+    ...responsiveDevices,
+    { id: 'modal-light', homeId: 'responsive-home', roomId: null, name: 'Luz de prueba', type: 'light', status: 'ASSIGNED' },
+  ] }));
+
+  await page.goto('/routines/scenes');
+  await page.getByRole('button', { name: /^(Crear Escena|Create Scene)$/i }).first().click();
+  const modal = page.getByRole('dialog', { name: /^(Crear Escena|Create Scene)$/i });
+  const name = modal.getByRole('textbox', { name: /Cena con invitados|Dinner Party/i });
+  const save = modal.getByRole('button', { name: /^(Guardar Escena|Save Scene)$/i });
+  await expect(modal).toBeVisible();
+  await expect.poll(() => modal.evaluate((element) => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(1024);
+
+  await name.focus();
+  await page.evaluate(() => {
+    Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 420 });
+    window.visualViewport?.dispatchEvent(new Event('resize'));
+  });
+  await expect.poll(() => modal.evaluate((element) => element.parentElement?.getBoundingClientRect().bottom ?? Infinity)).toBeLessThanOrEqual(420);
+  await expect.poll(() => modal.evaluate((element) => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(420);
+  await expect.poll(() => modal.evaluate((element) => element.getBoundingClientRect().top)).toBeGreaterThanOrEqual(0);
+  await expect(modal).toBeVisible();
+  await name.fill('Escena de prueba');
+  await expect.poll(() => modal.evaluate((element) => Array.from(element.querySelectorAll<HTMLElement>('*')).some((child) => (
+    getComputedStyle(child).overflowY === 'auto' && child.scrollHeight > child.clientHeight + 1
+  )))).toBe(true);
+
+  const lastDevice = modal.getByRole('button', { name: /Luz de prueba/i });
+  await lastDevice.scrollIntoViewIfNeeded();
+  await expect.poll(() => lastDevice.evaluate((element) => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(420);
+  await expect(lastDevice).toBeEnabled();
+  await lastDevice.click();
+  await expect(save).toBeEnabled();
+  await expect.poll(() => save.evaluate((element) => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(420);
+
+  await page.evaluate(() => {
+    Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 1024 });
+    window.visualViewport?.dispatchEvent(new Event('resize'));
+  });
+  await expect.poll(() => modal.evaluate((element) => element.parentElement?.getBoundingClientRect().bottom ?? Infinity)).toBe(1024);
+  await expect(modal).toBeVisible();
+  await expect(save).toBeEnabled();
+
+  await page.setViewportSize({ width: 1180, height: 820 });
+  await page.evaluate(() => {
+    Object.defineProperty(window.visualViewport, 'width', { configurable: true, value: 1180 });
+    Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 820 });
+    window.visualViewport?.dispatchEvent(new Event('resize'));
+  });
+  await expect.poll(() => modal.evaluate((element) => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(820);
+  await page.evaluate(() => {
+    Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 400 });
+    window.visualViewport?.dispatchEvent(new Event('resize'));
+  });
+  await expect.poll(() => modal.evaluate((element) => element.parentElement?.getBoundingClientRect().bottom ?? Infinity)).toBeLessThanOrEqual(400);
+  await expect.poll(() => modal.evaluate((element) => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(400);
+  await expect.poll(() => modal.evaluate((element) => element.getBoundingClientRect().top)).toBeGreaterThanOrEqual(0);
+  await expect.poll(() => save.evaluate((element) => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(400);
 });
 
 test('keeps dashboard controls readable on a high-resolution portrait kiosk', async ({ page }) => {
@@ -2321,7 +2479,7 @@ test('Feature: Automation lifecycle — Scenario: Given a new time automation Wh
   await dialog.getByLabel(/naming this automation|nombrar esta automatizaci[oó]n/i).fill('Daily light');
   await dialog.getByRole('radio', { name: /time|hora/i }).click();
 
-  const deviceSelector = dialog.locator('button[aria-haspopup="listbox"]').nth(2);
+  const deviceSelector = dialog.getByRole('button', { name: /select device|seleccionar dispositivo/i });
   await deviceSelector.click();
   await page.getByRole('option', { name: 'Living Room Light' }).click();
   await dialog.getByRole('button', { name: /confirm automation|confirmar automatizaci[oó]n/i }).click();

@@ -17,6 +17,7 @@ import { Button } from '../components/ui/Button';
 import { humanize } from '../lib/naming-utils';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import { useAutomationFavorites } from '../lib/useSceneFavorites';
+import { isCameraDevice } from '../lib/deviceCapabilities';
 
 interface AutomationRule {
   id: string;
@@ -130,7 +131,7 @@ const AutomationsView: React.FC<{ currentUserId: string | null }> = ({ currentUs
       const snapshot = useDeviceSnapshotStore.getState();
       if (snapshot.lastUpdatedAt === null) throw new Error(t('common.errors.connection_error'));
       if (Array.isArray(rulesData)) setRules(rulesData);
-      setDevices(snapshot.devices);
+      setDevices(snapshot.devices.filter((device) => !isCameraDevice(device)));
       if (Array.isArray(scenesData)) setScenes(scenesData);
       setError(null);
     } catch (error: unknown) {

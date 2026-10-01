@@ -570,6 +570,7 @@
       "scope": "Alcance",
       "intent": "Intención de la Escena",
       "select_units": "Seleccionar Unidades Activas ({{count}})",
+      "no_compatible_command": "Sin comandos compatibles para una escena",
       "grouping_hint": "Agrupamiento inteligente",
       "commit": "Guardar Escena",
       "errors": {

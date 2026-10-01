@@ -167,5 +167,7 @@
 
 - [x] Corregir el plegado de Sistema tras navegar a una subopción: el estado compacto tiene precedencia sobre la expansión automática usada por el sidebar abierto.
 
+- [x] Adaptar el selector compartido al viewport visual y al teclado táctil; reservar scroll real para todas las opciones del Gestor de Dispositivos y demás formularios en tablet. **Criterio:** AC75.
+
 
 - [x] Permitir cerrar el sidebar en móvil y tablet tocando fuera o deslizando el panel hacia la izquierda, sin cerrar durante desplazamiento vertical ni alterar el rail de escritorio.

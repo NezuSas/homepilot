@@ -16,6 +16,10 @@ export function hasCapability(device: SnapshotDevice, type: string): boolean {
   return !!getCapability(device, type);
 }
 
+export function isCameraDevice(device: Pick<SnapshotDevice, 'type' | 'semanticType'>): boolean {
+  return device.type === 'camera' || device.semanticType === 'camera';
+}
+
 /**
  * canExecuteCommand
  * Determina si el dispositivo soporta un comando basándose en las capacidades 

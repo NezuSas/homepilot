@@ -12,6 +12,7 @@ export const EMPTY_HOME_PERSONALIZATION: HomePersonalization = {
 };
 
 export const HOME_HERO_INTERVAL_MS = 10_000;
+const NIGHT_START_MINUTES = 18 * 60 + 30;
 
 /** Resolve the nearest configured phrase before falling back to product copy. */
 export function resolveHomePhrase(settings: HomePersonalization, period: HomePeriod, neutral: string): string {
@@ -26,14 +27,15 @@ export function resolveHomePhrase(settings: HomePersonalization, period: HomePer
 /** Keep the existing browser-local greeting boundaries shared with the phrase. */
 export function getHomePeriod(date: Date): HomePeriod {
   const hour = date.getHours();
-  return hour < 12 ? 'morning' : hour < 19 ? 'afternoon' : 'night';
+  const minutesSinceMidnight = hour * 60 + date.getMinutes();
+  return hour < 12 ? 'morning' : minutesSinceMidnight < NIGHT_START_MINUTES ? 'afternoon' : 'night';
 }
 
 export function msUntilNextHomePeriod(date: Date): number {
   const next = new Date(date);
-  const hour = date.getHours();
-  if (hour < 12) next.setHours(12, 0, 0, 0);
-  else if (hour < 19) next.setHours(19, 0, 0, 0);
+  const period = getHomePeriod(date);
+  if (period === 'morning') next.setHours(12, 0, 0, 0);
+  else if (period === 'afternoon') next.setHours(18, 30, 0, 0);
   else { next.setDate(next.getDate() + 1); next.setHours(0, 0, 0, 0); }
   return Math.max(1, next.getTime() - date.getTime());
 }

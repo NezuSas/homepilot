@@ -570,6 +570,7 @@
       "scope": "Scope",
       "intent": "Scene Intent",
       "select_units": "Select Active Units ({{count}})",
+      "no_compatible_command": "No scene-compatible commands",
       "grouping_hint": "Intelligent grouping",
       "commit": "Save Scene",
       "errors": {

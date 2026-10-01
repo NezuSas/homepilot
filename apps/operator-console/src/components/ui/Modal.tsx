@@ -5,6 +5,7 @@ import { cn } from '../../lib/utils';
 import { X, AlertTriangle, Info, CheckCircle } from 'lucide-react';
 import { IconButton } from './IconButton';
 import { useOverlayAccessibility } from './useOverlayAccessibility';
+import { useVisualViewportBounds } from './useVisualViewportBounds';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -55,6 +56,7 @@ export const Modal: React.FC<ModalProps> = ({
   const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const descriptionId = useId();
+  const viewportBounds = useVisualViewportBounds(isOpen);
   const { handleOverlayKeyDown } = useOverlayAccessibility({
     isOpen,
     onClose,
@@ -66,7 +68,7 @@ export const Modal: React.FC<ModalProps> = ({
   const Icon = variantConfig[variant].icon;
 
   return createPortal(
-    <div className={cn('fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto p-3 py-4 sm:items-center sm:p-4 sm:py-6', layerClassName)}>
+    <div style={viewportBounds} className={cn('fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto p-3 py-4 sm:items-center sm:p-4 sm:py-6', layerClassName)}>
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-background/80 backdrop-blur-md animate-in fade-in duration-base"
@@ -84,7 +86,7 @@ export const Modal: React.FC<ModalProps> = ({
         tabIndex={-1}
         onKeyDown={handleOverlayKeyDown}
         className={cn(
-          "surface-transition relative my-auto flex min-h-0 min-w-0 w-full max-w-lg flex-col overflow-hidden rounded-modal border bg-card shadow-depth-3 animate-in zoom-in-95 fade-in slide-in-from-bottom-4 duration-base max-h-modal-safe sm:max-h-modal-safe-lg",
+          "surface-transition relative my-auto flex min-h-0 min-w-0 w-full max-w-lg max-h-full flex-col overflow-hidden rounded-modal border bg-card shadow-depth-3 animate-in zoom-in-95 fade-in slide-in-from-bottom-4 duration-base",
           variantConfig[variant].borderClass,
           className
         )}

@@ -7,9 +7,14 @@ describe('Feature: Inicio greeting and phrase use the same time period', () => {
     expect(getHomePeriod(new Date(2026, 8, 30, hour))).toBe(period);
   });
 
+  it('changes from afternoon to night at 18:30 local time', () => {
+    expect(getHomePeriod(new Date(2026, 8, 30, 18, 29, 59))).toBe('afternoon');
+    expect(getHomePeriod(new Date(2026, 8, 30, 18, 30))).toBe('night');
+  });
+
   it('schedules the next period boundary without waiting for a render or sensor event', () => {
     expect(msUntilNextHomePeriod(new Date(2026, 8, 30, 11, 59, 59))).toBe(1000);
-    expect(msUntilNextHomePeriod(new Date(2026, 8, 30, 18, 59, 59))).toBe(1000);
+    expect(msUntilNextHomePeriod(new Date(2026, 8, 30, 18, 29, 59))).toBe(1000);
   });
 
   it.each([

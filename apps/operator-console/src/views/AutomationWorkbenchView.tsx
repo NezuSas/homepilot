@@ -119,7 +119,7 @@ export const AutomationWorkbenchView: React.FC = () => {
       if (res.ok) {
         const rawData = await res.json();
         if (Array.isArray(rawData)) {
-          setDevices(rawData.filter(d => d.status === 'ASSIGNED'));
+          setDevices(rawData.filter(d => d.status === 'ASSIGNED' && d.type !== 'camera' && d.semanticType !== 'camera'));
         } else {
           console.warn('[AutomationWorkbench] Expected array of devices but received:', rawData);
         }

@@ -1,4 +1,4 @@
-import { canExecuteCommand, getCapability, hasCapability } from '../deviceCapabilities';
+import { canExecuteCommand, getCapability, hasCapability, isCameraDevice } from '../deviceCapabilities';
 import type { SnapshotDevice } from '../../stores/useDeviceSnapshotStore';
 
 function device(capabilities?: SnapshotDevice['capabilities']): SnapshotDevice {
@@ -39,5 +39,13 @@ describe('deviceCapabilities', () => {
 
     expect(canExecuteCommand(target, 'turn_on')).toBe(true);
     expect(canExecuteCommand(target, 'turn_off')).toBe(false);
+  });
+
+  it('excludes cameras by physical or semantic identity without hiding other device kinds', () => {
+    expect(isCameraDevice({ type: 'camera' })).toBe(true);
+    expect(isCameraDevice({ type: 'switch', semanticType: 'camera' })).toBe(true);
+    for (const type of ['light', 'switch', 'outlet', 'sensor', 'cover', 'unknown']) {
+      expect(isCameraDevice({ type })).toBe(false);
+    }
   });
 });

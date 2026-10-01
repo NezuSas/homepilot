@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { IconButton } from './IconButton';
 import { useOverlayAccessibility } from './useOverlayAccessibility';
+import { useVisualViewportBounds } from './useVisualViewportBounds';
 
 export interface DrawerProps {
   isOpen: boolean;
@@ -37,6 +38,7 @@ export const Drawer: React.FC<DrawerProps> = ({
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const descriptionId = useId();
+  const viewportBounds = useVisualViewportBounds(isOpen);
   const { handleOverlayKeyDown } = useOverlayAccessibility({
     isOpen,
     onClose,
@@ -46,7 +48,7 @@ export const Drawer: React.FC<DrawerProps> = ({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className={cn('fixed inset-0 z-[100] flex justify-end overflow-hidden', layerClassName)}>
+    <div style={viewportBounds} className={cn('fixed inset-0 z-[100] flex justify-end overflow-hidden', layerClassName)}>
       <div
         aria-hidden="true"
         className={cn('absolute inset-0 bg-background/40 backdrop-blur-sm animate-in fade-in duration-base', backdropClassName)}

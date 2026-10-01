@@ -206,3 +206,8 @@
 - **Descripción**: Verificar saludo en dos líneas, hora accesible y actualizada, flip de cifras al cambiar el minuto, parpadeo del separador y respeto de movimiento reducido; comprobar los chips de ciudad, fecha y clima, el fallback meteorológico, la frase configurable completa y la composición responsive sin desbordamiento.
 - **Módulos**: `DashboardView`, reloj digital de Inicio, `HomeClimateSummary` y pruebas del hero.
 - **Criterio Relacionado**: **AC22, AC25, AC31, AC38–AC40**.
+
+### [UI-Home-06] Límite nocturno e identidades de rutinas
+- **Descripción**: Cambiar el saludo y frase a noche a las 18:30 local; excluir cámaras de los selectores de escenas y automatizaciones, mostrando identidades no cámara sin permitir acciones incompatibles en escenas.
+- **Módulos**: personalización de Inicio, constructores de escenas y automatizaciones, pruebas de período y capacidades.
+- **Criterio Relacionado**: **AC45**.

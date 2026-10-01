@@ -13,7 +13,7 @@ import { Input, SearchInput } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { IconPicker } from './dashboards/components/IconPicker';
 import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
-import { canExecuteCommand, hasCapability } from '../lib/deviceCapabilities';
+import { canExecuteCommand, hasCapability, isCameraDevice } from '../lib/deviceCapabilities';
 
 const API_URL = `${API_BASE_URL}/api/v1`;
 
@@ -67,11 +67,12 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
     || device.semanticType === 'outlet'
     || ['light', 'switch', 'outlet'].includes(device.type)
   );
-  const controllableDevices = devices.filter(device => (
+  const canAddSceneAction = (device: SnapshotDevice) => (
     (isCoverDevice(device) && (canExecuteCommand(device, 'open') || canExecuteCommand(device, 'close')))
     || (isPowerDevice(device) && (canExecuteCommand(device, 'turn_on') || canExecuteCommand(device, 'turn_off')))
-  ));
-  let availableDevices = roomId ? controllableDevices.filter(d => d.roomId === roomId) : controllableDevices;
+  );
+  const nonCameraDevices = devices.filter(device => !isCameraDevice(device));
+  let availableDevices = roomId ? nonCameraDevices.filter(d => d.roomId === roomId) : nonCameraDevices;
   
   if (deviceSearch) {
     availableDevices = availableDevices.filter(d => 
@@ -85,7 +86,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
       setActions(actions.filter(a => a.deviceId !== deviceId));
     } else {
       const device = devices.find(d => d.id === deviceId);
-      if (!device) return;
+      if (!device || !canAddSceneAction(device)) return;
       const defaultCommand: SceneAction['command'] = isCoverDevice(device) ? 'open' : 'turn_on';
       setActions([...actions, { deviceId, command: defaultCommand }]);
     }
@@ -242,12 +243,25 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                   {availableDevices.map(d => {
                     const action = actions.find(a => a.deviceId === d.id);
                     const isSelected = !!action;
+                    const canAdd = canAddSceneAction(d);
                     
                     return (
                       <div key={d.id} className={cn(
-                        "group flex cursor-pointer flex-col gap-3 rounded-2xl border p-3 transition-all duration-300 min-[520px]:flex-row min-[520px]:items-center min-[520px]:justify-between min-[520px]:gap-4",
+                        "group flex flex-col gap-3 rounded-2xl border p-3 transition-all duration-300 min-[520px]:flex-row min-[520px]:items-center min-[520px]:justify-between min-[520px]:gap-4",
+                        canAdd ? 'cursor-pointer' : 'cursor-not-allowed opacity-60',
                         isSelected ? "bg-primary/10 border-primary/30 shadow-lg" : "bg-foreground/[0.02] border-foreground/5 hover:border-primary/20"
-                      )} onClick={() => toggleDevice(d.id)}>
+                      )}
+                        role="button"
+                        tabIndex={canAdd ? 0 : -1}
+                        aria-disabled={!canAdd}
+                        onClick={() => toggleDevice(d.id)}
+                        onKeyDown={(event) => {
+                          if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                            event.preventDefault();
+                            toggleDevice(d.id);
+                          }
+                        }}
+                      >
                         <div className="flex items-center gap-4 min-w-0">
                           <div className={cn(
                             "w-10 h-10 rounded-xl border flex items-center justify-center transition-all duration-700 shrink-0",
@@ -260,6 +274,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
                             <span className="text-nano font-black uppercase tracking-label text-muted-foreground opacity-40">
                                {(d.semanticType || d.type).toUpperCase()}
                             </span>
+                            {!canAdd && <span className="text-nano text-muted-foreground">{t('scenes.builder.no_compatible_command')}</span>}
                           </div>
                         </div>
 
