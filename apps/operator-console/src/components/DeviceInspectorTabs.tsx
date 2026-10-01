@@ -4,7 +4,6 @@ import {
   AlertCircle,
   Box,
   Clock,
-  Cpu,
   Database,
   RefreshCw,
   Settings,
@@ -14,6 +13,8 @@ import {
   Zap,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { mapDeviceCommand } from '../lib/i18n-mapping-utils';
+import { getRoutineDeviceCommands } from '../lib/deviceCapabilities';
 import type { SnapshotDevice as Device, SnapshotRoom as Room } from '../stores/useDeviceSnapshotStore';
 import { Button } from './ui/Button';
 import { SearchableSelectField } from './ui/SearchableSelectField';
@@ -53,6 +54,7 @@ export function DeviceInspectorInfoTab({
   onSemanticTypeChange, onInvertStateChange, onCommand, onRefresh, onMove, onUnassign, onDelete, configurationOnly = false,
 }: InfoTabProps) {
   const { t } = useTranslation();
+  const supportedCommands = Array.from(new Set(device.capabilities?.length ? device.capabilities.flatMap(capability => capability.commands?.map(command => command.name) ?? []) : getRoutineDeviceCommands(device)));
   const assignedRoom = rooms.find((room) => room.id === device.roomId);
   return (
     <div className="flex flex-col gap-4">
@@ -65,8 +67,8 @@ export function DeviceInspectorInfoTab({
           </div>
         </div>
       )}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="p-4 bg-muted/20 border border-border rounded-section flex flex-col gap-2 shadow-inner">
+      <div className="grid grid-cols-1 gap-3">
+        <div className="p-3 bg-muted/20 border border-border rounded-section flex flex-col gap-2 shadow-inner">
           <div className="flex items-center justify-between">
             <span className="text-micro font-black uppercase tracking-widest opacity-50 flex items-center gap-1.5">
               <Database className="w-3 h-3" /> {t('inbox.device_inspector.entity_id')}
@@ -74,7 +76,7 @@ export function DeviceInspectorInfoTab({
           </div>
           <span className="font-mono text-caption font-bold break-all">{device.externalId || device.id}</span>
         </div>
-        <div className="p-4 bg-muted/20 border border-border rounded-section flex flex-col gap-2 shadow-inner">
+        <div className="p-3 bg-muted/20 border border-border rounded-section flex flex-col gap-2 shadow-inner">
           <span className="text-micro font-black uppercase tracking-widest opacity-50 flex items-center gap-1.5">
             <Settings className="w-3 h-3" /> {t('inbox.device_inspector.technical_origin')}
           </span>
@@ -91,7 +93,7 @@ export function DeviceInspectorInfoTab({
             )}
           </div>
         </div>
-        <div className="p-4 bg-muted/20 border border-border rounded-section flex flex-col gap-2 shadow-inner relative">
+        <div className="p-3 bg-muted/20 border border-border rounded-section flex flex-col gap-2 shadow-inner relative">
           <span className="text-micro font-black uppercase tracking-widest flex items-center gap-1.5 text-primary">
             <Zap className="w-3 h-3" /> {t('inbox.device_inspector.device_function')}
           </span>
@@ -117,7 +119,7 @@ export function DeviceInspectorInfoTab({
         </div>
 
         {device.type === 'cover' && (
-          <div className="p-4 bg-muted/20 border border-border rounded-section flex flex-col gap-3 shadow-inner">
+          <div className="p-3 bg-muted/20 border border-border rounded-section flex flex-col gap-3 shadow-inner">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
                 <span className="text-micro font-black uppercase tracking-widest text-primary">
@@ -144,6 +146,11 @@ export function DeviceInspectorInfoTab({
           <Activity className="w-4 h-4 opacity-20" />
         </div>
 
+        {configurationOnly && (
+          <p className="break-words text-caption text-muted-foreground">
+            {supportedCommands.length ? supportedCommands.map(command => mapDeviceCommand(command, t)).join(' · ') : t('inbox.discovery.read_only')}
+          </p>
+        )}
         {!configurationOnly && (device.type === 'light' || device.type === 'switch') && (
           <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
             <Button disabled={unavailable || isActionLoading} onClick={() => onCommand('turn_on')} className="flex-1 h-12 text-micro font-black uppercase tracking-widest">
@@ -192,30 +199,10 @@ export function DeviceInspectorInfoTab({
           </div>
         )}
 
-        {device.integrationSource === 'sonoff' && (
-          <div className="pt-3 border-t border-border/20 flex flex-col gap-3">
-            <div className="flex items-center justify-between px-2">
-              <div className="flex items-center gap-2">
-                <Cpu className="w-4 h-4 text-success" />
-                <span className="text-micro font-black uppercase tracking-widest text-success">{t('inbox.inspector.edge_active')}</span>
-              </div>
-              <div className="flex items-center gap-2 opacity-40">
-                <Clock className="w-3 h-3" />
-                <span className="text-nano font-black uppercase tracking-tighter">
-                  {device.updatedAt ? new Date(device.updatedAt).toLocaleTimeString() : t('common.not_available')}
-                </span>
-              </div>
-            </div>
-            <div className="p-4 bg-success/5 border border-success/10 rounded-2xl">
-              <p className="text-micro font-bold leading-relaxed text-success/70 uppercase tracking-tight">
-                {t('inbox.inspector.edge_description')}
-              </p>
-            </div>
-          </div>
-        )}
+
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-3">
         <div className="p-4 border border-border rounded-2xl bg-card flex flex-col gap-3 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-1">
@@ -255,24 +242,14 @@ export function DeviceInspectorInfoTab({
             )}
           </div>
         </div>
-        <div className="p-4 border border-border rounded-2xl bg-card flex flex-col gap-1 shadow-sm">
-          <div className="flex items-center gap-2 mb-2 text-primary">
-            <Cpu className="w-4 h-4 opacity-40" />
-          </div>
-          <span className="text-body font-bold truncate">{device.homeId}</span>
-          <div className="mt-auto pt-4 text-micro text-muted-foreground opacity-30 italic leading-snug">
-            {device.integrationSource === 'sonoff'
-              ? t('inbox.inspector.edge_node_info')
-              : t('inbox.inspector.cluster_info')}
-          </div>
-        </div>
+
       </div>
 
       {(device.externalId.startsWith('ha:') || device.integrationSource === 'sonoff') && (
-        <div className="rounded-panel border border-danger/20 bg-danger/5 p-4">
+        <div className="rounded-control border border-border bg-card p-3">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <h3 className="text-card-title font-black text-danger">
+              <h3 className="text-body-compact font-semibold">
                 {t('inbox.inspector.remove_import_title')}
               </h3>
               <p className="mt-1 text-body text-muted-foreground">
@@ -280,10 +257,10 @@ export function DeviceInspectorInfoTab({
               </p>
             </div>
             <Button
-              variant="danger"
+              variant="outline"
               onClick={() => onDelete()}
               disabled={isActionLoading}
-              className="shrink-0"
+              className="shrink-0 text-danger hover:bg-danger/5"
             >
               <Trash2 className="h-4 w-4" />
               {t('common.delete')}
@@ -296,24 +273,24 @@ export function DeviceInspectorInfoTab({
 }
 
 export function DeviceInspectorLogsTab({ logs }: { logs: ActivityLog[] }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   return (
-    <div className="flex flex-col gap-3 animate-in slide-in-from-bottom-4 duration-500">
+    <div className="flex flex-col gap-2">
       {Array.isArray(logs) && logs.map((log, index) => (
-        <div key={index} className="p-5 bg-muted/10 border border-border/20 rounded-section flex flex-col gap-2 group hover:bg-muted/20 transition-colors">
+        <div key={index} className="p-3 bg-muted/10 border border-border/20 rounded-control flex flex-col gap-2 group hover:bg-muted/20 transition-colors">
           <div className="flex justify-between items-center">
             <span className="text-micro font-black px-2 py-0.5 rounded bg-primary/10 text-primary uppercase tracking-tighter">
-              {log.type}
+              {t(`common.events.${log.type}`, { defaultValue: log.type })}
             </span>
             <span className="text-micro font-mono opacity-40 flex items-center gap-1">
-              <Clock className="w-3 h-3" /> {new Date(log.timestamp).toLocaleTimeString()}
+              <Clock className="w-3 h-3" /> {new Date(log.timestamp).toLocaleString(i18n.language)}
             </span>
           </div>
-          <p className="text-caption font-bold leading-tight mt-1 text-card-foreground/80">{log.description}</p>
+          <p className="text-caption font-bold leading-tight mt-1 text-card-foreground/80">{t(`audit_logs.messages.${log.description === 'Device synchronized from Home Assistant WebSocket' ? 'DEVICE_SYNC' : log.type}`, { ...log.data, defaultValue: log.description })}</p>
         </div>
       ))}
       {logs.length === 0 && (
-        <div className="text-center py-20 flex flex-col items-center justify-center opacity-10">
+        <div className="text-center py-8 flex flex-col items-center justify-center text-muted-foreground">
           <Terminal className="w-12 h-12 mb-4" />
           <div className="text-caption font-black uppercase tracking-label">{t('inbox.inspector.no_logs')}</div>
         </div>

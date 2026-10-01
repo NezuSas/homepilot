@@ -216,7 +216,7 @@ export function DiagnosticsView() {
   }, [isAdmin, loadBackups]);
 
   if (initialLoading) {
-    return <DiagnosticsSkeleton label={t('diagnostics.loading')} />;
+    return <DiagnosticsSkeleton label={t('diagnostics.loading')} isAdmin={isAdmin} />;
   }
 
   if (!snapshot) {

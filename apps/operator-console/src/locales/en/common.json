@@ -671,6 +671,8 @@
     }
   },
   "diagnostics": {
+    "categories": { "resilience": "Resilience", "automation": "Automation", "scene": "Scene", "auth": "Access", "command": "Command" },
+    "filters": { "date": "Date", "action": "Action", "all": "All", "scene": "Scenes", "command": "Commands", "automation": "Automations", "recent_only": "Filters apply to the loaded recent events.", "no_matches": "No events match the filters." },
     "timeline": "Timeline",
     "loading": "Gathering diagnostics heartbeat...",
     "error_loading": "Failed to load diagnostics",

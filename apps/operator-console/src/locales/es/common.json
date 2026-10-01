@@ -671,6 +671,8 @@
     }
   },
   "diagnostics": {
+    "categories": { "resilience": "Resiliencia", "automation": "Automatización", "scene": "Escena", "auth": "Acceso", "command": "Comando" },
+    "filters": { "date": "Fecha", "action": "Acción", "all": "Todas", "scene": "Escenas", "command": "Comandos", "automation": "Automatizaciones", "recent_only": "Filtros sobre los eventos recientes cargados.", "no_matches": "No hay eventos que coincidan con los filtros." },
     "timeline": "Línea de tiempo",
     "loading": "Recuperando pulso de diagnósticos...",
     "error_loading": "Error al cargar diagnósticos",

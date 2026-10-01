@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Activity } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
+import { Input } from './ui/Input';
+import { SearchableSelectField } from './ui/SearchableSelectField';
 
 interface DiagnosticEvent {
   occurredAt: string;
@@ -76,7 +78,9 @@ const getInterpolatedMessageData = (data: EventData, fallback: string, t: Return
 
 const getMainEventMessage = (event: DiagnosticEvent, t: ReturnType<typeof useTranslation>['t']) => {
   const data = normalizeEventData(event.data);
-  const key = event.eventType === 'COMMAND_DISPATCHED' && (data.name || data.sceneName)
+  const key = data.command && data.isAutomation === false
+    ? 'audit_logs.messages.COMMAND_DISPATCHED'
+    : event.eventType === 'COMMAND_DISPATCHED' && (data.name || data.sceneName)
     ? 'audit_logs.messages.SCENE_DISPATCHED_PERSISTENT'
     : `audit_logs.messages.${event.eventType}`;
 
@@ -114,21 +118,46 @@ const groupEvents = (events: DiagnosticEvent[]): EventGroup[] => {
 
 const isErrorEvent = (eventType: string) => eventType.includes('failed') || eventType.includes('FAILED') || eventType.includes('error');
 
+const localDate = (iso: string) => {
+  const date = new Date(iso);
+  if (!Number.isFinite(date.getTime())) return '';
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
+
+const actionKind = (event: DiagnosticEvent) => {
+  const data = normalizeEventData(event.data);
+  if (data.ruleId || data.automationId || data.isAutomation === true || data.sourceType === 'automation') return 'automation';
+  if (data.sceneId || data.sceneName || event.eventType.startsWith('SCENE_')) return 'scene';
+  if (data.command && data.isAutomation === false) return 'command';
+  if (event.eventType.startsWith('AUTOMATION_')) return 'automation';
+  return event.category === 'command' ? 'command' : event.category;
+};
+
 export const DiagnosticsTimeline: React.FC<DiagnosticsTimelineProps> = ({ events, expandedIds, onToggleExpand }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const [date, setDate] = useState('');
+  const [action, setAction] = useState('all');
+  const groups = groupEvents(Array.isArray(events) ? events : []).filter(group =>
+    (!date || localDate(group.main.occurredAt) === date)
+    && (action === 'all' || actionKind(group.main) === action));
 
   return (
     <div className="space-y-4 pt-4">
       <h3 className="text-micro font-black tracking-widest uppercase text-muted-foreground opacity-50">{t('diagnostics.timeline')}</h3>
+      <div className="grid gap-3 sm:grid-cols-2 sm:max-w-lg">
+        <Input type="date" label={t('diagnostics.filters.date')} value={date} onChange={event => setDate(event.target.value)} />
+        <SearchableSelectField label={t('diagnostics.filters.action')} value={action} onChange={setAction} options={['all', 'scene', 'command', 'automation'].map(value => ({ value, label: t(`diagnostics.filters.${value}`) }))} />
+      </div>
+      <p className="text-caption text-muted-foreground">{t('diagnostics.filters.recent_only')}</p>
       <div className="border border-border bg-card rounded-2xl overflow-hidden">
         <div className="divide-y divide-border/50 max-h-timeline overflow-y-auto custom-scrollbar">
-          {events.length === 0 ? (
+          {groups.length === 0 ? (
             <div className="p-10 text-center flex flex-col items-center justify-center opacity-40">
               <Activity className="w-8 h-8 mb-4 text-muted-foreground" />
-              <p className="text-micro font-black uppercase tracking-widest">{t('diagnostics.no_events')}</p>
+              <p className="text-micro font-black uppercase tracking-widest">{t(date || action !== 'all' ? 'diagnostics.filters.no_matches' : 'diagnostics.no_events')}</p>
             </div>
           ) : (
-            groupEvents(Array.isArray(events) ? events : []).map(group => {
+            groups.map(group => {
               const event = group.main;
               const isExpanded = expandedIds.has(group.id);
               const hasChildren = group.children.length > 0;
@@ -143,15 +172,15 @@ export const DiagnosticsTimeline: React.FC<DiagnosticsTimelineProps> = ({ events
                     onClick={() => onToggleExpand(group.id)}
                   >
                     <div className="w-20 shrink-0 pt-0.5 text-nano font-mono font-semibold text-muted-foreground sm:w-24">
-                      {new Date(event.occurredAt).toLocaleTimeString()}
+                      {new Date(event.occurredAt).toLocaleString(i18n.language)}
                     </div>
-                    <div className="flex-1 flex flex-col gap-1.5">
+                    <div className="min-w-0 flex-1 flex flex-col gap-1.5 break-words">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className={cn("rounded-control px-1.5 py-0.5 text-micro font-semibold uppercase leading-none tracking-control", isError ? "bg-danger/10 text-danger" : "bg-primary/10 text-primary")}>
-                          {t(`diagnostics.categories.${event.category}`, { defaultValue: event.category })}
+                          {t(`diagnostics.categories.${actionKind(event)}`, { defaultValue: event.category })}
                         </span>
                         <span className={cn("text-body-compact font-semibold tracking-tight", isError ? "text-danger" : "")}>
-                          {t(`common.events.${event.eventType}`, { defaultValue: event.eventType })}
+                          {t(`common.events.${data.command && data.isAutomation === false ? 'COMMAND_DISPATCHED' : event.eventType}`, { defaultValue: event.eventType })}
                         </span>
                         {(hasChildren || hasData) && (
                           <span className="rounded-full border px-1.5 py-0.5 text-nano font-semibold uppercase tracking-control text-muted-foreground">

@@ -1,6 +1,56 @@
 import { expect, test } from '@playwright/test';
 import { mdiAutoFix, mdiHome, mdiRobot, mdiWeatherWindy } from '@mdi/js';
 
+for (const viewport of [{ name: 'mobile', width: 320, height: 720 }, { name: 'tablet', width: 768, height: 1024 }, { name: 'desktop', width: 1440, height: 900 }]) {
+  test(`Feature: Diagnostics presentation — Scenario: Component skeletons and local timeline filters work on ${viewport.name} (AC58)`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport);
+    await prepareAuthenticatedDashboard(page);
+    await page.addInitScript(() => localStorage.setItem('i18nextLng', 'es'));
+    await page.route('**/api/v1/scenes', route => route.fulfill({ json: [] }));
+    await page.route('**/api/v1/automations', route => route.fulfill({ json: [] }));
+    let release: () => void = () => {};
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    await page.route('**/api/v1/system/diagnostics', async route => {
+      await gate;
+      await route.fulfill({ json: { overallStatus: 'healthy', haConnectionStatus: 'reachable', websocketStatus: 'connected', automationEngineStatus: 'active', reconciliationStatus: 'idle', lastEventAt: null, lastReconnectAt: null, lastReconciliationAt: null, lastAutomationExecutionAt: null, systemTime: '2026-10-01T12:00:00Z', systemTimeLocal: '01/10/2026 07:00', systemTimezone: 'America/Guayaquil', counters: { recentReconnects: 0, recentAutomationSuccess: 1, recentAutomationFailures: 0, recentReconciliations: 0 }, issues: [] } });
+    });
+    await page.route('**/api/v1/system/backups', route => route.fulfill({ json: [] }));
+    await page.route('**/api/v1/system/diagnostics/events', route => route.fulfill({ json: [
+      { occurredAt: '2026-10-01T12:00:00Z', category: 'automation', eventType: 'AUTOMATION_EXECUTED', description: 'Rule ran', data: { ruleId: 'a', ruleName: 'Regla única' }, correlationId: 'rule' },
+      { occurredAt: '2026-10-01T12:00:01Z', category: 'command', eventType: 'COMMAND_SUCCESS', description: 'Traza conservada', data: {}, correlationId: 'rule' },
+      { occurredAt: '2026-10-01T13:00:00Z', category: 'automation', eventType: 'SCENE_EXECUTED', description: 'Escena única', data: { sceneId: 's', sceneName: 'Escena única' } },
+      { occurredAt: '2026-09-30T12:00:00Z', category: 'automation', eventType: 'AUTOMATION_EXECUTED', description: 'Comando único', data: { command: 'Comando único', isAutomation: false } },
+    ] }));
+    await page.goto('/system/diagnostics');
+    const main = page.getByRole('main');
+    const skeleton = main.locator('[role="status"][aria-busy="true"]');
+    await expect(skeleton).toBeVisible();
+    await expect(skeleton.getByRole('button')).toHaveCount(0);
+    await page.screenshot({ path: testInfo.outputPath('diagnostics-skeleton.png'), fullPage: true });
+    release();
+    await expect(skeleton).toHaveCount(0);
+    await expect(main.getByText('Regla única', { exact: false })).toBeVisible();
+    await expect(main.getByText('Automatización', { exact: true })).toBeVisible();
+    const action = main.getByRole('button', { name: 'Acción', exact: true });
+    await action.click();
+    await page.getByRole('option', { name: 'Escenas', exact: true }).click();
+    await expect(main.getByText('Escena única', { exact: false })).toBeVisible();
+    await expect(main.getByText('Regla única', { exact: false })).toHaveCount(0);
+    await action.click();
+    await page.getByRole('option', { name: 'Comandos', exact: true }).click();
+    await expect(main.getByText('Comando único', { exact: false })).toBeVisible();
+    await main.getByLabel('Fecha', { exact: true }).fill('2026-10-01');
+    await expect(main.getByText('No hay eventos que coincidan con los filtros.', { exact: true })).toBeVisible();
+    await main.getByLabel('Fecha', { exact: true }).fill('');
+    await action.click();
+    await page.getByRole('option', { name: 'Automatizaciones', exact: true }).click();
+    await main.getByText('Regla única', { exact: false }).click();
+    await expect(main.getByText('Traza conservada', { exact: true })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath('diagnostics-loaded.png'), fullPage: true });
+  });
+}
+
 for (const view of [
   { name: 'Spaces', path: '/spaces', endpoint: '**/api/v1/homes', data: [] },
   { name: 'Users', path: '/system/users', endpoint: '**/api/v1/admin/users', data: [] },
@@ -651,8 +701,10 @@ for (const viewport of [
       const openingFrames = await page.evaluate(() => (window as unknown as { inspectorOpeningFrames: { x: number; scrollX: number; right: number }[] }).inspectorOpeningFrames);
       expect(openingFrames.length).toBeGreaterThan(0);
       expect(openingFrames.every(frame => frame.scrollX === 0)).toBe(true);
-      expect(Math.min(...openingFrames.map(frame => frame.x))).toBeGreaterThanOrEqual(viewport.width - Math.min(viewport.width, 672) - 1);
-      expect(before?.x).toBeGreaterThanOrEqual(viewport.width - Math.min(viewport.width, 672) - 1);
+      expect(Math.min(...openingFrames.map(frame => frame.x))).toBeGreaterThanOrEqual(viewport.width - Math.min(viewport.width, 512) - 1);
+      expect(before?.x).toBeGreaterThanOrEqual(viewport.width - Math.min(viewport.width, 512) - 1);
+      expect(before?.width).toBeLessThanOrEqual(512);
+      await expect(inspector.getByText(/Solo alias local|Local Alias Only|Objeto de Datos Core|HomePilot Core Data Object/i)).toHaveCount(0);
       release();
       await expect(inspector.getByText(/Función del dispositivo|Device function/i)).toBeVisible();
       expect(await initialPanel?.evaluate(element => element.isConnected)).toBe(true);

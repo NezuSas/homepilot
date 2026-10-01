@@ -2,6 +2,7 @@ import React from 'react';
 import { RefreshCw, Server, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
+import { mapDiagnosticsStatus } from '../lib/i18n-mapping-utils';
 
 interface DiagnosticsCounters {
   recentReconnects: number;
@@ -47,11 +48,14 @@ const getStatusColor = (status: string) => {
   }
 };
 
-const StatusBadge = ({ status, label }: { status: string; label?: string }) => (
+const StatusBadge = ({ status, label }: { status: string; label?: string }) => {
+  const { t } = useTranslation();
+  return (
   <span className={cn("rounded-control border px-1.5 py-0.5 text-nano font-medium uppercase leading-none tracking-micro", getStatusColor(status))}>
-    {label || status.replace('_', ' ')}
+    {label || mapDiagnosticsStatus(status, t)}
   </span>
-);
+  );
+};
 
 export const DiagnosticsProbeGrid: React.FC<DiagnosticsProbeGridProps> = ({
   haConnectionStatus,

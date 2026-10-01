@@ -258,6 +258,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
         isOpen
         onClose={onClose}
         ariaLabel={t('inbox.inspector.title')}
+        panelClassName="max-w-lg"
         hideCloseButton={!loading && Boolean(device)}
       >
       {loading ? (
@@ -277,9 +278,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
                   <span className="text-micro font-black uppercase tracking-widest text-primary">{t('inbox.inspector.title')}</span>
                   {device.integrationSource === 'sonoff' ? (
                     <span className="text-nano bg-success/10 text-success px-2 py-0.5 rounded-full border border-success/20 font-black uppercase tracking-widest shadow-sm">{t('inbox.inspector.verified_edge')}</span>
-                  ) : (
-                    <span className="text-micro bg-primary/5 text-primary/60 px-1.5 py-0.5 rounded border border-primary/10 font-bold uppercase tracking-tighter">{t('inbox.inspector.alias_only')}</span>
-                  )}
+                  ) : null}
                 </div>
                 {isRenaming ? (
                   <div className="flex items-center gap-2 mt-1">
@@ -367,9 +366,6 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
           )}
         </div>
 
-        <div className="px-4 py-3 border-t border-border/50 bg-muted/10 text-center">
-          <p className="text-micro font-black uppercase tracking-label-wider opacity-20">{t('inbox.inspector.data_object')}</p>
-        </div>
       </div>
       ) : <p role="alert" className="p-6">{error || t('common.errors.fetch_failed')}</p>}
 

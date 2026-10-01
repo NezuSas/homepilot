@@ -138,6 +138,9 @@ Se propone una consola de administración pragmática:
 
 ## 9. Notas Técnicas y Arquitectura
 
+- AC57: Inspector compacto de hasta 32rem, conservando ID de entidad, tipo/origen, función, ubicación y capacidades informativas. Omitir alias/local-home y footer decorativo; eliminación discreta con confirmación intacta. Registros traducen tipos y mensajes conocidos sin modificar datos ni ocultar mensajes desconocidos; Estado conserva su contenido.
+- AC58: Diagnósticos compone skeletons específicos de resumen, salud, probes, respaldos y timeline con los mismos breakpoints. La timeline permite fecha local y tipo de acción (escena, comando, automatización) sobre los eventos recientes cargados, manteniendo trazas correlacionadas y un mensaje claro cuando no hay coincidencias. No implica consultas históricas, cambios de API ni de almacenamiento. Categorías y eventos conocidos se traducen en ES/EN.
+
 - El backend actual debe exponer (si no lo hace aún) los endpoints mínimos para soportar estas vistas (ej. REST V1 `GET /api/devices/inbox`, `POST /api/devices/{id}/assign`, etc.).
 - Como el frontend es meramente una consola Edge Operator, se asumirá una entrega estática (Static Bundle) servida directamente por el backend de HomePilot o un puerto contiguo.
 - Se fomentará el uso de tecnologías que respeten las exigencias del proyecto: tipado estricto (TypeScript) en el frontend, y coherencia arquitectónica entre el modelo de llamadas locales.

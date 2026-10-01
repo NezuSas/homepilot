@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ScenesSkeleton, AutomationsSkeleton, SpacesSkeleton, HomeSkeleton, DeviceManagerSkeleton, CamerasSkeleton, DisplayControlsSkeleton, DeviceInspectorSkeleton, DiscoverySkeleton, HaDiscoverySkeleton, UsersSkeleton, ViewSkeleton } from './ComponentSkeletons';
+import { ScenesSkeleton, AutomationsSkeleton, SpacesSkeleton, HomeSkeleton, DeviceManagerSkeleton, CamerasSkeleton, DisplayControlsSkeleton, DeviceInspectorSkeleton, DiscoverySkeleton, HaDiscoverySkeleton, UsersSkeleton, DiagnosticsSkeleton, ViewSkeleton } from './ComponentSkeletons';
 describe('Feature: Component-owned skeletons (AC51)', () => {
-  it.each([ScenesSkeleton, AutomationsSkeleton, SpacesSkeleton, HomeSkeleton, DeviceManagerSkeleton, CamerasSkeleton, DisplayControlsSkeleton, DeviceInspectorSkeleton, DiscoverySkeleton, HaDiscoverySkeleton, UsersSkeleton])('announces loading once without interactive controls: %p', Skeleton => {
+  it.each([ScenesSkeleton, AutomationsSkeleton, SpacesSkeleton, HomeSkeleton, DeviceManagerSkeleton, CamerasSkeleton, DisplayControlsSkeleton, DeviceInspectorSkeleton, DiscoverySkeleton, HaDiscoverySkeleton, UsersSkeleton, DiagnosticsSkeleton])('announces loading once without interactive controls: %p', Skeleton => {
     const html = renderToStaticMarkup(<Skeleton label="Cargando" />);
     expect(html.match(/role="status"/g)).toHaveLength(1);
     expect(html).toContain('aria-busy="true"');
