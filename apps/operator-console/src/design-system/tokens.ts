@@ -4,82 +4,33 @@
  * Single source of truth for all design values.
  * Use these in TSX/JS runtime logic (e.g. conditional class selection).
  *
- * The canonical token values are also expressed as CSS custom properties in
- * index.css and surfaced as Tailwind utilities via tailwind.config.js.
+ * Canonical colors live only in index.css. Runtime references below and
+ * Tailwind utilities resolve those same CSS properties in the active theme.
  * Always prefer Tailwind classes in JSX; only use this module for
  * programmatic or conditional class generation.
  */
 
 // ── Color Palette ────────────────────────────────────────────────────────────
 
+/** Theme-aware references: index.css owns the palette, including portal overlays. */
 export const colors = {
-  /** Page / app background — deepest surface */
-  background: '#111111',
-
-  /** Default surface (cards, sidebars) */
-  surface: '#1A1A1A',
-
-  /** Elevated surfaces (modals, popovers) */
-  elevated: '#232220',
-
-  /** Subtle UI borders */
-  border: '#34312E',
-
-  /** Primary readable text */
-  textPrimary: '#E6EDF3',
-
-  /** Secondary / sub-label text */
-  textSecondary: '#9BA7B4',
-
-  /** Muted / hint text */
-  textMuted: '#6B7682',
-
-  /** Brand accent — interactions, links, primary actions */
-  primary: '#D9542B',
-
-  /** Nezu Eco accent — efficiency only */
-  eco: '#C9DF38',
-
-  /** Physical light ON state */
-  lightActive: '#FFB454',
-
-  /** Semantic: success, ON state, healthy status */
-  success: '#22C55E',
-
-  /** Semantic: warning, degraded state, attention */
-  warning: '#F59E0B',
-
-  /** Semantic: error, danger, destructive actions */
-  danger: '#EF4444',
+  background: 'hsl(var(--background))',
+  surface: 'hsl(var(--card))',
+  elevated: 'hsl(var(--popover))',
+  border: 'hsl(var(--border))',
+  textPrimary: 'hsl(var(--foreground))',
+  textSecondary: 'hsl(var(--muted-foreground))',
+  textMuted: 'hsl(var(--muted-foreground))',
+  primary: 'hsl(var(--primary))',
+  eco: 'hsl(var(--eco))',
+  lightActive: 'hsl(var(--light-active))',
+  success: 'hsl(var(--success))',
+  warning: 'hsl(var(--warning))',
+  danger: 'hsl(var(--danger))',
 } as const;
 
-/** Light-mode residential palette — layered stone, charcoal ink and burnished copper. */
-export const lightColors = {
-  /** App canvas — architectural stone */
-  background: '#D8D2C8',
-  /** Standard cards and panels — warm sand */
-  surface: '#E9E4DC',
-  /** Dialogs and focused surfaces — quiet limestone */
-  elevated: '#F2EEE7',
-  /** Structural dividers — weathered stone */
-  border: '#BDB4A8',
-  /** High-contrast charcoal ink */
-  textPrimary: '#20262E',
-  /** Secondary labels and metadata */
-  textSecondary: '#596270',
-  /** Brand interaction — burnished copper */
-  primary: '#B84F32',
-  /** Efficiency only — muted olive */
-  eco: '#87983D',
-  /** Physical light ON state */
-  lightActive: '#D79A3D',
-  /** Healthy / confirmed state — deep olive */
-  success: '#557B57',
-  /** Attention state — tempered amber */
-  warning: '#B37A2F',
-  /** Error state — terracotta */
-  danger: '#B14F42',
-} as const;
+/** Compatibility export; the active theme resolves the same semantic references. */
+export const lightColors = colors;
 
 // ── Typography ──────────────────────────────────────────────────────────────
 
@@ -137,13 +88,13 @@ export const shadows = {
   xl: '0 20px 60px -10px rgb(0 0 0 / 0.7)',
 
   /** Primary glow — used sparingly on interactive elements */
-  primaryGlow: `0 0 16px -4px ${colors.primary}66`,
+  primaryGlow: '0 0 16px -4px hsl(var(--primary) / 0.4)',
 
   /** Success glow — status indicators */
-  successGlow: `0 0 8px 0 ${colors.success}66`,
+  successGlow: '0 0 8px 0 hsl(var(--success) / 0.4)',
 
   /** Warning glow — status indicators */
-  warningGlow: `0 0 8px 0 ${colors.warning}66`,
+  warningGlow: '0 0 8px 0 hsl(var(--warning) / 0.4)',
 } as const;
 
 // ── Semantic Utility Builders ─────────────────────────────────────────────────

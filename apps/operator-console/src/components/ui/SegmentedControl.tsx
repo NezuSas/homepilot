@@ -128,7 +128,7 @@ export function SegmentedControl<T extends string>({
                   ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
                   : 'bg-background text-primary shadow-sm border border-border'
                 : tone === 'primary'
-                  ? 'text-primary/45 hover:bg-primary/10 hover:text-primary'
+                  ? 'text-muted-foreground hover:bg-primary/10 hover:text-primary'
                   : 'text-muted-foreground hover:bg-background/30 hover:text-foreground',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/55 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
               'disabled:pointer-events-none disabled:opacity-40',

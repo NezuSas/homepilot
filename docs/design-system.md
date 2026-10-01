@@ -26,8 +26,8 @@ reusable primitives are the visual source of truth.
 
 ### States
 
-- `primary`: Nezu orange (`#D9542B`) for identity, focus, and primary actions.
-- `accent`: Nezu lime (`#C9DF38`) for eco and efficiency meaning only.
+- `primary`: approved Dashboard warm orange in Dark and burnished copper in Light, for identity, focus, and primary actions.
+- `accent`: aliases `primary`; efficiency-only `eco` remains a separate semantic token.
 - `light-active`: warm amber for physical lighting state.
 - `success`, `warning`, and `danger`: semantic health and risk states.
 - `muted`: secondary information.
@@ -36,11 +36,18 @@ reusable primitives are the visual source of truth.
 
 Dark mode uses warm graphite surfaces rather than flat black. Light mode uses a
 professional neutral canvas with visible card separation. Orange is the primary
-interaction color; lime is reserved for eco meaning; amber represents active
+interaction color; eco is reserved for efficiency meaning; amber represents active
 lighting. Cyan is not an identity or selection color.
 
 A screen must not introduce raw utility colors when a semantic token exists.
 Active states use one semantic color rather than decorative color mixing.
+
+The approved Dashboard palette is the application-wide standard. `index.css`
+defines theme values on `:root` and `.light`; views must not override `primary`,
+text or core surface tokens. Dashboard material/opacity treatments consume the
+global palette. Body-portaled overlays inherit it. Runtime `colors` and
+`lightColors` reference CSS variables, not duplicated hex palettes. Solid orange
+controls use dark espresso text in Dark for contrast; Light keeps white over copper.
 
 ## Typography and Scale
 

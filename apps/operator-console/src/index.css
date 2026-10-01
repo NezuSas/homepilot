@@ -54,6 +54,36 @@
 
 @layer base {
   :root {
+
+    /* Approved Dashboard palette is global, including body portals. */
+    --eco: 69 72% 55%;
+    --dashboard-canvas: var(--background);
+    --dashboard-surface: var(--card);
+    --dashboard-surface-raised: var(--popover);
+    --dashboard-edge: var(--border);
+    --dashboard-section-surface: 30 8% 12%;
+    --dashboard-section-edge: 35 12% 33%;
+    --dashboard-tile-surface: 30 7% 17%;
+    --dashboard-tile-edge: 35 9% 31%;
+    --hp-section-surface: 26 22 19;
+    --hp-section-ambient: 242 138 58;
+    --hp-section-edge: 255 215 185;
+    --hp-section-ink: 255 252 249;
+    --hp-section-accent: 246 143 64;
+    --hp-section-shadow: 10 7 5;
+    --dashboard-premium-accent: 242 138 58;
+    --dashboard-premium-accent-light: 246 163 94;
+    --dashboard-premium-accent-soft: rgb(var(--dashboard-premium-accent) / 0.12);
+    --dashboard-premium-accent-border: rgb(var(--dashboard-premium-accent-light) / 0.65);
+    --dashboard-premium-accent-glow: rgb(var(--dashboard-premium-accent) / 0.14);
+    --dashboard-premium-section: 29 24 21;
+    --dashboard-premium-card: 28 24 22;
+    --dashboard-premium-tile: 48 41 36;
+    --dashboard-premium-tile-hover: 50 41 35;
+    --dashboard-premium-edge: 255 215 185;
+    --dashboard-premium-text: 255 252 249;
+    --dashboard-premium-secondary: 235 225 218;
+
     /* ── Typography families ───────────────────────────────────── */
     /*
      * Keep color emoji ahead of generic platform fonts. Without this explicit
@@ -66,33 +96,33 @@
 
     /* ── Core Surfaces (elevation ladder) ─────────────────── */
     --background:          30 8% 7%;         /* quiet graphite canvas */
-    --card:                30 7% 11%;        /* warm graphite surface */
-    --card-foreground:     35 18% 94%;
-    --popover:             30 7% 15%;        /* elevated graphite */
-    --popover-foreground:  35 18% 94%;
+    --card:                20.0000 12.0000% 9.8039%;        /* warm graphite surface */
+    --card-foreground:     30 30% 96%;
+    --popover:             25.0000 14.2857% 16.4706%;        /* elevated graphite */
+    --popover-foreground:  30 30% 96%;
 
     /* ── Text ───────────────────────────────────────────────── */
-    --foreground:           35 18% 94%;      /* soft porcelain text */
+    --foreground:           30 30% 96%;      /* soft porcelain text */
 
     /* ── Border ─────────────────────────────────────────────── */
-    --border:              30 8% 24%;
+    --border:              35 9% 31%;
     --border-subtle:       30 7% 17%;
-    --input:               30 8% 24%;
-    --ring:                14 69% 51%;
+    --input:               35 9% 31%;
+    --ring:                27 86% 59%;
 
     /* ── Primary (Interaction) ──────────────────────────────── */
-    --primary:             14 69% 51%;       /* Nezu orange #D9542B */
-    --primary-foreground:  30 20% 98%;
+    --primary:             27 86% 59%;       /* approved warm Dashboard orange */
+    --primary-foreground:  30 35% 10%;
 
     /* ── Secondary / Muted ──────────────────────────────────── */
-    --secondary:           30 7% 16%;
-    --secondary-foreground: 35 18% 92%;
-    --muted:               30 7% 16%;
-    --muted-foreground:    30 8% 68%;
+    --secondary:           25.0000 14.2857% 16.4706%;
+    --secondary-foreground: 30 30% 96%;
+    --muted:               25.0000 14.2857% 16.4706%;
+    --muted-foreground:    26 13% 72%;
 
     /* ── Accent ─────────────────────────────────────────────── */
-    --accent:              69 72% 55%;       /* Nezu lime #C9DF38 */
-    --accent-foreground:   72 70% 8%;
+    --accent:              var(--primary);       /* same interaction accent, not a second identity */
+    --accent-foreground:   var(--primary-foreground);
 
     --light-active:        36 100% 66%;      /* physical light warmth */
     --light-active-foreground: 30 60% 10%;
@@ -139,11 +169,35 @@
   }
 
   .light {
+    --eco: 70 43% 42%;
+    --dashboard-canvas: 34 16% 90%;
+    --dashboard-surface: 35 18% 93%;
+    --dashboard-surface-raised: 36 20% 96%;
+    --dashboard-edge: 32 13% 73%;
+    --dashboard-section-surface: 35 18% 93%;
+    --dashboard-section-edge: 32 13% 73%;
+    --dashboard-tile-surface: 36 20% 96%;
+    --dashboard-tile-edge: 32 13% 73%;
+    --hp-section-surface: 249 246 242;
+    --hp-section-ambient: 255 174 104;
+    --hp-section-edge: 130 109 92;
+    --hp-section-ink: 29 27 25;
+    --hp-section-accent: 255 112 31;
+    --hp-section-shadow: 73 51 35;
+    --dashboard-premium-accent: 184 79 50;
+    --dashboard-premium-accent-light: 184 79 50;
+    --dashboard-premium-section: 240 237 234;
+    --dashboard-premium-card: 240 237 234;
+    --dashboard-premium-tile: 247 245 243;
+    --dashboard-premium-tile-hover: 249 247 245;
+    --dashboard-premium-edge: 195 187 177;
+    --dashboard-premium-text: 31 37 45;
+    --dashboard-premium-secondary: 74 81 94;
     /* ── Core Surfaces (mineral elevation ladder) ─────────── */
     --background:          34 16% 90%;       /* luminous architectural stone */
-    --card:                35 20% 95%;       /* warm mineral surface */
+    --card:                35 18% 93%;       /* warm mineral surface */
     --card-foreground:     215 18% 15%;
-    --popover:             36 22% 97%;       /* quiet limestone */
+    --popover:             36 20% 96%;       /* quiet limestone */
     --popover-foreground:  215 18% 15%;
 
     /* ── Text ───────────────────────────────────────────────── */
@@ -153,7 +207,7 @@
     --border:              32 13% 73%;       /* weathered stone */
     --border-subtle:       34 12% 84%;
     --input:               32 13% 73%;
-    --ring:                14 69% 43%;
+    --ring:                var(--primary);
 
     /* ── Primary (Interaction) ──────────────────────────────── */
     --primary:             14 57% 46%;       /* burnished copper #B84F32 */
@@ -166,8 +220,8 @@
     --muted-foreground:    215 12% 33%;
 
     /* ── Accent ─────────────────────────────────────────────── */
-    --accent:              70 43% 42%;       /* muted olive */
-    --accent-foreground:   72 70% 8%;
+    --accent:              var(--primary);       /* same interaction accent */
+    --accent-foreground:   var(--primary-foreground);
 
     --light-active:        37 65% 54%;       /* warm brass */
     --light-active-foreground: 30 60% 10%;
@@ -553,8 +607,8 @@
   }
 
   .device-state-on .device-toggle-icon {
-    background-color: hsl(var(--primary-foreground) / 0.12);
-    color: hsl(var(--primary-foreground));
+    background-color: hsl(var(--foreground) / 0.12);
+    color: hsl(var(--foreground));
   }
 
   .device-tone-light.device-state-on .device-toggle-icon {
@@ -568,8 +622,8 @@
   }
 
   .device-state-on .device-toggle-status {
-    background-color: hsl(var(--primary-foreground) / 0.14);
-    color: hsl(var(--primary-foreground));
+    background-color: hsl(var(--foreground) / 0.14);
+    color: hsl(var(--foreground));
   }
 
   .device-tone-light.device-state-on .device-toggle-status {
@@ -597,10 +651,8 @@
     box-shadow: inset 0 1px 0 hsl(var(--popover) / 0.92), 0 14px 28px -24px hsl(var(--light-active) / 0.52);
   }
 
-  /* The dark-mode "on" chip/pill colors assume a saturated primary
-   * background, so they use --primary-foreground (near white) text. Light
-   * mode's "on" background is a pale primary-tinted gradient instead, which
-   * turns that white text/icon invisible. Use the primary hue itself. */
+  /* Tinted status chips use readable surface text, not the ink reserved for
+   * solid primary buttons. Light tinted chips use the darker primary hue. */
   .light .device-state-on:not(.device-tone-light) .device-toggle-icon {
     background-color: hsl(var(--primary) / 0.16);
     color: hsl(var(--primary));
@@ -777,35 +829,9 @@
   .homepilot-dashboard-screen {
     background-color: hsl(var(--background));
   }
-  :is(.homepilot-dashboard-screen, .homepilot-home-routines) {
-    --dashboard-section-surface: 30 8% 12%;
-    --dashboard-section-edge: 35 12% 33%;
-    --dashboard-tile-surface: 30 7% 17%;
-    --dashboard-tile-edge: 35 9% 31%;
-    --hp-section-surface: 26 22 19;
-    --hp-section-ambient: 242 138 58;
-    --hp-section-edge: 255 215 185;
-    --hp-section-ink: 255 252 249;
-    --hp-section-accent: 246 143 64;
-    --hp-section-shadow: 10 7 5;
-  }
 
-  .light :is(.homepilot-dashboard-screen, .homepilot-home-routines) {
-    --dashboard-canvas: 34 16% 90%;
-    --dashboard-surface: 35 18% 93%;
-    --dashboard-surface-raised: 36 20% 96%;
-    --dashboard-edge: 32 13% 73%;
-    --dashboard-section-surface: 35 18% 93%;
-    --dashboard-section-edge: 32 13% 73%;
-    --dashboard-tile-surface: 36 20% 96%;
-    --dashboard-tile-edge: 32 13% 73%;
-    --hp-section-surface: 249 246 242;
-    --hp-section-ambient: 255 174 104;
-    --hp-section-edge: 130 109 92;
-    --hp-section-ink: 29 27 25;
-    --hp-section-accent: 255 112 31;
-    --hp-section-shadow: 73 51 35;
-  }
+
+
 
   /* An inset edge preserves measured section/card bounds and masonry rows. */
   .homepilot-dashboard-screen .homepilot-dashboard-section {
@@ -941,27 +967,8 @@
 
   /* The shell retains .dark while adding .light. Dark dashboard treatments
      must not override the light section and clock palettes in that state. */
-  /* Premium dashboard is a local visual language, not a replacement for the
-     application-wide primary or semantic success/warning/danger palette. */
-  .dark:not(.light) :is(.homepilot-dashboard-screen, .homepilot-home-routines) {
-    --dashboard-premium-accent: 242 138 58;
-    --dashboard-premium-accent-light: 246 163 94;
-    --dashboard-premium-accent-soft: rgb(var(--dashboard-premium-accent) / 0.12);
-    --dashboard-premium-accent-border: rgb(var(--dashboard-premium-accent-light) / 0.65);
-    --dashboard-premium-accent-glow: rgb(var(--dashboard-premium-accent) / 0.14);
-    --dashboard-premium-section: 29 24 21;
-    --dashboard-premium-card: 28 24 22;
-    --dashboard-premium-tile: 48 41 36;
-    --dashboard-premium-tile-hover: 50 41 35;
-    --dashboard-premium-edge: 255 215 185;
-    --dashboard-premium-text: 255 252 249;
-    --dashboard-premium-secondary: 235 225 218;
-    /* Alias only inside the dark Dashboard; the app-wide brand primary stays unchanged. */
-    --primary: 27 86% 59%;
-    --ring: 27 86% 59%;
-    --foreground: 30 30% 96%;
-    --muted-foreground: 26 13% 72%;
-  }
+  /* Dashboard treatments consume the global palette; only material/opacity is local. */
+
 
   .dark:not(.light) .homepilot-dashboard-screen .homepilot-clock-surface,
   .dark:not(.light) .homepilot-dashboard-screen [data-media-player="homepilot-premium"],
@@ -1491,11 +1498,11 @@
     max-width: 100%;
     min-height: 3.25rem;
     padding: 0.65rem 1.1rem;
-    border: 1px solid rgb(255 151 74 / 0.78);
+    border: 1px solid hsl(var(--primary) / 0.78);
     border-radius: 999px;
-    background: rgb(35 26 22 / 0.96);
+    background: hsl(var(--card) / 0.96);
     box-shadow: 0 7px 18px rgb(0 0 0 / 0.36), inset 0 1px 0 rgb(255 231 201 / 0.16);
-    color: #fffaf5;
+    color: hsl(var(--foreground));
     font-weight: 700;
     white-space: nowrap;
     cursor: pointer;
@@ -1503,14 +1510,14 @@
   }
 
   .homepilot-home-dashboard-button-arrow {
-    color: #ffad65;
+    color: hsl(var(--primary));
     transition: transform 180ms ease;
   }
 
   .homepilot-home-dashboard-button:hover:not(:disabled),
   .homepilot-home-dashboard-button:focus-visible:not(:disabled) {
-    border-color: #ffad65;
-    background: rgb(51 32 23 / 0.98);
+    border-color: hsl(var(--primary));
+    background: hsl(var(--popover) / 0.98);
     box-shadow: 0 9px 20px rgb(0 0 0 / 0.4), inset 0 1px 0 rgb(255 231 201 / 0.2);
   }
 
@@ -1520,7 +1527,7 @@
   }
 
   .homepilot-home-dashboard-button:focus-visible {
-    outline: 3px solid #fffaf5;
+    outline: 3px solid hsl(var(--ring));
     outline-offset: 3px;
   }
 
@@ -1530,10 +1537,10 @@
 
   .homepilot-home-dashboard-button:disabled {
     opacity: 1;
-    border-color: rgb(255 255 255 / 0.24);
-    background: rgb(30 27 25 / 0.94);
+    border-color: hsl(var(--border) / 0.5);
+    background: hsl(var(--card) / 0.94);
     box-shadow: 0 6px 16px rgb(0 0 0 / 0.28);
-    color: rgb(255 250 245 / 0.68);
+    color: hsl(var(--muted-foreground));
     cursor: not-allowed;
   }
 

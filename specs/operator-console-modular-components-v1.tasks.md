@@ -168,6 +168,8 @@
 - [x] Corregir el plegado de Sistema tras navegar a una subopción: el estado compacto tiene precedencia sobre la expansión automática usada por el sidebar abierto.
 
 - [x] Adaptar el selector compartido al viewport visual y al teclado táctil; reservar scroll real para todas las opciones del Gestor de Dispositivos y demás formularios en tablet. **Criterio:** AC75.
+- [x] Unificar la paleta del Dashboard en tokens globales Light/Dark, incluyendo portales, eliminar overrides locales de identidad y comprobar igualdad entre vistas/overlays, contraste y ausencia de cambios geométricos. **Criterio:** AC76.
+  - **Evidencia (2026-10-01):** 18 tests Jest distintos (composición de tokens/clases, SceneCard, SceneDeviceSelector y HomeDashboardButton) PASS. 17 escenarios responsive focalizados PASS; se repitieron los 5 de paleta tras integrar los tokens del botón de Inicio, todos PASS. Contraste primario ≥4.5:1 en Light/Dark; capturas celular/escritorio revisadas. Typecheck, lint, builds raíz/consola y controles de spec/BDD/módulos PASS. Responsive completo, Git, GitHub, Docker y deploy no ejecutados.
 
 
 - [x] Permitir cerrar el sidebar en móvil y tablet tocando fuera o deslizando el panel hacia la izquierda, sin cerrar durante desplazamiento vertical ni alterar el rail de escritorio.

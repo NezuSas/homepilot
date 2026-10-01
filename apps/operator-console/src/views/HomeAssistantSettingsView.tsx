@@ -180,7 +180,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
             {t('ha_settings.security.description')}
           </p>
           <div className="mt-auto pt-2">
-             <span className="text-micro bg-primary/20 text-primary-foreground px-2 py-1 rounded font-bold">{t('ha_settings.security.badge')}</span>
+             <span className="text-micro bg-primary/20 text-primary px-2 py-1 rounded font-bold">{t('ha_settings.security.badge')}</span>
           </div>
         </Card>
       </div>

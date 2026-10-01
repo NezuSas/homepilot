@@ -41,6 +41,7 @@ export default {
         border: 'hsl(var(--border))',
         input:  'hsl(var(--input))',
         ring:   'hsl(var(--ring))',
+        eco: 'hsl(var(--eco))',
 
         // ── Semantic status tokens ──────────────────────────────
         // Use success/warning/danger everywhere instead of

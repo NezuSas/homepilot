@@ -1032,6 +1032,58 @@ test('allows clearing the current open-on-load tab before enabling another', asy
   await expect(dialog.getByRole('switch', { name: /abrir al cargar|open on load/i })).toBeEnabled();
 });
 
+for (const viewport of [...viewports, { name: 'tablet landscape', width: 1024, height: 768 }, { name: 'portrait kiosk', ...portraitKioskViewport }]) {
+  test(`Feature: Unified palette — Dashboard, Home and portal editor share theme colors on ${viewport.name} (AC76)`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await prepareAuthenticatedDashboard(page);
+    await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: 'responsive-home', ownerId: dashboardUser.id, name: 'Casa' }] }));
+    await page.route('**/api/v1/scenes', route => route.fulfill({ json: [{ id: 'palette-scene', homeId: 'responsive-home', roomId: null, name: 'Paleta compartida', actions: [{ deviceId: 'cover-living', command: 'open' }] }] }));
+    await page.route('**/api/v1/scenes/favorites', route => route.fulfill({ json: { sceneIds: [], initialized: true } }));
+    const tokens = ['--primary', '--primary-foreground', '--card', '--popover', '--foreground', '--muted-foreground', '--border', '--ring', '--success', '--warning', '--danger'];
+    for (const theme of ['dark', 'light']) {
+      await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+      await page.evaluate(isLight => document.documentElement.classList.toggle('light', isLight), theme === 'light');
+      const dashboard = page.locator('.homepilot-dashboard-screen');
+      await expect(page.locator('.homepilot-dashboard-section')).toBeVisible();
+      const global = await page.locator('html').evaluate((element, names) => names.map(name => getComputedStyle(element).getPropertyValue(name).trim()), tokens);
+      const inherited = await dashboard.evaluateAll((elements, names) => elements.map(element => names.map(name => getComputedStyle(element).getPropertyValue(name).trim())), tokens);
+      expect(inherited.length).toBeGreaterThan(0);
+      for (const palette of inherited) expect(palette).toEqual(global);
+      if (viewport.name === 'mobile' || viewport.name === 'desktop') await page.screenshot({ path: testInfo.outputPath(`dashboard-${theme}.png`), animations: 'disabled' });
+      await page.goto('/');
+      await page.evaluate(isLight => document.documentElement.classList.toggle('light', isLight), theme === 'light');
+      expect(await page.locator('body').evaluate((element, names) => names.map(name => getComputedStyle(element).getPropertyValue(name).trim()), tokens)).toEqual(global);
+      const homeAction = page.getByRole('button', { name: /Open Principal in my dashboard|Abrir.*Principal.*mi tablero/i });
+      await expect(homeAction).toBeVisible();
+      expect(await homeAction.evaluate(element => getComputedStyle(element).color)).toBe(await page.locator('body').evaluate(element => getComputedStyle(element).color));
+      if (viewport.name === 'mobile' || viewport.name === 'desktop') await page.screenshot({ path: testInfo.outputPath(`home-${theme}.png`), animations: 'disabled' });
+      await page.goto('/routines/scenes');
+      await page.evaluate(isLight => document.documentElement.classList.toggle('light', isLight), theme === 'light');
+      await page.getByRole('button', { name: /^(Editar|Edit)$/i }).click();
+      const editor = page.getByRole('dialog');
+      await expect(editor).toBeVisible();
+      expect(await editor.evaluate((element, names) => names.map(name => getComputedStyle(element).getPropertyValue(name).trim()), tokens)).toEqual(global);
+      const save = editor.getByRole('button', { name: /^(Guardar escena|Save Scene)$/i });
+      await expect(save).toBeEnabled();
+      const contrast = await save.evaluate(element => {
+        const style = getComputedStyle(element);
+        const luminance = (color: string) => {
+          const rgb = color.match(/[\d.]+/g)!.slice(0, 3).map(value => Number(value) / 255).map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+          return rgb[0]! * 0.2126 + rgb[1]! * 0.7152 + rgb[2]! * 0.0722;
+        };
+        const text = luminance(style.color), background = luminance(style.backgroundColor);
+        return (Math.max(text, background) + 0.05) / (Math.min(text, background) + 0.05);
+      });
+      expect(contrast).toBeGreaterThanOrEqual(4.5);
+      const bounds = await editor.boundingBox();
+      expect(bounds!.x).toBeGreaterThanOrEqual(0);
+      expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(viewport.width);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+      if (viewport.name === 'mobile' || viewport.name === 'desktop') await page.screenshot({ path: testInfo.outputPath(`editor-${theme}.png`), animations: 'disabled' });
+    }
+  });
+}
+
 for (const viewport of [...viewports, { name: 'portrait kiosk', ...portraitKioskViewport }]) {
   test(`premium dashboard surfaces preserve section bounds and avoid overflow on ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });

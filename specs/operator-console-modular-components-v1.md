@@ -192,9 +192,12 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC74: Antes del primer mensaje, los atajos de conversación se muestran como sugerencias contextuales inmediatamente sobre el compositor; no ocupan una barra separada en la parte superior de la conversación.
 - [x] AC75: El selector modular con búsqueda usa el viewport visual al abrirse y al aparecer el teclado táctil; la lista reduce su altura y permite desplazarse hasta la última opción sin recortar el buscador ni perder foco en modales y cajones, incluido «Función del dispositivo» en tablet. Los formularios compartidos de Modal y Drawer también se ajustan al viewport visual para mantener alcanzables sus campos.
 
+
+- [x] AC76: La paleta aprobada del Dashboard es el estándar global Light/Dark de la consola. Inicio, Rutinas, formularios y overlays con portal comparten tokens de identidad, superficies, texto y foco; ningún contenedor redefine la identidad localmente. Se conservan colores semánticos, geometría y comportamiento. Texto de controles primarios conserva contraste mínimo 4.5:1. Tokens runtime referencian CSS, sin paletas hex duplicadas.
+
 ## 8. Notas Técnicas y Arquitectura
 
-- Los tokens viven en `design-system/tokens.ts`; CSS y Tailwind deben consumir sus variables o escala equivalente documentada.
+- Los valores de color viven en `index.css`; `design-system/tokens.ts` y Tailwind los referencian. Las demás escalas compartidas conservan sus contratos existentes.
 - Vistas orquestan datos y dominio; los componentes modulares renderizan props tipadas y emiten callbacks.
 - Una tarjeta ligada a una entidad de negocio se documenta además en la spec de su dominio.
 
