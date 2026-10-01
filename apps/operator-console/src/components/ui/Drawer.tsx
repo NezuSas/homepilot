@@ -64,7 +64,7 @@ export const Drawer: React.FC<DrawerProps> = ({
         tabIndex={-1}
         onKeyDown={handleOverlayKeyDown}
         className={cn(
-          'surface-transition relative flex h-full min-h-0 w-full max-w-2xl flex-col overflow-hidden border-l border-border bg-card shadow-depth-3 animate-in slide-in-from-right duration-base',
+          'surface-transition absolute right-0 top-0 flex h-full min-h-0 w-full max-w-2xl flex-col overflow-hidden border-l border-border bg-card shadow-depth-3 animate-in fade-in duration-base',
           panelClassName,
         )}
       >

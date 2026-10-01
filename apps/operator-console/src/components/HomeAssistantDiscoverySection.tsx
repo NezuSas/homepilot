@@ -58,7 +58,10 @@ export const HomeAssistantDiscoverySection: React.FC<HomeAssistantDiscoverySecti
     const uniqueDomains = Array.from(new Set(entities.map((entity) => entity.domain))).sort();
     return [
       { value: 'all', label: t('inbox.filters.all') },
-      ...uniqueDomains.map((domain) => ({ value: domain, label: domain.replaceAll('_', ' ') })),
+      ...uniqueDomains.map((domain) => {
+        const label = domain.replaceAll('_', ' ').toLocaleLowerCase();
+        return { value: domain, label: label.charAt(0).toLocaleUpperCase() + label.slice(1) };
+      }),
     ];
   }, [entities, t]);
 
@@ -167,7 +170,7 @@ export const HomeAssistantDiscoverySection: React.FC<HomeAssistantDiscoverySecti
             <>
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div className="w-full max-w-sm"><SearchInput value={searchQuery} onChange={event => setSearchQuery(event.target.value)} placeholder={t('inbox.discovery.search_placeholder')} /></div>
-                <SearchableSelectField label={t('inbox.filters.type_label')} value={domainFilter} onChange={setDomainFilter} options={domainOptions} className="ml-auto w-40 max-w-full" />
+                <SearchableSelectField label={t('inbox.filters.type_label')} value={domainFilter} onChange={setDomainFilter} options={domainOptions} className="ml-auto w-52 max-w-full" />
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-2 text-caption text-muted-foreground">
@@ -180,12 +183,19 @@ export const HomeAssistantDiscoverySection: React.FC<HomeAssistantDiscoverySecti
 
               <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,17rem),1fr))] gap-3">
                 {visibleEntities.map((entity) => (
-                  <article key={entity.entityId} className="flex min-w-0 items-center gap-3 rounded-control border border-border bg-card p-3">
-                    <div className="flex min-w-0 flex-col">
-                      <span className="break-words text-body-compact font-semibold">{entity.friendlyName}</span>
-                      <span className="break-all text-micro text-muted-foreground">{entity.entityId}</span>
+                  <article key={entity.entityId} className="flex min-w-0 flex-col gap-3 rounded-control border border-border bg-card p-4">
+                    <div className="flex min-w-0 flex-col gap-1">
+                      <span className="break-words text-card-title font-semibold">{entity.friendlyName}</span>
+                      <span className="break-all text-caption text-muted-foreground">{entity.entityId}</span>
+                      {entity.profile && (
+                        <p className="break-words text-caption text-muted-foreground">
+                          {entity.profile.displayName} · {entity.profile.supportedCommandCount > 0
+                            ? t('inbox.discovery.command_count', { count: entity.profile.supportedCommandCount })
+                            : t('inbox.discovery.read_only')}
+                        </p>
+                      )}
                     </div>
-                    <div className="ml-auto shrink-0">
+                    <div className="flex justify-end border-t border-border/60 pt-3">
                       <Button
                         type="button"
                         onClick={() => { void handleImport(entity); }}

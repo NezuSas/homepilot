@@ -266,8 +266,8 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
         </div>
       ) : device ? (
       <div className="relative flex min-h-0 flex-1 flex-col">
-        <div className="relative border-b border-border bg-muted/30 p-4 sm:p-6">
-          <div className="mb-5 flex items-start justify-between gap-3 sm:mb-6 sm:items-center">
+        <div className="relative border-b border-border bg-muted/30 p-4">
+          <div className="mb-3 flex items-start justify-between gap-3 sm:items-center">
             <div className="flex min-w-0 items-center gap-3">
               <div className="p-3 bg-primary/10 text-primary rounded-xl">
                 <RadioTower className="w-6 h-6" />
@@ -338,7 +338,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
           />
         </div>
 
-        <div className="custom-scrollbar flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-4">
           {activeTab === 'info' && (
             <DeviceInspectorInfoTab
               device={device}
@@ -367,7 +367,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
           )}
         </div>
 
-        <div className="p-6 border-t border-border/50 bg-muted/10 text-center">
+        <div className="px-4 py-3 border-t border-border/50 bg-muted/10 text-center">
           <p className="text-micro font-black uppercase tracking-label-wider opacity-20">{t('inbox.inspector.data_object')}</p>
         </div>
       </div>

@@ -134,6 +134,8 @@ Se propone una consola de administración pragmática:
 - [x] AC55: Gestor/Descubrimiento muestran filtros «Origen»/«Tipo» compactos alineados a la derecha, reutilizando SearchableSelectField. Las fichas agrupadas del Gestor no repiten el espacio; las pendientes muestran únicamente «Sin asignar», sin etiqueta Local Nativo ni formato cuadrado. Resultados HA usan filtro Tipo y tarjetas compactas con importación explícita. Los no disponibles se excluyen del descubrimiento/asignación, sin borrar registros, referencias ni datos persistentes; el resumen HA conserva su formato ligero y filtra `unavailable` antes de responder.
 - [x] AC56: Usuarios y Acceso presenta su título correcto y una composición compacta modular en todos los breakpoints, con skeleton propio; conserva roles, estados, confirmaciones, sesiones y protección del usuario actual, sin cambiar RBAC ni endpoints.
 
+  Refinamiento AC54–AC55: los filtros mantienen un ancho legible (aproximadamente 13rem por control cuando hay espacio, con adaptación a móvil), alineados a la derecha sin encogimiento por el encabezado. Las opciones de dominio usan capitalización de frase sin alterar su valor. Las candidatas HA muestran nombre e identificador, perfil y número de comandos cuando el resumen los proporciona, con Importar debajo. El inspector conserva posición derecha desde el primer frame, sin traslado lateral, y reduce espaciados internos manteniendo controles y scroll. Los límites del viewport visual se aplican antes de pintar.
+
 ## 9. Notas Técnicas y Arquitectura
 
 - El backend actual debe exponer (si no lo hace aún) los endpoints mínimos para soportar estas vistas (ej. REST V1 `GET /api/devices/inbox`, `POST /api/devices/{id}/assign`, etc.).

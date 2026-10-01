@@ -1,10 +1,10 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useLayoutEffect, useState, type CSSProperties } from 'react';
 
 /** Keep overlay forms inside the visible area when a touch keyboard opens. */
 export function useVisualViewportBounds(isOpen: boolean): CSSProperties | undefined {
   const [bounds, setBounds] = useState<CSSProperties>();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isOpen || !window.visualViewport) return;
 
     const viewport = window.visualViewport;

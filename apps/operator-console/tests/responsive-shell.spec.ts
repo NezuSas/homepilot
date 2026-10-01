@@ -628,6 +628,19 @@ for (const viewport of [
       const controlBounds = await manage.boundingBox();
       expect(controlBounds?.width).toBeGreaterThanOrEqual(44);
       expect(controlBounds?.height).toBeGreaterThanOrEqual(44);
+      await page.evaluate(() => {
+        const samples: { x: number; scrollX: number; right: number }[] = [];
+        Object.assign(window, { inspectorOpeningFrames: samples });
+        const sample = () => {
+          const panel = document.querySelector('[role="dialog"]');
+          if (panel) {
+            const rect = panel.getBoundingClientRect();
+            samples.push({ x: rect.x, right: rect.right, scrollX: window.scrollX });
+          }
+          if (samples.length < 30) requestAnimationFrame(sample);
+        };
+        requestAnimationFrame(sample);
+      });
       await manage.click();
       const inspector = page.getByRole('dialog', { name: /Inspector técnico|Technical inspector/i });
       await expect.poll(() => requested).toBe(true);
@@ -635,6 +648,10 @@ for (const viewport of [
       const initialPanel = await inspector.elementHandle();
       await expect.poll(() => inspector.evaluate(element => element.getAnimations().filter(animation => animation.playState === 'running').length)).toBe(0);
       const before = await inspector.boundingBox();
+      const openingFrames = await page.evaluate(() => (window as unknown as { inspectorOpeningFrames: { x: number; scrollX: number; right: number }[] }).inspectorOpeningFrames);
+      expect(openingFrames.length).toBeGreaterThan(0);
+      expect(openingFrames.every(frame => frame.scrollX === 0)).toBe(true);
+      expect(Math.min(...openingFrames.map(frame => frame.x))).toBeGreaterThanOrEqual(viewport.width - Math.min(viewport.width, 672) - 1);
       expect(before?.x).toBeGreaterThanOrEqual(viewport.width - Math.min(viewport.width, 672) - 1);
       release();
       await expect(inspector.getByText(/Función del dispositivo|Device function/i)).toBeVisible();
@@ -691,7 +708,7 @@ for (const viewport of [
       expect(route.request().postDataJSON()).toEqual({ roomId: 'office' });
       await route.fulfill({ json: { ...pending, roomId: 'office', status: 'ASSIGNED' } });
     });
-    const candidates = [{ entityId: 'light.new', friendlyName: 'Luz nueva', domain: 'light' }, { entityId: 'sensor.new', friendlyName: 'Temperatura nueva', domain: 'sensor' }];
+    const candidates = [{ entityId: 'light.new', friendlyName: 'Luz nueva', domain: 'light', profile: { displayName: 'Light', category: 'lighting', supportedCommandCount: 2 } }, { entityId: 'sensor.new', friendlyName: 'Temperatura nueva', domain: 'sensor' }];
     await page.route('**/api/v1/ha/entities?mode=all&view=summary', route => route.fulfill({ json: candidates }));
     let imports = 0;
     await page.route('**/api/v1/ha/import', async route => {
@@ -711,8 +728,8 @@ for (const viewport of [
       await expect(main.getByRole('heading', { name: /^(Sin asignar|Unassigned)$/i })).toBeVisible();
       const origin = main.getByRole('button', { name: /^(Origen|Origin)$/i });
       const type = main.getByRole('button', { name: /^(Tipo|Type)$/i });
-      expect((await origin.boundingBox())?.width).toBeLessThanOrEqual(160);
-      expect((await type.boundingBox())?.width).toBeLessThanOrEqual(160);
+      expect((await origin.boundingBox())?.width).toBeGreaterThanOrEqual(viewport.width < 640 ? 128 : 196);
+      expect((await type.boundingBox())?.width).toBeGreaterThanOrEqual(viewport.width < 640 ? 128 : 196);
       const typeBounds = await type.boundingBox();
       const mainBounds = await main.boundingBox();
       expect(typeBounds!.x + typeBounds!.width).toBeGreaterThan(mainBounds!.x + mainBounds!.width - 40);
@@ -726,9 +743,12 @@ for (const viewport of [
       const discovery = page.getByRole('region', { name: /Home Assistant/i });
       const candidate = discovery.getByRole('article').filter({ hasText: 'Luz nueva' });
       await expect(candidate).toBeVisible();
-      expect((await candidate.boundingBox())?.height).toBeLessThanOrEqual(110);
+      await expect(candidate).toContainText(/2 comandos|2 commands/);
+      const importBounds = await candidate.getByRole('button', { name: /^(Importar|Import)$/i }).boundingBox();
+      const titleBounds = await candidate.getByText('Luz nueva', { exact: true }).boundingBox();
+      expect(importBounds!.y).toBeGreaterThan(titleBounds!.y + titleBounds!.height);
       await discovery.getByRole('button', { name: /^(Tipo|Type)$/i }).click();
-      await page.getByRole('option', { name: 'sensor', exact: true }).click();
+      await page.getByRole('option', { name: 'Sensor', exact: true }).click();
       await expect(discovery.getByRole('article')).toHaveCount(1);
       await discovery.getByRole('button', { name: /^(Tipo|Type)$/i }).click();
       await page.getByRole('option', { name: /^(Todo|All)$/i }).click();

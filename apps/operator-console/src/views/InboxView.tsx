@@ -135,7 +135,8 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
         title={mode === 'manager' ? t('nav.system_devices') : t('nav.system_inbox')}
         icon={mode === 'manager' ? Settings : Inbox}
         action={
-          <div className="ml-auto grid w-full max-w-80 grid-cols-2 gap-2 sm:w-80">
+          <div className="ml-auto max-w-full">
+          <div className="grid w-full max-w-full grid-cols-2 gap-3 sm:w-[26rem]">
             {/* Origin Filter */}
             <SearchableSelectField
               value={originFilter}
@@ -165,6 +166,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
                 label: t(`inbox.filters.${value}`),
               }))}
             />
+          </div>
           </div>
         }
       />
