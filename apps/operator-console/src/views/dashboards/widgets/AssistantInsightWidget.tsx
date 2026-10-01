@@ -4,13 +4,18 @@ import type { DashboardWidgetConfig } from '../types';
 import { Sparkles, AlertCircle, CheckCircle2, ChevronRight } from 'lucide-react';
 import { useAssistantStore } from '../../../stores/useAssistantStore';
 import { Button } from '../../../components/ui/Button';
+import { useDeviceSnapshotStore } from '../../../stores/useDeviceSnapshotStore';
+import { isFindingOperational } from '../../../lib/deviceOperationalEligibility';
 
 export function AssistantInsightWidget({ config }: { config: DashboardWidgetConfig }) {
   const { t } = useTranslation();
   const { findings, isLoading } = useAssistantStore();
+  const devices = useDeviceSnapshotStore(state => state.devices);
+  const roomsByHome = useDeviceSnapshotStore(state => state.roomsByHome);
   
   // Get top finding (sorted by score if available, or just the first)
-  const topFinding = findings.filter(f => f.status === 'open').sort((a, b) => (b.score || 0) - (a.score || 0))[0];
+  const topFinding = findings.filter(f => f.status === 'open' && isFindingOperational(f, devices, Object.values(roomsByHome).flat()))
+    .sort((a, b) => (b.score || 0) - (a.score || 0))[0];
 
   const getSeverityStyles = (severity: string) => {
     switch (severity) {

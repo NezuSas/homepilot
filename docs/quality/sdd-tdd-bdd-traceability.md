@@ -20,6 +20,7 @@
 | Assistant | `assistant-v1.md`, `nezu-domestic-assistant-v1.md` | Assistant execution and conversation tests | Residential command resolution, execution, and conversation matrix |
 | Local voice conversation | `home-conversation-natural-voice-v1.md` | Voice and assistant route tests | Canonical wake, local Whisper STT, Piper TTS, and safe error |
 | Operator Console | `operator-console-v1.md` | Assistant API client test | Conversation submission from the console |
+| Assigned operational devices and compact insights | `operator-console-v1.md` AC60, `energy-management-v1.md` AC4 | deviceOperationalEligibility, assignedEnergyPresentation, SceneDeviceSelector, AutomationDeviceSelect, CompactSystemPresentation tests | Responsive `Assigned compact insights`: five Home suggestions, assignment alerts preserved, unassigned energy readings excluded in mobile/tablet/desktop; `Automation device groups`: unassigned option excluded and last assigned option reachable |
 | Application shell | `operator-console-v1.md` | Demo steps test | Guided demo with stable selectors and views |
 | Dashboard sections | `dashboard-layout-and-widgets-v1.md` | Section card catalogue test | Card normalization and layout compatibility |
 | User dashboard navigation | `user-dashboard-navigation.md` | Responsive shell test | Collapsible dashboard group and authenticated child navigation |

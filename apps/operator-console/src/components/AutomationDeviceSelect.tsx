@@ -3,16 +3,17 @@ import { SearchableSelectField } from './ui/SearchableSelectField';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import type { AutomationBuilderDevice } from './AutomationBuilderTypes';
 import { humanize } from '../lib/naming-utils';
+import { isDeviceOperational } from '../lib/deviceOperationalEligibility';
 
 export function getAutomationDeviceOptions(
   devices: AutomationBuilderDevice[],
-  rooms: { id: string; name: string }[],
+  rooms: { id: string; name: string; homeId?: string }[],
   unassigned: string,
   locale?: string,
 ) {
   const roomNames = new Map(rooms.map(room => [room.id, room.name]));
   const collator = new Intl.Collator(locale, { numeric: true, sensitivity: 'base' });
-  return devices.map(device => {
+  return devices.filter(device => isDeviceOperational(device, rooms)).map(device => {
     const room = device.roomId ? roomNames.get(device.roomId) : undefined;
     return {
       value: device.id,

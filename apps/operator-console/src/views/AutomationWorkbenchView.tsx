@@ -12,6 +12,7 @@ import { AutomationWorkbenchForm } from '../components/AutomationWorkbenchForm';
 import { AutomationEditorSkeleton } from '../components/ui/ComponentSkeletons';
 import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { AutomationWorkbenchRuleCard, type AutomationWorkbenchRule } from '../components/AutomationWorkbenchRuleCard';
+import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 
 
 /**
@@ -34,6 +35,8 @@ interface AutomationRule {
 }
 
 interface Device {
+  roomId?: string | null;
+  homeId?: string;
   id: string;
   name: string;
   type: string;
@@ -55,6 +58,7 @@ interface RuleUI extends AutomationRule {
  */
 export const AutomationWorkbenchView: React.FC = () => {
   const { t } = useTranslation();
+  const refreshSnapshot = useDeviceSnapshotStore(state => state.refreshSnapshot);
   const [rules, setRules] = useState<RuleUI[]>([]);
   const [loading, setLoading] = useState(true);
   const [initialSettled, setInitialSettled] = useState(false);
@@ -134,9 +138,9 @@ export const AutomationWorkbenchView: React.FC = () => {
 
   useEffect(() => {
     let active = true;
-    void Promise.allSettled([fetchRules(), fetchDevices()]).then(() => { if (active) setInitialSettled(true); });
+    void Promise.allSettled([fetchRules(), fetchDevices(), refreshSnapshot()]).then(() => { if (active) setInitialSettled(true); });
     return () => { active = false; };
-  }, [fetchRules, fetchDevices]);
+  }, [fetchRules, fetchDevices, refreshSnapshot]);
 
   const toggle = async (id: string, currentlyEnabled: boolean) => {
     setRules(prev => prev.map(r => r.id === id ? { ...r, _processing: true, _error: null } : r));

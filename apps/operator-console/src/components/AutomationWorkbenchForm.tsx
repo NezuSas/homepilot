@@ -4,11 +4,15 @@ import { useTranslation } from 'react-i18next';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { SearchableSelectField } from './ui/SearchableSelectField';
+import { isDeviceOperational } from '../lib/deviceOperationalEligibility';
+import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 
 export interface AutomationWorkbenchDevice {
   id: string;
   name: string;
   type: string;
+  roomId?: string | null;
+  homeId?: string;
 }
 
 export interface AutomationWorkbenchFormData {
@@ -42,7 +46,9 @@ export const AutomationWorkbenchForm: React.FC<AutomationWorkbenchFormProps> = (
   onChange
 }) => {
   const { t } = useTranslation();
-  const deviceOptions = devices.map(device => ({ value: device.id, label: `${device.name} (${device.type})` }));
+  const roomsByHome = useDeviceSnapshotStore(state => state.roomsByHome);
+  const deviceOptions = devices.filter(device => isDeviceOperational(device, Object.values(roomsByHome).flat()))
+    .map(device => ({ value: device.id, label: `${device.name} (${device.type})` }));
 
   return (
     <form onSubmit={onSubmit} className="relative overflow-hidden rounded-panel border-2 border-primary/20 bg-card p-4 shadow-2xl animate-in zoom-in-95 duration-300 sm:p-6 lg:rounded-hero lg:p-10">

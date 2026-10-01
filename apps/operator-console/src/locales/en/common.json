@@ -574,6 +574,7 @@
     "builder": {
       "selected": "Selected",
       "selected_empty": "Add entities from the spaces below.",
+      "saved_unassigned_hint": "Some saved bindings have no valid room. Assign a room in Discovery. The saved bindings remain unchanged.",
       "available": "Available entities",
       "unassigned": "Unassigned space",
       "all_spaces": "All spaces",
@@ -1591,6 +1592,8 @@
     "privacy_description": "Information remains in your local installation. Technical details are managed from Diagnostics."
   },
   "energy": {
+    "assigned_readings_hint": "Assign energy sensors to a room to see their readings here.",
+    "refresh": "Refresh",
     "category": "Energy Intelligence",
     "title": "Energy Awareness",
     "subtitle": "Know where energy goes and where to save.",

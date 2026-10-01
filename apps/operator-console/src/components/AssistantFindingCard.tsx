@@ -1,7 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2, Info, Sparkles, Zap } from 'lucide-react';
-import { AssistantCard } from './ui/AssistantCard';
 import { Button } from './ui/Button';
 import { IconButton } from './ui/IconButton';
 import { getFindingDescription, getSafeFindingMetadata } from '../lib/assistantFindingPresentation';
@@ -21,14 +20,17 @@ export function AssistantFindingCard({ finding, onAction, onDismiss }: Assistant
   const icon = /energy|consumption|optimization|long_running/.test(finding.type) ? Zap
     : /suggestion|habit|opportunity/.test(finding.type) ? Sparkles : Info;
   return (
-    <AssistantCard icon={icon} category={t(`assistant.types.${finding.type}`)}
-      title={context || t(`assistant.types.${finding.type}`)}
-      description={getFindingDescription(finding, (key, values) => t(key, values))}
-      severity={finding.severity}
-      actions={<>
+    <article aria-label={context || t(`assistant.types.${finding.type}`)} className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 px-3 py-3 sm:px-4">
+      {React.createElement(icon, { 'aria-hidden': true, className: 'size-5 shrink-0 text-primary' })}
+      <div className="min-w-0 flex-1 basis-48">
+        <h3 className="break-words text-body-compact font-semibold text-foreground">{context || t(`assistant.types.${finding.type}`)}</h3>
+        <p className="mt-1 max-w-prose break-words text-caption leading-normal text-muted-foreground">{getFindingDescription(finding, (key, values) => t(key, values))}</p>
+        {metadata.ready === true && <span className="text-caption text-success">{t('assistant.draft.ready')}</span>}
+      </div>
+      <div className="flex max-w-full flex-wrap items-center gap-2">
         {finding.actions.map((action, index) => (
           <Button key={`${action.type}-${index}`} size="sm" variant={index === 0 ? 'primary' : 'secondary'}
-            className="min-h-11 flex-1 whitespace-normal text-caption"
+            className="min-h-11 whitespace-normal text-caption"
             onClick={(event) => {
               if (action.type === 'ignore' && onDismiss) onDismiss(finding.id, event);
               else onAction(finding, action);
@@ -38,8 +40,7 @@ export function AssistantFindingCard({ finding, onAction, onDismiss }: Assistant
           <IconButton size="lg" icon={CheckCircle2} label={t('assistant.actions.ignore')} variant="ghost"
             onClick={event => onDismiss(finding.id, event)} />
         )}
-      </>}>
-      {metadata.ready === true && <span className="text-caption text-success">{t('assistant.draft.ready')}</span>}
-    </AssistantCard>
+      </div>
+    </article>
   );
 }

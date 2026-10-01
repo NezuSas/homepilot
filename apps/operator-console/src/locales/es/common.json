@@ -574,6 +574,7 @@
     "builder": {
       "selected": "Seleccionadas",
       "selected_empty": "Añade entidades desde los espacios de abajo.",
+      "saved_unassigned_hint": "Hay vínculos guardados sin estancia válida. Asígnales una estancia desde Descubrimiento. Se conservan sin cambios.",
       "available": "Entidades disponibles",
       "unassigned": "Sin espacio",
       "all_spaces": "Todos los espacios",
@@ -1591,6 +1592,8 @@
     "privacy_description": "La información se mantiene en tu instalación local. Los detalles técnicos se gestionan desde Diagnóstico."
   },
   "energy": {
+    "assigned_readings_hint": "Asigna los sensores de energía a una estancia para consultar sus lecturas aquí.",
+    "refresh": "Actualizar",
     "category": "Inteligencia Energética",
     "title": "Consciencia Energética",
     "subtitle": "Saber dónde va la energía y dónde ahorrar.",

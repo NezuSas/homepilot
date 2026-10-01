@@ -15,9 +15,9 @@ const finding: AssistantFinding = { id: 'f', type: 'habit_pattern_detected', tit
 describe('Feature: Compact system presentation (AC59)', () => {
   it('renders the same finding component in Home and Assistant with recorded evidence', () => {
     const card = renderToStaticMarkup(<AssistantFindingCard finding={finding} onAction={noop} />);
-    const home = renderToStaticMarkup(<MemoryRouter><DashboardInsightsSection findings={[finding, { ...finding, id: 'duplicate' }]} onAction={noop} /></MemoryRouter>);
+    const home = renderToStaticMarkup(<MemoryRouter><DashboardInsightsSection findings={Array.from({ length: 7 }, (_, i) => ({ ...finding, id: `finding-${i}` }))} onAction={noop} /></MemoryRouter>);
     expect(card).toContain('assistant.evidence.habit_window');
-    expect(home.match(/assistant.evidence.habit_window/g)).toHaveLength(1);
+    expect(home.match(/assistant.evidence.habit_window/g)).toHaveLength(5);
     expect(home).toContain('href="/assistant"');
     expect(card).toContain('assistant.actions.create_automation');
   });

@@ -24,8 +24,8 @@ export function AssistantFindingGroupCard({ group, isExpanded, onToggleGroup, on
   const { t } = useTranslation();
   const contentId = useId();
   const findings = group.subGroups.flatMap(subGroup => subGroup.findings);
-  return <section className="col-span-full min-w-0 space-y-3">
-    <div className="flex flex-wrap items-center gap-2 rounded-card border border-border bg-card px-3 py-1">
+  return <section className="min-w-0">
+    <div className="flex flex-wrap items-center gap-2 border-b border-border/60 px-3 py-1">
       <Button variant="ghost" type="button" aria-expanded={isExpanded} aria-controls={contentId}
         onClick={() => onToggleGroup(group.id)}
         className="flex min-h-11 min-w-0 flex-1 items-center justify-start gap-3 rounded-control px-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
@@ -38,7 +38,7 @@ export function AssistantFindingGroupCard({ group, isExpanded, onToggleGroup, on
       ))}
     </div>
     <div id={contentId} hidden={!isExpanded}>
-      {isExpanded && <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      {isExpanded && <div className="divide-y divide-border/60">
         {findings.map(finding => <AssistantFindingCard key={finding.id} finding={finding} onAction={onAction} onDismiss={onDismiss} />)}
       </div>}
     </div>

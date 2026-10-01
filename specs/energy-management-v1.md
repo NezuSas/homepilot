@@ -34,6 +34,7 @@ El operador necesita visualizar métricas energéticas disponibles sin convertir
 - [x] AC1: Una métrica disponible se visualiza con valor y unidad.
 - [x] AC2: Ausencia de datos muestra estado vacío sin romper tablero.
 - [x] AC3: Refrescar no elimina el último dato válido.
+- AC4: Solo se presentan lecturas de entidades importadas vinculadas a una estancia válida; los totales corresponden a esas lecturas y ausencia de una unidad no se presenta como cero medido. Lista compacta por estancia y skeleton energético propio, sin histórico ni cambio de API.
 
 ## 7. Notas Técnicas y Arquitectura
 

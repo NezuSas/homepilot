@@ -45,6 +45,7 @@ The command fails if a file cannot be mapped to an existing spec.
 | Smart Display commercial controls and command execution | Control catalog, command-token cache, IntentFlow command client, Action Card target | Smart Display Control Catalog V1 |
 | Media | media routes and player cards | Media player local control |
 | Energy | energy view and snapshot widgets | Energy management |
+| Operative room eligibility and compact insights | deviceOperationalEligibility, assignedEnergyPresentation, SceneDeviceSelector, AutomationDeviceSelect, SectionWidget, AssistantFindingCard, DashboardInsightsSection, EnergyView, component skeletons | `specs/operator-console-v1.md` AC60; `specs/energy-management-v1.md` AC4 |
 | Sonoff LAN | `packages/integrations/sonoff` | Sonoff local integration |
 | Privacidad de escenas y automatizaciones por creador | `SceneRoutes`, `AutomationRoutes`, repositorios y casos de uso, asistente e importación de tableros | `specs/scene-lifecycle-v1.md` REQ-06/AC6; `specs/automation-rules-engine-v1.md` AC6 |
 | System variables | system variables routes and package | System variables |
@@ -60,7 +61,7 @@ The command fails if a file cannot be mapped to an existing spec.
 
 ## Audited Coverage
 
-- The **885** audited TypeScript/TSX files have a mapping rule to an existing
+- The **889** audited TypeScript/TSX files have a mapping rule to an existing
   spec.
 - All bounded contexts under `packages/` and all API route families are
   covered.

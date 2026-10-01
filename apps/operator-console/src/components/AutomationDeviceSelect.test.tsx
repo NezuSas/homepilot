@@ -9,10 +9,10 @@ describe('Feature: Automation device groups (AC53)', () => {
     { id: 'missing', name: 'Alfa', type: 'sensor', roomId: 'missing' },
   ];
   const rooms = [{ id: 'b', name: 'Oficina' }, { id: 'a', name: 'Cocina' }];
-  it('sorts rooms, then device names, with unassigned and orphaned rooms last', () => {
+  it('sorts rooms and device names, excluding unassigned and orphaned devices (AC60)', () => {
     const options = getAutomationDeviceOptions(devices, rooms, 'Sin espacio', 'es');
-    expect(options.map(option => option.value)).toEqual(['a', 'z', 'b', 'missing', 'u']);
-    expect(options.map(option => option.group)).toEqual(['Cocina', 'Cocina', 'Oficina', 'Sin espacio', 'Sin espacio']);
+    expect(options.map(option => option.value)).toEqual(['a', 'z', 'b']);
+    expect(options.map(option => option.group)).toEqual(['Cocina', 'Cocina', 'Oficina']);
   });
   it('shows the effective semantic identity, not the integration identity', () => {
     const option = getAutomationDeviceOptions(devices, rooms, 'Sin espacio', 'es').find(item => item.value === 'z');

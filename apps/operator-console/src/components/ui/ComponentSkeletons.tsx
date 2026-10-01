@@ -34,7 +34,13 @@ export function SpacesSkeleton(props: SkeletonProps) {
   return <LoadingState {...props}><ViewHeadingSkeleton /><div className="space-y-5 rounded-section border border-border bg-card p-4"><div className="flex items-center gap-3"><Bar className="size-11" /><Bar className="h-6 w-32" /></div><Bar className="h-11 w-full" /><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{Array.from({ length: 4 }, (_, i) => <TopologyRoomCardSkeleton key={i} />)}</div></div></LoadingState>;
 }
 export function HomeSkeleton(props: SkeletonProps) {
-  return <LoadingState {...props}><div className="homepilot-home-hero space-y-5 bg-card p-6 sm:p-8"><div className="space-y-2"><Bar className="h-10 w-56 max-w-full" /><Bar className="h-10 w-40" /></div><Bar className="h-5 w-1/2" /><div className="flex w-72 max-w-full gap-2">{Array.from({ length: 4 }, (_, i) => <Bar key={i} className="h-20 min-w-0 flex-1" />)}</div><div className="flex flex-wrap gap-2"><Bar className="h-10 w-24 rounded-pill" /><Bar className="h-10 w-40 rounded-pill" /><Bar className="h-10 w-36 rounded-pill" /></div><Bar className="ml-auto h-11 w-40 rounded-pill" /></div><Bar className="h-6 w-40" /><div className="grid grid-cols-[repeat(auto-fill,minmax(7rem,9rem))] gap-3">{Array.from({ length: 4 }, (_, i) => <div key={i} className="h-28"><DashboardCardSkeleton variant="control" /></div>)}</div></LoadingState>;
+  return <LoadingState {...props}><div className="homepilot-home-hero space-y-5 bg-card p-6 sm:p-8"><div className="space-y-2"><Bar className="h-10 w-56 max-w-full" /><Bar className="h-10 w-40" /></div><Bar className="h-5 w-1/2" /><div className="flex w-72 max-w-full gap-2">{Array.from({ length: 4 }, (_, i) => <Bar key={i} className="h-20 min-w-0 flex-1" />)}</div><div className="flex flex-wrap gap-2"><Bar className="h-10 w-24 rounded-pill" /><Bar className="h-10 w-40 rounded-pill" /><Bar className="h-10 w-36 rounded-pill" /></div><Bar className="ml-auto h-11 w-40 rounded-pill" /></div><HomeFavoritesSkeleton /><HomeInsightsSkeleton /></LoadingState>;
+}
+export function HomeFavoritesSkeleton() {
+  return <div className="space-y-3"><Bar className="h-6 w-40" /><div className="flex h-24 flex-wrap gap-3 overflow-hidden">{Array.from({ length: 20 }, (_, i) => <div key={i} className="h-24 w-36 max-w-full shrink-0"><DashboardCardSkeleton variant="control" /></div>)}</div></div>;
+}
+export function HomeInsightsSkeleton() {
+  return <div className="space-y-3"><Bar className="h-6 w-48" /><div className="divide-y divide-border/60 rounded-card border border-border bg-card">{Array.from({ length: 5 }, (_, i) => <AssistantFindingSkeleton key={i} />)}</div></div>;
 }
 export function DisplayControlsSkeleton(props: SkeletonProps) {
   return <LoadingState {...props}><Bar className="h-11 w-full" /><div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,8.5rem),1fr))] gap-3">{Array.from({ length: 4 }, (_, i) => <div key={i} className="h-28"><DashboardCardSkeleton variant="display" /></div>)}</div></LoadingState>;
@@ -55,10 +61,10 @@ export function IconPickerSkeleton(props: SkeletonProps) {
   return <LoadingState {...props}><div className="grid grid-cols-5 gap-2">{Array.from({ length: 20 }, (_, i) => <Bar key={i} className="aspect-square w-full" />)}</div></LoadingState>;
 }
 export function AssistantSkeleton(props: SkeletonProps) {
-  return <LoadingState {...props}><ViewHeadingSkeleton /><Bar className="h-4 w-36" /><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{Array.from({ length: 3 }, (_, i) => <AssistantFindingSkeleton key={i} />)}</div></LoadingState>;
+  return <LoadingState {...props}><ViewHeadingSkeleton /><Bar className="h-4 w-36" /><div className="divide-y divide-border/60 rounded-card border border-border bg-card">{Array.from({ length: 5 }, (_, i) => <AssistantFindingSkeleton key={i} />)}</div></LoadingState>;
 }
 export function AssistantFindingSkeleton() {
-  return <div className="space-y-3 rounded-card border border-border bg-card p-3"><div className="flex gap-2"><Bar className="size-10 shrink-0" /><div className="flex-1 space-y-1"><Bar className="h-5 w-3/4" /><Bar className="h-4 w-1/2" /></div><Bar className="h-4 w-10" /></div><Bar className="h-4 w-full" /><Bar className="h-4 w-3/4" /><div className="flex gap-2"><Bar className="h-11 flex-1" /><Bar className="h-11 flex-1" /></div></div>;
+  return <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-3 sm:px-4"><Bar className="size-5 shrink-0" /><div className="min-w-0 flex-1 basis-48 space-y-1"><Bar className="h-4 w-1/2" /><Bar className="h-4 w-full" /></div><div className="flex gap-2"><Bar className="h-11 w-28" /><Bar className="h-11 w-20" /></div></div>;
 }
 export function AuditLogsSkeleton(props: SkeletonProps) {
   return <LoadingState {...props}><ViewHeadingSkeleton />{Array.from({ length: 3 }, (_, i) => <div key={i} className="flex flex-col gap-5 rounded-panel border border-border bg-card p-5 md:flex-row"><div className="space-y-2 md:w-44"><Bar className="h-4 w-24" /><Bar className="h-4 w-32" /><Bar className="h-3 w-20" /></div><div className="flex-1 space-y-3"><Bar className="h-5 w-4/5" /><Bar className="h-4 w-1/2" /></div></div>)}</LoadingState>;
@@ -121,7 +127,7 @@ export function EnergySkeleton(props: SkeletonProps) {
   return <div className="space-y-6"><div aria-hidden="true"><ViewHeadingSkeleton /></div><EnergyDataSkeleton {...props} /></div>;
 }
 export function EnergyDataSkeleton(props: SkeletonProps) {
-  return <LoadingState {...props}><div className="grid gap-4 sm:grid-cols-2">{Array.from({ length: 2 }, (_, i) => <div key={i} className="space-y-5 rounded-card border border-border bg-card p-6"><div className="flex gap-3"><Bar className="size-10" /><Bar className="h-4 flex-1" /></div><Bar className="h-14 w-1/2" /></div>)}</div><Bar className="h-4 w-40" />{Array.from({ length: 3 }, (_, i) => <div key={i} className="flex items-center justify-between gap-3 rounded-control bg-card p-4"><Bar className="h-5 w-1/2" /><Bar className="h-5 w-16" /></div>)}</LoadingState>;
+  return <LoadingState {...props}><div className="grid grid-cols-2 divide-x divide-border rounded-card border border-border bg-card">{Array.from({ length: 2 }, (_, i) => <div key={i} className="space-y-1 px-4 py-3 sm:px-5"><Bar className="h-4 w-2/3" /><Bar className="h-7 w-1/2" /></div>)}</div><Bar className="h-6 w-40" /><div className="divide-y divide-border rounded-card border border-border bg-card"><div className="px-4 py-2"><Bar className="h-5 w-24" /></div>{Array.from({ length: 3 }, (_, i) => <div key={i} className="flex items-center justify-between gap-4 px-4 py-3"><Bar className="h-5 w-1/2" /><Bar className="h-5 w-16" /></div>)}</div></LoadingState>;
 }
 export function ViewSkeleton({ view, section, ...props }: SkeletonProps & { view: View; section?: 'scenes' | 'automations' }) {
   const components: Partial<Record<View, ComponentType<SkeletonProps>>> = {

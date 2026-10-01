@@ -1,5 +1,15 @@
 # TASK BREAKDOWN: HomePilot Operator Console V1
 
+## UI-Compact-60 — Uso operativo por estancia y listas compactas (AC60)
+- AC60: Descubrimiento conserva dispositivos sin estancia y Asistente sus alertas de asignación. Selectores operativos y recomendaciones de uso requieren estancia válida. Inicio muestra hasta cinco recomendaciones reales, Asistente filas compactas y Energía lecturas asignadas agrupadas. Skeletons específicos, sin borrar datos ni vínculos históricos ni modificar API/ejecución.
+- Excluir dispositivos sin estancia válida de selectores operativos y sugerencias de uso; conservar Descubrimiento y alertas de asignación.
+- Conservar datos y vínculos históricos sin borrarlos ni reasignarlos; no cambiar backend ni ejecución.
+- Sustituir fichas repetitivas de Asistente por filas compactas; Inicio muestra hasta cinco sugerencias reales.
+- Rediseñar Energía con lecturas importadas asignadas, agrupadas por estancia; sin histórico ni datos ficticios.
+- Skeletons propios de favoritos, sugerencias y Energía; favoritos llenan una primera fila adaptable.
+- Validar pruebas focalizadas y responsive focalizado; sin Git ni despliegue.
+- Evidencia local: 57/57 pruebas Jest en 8 suites; 14/14 escenarios responsive únicos (3 Inicio/Asistente/Energía, 3 presentación compacta, 3 selectores de Automatizaciones, 5 selector de Escenas) y 4/4 confirmaciones focalizadas. Typecheck, lint, builds raíz/consola, i18n, arquitectura, ausencia de `any`, spec coverage, BDD y cobertura modular correctos. No se ejecutó suite completa, responsive completo, Git, Docker ni deploy. `check:ui-primitives` conserva los dos hallazgos previos de botones nativos en HomeContextIndicator/HomeDashboardButton, fuera del alcance; no se omitió ni desactivó el control. Chromium validado; pendiente comprobación física de Safari/iPad.
+
 ## UI-Compact-59 — Sugerencias, cámaras IP y diagnósticos (AC59)
 - Reutilizar fichas compactas de sugerencias entre Inicio/Asistente y agrupar tipos repetidos sin fusionar recursos ni acciones.
 - Presentar motivos y franjas registradas sin inferir una hora local o hábito manual que los datos no demuestran.

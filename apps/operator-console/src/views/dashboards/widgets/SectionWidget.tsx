@@ -20,6 +20,7 @@ import { SectionCardCatalogModal } from './SectionCardCatalogModal';
 import { SectionCardEditorModal } from './SectionCardEditorModal';
 import { useSectionCardActions } from './useSectionCardActions';
 import { getDashboardIconComponent } from '../components/dashboardIconRegistry';
+import { isDeviceOperational } from '../../../lib/deviceOperationalEligibility';
 
 interface SectionWidgetProps {
   config: DashboardWidgetConfig;
@@ -66,14 +67,15 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
     useSectionCardActions({ devices, isEditing, upsertDevice });
 
   const assignableDevices = useMemo(() => {
+    const available = devices.filter(device => isDeviceOperational(device, Object.values(roomsByHome).flat()));
     const kind = normalizeKind(cardDraft.kind);
-    if (kind !== 'light' && kind !== 'action') return getAssignableDevicesForSectionCard(kind, devices);
+    if (kind !== 'light' && kind !== 'action') return getAssignableDevicesForSectionCard(kind, available);
     const targets = new Map(
-      [...getAssignableDevicesForSectionCard('light', devices), ...getAssignableDevicesForSectionCard('action', devices)]
+      [...getAssignableDevicesForSectionCard('light', available), ...getAssignableDevicesForSectionCard('action', available)]
         .map((device) => [device.id, device] as const),
     );
     return [...targets.values()].sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }));
-  }, [cardDraft.kind, devices]);
+  }, [cardDraft.kind, devices, roomsByHome]);
   const assignableRooms = useMemo(() => getAssignableRooms(roomsByHome), [roomsByHome]);
   const selectedDevice = cardDraft.entityId ? devices.find((device) => device.id === cardDraft.entityId) : undefined;
   const selectedScene = cardDraft.entityId && !isAutomationEntityId(cardDraft.entityId)
@@ -375,7 +377,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       assignableRooms={assignableRooms}
       scenes={scenes}
       automations={automations}
-      displayActions={displayActions}
+      displayActions={displayActions.filter(action => devices.some(device => device.id === action.deviceId && isDeviceOperational(device, Object.values(roomsByHome).flat())))}
       devices={devices}
       renderCatalogPreview={renderCatalogPreview}
       onClose={() => setEditingCardId(null)}

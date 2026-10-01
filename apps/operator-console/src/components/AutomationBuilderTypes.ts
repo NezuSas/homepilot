@@ -4,6 +4,7 @@ export interface AutomationBuilderDevice extends Pick<SnapshotDevice, 'type' | '
   id: string;
   name: string;
   roomId?: string | null;
+  homeId?: string;
 }
 
 export interface AutomationBuilderScene {

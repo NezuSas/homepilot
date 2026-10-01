@@ -8,12 +8,13 @@ import { SegmentedControl } from './ui/SegmentedControl';
 import { humanize } from '../lib/naming-utils';
 import { getRoutineDeviceCommands, isCameraDevice, type RoutineDeviceCommand } from '../lib/deviceCapabilities';
 import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
+import { isDeviceOperational } from '../lib/deviceOperationalEligibility';
 
 export interface SceneDeviceAction {
   deviceId: string;
   command: RoutineDeviceCommand;
 }
-interface Room { id: string; name: string }
+interface Room { id: string; name: string; homeId?: string }
 interface Props {
   devices: SnapshotDevice[];
   rooms: Room[];
@@ -27,7 +28,7 @@ export function getSceneDeviceGroups(devices: SnapshotDevice[], rooms: Room[], a
   const selectedIds = new Set(actions.map(action => action.deviceId));
   const roomMap = new Map(rooms.map(room => [room.id, room.name]));
   const compare = (a: SnapshotDevice, b: SnapshotDevice) => humanize(a.id, a.name).localeCompare(humanize(b.id, b.name), locale, { numeric: true, sensitivity: 'base' });
-  const eligible = devices.filter(device => !isCameraDevice(device) && (!roomId || device.roomId === roomId));
+  const eligible = devices.filter(device => isDeviceOperational(device, rooms) && !isCameraDevice(device) && (!roomId || device.roomId === roomId));
   const selected = eligible.filter(device => selectedIds.has(device.id)).sort(compare);
   const query = search.trim().toLocaleLowerCase(locale);
   const groups = new Map<string, SnapshotDevice[]>();
@@ -89,6 +90,8 @@ export function SceneDeviceSelector({ devices, rooms, roomId, actions, onToggle,
     <div className="space-y-5">
       <section aria-label={t('scenes.builder.selected')}>
         <h3 className="text-body-compact font-semibold">{t('scenes.builder.selected')} <span className="text-muted-foreground">({actions.length})</span></h3>
+        {actions.some(action => !devices.some(device => device.id === action.deviceId && isDeviceOperational(device, rooms))) &&
+          <p role="status" className="mt-2 text-caption text-muted-foreground">{t('scenes.builder.saved_unassigned_hint')}</p>}
         {result.selected.length ? result.selected.map(row) : <p className="mt-2 text-caption text-muted-foreground">{t('scenes.builder.selected_empty')}</p>}
       </section>
       <section aria-label={t('scenes.builder.available')} className="space-y-3 border-t border-border/60 pt-4">
@@ -98,7 +101,6 @@ export function SceneDeviceSelector({ devices, rooms, roomId, actions, onToggle,
           <SearchableSelectField value={spaceFilter} onChange={setSpaceFilter} placeholder={t('scenes.builder.all_spaces')} options={[
             { value: '', label: t('scenes.builder.all_spaces') },
             ...rooms.filter(room => !roomId || room.id === roomId).map(room => ({ value: room.id, label: room.name })),
-            { value: '__unassigned__', label: t('scenes.builder.unassigned') },
           ]} />
         </div>
         {!result.groups.length && <p className="py-3 text-caption text-muted-foreground">{t('dashboard.scene_no_devices')}</p>}

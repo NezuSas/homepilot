@@ -15,6 +15,8 @@ import { Button } from '../components/ui/Button';
 import { useAssistantStore } from '../stores/useAssistantStore';
 import type { View } from '../types';
 import type { AssistantFinding as Finding, AssistantFindingAction } from '../stores/useAssistantStore';
+import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
+import { isFindingOperational } from '../lib/deviceOperationalEligibility';
 
 const getMetadataText = (
   metadata: Record<string, unknown>,
@@ -37,6 +39,10 @@ export const AssistantView: React.FC<{
   const { t } = useTranslation();
   const [activeAction, setActiveAction] = useState<{ findingId: string; action: AssistantFindingAction; deviceName?: string } | null>(null);
   const findings = useAssistantStore((state) => state.findings);
+  const devices = useDeviceSnapshotStore(state => state.devices);
+  const roomsByHome = useDeviceSnapshotStore(state => state.roomsByHome);
+  const refreshSnapshot = useDeviceSnapshotStore(state => state.refreshSnapshot);
+  const visibleFindings = findings.filter(finding => isFindingOperational(finding, devices, Object.values(roomsByHome).flat()));
   const loading = useAssistantStore((state) => state.isLoading);
   const scanning = useAssistantStore((state) => state.isScanning);
   const refreshFindings = useAssistantStore((state) => state.refreshFindings);
@@ -48,9 +54,9 @@ export const AssistantView: React.FC<{
 
   useEffect(() => {
     let active = true;
-    void refreshFindings().finally(() => { if (active) setInitialSettled(true); });
+    void Promise.allSettled([refreshSnapshot(), refreshFindings()]).then(() => { if (active) setInitialSettled(true); });
     return () => { active = false; };
-  }, [refreshFindings]);
+  }, [refreshFindings, refreshSnapshot]);
 
   const handleScan = async () => {
     await scanFindings();
@@ -223,12 +229,12 @@ export const AssistantView: React.FC<{
 
 
 
-      {findings.length === 0 ? (
+      {visibleFindings.length === 0 ? (
         <AssistantEmptyState />
       ) : (
         <div className="space-y-5">
           {(() => {
-            const processed = processFindings(findings);
+            const processed = processFindings(visibleFindings);
             return (['proactive', 'usage', 'opportunities', 'system'] as const).map(sectionKey => {
               const sectionItems = processed[sectionKey];
               if (sectionItems.length === 0) return null;
@@ -242,7 +248,7 @@ export const AssistantView: React.FC<{
                     <div className="h-px flex-1 bg-gradient-to-r from-muted to-transparent"></div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  <div className="divide-y divide-border/60 rounded-card border border-border bg-card">
                     {sectionItems.map((item: ProcessedItem) => {
                       if ('isGroup' in item && item.isGroup) {
                         return (

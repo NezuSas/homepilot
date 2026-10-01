@@ -7,6 +7,8 @@ import { useEnergyStore } from '../../../stores/useEnergyStore';
 import { DormantWidgetPlaceholder } from '../components/DormantWidgetPlaceholder';
 import { DashboardCardSkeleton } from '../../../components/ui/DashboardCardSkeleton';
 import { needsInitialDashboardSkeleton, useDelayedSkeleton } from '../../../components/ui/useDashboardDelayedSkeleton';
+import { useDeviceSnapshotStore } from '../../../stores/useDeviceSnapshotStore';
+import { getAssignedEnergyPresentation } from '../../../lib/assignedEnergyPresentation';
 
 interface EnergySnapshotWidgetProps {
   config: DashboardWidgetConfig;
@@ -16,7 +18,10 @@ interface EnergySnapshotWidgetProps {
 
 export function EnergySnapshotWidget({ config, isEditing, onConfigure }: EnergySnapshotWidgetProps) {
   const { t } = useTranslation();
-  const { entities, isLoading, refreshEnergy, computeTotalPower, computeTotalEnergy } = useEnergyStore();
+  const { entities, isLoading, refreshEnergy } = useEnergyStore();
+  const devices = useDeviceSnapshotStore(state => state.devices);
+  const roomsByHome = useDeviceSnapshotStore(state => state.roomsByHome);
+  const snapshotLoading = useDeviceSnapshotStore(state => state.isLoading);
 
   useEffect(() => {
     refreshEnergy();
@@ -24,10 +29,11 @@ export function EnergySnapshotWidget({ config, isEditing, onConfigure }: EnergyS
     return () => clearInterval(interval);
   }, [refreshEnergy]);
 
-  const power = computeTotalPower();
-  const energy = computeTotalEnergy();
-  const hasData = entities.length > 0;
-  const initialPending = needsInitialDashboardSkeleton(isLoading, hasData);
+  const data = getAssignedEnergyPresentation(entities, devices, Object.values(roomsByHome).flat());
+  const power = data.totalPower;
+  const energy = data.totalEnergy;
+  const hasData = data.readings.length > 0;
+  const initialPending = needsInitialDashboardSkeleton(isLoading || snapshotLoading, hasData);
   const showSkeleton = useDelayedSkeleton(initialPending);
 
   if (initialPending) {
@@ -84,7 +90,7 @@ export function EnergySnapshotWidget({ config, isEditing, onConfigure }: EnergyS
           <span className="hp-type-label text-muted-foreground/50">{t('dashboards.widgets.energy_insight.current_power')}</span>
           <div className="flex items-baseline gap-2">
             <span className="text-widget-metric-fluid font-black tracking-tighter text-foreground tabular-nums">
-              {power.toLocaleString()}
+              {power === null ? t('common.not_available') : power.toLocaleString()}
             </span>
             <span className="text-body font-black text-primary uppercase tracking-widest">W</span>
           </div>
@@ -97,7 +103,7 @@ export function EnergySnapshotWidget({ config, isEditing, onConfigure }: EnergyS
             </div>
             <div className="flex flex-col">
                <span className="hp-type-label text-muted-foreground/50">{t('dashboards.widgets.energy_insight.consumption_today')}</span>
-               <span className="text-body font-black text-foreground tabular-nums">{energy.toFixed(1)} kWh</span>
+               <span className="text-body font-black text-foreground tabular-nums">{energy === null ? t('common.not_available') : energy.toFixed(1)} kWh</span>
             </div>
           </div>
           <div className="flex flex-col items-end">
@@ -110,7 +116,7 @@ export function EnergySnapshotWidget({ config, isEditing, onConfigure }: EnergyS
       </div>
 
       <div className="mt-6 space-y-2 relative z-10">
-         {entities.slice(0, 2).map(entity => (
+         {data.readings.slice(0, 2).map(entity => (
            <div key={entity.entity_id} className="flex items-center justify-between px-2">
               <span className="hp-type-label truncate max-w-copy-xs text-muted-foreground/70">{entity.name}</span>
               <span className="text-micro font-black text-foreground/80 tabular-nums">{entity.state} {entity.unit}</span>

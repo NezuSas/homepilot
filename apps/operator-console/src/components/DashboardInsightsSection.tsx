@@ -11,12 +11,12 @@ interface DashboardInsightsSectionProps {
 export function DashboardInsightsSection({ findings, onAction }: DashboardInsightsSectionProps) {
   const { t } = useTranslation();
   if (!findings.length) return null;
-  // Prefer different recommendation types in the limited Home summary.
+  // Each actual finding keeps its own action; repeated types are not discarded.
   const representatives = findings.filter((finding, index, all) =>
-    all.findIndex(item => item.type === finding.type) === index).slice(0, 2);
+    all.findIndex(item => item.id === finding.id) === index).slice(0, 5);
   return <section className="homepilot-home-insights space-y-3" aria-label={t('dashboard.actionable_insights')}>
     <h2 className="text-section-title font-bold text-foreground">{t('dashboard.actionable_insights')}</h2>
-    <div className="grid gap-3 md:grid-cols-2">
+    <div className="divide-y divide-border/60 rounded-card border border-border bg-card">
       {representatives.map(finding => <AssistantFindingCard key={finding.id} finding={finding} onAction={onAction} />)}
     </div>
     {findings.length > representatives.length && <Link to="/assistant"

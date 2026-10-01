@@ -21,6 +21,7 @@ import type { AssistantFinding, AssistantFindingAction } from '../stores/useAssi
 import { useDeviceSnapshotStore, type SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 import { getSceneOrRoutineUrl } from './dashboards/widgets/sectionCardAssignments';
 import { useMomentaryActionFeedback } from './dashboards/widgets/useMomentaryActionFeedback';
+import { isFindingOperational } from '../lib/deviceOperationalEligibility';
 
 interface SceneAction {
   deviceId: string;
@@ -73,6 +74,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
   const [contextSettled, setContextSettled] = useState(false);
   const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
   const findings = useAssistantStore((state) => state.findings);
+  const devices = useDeviceSnapshotStore(state => state.devices);
+  const roomsByHome = useDeviceSnapshotStore(state => state.roomsByHome);
   const refreshFindings = useAssistantStore((state) => state.refreshFindings);
   const resolveFinding = useAssistantStore((state) => state.resolveFinding);
 
@@ -213,11 +216,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
   };
 
   const prioritizedFindings = useMemo(() => [...findings]
-    .filter((finding) => finding.severity === 'high' || finding.severity === 'medium')
+    .filter(finding => isFindingOperational(finding, devices, Object.values(roomsByHome).flat()))
+    .filter((finding) => finding.status === 'open' && (finding.severity === 'high' || finding.severity === 'medium'))
     .sort((left, right) => {
       const score = (finding: AssistantFinding) => Number(finding.type.includes('energy') || finding.type.includes('consumption') || finding.type.includes('long_running'));
-      return score(right) - score(left);
-    }), [findings]);
+      const priority = { high: 3, medium: 2, low: 1 };
+      return score(right) - score(left) || priority[right.severity] - priority[left.severity];
+    }), [findings, devices, roomsByHome]);
 
   const greetingKey = homePeriod === 'night' ? 'evening' : homePeriod;
   const phrase = resolveHomePhrase(homePersonalization, homePeriod, t('dashboard.home_calm'));

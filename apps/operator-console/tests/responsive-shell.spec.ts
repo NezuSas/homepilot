@@ -2,6 +2,63 @@ import { expect, test } from '@playwright/test';
 import { mdiAutoFix, mdiHome, mdiRobot, mdiWeatherWindy } from '@mdi/js';
 
 for (const viewport of [{ name: 'mobile', width: 320, height: 720 }, { name: 'tablet', width: 768, height: 1024 }, { name: 'desktop', width: 1440, height: 900 }]) {
+  test(`Feature: Assigned compact insights — Scenario: Home, Assistant and Energy retain only operational readings on ${viewport.name} (AC60)`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport);
+    await prepareAuthenticatedDashboard(page);
+    await page.addInitScript(() => localStorage.setItem('i18nextLng', 'es'));
+    const room = { id: 'office', homeId: 'responsive-home', name: 'Oficina' };
+    const devices = Array.from({ length: 7 }, (_, i) => ({ ...responsiveDevices[0], id: `assigned-${i}`, name: `Equipo ${i}`, roomId: room.id, externalId: `ha:sensor.energy_${i}` }));
+    const pending = { ...responsiveDevices[0], id: 'pending', name: 'Pendiente de estancia', roomId: null, status: 'PENDING', externalId: 'ha:sensor.pending' };
+    await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: room.homeId, name: 'Casa', ownerId: dashboardUser.id }] }));
+    await page.route('**/api/v1/rooms', route => route.fulfill({ json: [room] }));
+    await page.route('**/api/v1/devices', route => route.fulfill({ json: [...devices, pending] }));
+    await page.route('**/api/v1/scenes', route => route.fulfill({ json: [] }));
+    await page.route('**/api/v1/automations', route => route.fulfill({ json: [] }));
+    const findings = [...devices, pending].map(device => ({
+      id: `finding-${device.id}`, type: 'habit_pattern_detected', severity: 'medium', title: '', description: '',
+      relatedEntityType: 'device', relatedEntityId: device.id, status: 'open', score: 1,
+      metadata: { deviceName: device.name, timeWindow: '19:30' },
+      actions: [{ type: 'configure_automation', label: 'assistant.actions.create_automation' }],
+    }));
+    const alert = { ...findings[7], id: 'missing-room-alert', type: 'device_missing_room', actions: [{ type: 'assign_room', label: 'assistant.actions.assign_room', payload: { deviceId: pending.id } }] };
+    let release: () => void = () => {};
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    await page.route('**/api/v1/assistant/findings', async route => { await gate; await route.fulfill({ json: [...findings, alert] }); });
+    await page.route('**/api/v1/ha/entities?*', route => route.fulfill({ json: [
+      { entityId: 'sensor.energy_0', friendlyName: 'Raw', state: '125', attributes: { unit_of_measurement: 'W' } },
+      { entityId: 'sensor.energy_1', friendlyName: 'Raw', state: '4.5', attributes: { unit_of_measurement: 'kWh' } },
+      { entityId: 'sensor.pending', friendlyName: pending.name, state: '900', attributes: { unit_of_measurement: 'W' } },
+    ] }));
+    await page.goto('/home');
+    await expect(page.getByRole('main').getByRole('status', { name: /Cargando/i })).toBeVisible();
+    release();
+    for (const theme of ['dark', 'light']) {
+      await page.goto('/home');
+      await page.evaluate(light => document.documentElement.classList.toggle('light', light), theme === 'light');
+      const insights = page.getByRole('region', { name: 'Sugerencias Inteligentes', exact: true });
+      await expect(insights.getByRole('article')).toHaveCount(5);
+      await expect(insights).not.toContainText(pending.name);
+      await page.screenshot({ path: testInfo.outputPath(`home-insights-${theme}.png`), fullPage: true });
+      await page.goto('/assistant');
+      await page.getByRole('button', { name: 'Patrón de Hábito Detectado 7', exact: true }).click();
+      await expect(page.getByRole('button', { name: 'Crear automatización', exact: true })).toHaveCount(7);
+      const assignmentAlert = page.getByRole('article', { name: pending.name, exact: true });
+      await expect(assignmentAlert.getByRole('button', { name: /Asignar/i })).toBeVisible();
+      await expect(assignmentAlert.getByRole('button', { name: 'Crear automatización', exact: true })).toHaveCount(0);
+      await page.goto('/energy');
+      await page.evaluate(light => document.documentElement.classList.toggle('light', light), theme === 'light');
+      const main = page.getByRole('main');
+      await expect(main.getByRole('heading', { name: 'Oficina', exact: true })).toBeVisible();
+      await expect(main).toContainText('Equipo 0');
+      await expect(main).toContainText('125 W');
+      await expect(main).not.toContainText(pending.name);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath(`energy-${theme}.png`), fullPage: true });
+    }
+  });
+}
+
+for (const viewport of [{ name: 'mobile', width: 320, height: 720 }, { name: 'tablet', width: 768, height: 1024 }, { name: 'desktop', width: 1440, height: 900 }]) {
   test(`Feature: Compact system presentation — Scenario: Suggestions and IP camera setup fit ${viewport.name} in both themes (AC59)`, async ({ page }, testInfo) => {
     await page.setViewportSize(viewport);
     await prepareAuthenticatedDashboard(page);
@@ -16,6 +73,8 @@ for (const viewport of [{ name: 'mobile', width: 320, height: 720 }, { name: 'ta
       actions: [{ type: 'configure_automation', label: 'assistant.actions.create_automation' }, { type: 'ignore', label: 'assistant.actions.ignore' }],
     }));
     await page.route('**/api/v1/assistant/findings', route => route.fulfill({ json: findings }));
+    await page.route('**/api/v1/rooms', route => route.fulfill({ json: [{ id: 'office', homeId: 'responsive-home', name: 'Oficina' }] }));
+    await page.route('**/api/v1/devices', route => route.fulfill({ json: findings.map((finding, index) => ({ ...responsiveDevices[0], id: finding.relatedEntityId, name: `Dispositivo ${index}`, roomId: 'office' })) }));
     const cameras = ['Entrada', 'Patio', 'Estudio'].map((name, i) => ({
       deviceId: `camera-${i}`, homeId: 'responsive-home', sourceType: 'onvif-ptz', name,
       host: `192.0.2.${i + 1}`, rtspPort: 554, onvifPort: 8000, rtspPath: '/stream', enabled: true, createdAt: '',
@@ -315,21 +374,22 @@ for (const viewport of [{ name: 'mobile', width: 320, height: 720 }, { name: 'ta
     await editor.getByRole('button', { name: /Source Device|Dispositivo origen/i }).click();
     const picker = page.getByRole('dialog', { name: /Source Device|Dispositivo origen/i });
     const list = picker.getByRole('listbox');
-    expect(await list.getByRole('group').evaluateAll(elements => elements.map(element => element.getAttribute('aria-label')))).toEqual(['Cocina', 'Oficina', 'Unassigned space']);
-    await expect(list.getByRole('option')).toHaveCount(100);
+    expect(await list.getByRole('group').evaluateAll(elements => elements.map(element => element.getAttribute('aria-label')))).toEqual(['Cocina', 'Oficina']);
+    await expect(list.getByRole('option')).toHaveCount(99);
+    await expect(list.getByRole('option', { name: /Dispositivo 99/ })).toHaveCount(0);
     await picker.getByRole('searchbox').fill('Oficina');
     await expect(list.getByRole('option')).toHaveCount(40);
     await picker.getByRole('searchbox').fill('light');
-    await expect(list.getByRole('option')).toHaveCount(100);
+    await expect(list.getByRole('option')).toHaveCount(99);
     await picker.getByRole('searchbox').fill('');
     await picker.getByRole('searchbox').press('ArrowDown');
     await page.keyboard.press('End');
-    const last = list.getByRole('option', { name: /Dispositivo 99/ });
+    const last = list.getByRole('option', { name: /Dispositivo 39/ });
     await expect(last).toBeFocused();
     await expect(last).toBeInViewport();
     await page.keyboard.press('Enter');
     await expect(picker).not.toBeVisible();
-    await expect(editor.getByRole('button', { name: /Source Device|Dispositivo origen/i })).toContainText('Dispositivo 99');
+    await expect(editor.getByRole('button', { name: /Source Device|Dispositivo origen/i })).toContainText('Dispositivo 39');
     await editor.getByRole('button', { name: /Target Device|Dispositivo destino/i }).click();
     const actionPicker = page.getByRole('dialog', { name: /Target Device|Dispositivo destino/i });
     await actionPicker.getByRole('searchbox').fill('Oficina');
@@ -1526,7 +1586,7 @@ for (const viewport of [
       device('chosen', 'Zeta elegida', 'office'), device('unassigned', 'Luz sin asignar', null),
       device('orphan', 'Luz huérfana', 'deleted-room'),
     ] }));
-    let scene = { id: 'organized-scene', homeId: 'responsive-home', roomId: null, name: 'Trabajo organizada', description: 'Descripción conservada', actions: [{ deviceId: 'chosen', command: 'turn_off' }] };
+    let scene = { id: 'organized-scene', homeId: 'responsive-home', roomId: null, name: 'Trabajo organizada', description: 'Descripción conservada', actions: [{ deviceId: 'chosen', command: 'turn_off' }, { deviceId: 'unassigned', command: 'turn_on' }] };
     await page.route('**/api/v1/scenes', (route) => route.fulfill({ json: [scene] }));
     await page.route('**/api/v1/scenes/favorites', (route) => route.fulfill({ json: { sceneIds: [], initialized: true } }));
     let saved = false;
@@ -1555,9 +1615,9 @@ for (const viewport of [
     await expect(available.getByRole('button', { name: /Luz 19 / })).toHaveCount(0);
     await available.getByRole('searchbox', { name: /Buscar entidad|Search entities/i }).fill('');
     await available.getByRole('button', { name: /^(Todos los espacios|All spaces)$/i }).click();
-    await page.getByRole('listbox').getByRole('option', { name: /^(Sin espacio|Unassigned space)$/i }).click();
-    await expect(available.getByRole('button', { name: /Luz huérfana/ })).toBeVisible();
-    await available.getByRole('button', { name: /Luz sin asignar/ }).click();
+    await expect(page.getByRole('listbox').getByRole('option', { name: /^(Sin espacio|Unassigned space)$/i })).toHaveCount(0);
+    await page.getByRole('listbox').getByRole('option', { name: /^Cocina$/i }).click();
+    await expect(available.getByRole('button', { name: /Luz huérfana|Luz sin asignar/ })).toHaveCount(0);
     await expect(selected.getByRole('button', { name: /Zeta elegida/ })).toHaveAttribute('aria-pressed', 'true');
     if (viewport.name === 'desktop' || viewport.name === 'mobile') {
       await editor.screenshot({ path: testInfo.outputPath('scene-editor.png') });
@@ -1567,7 +1627,7 @@ for (const viewport of [
     expect(scene.roomId).toBeNull();
     expect(scene.description).toBe('Descripción conservada');
     expect(scene.actions).toEqual([
-      { deviceId: 'chosen', command: 'turn_off' }, { deviceId: 'office-19', command: 'turn_on' }, { deviceId: 'unassigned', command: 'turn_on' },
+      { deviceId: 'chosen', command: 'turn_off' }, { deviceId: 'unassigned', command: 'turn_on' }, { deviceId: 'office-19', command: 'turn_on' },
     ]);
     await page.getByRole('button', { name: /^(Crear Escena|Create Scene)$/i }).click();
     const create = page.getByRole('dialog', { name: /^(Crear Escena|Create Scene)$/i });
