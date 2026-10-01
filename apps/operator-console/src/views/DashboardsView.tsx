@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { getDashboardBackgroundSource } from '../lib/dashboardBackgroundPresets';
-import { LoadingState } from '../components/ui/LoadingState';
+import { DashboardsSkeleton } from '../components/ui/ComponentSkeletons';
 import { EmptyDashboards } from '../components/EmptyDashboards';
 import type { Dashboard, DashboardTab, DashboardWidget, WidgetType, DashboardWidgetConfig } from './dashboards/types';
 import { DashboardActiveWorkspace } from './dashboards/DashboardActiveWorkspace';
@@ -298,7 +298,7 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
   }, [backgroundSource, backgroundOpacity]);
 
   if (loading) {
-    return <LoadingState label={t('dashboards.loading')} className="min-h-empty-sm" size="md" />;
+    return <DashboardsSkeleton label={t('dashboards.loading')} />;
   }
   // Keep the previous loaded image while the next one decodes; a tab without
   // a background clears immediately instead of showing the previous tab's art.

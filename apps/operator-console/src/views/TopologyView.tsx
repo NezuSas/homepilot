@@ -7,7 +7,7 @@ import { cn } from '../lib/utils';
 import ConfirmModal from '../components/ConfirmModal';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { Button } from '../components/ui/Button';
-import { LoadingState } from '../components/ui/LoadingState';
+import { SpacesSkeleton } from '../components/ui/ComponentSkeletons';
 import { IconButton } from '../components/ui/IconButton';
 import { Input, SearchInput } from '../components/ui/Input';
 import { SectionHeader } from '../components/ui/SectionHeader';
@@ -278,7 +278,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
   );
 
   if (loadingHomes) {
-    return <LoadingState label={t('common.loading')} layout="cards" />;
+    return <SpacesSkeleton label={t('common.loading')} />;
   }
 
   return (

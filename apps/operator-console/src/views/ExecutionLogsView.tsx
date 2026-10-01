@@ -7,7 +7,7 @@ import { ExecutionCard } from '../components/ExecutionCard';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
-import { LoadingState } from '../components/ui/LoadingState';
+import { ExecutionsSkeleton } from '../components/ui/ComponentSkeletons';
 import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { useTranslation } from 'react-i18next';
@@ -39,7 +39,7 @@ export const ExecutionLogsView: React.FC = () => {
   }, [fetchRecords]);
 
   if (initialLoading) {
-    return <LoadingState label={t('execution_logs.loading')} className="min-h-empty-sm" size="md" />;
+    return <ExecutionsSkeleton label={t('execution_logs.loading')} />;
   }
 
   if (error) {

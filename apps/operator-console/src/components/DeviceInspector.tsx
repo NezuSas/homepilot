@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Loader2, RadioTower, Settings, X } from 'lucide-react';
+import { RadioTower, Settings, X } from 'lucide-react';
+import { DeviceInspectorSkeleton } from './ui/ComponentSkeletons';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { isDeviceUnavailable } from '../lib/deviceAvailability';
@@ -15,6 +16,7 @@ import { SegmentedControl } from './ui/SegmentedControl';
 import { Drawer } from './ui/Drawer';
 
 interface DeviceInspectorProps {
+  configurationOnly?: boolean;
   deviceId: string;
   rooms: Room[];
   onClose: () => void;
@@ -24,7 +26,7 @@ interface DeviceInspectorProps {
 
 const API_URL = `${API_BASE_URL}/api/v1`;
 
-export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, rooms, onClose, onUpdate, onDeleted }) => {
+export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, rooms, onClose, onUpdate, onDeleted, configurationOnly = false }) => {
   const { t } = useTranslation();
   const [device, setDevice] = useState<InspectableDevice | null>(null);
   const [logs, setLogs] = useState<ActivityLog[]>([]);
@@ -138,7 +140,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
   };
 
   const handleCommand = async (command: DeviceCommand) => {
-    if (!device || isDeviceUnavailable(device) || isActionLoading) return;
+    if (configurationOnly || !device || isDeviceUnavailable(device) || isActionLoading) return;
     setIsActionLoading(true);
     try {
       const res = await apiFetch(`${API_URL}/devices/${device.id}/command`, {
@@ -252,10 +254,9 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
         isOpen
         onClose={onClose}
         ariaLabel={t('inbox.inspector.title')}
-        hideCloseButton
       >
-        <div className="flex flex-1 items-center justify-center">
-        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+        <div className="min-h-0 flex-1 overflow-y-auto p-5">
+        <DeviceInspectorSkeleton label={t('common.loading')} />
         </div>
       </Drawer>
     );
@@ -360,6 +361,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
               onSemanticTypeChange={handleSemanticTypeChange}
               onInvertStateChange={handleInvertStateChange}
               onCommand={handleCommand}
+              configurationOnly={configurationOnly}
               onRefresh={handleRefresh}
               onMove={handleMove}
               onUnassign={() => setShowUnassignConfirm(true)}

@@ -8,6 +8,7 @@ import { Button } from '../components/ui/Button';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { StatusPill } from '../components/ui/StatusPill';
 import { useInitialLoading } from '../components/ui/useInitialLoading';
+import { EnergyDataSkeleton } from '../components/ui/ComponentSkeletons';
 
 interface EnergyViewProps {
   onNavigate?: (view: View) => void;
@@ -54,15 +55,7 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
         {/* Left: Main Content / Data */}
         <div className="flex flex-col gap-6">
           {initialLoading ? (
-            // Skeleton state
-            <div role="status" aria-label={t('common.loading')} aria-busy="true" className="flex flex-col gap-6 motion-safe:animate-pulse">
-              <span className="sr-only">{t('common.loading')}</span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="h-32 rounded-3xl bg-card border border-border/40" />
-                <div className="h-32 rounded-3xl bg-card border border-border/40" />
-              </div>
-              <div className="h-64 rounded-3xl bg-card border border-border/40" />
-            </div>
+            <EnergyDataSkeleton label={t('common.loading')} />
           ) : entities.length > 0 ? (
             // Live Data
             <div className="flex flex-col gap-8">

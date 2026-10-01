@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { ImagePlus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../components/ui/Button';
-import { LoadingState } from '../components/ui/LoadingState';
+import { HomePersonalizationSkeleton } from '../components/ui/ComponentSkeletons';
 import ConfirmModal from '../components/ConfirmModal';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { Card } from '../components/ui/Card';
@@ -131,7 +131,7 @@ export function HomePersonalizationView() {
   return <div className="flex w-full max-w-5xl flex-col gap-6 pb-10">
     <SectionHeader level="view" icon={ImagePlus} title={t('home_personalization.title')} />
     {feedback && <AlertBanner variant={feedback.variant} message={feedback.message} />}
-    {loading ? <LoadingState label={t('common.loading')} /> : <>
+    {loading ? <HomePersonalizationSkeleton label={t('common.loading')} /> : <>
       <Card className="flex flex-col gap-5 p-5 sm:p-6">
         <h2 className="text-card-title font-semibold">{t('home_personalization.phrases')}</h2>
         {PHRASE_KEYS.map((key) => <div key={key} className="flex flex-col gap-2">

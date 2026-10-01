@@ -5,7 +5,7 @@ import { apiFetch } from '../lib/apiClient';
 import { UserCreateForm, type UserRole } from '../components/UserCreateForm';
 import { UsersErrorBanner } from '../components/UsersErrorBanner';
 import { UsersHeader } from '../components/UsersHeader';
-import { LoadingState } from '../components/ui/LoadingState';
+import { UsersSkeleton } from '../components/ui/ComponentSkeletons';
 import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { UsersProtectionNote } from '../components/UsersProtectionNote';
 import { UsersTable, type PublicUserDto } from '../components/UsersTable';
@@ -150,7 +150,7 @@ export function UsersView({ currentUserId }: UsersViewProps) {
   };
 
   if (initialLoading) {
-    return <LoadingState label={t('users.loading')} className="min-h-empty-sm py-12" size="md" />;
+    return <UsersSkeleton label={t('users.loading')} />;
   }
 
   return (

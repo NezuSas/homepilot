@@ -14,16 +14,12 @@ import { InboxDeviceTile } from '../components/InboxDeviceTile';
 import { ManagedDeviceTile } from '../components/ManagedDeviceTile';
 import { SmartDisplayControls } from '../components/SmartDisplayControls';
 import { SegmentedControl } from '../components/ui/SegmentedControl';
-import { LoadingState } from '../components/ui/LoadingState';
+import { DeviceManagerSkeleton, DiscoverySkeleton } from '../components/ui/ComponentSkeletons';
 import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import type { SnapshotDevice as Device, SnapshotRoom as Room } from '../stores/useDeviceSnapshotStore';
-import { API_BASE_URL } from '../config';
-import { apiFetch } from '../lib/apiClient';
 import { humanize } from '../lib/naming-utils';
 import { resolveManagedDeviceKind, type ManagedDeviceKind } from '../lib/devicePresentation';
-
-const API_URL = `${API_BASE_URL}/api/v1`;
 
 /**
  * Vista de Inbox principal para la Operator Console.
@@ -62,20 +58,6 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
     upsertDevice(updated);
   };
 
-  const executeDeviceCommand = useCallback(async (
-    deviceId: string,
-    command: string,
-    params?: Record<string, unknown>,
-  ): Promise<Device | null> => {
-    const response = await apiFetch(`${API_URL}/devices/${encodeURIComponent(deviceId)}/command`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ command: params ? { name: command, params } : command }),
-    });
-
-    return response.ok ? await response.json() as Device : null;
-  }, []);
-
   // Grouping logic with strict mode filtering
   const filtered = useMemo(() => devices.filter((d: Device) => {
     if (mode === 'manager' && d.status !== 'ASSIGNED') return false;
@@ -112,7 +94,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
 
   const initialLoading = useInitialLoading(!initialSettled || loading);
   if (initialLoading) {
-    return <LoadingState label={t('common.loading')} className="min-h-empty-sm" size="md" />;
+    return mode === 'manager' ? <DeviceManagerSkeleton label={t('common.loading')} /> : <DiscoverySkeleton label={t('common.loading')} />;
   }
 
   const hasLocalDevices = devices.some(d => d.integrationSource === 'sonoff');
@@ -132,6 +114,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
       {inspectingDeviceId && (
         <DeviceInspector 
           deviceId={inspectingDeviceId} 
+          configurationOnly={mode === 'manager'}
           rooms={roomsFlattened}
           onClose={() => setInspectingDeviceId(null)} 
           onUpdate={(updated) => handleDeviceUpdate(inspectingDeviceId, updated)}
@@ -226,10 +209,8 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
                     device={device}
                     roomName={roomName}
                     isDuplicateName={isDuplicateName}
-                    onUpdate={(updated) => handleDeviceUpdate(device.id, updated)}
                     onInspect={() => setInspectingDeviceId(device.id)}
                     onControlDisplay={() => setControllingDisplayId(device.id)}
-                    onCommand={executeDeviceCommand}
                   />
                 ) : (
                   <InboxDeviceTile

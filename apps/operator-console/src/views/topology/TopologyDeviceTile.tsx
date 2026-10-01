@@ -5,6 +5,8 @@ import { resolveManagedDeviceKind } from '../../lib/devicePresentation';
 import { isDeviceUnavailable } from '../../lib/deviceAvailability';
 import { cn } from '../../lib/utils';
 import { CurtainDeviceTile } from '../../components/CurtainDeviceTile';
+import { CameraDeviceTile } from '../../components/CameraDeviceTile';
+import { RoomDisplayControls } from './RoomDisplayControls';
 import { SensorMetricCard } from '../dashboards/widgets/SensorMetricCard';
 import { SectionActionCard } from '../dashboards/widgets/SectionActionCard';
 import { SectionDeviceCard } from '../dashboards/widgets/SectionDeviceCard';
@@ -44,6 +46,8 @@ export function TopologyDeviceTile({ device, roomName, onCommand }: TopologyDevi
   if (kind === 'sensor' && !command) return <div className="h-36 min-w-0 max-w-44" style={{ containerType: 'inline-size' }}>
     <SensorMetricCard device={device} title={device.name} />
   </div>;
+  if (kind === 'camera') return <div className="col-span-full min-w-0 sm:col-span-2"><CameraDeviceTile device={device} title={device.name} roomName={roomName} dashboard /></div>;
+  if (kind === 'smart_display') return <RoomDisplayControls device={device} />;
   if (kind === 'cover') return <div className="col-span-full min-w-0 sm:col-span-2">
     <CurtainDeviceTile device={device} roomName={roomName} layout="dashboard" density="compact" onCommand={onCommand} />
   </div>;
@@ -67,7 +71,7 @@ export function TopologyDeviceTile({ device, roomName, onCommand }: TopologyDevi
         ariaLabel={momentary ? undefined : `${t(command === 'toggle' ? 'topology.toggle_device' : active ? 'topology.turn_off_device' : 'topology.turn_on_device')}: ${device.name}`}
         onAction={command ? () => { void execute(); } : undefined}
         actionFeedback={processing ? 'pending' : feedback}
-      /> : <SectionDeviceCard kind="device" title={device.name} icon={getDefaultIcon(kind === 'camera' ? 'camera' : 'device')} isAssigned />}
+      /> : <SectionDeviceCard kind="device" title={device.name} icon={getDefaultIcon('device')} isAssigned />}
     </div>
     <span className="text-center text-micro text-muted-foreground">{command || ['light', 'switch'].includes(kind) || momentary
       ? stateLabel : t(`device_types.${device.semanticType || device.type}`, { defaultValue: t('device_types.none') })}</span>

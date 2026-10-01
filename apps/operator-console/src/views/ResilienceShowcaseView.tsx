@@ -7,7 +7,7 @@ import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import { Card } from '../components/ui/Card';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { StatusPill } from '../components/ui/StatusPill';
-import { LoadingState } from '../components/ui/LoadingState';
+import { SystemStatusSkeleton } from '../components/ui/ComponentSkeletons';
 import { useInitialLoading } from '../components/ui/useInitialLoading';
 
 export const ResilienceShowcaseView: React.FC = () => {
@@ -57,7 +57,7 @@ export const ResilienceShowcaseView: React.FC = () => {
     ? lastCheckedAt.toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })
     : null;
 
-  if (initialLoading) return <LoadingState label={t('system_status.loading')} layout="cards" />;
+  if (initialLoading) return <SystemStatusSkeleton label={t('system_status.loading')} />;
 
   const cards = [
     { icon: Router, label: t('system_status.connection'), value: isConnected ? t('system_status.connected') : t('system_status.check_required'), description: isConnected ? t('system_status.connection_ok') : t('system_status.connection_pending'), tone: isConnected ? 'success' as const : 'warning' as const },

@@ -972,6 +972,7 @@
     "load_error": "No se pudo cargar la estructura del hogar",
     "create_room_error": "No se pudo crear la estancia",
     "search_rooms": "Buscar estancias por nombre...",
+    "search_display_commands": "Buscar comandos de la pizarra",
     "search_devices": "Buscar dispositivos por nombre...",
     "no_search_results": "No hay estancias que coincidan con la búsqueda.",
     "no_device_search_results": "No hay dispositivos que coincidan con la búsqueda.",

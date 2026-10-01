@@ -8,7 +8,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import { ScenesEmptyState } from '../components/ScenesEmptyState';
 import { ScenesGroup } from '../components/ScenesGroup';
 import { ScenesHeader } from '../components/ScenesHeader';
-import { LoadingState } from '../components/ui/LoadingState';
+import { ScenesSkeleton } from '../components/ui/ComponentSkeletons';
 import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { useDeviceSnapshotStore, type SnapshotDevice } from '../stores/useDeviceSnapshotStore';
@@ -174,7 +174,7 @@ const ScenesView: React.FC<{
       });
   };
 
-  if (initialLoading) return <LoadingState label={t('common.loading')} layout="cards" />;
+  if (initialLoading) return <ScenesSkeleton label={t('common.loading')} />;
 
   const openCreateScene = () => {
     if (!homeId) {

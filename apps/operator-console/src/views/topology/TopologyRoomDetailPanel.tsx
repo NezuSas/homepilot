@@ -42,8 +42,8 @@ export function TopologyRoomDetailPanel({
 }: TopologyRoomDetailPanelProps) {
   return (
     <aside aria-label={t('topology.room_details')} className="min-w-0 self-start rounded-xl border border-border bg-card p-4 sm:p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 basis-40">
           {editing ? (
             <form className="mt-2 flex items-center gap-2" onSubmit={onRename}>
               <Input
@@ -93,7 +93,7 @@ export function TopologyRoomDetailPanel({
           )}
           {renameError && <p className="mt-2 text-caption font-semibold text-danger">{renameError}</p>}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           <div className="rounded-xl bg-primary/10 p-2 text-primary">
             <Layers3 className="h-5 w-5" />
           </div>

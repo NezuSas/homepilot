@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { Button } from '../components/ui/Button';
-import { LoadingState } from '../components/ui/LoadingState';
+import { SettingsSkeleton } from '../components/ui/ComponentSkeletons';
 import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { SectionHeader } from '../components/ui/SectionHeader';
@@ -122,7 +122,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
   );
 
   if (!status) return (
-    <LoadingState label={t('common.loading')} />
+    <SettingsSkeleton label={t('common.loading')} />
   );
 
   return (

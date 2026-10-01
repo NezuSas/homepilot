@@ -96,9 +96,11 @@ implementations.
    decorative domain icon and concise guidance. When creation is already in
    the header, do not repeat that action inside the empty state. Other views
    may reuse the same variant; the default primitive remains compatible.
-9. Initial asynchronous views use `LoadingState` skeleton profiles and wait for
-   the resources that compose the view. Retain visible data during refresh;
-   preserve specialized Dashboard/Energy skeleton geometry and action feedback.
+9. Initial asynchronous components own their skeleton composition. Share only
+   visual atoms and the accessible `LoadingState` announcement, never one generic
+   silhouette across cards, cameras, rooms or editors. Route fallbacks use the
+   matching view composition. Retain visible data during refresh and preserve
+   specialized Dashboard geometry and action feedback.
 10. Scenes and Automations use one stable list with an independent favorite star.
     Device selectors reuse `SearchableSelectField`: optional labeled groups,
     searchable space/type descriptions and keyboard navigation across groups.
@@ -107,3 +109,7 @@ implementations.
     tracks. Keep momentary feedback separate from toggle state and never render
     a missing reading as off. Empty rooms reuse the collection EmptyState without
     a duplicate creation action; device configuration remains in Device manager.
+12. Device manager is configuration-only, including its inspector. Camera sessions
+    and daily controls live in Spaces/Dashboard. Room displays use the existing
+    validated catalog and momentary action presenter; hidden, non-executable,
+    slider or confirmation-required entries never become executable buttons.

@@ -2,7 +2,7 @@ import { History, RotateCcw } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from './ui/Button';
-import { LoadingState } from './ui/LoadingState';
+import { DashboardHistorySkeleton } from './ui/ComponentSkeletons';
 import { Modal } from './ui/Modal';
 
 export interface DashboardRevisionSummary {
@@ -46,7 +46,7 @@ export function DashboardHistoryModal({
       contentClassName="pt-0"
     >
       {isLoading ? (
-        <LoadingState label={t('dashboards.history.loading')} className="min-h-40" size="sm" />
+        <DashboardHistorySkeleton label={t('dashboards.history.loading')} />
       ) : revisions.length === 0 ? (
         <div className="rounded-panel border border-dashed border-border/70 bg-muted/20 p-6 text-center">
           <History className="mx-auto h-6 w-6 text-muted-foreground" aria-hidden="true" />

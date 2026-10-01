@@ -27,7 +27,7 @@ The command fails if a file cannot be mapped to an existing spec.
 | Authentication, roles, and users | `packages/auth`, `AuthRoutes`, `AdminRoutes`, `UsersView` | Auth RBAC and user management |
 | Setup and installation profiles | `packages/system-setup`, `SystemRoutes`, onboarding views | Setup, installation, and Edge customer specs |
 | Home topology | `packages/topology`, `TopologyRoutes`, topology views | Home and room management |
-| Espacios operativos compactos | TopologyRoomDetailPanel, TopologyDeviceTile, topologyDeviceControl, presentaciones compartidas del Dashboard | `specs/home-room-management.md` AC16, AC24, AC25 |
+| Espacios operativos compactos | TopologyRoomDetailPanel, TopologyDeviceTile, topologyDeviceControl, RoomDisplayControls, CameraDeviceTile, presentaciones compartidas del Dashboard | `specs/home-room-management.md` AC16, AC24–AC26; `specs/smart-display-control-catalog-v1.md` |
 | Dashboards and widgets | Dashboard routes, dashboard views, widgets | Dashboard layout and user navigation |
 | Devices and commands | `packages/devices`, device routes, inbox, controls | Device command, capability, and state specs |
 | Discovery and import | device routes, inbox, Home Assistant integration | Device discovery inbox |
@@ -53,12 +53,13 @@ The command fails if a file cannot be mapped to an existing spec.
 | Inicio hero, favoritas momentáneas, iconos de rutinas y Sections de un slot | Home hero, flip clock, context chips and direct dashboard button, routine/action tiles, Scene/Automation icon persistence and forms, Dashboard canvas and transfer normalization | `specs/operator-console-v1.md` AC38–AC44; `specs/operator-console-v1.tasks.md` UI-Home-04, QA-Home-05, BE-Home-03, UI-Home-05, QA-Home-04, UI-Home-07, QA-Home-06, UI-Dashboard-04, QA-Home-03 |
 | Límite nocturno, identidades de rutinas y formularios en tablet | Personalización horaria, selectores de escenas/automatizaciones, selector modular y overlays de edición | `specs/operator-console-v1.md` AC45; `specs/operator-console-modular-components-v1.md` AC75 |
 | Acciones momentáneas en Escenas y Automatizaciones | Capacidades reales `press`/`activate`, constructores y ejecución compartida de comandos | `specs/operator-console-v1.md` AC46; `specs/operator-console-v1.tasks.md` UI-Routines-01 |
-| Carga inicial fluida, favoritas estables y dispositivos por espacio | LoadingState, useInitialLoading, Home y vistas asíncronas, SceneCard, AutomationDeviceSelect y SearchableSelectField | `specs/operator-console-v1.md` AC51–AC53; `specs/operator-console-v1.tasks.md` UI-Loading-01, UI-Routines-06; `specs/operator-console-modular-components-v1.md` REQ-18 |
+| Carga inicial propia por componente, favoritas estables y dispositivos por espacio | LoadingState, ComponentSkeletons, useInitialLoading, Home y vistas asíncronas, SceneCard, AutomationDeviceSelect y SearchableSelectField | `specs/operator-console-v1.md` AC51–AC53; `specs/operator-console-v1.tasks.md` UI-Loading-01, UI-Routines-06; `specs/operator-console-modular-components-v1.md` REQ-18 |
+| Gestor de configuración sin controles operativos | ManagedDeviceTile, DeviceInspector, InboxView, useDisplayControlCatalog | `specs/operator-console-v1.md` AC54; `specs/smart-display-control-catalog-v1.md` |
 | Shared Edge foundations | API gateway, route handler, shared contracts | Edge platform foundations |
 
 ## Audited Coverage
 
-- The **874** audited TypeScript/TSX files have a mapping rule to an existing
+- The **881** audited TypeScript/TSX files have a mapping rule to an existing
   spec.
 - All bounded contexts under `packages/` and all API route families are
   covered.

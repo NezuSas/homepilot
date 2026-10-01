@@ -4,7 +4,7 @@ import { ArrowRight, Loader2, RadioTower, RefreshCw } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { Button } from './ui/Button';
-import { LoadingState } from './ui/LoadingState';
+import { DiscoverySkeleton } from './ui/ComponentSkeletons';
 import { SearchFilterBar } from './ui/SearchFilterBar';
 import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 
@@ -162,7 +162,7 @@ export const HomeAssistantDiscoverySection: React.FC<HomeAssistantDiscoverySecti
         <div className="flex flex-col gap-3 animate-in slide-in-from-top-2 duration-300">
           {loading && entities.length === 0 ? (
             <div className="flex min-h-36 items-center justify-center gap-3 rounded-panel border border-border/60 bg-card/35 text-body text-muted-foreground">
-              <LoadingState size="sm" label={t('inbox.discovery.loading_entities')} className="w-full" />
+              <DiscoverySkeleton label={t('inbox.discovery.loading_entities')} className="w-full" />
             </div>
           ) : (
             <>

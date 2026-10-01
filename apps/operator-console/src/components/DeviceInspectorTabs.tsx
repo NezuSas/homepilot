@@ -31,6 +31,7 @@ export interface ActivityLog {
 }
 
 interface InfoTabProps {
+  configurationOnly?: boolean;
   device: InspectableDevice;
   rooms: Room[];
   unavailable: boolean;
@@ -49,7 +50,7 @@ interface InfoTabProps {
 
 export function DeviceInspectorInfoTab({
   device, rooms, unavailable, isOnline, isActionLoading, isRefreshing, error,
-  onSemanticTypeChange, onInvertStateChange, onCommand, onRefresh, onMove, onUnassign, onDelete,
+  onSemanticTypeChange, onInvertStateChange, onCommand, onRefresh, onMove, onUnassign, onDelete, configurationOnly = false,
 }: InfoTabProps) {
   const { t } = useTranslation();
   const assignedRoom = rooms.find((room) => room.id === device.roomId);
@@ -143,7 +144,7 @@ export function DeviceInspectorInfoTab({
           <Activity className="w-4 h-4 opacity-20" />
         </div>
 
-        {(device.type === 'light' || device.type === 'switch') && (
+        {!configurationOnly && (device.type === 'light' || device.type === 'switch') && (
           <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
             <Button disabled={unavailable || isActionLoading} onClick={() => onCommand('turn_on')} className="flex-1 h-12 text-micro font-black uppercase tracking-widest">
               {t('inbox.inspector.actions.force_on')}
@@ -157,7 +158,7 @@ export function DeviceInspectorInfoTab({
           </div>
         )}
 
-        {device.type === 'cover' && (
+        {!configurationOnly && device.type === 'cover' && (
           <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
             <Button disabled={unavailable || isActionLoading} onClick={() => onCommand('open')} className="flex-1 h-12 text-label font-black uppercase tracking-widest">
               {t('inbox.inspector.actions.open')}

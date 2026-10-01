@@ -10,7 +10,7 @@ import { AutomationNotification } from '../components/AutomationNotification';
 import { AutomationRuleCard } from '../components/AutomationRuleCard';
 import { AutomationsEmptyState } from '../components/AutomationsEmptyState';
 import { AutomationsHeader } from '../components/AutomationsHeader';
-import { LoadingState } from '../components/ui/LoadingState';
+import { AutomationsSkeleton } from '../components/ui/ComponentSkeletons';
 import ConfirmModal from '../components/ConfirmModal';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { Button } from '../components/ui/Button';
@@ -212,7 +212,7 @@ const AutomationsView: React.FC<{ currentUserId: string | null }> = ({ currentUs
   const getSceneName = (id?: string) => scenes.find(s => s.id === id)?.name || id || t('common.unknown_scene');
 
   if (initialLoading) {
-    return <LoadingState label={t('common.loading')} layout="cards" />;
+    return <AutomationsSkeleton label={t('common.loading')} />;
   }
 
   const openEditAutomation = (rule: AutomationRule) => {

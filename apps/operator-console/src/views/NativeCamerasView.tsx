@@ -4,7 +4,7 @@ import { Camera, Plus, Edit2, Trash2, ShieldAlert, AlertTriangle } from 'lucide-
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { LoadingState } from '../components/ui/LoadingState';
+import { NativeCameraSettingsSkeleton } from '../components/ui/ComponentSkeletons';
 import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { IconButton } from '../components/ui/IconButton';
 import { StatusPill } from '../components/ui/StatusPill';
@@ -338,7 +338,7 @@ export const NativeCamerasView: React.FC = () => {
       )}
 
       {initialLoading ? (
-        <LoadingState label={t('common.loading')} layout="cards" />
+        <NativeCameraSettingsSkeleton label={t('common.loading')} />
       ) : cameras.length === 0 ? (
         <Card className="flex flex-col items-center justify-center py-20 px-4 text-center border-dashed border-border/60 bg-muted/20">
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-6 border border-border/50">

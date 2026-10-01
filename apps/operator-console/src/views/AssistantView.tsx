@@ -8,7 +8,7 @@ import { AssistantActionModal } from '../components/AssistantActionModal';
 import { AssistantEmptyState } from '../components/AssistantEmptyState';
 import { AssistantFindingCard } from '../components/AssistantFindingCard';
 import { AssistantFindingGroupCard } from '../components/AssistantFindingGroupCard';
-import { LoadingState } from '../components/ui/LoadingState';
+import { AssistantSkeleton } from '../components/ui/ComponentSkeletons';
 import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { AssistantRecommendationsHeader } from '../components/AssistantRecommendationsHeader';
 import { SectionHeader } from '../components/ui/SectionHeader';
@@ -202,7 +202,7 @@ export const AssistantView: React.FC<{
   };
 
   if (initialLoading) {
-    return <LoadingState label={t('common.loading')} className="h-assistant-loading" />;
+    return <AssistantSkeleton label={t('common.loading')} className="h-assistant-loading" />;
   }
 
   return (

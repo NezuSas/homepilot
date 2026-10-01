@@ -15,3 +15,11 @@
 - [x] Escribir pruebas para revocación, expiración, errores, duplicados por key y ausencia de fallback.
 - [x] Dejar `hp_volume_set` para un widget Slider posterior, sin convertirlo en botón.
 - [ ] Ejecutar pruebas, calidad y validación física en tarea autorizada.
+
+## Extensión local de presentación en Espacios
+
+- [x] Compartir el parser estricto y el hook de carga entre catálogo informativo y controlador de habitación, sin duplicar contratos ni crear stores.
+- [x] Reutilizar SectionActionCard, su feedback momentáneo y executeDeviceActionTarget para botones autorizados; búsqueda y scroll para catálogos extensos.
+- [x] Conservar ocultos, sliders y comandos no elegibles fuera de ejecución directa; no cambiar backend ni entitlement.
+- [x] Validar presentación, transporte y separación del Gestor con los tests focalizados: 66/66 Jest (11 suites) y 37/37 responsive, con confirmación final 3/3. Typecheck, lint, builds y trazabilidad PASS.
+- [ ] Verificar físicamente la pizarra y cámara en MiniPC; los tests locales usan servicios simulados y no sustituyen esa validación.

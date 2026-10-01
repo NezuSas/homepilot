@@ -4,7 +4,7 @@ import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { DiagnosticsHealthBanner } from '../components/DiagnosticsHealthBanner';
 import { DiagnosticsIssuesList } from '../components/DiagnosticsIssuesList';
-import { LoadingState } from '../components/ui/LoadingState';
+import { DiagnosticsSkeleton } from '../components/ui/ComponentSkeletons';
 import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { DiagnosticsProbeGrid } from '../components/DiagnosticsProbeGrid';
 import { DiagnosticsResilienceSummary } from '../components/DiagnosticsResilienceSummary';
@@ -216,7 +216,7 @@ export function DiagnosticsView() {
   }, [isAdmin, loadBackups]);
 
   if (initialLoading) {
-    return <LoadingState label={t('diagnostics.loading')} className="h-64" size="md" />;
+    return <DiagnosticsSkeleton label={t('diagnostics.loading')} />;
   }
 
   if (!snapshot) {

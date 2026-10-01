@@ -88,6 +88,8 @@ El sistema HomePilot requiere una topología base para organizar dispositivos f�
 - [x] **AC24**: Los dispositivos de una Room usan superficies compactas con la paleta del Dashboard. Sus controles compactos de luz/acción tienen un área táctil mínima de 44 px y no desbordan en móvil, tablet, kiosk o escritorio, horizontal o vertical. No repiten el subtítulo Iluminación en cada luz. Evidencia: responsive `Feature: Room devices` en siete tamaños/orientaciones y ambos temas.
 - [x] **AC25**: Un dispositivo con `press` o `activate`, incluso reclasificado como luz, usa acción momentánea y feedback breve, sin estado ON/OFF. No se envían comandos incompatibles; sensores sin comandos son informativos. Una lectura ausente o un dispositivo no disponible no se presenta como apagado. Evidencia: `topologyDeviceControl.test.ts`, `TopologyDeviceTile.test.tsx` y responsive `Feature: Room devices`.
 
+- [x] **AC26**: Espacios reutiliza la tarjeta real de cámara y su visor con carga/conexión/error propios. Una pizarra muestra el catálogo autorizado de su plan con búsqueda y comandos compactos; únicamente los botones visibles, ejecutables y elegibles usan la misma acción momentánea y ruta autenticada del Dashboard. Sliders, comandos confirmables/no ejecutables no se convierten en botones. El Gestor queda dedicado a configuración.
+
 ## 8. Notas Técnicas y Arquitectura
 
 **Modelo de Datos**

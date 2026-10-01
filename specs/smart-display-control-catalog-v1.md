@@ -29,3 +29,7 @@ Para la ruta remota, HomePilot obtiene de Directory un Edge Service Token de sco
 - [x] Traducciones ES/EN y pruebas de regresión escritas.
 
 Las pruebas y validaciones no se ejecutaron por restricción explícita de esta tarea.
+
+## Extensión de presentación en Espacios
+
+El detalle de habitación puede presentar el mismo catálogo validado con búsqueda y botones compactos `SectionActionCard`. Solo ejecuta comandos `button`, visibles, ejecutables y `dashboardEligible` mediante la ruta existente por `actionKey`; no replica el pipeline ni crea controles para sliders/confirmables. La vista del Gestor sigue siendo informativa. La carga inicial tiene un skeleton específico y los refresh conservan el catálogo. No cambia backend, manifest, persistencia, entitlement ni ownership.

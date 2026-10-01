@@ -8,7 +8,7 @@ import { mapActivityType } from '../lib/i18n-mapping-utils';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
-import { LoadingState } from '../components/ui/LoadingState';
+import { AuditLogsSkeleton } from '../components/ui/ComponentSkeletons';
 import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
@@ -102,7 +102,7 @@ export const AuditLogsView: React.FC = () => {
   const displayLogs = useMemo(() => summarizeRepetitiveSyncs(logs), [logs]);
 
   if (initialLoading) {
-    return <LoadingState label={t('audit_logs.loading')} className="min-h-empty-sm" size="md" />;
+    return <AuditLogsSkeleton label={t('audit_logs.loading')} />;
   }
 
   if (error) {

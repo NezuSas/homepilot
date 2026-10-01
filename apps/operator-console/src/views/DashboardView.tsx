@@ -7,7 +7,7 @@ import {
   type DashboardRoutineAutomation,
 } from '../components/DashboardRoutinesSection';
 import { DashboardInsightsSection } from '../components/DashboardInsightsSection';
-import { LoadingState } from '../components/ui/LoadingState';
+import { HomeSkeleton } from '../components/ui/ComponentSkeletons';
 import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { HomeClimateSummary } from '../components/HomeClimateSummary';
 import { API_BASE_URL } from '../config';
@@ -234,7 +234,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
 
   return (
     <>
-    {initialLoading && <LoadingState label={t('common.loading')} layout="home" />}
+    {initialLoading && <HomeSkeleton label={t('common.loading')} />}
     <div hidden={initialLoading} className="homepilot-home flex flex-col gap-6 pb-10 sm:gap-8 sm:pb-12 [&[hidden]]:hidden">
       <DashboardAtmosphereRipple active={luxuryRipple} />
 

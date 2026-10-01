@@ -972,6 +972,7 @@
     "load_error": "The home structure could not be loaded",
     "create_room_error": "The room could not be created",
     "search_rooms": "Search rooms by name...",
+    "search_display_commands": "Search display commands",
     "search_devices": "Search devices by name...",
     "no_search_results": "No rooms match your search.",
     "no_device_search_results": "No devices match your search.",

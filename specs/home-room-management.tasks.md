@@ -158,9 +158,19 @@
 ## Mejora local — Espacios operativos (AC16, AC24, AC25)
 
 - [x] Mostrar todos los dispositivos asignados a la estancia, con búsqueda y orden estable.
-- [x] Reutilizar SectionActionCard, SensorMetricCard, CurtainDeviceTile y MediaPlayerCard sin duplicar presentaciones ni crear stores. Cámaras y otros dispositivos sin control se muestran como información, sin iniciar streams.
+- [x] Reutilizar SectionActionCard, SensorMetricCard, CurtainDeviceTile y MediaPlayerCard sin duplicar presentaciones ni crear stores. La extensión AC26 reutiliza CameraDeviceTile y su visor, en lugar de la ficha genérica de cámara inicial.
 - [x] Resolver comandos mediante capacidades; conservar feedback momentáneo y estados desconocidos/no disponibles.
 - [x] Compactar la distribución y validar controles táctiles, temas y orientaciones.
 - [x] Ejecutar tests focalizados, responsive focalizado, typecheck, lint, builds y trazabilidad. Sin Git, GitHub, Docker ni deploy.
 
 Validación local (2026-10-01): 51/51 Jest en cinco suites; 12/12 responsive focalizados (siete escenarios de Espacios en ambos temas, control/renombrado/cierre y cuatro escenarios de geometría inicial del Dashboard). Typecheck, lint Operator Console, build raíz, build Operator Console, spec coverage, BDD traceability, module test coverage e i18n: PASS. Detector visual sin hallazgos; revisión independiente de seis capturas de escritorio/móvil/tablet: ship, acotado a Espacios. No se ejecutaron suites completas ni Docker; no constituye aprobación de publicación. Builds conservan advertencias de Browserslist desactualizado y chunks grandes.
+
+## Extensión local — Cámaras y comandos de pizarra (AC26)
+
+- [x] Presentar la cámara real y el visor existente en Espacios; conservar carga de primer fotograma, error y reintento.
+- [x] Compartir la lectura y validación del catálogo entre Gestor informativo y controles de habitación.
+- [x] Mostrar búsqueda, scroll y comandos de pizarra con SectionActionCard y feedback momentáneo; no convertir sliders/confirmables/ocultos en botones.
+- [x] Mantener endpoints, permisos, manifest y persistencia existentes.
+- [x] Registrar validación focalizada final de Jest, responsive y controles estáticos.
+
+Evidencia de la extensión (2026-10-01): 66/66 Jest en 11 suites; 37/37 escenarios responsive focalizados, incluidos carga inicial, siete perfiles de Espacios/Gestor, cámara/visor y cuatro perfiles de geometría Dashboard. La primera ejecución detectó reformateo del nombre de cámara; se corrigió pasando el título original, sin relajar el test. Tras revisión visual se ajustó únicamente el encabezado de estancia estrecho y se confirmaron 3/3 escenarios móvil/tablet/escritorio en ambos temas. Typecheck, lint consola, builds raíz/consola, spec coverage, BDD, module coverage e i18n PASS. Detector sin hallazgos y capturas revisadas. Validación con servicios simulados; no se probó hardware real ni se ejecutaron Git, GitHub, suites completas, Docker o deploy. Advertencias existentes de Browserslist/chunks grandes.

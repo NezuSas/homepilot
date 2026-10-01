@@ -422,6 +422,7 @@ for (const viewport of [
     await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: room.homeId, name: 'Casa', ownerId: dashboardUser.id }] }));
     await page.route('**/api/v1/rooms', route => route.fulfill({ json: [room] }));
     await page.route('**/api/v1/devices', route => route.fulfill({ json: devices }));
+    await page.route('**/api/v1/devices/room-camera/camera/session*', route => route.fulfill({ status: 503, json: { error: 'Camera unavailable' } }));
     await page.route('**/api/v1/devices/*/command', async route => {
       const id = new URL(route.request().url()).pathname.split('/').at(-2)!;
       const command = route.request().postDataJSON().command;
@@ -479,6 +480,92 @@ const dashboardUser = {
   displayName: 'Administrador',
   avatarDataUri: null,
 };
+
+for (const viewport of [
+  { name: 'mobile portrait', width: 320, height: 720 },
+  { name: 'mobile landscape', width: 844, height: 390 },
+  { name: 'tablet portrait', width: 768, height: 1024 },
+  { name: 'tablet landscape', width: 1024, height: 768 },
+  { name: 'desktop', width: 1440, height: 900 },
+  { name: 'kiosk portrait', width: 1080, height: 1920 },
+  { name: 'kiosk landscape', width: 1920, height: 1080 },
+]) {
+  test(`Feature: Room display and configuration — Scenario: Operational controls stay in Spaces on ${viewport.name} (AC26, AC54)`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport);
+    await prepareAuthenticatedDashboard(page);
+    const room = { id: 'meeting', homeId: 'responsive-home', name: 'Sala de reuniones' };
+    const base = { homeId: room.homeId, roomId: room.id, status: 'ASSIGNED' };
+    const display = { ...base, id: 'board', name: 'Pizarra oficina', type: 'smart_display', semanticType: 'smart_display', integrationSource: 'android-display', lastKnownState: { connectionState: 'online' } };
+    const camera = { ...base, id: 'meeting-camera', name: 'Cámara reuniones', type: 'camera', integrationSource: 'native-camera', lastKnownState: null };
+    const light = { ...base, id: 'meeting-light', externalId: 'ha:light.meeting', name: 'Luz reuniones', type: 'light', lastKnownState: { on: false } };
+    const command = { key: 'go_home', displayName: 'Inicio pizarra', implementationType: 'legacy_adb', controlType: 'button', visibility: 'visible', executableInHomePilot: true, dashboardEligible: true };
+    const catalog = { deviceId: display.id, plan: { id: 1, name: 'Plan oficina', type: null }, commands: [command,
+      { ...command, key: 'hidden', displayName: 'Comando oculto', visibility: 'hidden' },
+      { ...command, key: 'volume', displayName: 'Volumen pizarra', controlType: 'slider', dashboardEligible: false },
+      { ...command, key: 'pending', displayName: 'Comando pendiente', executableInHomePilot: false, dashboardEligible: false },
+      ...Array.from({ length: 20 }, (_, i) => ({ ...command, key: `action_${i}`, displayName: `Acción pizarra ${i}` })),
+    ] };
+    const executions: string[] = [];
+    let cameraSessions = 0;
+    await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: room.homeId, name: 'Casa', ownerId: dashboardUser.id }] }));
+    await page.route('**/api/v1/rooms', route => route.fulfill({ json: [room] }));
+    await page.route('**/api/v1/devices', route => route.fulfill({ json: [display, camera, light] }));
+    await page.route('**/api/v1/devices/meeting-light', route => route.fulfill({ json: light }));
+    await page.route('**/api/v1/devices/meeting-light/activity-logs', route => route.fulfill({ json: [] }));
+    await page.route('**/api/v1/devices/board/control-catalog', route => route.fulfill({ json: catalog }));
+    await page.route('**/api/v1/devices/board/actions/*/execute', async route => {
+      executions.push(new URL(route.request().url()).pathname);
+      await route.fulfill({ json: display });
+    });
+    await page.route('**/api/v1/devices/meeting-camera/camera/session*', route => {
+      cameraSessions++;
+      return route.fulfill({ json: { snapshotPath: '/meeting-frame.png', streamPath: '/meeting-stream' } });
+    });
+    await page.route('**/meeting-frame.png*', route => route.fulfill({ contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==', 'base64') }));
+    for (const theme of ['dark', 'light']) {
+      cameraSessions = 0;
+      await page.goto('/system/devices');
+      await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
+      const manager = page.getByRole('main');
+      await expect(manager.getByRole('heading', { name: camera.name, exact: true })).toBeVisible();
+      await expect(manager.locator('img,video')).toHaveCount(0);
+      await expect(manager.getByRole('button', { name: /pantalla completa|full screen|Encender|Turn on/i })).toHaveCount(0);
+      expect(cameraSessions).toBe(0);
+      const lightSummary = manager.getByRole('article').filter({ has: page.getByRole('heading', { name: light.name, exact: true }) });
+      await lightSummary.getByRole('button', { name: /Gestionar dispositivo|Manage device/i }).click();
+      const inspector = page.getByRole('dialog');
+      await expect(inspector.getByText(/Función del dispositivo|Device function/i)).toBeVisible();
+      await expect(inspector.getByRole('button', { name: /Forzar|Force|Alternar|Toggle/i })).toHaveCount(0);
+      await page.keyboard.press('Escape');
+      await expect(inspector).toHaveCount(0);
+      await page.goto('/spaces');
+      await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
+      await page.getByRole('button', { name: /Sala de reuniones.*3 dispositivos|Sala de reuniones.*3 devices/i }).click();
+      const detail = page.getByRole('complementary', { name: /Detalle de.*estancia|Room details/i });
+      await expect(detail.getByRole('button', { name: /pantalla completa|full screen/i })).toBeVisible();
+      expect(cameraSessions).toBeGreaterThan(0);
+      const board = detail.getByRole('region', { name: display.name, exact: true });
+      await expect(board).not.toContainText('Comando oculto');
+      await expect(board).toContainText('Volumen pizarra');
+      await expect(board.getByRole('button', { name: /Volumen pizarra|Comando pendiente/i })).toHaveCount(0);
+      const action = board.getByRole('button', { name: /Inicio pizarra/i });
+      await expect(action).not.toHaveAttribute('aria-pressed');
+      await action.click();
+      await expect(action).toHaveAttribute('data-action-state', 'success');
+      await expect(action).toHaveAttribute('data-action-state', 'idle');
+      expect(executions.at(-1)).toBe('/api/v1/devices/board/actions/go_home/execute');
+      const search = board.getByRole('textbox', { name: /Buscar comandos de la pizarra|Search display commands/i });
+      await search.fill('Acción pizarra 19');
+      await expect(board.getByRole('button', { name: /Acción pizarra 19/i })).toBeVisible();
+      await search.fill('');
+      const last = board.getByRole('button', { name: /Acción pizarra 19/i });
+      await last.scrollIntoViewIfNeeded();
+      await expect(last).toBeInViewport();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+      if (['desktop', 'tablet portrait', 'mobile portrait'].includes(viewport.name)) await page.screenshot({ path: testInfo.outputPath(`room-operational-${theme}.png`), fullPage: true });
+    }
+  });
+}
 
 const responsiveDevices = [
   {
@@ -2903,7 +2990,7 @@ test('Feature: Native camera setup — Scenario: An owner opens discovery and ma
   await expect(page.getByRole('textbox', { name: /Camera name|Nombre de la cámara/i })).toBeVisible();
 });
 
-test('Las cámaras cargan el primer fotograma y conservan la tarjeta de imagen del Dashboard', async ({ page }) => {
+test('Las cámaras cargan el primer fotograma en Espacios y conservan la tarjeta de imagen del Dashboard', async ({ page }) => {
   await page.setViewportSize(viewports[2]);
   await prepareAuthenticatedDashboard(page);
   const camera = {
@@ -2956,8 +3043,10 @@ test('Las cámaras cargan el primer fotograma y conservan la tarjeta de imagen d
     await route.fulfill({ contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==', 'base64') });
   });
 
-  await page.goto('/system/devices');
-  const managedCamera = page.getByRole('article').filter({ hasText: camera.name });
+  await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: camera.homeId, name: 'Casa', ownerId: dashboardUser.id }] }));
+  await page.goto('/spaces');
+  await page.getByRole('button', { name: /Patio.*1 dispositivo|Patio.*1 device/i }).click();
+  const managedCamera = page.getByRole('complementary', { name: /Detalle de.*estancia|Room details/i });
   await expect(managedCamera.getByRole('status')).toBeVisible();
   await expect(managedCamera.getByRole('status')).toHaveCount(0);
   await expect(managedCamera.getByRole('button', { name: /pantalla completa|full screen/i })).toBeVisible();

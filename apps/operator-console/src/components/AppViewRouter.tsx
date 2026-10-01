@@ -5,7 +5,7 @@ import type { AssistantTurnCoordinator } from '../lib/assistantTurnCoordinator';
 import { AssistantView, AuditLogsView, DashboardView, DashboardsView, DiagnosticsView, EnergyView, ExecutionLogsView, HomeAssistantSettingsView, HomePersonalizationView, HomeConversationView, InboxView, NativeCamerasView, ResilienceShowcaseView, RoutinesView, TopologyView, UsersView } from '../appRouteViews';
 import type { SetupStatus } from '../appShellTypes';
 import { OnboardingView } from '../views/OnboardingView';
-import { LoadingState } from './ui/LoadingState';
+import { ViewSkeleton } from './ui/ComponentSkeletons';
 import { PageFrame } from './ui/PageFrame';
 import { useTranslation } from 'react-i18next';
 import { getAppViewRouterLayout, getRoutineSection } from './appShellBoundaryHelpers';
@@ -36,9 +36,7 @@ interface AppViewRouterProps {
 export function AppViewRouter(props: AppViewRouterProps) {
   const { t } = useTranslation();
   const layout = getAppViewRouterLayout(props.currentView);
-  const skeletonLayout = props.currentView === 'dashboard' ? 'home'
-    : ['routines', 'spaces', 'system-cameras', 'resilience-showcase'].includes(props.currentView) ? 'cards' : 'list';
-  const fallback = <LoadingState label={t('common.loading')} layout={skeletonLayout} className="min-h-screen-half" size="md" />;
+  const fallback = <ViewSkeleton view={props.currentView} section={getRoutineSection(props.currentPath, props.canManageAutomations)} label={t('common.loading')} className="min-h-screen-half" />;
   return <PageFrame immersive={layout.immersive} className={layout.pageClassName}><Suspense fallback={fallback}>
     {props.currentView === 'dashboard' && <DashboardView onActionExecute={props.onDeviceAction} onNavigate={props.onNavigate} displayName={props.displayName} currentUserId={props.user?.id ?? null} onOpenOwnDashboardTab={props.onOpenOwnDashboardTab} canManageAutomations={props.canManageAutomations} />}
     {props.currentView === 'spaces' && <TopologyView currentUser={props.user} />}
