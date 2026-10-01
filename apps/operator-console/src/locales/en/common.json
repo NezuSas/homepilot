@@ -93,6 +93,7 @@
       "response": "Response"
     },
     "top_recommendations": "Top Recommendations",
+    "view_all_findings": "View all suggestions ({{count}})",
     "sections": {
       "proactive": "Proactive Suggestions",
       "usage": "Usage Analysis",
@@ -136,6 +137,12 @@
     "assign": "Assign",
     "fix": "Fix",
     "generic_finding_description": "An opportunity to improve your home was identified. Review the details to continue.",
+    "evidence": {
+      "habit_window": "Recurring activity in the recorded {{timeWindow}} time window. Review the logs before automating.",
+      "habit": "Recurring activity recorded. Review the logs before automating.",
+      "long_duration": "On for more than {{hoursOn}} hours without recent changes.",
+      "inactivity": "No activity recorded for {{daysInactive}} days."
+    },
     "severities": {
       "high": "High Priority",
       "medium": "Medium",
@@ -672,7 +679,7 @@
   },
   "diagnostics": {
     "categories": { "resilience": "Resilience", "automation": "Automation", "scene": "Scene", "auth": "Access", "command": "Command" },
-    "filters": { "date": "Date", "action": "Action", "all": "All", "scene": "Scenes", "command": "Commands", "automation": "Automations", "recent_only": "Filters apply to the loaded recent events.", "no_matches": "No events match the filters." },
+"filters": { "choose_date": "Choose date", "date": "Date", "action": "Action", "all": "All", "scene": "Scenes", "command": "Commands", "automation": "Automations", "recent_only": "Filters apply to the loaded recent events.", "no_matches": "No events match the filters." },
     "timeline": "Timeline",
     "loading": "Gathering diagnostics heartbeat...",
     "error_loading": "Failed to load diagnostics",
@@ -738,6 +745,9 @@
       "cycles": "cycles"
     },
     "metrics": {
+      "scenes": "Scenes",
+      "automations": "Automations",
+      "configured": "Configured",
       "native_local": "Native Local",
       "online": "Online",
       "bridged": "Bridged (HA)",

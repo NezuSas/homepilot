@@ -1,12 +1,6 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Sparkles, Zap } from 'lucide-react';
-import { AssistantCard } from './ui/AssistantCard';
-import { Button } from './ui/Button';
-import {
-  getSafeFindingMetadata,
-  hasTechnicalFindingMetadata,
-} from '../lib/assistantFindingPresentation';
+import { Link } from 'react-router-dom';
+import { AssistantFindingCard } from './AssistantFindingCard';
 import type { AssistantFinding, AssistantFindingAction } from '../stores/useAssistantStore';
 
 interface DashboardInsightsSectionProps {
@@ -14,65 +8,20 @@ interface DashboardInsightsSectionProps {
   onAction: (finding: AssistantFinding, action: AssistantFindingAction) => void;
 }
 
-const isEnergyFinding = (finding: AssistantFinding): boolean => {
-  return finding.type.includes('energy')
-    || finding.type.includes('consumption')
-    || finding.type.includes('long_running');
-};
-
-export const DashboardInsightsSection: React.FC<DashboardInsightsSectionProps> = ({
-  findings,
-  onAction,
-}) => {
+export function DashboardInsightsSection({ findings, onAction }: DashboardInsightsSectionProps) {
   const { t } = useTranslation();
-
-  if (findings.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="homepilot-home-insights animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-      <div className="flex items-center gap-3 px-2">
-        <h2 className="text-micro font-black uppercase tracking-label text-muted-foreground/60">
-          {t('dashboard.actionable_insights')}
-        </h2>
-        <div className="h-px flex-1 bg-gradient-to-r from-muted to-transparent" />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {findings.slice(0, 2).map((finding) => {
-          const isEnergy = isEnergyFinding(finding);
-          const safeMetadata = getSafeFindingMetadata(finding.metadata);
-          const description = hasTechnicalFindingMetadata(finding.metadata)
-            ? t('assistant.generic_finding_description')
-            : t(`assistant.types.${finding.type}_description`, safeMetadata);
-
-          return (
-            <AssistantCard
-              key={finding.id}
-              icon={isEnergy ? Zap : Sparkles}
-              category={isEnergy ? t('dashboard.energy_insight') : t('dashboard.proactive')}
-              title={t(`assistant.types.${finding.type}`)}
-              description={description}
-              severity={finding.severity}
-              actions={
-                <div className="flex w-full gap-2">
-                  {finding.actions.map((action, index) => (
-                    <Button
-                      key={`${finding.id}-${action.type}-${index}`}
-                      size="sm"
-                      variant={index === 0 ? 'primary' : 'secondary'}
-                      onClick={() => onAction(finding, action)}
-                      className="h-9 flex-1 px-3 text-nano uppercase tracking-label"
-                    >
-                      {t(action.label)}
-                    </Button>
-                  ))}
-                </div>
-              }
-            />
-          );
-        })}
-      </div>
+  if (!findings.length) return null;
+  // Prefer different recommendation types in the limited Home summary.
+  const representatives = findings.filter((finding, index, all) =>
+    all.findIndex(item => item.type === finding.type) === index).slice(0, 2);
+  return <section className="homepilot-home-insights space-y-3" aria-label={t('dashboard.actionable_insights')}>
+    <h2 className="text-section-title font-bold text-foreground">{t('dashboard.actionable_insights')}</h2>
+    <div className="grid gap-3 md:grid-cols-2">
+      {representatives.map(finding => <AssistantFindingCard key={finding.id} finding={finding} onAction={onAction} />)}
     </div>
-  );
-};
+    {findings.length > representatives.length && <Link to="/assistant"
+      className="inline-flex min-h-11 items-center rounded-control px-2 text-caption font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+      {t('assistant.view_all_findings', { count: findings.length })}
+    </Link>}
+  </section>;
+}

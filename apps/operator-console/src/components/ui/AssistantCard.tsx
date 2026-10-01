@@ -26,12 +26,6 @@ export const AssistantCard = React.forwardRef<HTMLDivElement, AssistantCardProps
       medium: 'border-warning/30 bg-warning/10 text-warning',
       low: 'border-success/30 bg-success/10 text-success',
     };
-    const severityAccentClasses = {
-      critical: 'bg-danger',
-      high: 'bg-danger',
-      medium: 'bg-warning',
-      low: 'bg-success',
-    };
 
     return (
       <div
@@ -41,19 +35,12 @@ export const AssistantCard = React.forwardRef<HTMLDivElement, AssistantCardProps
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
         className={cn(
-          'relative flex h-full min-w-0 flex-col overflow-hidden rounded-panel border border-border/80 bg-card p-4 shadow-depth-1 transition-all duration-300 sm:p-5',
-          isDismissed ? 'pointer-events-none translate-x-12 scale-95 opacity-0' : 'hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-depth-2',
+          'relative flex h-full min-w-0 flex-col overflow-hidden rounded-card border border-border bg-card p-3 transition-colors',
+          isDismissed ? 'pointer-events-none opacity-0' : 'hover:border-primary/35',
           className,
         )}
       >
-        {severity && (
-          <span
-            aria-hidden="true"
-            className={cn('absolute bottom-4 left-0 top-4 w-1 rounded-r-full sm:bottom-5 sm:top-5', severityAccentClasses[severity])}
-          />
-        )}
-
-        <div className="flex min-w-0 items-start gap-3 pl-2">
+        <div className="flex min-w-0 flex-wrap items-start gap-2">
           <div className={cn(
             'flex h-10 w-10 shrink-0 items-center justify-center rounded-control border',
             severity ? severityClasses[severity] : 'border-primary/20 bg-primary/10 text-primary',
@@ -62,12 +49,10 @@ export const AssistantCard = React.forwardRef<HTMLDivElement, AssistantCardProps
           </div>
 
           <div className="min-w-0 flex-1 pt-0.5">
-            <p className="mb-1 text-nano font-bold uppercase tracking-label text-muted-foreground">
-              {category}
-            </p>
             <h3 id={titleId} className="break-words text-body font-bold tracking-tight text-foreground">
               {title}
             </h3>
+            {category !== title && <p className="text-caption text-muted-foreground">{category}</p>}
           </div>
 
           {severity && (
@@ -77,14 +62,14 @@ export const AssistantCard = React.forwardRef<HTMLDivElement, AssistantCardProps
           )}
         </div>
 
-        <p id={descriptionId} className="mt-3 break-words pl-2 text-caption leading-relaxed text-muted-foreground">
+        <p id={descriptionId} className="mt-2 break-words text-caption leading-relaxed text-muted-foreground">
           {description}
         </p>
 
-        {children && <div className="mt-3 pl-2">{children}</div>}
+        {children && <div className="mt-2">{children}</div>}
 
         {actions && (
-          <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-border/60 pt-3 pl-2">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             {actions}
           </div>
         )}

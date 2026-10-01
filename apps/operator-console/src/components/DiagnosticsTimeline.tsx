@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Activity } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
-import { Input } from './ui/Input';
+import { DateField } from './ui/DateField';
 import { SearchableSelectField } from './ui/SearchableSelectField';
 
 interface DiagnosticEvent {
@@ -145,7 +145,7 @@ export const DiagnosticsTimeline: React.FC<DiagnosticsTimelineProps> = ({ events
     <div className="space-y-4 pt-4">
       <h3 className="text-micro font-black tracking-widest uppercase text-muted-foreground opacity-50">{t('diagnostics.timeline')}</h3>
       <div className="grid gap-3 sm:grid-cols-2 sm:max-w-lg">
-        <Input type="date" label={t('diagnostics.filters.date')} value={date} onChange={event => setDate(event.target.value)} />
+        <DateField label={t('diagnostics.filters.date')} value={date} onChange={event => setDate(event.target.value)} />
         <SearchableSelectField label={t('diagnostics.filters.action')} value={action} onChange={setAction} options={['all', 'scene', 'command', 'automation'].map(value => ({ value, label: t(`diagnostics.filters.${value}`) }))} />
       </div>
       <p className="text-caption text-muted-foreground">{t('diagnostics.filters.recent_only')}</p>

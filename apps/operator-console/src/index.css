@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Native dates keep the same surface/ink in body and portal overlays. */
+.homepilot-date-field { color-scheme: dark; }
+.light .homepilot-date-field { color-scheme: light; }
+.homepilot-date-field::-webkit-date-and-time-value { min-height: 1.25em; text-align: left; }
+.homepilot-date-field::-webkit-datetime-edit { padding: 0; }
+.homepilot-date-field[data-empty]::-webkit-datetime-edit { opacity: 0; }
+
 /* ── Brand typography ────────────────────────────────────────────
  * Local files keep the operator console independent from remote font CDNs.
  * Rubik is the readable resident-facing family; Disket Mono is reserved for

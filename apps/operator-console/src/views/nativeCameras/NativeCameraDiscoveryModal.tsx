@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
 import { SelectableOptionCard } from '../../components/ui/SelectableOptionCard';
+import { NativeCameraDiscoverySkeleton } from '../../components/ui/ComponentSkeletons';
 import { AlertBanner } from '../../components/ui/AlertBanner';
 import type { DiscoveredCamera, NativeCameraSourceType } from './types';
 
@@ -30,15 +31,15 @@ export function NativeCameraDiscoveryModal({
         onClose={() => !isDiscovering && setIsDiscoveryModalOpen(false)}
         title={t('native_cameras.discovery.title')}
         description={t('native_cameras.discovery.subtitle')}
-        className="max-w-native-camera-modal"
+        className="max-w-2xl"
+        headerAlign="start"
+        headerClassName="p-4 pb-3 pr-14 sm:p-5 sm:pb-3 sm:pr-14"
+        contentClassName="px-4 pb-4 sm:px-5 sm:pb-5"
       >
         {isDiscovering ? (
-          <div className="flex flex-col items-center justify-center p-8 space-y-4">
-            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-body text-muted-foreground">{t('native_cameras.discovery.searching', 'Buscando dispositivos ONVIF...')}</p>
-          </div>
+          <NativeCameraDiscoverySkeleton label={t('native_cameras.discovery.searching')} />
         ) : (
-          <form onSubmit={handleDiscoverySubmit} className="space-y-6">
+          <form onSubmit={handleDiscoverySubmit} className="space-y-4">
             <div
               role="radiogroup"
               aria-label={t('native_cameras.form.field_source_type')}
@@ -54,7 +55,7 @@ export function NativeCameraDiscoveryModal({
                       setSelectedSourceType(sourceType);
                       setSelectedDiscoveredCamera('manual');
                   }}
-                  className="min-h-native-camera-card items-start p-4"
+                  className="items-start p-3"
                 />
               ))}
             </div>

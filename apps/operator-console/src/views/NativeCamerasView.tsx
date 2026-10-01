@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Camera, Plus, Edit2, Trash2, ShieldAlert, AlertTriangle } from 'lucide-react';
+import { Camera, Plus, ShieldAlert, AlertTriangle } from 'lucide-react';
 import { SectionHeader } from '../components/ui/SectionHeader';
-import { Card } from '../components/ui/Card';
+import { EmptyState } from '../components/ui/EmptyState';
+import { NativeCameraSettingsCard } from '../components/NativeCameraSettingsCard';
 import { Button } from '../components/ui/Button';
 import { NativeCameraSettingsSkeleton } from '../components/ui/ComponentSkeletons';
 import { useInitialLoading } from '../components/ui/useInitialLoading';
-import { IconButton } from '../components/ui/IconButton';
-import { StatusPill } from '../components/ui/StatusPill';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
@@ -313,7 +312,7 @@ export const NativeCamerasView: React.FC = () => {
         icon={ShieldAlert}
         title={t('ha_settings.security.title')}
         message={t('native_cameras.security_note')}
-        className="mb-6"
+        className="text-caption"
       />
 
       {notice && (
@@ -340,75 +339,11 @@ export const NativeCamerasView: React.FC = () => {
       {initialLoading ? (
         <NativeCameraSettingsSkeleton label={t('common.loading')} />
       ) : cameras.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center py-20 px-4 text-center border-dashed border-border/60 bg-muted/20">
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-6 border border-border/50">
-            <Camera size={32} className="text-muted-foreground" />
-          </div>
-          <h3 className="text-panel-title font-medium text-foreground mb-2">{t('native_cameras.empty_title')}</h3>
-          <p className="text-muted-foreground max-w-md mb-8">{t('native_cameras.empty_description')}</p>
-          <Button variant="primary" onClick={handleOpenDiscoveryModal}>
-            <Plus size={16} /> {t('native_cameras.add_camera')}
-          </Button>
-        </Card>
+        <EmptyState icon={Camera} variant="collection" title={t('native_cameras.empty_title')} description={t('native_cameras.empty_description')} />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {cameras.map(camera => (
-            <Card key={camera.deviceId} className="flex flex-col h-full bg-card border-border/50 overflow-hidden group">
-              <div className="p-5 flex-1">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center border border-border/30">
-                      <Camera size={20} className="text-muted-foreground" />
-                    </div>
-                    <div>
-                      <h3 className="text-section-title font-medium text-foreground truncate max-w-copy-md">{camera.name}</h3>
-                      <div className="flex items-center mt-1">
-                        <StatusPill 
-                          variant={camera.enabled ? 'success' : 'neutral'}
-                        >
-                          {camera.enabled ? t('native_cameras.status_active') : t('native_cameras.status_inactive')}
-                        </StatusPill>
-                      </div>
-                      <p className="mt-2 text-micro font-bold uppercase tracking-status text-muted-foreground">
-                        {t(`native_cameras.source_types.${camera.sourceType || 'onvif-ptz'}`)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
-                    <IconButton
-                      icon={Edit2}
-                      label={t('common.edit')}
-                      onClick={() => handleOpenEditModal(camera)}
-                      variant="ghost"
-                      size="sm"
-                    />
-                    <IconButton
-                      icon={Trash2}
-                      label={t('common.delete')}
-                      onClick={() => handleDelete(camera.deviceId)}
-                      variant="danger"
-                      size="sm"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2 mt-6">
-                  <div className="flex justify-between text-body">
-                    <span className="text-muted-foreground">{t('native_cameras.host_label')}</span>
-                    <span className="text-foreground/80 font-mono">{camera.host}</span>
-                  </div>
-                  <div className="flex justify-between text-body">
-                    <span className="text-muted-foreground">{t('native_cameras.rtsp_port_label')}</span>
-                    <span className="text-foreground/80 font-mono">{camera.rtspPort}</span>
-                  </div>
-                  <div className="flex justify-between text-body">
-                    <span className="text-muted-foreground">{t('native_cameras.rtsp_path_label')}</span>
-                    <span className="text-foreground/80 font-mono truncate max-w-copy-md">{camera.rtspPath || '/'}</span>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          ))}
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {cameras.map(camera => <NativeCameraSettingsCard key={camera.deviceId} camera={camera}
+            onEdit={handleOpenEditModal} onDelete={handleDelete} />)}
         </div>
       )}
 

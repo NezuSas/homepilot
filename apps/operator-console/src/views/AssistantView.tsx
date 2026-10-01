@@ -10,7 +10,6 @@ import { AssistantFindingCard } from '../components/AssistantFindingCard';
 import { AssistantFindingGroupCard } from '../components/AssistantFindingGroupCard';
 import { AssistantSkeleton } from '../components/ui/ComponentSkeletons';
 import { useInitialLoading } from '../components/ui/useInitialLoading';
-import { AssistantRecommendationsHeader } from '../components/AssistantRecommendationsHeader';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { Button } from '../components/ui/Button';
 import { useAssistantStore } from '../stores/useAssistantStore';
@@ -119,17 +118,14 @@ export const AssistantView: React.FC<{
   };
 
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
-  const [expandedSubGroups, setExpandedSubGroups] = useState<Record<string, boolean>>({});
 
   const toggleGroup = (groupId: string) => {
     setExpandedGroups(prev => ({ ...prev, [groupId]: !prev[groupId] }));
   };
 
-  const toggleSubGroup = (subGroupId: string) => {
-    setExpandedSubGroups(prev => ({ ...prev, [subGroupId]: !prev[subGroupId] }));
-  };
-
-  const GROUPABLE_TYPES = ['new_device_available', 'device_missing_room', 'device_name_duplicate'];
+  const GROUPABLE_TYPES = ['new_device_available', 'device_missing_room', 'device_name_duplicate',
+    'habit_pattern_detected', 'optimization_opportunity', 'optimization_suggestion',
+    'energy_waste_detected', 'automation_suggestion', 'scene_suggestion', 'proactive_automation_opportunity'];
 
   interface SubGroup {
     name: string;
@@ -206,7 +202,7 @@ export const AssistantView: React.FC<{
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="space-y-5">
       <SectionHeader 
         level="view"
         title={t('assistant.title')}
@@ -225,13 +221,12 @@ export const AssistantView: React.FC<{
       />
 
 
-      <AssistantRecommendationsHeader />
 
 
       {findings.length === 0 ? (
         <AssistantEmptyState />
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-5">
           {(() => {
             const processed = processFindings(findings);
             return (['proactive', 'usage', 'opportunities', 'system'] as const).map(sectionKey => {
@@ -247,7 +242,7 @@ export const AssistantView: React.FC<{
                     <div className="h-px flex-1 bg-gradient-to-r from-muted to-transparent"></div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                     {sectionItems.map((item: ProcessedItem) => {
                       if ('isGroup' in item && item.isGroup) {
                         return (
@@ -255,9 +250,8 @@ export const AssistantView: React.FC<{
                             key={item.id}
                             group={item}
                             isExpanded={expandedGroups[item.id] || false}
-                            expandedSubGroups={expandedSubGroups}
                             onToggleGroup={toggleGroup}
-                            onToggleSubGroup={toggleSubGroup}
+                            onDismiss={handleDismiss}
                             onImportAll={() => onNavigate('inbox')}
                             onAction={handleAction}
                           />

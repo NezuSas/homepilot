@@ -55,7 +55,10 @@ export function IconPickerSkeleton(props: SkeletonProps) {
   return <LoadingState {...props}><div className="grid grid-cols-5 gap-2">{Array.from({ length: 20 }, (_, i) => <Bar key={i} className="aspect-square w-full" />)}</div></LoadingState>;
 }
 export function AssistantSkeleton(props: SkeletonProps) {
-  return <LoadingState {...props}><ViewHeadingSkeleton /><Bar className="h-16 w-4/5" /><Bar className="ml-auto h-12 w-3/5" /><Bar className="h-24 w-4/5" /><Bar className="h-12 w-full" /></LoadingState>;
+  return <LoadingState {...props}><ViewHeadingSkeleton /><Bar className="h-4 w-36" /><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{Array.from({ length: 3 }, (_, i) => <AssistantFindingSkeleton key={i} />)}</div></LoadingState>;
+}
+export function AssistantFindingSkeleton() {
+  return <div className="space-y-3 rounded-card border border-border bg-card p-3"><div className="flex gap-2"><Bar className="size-10 shrink-0" /><div className="flex-1 space-y-1"><Bar className="h-5 w-3/4" /><Bar className="h-4 w-1/2" /></div><Bar className="h-4 w-10" /></div><Bar className="h-4 w-full" /><Bar className="h-4 w-3/4" /><div className="flex gap-2"><Bar className="h-11 flex-1" /><Bar className="h-11 flex-1" /></div></div>;
 }
 export function AuditLogsSkeleton(props: SkeletonProps) {
   return <LoadingState {...props}><ViewHeadingSkeleton />{Array.from({ length: 3 }, (_, i) => <div key={i} className="flex flex-col gap-5 rounded-panel border border-border bg-card p-5 md:flex-row"><div className="space-y-2 md:w-44"><Bar className="h-4 w-24" /><Bar className="h-4 w-32" /><Bar className="h-3 w-20" /></div><div className="flex-1 space-y-3"><Bar className="h-5 w-4/5" /><Bar className="h-4 w-1/2" /></div></div>)}</LoadingState>;
@@ -73,7 +76,13 @@ export function HaDiscoverySkeleton(props: SkeletonProps) {
   return <LoadingState {...props}><div className="flex flex-wrap justify-between gap-3"><Bar className="h-11 w-80 max-w-full" /><Bar className="ml-auto h-16 w-52" /></div><div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,17rem),1fr))] gap-3">{Array.from({ length: 3 }, (_, i) => <div key={i} className={`${shell} flex flex-col gap-3`}><div className="flex-1 space-y-2"><Bar className="h-5 w-3/4" /><Bar className="h-4 w-full" /></div><Bar className="h-11 w-24" /></div>)}</div></LoadingState>;
 }
 export function NativeCameraSettingsSkeleton(props: SkeletonProps) {
-  return <LoadingState {...props}><div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 3 }, (_, i) => <div key={i} className="space-y-5 rounded-card border border-border bg-card p-5"><div className="flex gap-3"><Bar className="size-10" /><div className="flex-1 space-y-2"><Bar className="h-6 w-3/4" /><Bar className="h-4 w-20" /></div></div>{Array.from({ length: 3 }, (_, j) => <div key={j} className="flex justify-between gap-4"><Bar className="h-4 w-20" /><Bar className="h-4 w-28" /></div>)}</div>)}</div></LoadingState>;
+  return <LoadingState {...props}><div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 3 }, (_, i) => <NativeCameraSettingsCardSkeleton key={i} />)}</div></LoadingState>;
+}
+export function NativeCameraSettingsCardSkeleton() {
+  return <div className="space-y-3 rounded-card border border-border bg-card p-3"><div className="flex gap-3"><Bar className="size-10 shrink-0" /><div className="flex-1 space-y-1"><Bar className="h-5 w-3/4" /><Bar className="h-4 w-1/2" /></div><Bar className="h-4 w-12" /></div><div className="space-y-1">{Array.from({ length: 3 }, (_, i) => <div key={i} className="flex justify-between gap-3"><Bar className="h-4 w-20" /><Bar className="h-4 w-24" /></div>)}</div><div className="flex justify-end gap-1 border-t border-border pt-2"><Bar className="size-11" /><Bar className="size-11" /></div></div>;
+}
+export function NativeCameraDiscoverySkeleton(props: SkeletonProps) {
+  return <LoadingState {...props}><div className="grid gap-3 md:grid-cols-3">{Array.from({ length: 3 }, (_, i) => <div key={i} className="space-y-2 rounded-control border border-border p-3"><Bar className="h-5 w-3/4" /><Bar className="h-4 w-full" /><Bar className="h-4 w-1/2" /></div>)}</div><Bar className="h-14 w-full" /><Bar className="ml-auto h-11 w-32" /></LoadingState>;
 }
 export function SystemStatusSkeleton(props: SkeletonProps) {
   return <LoadingState {...props}><ViewHeadingSkeleton /><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{Array.from({ length: 4 }, (_, i) => <div key={i} className="min-h-40 space-y-5 rounded-card border border-border bg-card p-5"><div className="flex justify-between"><Bar className="size-10" /><Bar className="h-6 w-12" /></div><div className="space-y-2"><Bar className="h-5 w-1/2" /><Bar className="h-4 w-4/5" /></div></div>)}</div><div className="space-y-3 rounded-card border border-border bg-card p-5"><Bar className="h-5 w-40" /><Bar className="h-4 w-3/4" /></div></LoadingState>;

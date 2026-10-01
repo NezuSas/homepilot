@@ -45,27 +45,6 @@ export const DiagnosticsResilienceSummary: React.FC<DiagnosticsResilienceSummary
     return isLocalDevice(device) && Date.now() - updatedAt < 300000;
   }).length;
 
-  const autonomousSceneCount = scenes.filter((scene) => {
-    const actions = scene.actions || [];
-    return actions.length > 0 && actions.every((action) => isLocalDevice(devices.find((device) => device.id === action.deviceId)));
-  }).length;
-
-  const autonomousAutomationCount = automations.filter((rule) => {
-    const triggerDevice = devices.find((device) => device.id === rule.trigger?.deviceId);
-    const actionDevice = devices.find((device) => device.id === rule.action?.targetDeviceId);
-    const targetScene = scenes.find((scene) => scene.id === rule.action?.sceneId);
-    const triggerIsLocal = rule.trigger?.type === 'time' || isLocalDevice(triggerDevice);
-    let actionIsLocal = false;
-
-    if (rule.action?.type === 'device_command') {
-      actionIsLocal = isLocalDevice(actionDevice);
-    } else if (rule.action?.type === 'execute_scene' && targetScene?.actions) {
-      actionIsLocal = targetScene.actions.every((action) => isLocalDevice(devices.find((device) => device.id === action.deviceId)));
-    }
-
-    return triggerIsLocal && actionIsLocal;
-  }).length;
-
   const stats = [
     {
       label: t('diagnostics.metrics.native_local'),
@@ -82,16 +61,16 @@ export const DiagnosticsResilienceSummary: React.FC<DiagnosticsResilienceSummary
       color: 'text-primary',
     },
     {
-      label: t('diagnostics.metrics.autonomous'),
-      value: autonomousSceneCount,
-      sub: t('diagnostics.metrics.edge_executable'),
+      label: t('diagnostics.metrics.scenes'),
+      value: scenes.length,
+      sub: t('diagnostics.metrics.configured'),
       icon: Zap,
       color: 'text-warning',
     },
     {
-      label: t('diagnostics.metrics.hardware_autonomy'),
-      value: autonomousAutomationCount,
-      sub: t('diagnostics.metrics.zero_cloud'),
+      label: t('diagnostics.metrics.automations'),
+      value: automations.length,
+      sub: t('diagnostics.metrics.configured'),
       icon: ShieldCheck,
       color: 'text-success',
     },

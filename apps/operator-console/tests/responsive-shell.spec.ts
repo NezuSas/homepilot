@@ -2,6 +2,76 @@ import { expect, test } from '@playwright/test';
 import { mdiAutoFix, mdiHome, mdiRobot, mdiWeatherWindy } from '@mdi/js';
 
 for (const viewport of [{ name: 'mobile', width: 320, height: 720 }, { name: 'tablet', width: 768, height: 1024 }, { name: 'desktop', width: 1440, height: 900 }]) {
+  test(`Feature: Compact system presentation — Scenario: Suggestions and IP camera setup fit ${viewport.name} in both themes (AC59)`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport);
+    await prepareAuthenticatedDashboard(page);
+    await page.addInitScript(() => localStorage.setItem('i18nextLng', 'es'));
+    await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: 'responsive-home', name: 'Casa', ownerId: dashboardUser.id }] }));
+    await page.route('**/api/v1/scenes', route => route.fulfill({ json: [] }));
+    await page.route('**/api/v1/automations', route => route.fulfill({ json: [] }));
+    const findings = ['Altavoz estudio', 'Lámpara entrada', 'Enchufe oficina'].map((name, i) => ({
+      id: `finding-${i}`, type: 'habit_pattern_detected', severity: 'medium', title: '', description: '',
+      relatedEntityId: `device-${i}`, relatedEntityType: 'device', status: 'open', score: 1,
+      metadata: { deviceName: name, timeWindow: i === 0 ? '00:00' : '19:30' },
+      actions: [{ type: 'configure_automation', label: 'assistant.actions.create_automation' }, { type: 'ignore', label: 'assistant.actions.ignore' }],
+    }));
+    await page.route('**/api/v1/assistant/findings', route => route.fulfill({ json: findings }));
+    const cameras = ['Entrada', 'Patio', 'Estudio'].map((name, i) => ({
+      deviceId: `camera-${i}`, homeId: 'responsive-home', sourceType: 'onvif-ptz', name,
+      host: `192.0.2.${i + 1}`, rtspPort: 554, onvifPort: 8000, rtspPath: '/stream', enabled: true, createdAt: '',
+    }));
+    let release: () => void = () => {};
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    await page.route('**/api/v1/native-cameras?*', async route => { await gate; await route.fulfill({ json: { cameras } }); });
+    await page.route('**/api/v1/native-cameras/discover', route => route.fulfill({ json: { devices: [] } }));
+    for (const theme of ['dark', 'light']) {
+      await page.goto('/assistant');
+      await page.evaluate(light => document.documentElement.classList.toggle('light', light), theme === 'light');
+      const group = page.getByRole('button', { name: 'Patrón de Hábito Detectado 3', exact: true });
+      await expect(group).toHaveAttribute('aria-expanded', 'false');
+      await group.click();
+      await expect(group).toHaveAttribute('aria-expanded', 'true');
+      await expect(page.getByRole('heading', { name: 'Altavoz estudio', exact: true })).toBeVisible();
+      await expect(page.getByText(/franja registrada de las 00:00/)).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Crear automatización', exact: true })).toHaveCount(3);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath(`assistant-${theme}.png`), fullPage: true, animations: 'disabled' });
+      await group.click();
+      await expect(page.getByRole('button', { name: 'Crear automatización', exact: true })).toHaveCount(0);
+      await page.goto('/system/cameras');
+      const main = page.getByRole('main');
+      if (theme === 'dark') {
+        await expect(main.locator('[aria-busy="true"][role="status"]')).toBeVisible();
+        await page.screenshot({ path: testInfo.outputPath('camera-skeleton.png') });
+        release();
+      }
+      await expect(main.getByRole('article')).toHaveCount(3);
+      await page.evaluate(light => document.documentElement.classList.toggle('light', light), theme === 'light');
+      const camera = main.getByRole('article', { name: 'Entrada', exact: true });
+      await expect(camera.getByRole('button', { name: 'Editar: Entrada', exact: true })).toBeVisible();
+      await page.screenshot({ path: testInfo.outputPath(`cameras-${theme}.png`), fullPage: true, animations: 'disabled' });
+      await camera.getByRole('button', { name: 'Editar: Entrada', exact: true }).click();
+      const edit = page.getByRole('dialog');
+      await expect(edit.getByRole('textbox', { name: 'Nombre de la cámara', exact: true })).toHaveValue('Entrada');
+      await expect(edit.getByLabel(/Contraseña/)).toHaveValue('');
+      await page.screenshot({ path: testInfo.outputPath(`camera-edit-${theme}.png`), animations: 'disabled' });
+      await page.keyboard.press('Escape');
+      await expect(edit).toHaveCount(0);
+      await main.getByRole('button', { name: 'Agregar cámara', exact: true }).click();
+      await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+      const create = page.getByRole('dialog');
+      await expect(create.getByRole('textbox', { name: 'Nombre de la cámara', exact: true })).toHaveValue('');
+      await expect(create.getByRole('textbox', { name: /Host|Dirección IP/ })).toBeVisible();
+      const modalBounds = await create.boundingBox();
+      expect(modalBounds!.width).toBeLessThanOrEqual(viewport.width);
+      expect(modalBounds!.height).toBeLessThanOrEqual(viewport.height);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      await page.keyboard.press('Escape');
+    }
+  });
+}
+
+for (const viewport of [{ name: 'mobile', width: 320, height: 720 }, { name: 'tablet', width: 768, height: 1024 }, { name: 'desktop', width: 1440, height: 900 }]) {
   test(`Feature: Diagnostics presentation — Scenario: Component skeletons and local timeline filters work on ${viewport.name} (AC58)`, async ({ page }, testInfo) => {
     await page.setViewportSize(viewport);
     await prepareAuthenticatedDashboard(page);
@@ -32,6 +102,16 @@ for (const viewport of [{ name: 'mobile', width: 320, height: 720 }, { name: 'ta
     await expect(main.getByText('Regla única', { exact: false })).toBeVisible();
     await expect(main.getByText('Automatización', { exact: true })).toBeVisible();
     const action = main.getByRole('button', { name: 'Acción', exact: true });
+    for (const light of [false, true]) {
+      await page.evaluate(light => document.documentElement.classList.toggle('light', light), light);
+      const dateInput = main.getByLabel('Fecha', { exact: true });
+      await expect(main.getByText('Elegir fecha', { exact: true })).toBeVisible();
+      const dateBounds = await dateInput.boundingBox();
+      const actionBounds = await action.boundingBox();
+      expect(dateBounds!.height).toBeCloseTo(actionBounds!.height, 1);
+      expect(await dateInput.evaluate(element => getComputedStyle(element).colorScheme)).toBe(light ? 'light' : 'dark');
+      await page.screenshot({ path: testInfo.outputPath(`date-${light ? 'light' : 'dark'}.png`), fullPage: true });
+    }
     await action.click();
     await page.getByRole('option', { name: 'Escenas', exact: true }).click();
     await expect(main.getByText('Escena única', { exact: false })).toBeVisible();

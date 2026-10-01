@@ -93,6 +93,7 @@
       "response": "Respuesta"
     },
     "top_recommendations": "Recomendaciones Principales",
+    "view_all_findings": "Ver todas las sugerencias ({{count}})",
     "sections": {
       "proactive": "Sugerencias Proactivas",
       "usage": "Análisis de Uso",
@@ -136,6 +137,12 @@
     "assign": "Asignar",
     "fix": "Corregir",
     "generic_finding_description": "Se identificó una oportunidad de mejora en el hogar. Revisa los detalles para continuar.",
+    "evidence": {
+      "habit_window": "Actividad recurrente en la franja registrada de las {{timeWindow}}. Revisa los registros antes de automatizar.",
+      "habit": "Actividad recurrente registrada. Revisa los registros antes de automatizar.",
+      "long_duration": "Encendido durante más de {{hoursOn}} horas sin cambios recientes.",
+      "inactivity": "Sin actividad registrada durante {{daysInactive}} días."
+    },
     "severities": {
       "high": "Prioridad Alta",
       "medium": "Media",
@@ -672,7 +679,7 @@
   },
   "diagnostics": {
     "categories": { "resilience": "Resiliencia", "automation": "Automatización", "scene": "Escena", "auth": "Acceso", "command": "Comando" },
-    "filters": { "date": "Fecha", "action": "Acción", "all": "Todas", "scene": "Escenas", "command": "Comandos", "automation": "Automatizaciones", "recent_only": "Filtros sobre los eventos recientes cargados.", "no_matches": "No hay eventos que coincidan con los filtros." },
+"filters": { "choose_date": "Elegir fecha", "date": "Fecha", "action": "Acción", "all": "Todas", "scene": "Escenas", "command": "Comandos", "automation": "Automatizaciones", "recent_only": "Filtros sobre los eventos recientes cargados.", "no_matches": "No hay eventos que coincidan con los filtros." },
     "timeline": "Línea de tiempo",
     "loading": "Recuperando pulso de diagnósticos...",
     "error_loading": "Error al cargar diagnósticos",
@@ -738,6 +745,9 @@
       "cycles": "ciclos"
     },
     "metrics": {
+      "scenes": "Escenas",
+      "automations": "Automatizaciones",
+      "configured": "Configuradas",
       "native_local": "Local Nativo",
       "online": "En línea",
       "bridged": "Puenteado (HA)",

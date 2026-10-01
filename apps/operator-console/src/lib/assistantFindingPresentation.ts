@@ -41,3 +41,30 @@ export const getSafeFindingMetadata = (metadata: Record<string, unknown>): Recor
     })
   );
 };
+
+/** Only describe evidence present in the finding; never fill in midnight or inactivity. */
+export const getFindingDescription = (
+  finding: { type: string; metadata: Record<string, unknown> },
+  translate: (key: string, values: Record<string, unknown>) => string,
+): string => {
+  const metadata = getSafeFindingMetadata(finding.metadata);
+  if (finding.type === 'habit_pattern_detected') {
+    const window = metadata.timeWindow;
+    const validWindow = typeof window === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(window);
+    return translate(validWindow ? 'assistant.evidence.habit_window' : 'assistant.evidence.habit', metadata);
+  }
+  if (finding.type === 'optimization_opportunity') {
+    if (metadata.reasonKey === 'long_duration_on' && typeof metadata.hoursOn === 'number') {
+      return translate('assistant.evidence.long_duration', metadata);
+    }
+    if (typeof metadata.daysInactive === 'number' && metadata.daysInactive > 0) {
+      return translate('assistant.evidence.inactivity', metadata);
+    }
+    return translate('assistant.generic_finding_description', metadata);
+  }
+  if (hasTechnicalFindingMetadata(finding.metadata)) return translate('assistant.generic_finding_description', metadata);
+  const description = metadata.displayDescription || metadata.description;
+  return typeof description === 'string' && description.trim()
+    ? description
+    : translate(`assistant.types.${finding.type}_description`, metadata);
+};

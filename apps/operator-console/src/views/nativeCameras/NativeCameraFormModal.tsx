@@ -32,11 +32,14 @@ export function NativeCameraFormModal({
         onClose={() => !isSubmitting && setIsModalOpen(false)}
         title={editingDevice ? t('native_cameras.form.title_edit') : t('native_cameras.form.title_create')}
         description={t('native_cameras.form.subtitle')}
-        className="max-w-native-camera-form"
+        className="max-w-xl"
+        headerAlign="start"
+        headerClassName="p-4 pb-3 pr-14 sm:p-5 sm:pb-3 sm:pr-14"
+        contentClassName="px-4 pb-4 sm:px-5 sm:pb-5"
       >
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="grid gap-3 sm:grid-cols-2">
           {formError && (
-            <div className="p-3 bg-danger/10 border border-danger/20 text-danger rounded-lg text-body">
+            <div className="sm:col-span-2 p-3 bg-danger/10 border border-danger/20 text-danger rounded-lg text-body">
               {formError}
             </div>
           )}
@@ -59,6 +62,7 @@ export function NativeCameraFormModal({
               { value: 'rtsp-dvr', label: t('native_cameras.source_types.rtsp-dvr') },
               { value: 'sonoff-rtsp', label: t('native_cameras.source_types.sonoff-rtsp') },
             ]}
+            className="sm:col-span-2"
             helperText={t(`native_cameras.source_type_hints.${formData.sourceType}`)}
           />
 
@@ -92,7 +96,7 @@ export function NativeCameraFormModal({
           )}
 
           {needsManualRtspPath && (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2">
               <Input
                 label={t('native_cameras.form.field_rtsp_port')}
                 value={formData.rtspPort}
@@ -114,7 +118,7 @@ export function NativeCameraFormModal({
             </div>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2">
             <Input
               label={t('native_cameras.form.field_username')}
               value={formData.username}
@@ -132,7 +136,7 @@ export function NativeCameraFormModal({
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-border/40">
+          <div className="flex justify-end gap-2 pt-3 border-t border-border sm:col-span-2">
             <Button 
               type="button" 
               variant="secondary" 

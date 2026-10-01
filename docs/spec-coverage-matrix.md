@@ -36,6 +36,7 @@ The command fails if a file cannot be mapped to an existing spec.
 | Assistant and voice | `packages/assistant`, assistant routes and conversation views | Assistant and natural voice specs |
 | Home Assistant | Home Assistant integration and settings routes | Home Assistant connection, realtime, and resilience specs |
 | Cameras | camera routes, native camera routes, camera UI | Home Assistant camera and native camera specs |
+| Compact suggestions, camera settings and diagnostics | AssistantFindingCard/GroupCard, DashboardInsightsSection, NativeCameraSettingsCard, DateField, DiagnosticsResilienceSummary | Operator Console V1 AC59; existing Assistant/native camera contracts unchanged |
 | Android Smart Displays | `AndroidDisplayRoutes`, `packages/integrations/android-display` | Android display integration V1 |
 | IntentFlow manifest and effective actions | `BoardManifestV1`, `EffectiveActionsResolver` | HomePilot effectiveActions V1 |
 | Installation verification | Installation verification broker and shared Cloud Edge config provider | HomePilot Installation Verification Broker V1 |
@@ -59,7 +60,7 @@ The command fails if a file cannot be mapped to an existing spec.
 
 ## Audited Coverage
 
-- The **882** audited TypeScript/TSX files have a mapping rule to an existing
+- The **885** audited TypeScript/TSX files have a mapping rule to an existing
   spec.
 - All bounded contexts under `packages/` and all API route families are
   covered.

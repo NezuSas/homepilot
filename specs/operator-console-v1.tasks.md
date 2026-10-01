@@ -1,5 +1,14 @@
 # TASK BREAKDOWN: HomePilot Operator Console V1
 
+## UI-Compact-59 — Sugerencias, cámaras IP y diagnósticos (AC59)
+- Reutilizar fichas compactas de sugerencias entre Inicio/Asistente y agrupar tipos repetidos sin fusionar recursos ni acciones.
+- Presentar motivos y franjas registradas sin inferir una hora local o hábito manual que los datos no demuestran.
+- Extraer ficha de configuración de cámara y skeleton propio; compactar descubrimiento y formulario sin cambiar integración ni credenciales.
+- Campo modular de fecha de 44px, visible en tablet y claro/oscuro; totales reales de escenas/automatizaciones en diagnósticos.
+- Validar pruebas focalizadas de presentación, responsive móvil/tablet/desktop y controles de calidad; no ejecutar despliegue.
+- Evidencia local: 27/27 Jest focalizados; 8/8 escenarios responsive únicos (3 composición compacta, 3 diagnósticos, escaneo manual y alta de cámara). Typecheck, lint, build raíz/consola, i18n, spec coverage, BDD y cobertura modular correctos. Sin suite completa ni deploy; navegador Chromium, pendiente comprobación física Safari/iPad. El detector backend conserva sus franjas existentes; la UI no asume que sean hora local ni actividad manual.
+- Control adicional `check:ui-primitives`: detecta botones nativos en `HomeContextIndicator` y `HomeDashboardButton`, archivos no modificados por este alcance. Se informa sin alterar esos componentes ni desactivar el control.
+
 ## Orden Recomendado de Implementación (Fases)
 1. **Fase 1: Preparación Backend (Exposición Mínima)** - Definir endpoints REST simples consumiendo Casos de Uso existentes.
 2. **Fase 2: Setup Infraestructura UI** - Inicializar workspace frontend (estático y local-first).
