@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, ChevronsRight, LayoutDashboard } from 'lucide-react';
 
 const COMPLETE_AT = 0.85;
@@ -20,6 +20,24 @@ export const SlideToDashboardButton: React.FC<SlideToDashboardButtonProps> = ({
   const activatedRef = useRef(false);
   const [progress, setProgress] = useState(0);
   const [dragging, setDragging] = useState(false);
+  const [inView, setInView] = useState(true);
+
+  useEffect(() => {
+    const rail = railRef.current;
+    if (!rail) return;
+    let visible = true;
+    const update = () => setInView(visible && !document.hidden);
+    const observer = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      update();
+    }, { threshold: 0.1 });
+    observer.observe(rail);
+    document.addEventListener('visibilitychange', update);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener('visibilitychange', update);
+    };
+  }, []);
 
   const travel = () => Math.max(0, (railRef.current?.clientWidth ?? 0) - (handleRef.current?.offsetWidth ?? 0) - 12);
   const progressAt = (clientX: number) => {
@@ -44,6 +62,7 @@ export const SlideToDashboardButton: React.FC<SlideToDashboardButtonProps> = ({
       aria-describedby={disabled ? undefined : 'homepilot-slide-dashboard-instruction'}
       title={disabled ? accessibleLabel : undefined}
       data-dragging={dragging}
+      data-motion={inView && !disabled && !dragging ? 'on' : 'off'}
       style={{ '--slide-progress': progress, '--slide-offset': `${progress * travel()}px` } as React.CSSProperties}
       onClick={(event) => { if (event.detail === 0) activate(); }}
       onKeyDown={(event) => { if (event.key === 'Escape') reset(); }}

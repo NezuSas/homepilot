@@ -120,6 +120,30 @@ test('Home dashboard control opens the own default tab only after a complete sli
   await expect(page).toHaveURL(/\/dashboards\/home-owned-dashboard\/home-default-tab$/);
 });
 
+test('Home dashboard slide control shows moving waves at compact width and respects reduced motion', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await prepare(page);
+  await page.route('**/api/v1/dashboards', (route) => route.fulfill({ json: [{
+    id: 'home-owned-dashboard', ownerId: user.id, title: 'Mi tablero',
+    visibility: { roles: [], users: [], homes: [] },
+    tabs: [{ id: 'home-default-tab', title: 'Principal', isDefault: true, widgets: [] }],
+  }] }));
+  await page.goto('/');
+  const action = page.locator('.homepilot-home-hero').getByRole('button', { name: /deslizar para abrir|slide to open/i });
+  await expect(action).toBeEnabled();
+  await expect.poll(() => action.evaluate((element) => getComputedStyle(element, '::before').animationName)).toBe('homepilot-slide-wave');
+  await expect(action.locator('.homepilot-slide-dashboard-chevrons')).toHaveCSS('animation-name', 'homepilot-slide-chevron');
+  const bounds = await action.boundingBox();
+  expect(bounds).toBeTruthy();
+  expect(bounds!.width).toBeGreaterThan(270);
+  expect(bounds!.width).toBeLessThan(304);
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect.poll(() => action.evaluate((element) => getComputedStyle(element, '::before').animationName)).toBe('none');
+  await expect(action.locator('.homepilot-slide-dashboard-chevrons')).toHaveCSS('animation-name', 'none');
+  await expect(action).toBeEnabled();
+});
+
 test('reduced motion removes the fade but keeps image rotation functional', async ({ page }) => {
   await page.clock.install();
   await page.emulateMedia({ reducedMotion: 'reduce' });
