@@ -924,7 +924,6 @@
 
   .homepilot-sensor-reading .sensor-premium-gauge-progress {
     stroke: hsl(var(--primary));
-    filter: drop-shadow(0 2px 3px hsl(var(--primary) / 0.2));
   }
 
   /* Light dashboards keep device controls legible over owner-selected image backgrounds. */
@@ -1419,10 +1418,6 @@
     background: rgb(var(--dashboard-premium-accent));
   }
 
-  .dark:not(.light) .homepilot-dashboard-screen .sensor-metric-card > div:first-child > span[aria-label] {
-    color: rgb(var(--dashboard-premium-accent-light));
-  }
-
   .dark:not(.light) .homepilot-dashboard-screen .homepilot-sensor-reading {
     background: radial-gradient(circle at 24% 72%, rgb(var(--dashboard-premium-accent) / 0.06), transparent 42%), linear-gradient(145deg, rgb(var(--dashboard-premium-card) / 0.94), rgb(var(--dashboard-premium-section) / 0.95));
   }
@@ -1782,12 +1777,6 @@
       line-height: 0.875rem;
       letter-spacing: 0.04em;
     }
-  }
-  @container (max-width: 12rem) {
-    .sensor-category-badge {
-      display: none;
-    }
-
   }
 }
 @layer utilities {

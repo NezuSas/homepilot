@@ -1,20 +1,22 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Coffee,
+  Check,
   Edit2,
   Heart,
   Home,
   Leaf,
-  Loader2,
   Monitor,
   Moon,
+  Play,
   Sun,
   Trash2,
   Zap,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { IconButton } from './ui/IconButton';
+import { Button } from './ui/Button';
 import { getDashboardIconComponent } from '../views/dashboards/components/IconPicker';
 import type { RoutineDeviceCommand } from '../lib/deviceCapabilities';
 
@@ -66,80 +68,71 @@ export const SceneCard: React.FC<SceneCardProps> = ({
   onDelete,
 }) => {
   const { t } = useTranslation();
+  const titleId = useId();
   const Icon = scene.icon ? getDashboardIconComponent(scene.icon) : getSceneIcon(scene.name);
-  const normalizedName = scene.name.toLowerCase();
-  const description = scene.description
-    || (normalizedName.includes('morning') && t('scenes.descriptions.morning'))
-    || (normalizedName.includes('night') && t('scenes.descriptions.night'))
-    || (normalizedName.includes('relax') && t('scenes.descriptions.relax'))
-    || (normalizedName.includes('work') && t('scenes.descriptions.work'))
-    || (normalizedName.includes('welcome') && t('scenes.descriptions.welcome'))
-    || t('scenes.descriptions.generic');
 
   return (
-    <div
-      onClick={() => onExecute(scene)}
+    <article
+      aria-labelledby={titleId}
       className={cn(
-        'group relative min-h-40 cursor-pointer overflow-hidden rounded-card border bg-card/55 p-4 shadow-depth-1 surface-transition interactive-lift sm:p-5',
-        isSuccessful ? 'border-primary bg-primary/5 premium-glow shadow-primary/10' : 'border-border/60 hover:border-primary/45',
-        isExecuting && 'animate-premium-pulse'
+        'flex min-w-0 flex-col gap-3 rounded-section border bg-card p-3 surface-transition',
+        isSuccessful ? 'border-primary/50' : 'border-border/60'
       )}
     >
-      <div className="relative z-10 flex items-start gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         <div className={cn(
-          'rounded-panel p-3 transition-transform duration-300 group-hover:scale-105',
-          isSuccessful ? 'bg-primary text-primary-foreground shadow-2xl shadow-primary/40' : 'bg-primary/10 text-primary group-hover:bg-primary/20'
+          'flex size-10 shrink-0 items-center justify-center rounded-control',
+          isSuccessful ? 'bg-primary/15 text-primary' : 'bg-muted/60 text-primary'
         )}>
-          {isExecuting ? <Loader2 className="h-6 w-6 animate-spin" /> : <Icon className="h-6 w-6" />}
+          <Icon aria-hidden="true" className="size-5" />
         </div>
-        <div className="min-w-0 flex-1 pt-0.5">
-          <h4 className="truncate text-card-title font-semibold tracking-tight text-foreground">{scene.name}</h4>
-          <p className="mt-1 line-clamp-2 text-caption leading-relaxed text-muted-foreground">
-            {description}
+        <div className="min-w-0 flex-1">
+          <h4 id={titleId} title={scene.name} className="truncate text-body-compact font-semibold text-foreground">{scene.name}</h4>
+          <p className="mt-0.5 truncate text-caption text-muted-foreground" title={roomName || undefined}>
+            {roomName ? `${roomName} · ` : ''}{t('scenes.action_count', { count: scene.actions.length })}
           </p>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="text-micro font-semibold uppercase tracking-label text-primary/75">
-              {roomName || t('scenes.global_scene')}
-            </span>
-            <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-            <span className="text-micro font-semibold uppercase tracking-label text-muted-foreground/70">
-              {t('scenes.point_count', { count: scene.actions.length })}
-            </span>
-          </div>
         </div>
+        <IconButton
+          icon={Heart}
+          label={t(isFavorite ? 'scenes.remove_favorite' : 'scenes.add_favorite')}
+          onClick={(event) => onToggleFavorite(scene.id, event)}
+          aria-pressed={isFavorite}
+          variant="ghost"
+          size="lg"
+          className={cn(isFavorite && 'text-primary [&_svg]:fill-current')}
+        />
       </div>
 
-      <IconButton
-        icon={Heart}
-        label={t(isFavorite ? 'scenes.remove_favorite' : 'scenes.add_favorite')}
-        onClick={(event) => onToggleFavorite(scene.id, event)}
-        variant={isFavorite ? 'danger' : 'ghost'}
-        size="md"
-        className={cn(
-          'absolute right-3 top-3 z-20 rounded-full transition-all duration-300',
-          isFavorite ? 'shadow-lg shadow-danger/20' : 'text-muted-foreground/40 hover:text-danger',
-          isFavorite && '[&_svg]:fill-current'
-        )}
-      />
+      {scene.description && <p className="line-clamp-2 text-caption text-muted-foreground">{scene.description}</p>}
 
-      <div className="absolute bottom-3 right-3 z-20 flex gap-1.5 transition-all">
+      <div className="mt-auto flex items-center gap-1.5">
+        <Button
+          type="button"
+          aria-label={t(isSuccessful ? 'scenes.executed' : 'scenes.execute')}
+          size="lg"
+          isLoading={isExecuting}
+          className="flex-1"
+          onClick={() => onExecute(scene)}
+        >
+          {!isExecuting && (isSuccessful ? <Check aria-hidden="true" className="size-4 shrink-0" /> : <Play aria-hidden="true" className="size-4 shrink-0" />)}
+          <span role="status" aria-live="polite">{t(isSuccessful ? 'scenes.executed' : 'scenes.execute')}</span>
+        </Button>
         <IconButton
           icon={Edit2}
           label={t('common.edit')}
           onClick={(event) => onEdit(scene, event)}
           variant="default"
-          size="sm"
-          className="rounded-panel bg-muted/50 hover:text-primary"
+          size="lg"
         />
         <IconButton
           icon={Trash2}
           label={t('common.delete')}
           onClick={(event) => onDelete(scene.id, event)}
-          variant="danger"
-          size="sm"
-          className="rounded-panel"
+          variant="ghost"
+          size="lg"
+          className="hover:text-danger"
         />
       </div>
-    </div>
+    </article>
   );
 };

@@ -226,3 +226,9 @@
 - **Descripción**: Ofrecer `press` y `activate` en Escenas y Automatizaciones solo cuando las capacidades efectivas del dispositivo los declaren. Priorizar la acción momentánea frente a la identidad semántica de luz, sin mostrar selector ON/OFF para ella; conservar los comandos existentes y evitar objetivos sin comando ejecutable.
 - **Módulos**: constructores de Escenas y Automatizaciones, selector compartido de capacidades y pruebas de regresión.
 - **Criterio Relacionado**: **AC46**.
+
+### [UI-Routines-02] Tarjeta modular compacta de Escenas
+- **Descripción**: Compactar `SceneCard`, suprimir la ejecución del contenedor y usar el botón modular explícito con feedback ocupado/éxito, manteniendo favoritos, edición, eliminación y descripciones reales. Distribuir el listado según el ancho disponible, sin imágenes ni cambios de API, Inicio, Dashboard, Automatizaciones o Espacios.
+- **Módulos**: `SceneCard`, `ScenesGroup`, traducciones ES/EN y tests focalizados de componente/responsive.
+- **Criterio Relacionado**: **AC47**.
+- **Evidencia (2026-10-01)**: 4 tests Jest de `SceneCard`; 7 escenarios responsive focalizados de interacción/geometría en ambos temas y 2 escenarios existentes de iconos PASS. Typecheck raíz/consola, lint consola, builds raíz/consola, i18n, spec coverage, BDD y module-test-coverage PASS. Revisión visual de capturas desktop y celular. No se ejecutó responsive completo, Git, Docker ni deploy.

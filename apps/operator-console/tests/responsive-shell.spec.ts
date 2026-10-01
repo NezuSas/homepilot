@@ -168,6 +168,77 @@ async function prepareAuthenticatedDashboard(page: import('@playwright/test').Pa
   });
 }
 
+for (const viewport of [
+  ...viewports,
+  { name: 'tablet landscape', width: 1024, height: 768 },
+  { name: 'portrait kiosk', ...portraitKioskViewport },
+]) {
+  test(`Feature: Sensor clarity — readings and missing data fit ${viewport.name} in both themes`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    const readings = [
+      { id: 'clarity-temperature', title: 'Sala principal', deviceClass: 'temperature', state: '22.4', unit: '°C' },
+      { id: 'clarity-battery', title: 'Batería de la tablet', deviceClass: 'battery', state: '18', unit: '%' },
+      { id: 'clarity-memory', title: 'RAM del estudio', deviceClass: 'memory', state: '70', unit: '%' },
+      { id: 'clarity-load', title: 'Procesador', deviceClass: 'cpu', state: '100', unit: '%' },
+      { id: 'clarity-missing', title: 'Temperatura exterior', deviceClass: 'temperature', state: 'unavailable', unit: '°C' },
+    ];
+    const baseSection = responsiveDashboard.tabs[0]!.widgets[1]!;
+    const dashboard = {
+      ...responsiveDashboard,
+      tabs: [{ ...responsiveDashboard.tabs[0]!, widgets: [{
+        ...baseSection,
+        config: { ...baseSection.config, extra: { cards: readings.map(({ id, title }) => ({ id, title, kind: 'sensor', entityId: id, span: 'small' })) } },
+      }] }],
+    };
+    await prepareAuthenticatedDashboard(page, dashboard);
+    await page.route('**/api/v1/devices', (route) => route.fulfill({ json: readings.map((reading) => ({
+      id: reading.id, homeId: 'responsive-home', roomId: null, name: `Technical ${reading.id}`, type: 'sensor', status: 'ASSIGNED',
+      lastKnownState: { state: reading.state, unit_of_measurement: reading.unit, device_class: reading.deviceClass },
+    })) }));
+    await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+    const cards = page.locator('.sensor-metric-card');
+    await expect(cards).toHaveCount(readings.length);
+    const geometry = () => cards.evaluateAll((elements) => elements.map((element) => {
+      const bounds = element.getBoundingClientRect();
+      return { width: bounds.width, height: bounds.height };
+    }));
+    const darkGeometry = await geometry();
+    const temperature = page.locator('[data-dashboard-card-id="clarity-temperature"] .sensor-metric-card');
+    const hierarchy = await temperature.evaluate((element) => {
+      const title = element.querySelector('.sensor-reading-title')!;
+      const value = element.querySelector('.sensor-reading-value > span')!;
+      return { title: Number.parseFloat(getComputedStyle(title).fontSize), value: Number.parseFloat(getComputedStyle(value).fontSize) };
+    });
+    expect(hierarchy.value).toBeGreaterThan(hierarchy.title);
+    expect(hierarchy.value).toBeGreaterThanOrEqual(24);
+    for (const theme of ['dark', 'light']) {
+      await page.evaluate((isLight) => document.documentElement.classList.toggle('light', isLight), theme === 'light');
+      for (const reading of readings) {
+        const card = page.locator(`[data-dashboard-card-id="${reading.id}"] .sensor-metric-card`);
+        await expect(card.getByText(reading.title, { exact: true })).toHaveCount(1);
+        await expect(card.getByText(reading.title, { exact: true })).toBeVisible();
+        await expect(card).not.toContainText(`Technical ${reading.id}`);
+        await expect(card.getByRole('button')).toHaveCount(0);
+        if (reading.unit === '%') {
+          await expect(card.getByText(reading.state, { exact: true })).toBeVisible();
+          await expect(card.getByRole('meter', { name: reading.title })).toHaveAttribute('aria-valuenow', reading.state);
+          await expect(card.getByRole('meter', { name: reading.title })).toHaveAttribute('aria-valuetext', `${reading.state}%`);
+        }
+      }
+      const missing = page.locator('[data-dashboard-card-id="clarity-missing"] .sensor-metric-card');
+      await expect(missing.getByText(/^(Sin lectura|No reading)$/i)).toBeVisible();
+      await expect(missing.getByText('—', { exact: true })).toBeVisible();
+      await expect(missing).not.toContainText('°C');
+      await expect(missing.getByRole('meter')).toHaveCount(0);
+      await expect(page.locator('[data-dashboard-card-id="clarity-memory"]').getByText(/^(Uso elevado|High usage)$/i)).toBeVisible();
+      expect(await cards.evaluateAll((elements) => elements.every((element) => element.scrollWidth <= element.clientWidth && element.scrollHeight <= element.clientHeight))).toBe(true);
+      expect(await cards.locator('.sensor-reading-value > span').evaluateAll((elements) => elements.every((element) => element.scrollWidth <= element.clientWidth))).toBe(true);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      expect(await geometry()).toEqual(darkGeometry);
+    }
+  });
+}
+
 test('disables the Home dashboard action without an owned main tab', async ({ page }) => {
   const shared = { ...responsiveDashboard, ownerId: 'another-user' };
   await prepareAuthenticatedDashboard(page, shared);
@@ -458,6 +529,93 @@ test('Feature: favorite routines — compact action tiles execute momentarily wi
   await expect(scene).toHaveAttribute('data-action-state', 'idle', { timeout: 6_000 });
   expect(sceneAttempts).toBe(2);
 });
+
+for (const viewport of [
+  { name: 'mobile portrait', width: 320, height: 720 },
+  { name: 'mobile landscape', width: 844, height: 390 },
+  { name: 'tablet portrait', width: 768, height: 1024 },
+  { name: 'tablet landscape', width: 1024, height: 768 },
+  { name: 'desktop', width: 1440, height: 900 },
+  { name: 'kiosk portrait', width: 1080, height: 1920 },
+  { name: 'kiosk landscape', width: 1920, height: 1080 },
+]) {
+  test(`Feature: Compact scene cards — Scenario: Explicit execution and independent controls fit ${viewport.name} (AC47)`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport);
+    await prepareAuthenticatedDashboard(page);
+    await page.route('**/api/v1/homes', (route) => route.fulfill({ json: [{ id: 'responsive-home', ownerId: dashboardUser.id, name: 'Casa' }] }));
+    const scenes = Array.from({ length: 5 }, (_, index) => ({
+      id: `compact-scene-${index}`, homeId: 'responsive-home', roomId: null,
+      name: index === 0 ? 'Trabajo' : `Escena ${index}`, actions: [{ deviceId: 'cover-living', command: 'open' }],
+    }));
+    await page.route('**/api/v1/scenes', (route) => route.fulfill({ json: scenes }));
+    let favorites: string[] = [];
+    await page.route('**/api/v1/scenes/favorites', async (route) => {
+      if (route.request().method() === 'PUT') favorites = route.request().postDataJSON().sceneIds;
+      await route.fulfill({ json: { sceneIds: favorites, initialized: true } });
+    });
+    let executions = 0;
+    let finishExecution: () => void = () => {};
+    const executionGate = new Promise<void>((resolve) => { finishExecution = resolve; });
+    await page.route('**/api/v1/scenes/compact-scene-0/execute', async (route) => {
+      executions += 1;
+      await executionGate;
+      await route.fulfill({ json: { success: true } });
+    });
+    await page.goto('/routines/scenes');
+    const card = page.getByRole('article', { name: 'Trabajo', exact: true });
+    await expect(card).toBeVisible();
+    for (const theme of ['dark', 'light']) {
+      await page.evaluate((isLight) => document.documentElement.classList.toggle('light', isLight), theme === 'light');
+      await expect(page.getByRole('article')).toHaveCount(5);
+      const geometry = await card.evaluate((element) => {
+        const bounds = element.getBoundingClientRect();
+        return { height: bounds.height, width: bounds.width, overflows: element.scrollWidth > element.clientWidth };
+      });
+      expect(geometry.height).toBeLessThan(160);
+      expect(geometry.width).toBeLessThan(400);
+      expect(geometry.overflows).toBe(false);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      for (const control of ['Ejecutar|Run', 'Añadir a favoritas|Add to favorites', 'Editar|Edit', 'Eliminar|Delete']) {
+        const button = card.getByRole('button', { name: new RegExp(`^(${control})$`, 'i') });
+        await expect(button).toBeVisible();
+        const bounds = await button.boundingBox();
+        expect(bounds?.width).toBeGreaterThanOrEqual(44);
+        expect(bounds?.height).toBeGreaterThanOrEqual(44);
+      }
+      if (viewport.name === 'desktop' || viewport.name === 'mobile portrait') {
+        await page.screenshot({ path: testInfo.outputPath(`scene-cards-${theme}.png`) });
+      }
+    }
+    await card.getByRole('heading', { name: 'Trabajo' }).click();
+    expect(executions).toBe(0);
+    await card.getByRole('button', { name: /^(Editar|Edit)$/i }).click();
+    const editor = page.getByRole('dialog', { name: /^(Editar Escena|Edit Scene)$/i });
+    await expect(editor).toBeVisible();
+    expect(executions).toBe(0);
+    await page.keyboard.press('Escape');
+    await expect(editor).not.toBeVisible();
+    await card.getByRole('button', { name: /^(Eliminar|Delete)$/i }).click();
+    const deletion = page.getByRole('dialog', { name: /Eliminar Escena|Delete Scene/i });
+    await expect(deletion).toBeVisible();
+    expect(executions).toBe(0);
+    await deletion.getByRole('button', { name: /^(Cancelar|Cancel)$/i }).click();
+    await expect(deletion).not.toBeVisible();
+    await card.getByRole('button', { name: /^(Añadir a favoritas|Add to favorites)$/i }).click();
+    await expect(card.getByRole('button', { name: /^(Quitar de favoritas|Remove from favorites)$/i })).toHaveAttribute('aria-pressed', 'true');
+    expect(executions).toBe(0);
+    const execute = card.getByRole('button', { name: /^(Ejecutar|Run)$/i });
+    await execute.focus();
+    await page.keyboard.press('Enter');
+    await expect(execute).toBeDisabled();
+    await expect(execute).toHaveAttribute('aria-busy', 'true');
+    await expect.poll(() => executions).toBe(1);
+    await page.keyboard.press('Enter');
+    expect(executions).toBe(1);
+    finishExecution();
+    await expect(card.getByRole('status')).toHaveText(/^(Ejecutada|Completed)$/i);
+    await expect(card.getByRole('button', { name: /^(Ejecutada|Completed)$/i })).toBeEnabled();
+  });
+}
 
 test('Feature: routine icons — editing scenes and automations persists one icon for lists and Home favorites', async ({ page }) => {
   await prepareAuthenticatedDashboard(page);
@@ -2379,16 +2537,9 @@ for (const viewport of viewports) {
       expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
     });
 
-    const compactBadgeVisibility = await page.locator('.sensor-metric-card').evaluateAll((cards) => cards.map((card) => {
-      const badge = card.querySelector('.sensor-category-badge');
-      return {
-        clientWidth: card.clientWidth,
-        display: badge ? getComputedStyle(badge).display : null,
-      };
-    }));
-    compactBadgeVisibility
-      .filter(({ clientWidth }) => clientWidth <= 192)
-      .forEach(({ display }) => expect(display).toBe('none'));
+    for (const title of ['Temperatura de sala', 'GUS-RAM', 'iPad Guest Level']) {
+      await expect(page.locator('.sensor-metric-card').getByText(title, { exact: true })).toHaveCount(1);
+    }
     const sensorSurface = page.locator('[data-dashboard-card-id="responsive-battery"] .sensor-metric-card');
     const sensorGeometry = () => sensorSurface.evaluate((element) => {
       const rect = element.getBoundingClientRect();

@@ -44,9 +44,9 @@ export const ScenesGroup = <TScene extends SceneCardScene & { roomId: string | n
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
         <Icon className={iconClassName} />
-        <h3 className="text-micro font-black uppercase tracking-label-wider opacity-40">{title}</h3>
+        <h3 className="text-caption font-semibold text-muted-foreground">{title}</h3>
       </div>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,17rem),1fr))] gap-3">
         {scenes.map((scene) => {
           const room = scene.roomId ? rooms.find((candidate) => candidate.id === scene.roomId) : null;
 

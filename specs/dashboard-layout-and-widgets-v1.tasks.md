@@ -10,6 +10,8 @@
 - [x] Aplicar superficies premium dark/light a secciones y tiles dentro de sus bounds existentes; separar la opacidad de la fotografía de la veladura del Dashboard.
 - [x] Registrar el preset lógico Amber Residence y ocultarlo hasta que su asset independiente esté disponible.
 - [x] Tipografía de métricas de sensores centralizada en tokens responsive del design system.
+- [x] AC40: Simplificar SensorMetricCard a un nombre configurado, un icono y valor/unidad; conservar el meter de porcentajes sin duplicar el valor, retirar copy redundante y distinguir lectura ausente de cero. Verificar estados de memoria, títulos largos, preview compartido y geometría durante carga en las cinco presentaciones y ambos temas mediante Jest y responsive focalizado.
+- [x] AC40 (validación 2026-10-01): 31 pruebas SensorMetricCard y 16 escenarios responsive focalizados PASS; revisión visual móvil, tablet vertical/horizontal y escritorio en claro/oscuro; transición skeleton → contenido estable también en kiosco. Typecheck, lint, build raíz/Operator Console, i18n, spec coverage, BDD traceability y module test coverage PASS. Responsive completo no ejecutado.
 - [x] Superficies claras de widgets con fondos activos: una veladura cálida y neutra reduce la competencia visual del fondo, mientras las tarjetas usan una escala mineral de piedra y arena, bordes serenos y elevación moderada sin alterar estados ni comandos.
 - [x] Placeholder de nueva sección en flujo secuencial, siempre posterior a las secciones existentes.
 - [x] Plantillas de título vinculadas únicamente al contexto autenticado local de HomePilot.
