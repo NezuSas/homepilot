@@ -6,6 +6,7 @@ import { UserCreateForm, type UserRole } from '../components/UserCreateForm';
 import { UsersErrorBanner } from '../components/UsersErrorBanner';
 import { UsersHeader } from '../components/UsersHeader';
 import { LoadingState } from '../components/ui/LoadingState';
+import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { UsersProtectionNote } from '../components/UsersProtectionNote';
 import { UsersTable, type PublicUserDto } from '../components/UsersTable';
 import { ResetUserPasswordModal } from '../components/ResetUserPasswordModal';
@@ -26,6 +27,7 @@ export function UsersView({ currentUserId }: UsersViewProps) {
   const { t } = useTranslation();
   const [users, setUsers] = useState<PublicUserDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [newUsername, setNewUsername] = useState('');
@@ -147,7 +149,7 @@ export function UsersView({ currentUserId }: UsersViewProps) {
     );
   };
 
-  if (loading && users.length === 0) {
+  if (initialLoading) {
     return <LoadingState label={t('users.loading')} className="min-h-empty-sm py-12" size="md" />;
   }
 

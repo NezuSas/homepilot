@@ -52,11 +52,12 @@ The command fails if a file cannot be mapped to an existing spec.
 | Inicio hero, favoritas momentáneas, iconos de rutinas y Sections de un slot | Home hero, flip clock, context chips and direct dashboard button, routine/action tiles, Scene/Automation icon persistence and forms, Dashboard canvas and transfer normalization | `specs/operator-console-v1.md` AC38–AC44; `specs/operator-console-v1.tasks.md` UI-Home-04, QA-Home-05, BE-Home-03, UI-Home-05, QA-Home-04, UI-Home-07, QA-Home-06, UI-Dashboard-04, QA-Home-03 |
 | Límite nocturno, identidades de rutinas y formularios en tablet | Personalización horaria, selectores de escenas/automatizaciones, selector modular y overlays de edición | `specs/operator-console-v1.md` AC45; `specs/operator-console-modular-components-v1.md` AC75 |
 | Acciones momentáneas en Escenas y Automatizaciones | Capacidades reales `press`/`activate`, constructores y ejecución compartida de comandos | `specs/operator-console-v1.md` AC46; `specs/operator-console-v1.tasks.md` UI-Routines-01 |
+| Carga inicial fluida, favoritas estables y dispositivos por espacio | LoadingState, useInitialLoading, Home y vistas asíncronas, SceneCard, AutomationDeviceSelect y SearchableSelectField | `specs/operator-console-v1.md` AC51–AC53; `specs/operator-console-v1.tasks.md` UI-Loading-01, UI-Routines-06; `specs/operator-console-modular-components-v1.md` REQ-18 |
 | Shared Edge foundations | API gateway, route handler, shared contracts | Edge platform foundations |
 
 ## Audited Coverage
 
-- The **866** audited TypeScript/TSX files have a mapping rule to an existing
+- The **870** audited TypeScript/TSX files have a mapping rule to an existing
   spec.
 - All bounded contexts under `packages/` and all API route families are
   covered.

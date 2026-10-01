@@ -15,6 +15,7 @@ import { ManagedDeviceTile } from '../components/ManagedDeviceTile';
 import { SmartDisplayControls } from '../components/SmartDisplayControls';
 import { SegmentedControl } from '../components/ui/SegmentedControl';
 import { LoadingState } from '../components/ui/LoadingState';
+import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import type { SnapshotDevice as Device, SnapshotRoom as Room } from '../stores/useDeviceSnapshotStore';
 import { API_BASE_URL } from '../config';
@@ -43,6 +44,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
   const devices = useDeviceSnapshotStore((state) => state.devices);
   const roomsByHome = useDeviceSnapshotStore((state) => state.roomsByHome);
   const loading = useDeviceSnapshotStore((state) => state.isLoading);
+  const [initialSettled, setInitialSettled] = useState(() => useDeviceSnapshotStore.getState().lastUpdatedAt !== null);
   const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
   const upsertDevice = useDeviceSnapshotStore((state) => state.upsertDevice);
 
@@ -50,7 +52,11 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
     await refreshSnapshot();
   }, [refreshSnapshot]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    let active = true;
+    void fetchData().finally(() => { if (active) setInitialSettled(true); });
+    return () => { active = false; };
+  }, [fetchData]);
 
   const handleDeviceUpdate = (_deviceId: string, updated: Device) => {
     upsertDevice(updated);
@@ -104,7 +110,8 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
     return acc;
   }, {} as Record<string, { name: string, devices: Device[] }>);
 
-  if (loading && devices.length === 0) {
+  const initialLoading = useInitialLoading(!initialSettled || loading);
+  if (initialLoading) {
     return <LoadingState label={t('common.loading')} className="min-h-empty-sm" size="md" />;
   }
 

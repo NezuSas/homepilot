@@ -6,7 +6,7 @@ import { Input } from './ui/Input';
 import { Button } from './ui/Button';
 import { SearchableSelectField } from './ui/SearchableSelectField';
 import { SegmentedControl } from './ui/SegmentedControl';
-import { humanize } from '../lib/naming-utils';
+import { AutomationDeviceSelect } from './AutomationDeviceSelect';
 import type { AutomationBuilderDevice, AutomationTriggerConfig } from './AutomationBuilderTypes';
 
 interface AutomationBuilderTriggerSectionProps {
@@ -54,12 +54,11 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
       {triggerType === 'device_state_changed' ? (
         <div className="space-y-4 animate-in fade-in duration-300">
           <div className="space-y-2">
-            <label className="hp-type-label ml-1">{t('automations.form.source_device')}</label>
-            <SearchableSelectField
+            <AutomationDeviceSelect
+              label={t('automations.form.source_device')}
+              devices={devices}
               value={triggerConfig.deviceId || ''}
               onChange={(value: string) => onTriggerConfigChange({ ...triggerConfig, deviceId: value })}
-              options={devices.map(device => ({ value: device.id, label: humanize(device.id, device.name) }))}
-              placeholder={t('automations.form.select_device')}
             />
           </div>
           <div className="grid grid-cols-5 gap-3">

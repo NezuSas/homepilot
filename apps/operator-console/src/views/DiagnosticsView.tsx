@@ -5,6 +5,7 @@ import { apiFetch } from '../lib/apiClient';
 import { DiagnosticsHealthBanner } from '../components/DiagnosticsHealthBanner';
 import { DiagnosticsIssuesList } from '../components/DiagnosticsIssuesList';
 import { LoadingState } from '../components/ui/LoadingState';
+import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { DiagnosticsProbeGrid } from '../components/DiagnosticsProbeGrid';
 import { DiagnosticsResilienceSummary } from '../components/DiagnosticsResilienceSummary';
 import { DiagnosticsTimeline } from '../components/DiagnosticsTimeline';
@@ -114,6 +115,8 @@ export function DiagnosticsView() {
 
   const user = JSON.parse(localStorage.getItem('hp_user_ctx') || '{}');
   const isAdmin = user.role === 'admin';
+  const [backupsSettled, setBackupsSettled] = useState(false);
+  const initialLoading = useInitialLoading(loading || (isAdmin && !backupsSettled));
 
   const loadBackups = useCallback(async () => {
     setBackupsLoading(true);
@@ -126,6 +129,7 @@ export function DiagnosticsView() {
       setBackupsError(true);
     } finally {
       setBackupsLoading(false);
+      setBackupsSettled(true);
     }
   }, []);
 
@@ -194,7 +198,7 @@ export function DiagnosticsView() {
         setEvents(nextEvents);
         if (nextScenes) setScenes(nextScenes);
         if (nextAutomations) setAutomations(nextAutomations);
-        void refreshSnapshot();
+        await refreshSnapshot();
         setError(null);
       } catch (err: unknown) {
         if (!signal.aborted && !isCancelledRequest(err)) {
@@ -211,7 +215,7 @@ export function DiagnosticsView() {
     void loadBackups();
   }, [isAdmin, loadBackups]);
 
-  if (loading && !snapshot) {
+  if (initialLoading) {
     return <LoadingState label={t('diagnostics.loading')} className="h-64" size="md" />;
   }
 

@@ -4,6 +4,8 @@ import { Camera, Plus, Edit2, Trash2, ShieldAlert, AlertTriangle } from 'lucide-
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { LoadingState } from '../components/ui/LoadingState';
+import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { IconButton } from '../components/ui/IconButton';
 import { StatusPill } from '../components/ui/StatusPill';
 import { AlertBanner } from '../components/ui/AlertBanner';
@@ -22,6 +24,7 @@ export const NativeCamerasView: React.FC = () => {
   
   const [cameras, setCameras] = useState<NativeCamera[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const initialLoading = useInitialLoading(isLoading);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -76,7 +79,11 @@ export const NativeCamerasView: React.FC = () => {
   }, [activeHomeId]);
 
   useEffect(() => {
-    void refreshSnapshot();
+    let active = true;
+    void refreshSnapshot().finally(() => {
+      if (active && useDeviceSnapshotStore.getState().homes.length === 0) setIsLoading(false);
+    });
+    return () => { active = false; };
   }, [refreshSnapshot]);
 
   useEffect(() => {
@@ -330,10 +337,8 @@ export const NativeCamerasView: React.FC = () => {
         </div>
       )}
 
-      {isLoading ? (
-        <div className="flex justify-center p-12">
-          <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
-        </div>
+      {initialLoading ? (
+        <LoadingState label={t('common.loading')} layout="cards" />
       ) : cameras.length === 0 ? (
         <Card className="flex flex-col items-center justify-center py-20 px-4 text-center border-dashed border-border/60 bg-muted/20">
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-6 border border-border/50">

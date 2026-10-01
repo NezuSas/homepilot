@@ -36,7 +36,9 @@ interface AppViewRouterProps {
 export function AppViewRouter(props: AppViewRouterProps) {
   const { t } = useTranslation();
   const layout = getAppViewRouterLayout(props.currentView);
-  const fallback = <LoadingState label={t('common.loading')} className="min-h-screen-half" size="md" />;
+  const skeletonLayout = props.currentView === 'dashboard' ? 'home'
+    : ['routines', 'spaces', 'system-cameras', 'resilience-showcase'].includes(props.currentView) ? 'cards' : 'list';
+  const fallback = <LoadingState label={t('common.loading')} layout={skeletonLayout} className="min-h-screen-half" size="md" />;
   return <PageFrame immersive={layout.immersive} className={layout.pageClassName}><Suspense fallback={fallback}>
     {props.currentView === 'dashboard' && <DashboardView onActionExecute={props.onDeviceAction} onNavigate={props.onNavigate} displayName={props.displayName} currentUserId={props.user?.id ?? null} onOpenOwnDashboardTab={props.onOpenOwnDashboardTab} canManageAutomations={props.canManageAutomations} />}
     {props.currentView === 'spaces' && <TopologyView currentUser={props.user} />}

@@ -1,6 +1,214 @@
 import { expect, test } from '@playwright/test';
 import { mdiAutoFix, mdiHome, mdiRobot, mdiWeatherWindy } from '@mdi/js';
 
+for (const view of [
+  { name: 'Spaces', path: '/spaces', endpoint: '**/api/v1/homes', data: [] },
+  { name: 'Users', path: '/system/users', endpoint: '**/api/v1/admin/users', data: [] },
+  { name: 'Home Assistant', path: '/system/ha', endpoint: '**/api/v1/settings/home-assistant', data: { baseUrl: '', hasToken: false, maskedToken: '', configurationStatus: 'not_configured', connectivityStatus: 'unknown', lastCheckedAt: null, activeSource: 'none' } },
+  { name: 'Personalization', path: '/system/home-personalization', endpoint: '**/api/v1/settings/home-personalization', data: { morningPhrase: '', afternoonPhrase: '', nightPhrase: '', heroImages: [] } },
+  { name: 'Executions', path: '/system/executions', endpoint: '**/api/v1/executions/recent?*', data: [] },
+  { name: 'Cameras', path: '/system/cameras', endpoint: '**/api/v1/native-cameras?*', data: [] },
+  { name: 'Assistant', path: '/assistant', endpoint: '**/api/v1/assistant/findings', data: [] },
+  { name: 'Audit', path: '/system/audit', endpoint: '**/api/v1/activity-logs', data: [] },
+  { name: 'Device manager', path: '/system/devices', endpoint: '**/api/v1/devices', data: [] },
+  { name: 'Discovery', path: '/system/inbox', endpoint: '**/api/v1/devices', data: [] },
+  { name: 'System status', path: '/resilience-showcase', endpoint: '**/api/v1/automations', data: [] },
+  { name: 'Energy', path: '/energy', endpoint: '**/api/v1/ha/entities?mode=all', data: [] },
+  { name: 'Dashboards', path: '/dashboards', endpoint: '**/api/v1/dashboards', data: [] },
+  { name: 'Diagnostics error', path: '/system/diagnostics', endpoint: '**/api/v1/system/diagnostics', data: { error: 'Unavailable' }, status: 503 },
+]) {
+  test(`Feature: Initial view skeletons — Scenario: ${view.name} keeps an accessible skeleton until its initial service settles (AC51)`, async ({ page }) => {
+    await prepareAuthenticatedDashboard(page);
+    await page.route('**/api/v1/rooms', route => route.fulfill({ json: [] }));
+    await page.route('**/api/v1/scenes', route => route.fulfill({ json: [] }));
+    await page.route('**/api/v1/automations', route => route.fulfill({ json: [] }));
+    await page.route('**/api/v1/system/diagnostics/events', route => route.fulfill({ json: [] }));
+    await page.route('**/api/v1/system/backups', route => route.fulfill({ json: [] }));
+    await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: 'responsive-home', name: 'Casa', ownerId: dashboardUser.id }] }));
+    let release: () => void = () => {};
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    let requested = false;
+    await page.route(view.endpoint, async route => {
+      requested = true;
+      await gate;
+      await route.fulfill({ status: 'status' in view ? view.status : 200, json: view.data });
+    });
+    await page.goto(view.path);
+    await expect.poll(() => requested).toBe(true);
+    const skeleton = page.getByRole('main').locator('[role="status"][aria-busy="true"]');
+    await expect(skeleton).toBeVisible();
+    await expect(skeleton.getByRole('button')).toHaveCount(0);
+    release();
+    await expect(skeleton).toHaveCount(0);
+    await expect(page.getByRole('main')).toBeVisible();
+  });
+}
+
+test('Feature: Initial view skeletons — Scenario: Home waits for favorites and settings but stays visible during refresh (AC51)', async ({ page }, testInfo) => {
+  await prepareAuthenticatedDashboard(page);
+  await page.route('**/api.open-meteo.com/**', route => route.fulfill({ json: { current: { temperature_2m: 19, weather_code: 3, wind_speed_10m: 1 } } }));
+  const scene = { id: 'ready-scene', homeId: 'responsive-home', name: 'Trabajo', roomId: null, actions: [] };
+  const automation = { id: 'ready-rule', name: 'Noche', enabled: true, trigger: { type: 'time', timeLocal: '19:00' }, action: { type: 'execute_scene', sceneId: scene.id } };
+  let findingsRead = 0;
+  let releaseRefresh: () => void = () => {};
+  const refresh = new Promise<void>(resolve => { releaseRefresh = resolve; });
+  await page.route('**/api/v1/scenes', route => route.fulfill({ json: [scene] }));
+  await page.route('**/api/v1/assistant/findings', async route => {
+    findingsRead += 1;
+    if (findingsRead > 1) await refresh;
+    await route.fulfill({ json: [] });
+  });
+  await page.route('**/api/v1/automations', route => route.fulfill({ json: [automation] }));
+  await page.route('**/api/v1/scenes/favorites', route => route.fulfill({ json: { sceneIds: [scene.id], initialized: true } }));
+  let releaseFavorites: () => void = () => {};
+  const favorites = new Promise<void>(resolve => { releaseFavorites = resolve; });
+  await page.route('**/api/v1/automations/favorites', async route => {
+    await favorites;
+    await route.fulfill({ json: { automationIds: [automation.id], initialized: true } });
+  });
+  let releaseSettings: () => void = () => {};
+  const settings = new Promise<void>(resolve => { releaseSettings = resolve; });
+  await page.route('**/api/v1/settings/home-personalization', async route => {
+    await settings;
+    await route.fulfill({ json: { morningPhrase: '', afternoonPhrase: '', nightPhrase: '', heroImages: [] } });
+  });
+  await page.route('**/api/v1/scenes/ready-scene/execute', route => route.fulfill({ json: { success: true } }));
+  await page.goto('/');
+  const skeleton = page.locator('[role="status"][aria-busy="true"]');
+  await expect(skeleton).toBeVisible();
+  await expect(page.getByTestId('favorite-routine-grid')).not.toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('home-initial-skeleton.png') });
+  releaseSettings();
+  await expect(skeleton).toBeVisible();
+  releaseFavorites();
+  const favoriteGrid = page.getByTestId('favorite-routine-grid');
+  await expect(favoriteGrid).toBeVisible();
+  await expect(favoriteGrid.getByRole('button')).toHaveCount(2);
+  await page.screenshot({ path: testInfo.outputPath('home-complete.png') });
+  await expect(skeleton).toHaveCount(0);
+  await favoriteGrid.getByRole('button', { name: 'Run Trabajo', exact: true }).click();
+  await expect.poll(() => findingsRead).toBeGreaterThan(1);
+  await expect(favoriteGrid).toBeVisible();
+  await expect(skeleton).toHaveCount(0);
+  releaseRefresh();
+});
+
+test('Feature: Initial view skeletons — Scenario: Early favorites do not release Home before the actual catalog preferences settle (AC51)', async ({ page }) => {
+  await prepareAuthenticatedDashboard(page);
+  await page.route('**/api/v1/automations', route => route.fulfill({ json: [] }));
+  await page.route('**/api/v1/automations/favorites', route => route.fulfill({ json: { automationIds: [], initialized: true } }));
+  await page.route('**/api/v1/settings/home-personalization', route => route.fulfill({ json: { morningPhrase: '', afternoonPhrase: '', nightPhrase: '', heroImages: [] } }));
+  await page.route('**/api.open-meteo.com/**', route => route.fulfill({ json: { current: { temperature_2m: 19, weather_code: 3 } } }));
+  const scene = { id: 'late-catalog-scene', homeId: 'responsive-home', name: 'Descanso', roomId: null, actions: [] };
+  let releaseCatalog: () => void = () => {};
+  const catalog = new Promise<void>(resolve => { releaseCatalog = resolve; });
+  await page.route('**/api/v1/scenes', async route => {
+    await catalog;
+    await route.fulfill({ json: [scene] });
+  });
+  let releaseFavorites: () => void = () => {};
+  const preferences = new Promise<void>(resolve => { releaseFavorites = resolve; });
+  let reads = 0;
+  let catalogReleased = false;
+  let catalogPreferencesRequested = false;
+  await page.route('**/api/v1/scenes/favorites', async route => {
+    reads += 1;
+    if (catalogReleased) {
+      catalogPreferencesRequested = true;
+      await preferences;
+    }
+    await route.fulfill({ json: { sceneIds: [scene.id], initialized: true } });
+  });
+  await page.goto('/');
+  await expect.poll(() => reads).toBeGreaterThanOrEqual(1);
+  catalogReleased = true;
+  releaseCatalog();
+  await expect.poll(() => catalogPreferencesRequested).toBe(true);
+  await expect(page.locator('[role="status"][aria-busy="true"]')).toBeVisible();
+  await expect(page.getByTestId('favorite-routine-grid')).not.toBeVisible();
+  releaseFavorites();
+  await expect(page.getByTestId('favorite-routine-grid').getByRole('button', { name: 'Run Descanso', exact: true })).toBeVisible();
+  await expect(page.locator('[role="status"][aria-busy="true"]')).toHaveCount(0);
+});
+
+test('Feature: Unified scene favorites — Scenario: Delayed favorites show a skeleton and toggling never moves cards (AC51 AC52)', async ({ page }) => {
+  await prepareAuthenticatedDashboard(page);
+  await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: 'responsive-home', name: 'Casa', ownerId: dashboardUser.id }] }));
+  const scenes = ['Trabajo', 'Descanso', 'Noche'].map((name, index) => ({ id: `single-${index}`, homeId: 'responsive-home', roomId: null, name, actions: [] }));
+  await page.route('**/api/v1/scenes', route => route.fulfill({ json: scenes }));
+  let release: () => void = () => {};
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  let favorites = ['single-1'];
+  await page.route('**/api/v1/scenes/favorites', async route => {
+    await gate;
+    if (route.request().method() === 'PUT') favorites = route.request().postDataJSON().sceneIds;
+    await route.fulfill({ json: { sceneIds: favorites, initialized: true } });
+  });
+  await page.goto('/routines/scenes');
+  await expect(page.locator('[role="status"][aria-busy="true"]')).toBeVisible();
+  await expect(page.getByRole('article')).toHaveCount(0);
+  release();
+  await expect(page.getByRole('article')).toHaveCount(3);
+  const titles = () => page.getByRole('article').getByRole('heading').allTextContents();
+  expect(await titles()).toEqual(['Trabajo', 'Descanso', 'Noche']);
+  await page.getByRole('article', { name: 'Trabajo', exact: true }).getByRole('button', { name: /Add to favorites|Añadir a favoritas/i }).click();
+  await expect.poll(() => favorites).toEqual(['single-1', 'single-0']);
+  expect(await titles()).toEqual(['Trabajo', 'Descanso', 'Noche']);
+});
+
+test('Feature: Initial view skeletons — Scenario: A favorites failure releases the skeleton instead of blocking Scenes (AC51)', async ({ page }) => {
+  await prepareAuthenticatedDashboard(page);
+  await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: 'responsive-home', name: 'Casa', ownerId: dashboardUser.id }] }));
+  await page.route('**/api/v1/scenes', route => route.fulfill({ json: [{ id: 'offline-favorite', homeId: 'responsive-home', name: 'Trabajo', roomId: null, actions: [] }] }));
+  await page.route('**/api/v1/scenes/favorites', route => route.fulfill({ status: 503, json: { error: 'Unavailable' } }));
+  await page.goto('/routines/scenes');
+  await expect(page.getByRole('article', { name: 'Trabajo', exact: true })).toBeVisible();
+  await expect(page.locator('[role="status"][aria-busy="true"]')).toHaveCount(0);
+});
+
+for (const viewport of [{ name: 'mobile', width: 320, height: 720 }, { name: 'tablet portrait', width: 768, height: 1024 }, { name: 'tablet landscape', width: 1024, height: 768 }]) {
+  test(`Feature: Automation device groups — Scenario: A hundred identities stay searchable and keyboard reachable on ${viewport.name} (AC53)`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport);
+    await prepareAuthenticatedDashboard(page);
+    const rooms = [{ id: 'oficina', homeId: 'responsive-home', name: 'Oficina' }, { id: 'cocina', homeId: 'responsive-home', name: 'Cocina' }];
+    await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: 'responsive-home', ownerId: dashboardUser.id, name: 'Casa' }] }));
+    await page.route('**/api/v1/rooms', route => route.fulfill({ json: rooms }));
+    const devices = Array.from({ length: 100 }, (_, index) => ({ ...responsiveDevices[0], id: `group-device-${index}`, name: `Dispositivo ${String(index).padStart(2, '0')}`, roomId: index < 40 ? 'oficina' : index < 99 ? 'cocina' : null, semanticType: 'light', capabilities: [{ type: 'light', name: 'Light', commands: [{ name: 'turn_on' }, { name: 'turn_off' }] }] }));
+    await page.route('**/api/v1/devices', route => route.fulfill({ json: [...devices].reverse() }));
+    const rule = { id: 'group-rule', name: 'Trabajo', enabled: true, trigger: { type: 'device_state_changed', deviceId: devices[0].id, stateKey: 'state', expectedValue: 'on' }, action: { type: 'device_command', targetDeviceId: devices[0].id, command: 'turn_on' } };
+    await page.route('**/api/v1/automations', route => route.fulfill({ json: [rule] }));
+    await page.route('**/api/v1/scenes', route => route.fulfill({ json: [] }));
+    await page.route('**/api/v1/automations/favorites', route => route.fulfill({ json: { automationIds: [], initialized: true } }));
+    await page.goto('/routines/automations');
+    await page.getByRole('button', { name: /^(Editar|Edit)$/i }).click();
+    const editor = page.getByRole('dialog', { name: /Refinar Automatización|Refine Automation/i });
+    await editor.getByRole('button', { name: /Source Device|Dispositivo origen/i }).click();
+    const picker = page.getByRole('dialog', { name: /Source Device|Dispositivo origen/i });
+    const list = picker.getByRole('listbox');
+    expect(await list.getByRole('group').evaluateAll(elements => elements.map(element => element.getAttribute('aria-label')))).toEqual(['Cocina', 'Oficina', 'Unassigned space']);
+    await expect(list.getByRole('option')).toHaveCount(100);
+    await picker.getByRole('searchbox').fill('Oficina');
+    await expect(list.getByRole('option')).toHaveCount(40);
+    await picker.getByRole('searchbox').fill('light');
+    await expect(list.getByRole('option')).toHaveCount(100);
+    await picker.getByRole('searchbox').fill('');
+    await picker.getByRole('searchbox').press('ArrowDown');
+    await page.keyboard.press('End');
+    const last = list.getByRole('option', { name: /Dispositivo 99/ });
+    await expect(last).toBeFocused();
+    await expect(last).toBeInViewport();
+    await page.keyboard.press('Enter');
+    await expect(picker).not.toBeVisible();
+    await expect(editor.getByRole('button', { name: /Source Device|Dispositivo origen/i })).toContainText('Dispositivo 99');
+    await editor.getByRole('button', { name: /Target Device|Dispositivo destino/i }).click();
+    const actionPicker = page.getByRole('dialog', { name: /Target Device|Dispositivo destino/i });
+    await actionPicker.getByRole('searchbox').fill('Oficina');
+    await expect(actionPicker.getByRole('option')).toHaveCount(40);
+    await expect(actionPicker.getByRole('option', { name: /Dispositivo 00/ })).toContainText('light');
+    await page.screenshot({ path: testInfo.outputPath(`automation-grouped-${viewport.name.replaceAll(' ', '-')}.png`) });
+  });
+}
+
 for (const viewport of [
   { name: 'mobile portrait', width: 320, height: 720 },
   { name: 'mobile landscape', width: 844, height: 390 },
@@ -110,11 +318,11 @@ test('Feature: Stable scene cards — Scenario: Compact from first frame before 
   });
   await page.goto('/routines/scenes');
   const card = page.getByRole('article', { name: 'Trabajo', exact: true });
-  await expect(card).toBeVisible();
-  const before = await card.evaluate(element => element.offsetWidth);
+  await expect(page.getByRole('status', { name: /Loading|Cargando/i })).toHaveAttribute('aria-busy', 'true');
+  await expect(card).toHaveCount(0);
   finish();
   await expect(card.getByRole('button', { name: /Quitar de favoritas|Remove from favorites/i })).toHaveAttribute('aria-pressed', 'true');
-  expect(await card.evaluate(element => element.offsetWidth)).toBe(before);
+  await expect(page.getByRole('status', { name: /Loading|Cargando/i })).toHaveCount(0);
   const frames = await page.evaluate(() => (window as unknown as { sceneFrames: { width: number; height: number }[] }).sceneFrames);
   expect(frames.length).toBeGreaterThan(0);
   expect(Math.max(...frames.map(frame => frame.width))).toBeLessThanOrEqual(320);
@@ -584,6 +792,7 @@ test('Feature: scene favorites — a legacy local favorite migrates once and the
     sessionStorage.setItem('legacy-favorites-seeded', '1');
   });
   await prepareAuthenticatedDashboard(page);
+  await page.route('**/api/v1/automations', route => route.fulfill({ json: [] }));
   await page.route('**/api/v1/homes', (route) => route.fulfill({ json: [{ id: 'responsive-home', ownerId: dashboardUser.id, name: 'Casa' }] }));
   await page.route('**/api/v1/scenes', (route) => route.fulfill({ json: [{
     id: 'favorite-scene', homeId: 'responsive-home', roomId: null, name: 'Escena noche', actions: [],

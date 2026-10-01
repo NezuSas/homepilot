@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Zap, TrendingDown, AlertTriangle, Leaf, ChevronRight, Activity } from 'lucide-react';
 import type { View } from '../types';
@@ -7,6 +7,7 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { StatusPill } from '../components/ui/StatusPill';
+import { useInitialLoading } from '../components/ui/useInitialLoading';
 
 interface EnergyViewProps {
   onNavigate?: (view: View) => void;
@@ -15,9 +16,13 @@ interface EnergyViewProps {
 export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
   const { t } = useTranslation();
   const { entities, isLoading, refreshEnergy, computeTotalPower, computeTotalEnergy } = useEnergyStore();
+  const [initialSettled, setInitialSettled] = useState(false);
+  const initialLoading = useInitialLoading(!initialSettled || isLoading);
 
   useEffect(() => {
-    refreshEnergy();
+    let active = true;
+    void refreshEnergy().finally(() => { if (active) setInitialSettled(true); });
+    return () => { active = false; };
   }, [refreshEnergy]);
 
   const totalPower = computeTotalPower();
@@ -48,9 +53,10 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
 
         {/* Left: Main Content / Data */}
         <div className="flex flex-col gap-6">
-          {isLoading && entities.length === 0 ? (
+          {initialLoading ? (
             // Skeleton state
-            <div className="flex flex-col gap-6 animate-pulse">
+            <div role="status" aria-label={t('common.loading')} aria-busy="true" className="flex flex-col gap-6 motion-safe:animate-pulse">
+              <span className="sr-only">{t('common.loading')}</span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="h-32 rounded-3xl bg-card border border-border/40" />
                 <div className="h-32 rounded-3xl bg-card border border-border/40" />

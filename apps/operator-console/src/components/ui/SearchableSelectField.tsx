@@ -8,6 +8,7 @@ export interface SearchableSelectOption {
   value: string;
   label: string;
   description?: string;
+  group?: string;
 }
 
 export interface SearchableSelectFieldProps {
@@ -144,8 +145,19 @@ export function SearchableSelectField({
     return options.filter((option) => (
       option.label.toLocaleLowerCase().includes(normalizedQuery)
       || option.description?.toLocaleLowerCase().includes(normalizedQuery)
+      || option.group?.toLocaleLowerCase().includes(normalizedQuery)
     ));
   }, [options, query]);
+  const groups = useMemo(() => {
+    const result: { label: string; options: SearchableSelectOption[] }[] = [];
+    for (const option of filteredOptions) {
+      const group = option.group ?? '';
+      const previous = result[result.length - 1];
+      if (previous?.label === group) previous.options.push(option);
+      else result.push({ label: group, options: [option] });
+    }
+    return result;
+  }, [filteredOptions]);
 
   const closeDropdown = () => {
     setDropdownPosition(null);
@@ -224,7 +236,9 @@ export function SearchableSelectField({
           </div>
 
           <div id={listboxId} role="listbox" aria-label={label ?? resolvedPlaceholder} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1">
-            {filteredOptions.length > 0 ? filteredOptions.map((option) => {
+            {filteredOptions.length > 0 ? groups.map((group, index) => <div key={`${group.label}:${index}`} role={group.label ? 'group' : undefined} aria-label={group.label || undefined}>
+              {group.label && <p className="px-3 pb-1 pt-3 text-caption font-semibold text-muted-foreground">{group.label}</p>}
+              {group.options.map((option) => {
               const isSelected = option.value === value;
 
               return (
@@ -281,7 +295,7 @@ export function SearchableSelectField({
                   {isSelected ? <Check className="h-4 w-4 shrink-0" /> : null}
                 </button>
               );
-            }) : (
+            })}</div>) : (
               <p className="px-3 py-6 text-center text-caption text-muted-foreground">{t('common.no_results')}</p>
             )}
           </div>
@@ -305,6 +319,7 @@ export function SearchableSelectField({
         disabled={disabled || loading}
         title={title ?? selected?.label}
         aria-haspopup="dialog"
+        aria-label={label}
         aria-expanded={isOpen}
         aria-controls={isOpen ? popupId : undefined}
         onClick={handleToggle}

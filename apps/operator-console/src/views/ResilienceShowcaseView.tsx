@@ -8,6 +8,7 @@ import { Card } from '../components/ui/Card';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { StatusPill } from '../components/ui/StatusPill';
 import { LoadingState } from '../components/ui/LoadingState';
+import { useInitialLoading } from '../components/ui/useInitialLoading';
 
 export const ResilienceShowcaseView: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -18,6 +19,7 @@ export const ResilienceShowcaseView: React.FC = () => {
   const [scenes, setScenes] = useState<unknown[]>([]);
   const [automations, setAutomations] = useState<unknown[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const initialLoading = useInitialLoading(isLoading);
   const [isConnected, setIsConnected] = useState(false);
   const [lastCheckedAt, setLastCheckedAt] = useState<Date | null>(null);
 
@@ -55,7 +57,7 @@ export const ResilienceShowcaseView: React.FC = () => {
     ? lastCheckedAt.toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })
     : null;
 
-  if (isLoading && devices.length === 0) return <LoadingState label={t('system_status.loading')} />;
+  if (initialLoading) return <LoadingState label={t('system_status.loading')} layout="cards" />;
 
   const cards = [
     { icon: Router, label: t('system_status.connection'), value: isConnected ? t('system_status.connected') : t('system_status.check_required'), description: isConnected ? t('system_status.connection_ok') : t('system_status.connection_pending'), tone: isConnected ? 'success' as const : 'warning' as const },

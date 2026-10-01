@@ -173,3 +173,5 @@
 
 
 - [x] Permitir cerrar el sidebar en móvil y tablet tocando fuera o deslizando el panel hacia la izquierda, sin cerrar durante desplazamiento vertical ni alterar el rail de escritorio.
+
+- [x] Reutilizar LoadingState con skeletons list/cards/home, estado accesible y movimiento reducido; coordinar cargas iniciales y conservar contenido durante refresh. SearchableSelectField admite grupos etiquetados y búsqueda de descripciones, manteniendo foco, teclado y viewport táctil. **Criterio:** AC20, AC56, AC75; operator-console-v1 AC51–AC53. **Evidencia:** UI-Loading-01 y UI-Routines-06; validación focalizada, sin suite responsive completa.

@@ -1,10 +1,11 @@
 import { useDeferredValue, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, Loader2, Search } from 'lucide-react';
+import { ChevronDown, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
+import { LoadingState } from '../../../components/ui/LoadingState';
 import {
   chooseDashboardIcon, DashboardMdiIcon, getDashboardIconComponent,
   getLoadedDashboardMdiCatalog, isDashboardIconAvailable, limitDashboardMdiIcons,
@@ -154,9 +155,7 @@ export function IconPicker({ value = '', onChange, placeholder, label, className
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
         {loading ? (
-          <p role="status" className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />{t('dashboard.editor.sections.icon_picker_loading')}
-          </p>
+          <LoadingState size="sm" label={t('dashboard.editor.sections.icon_picker_loading')} />
         ) : loadError ? (
           <div className="py-8 text-center">
             <p className="text-sm text-muted-foreground">{t('dashboard.editor.sections.icon_picker_load_error')}</p>

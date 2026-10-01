@@ -9,8 +9,8 @@ interface Room {
 }
 
 interface ScenesGroupProps<TScene extends SceneCardScene & { roomId: string | null }> {
-  title: string;
-  icon: LucideIcon;
+  title?: string;
+  icon?: LucideIcon;
   iconClassName: string;
   scenes: TScene[];
   rooms: Room[];
@@ -43,10 +43,10 @@ export const ScenesGroup = <TScene extends SceneCardScene & { roomId: string | n
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2">
-        <Icon className={iconClassName} />
+      {title && <div className="flex items-center gap-2">
+        {Icon && <Icon className={iconClassName} />}
         <h3 className="text-caption font-semibold text-muted-foreground">{title}</h3>
-      </div>
+      </div>}
       <RoutineCardGrid>
         {scenes.map((scene) => {
           const room = scene.roomId ? rooms.find((candidate) => candidate.id === scene.roomId) : null;

@@ -8,6 +8,7 @@ import { AlertBanner } from '../components/ui/AlertBanner';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { LoadingState } from '../components/ui/LoadingState';
+import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { useTranslation } from 'react-i18next';
 
@@ -15,6 +16,7 @@ export const ExecutionLogsView: React.FC = () => {
   const { t } = useTranslation();
   const [records, setRecords] = useState<ExecutionRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const initialLoading = useInitialLoading(loading);
   const [error, setError] = useState<string | null>(null);
 
   const fetchRecords = useCallback(async () => {
@@ -36,7 +38,7 @@ export const ExecutionLogsView: React.FC = () => {
     fetchRecords();
   }, [fetchRecords]);
 
-  if (loading && records.length === 0) {
+  if (initialLoading) {
     return <LoadingState label={t('execution_logs.loading')} className="min-h-empty-sm" size="md" />;
   }
 

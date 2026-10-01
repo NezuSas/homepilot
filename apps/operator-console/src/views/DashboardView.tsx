@@ -8,6 +8,7 @@ import {
 } from '../components/DashboardRoutinesSection';
 import { DashboardInsightsSection } from '../components/DashboardInsightsSection';
 import { LoadingState } from '../components/ui/LoadingState';
+import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { HomeClimateSummary } from '../components/HomeClimateSummary';
 import { API_BASE_URL } from '../config';
 import { useAutomationFavorites, useSceneFavorites } from '../lib/useSceneFavorites';
@@ -67,25 +68,27 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
   const [homePersonalization, setHomePersonalization] = useState<HomePersonalization>(EMPTY_HOME_PERSONALIZATION);
   const [homePeriod, setHomePeriod] = useState(() => getHomePeriod(new Date()));
   const [activeHeroImage, setActiveHeroImage] = useState(0);
-  const allDevices = useDeviceSnapshotStore((state) => state.devices);
-  const homes = useDeviceSnapshotStore((state) => state.homes);
-  const snapshotLoading = useDeviceSnapshotStore((state) => state.isLoading);
+  const [catalogSettled, setCatalogSettled] = useState(false);
+  const [personalizationSettled, setPersonalizationSettled] = useState(false);
+  const [contextSettled, setContextSettled] = useState(false);
   const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
   const findings = useAssistantStore((state) => state.findings);
   const refreshFindings = useAssistantStore((state) => state.refreshFindings);
   const resolveFinding = useAssistantStore((state) => state.resolveFinding);
 
-  const homeId = homes[0]?.id || null;
   const dataRequest = useRef<AbortController | null>(null);
   const fetchData = useCallback(async () => {
     dataRequest.current?.abort();
     const controller = new AbortController();
     dataRequest.current = controller;
     try {
-      await Promise.all([refreshSnapshot(), refreshFindings()]);
-      if (!homeId || controller.signal.aborted) return;
+      await Promise.allSettled([refreshSnapshot(), refreshFindings()]);
+      if (controller.signal.aborted) return;
 
-      const scenesResponse = await fetchDiagnosticResource(`${API_URL}/scenes`, controller.signal);
+      const [scenesResponse, automationsResponse] = await Promise.all([
+        fetchDiagnosticResource(`${API_URL}/scenes`, controller.signal),
+        canManageAutomations ? fetchDiagnosticResource(`${API_URL}/automations`, controller.signal) : Promise.resolve(null),
+      ]);
       if (scenesResponse.ok) {
         const nextScenes = await scenesResponse.json() as Scene[];
         if (!controller.signal.aborted) setScenes(nextScenes);
@@ -95,17 +98,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
         return;
       }
 
-      const automationsResponse = await fetchDiagnosticResource(`${API_URL}/automations`, controller.signal);
-      if (automationsResponse.ok) {
+      if (automationsResponse?.ok) {
         const nextAutomations = await automationsResponse.json() as DashboardRoutineAutomation[];
         if (!controller.signal.aborted) setAutomations(nextAutomations);
       }
     } catch {
       // Preserve the previous routine list during a slow or failed refresh.
     } finally {
+      if (!controller.signal.aborted) setCatalogSettled(true);
       if (dataRequest.current === controller) dataRequest.current = null;
     }
-  }, [canManageAutomations, homeId, refreshFindings, refreshSnapshot]);
+  }, [canManageAutomations, refreshFindings, refreshSnapshot]);
 
   useEffect(() => {
     void fetchData();
@@ -116,8 +119,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
     const controller = new AbortController();
     void apiFetch(`${API_URL}/settings/home-personalization`, { signal: controller.signal })
       .then(async (response) => {
-        if (response.ok) setHomePersonalization(await response.json() as HomePersonalization);
-      }).catch(() => { /* Keep the built-in image and neutral text when offline. */ });
+        if (response.ok && !controller.signal.aborted) setHomePersonalization(await response.json() as HomePersonalization);
+      }).catch(() => { /* Keep the built-in image and neutral text when offline. */ })
+      .finally(() => { if (!controller.signal.aborted) setPersonalizationSettled(true); });
     return () => controller.abort();
   }, []);
 
@@ -220,16 +224,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
   const heroImages = homePersonalization.heroImages.length > 0
     ? homePersonalization.heroImages.map((image) => `${API_BASE_URL}${image.url}`)
     : ['/home-dashboard-ambient.png'];
-  const { favorites: favoriteSceneIds } = useSceneFavorites(currentUserId, scenes.map((scene) => scene.id));
-  const { favorites: favoriteAutomationIds } = useAutomationFavorites(
+  const { favorites: favoriteSceneIds, settled: sceneFavoritesSettled } = useSceneFavorites(currentUserId, scenes.map((scene) => scene.id));
+  const { favorites: favoriteAutomationIds, settled: automationFavoritesSettled } = useAutomationFavorites(
     canManageAutomations ? currentUserId : null,
     automations.map((automation) => automation.id),
   );
 
-  if (snapshotLoading && allDevices.length === 0) return <LoadingState label={t('common.loading')} className="min-h-empty-sm" />;
+  const initialLoading = useInitialLoading(!catalogSettled || !personalizationSettled || !contextSettled || !sceneFavoritesSettled || !automationFavoritesSettled);
 
   return (
-    <div className="homepilot-home flex flex-col gap-6 pb-10 animate-in fade-in duration-500 sm:gap-8 sm:pb-12">
+    <>
+    {initialLoading && <LoadingState label={t('common.loading')} layout="home" />}
+    <div hidden={initialLoading} className="homepilot-home flex flex-col gap-6 pb-10 sm:gap-8 sm:pb-12 [&[hidden]]:hidden">
       <DashboardAtmosphereRipple active={luxuryRipple} />
 
       <header className="homepilot-home-hero flex flex-col gap-5">
@@ -251,7 +257,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
           <p className="mt-3 max-w-3xl whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-body text-muted-foreground lg:text-card-title">{phrase}</p>
         </div>
         <div className="relative z-10 min-w-0">
-          <HomeClimateSummary currentUserId={currentUserId} onOpenOwnDashboardTab={onOpenOwnDashboardTab} />
+          <HomeClimateSummary currentUserId={currentUserId} onOpenOwnDashboardTab={onOpenOwnDashboardTab} onReady={setContextSettled} />
         </div>
       </header>
 
@@ -280,5 +286,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
         />
       )}
     </div>
+    </>
   );
 };

@@ -19,6 +19,7 @@ import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import { useAutomationFavorites } from '../lib/useSceneFavorites';
 import { isCameraDevice } from '../lib/deviceCapabilities';
 import { RoutineCardGrid } from '../components/RoutineCardGrid';
+import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { useMomentaryActionFeedback } from './dashboards/widgets/useMomentaryActionFeedback';
 import { getSceneOrRoutineUrl, toAutomationEntityId } from './dashboards/widgets/sectionCardAssignments';
 import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
@@ -76,7 +77,8 @@ const AutomationsView: React.FC<{ currentUserId: string | null }> = ({ currentUs
   const [executingId, setExecutingId] = useState<string | null>(null);
   const executing = useRef(false);
   const { actionFeedback, clearActionFeedback, showActionFeedback } = useMomentaryActionFeedback();
-  const { favorites: favoriteIds, toggleFavorite: persistFavorite } = useAutomationFavorites(currentUserId, rules.map((rule) => rule.id));
+  const { favorites: favoriteIds, settled: favoritesSettled, toggleFavorite: persistFavorite } = useAutomationFavorites(currentUserId, rules.map((rule) => rule.id));
+  const initialLoading = useInitialLoading(isLoading || !favoritesSettled);
   const [timerReference, setTimerReference] = useState(() => DateTime.now());
   const dataRequest = useRef<AbortController | null>(null);
   const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
@@ -209,8 +211,8 @@ const AutomationsView: React.FC<{ currentUserId: string | null }> = ({ currentUs
   };
   const getSceneName = (id?: string) => scenes.find(s => s.id === id)?.name || id || t('common.unknown_scene');
 
-  if (isLoading && rules.length === 0) {
-    return <LoadingState label={t('common.loading')} className="min-h-empty-sm" />;
+  if (initialLoading) {
+    return <LoadingState label={t('common.loading')} layout="cards" />;
   }
 
   const openEditAutomation = (rule: AutomationRule) => {
@@ -244,8 +246,6 @@ const AutomationsView: React.FC<{ currentUserId: string | null }> = ({ currentUs
             <AutomationRuleCard
               key={rule.id}
               rule={rule}
-              devices={devices}
-              scenes={scenes}
               processingId={processingId}
               isExecuting={executingId === rule.id}
               isExecutionBusy={executingId !== null}

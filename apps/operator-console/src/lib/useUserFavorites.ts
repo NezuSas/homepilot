@@ -22,17 +22,27 @@ const resources = {
 export function useUserFavorites(userId: string | null, resourceIds: string[], kind: FavoriteKind) {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [settledScope, setSettledScope] = useState<string | null>(null);
   const favoritesRef = useRef<string[]>([]);
   const savingRef = useRef(false);
   const availableIds = resourceIds.join('\u0000');
   const resource = resources[kind];
+  const ownerScope = JSON.stringify([userId, kind]);
+  const favoritesOwner = useRef(ownerScope);
+  const requestScope = JSON.stringify([userId, kind, availableIds]);
+  const loadedForScope = loaded && settledScope === requestScope;
 
   useEffect(() => {
     let cancelled = false;
     let requestId = 0;
-    favoritesRef.current = [];
-    setFavorites([]);
+    // Catalog refresh must not erase visible favorites; a different user must.
+    if (favoritesOwner.current !== ownerScope) {
+      favoritesRef.current = [];
+      setFavorites([]);
+      favoritesOwner.current = ownerScope;
+    }
     setLoaded(false);
+    setSettledScope(null);
     if (!userId) return;
 
     const refresh = async () => {
@@ -71,6 +81,8 @@ export function useUserFavorites(userId: string | null, resourceIds: string[], k
         }
       } catch {
         // A failed backend request must not restore device-local data as authority.
+      } finally {
+        if (!cancelled && currentRequest === requestId) setSettledScope(requestScope);
       }
     };
 
@@ -78,10 +90,10 @@ export function useUserFavorites(userId: string | null, resourceIds: string[], k
     const onFocus = () => { void refresh(); };
     window.addEventListener('focus', onFocus);
     return () => { cancelled = true; window.removeEventListener('focus', onFocus); };
-  }, [userId, availableIds, resource]);
+  }, [userId, availableIds, resource, requestScope, ownerScope]);
 
   const toggleFavorite = useCallback(async (id: string) => {
-    if (!loaded || savingRef.current) return;
+    if (!loadedForScope || savingRef.current) return;
     savingRef.current = true;
     const previous = favoritesRef.current;
     const next = previous.includes(id) ? previous.filter((value) => value !== id) : [...previous, id];
@@ -100,7 +112,12 @@ export function useUserFavorites(userId: string | null, resourceIds: string[], k
     } finally {
       savingRef.current = false;
     }
-  }, [loaded, resource]);
+  }, [loadedForScope, resource]);
 
-  return { favorites, toggleFavorite, loaded };
+  return {
+    favorites: favoritesOwner.current === ownerScope ? favorites : [],
+    toggleFavorite,
+    loaded: loadedForScope,
+    settled: !userId || settledScope === requestScope,
+  };
 }

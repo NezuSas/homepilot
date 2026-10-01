@@ -3,7 +3,7 @@ import { AlertCircle, ArrowRight, Terminal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { SegmentedControl } from './ui/SegmentedControl';
 import { SearchableSelectField } from './ui/SearchableSelectField';
-import { humanize } from '../lib/naming-utils';
+import { AutomationDeviceSelect } from './AutomationDeviceSelect';
 import { getRoutineDeviceCommands } from '../lib/deviceCapabilities';
 import type { AutomationActionConfig, AutomationBuilderDevice, AutomationBuilderScene } from './AutomationBuilderTypes';
 
@@ -55,15 +55,14 @@ export const AutomationBuilderActionSection: React.FC<AutomationBuilderActionSec
       {actionType === 'device_command' ? (
         <div className="space-y-4 animate-in fade-in duration-300">
           <div className="space-y-2">
-            <label className="hp-type-label-accent ml-1">{t('automations.form.target_device')}</label>
-            <SearchableSelectField
+            <AutomationDeviceSelect
+              label={t('automations.form.target_device')}
+              devices={actionableDevices}
               value={actionConfig.targetDeviceId || ''}
               onChange={(value: string) => {
                 const device = actionableDevices.find(candidate => candidate.id === value);
                 onActionConfigChange({ ...actionConfig, targetDeviceId: value, command: device ? getRoutineDeviceCommands(device)[0] : '' });
               }}
-              options={actionableDevices.map(device => ({ value: device.id, label: humanize(device.id, device.name) }))}
-              placeholder={t('automations.form.select_device')}
             />
           </div>
           <div className="space-y-2">

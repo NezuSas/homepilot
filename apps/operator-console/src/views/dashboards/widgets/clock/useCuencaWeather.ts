@@ -32,7 +32,7 @@ async function fetchCuencaWeather(localeInput: string): Promise<ClockWeather> {
   url.searchParams.set('current', 'temperature_2m,weather_code,wind_speed_10m');
   url.searchParams.set('timezone', 'America/Guayaquil');
 
-  const request = fetch(url.toString(), { cache: 'no-store' })
+  const request = fetch(url.toString(), { cache: 'no-store', signal: AbortSignal.timeout(8000) })
     .then((response) => {
       if (!response.ok) throw new Error(`Weather request failed: ${response.status}`);
       return response.json();

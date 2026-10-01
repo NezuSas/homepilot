@@ -3,6 +3,7 @@ import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 export interface AutomationBuilderDevice extends Pick<SnapshotDevice, 'type' | 'semanticType' | 'capabilities'> {
   id: string;
   name: string;
+  roomId?: string | null;
 }
 
 export interface AutomationBuilderScene {

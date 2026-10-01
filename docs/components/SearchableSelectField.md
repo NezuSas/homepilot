@@ -11,6 +11,13 @@ widgets.
 
 ## Contract
 
+Options can include `description` and optional `group`. Consumers provide the
+ordered options; consecutive equal groups render an accessible labeled group
+without reordering the list. Search includes label, description and group.
+Arrow keys, Home/End and Enter navigate the flat option sequence across groups.
+The trigger receives the field's accessible label. Portal positioning and
+visual-viewport keyboard handling remain shared with ungrouped selectors.
+
 Receives `value`, typed options, callback, translated placeholder, and explicit
 search and positioning configuration. It knows no domain data and performs no
 network calls.

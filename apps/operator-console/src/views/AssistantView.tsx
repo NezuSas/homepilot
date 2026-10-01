@@ -9,6 +9,7 @@ import { AssistantEmptyState } from '../components/AssistantEmptyState';
 import { AssistantFindingCard } from '../components/AssistantFindingCard';
 import { AssistantFindingGroupCard } from '../components/AssistantFindingGroupCard';
 import { LoadingState } from '../components/ui/LoadingState';
+import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { AssistantRecommendationsHeader } from '../components/AssistantRecommendationsHeader';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { Button } from '../components/ui/Button';
@@ -42,10 +43,14 @@ export const AssistantView: React.FC<{
   const refreshFindings = useAssistantStore((state) => state.refreshFindings);
   const scanFindings = useAssistantStore((state) => state.scanFindings);
   const dismissFinding = useAssistantStore((state) => state.dismissFinding);
+  const [initialSettled, setInitialSettled] = useState(false);
+  const initialLoading = useInitialLoading(!initialSettled || loading);
   
 
   useEffect(() => {
-    void refreshFindings();
+    let active = true;
+    void refreshFindings().finally(() => { if (active) setInitialSettled(true); });
+    return () => { active = false; };
   }, [refreshFindings]);
 
   const handleScan = async () => {
@@ -196,7 +201,7 @@ export const AssistantView: React.FC<{
     return sections;
   };
 
-  if (loading) {
+  if (initialLoading) {
     return <LoadingState label={t('common.loading')} className="h-assistant-loading" />;
   }
 

@@ -13,9 +13,10 @@ const configuredCity = (import.meta.env.VITE_HOME_CITY as string | undefined)?.t
 interface HomeClimateSummaryProps {
   currentUserId: string | null;
   onOpenOwnDashboardTab: (dashboardId: string, tabId: string) => void;
+  onReady?: (ready: boolean) => void;
 }
 
-export const HomeClimateSummary: React.FC<HomeClimateSummaryProps> = ({ currentUserId, onOpenOwnDashboardTab }) => {
+export const HomeClimateSummary: React.FC<HomeClimateSummaryProps> = ({ currentUserId, onOpenOwnDashboardTab, onReady }) => {
   const { i18n, t } = useTranslation();
   const { now, locale, copy, weather, weatherStatus } = useClockData(i18n.language);
   const isEnglish = locale.toLowerCase().startsWith('en');
@@ -25,16 +26,18 @@ export const HomeClimateSummary: React.FC<HomeClimateSummaryProps> = ({ currentU
   const weatherReady = weatherStatus === 'ready' && weather !== null;
   const weatherLabel = weatherReady ? weather.label : weatherStatus === 'loading' || weatherStatus === 'idle' ? copy.weatherLoading : copy.weatherUnavailable;
   const [ownDefault, setOwnDefault] = useState<{ dashboardId: string; tabId: string; title: string } | null>(null);
+  const [dashboardSettled, setDashboardSettled] = useState(!currentUserId);
+  useEffect(() => { onReady?.(dashboardSettled && weatherStatus !== 'idle' && weatherStatus !== 'loading'); }, [dashboardSettled, weatherStatus, onReady]);
 
   useEffect(() => {
-    if (!currentUserId) { setOwnDefault(null); return; }
+    if (!currentUserId) { setOwnDefault(null); setDashboardSettled(true); return; }
     let active = true;
     void loadDashboards(t('dashboards.error_load')).then((dashboards) => {
       if (!active) return;
       const owned = dashboards.filter((dashboard) => dashboard.ownerId === currentUserId);
       const tab = owned.length === 1 ? owned[0].tabs.find((candidate) => candidate.isDefault) : undefined;
       setOwnDefault(tab ? { dashboardId: owned[0].id, tabId: tab.id, title: tab.title } : null);
-    }).catch(() => { if (active) setOwnDefault(null); });
+    }).catch(() => { if (active) setOwnDefault(null); }).finally(() => { if (active) setDashboardSettled(true); });
     return () => { active = false; };
   }, [currentUserId, t]);
 

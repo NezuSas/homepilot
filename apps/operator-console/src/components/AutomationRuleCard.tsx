@@ -16,8 +16,6 @@ interface AutomationRule {
 
 interface AutomationRuleCardProps {
   rule: AutomationRule;
-  devices: { id: string; integrationSource?: string }[];
-  scenes: { id: string; actions?: { deviceId: string; command: string }[] }[];
   processingId: string | null;
   getDeviceName: (id?: string) => string;
   getSceneName: (id?: string) => string;
@@ -32,16 +30,10 @@ interface AutomationRuleCardProps {
   onExecute: (id: string) => void;
 }
 
-export function AutomationRuleCard({ rule, devices, scenes, processingId, getDeviceName, getSceneName, onToggle, onEdit, onDelete, isFavorite, onToggleFavorite, isExecuting, isExecutionBusy, isSuccessful, onExecute }: AutomationRuleCardProps) {
+export function AutomationRuleCard({ rule, processingId, getDeviceName, getSceneName, onToggle, onEdit, onDelete, isFavorite, onToggleFavorite, isExecuting, isExecutionBusy, isSuccessful, onExecute }: AutomationRuleCardProps) {
   const { t } = useTranslation();
   const titleId = useId();
   const Icon = (rule.icon ? getDashboardIconComponent(rule.icon) : null) || (rule.trigger.type === 'time' ? Clock : Zap);
-  const isLocal = (id?: string) => devices.some((device) => device.id === id && device.integrationSource === 'sonoff');
-  const triggerIsLocal = rule.trigger.type === 'time' || isLocal(rule.trigger.deviceId);
-  const sceneDevices = scenes.find((scene) => scene.id === rule.action.sceneId)?.actions;
-  const actionIsLocal = rule.action.type === 'device_command' ? isLocal(rule.action.targetDeviceId) : !!sceneDevices && sceneDevices.every((action) => isLocal(action.deviceId));
-  const edgeCapable = triggerIsLocal || actionIsLocal || (rule.action.type === 'execute_scene' && sceneDevices?.some((action) => isLocal(action.deviceId)));
-  const resilience = triggerIsLocal && actionIsLocal ? 'autonomous' : edgeCapable ? 'edge_capable' : 'bridged';
 
   return (
     <article aria-labelledby={titleId} className="flex min-w-0 flex-col gap-3 rounded-section border border-border bg-card p-3 text-foreground">
@@ -49,7 +41,6 @@ export function AutomationRuleCard({ rule, devices, scenes, processingId, getDev
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon aria-hidden="true" className="h-5 w-5" /></div>
         <div className="min-w-0 flex-1">
           <h3 id={titleId} className="break-words text-body font-semibold">{rule.name}</h3>
-          <p className="text-caption text-muted-foreground">{t(`automations.summary.resilience.${resilience}`)}</p>
         </div>
         <IconButton icon={Star} label={t(isFavorite ? 'automations.remove_favorite' : 'automations.add_favorite')} aria-pressed={isFavorite} onClick={() => onToggleFavorite(rule.id)} size="lg" variant="ghost" className={isFavorite ? 'text-primary [&_svg]:fill-current' : 'text-muted-foreground'} />
       </div>

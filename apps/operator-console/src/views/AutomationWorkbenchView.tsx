@@ -10,6 +10,7 @@ import { AutomationWorkbenchEmptyState } from '../components/AutomationWorkbench
 import { AutomationWorkbenchErrorToast } from '../components/AutomationWorkbenchErrorToast';
 import { AutomationWorkbenchForm } from '../components/AutomationWorkbenchForm';
 import { LoadingState } from '../components/ui/LoadingState';
+import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { AutomationWorkbenchRuleCard, type AutomationWorkbenchRule } from '../components/AutomationWorkbenchRuleCard';
 
 
@@ -56,6 +57,8 @@ export const AutomationWorkbenchView: React.FC = () => {
   const { t } = useTranslation();
   const [rules, setRules] = useState<RuleUI[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialSettled, setInitialSettled] = useState(false);
+  const initialLoading = useInitialLoading(!initialSettled || loading);
   const [error, setError] = useState<string | null>(null);
 
   // Estados para creación y edición
@@ -130,8 +133,9 @@ export const AutomationWorkbenchView: React.FC = () => {
   }, [API_URL]);
 
   useEffect(() => {
-    fetchRules();
-    fetchDevices();
+    let active = true;
+    void Promise.allSettled([fetchRules(), fetchDevices()]).then(() => { if (active) setInitialSettled(true); });
+    return () => { active = false; };
   }, [fetchRules, fetchDevices]);
 
   const toggle = async (id: string, currentlyEnabled: boolean) => {
@@ -238,7 +242,7 @@ export const AutomationWorkbenchView: React.FC = () => {
     }
   };
 
-  if (loading && rules.length === 0) return <LoadingState label={t('automations.loading')} className="min-h-empty-sm py-20" />;
+  if (initialLoading) return <LoadingState label={t('automations.loading')} className="min-h-empty-sm py-20" />;
 
   return (
     <div className="flex flex-col gap-8 w-full animate-in fade-in slide-in-from-bottom-4 duration-700">

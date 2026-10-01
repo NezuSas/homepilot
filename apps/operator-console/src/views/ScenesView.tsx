@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Clock, LayoutGrid, Loader2, Star } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { apiFetch, readApiError } from '../lib/apiClient';
 import { fetchDiagnosticResource, invalidateDiagnosticCatalog } from '../lib/diagnosticResourceRequests';
@@ -9,6 +8,8 @@ import ConfirmModal from '../components/ConfirmModal';
 import { ScenesEmptyState } from '../components/ScenesEmptyState';
 import { ScenesGroup } from '../components/ScenesGroup';
 import { ScenesHeader } from '../components/ScenesHeader';
+import { LoadingState } from '../components/ui/LoadingState';
+import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { useDeviceSnapshotStore, type SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 import { useSceneFavorites } from '../lib/useSceneFavorites';
@@ -54,7 +55,8 @@ const ScenesView: React.FC<{
   const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
   
   // Local Stats
-  const { favorites, toggleFavorite: persistFavorite } = useSceneFavorites(currentUserId, scenes.map((scene) => scene.id));
+  const { favorites, settled: favoritesSettled, toggleFavorite: persistFavorite } = useSceneFavorites(currentUserId, scenes.map((scene) => scene.id));
+  const initialLoading = useInitialLoading(loading || !favoritesSettled);
   const [recents, setRecents] = useState<string[]>(() => {
     const saved = localStorage.getItem('hp_recent_scenes');
     return saved ? JSON.parse(saved) : [];
@@ -172,18 +174,7 @@ const ScenesView: React.FC<{
       });
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center p-20 gap-4 opacity-50">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <span className="text-caption font-black uppercase tracking-widest">{t('common.processing')}</span>
-      </div>
-    );
-  }
-
-  const favoriteScenes = scenes.filter(s => favorites.includes(s.id));
-  const recentScenes = scenes.filter(s => recents.includes(s.id) && !favorites.includes(s.id));
-  const otherScenes = scenes.filter(s => !favorites.includes(s.id) && !recents.includes(s.id));
+  if (initialLoading) return <LoadingState label={t('common.loading')} layout="cards" />;
 
   const openCreateScene = () => {
     if (!homeId) {
@@ -216,10 +207,8 @@ const ScenesView: React.FC<{
       ) : (
         <div className="flex flex-col gap-8 sm:gap-10">
           <ScenesGroup
-            title={t('scenes.favorites')}
-            icon={Star}
-            iconClassName="w-4 h-4 text-warning fill-current"
-            scenes={favoriteScenes}
+            iconClassName=""
+            scenes={scenes}
             rooms={rooms}
             favorites={favorites}
             executingId={executingId}
@@ -230,35 +219,6 @@ const ScenesView: React.FC<{
             onDelete={openDeleteScene}
           />
 
-          <ScenesGroup
-            title={t('scenes.recents')}
-            icon={Clock}
-            iconClassName="w-4 h-4 text-primary"
-            scenes={recentScenes}
-            rooms={rooms}
-            favorites={favorites}
-            executingId={executingId}
-            successId={successId}
-            onExecute={handleExecute}
-            onToggleFavorite={toggleFavorite}
-            onEdit={openEditScene}
-            onDelete={openDeleteScene}
-          />
-
-          <ScenesGroup
-            title={t('scenes.all_scenes')}
-            icon={LayoutGrid}
-            iconClassName="w-4 h-4 text-muted-foreground"
-            scenes={otherScenes}
-            rooms={rooms}
-            favorites={favorites}
-            executingId={executingId}
-            successId={successId}
-            onExecute={handleExecute}
-            onToggleFavorite={toggleFavorite}
-            onEdit={openEditScene}
-            onDelete={openDeleteScene}
-          />
         </div>
       )}
 

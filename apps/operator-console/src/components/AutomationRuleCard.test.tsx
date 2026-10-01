@@ -18,6 +18,7 @@ describe('Feature: Compact automation cards (AC50)', () => {
     expect(html).toContain('aria-pressed="false"');
     expect(html).toContain('aria-label="common.edit"');
     expect(html).toContain('aria-label="common.delete"');
+    expect(html).not.toContain('automations.summary.resilience');
     expect(props.onExecute).not.toHaveBeenCalled();
   });
   it('keeps paused schedules manually executable and disables only execution while running', () => {

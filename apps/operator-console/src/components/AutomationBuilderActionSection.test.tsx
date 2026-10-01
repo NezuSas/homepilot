@@ -2,7 +2,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { AutomationBuilderActionSection } from './AutomationBuilderActionSection';
 import type { AutomationBuilderDevice } from './AutomationBuilderTypes';
 
-jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key, i18n: { resolvedLanguage: 'es' } }) }));
+jest.mock('../stores/useDeviceSnapshotStore', () => ({ useDeviceSnapshotStore: () => ({}) }));
 
 const devices: AutomationBuilderDevice[] = [
   { id: 'tv-button', name: 'On/Off tv', type: 'button', semanticType: 'light', capabilities: [{ type: 'button', name: 'Button', commands: [{ name: 'press' }] }] },

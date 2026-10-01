@@ -4,7 +4,7 @@ import {
   Coffee,
   Check,
   Edit2,
-  Heart,
+  Star,
   Home,
   Leaf,
   Monitor,
@@ -93,7 +93,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({
           </p>
         </div>
         <IconButton
-          icon={Heart}
+          icon={Star}
           label={t(isFavorite ? 'scenes.remove_favorite' : 'scenes.add_favorite')}
           onClick={(event) => onToggleFavorite(scene.id, event)}
           aria-pressed={isFavorite}

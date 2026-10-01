@@ -9,6 +9,7 @@ import { AlertBanner } from '../components/ui/AlertBanner';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { LoadingState } from '../components/ui/LoadingState';
+import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import { humanize } from '../lib/naming-utils';
@@ -66,6 +67,8 @@ export const AuditLogsView: React.FC = () => {
   const { t } = useTranslation();
   const [logs, setLogs] = useState<ActivityRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialSettled, setInitialSettled] = useState(false);
+  const initialLoading = useInitialLoading(!initialSettled || loading);
   const [error, setError] = useState<string | null>(null);
   const devices = useDeviceSnapshotStore((state) => state.devices);
   const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
@@ -86,8 +89,9 @@ export const AuditLogsView: React.FC = () => {
   }, [t]);
 
   useEffect(() => {
-    fetchLogs();
-    void refreshSnapshot();
+    let active = true;
+    void Promise.allSettled([fetchLogs(), refreshSnapshot()]).then(() => { if (active) setInitialSettled(true); });
+    return () => { active = false; };
   }, [fetchLogs, refreshSnapshot]);
 
   const getDeviceName = (deviceId: string): string => {
@@ -97,7 +101,7 @@ export const AuditLogsView: React.FC = () => {
 
   const displayLogs = useMemo(() => summarizeRepetitiveSyncs(logs), [logs]);
 
-  if (loading && logs.length === 0) {
+  if (initialLoading) {
     return <LoadingState label={t('audit_logs.loading')} className="min-h-empty-sm" size="md" />;
   }
 
