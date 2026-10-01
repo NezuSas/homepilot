@@ -1,6 +1,79 @@
 import { expect, test } from '@playwright/test';
 import { mdiAutoFix, mdiHome, mdiRobot, mdiWeatherWindy } from '@mdi/js';
 
+for (const viewport of [
+  { name: 'mobile', width: 320, height: 720 }, { name: 'tablet portrait', width: 768, height: 1024 },
+  { name: 'tablet landscape', width: 1024, height: 768 }, { name: 'desktop', width: 1920, height: 1080 },
+]) {
+  test(`Feature: Compact settings and loading — Scenario: Collections, personalization, HA and installation fit ${viewport.name} (AC61)`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport);
+    await prepareAuthenticatedDashboard(page);
+    await page.addInitScript(() => localStorage.setItem('i18nextLng', 'es'));
+    await page.route('**/api/v1/rooms', route => route.fulfill({ json: [] }));
+    const main = page.getByRole('main');
+    for (const collection of [{ path: '/routines/scenes', endpoint: '**/api/v1/scenes' }, { path: '/routines/automations', endpoint: '**/api/v1/automations' }]) {
+      let release: () => void = () => {};
+      const gate = new Promise<void>(resolve => { release = resolve; });
+      await page.route(collection.endpoint, async route => { await gate; await route.fulfill({ json: [] }); });
+      await page.goto(collection.path);
+      const loading = main.getByRole('status', { name: /Cargando/i });
+      await expect(loading).toBeVisible();
+      const geometry = await loading.evaluate(element => {
+        const grid = element.querySelector('[aria-hidden="true"]')!.lastElementChild!;
+        const bounds = grid.getBoundingClientRect();
+        const tiles = Array.from(grid.children).map(tile => tile.getBoundingClientRect()).filter(tile => tile.height > 0);
+        return { width: bounds.width, height: bounds.height, gap: parseFloat(getComputedStyle(grid).columnGap), tiles: tiles.map(tile => ({ x: tile.x, y: tile.y, width: tile.width, height: tile.height })) };
+      });
+      expect(geometry.tiles.length).toBeGreaterThan(0);
+      expect(new Set(geometry.tiles.map(tile => Math.round(tile.y))).size).toBe(1);
+      const occupied = geometry.tiles.reduce((sum, tile) => sum + tile.width, 0) + (geometry.tiles.length - 1) * geometry.gap;
+      expect(geometry.width - occupied).toBeLessThan(geometry.tiles[0]!.width + geometry.gap);
+      expect(geometry.height).toBeLessThanOrEqual(geometry.tiles[0]!.height + 1);
+      await page.screenshot({ path: testInfo.outputPath(`${collection.path.split('/').pop()}-loading.png`) });
+      release();
+      await expect(loading).not.toBeVisible();
+      await page.unroute(collection.endpoint);
+    }
+    const settings = { morningPhrase: 'Frase completa. '.repeat(50), afternoonPhrase: 'Tarde tranquila', nightPhrase: 'Descansa', heroImages: Array.from({ length: 5 }, (_, i) => ({ slot: i + 1, url: `/test-home-${i + 1}.png` })) };
+    await page.route('**/test-home-*.png', route => route.fulfill({ contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=', 'base64') }));
+    await page.route('**/api/v1/settings/home-personalization', route => route.fulfill({ json: settings }));
+    await page.route('**/api/v1/settings/home-assistant', route => route.fulfill({ json: { baseUrl: 'http://192.0.2.1:8123', hasToken: true, maskedToken: '***', configurationStatus: 'configured', connectivityStatus: 'unknown', lastCheckedAt: null, activeSource: 'database' } }));
+    await page.route('**/api/v1/settings/test-ha-connection', route => route.fulfill({ json: { success: true } }));
+    await page.route('**/api/v1/system/setup-status', route => route.fulfill({ json: { ...setupStatus, installationProfile: 'bridge_ha', requiresHomeAssistant: true, runtimeTarget: 'docker_desktop', homeAssistantBridgeUrl: 'http://host.docker.internal:8123', homeAssistantSetupUrl: 'http://localhost:8123' } }));
+    for (const theme of ['dark', 'light']) {
+      await page.goto('/system/home-personalization');
+      await page.evaluate(light => document.documentElement.classList.toggle('light', light), theme === 'light');
+      const phrase = main.getByRole('textbox', { name: 'Frase de la mañana' });
+      await expect(phrase).toHaveValue(settings.morningPhrase);
+      expect(await phrase.evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true);
+      await expect(main.getByText('Fondo 1', { exact: true })).toBeVisible();
+      await expect(main.getByRole('button', { name: 'Eliminar imagen 5', exact: true })).toBeVisible();
+      await expect(main).not.toContainText('image_home_');
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath(`personalization-${theme}.png`), fullPage: true });
+      await page.goto('/system/ha');
+      await page.evaluate(light => document.documentElement.classList.toggle('light', light), theme === 'light');
+      const testButton = main.getByRole('button', { name: 'Testear Conexión', exact: true });
+      await expect(testButton).toBeEnabled();
+      await testButton.click();
+      await expect(main.getByText('Conexión Exitosa', { exact: true })).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath(`ha-${theme}.png`), fullPage: true });
+      await page.goto('/system/onboarding');
+      await page.evaluate(light => document.documentElement.classList.toggle('light', light), theme === 'light');
+      await page.getByRole('button', { name: 'Conectar mi Home Assistant', exact: true }).click();
+      await page.getByRole('textbox', { name: 'URL para enlazar HomePilot', exact: true }).fill('http://192.0.2.1:8123');
+      await page.getByLabel('Token de Acceso de Larga Duración', { exact: true }).fill('test-fixture-token');
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      await page.getByRole('button', { name: 'Probar Conexión', exact: true }).click();
+      await page.getByRole('button', { name: 'Guardar y Continuar', exact: true }).click();
+      await expect(page.getByRole('button', { name: 'Finalizar Configuración e Iniciar Workspace', exact: true })).toBeEnabled();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath(`onboarding-${theme}.png`), fullPage: true });
+    }
+  });
+}
+
 for (const viewport of [{ name: 'mobile', width: 320, height: 720 }, { name: 'tablet', width: 768, height: 1024 }, { name: 'desktop', width: 1440, height: 900 }]) {
   test(`Feature: Assigned compact insights — Scenario: Home, Assistant and Energy retain only operational readings on ${viewport.name} (AC60)`, async ({ page }, testInfo) => {
     await page.setViewportSize(viewport);
@@ -91,7 +164,7 @@ for (const viewport of [{ name: 'mobile', width: 320, height: 720 }, { name: 'ta
       await group.click();
       await expect(group).toHaveAttribute('aria-expanded', 'true');
       await expect(page.getByRole('heading', { name: 'Altavoz estudio', exact: true })).toBeVisible();
-      await expect(page.getByText(/franja registrada de las 00:00/)).toBeVisible();
+      await expect(page.getByText('Franja registrada · 00:00', { exact: true })).toBeVisible();
       await expect(page.getByRole('button', { name: 'Crear automatización', exact: true })).toHaveCount(3);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
       await page.screenshot({ path: testInfo.outputPath(`assistant-${theme}.png`), fullPage: true, animations: 'disabled' });

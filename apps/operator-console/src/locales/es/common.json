@@ -62,6 +62,8 @@
     "confirm_delete_title": "¿Eliminar esta imagen?",
     "confirm_delete_description": "La imagen se quitará del carrusel de Inicio.",
     "image_alt": "Vista previa de la imagen {{slot}} de Inicio",
+    "image_label": "Fondo {{slot}}",
+    "image_unavailable": "Vista previa no disponible",
     "delete_image": "Eliminar imagen {{slot}}"
   },
   "device_statuses": {
@@ -138,8 +140,8 @@
     "fix": "Corregir",
     "generic_finding_description": "Se identificó una oportunidad de mejora en el hogar. Revisa los detalles para continuar.",
     "evidence": {
-      "habit_window": "Actividad recurrente en la franja registrada de las {{timeWindow}}. Revisa los registros antes de automatizar.",
-      "habit": "Actividad recurrente registrada. Revisa los registros antes de automatizar.",
+      "habit_window": "Franja registrada · {{timeWindow}}",
+      "habit": "Patrón registrado · sin franja horaria",
       "long_duration": "Encendido durante más de {{hoursOn}} horas sin cambios recientes.",
       "inactivity": "Sin actividad registrada durante {{daysInactive}} días."
     },
@@ -633,6 +635,7 @@
     "delete_confirm_description": "Esto eliminará permanentemente la escena. Los dispositivos individuales no se verán afectados."
   },
   "ha_settings": {
+    "sources": { "database": "Configuración guardada", "env-fallback": "Configuración del entorno", "none": "Sin configurar" },
     "title": "Configuración de Home Assistant",
     "status": {
       "reachable": "Accesible",

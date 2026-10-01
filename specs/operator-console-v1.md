@@ -139,6 +139,8 @@ Se propone una consola de administración pragmática:
 
 ## 9. Notas Técnicas y Arquitectura
 
+- AC61: Escenas y Automatizaciones completan la primera fila de carga con sus skeletons propios según el ancho disponible. Personalización compacta sus frases con scroll editable y presenta fondos con nombres legibles, conservando archivos/slots internos y skeleton de miniatura. Instalación e Integración HA usan skeletons propios y contenido adaptable sin desbordamiento. Inicio/Asistente presentan evidencia breve sin iconos ni advertencias genéricas repetidos por fila; las horas siguen siendo franjas registradas, no horarios locales inferidos. No cambia API, permisos, persistencia ni ejecución.
+
 - AC60: Descubrimiento conserva entidades sin estancia y Asistente sus alertas de asignación. Selectores operativos y recomendaciones de uso requieren estancia válida. Inicio muestra hasta cinco recomendaciones reales, Asistente filas compactas y Energía lecturas asignadas agrupadas. Skeletons específicos completan la primera fila de favoritos y las sugerencias. No se borran datos ni vínculos históricos ni se modifica API o ejecución.
 
 - AC57: Inspector compacto de hasta 32rem, conservando ID de entidad, tipo/origen, función, ubicación y capacidades informativas. Omitir alias/local-home y footer decorativo; eliminación discreta con confirmación intacta. Registros traducen tipos y mensajes conocidos sin modificar datos ni ocultar mensajes desconocidos; Estado conserva su contenido.

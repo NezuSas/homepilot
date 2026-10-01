@@ -18,6 +18,7 @@ import { apiFetch } from '../lib/apiClient';
 import { cn } from '../lib/utils';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { OnboardingSkeleton } from '../components/ui/ComponentSkeletons';
 
 interface SetupStatus {
   isInitialized: boolean;
@@ -153,31 +154,33 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
     }
   };
 
+  if (!statusProvider) return <OnboardingSkeleton label={t('common.loading')} />;
+
   return (
-    <div className="flex-1 min-h-onboarding bg-muted/20 px-4 py-8">
+    <div className="min-w-0 flex-1 bg-muted/20 px-3 py-4 sm:px-4">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-5">
         
-        <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0 rounded-section border border-border bg-card p-4">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex items-start gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10">
                 <Home className="h-6 w-6 text-primary" />
               </div>
-              <div>
-                <p className="hp-type-label-accent">{t('onboarding.kicker')}</p>
+              <div className="min-w-0">
                 <h1 className="mt-1 text-view-title font-bold tracking-tight text-foreground">{t('onboarding.title')}</h1>
                 <p className="hp-type-body mt-1 max-w-2xl">
                   {t('onboarding.subtitle')}
                 </p>
               </div>
             </div>
-            <div className="grid w-full grid-cols-3 gap-2 sm:max-w-form-md lg:w-form-md">
+            <div className="grid w-full shrink-0 grid-cols-3 gap-2 sm:max-w-form-md">
               {progressItems.map(item => {
                 const isCurrent = item.index === step;
                 const isDone = item.index < step;
                 return (
                   <div
                     key={item.index}
+                    aria-current={isCurrent ? 'step' : undefined}
                     className={cn(
                       'min-w-0 rounded-xl border px-2 py-2 text-nano font-semibold uppercase leading-tight tracking-micro transition-colors sm:px-2.5',
                       isCurrent && 'border-primary/60 bg-primary/10 text-primary',
@@ -186,7 +189,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                     )}
                   >
                     <span className="mb-1 block text-nano font-semibold tracking-normal opacity-70">{t('onboarding.progress.step', { count: item.index })}</span>
-                    <span className="block whitespace-nowrap text-nano leading-3">{item.label}</span>
+                    <span className="block break-words text-caption leading-tight">{item.label}</span>
                   </div>
                 );
               })}
@@ -197,19 +200,19 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
         {errorMsg && (
           <div className="rounded-xl border border-danger/40 bg-danger/10 p-4 text-danger flex items-start gap-3">
             <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-            <span className="text-body-compact font-medium">{errorMsg}</span>
+            <span className="min-w-0 break-words text-body-compact font-medium">{errorMsg}</span>
           </div>
         )}
 
-        <div className="grid gap-5 lg:grid-cols-[1fr_22rem]">
-          <div className="rounded-2xl border border-border/70 bg-card p-6 shadow-sm">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,16rem)]">
+          <div className="min-w-0 rounded-section border border-border bg-card p-4">
             {step === 1 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <ShieldCheck className="h-5 w-5" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <h2 className="text-section-title font-bold tracking-tight">{t('onboarding.step1.title')}</h2>
                     <p className="hp-type-body mt-1">{t('onboarding.step1.description')}</p>
                   </div>
@@ -217,11 +220,11 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                 
                 <div className="grid gap-3">
                   {readinessItems.map(item => (
-                    <div key={item.label} className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/25 px-4 py-3">
+                    <div key={item.label} className="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-border/60 py-3">
                       <span className="text-body-compact font-semibold text-muted-foreground">{item.label}</span>
                       <span
                         className={cn(
-                          'inline-flex shrink-0 items-center gap-1.5 text-right text-micro font-semibold uppercase tracking-control',
+                          'inline-flex min-w-0 max-w-full items-center gap-1.5 break-all text-caption font-semibold',
                           item.status === 'success' && 'text-success',
                           item.status === 'warning' && 'text-warning',
                           item.status === 'error' && 'text-danger'
@@ -244,7 +247,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                     onClick={() => setStep(isNativeOnly ? 3 : 2)}
                     disabled={!isAdmin}
                     size="md"
-                    className="w-full uppercase tracking-label sm:w-auto"
+                    className="w-full whitespace-normal sm:w-auto"
                   >
                     {t(isNativeOnly ? 'onboarding.step1.native_continue' : 'onboarding.step1.continue')}
                   </Button>
@@ -255,10 +258,10 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
             {step === 2 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-right-2">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <Wifi className="h-5 w-5" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <h2 className="text-section-title font-bold tracking-tight">{t('onboarding.step2.title')}</h2>
                     <p className="hp-type-body mt-1">{t('onboarding.step2.description')}</p>
                   </div>
@@ -284,6 +287,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                               type="button"
                               variant="secondary"
                               size="sm"
+                              className="shrink-0 whitespace-normal"
                               onClick={() => {
                                 setHaUrl(statusProvider.homeAssistantBridgeUrl ?? '');
                                 setTestResult('idle');
@@ -342,14 +346,14 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-border/70 bg-muted/25 p-4">
-                  <p className="hp-type-label">{t('onboarding.step2.token_help_title')}</p>
+                <details className="border-t border-border py-3">
+                  <summary className="cursor-pointer text-body-compact font-medium">{t('onboarding.step2.token_help_title')}</summary>
                   <ol className="mt-3 grid gap-2 text-body-compact text-muted-foreground">
                     <li>{t('onboarding.step2.token_help_1')}</li>
                     <li>{t('onboarding.step2.token_help_2')}</li>
                     <li>{t('onboarding.step2.token_help_3')}</li>
                   </ol>
-                </div>
+                </details>
 
                 <div className="flex flex-col gap-2 pt-2 sm:flex-row">
                   <Button
@@ -357,7 +361,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                     disabled={!canTestConnection}
                     variant="secondary"
                     size="md"
-                    className="flex-1 uppercase tracking-label"
+                    className="min-w-0 flex-1 whitespace-normal"
                   >
                     {testingHA ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlayCircle className="w-4 h-4" />}
                     {t('onboarding.step2.test')}
@@ -367,7 +371,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                     onClick={handleSaveConnection}
                     disabled={testResult !== 'success' || loading}
                     size="md"
-                    className="flex-[1.35] uppercase tracking-label"
+                    className="min-w-0 flex-1 whitespace-normal"
                   >
                     {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                     {t('onboarding.step2.save')}
@@ -385,7 +389,6 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                   <CheckCircle2 className="w-8 h-8 text-success" />
                 </div>
                 <div>
-                  <p className="hp-type-label-accent text-success">{t(isNativeOnly ? 'onboarding.step3.native_kicker' : 'onboarding.step3.kicker')}</p>
                   <h2 className="mt-2 text-view-title font-bold tracking-tight">{t('onboarding.step3.title')}</h2>
                   <p className="hp-type-body mx-auto mt-2 max-w-lg">
                     {t(isNativeOnly ? 'onboarding.step3.native_subtitle' : 'onboarding.step3.subtitle')}
@@ -409,7 +412,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
                     onClick={finalizeSetup}
                     disabled={loading}
                     size="md"
-                    className="w-full bg-success uppercase tracking-label text-success-foreground hover:bg-success/90 sm:w-auto"
+                    className="w-full whitespace-normal bg-success text-success-foreground hover:bg-success/90 sm:w-auto"
                   >
                     {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('onboarding.step3.complete')}
                   </Button>
@@ -418,15 +421,15 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
             )}
           </div>
 
-          <aside className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
-            <p className="hp-type-label">{t('onboarding.side.title')}</p>
+          <aside className="min-w-0 p-3">
+            <h2 className="text-body-compact font-semibold">{t('onboarding.side.title')}</h2>
             <div className="mt-4 grid gap-3">
               {[
                 t('onboarding.side.local'),
                 t(isNativeOnly ? 'onboarding.side.native_secure' : 'onboarding.side.secure'),
                 t(isNativeOnly ? 'onboarding.side.native_recoverable' : 'onboarding.side.recoverable')
               ].map(item => (
-                <div key={item} className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/25 p-3">
+                <div key={item} className="flex items-start gap-2 py-2">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                   <span className="text-body-compact text-muted-foreground">{item}</span>
                 </div>

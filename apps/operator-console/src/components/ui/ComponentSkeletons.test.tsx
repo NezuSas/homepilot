@@ -1,6 +1,16 @@
 import { renderToStaticMarkup } from 'react-dom/server';
+import { HomePersonalizationSkeleton, HomeAssistantSettingsSkeleton, OnboardingSkeleton } from './ComponentSkeletons';
 import { ScenesSkeleton, AutomationsSkeleton, SpacesSkeleton, HomeSkeleton, DeviceManagerSkeleton, CamerasSkeleton, DisplayControlsSkeleton, DeviceInspectorSkeleton, DiscoverySkeleton, HaDiscoverySkeleton, UsersSkeleton, DiagnosticsSkeleton, ViewSkeleton } from './ComponentSkeletons';
 describe('Feature: Component-owned skeletons (AC51)', () => {
+  it.each([HomePersonalizationSkeleton, HomeAssistantSettingsSkeleton, OnboardingSkeleton])('provides a non-interactive component-owned settings skeleton (AC61): %p', Skeleton => {
+    const html = renderToStaticMarkup(<Skeleton label="Cargando" />);
+    expect(html.match(/role="status"/g)).toHaveLength(1);
+    expect(html).not.toMatch(/<(button|input|textarea)\b/);
+  });
+  it('uses the same HA and installation skeleton during navigation and initial loading (AC61)', () => {
+    expect(renderToStaticMarkup(<ViewSkeleton view="system-ha" label="Cargando" />)).toBe(renderToStaticMarkup(<HomeAssistantSettingsSkeleton label="Cargando" />));
+    expect(renderToStaticMarkup(<ViewSkeleton view="system-onboarding" label="Cargando" />)).toBe(renderToStaticMarkup(<OnboardingSkeleton label="Cargando" />));
+  });
   it.each([ScenesSkeleton, AutomationsSkeleton, SpacesSkeleton, HomeSkeleton, DeviceManagerSkeleton, CamerasSkeleton, DisplayControlsSkeleton, DeviceInspectorSkeleton, DiscoverySkeleton, HaDiscoverySkeleton, UsersSkeleton, DiagnosticsSkeleton])('announces loading once without interactive controls: %p', Skeleton => {
     const html = renderToStaticMarkup(<Skeleton label="Cargando" />);
     expect(html.match(/role="status"/g)).toHaveLength(1);

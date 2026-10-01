@@ -46,7 +46,7 @@ export function AppViewRouter(props: AppViewRouterProps) {
     {props.currentView === 'dashboards' && <DashboardsView initialDashboardId={props.dashboardId} initialTabId={props.tabId} onOpenMobileMenu={props.onOpenMobileMenu} onDashboardCatalogChange={props.onDashboardCatalogChange} />}
     {props.currentView === 'energy' && <EnergyView onNavigate={props.onNavigate} />}
     {props.currentView === 'system-devices' && <InboxView mode="manager" />}{props.currentView === 'system-inbox' && <InboxView mode="discovery" />}{props.currentView === 'system-diagnostics' && <DiagnosticsView />}{props.currentView === 'system-audit' && <AuditLogsView />}{props.currentView === 'system-executions' && <ExecutionLogsView />}{props.currentView === 'system-ha' && <HomeAssistantSettingsView />}{props.currentView === 'system-cameras' && <NativeCamerasView />}
-    {props.currentView === 'system-onboarding' && props.setupStatus && <OnboardingView statusProvider={props.setupStatus} userContext={props.user} onCompleted={props.onOnboardingCompleted} />}
+    {props.currentView === 'system-onboarding' && <OnboardingView statusProvider={props.setupStatus} userContext={props.user} onCompleted={props.onOnboardingCompleted} />}
     {props.currentView === 'system-users' && <UsersView currentUserId={props.user?.id ?? null} />}
     {props.currentView === 'system-home-personalization' && props.user?.role === 'admin' && <HomePersonalizationView />}
     {props.currentView === 'home-conversation' && <HomeConversationView pendingPrompt={props.pendingPrompt} assistantTurnCoordinator={props.assistantTurnCoordinator} onPendingPromptConsumed={props.onPendingPromptConsumed} />}

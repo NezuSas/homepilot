@@ -37,6 +37,7 @@ The command fails if a file cannot be mapped to an existing spec.
 | Home Assistant | Home Assistant integration and settings routes | Home Assistant connection, realtime, and resilience specs |
 | Cameras | camera routes, native camera routes, camera UI | Home Assistant camera and native camera specs |
 | Compact suggestions, camera settings and diagnostics | AssistantFindingCard/GroupCard, DashboardInsightsSection, NativeCameraSettingsCard, DateField, DiagnosticsResilienceSummary | Operator Console V1 AC59; existing Assistant/native camera contracts unchanged |
+| Compact settings and first-row loading | HomePersonalizationView, HomeAssistantSettingsView, OnboardingView, component-owned skeletons, concise suggestion evidence | Operator Console V1 AC61; existing onboarding/HA contracts unchanged |
 | Android Smart Displays | `AndroidDisplayRoutes`, `packages/integrations/android-display` | Android display integration V1 |
 | IntentFlow manifest and effective actions | `BoardManifestV1`, `EffectiveActionsResolver` | HomePilot effectiveActions V1 |
 | Installation verification | Installation verification broker and shared Cloud Edge config provider | HomePilot Installation Verification Broker V1 |

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle2, Info, Sparkles, Zap } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { IconButton } from './ui/IconButton';
 import { getFindingDescription, getSafeFindingMetadata } from '../lib/assistantFindingPresentation';
@@ -17,11 +17,8 @@ export function AssistantFindingCard({ finding, onAction, onDismiss }: Assistant
   const metadata = getSafeFindingMetadata(finding.metadata);
   const context = [metadata.friendlyName, metadata.deviceName, metadata.name, metadata.roomName]
     .find((value): value is string => typeof value === 'string' && value.trim().length > 0) || '';
-  const icon = /energy|consumption|optimization|long_running/.test(finding.type) ? Zap
-    : /suggestion|habit|opportunity/.test(finding.type) ? Sparkles : Info;
   return (
     <article aria-label={context || t(`assistant.types.${finding.type}`)} className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 px-3 py-3 sm:px-4">
-      {React.createElement(icon, { 'aria-hidden': true, className: 'size-5 shrink-0 text-primary' })}
       <div className="min-w-0 flex-1 basis-48">
         <h3 className="break-words text-body-compact font-semibold text-foreground">{context || t(`assistant.types.${finding.type}`)}</h3>
         <p className="mt-1 max-w-prose break-words text-caption leading-normal text-muted-foreground">{getFindingDescription(finding, (key, values) => t(key, values))}</p>
