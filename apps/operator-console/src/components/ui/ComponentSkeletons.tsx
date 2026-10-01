@@ -15,7 +15,7 @@ export function AutomationRuleCardSkeleton() {
   return <div className={`${shell} space-y-3`}><div className="flex gap-3"><Bar className="size-10" /><Bar className="h-5 flex-1" /><Bar className="size-11" /></div><div className="grid grid-cols-[2rem_1fr] gap-2"><Bar className="h-4" /><Bar className="h-4" /><Bar className="h-4" /><Bar className="h-4 w-3/4" /></div><Bar className="h-11 w-full" /><div className="flex gap-2 border-t border-border pt-3"><Bar className="h-11 flex-1" /><Bar className="size-11" /><Bar className="size-11" /></div></div>;
 }
 export function ManagedDeviceTileSkeleton() {
-  return <div className="space-y-3 rounded-section border border-border bg-card p-4"><div className="flex gap-3"><Bar className="size-11" /><div className="flex-1 space-y-2"><Bar className="h-5 w-3/4" /><Bar className="h-3 w-1/2" /></div></div><Bar className="h-4 w-1/3" /><Bar className="h-11 w-full" /></div>;
+  return <div className="flex items-center gap-3 rounded-control border border-border bg-card p-3"><div className="min-w-0 flex-1 space-y-2"><Bar className="h-4 w-3/4" /><Bar className="h-3 w-1/2" /></div><Bar className="size-11 shrink-0" /></div>;
 }
 export function TopologyRoomCardSkeleton() {
   return <div className="flex min-h-20 items-center gap-3 rounded-panel border border-border bg-card p-3"><Bar className="size-11 shrink-0" /><div className="flex-1 space-y-2"><Bar className="h-4 w-2/3" /><Bar className="h-3 w-1/3" /></div></div>;
@@ -28,7 +28,7 @@ export function AutomationsSkeleton(props: SkeletonProps) {
   return <LoadingState {...props}><ViewHeadingSkeleton /><div className={collectionGrid}>{Array.from({ length: 3 }, (_, i) => <AutomationRuleCardSkeleton key={i} />)}</div></LoadingState>;
 }
 export function DeviceManagerSkeleton(props: SkeletonProps) {
-  return <LoadingState {...props}><ViewHeadingSkeleton /><Bar className="h-9 w-full" /><Bar className="h-5 w-32" /><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{Array.from({ length: 4 }, (_, i) => <ManagedDeviceTileSkeleton key={i} />)}</div></LoadingState>;
+  return <LoadingState {...props}><div className="flex flex-col gap-5 sm:flex-row sm:items-center"><Bar className="h-7 w-56" /><div className="grid flex-1 gap-2 min-[520px]:grid-cols-2"><Bar className="h-16 w-full" /><Bar className="h-16 w-full" /></div></div><Bar className="h-5 w-32" /><div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-3 sm:gap-4">{Array.from({ length: 4 }, (_, i) => <ManagedDeviceTileSkeleton key={i} />)}</div></LoadingState>;
 }
 export function SpacesSkeleton(props: SkeletonProps) {
   return <LoadingState {...props}><ViewHeadingSkeleton /><div className="space-y-5 rounded-section border border-border bg-card p-4"><div className="flex items-center gap-3"><Bar className="size-11" /><Bar className="h-6 w-32" /></div><Bar className="h-11 w-full" /><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{Array.from({ length: 4 }, (_, i) => <TopologyRoomCardSkeleton key={i} />)}</div></div></LoadingState>;

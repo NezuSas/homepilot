@@ -567,6 +567,110 @@ for (const viewport of [
   });
 }
 
+for (const viewport of [
+  { name: 'mobile portrait', width: 320, height: 720 },
+  { name: 'mobile landscape', width: 844, height: 390 },
+  { name: 'tablet portrait', width: 768, height: 1024 },
+  { name: 'tablet landscape', width: 1024, height: 768 },
+  { name: 'desktop', width: 1440, height: 900 },
+  { name: 'kiosk portrait', width: 1080, height: 1920 },
+  { name: 'kiosk landscape', width: 1920, height: 1080 },
+]) {
+  test(`Feature: Compact device manager — Scenario: Filters and stable configuration drawer preserve scrolling on ${viewport.name} (AC54, AC77, AC78)`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport);
+    await prepareAuthenticatedDashboard(page);
+    const base = { homeId: 'responsive-home', roomId: 'responsive-room', status: 'ASSIGNED' };
+    const light = { ...base, id: 'compact-light', name: 'Luz escritorio', type: 'light', externalId: 'ha:light.desk', integrationSource: 'sonoff', lastKnownState: { on: false } };
+    const display = { ...base, id: 'compact-board', externalId: 'android-display:board', name: 'Pizarra oficina', type: 'smart_display', semanticType: 'smart_display', integrationSource: 'android-display' };
+    const camera = { ...base, id: 'compact-camera', name: 'Cámara entrada', type: 'camera', integrationSource: 'native-camera' };
+    await page.route('**/api/v1/rooms', route => route.fulfill({ json: [{ id: base.roomId, homeId: base.homeId, name: 'Oficina' }] }));
+    await page.route('**/api/v1/devices', route => route.fulfill({ json: [light, display, camera] }));
+    await page.route('**/api/v1/devices/*/activity-logs', route => route.fulfill({ json: [] }));
+    let release: () => void = () => {};
+    let requested = false;
+    let gate: Promise<void>;
+    await page.route('**/api/v1/devices/compact-light', async route => {
+      requested = true;
+      await gate;
+      await route.fulfill({ json: light });
+    });
+    await page.route('**/api/v1/devices/compact-board', route => route.fulfill({ json: display }));
+    await page.route('**/api/v1/devices/compact-board/control-catalog', route => route.fulfill({ json: {
+      deviceId: display.id, plan: { id: 1, name: 'Plan oficina', type: null }, commands: [],
+    } }));
+    for (const theme of ['dark', 'light']) {
+      requested = false;
+      gate = new Promise<void>(resolve => { release = resolve; });
+      await page.goto('/system/devices');
+      await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
+      const manager = page.getByRole('main');
+      const tile = manager.getByRole('article').filter({ has: page.getByRole('heading', { name: light.name, exact: true }) });
+      await expect(tile).toContainText('Oficina');
+      await expect(tile.getByRole('button')).toHaveCount(1);
+      expect((await tile.boundingBox())?.height).toBeLessThanOrEqual(96);
+      await expect(manager.getByText(/Modo Edge Activo|Edge mode active/i)).toHaveCount(0);
+      const typeFilter = manager.getByRole('button', { name: /Tipo de dispositivo|Device type/i });
+      await typeFilter.click();
+      let popup = page.getByRole('dialog', { name: /Tipo de dispositivo|Device type/i });
+      await popup.getByRole('searchbox').fill('c');
+      await popup.getByRole('option', { name: /^(Cámaras|Cameras)$/i }).click();
+      await expect(manager.getByRole('article')).toHaveCount(1);
+      await expect(manager.getByRole('heading', { name: camera.name, exact: true })).toBeVisible();
+      await typeFilter.click();
+      popup = page.getByRole('dialog', { name: /Tipo de dispositivo|Device type/i });
+      await popup.getByRole('option', { name: /^(Todo|All)$/i }).click();
+      const originFilter = manager.getByRole('button', { name: /Origen|Origin/i });
+      await originFilter.click();
+      popup = page.getByRole('dialog', { name: /Origen|Origin/i });
+      await popup.getByRole('option', { name: /^Local$/i }).click();
+      await expect(manager.getByRole('article')).toHaveCount(2);
+      const manage = tile.getByRole('button', { name: /Gestionar dispositivo|Manage device/i });
+      const controlBounds = await manage.boundingBox();
+      expect(controlBounds?.width).toBeGreaterThanOrEqual(44);
+      expect(controlBounds?.height).toBeGreaterThanOrEqual(44);
+      await manage.click();
+      const inspector = page.getByRole('dialog', { name: /Inspector técnico|Technical inspector/i });
+      await expect.poll(() => requested).toBe(true);
+      await expect(inspector.getByRole('status')).toBeVisible();
+      const initialPanel = await inspector.elementHandle();
+      await expect.poll(() => inspector.evaluate(element => element.getAnimations().filter(animation => animation.playState === 'running').length)).toBe(0);
+      const before = await inspector.boundingBox();
+      expect(before?.x).toBeGreaterThanOrEqual(viewport.width - Math.min(viewport.width, 672) - 1);
+      release();
+      await expect(inspector.getByText(/Función del dispositivo|Device function/i)).toBeVisible();
+      expect(await initialPanel?.evaluate(element => element.isConnected)).toBe(true);
+      const after = await inspector.boundingBox();
+      expect(after?.x).toBeCloseTo(before!.x, 1);
+      expect(after?.width).toBeCloseTo(before!.width, 1);
+      // Exercise native scrolling after the chrome is hidden, not programmatic scrolling.
+      const scrollArea = inspector.getByText(/Función del dispositivo|Device function/i);
+      await scrollArea.hover();
+      await page.mouse.wheel(0, 2000);
+      const finalControl = inspector.getByRole('button', { name: /^(Eliminar|Delete)$/i });
+      await expect(finalControl).toBeInViewport();
+      const scrolling = await finalControl.evaluate(element => {
+        let ancestor = element.parentElement;
+        while (ancestor && getComputedStyle(ancestor).overflowY !== 'auto') ancestor = ancestor.parentElement;
+        return ancestor ? { top: ancestor.scrollTop, hidden: getComputedStyle(ancestor).scrollbarWidth, overflow: getComputedStyle(ancestor).overflowY, exceeds: ancestor.scrollHeight > ancestor.clientHeight } : null;
+      });
+      expect(scrolling?.hidden).toBe('none');
+      expect(scrolling?.overflow).toBe('auto');
+      if (scrolling?.exceeds) expect(scrolling.top).toBeGreaterThan(0);
+      await page.keyboard.press('Escape');
+      await expect(inspector).toHaveCount(0);
+      await expect(manage).toBeFocused();
+      const boardTile = manager.getByRole('article').filter({ has: page.getByRole('heading', { name: display.name, exact: true }) });
+      await expect(boardTile.getByRole('button')).toHaveCount(1);
+      await boardTile.getByRole('button').click();
+      await inspector.getByRole('button', { name: /Gestionar controles|Manage controls/i }).click();
+      await expect(page.getByRole('dialog')).toContainText('Plan oficina');
+      await page.keyboard.press('Escape');
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+      if (['desktop', 'mobile portrait', 'tablet portrait'].includes(viewport.name)) await page.screenshot({ path: testInfo.outputPath(`compact-manager-${theme}.png`), fullPage: true });
+    }
+  });
+}
+
 const responsiveDevices = [
   {
     id: 'sensor-climate',

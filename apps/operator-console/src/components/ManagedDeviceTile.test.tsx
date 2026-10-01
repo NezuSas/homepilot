@@ -11,6 +11,8 @@ describe('Feature: Configuration-only device manager (AC54)', () => {
     expect(html).toContain('Equipo');
     expect(html).toContain('Sala');
     expect(html).toContain('inbox.manage_device');
+    expect(html).toContain('aria-label="inbox.manage_device: Equipo"');
+    expect(html).not.toContain('device_types.');
     expect(html.match(/<button\b/g)).toHaveLength(1);
     expect(html).not.toMatch(/<(video|img)\b|aria-pressed|camera.open_viewer|data-action-state/);
   });

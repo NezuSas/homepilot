@@ -129,6 +129,7 @@ Se propone una consola de administración pragmática:
 - [x] AC53: Los selectores modulares de dispositivos de creación/edición de Automatizaciones muestran espacio e identidad efectiva; agrupan y ordenan por nombre de espacio y dispositivo, con «Sin espacio» al final. La búsqueda incluye nombre, espacio y tipo; navegación de teclado/táctil permite llegar a la última opción en catálogos extensos. No cambia compatibilidad de comandos, ownership ni persistencia.
 
 - [x] AC54: El Gestor muestra resúmenes de configuración, sin controles operativos ni sesiones de cámara; el inspector abierto desde el Gestor conserva función, nombre, asignación, diagnóstico y eliminación, pero no encendido ni controles de cortina. El catálogo de pizarra permanece informativo allí. Cámaras y comandos cotidianos se presentan en Espacios/Dashboard sin cambiar los endpoints ni permisos.
+  Las fichas compactas muestran nombre/estancia con un único botón de configuración; el catálogo de pizarra se accede desde el inspector. Origen/tipo usan selectores modulares con búsqueda, sin banner Edge. El Drawer permanece montado de skeleton a datos y mantiene su posición derecha.
 
 ## 9. Notas Técnicas y Arquitectura
 

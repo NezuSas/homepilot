@@ -22,11 +22,12 @@ interface DeviceInspectorProps {
   onClose: () => void;
   onUpdate: (updated: Device) => void;
   onDeleted: (deviceId: string) => void;
+  onControlDisplay?: () => void;
 }
 
 const API_URL = `${API_BASE_URL}/api/v1`;
 
-export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, rooms, onClose, onUpdate, onDeleted, configurationOnly = false }) => {
+export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, rooms, onClose, onUpdate, onDeleted, onControlDisplay, configurationOnly = false }) => {
   const { t } = useTranslation();
   const [device, setDevice] = useState<InspectableDevice | null>(null);
   const [logs, setLogs] = useState<ActivityLog[]>([]);
@@ -248,24 +249,8 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
     }
   };
 
-  if (loading) {
-    return (
-      <Drawer
-        isOpen
-        onClose={onClose}
-        ariaLabel={t('inbox.inspector.title')}
-      >
-        <div className="min-h-0 flex-1 overflow-y-auto p-5">
-        <DeviceInspectorSkeleton label={t('common.loading')} />
-        </div>
-      </Drawer>
-    );
-  }
-
-  if (!device) return null;
-
-  const isOnline = Date.now() - new Date(device.updatedAt || new Date()).getTime() < 300000;
-  const unavailable = isDeviceUnavailable(device);
+  const isOnline = device ? Date.now() - new Date(device.updatedAt || new Date()).getTime() < 300000 : false;
+  const unavailable = device ? isDeviceUnavailable(device) : true;
 
   return (
     <>
@@ -273,8 +258,13 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
         isOpen
         onClose={onClose}
         ariaLabel={t('inbox.inspector.title')}
-        hideCloseButton
+        hideCloseButton={!loading && Boolean(device)}
       >
+      {loading ? (
+        <div className="min-h-0 flex-1 overflow-y-auto p-5">
+          <DeviceInspectorSkeleton label={t('common.loading')} />
+        </div>
+      ) : device ? (
       <div className="relative flex min-h-0 flex-1 flex-col">
         <div className="relative border-b border-border bg-muted/30 p-4 sm:p-6">
           <div className="mb-5 flex items-start justify-between gap-3 sm:mb-6 sm:items-center">
@@ -370,12 +360,18 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
           )}
           {activeTab === 'logs' && <DeviceInspectorLogsTab logs={logs} />}
           {activeTab === 'state' && <DeviceInspectorStateTab device={device} />}
+          {activeTab === 'info' && configurationOnly && onControlDisplay && (
+            <Button variant="outline" onClick={onControlDisplay} className="mt-4">
+              {t('inbox.smart_display.manage_controls')}
+            </Button>
+          )}
         </div>
 
         <div className="p-6 border-t border-border/50 bg-muted/10 text-center">
           <p className="text-micro font-black uppercase tracking-label-wider opacity-20">{t('inbox.inspector.data_object')}</p>
         </div>
       </div>
+      ) : <p role="alert" className="p-6">{error || t('common.errors.fetch_failed')}</p>}
 
       </Drawer>
 
@@ -393,7 +389,7 @@ export const DeviceInspector: React.FC<DeviceInspectorProps> = ({ deviceId, room
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={handleDelete}
         title={t('inbox.inspector.remove_import_title')}
-        description={t('inbox.inspector.remove_import_confirm', { name: device.name })}
+        description={t('inbox.inspector.remove_import_confirm', { name: device?.name })}
         confirmText={t('common.delete')}
         variant="danger"
         isSubmitting={isActionLoading}

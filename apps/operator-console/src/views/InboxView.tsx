@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { 
   Inbox,
   Settings,
-  Cpu,
   Zap
 } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -13,7 +12,7 @@ import { HomeAssistantDiscoverySection } from '../components/HomeAssistantDiscov
 import { InboxDeviceTile } from '../components/InboxDeviceTile';
 import { ManagedDeviceTile } from '../components/ManagedDeviceTile';
 import { SmartDisplayControls } from '../components/SmartDisplayControls';
-import { SegmentedControl } from '../components/ui/SegmentedControl';
+import { SearchableSelectField } from '../components/ui/SearchableSelectField';
 import { DeviceManagerSkeleton, DiscoverySkeleton } from '../components/ui/ComponentSkeletons';
 import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
@@ -97,26 +96,18 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
     return mode === 'manager' ? <DeviceManagerSkeleton label={t('common.loading')} /> : <DiscoverySkeleton label={t('common.loading')} />;
   }
 
-  const hasLocalDevices = devices.some(d => d.integrationSource === 'sonoff');
-
   return (
     <div className="flex flex-col gap-5 sm:gap-6">
-      {hasLocalDevices && (
-        <div className="mt-2 flex flex-col gap-2 rounded-xl border border-success/20 bg-success/5 px-4 py-2 shadow-sm animate-in fade-in slide-in-from-top-2 duration-1000 sm:flex-row sm:items-center">
-          <Cpu className="w-3.5 h-3.5 text-success/80" />
-          <span className="text-micro font-black uppercase tracking-widest text-success/90 bg-success/10 px-2 py-0.5 rounded">{t('inbox.edge_mode_active')}</span>
-          <span className="text-micro font-medium tracking-wide text-muted-foreground/60 sm:border-l sm:border-border/50 sm:pl-3">
-             {t('inbox.edge_hint')}
-          </span>
-        </div>
-      )}
-
       {inspectingDeviceId && (
         <DeviceInspector 
           deviceId={inspectingDeviceId} 
           configurationOnly={mode === 'manager'}
           rooms={roomsFlattened}
           onClose={() => setInspectingDeviceId(null)} 
+          onControlDisplay={devices.find(device => device.id === inspectingDeviceId && resolveManagedDeviceKind(device) === 'smart_display') ? () => {
+            setControllingDisplayId(inspectingDeviceId);
+            setInspectingDeviceId(null);
+          } : undefined}
           onUpdate={(updated) => handleDeviceUpdate(inspectingDeviceId, updated)}
           onDeleted={() => {
             setInspectingDeviceId(null);
@@ -142,14 +133,14 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
         title={mode === 'manager' ? t('nav.system_devices') : t('nav.system_inbox')}
         icon={mode === 'manager' ? Settings : Inbox}
         action={
-          <div className="grid w-full min-w-0 gap-2 min-[520px]:grid-cols-[15rem_minmax(0,1fr)] sm:!w-full">
+          <div className="grid w-full min-w-0 gap-2 min-[520px]:grid-cols-2 sm:!w-full">
             {/* Origin Filter */}
-            <SegmentedControl
+            <SearchableSelectField
               value={originFilter}
-              onChange={setOriginFilter}
+              onChange={value => {
+                if (value === 'all' || value === 'local' || value === 'bridged') setOriginFilter(value);
+              }}
               label={t('inbox.filters.origin_label')}
-              className="grid w-full grid-cols-3 gap-1 rounded-xl p-1"
-              optionClassName="h-8 min-h-0 px-1 text-nano font-semibold tracking-normal [&>span]:whitespace-nowrap"
               options={(['all', 'local', 'bridged'] as const).map((value) => ({
                 value,
                 label: value === 'all'
@@ -161,12 +152,12 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
             />
 
             {/* Type Filter */}
-            <SegmentedControl
+            <SearchableSelectField
               value={filter}
-              onChange={setFilter}
+              onChange={value => {
+                if (value === 'all' || value === 'light' || value === 'switch' || value === 'cover' || value === 'camera' || value === 'sensor' || value === 'smart_display') setFilter(value);
+              }}
               label={t('inbox.filters.type_label')}
-              className="grid w-full grid-cols-2 gap-1 rounded-xl p-1 md:grid-cols-3 xl:grid-cols-7"
-              optionClassName="h-8 min-h-0 px-2 text-micro font-semibold tracking-normal [&>span]:whitespace-nowrap"
               options={(['all', 'light', 'switch', 'cover', 'camera', 'sensor', 'smart_display'] as const).map((value) => ({
                 value,
                 label: t(`inbox.filters.${value}`),
@@ -196,7 +187,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
             <div className={cn(
               'grid gap-3 sm:gap-4',
               mode === 'manager'
-                ? 'grid-cols-[repeat(auto-fit,minmax(min(100%,15rem),1fr))]'
+                ? 'grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))]'
                 : 'grid-cols-1 min-[400px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6',
             )}>
               {Array.isArray(group.devices) && group.devices.map((device) => {
@@ -210,7 +201,6 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
                     roomName={roomName}
                     isDuplicateName={isDuplicateName}
                     onInspect={() => setInspectingDeviceId(device.id)}
-                    onControlDisplay={() => setControllingDisplayId(device.id)}
                   />
                 ) : (
                   <InboxDeviceTile

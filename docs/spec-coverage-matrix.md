@@ -54,7 +54,7 @@ The command fails if a file cannot be mapped to an existing spec.
 | Límite nocturno, identidades de rutinas y formularios en tablet | Personalización horaria, selectores de escenas/automatizaciones, selector modular y overlays de edición | `specs/operator-console-v1.md` AC45; `specs/operator-console-modular-components-v1.md` AC75 |
 | Acciones momentáneas en Escenas y Automatizaciones | Capacidades reales `press`/`activate`, constructores y ejecución compartida de comandos | `specs/operator-console-v1.md` AC46; `specs/operator-console-v1.tasks.md` UI-Routines-01 |
 | Carga inicial propia por componente, favoritas estables y dispositivos por espacio | LoadingState, ComponentSkeletons, useInitialLoading, Home y vistas asíncronas, SceneCard, AutomationDeviceSelect y SearchableSelectField | `specs/operator-console-v1.md` AC51–AC53; `specs/operator-console-v1.tasks.md` UI-Loading-01, UI-Routines-06; `specs/operator-console-modular-components-v1.md` REQ-18 |
-| Gestor de configuración sin controles operativos | ManagedDeviceTile, DeviceInspector, InboxView, useDisplayControlCatalog | `specs/operator-console-v1.md` AC54; `specs/smart-display-control-catalog-v1.md` |
+| Gestor de configuración sin controles operativos | ManagedDeviceTile, DeviceInspector, InboxView, useDisplayControlCatalog | `specs/operator-console-v1.md` AC54; `specs/operator-console-modular-components-v1.md` AC77–AC78 (fichas compactas, filtros, Drawer estable y scroll sin barras); `specs/smart-display-control-catalog-v1.md` |
 | Shared Edge foundations | API gateway, route handler, shared contracts | Edge platform foundations |
 
 ## Audited Coverage
