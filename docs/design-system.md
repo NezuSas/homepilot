@@ -89,3 +89,10 @@ implementations.
 5. Active device status labels use `text-micro`, without forced uppercase or
    excessive letter spacing.
 6. Device rooms use calm grouped surfaces rather than a SaaS-style tile wall.
+7. Routine lists use `RoutineCardGrid` with bounded compact tracks, not expanded
+   full-width cards. Execution is an explicit button independent of scheduling
+   and management controls; card surfaces themselves never execute routines.
+8. Empty collection lists use `EmptyState` with `variant="collection"`, a
+   decorative domain icon and concise guidance. When creation is already in
+   the header, do not repeat that action inside the empty state. Other views
+   may reuse the same variant; the default primitive remains compatible.

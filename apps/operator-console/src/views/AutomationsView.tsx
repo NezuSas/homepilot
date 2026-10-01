@@ -18,6 +18,9 @@ import { humanize } from '../lib/naming-utils';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import { useAutomationFavorites } from '../lib/useSceneFavorites';
 import { isCameraDevice } from '../lib/deviceCapabilities';
+import { RoutineCardGrid } from '../components/RoutineCardGrid';
+import { useMomentaryActionFeedback } from './dashboards/widgets/useMomentaryActionFeedback';
+import { getSceneOrRoutineUrl, toAutomationEntityId } from './dashboards/widgets/sectionCardAssignments';
 import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 
 interface AutomationRule {
@@ -70,6 +73,9 @@ const AutomationsView: React.FC<{ currentUserId: string | null }> = ({ currentUs
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [executingId, setExecutingId] = useState<string | null>(null);
+  const executing = useRef(false);
+  const { actionFeedback, clearActionFeedback, showActionFeedback } = useMomentaryActionFeedback();
   const { favorites: favoriteIds, toggleFavorite: persistFavorite } = useAutomationFavorites(currentUserId, rules.map((rule) => rule.id));
   const [timerReference, setTimerReference] = useState(() => DateTime.now());
   const dataRequest = useRef<AbortController | null>(null);
@@ -145,6 +151,24 @@ const AutomationsView: React.FC<{ currentUserId: string | null }> = ({ currentUs
   // eslint-disable-next-line react-hooks/exhaustive-deps -- Initial subscription; action handlers trigger later refreshes.
   }, []);
 
+  const executeRule = async (id: string) => {
+    if (executing.current) return;
+    executing.current = true;
+    setExecutingId(id);
+    clearActionFeedback();
+    try {
+      await fetchJSON(getSceneOrRoutineUrl(toAutomationEntityId(id)), { method: 'POST' });
+      setError(null);
+      showActionFeedback(id, 'success');
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, t('common.errors.operation_failed')));
+      showActionFeedback(id, 'error');
+    } finally {
+      executing.current = false;
+      setExecutingId(null);
+    }
+  };
+
   const toggleRule = async (id: string, currentlyEnabled: boolean) => {
     if (processingId) return;
     setProcessingId(id);
@@ -195,7 +219,7 @@ const AutomationsView: React.FC<{ currentUserId: string | null }> = ({ currentUs
   };
 
   return (
-    <div className="flex flex-col gap-6 pb-8 animate-in fade-in slide-in-from-bottom-2 duration-700 sm:gap-7">
+    <div className="flex flex-col gap-6 pb-8 sm:gap-7">
       <AutomationsHeader
         activeCount={persistentRules.filter((rule) => rule.enabled).length}
         onCreate={() => setIsBuilderOpen(true)}
@@ -213,9 +237,9 @@ const AutomationsView: React.FC<{ currentUserId: string | null }> = ({ currentUs
       )}
 
       {persistentRules.length === 0 ? (
-        <AutomationsEmptyState onCreate={() => setIsBuilderOpen(true)} hasActiveTimers={activeTimers.length > 0} />
+        <AutomationsEmptyState hasActiveTimers={activeTimers.length > 0} />
       ) : (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <RoutineCardGrid>
           {persistentRules.map((rule) => (
             <AutomationRuleCard
               key={rule.id}
@@ -223,6 +247,10 @@ const AutomationsView: React.FC<{ currentUserId: string | null }> = ({ currentUs
               devices={devices}
               scenes={scenes}
               processingId={processingId}
+              isExecuting={executingId === rule.id}
+              isExecutionBusy={executingId !== null}
+              isSuccessful={actionFeedback?.id === rule.id && actionFeedback.status === 'success'}
+              onExecute={executeRule}
               getDeviceName={getDeviceName}
               getSceneName={getSceneName}
               onToggle={toggleRule}
@@ -232,7 +260,7 @@ const AutomationsView: React.FC<{ currentUserId: string | null }> = ({ currentUs
               onToggleFavorite={(id) => { void persistFavorite(id); }}
             />
           ))}
-        </div>
+        </RoutineCardGrid>
       )}
 
       {isBuilderOpen && (

@@ -1,6 +1,174 @@
 import { expect, test } from '@playwright/test';
 import { mdiAutoFix, mdiHome, mdiRobot, mdiWeatherWindy } from '@mdi/js';
 
+for (const viewport of [
+  { name: 'mobile portrait', width: 320, height: 720 },
+  { name: 'mobile landscape', width: 844, height: 390 },
+  { name: 'tablet portrait', width: 768, height: 1024 },
+  { name: 'tablet landscape', width: 1024, height: 768 },
+  { name: 'desktop', width: 1440, height: 900 },
+  { name: 'kiosk portrait', width: 1080, height: 1920 },
+  { name: 'kiosk landscape', width: 1920, height: 1080 },
+]) {
+  test(`Feature: Compact automation cards — Scenario: Independent controls fit ${viewport.name} (AC50)`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport);
+    await prepareAuthenticatedDashboard(page);
+    let rule = { id: 'compact-rule', name: 'Trabajo automático', enabled: true, trigger: { type: 'time', timeLocal: '19:00' }, action: { type: 'execute_scene', sceneId: 'work-scene' } };
+    await page.route('**/api/v1/automations', route => route.fulfill({ json: [rule] }));
+    await page.route('**/api/v1/scenes', route => route.fulfill({ json: [{ id: 'work-scene', name: 'Trabajo', actions: [] }] }));
+    let favorites: string[] = [];
+    await page.route('**/api/v1/automations/favorites', route => {
+      if (route.request().method() === 'PUT') favorites = route.request().postDataJSON().automationIds;
+      return route.fulfill({ json: { automationIds: favorites, initialized: true } });
+    });
+    let runs = 0;
+    let toggles = 0;
+    let finish: () => void = () => {};
+    const gate = new Promise<void>(resolve => { finish = resolve; });
+    await page.route('**/api/v1/automations/compact-rule/run', async route => {
+      runs += 1;
+      await gate;
+      await route.fulfill({ json: { success: true } });
+    });
+    await page.route('**/api/v1/automations/compact-rule/disable', route => {
+      toggles += 1;
+      rule = { ...rule, enabled: false };
+      return route.fulfill({ json: rule });
+    });
+    await page.goto('/routines/automations');
+    const card = page.getByRole('article', { name: rule.name, exact: true });
+    await expect(card).toBeVisible();
+    for (const theme of ['dark', 'light']) {
+      await page.evaluate(light => document.documentElement.classList.toggle('light', light), theme === 'light');
+      const geometry = await card.evaluate(element => ({ width: element.offsetWidth, height: element.offsetHeight, overflow: element.scrollWidth > element.clientWidth }));
+      expect(geometry.width).toBeLessThanOrEqual(320);
+      expect(geometry.height).toBeLessThan(300);
+      expect(geometry.overflow).toBe(false);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      for (const button of await card.getByRole('button').all()) {
+        await expect(button).toBeVisible();
+        const size = await button.evaluate(element => ({ width: element.offsetWidth, height: element.offsetHeight }));
+        expect(size.width).toBeGreaterThanOrEqual(44);
+        expect(size.height).toBeGreaterThanOrEqual(44);
+      }
+      if (viewport.name === 'desktop' || viewport.name === 'mobile portrait') await page.screenshot({ path: testInfo.outputPath(`automation-cards-${theme}.png`), animations: 'disabled' });
+    }
+    await card.getByRole('heading', { name: rule.name }).click();
+    expect(runs).toBe(0);
+    const execute = card.getByRole('button', { name: /^(Ejecutar ahora|Run now)$/i });
+    await execute.focus();
+    await page.keyboard.press('Enter');
+    await expect(execute).toHaveAttribute('aria-busy', 'true');
+    await expect(execute).toBeDisabled();
+    await expect.poll(() => runs).toBe(1);
+    await page.keyboard.press('Enter');
+    expect(runs).toBe(1);
+    finish();
+    await expect(card.getByRole('status')).toHaveText(/Ejecutada|Completed/i);
+    const schedule = card.getByRole('button', { name: /Activar o pausar|Enable or pause/i });
+    await expect(schedule).toHaveAttribute('aria-pressed', 'true');
+    expect(toggles).toBe(0);
+    await schedule.click();
+    await expect(schedule).toHaveAttribute('aria-pressed', 'false');
+    expect(toggles).toBe(1);
+    await card.getByRole('button', { name: /^(Añadir a favoritas|Add to favorites)$/i }).click();
+    await expect.poll(() => favorites).toEqual(['compact-rule']);
+    expect(runs).toBe(1);
+    await card.getByRole('button', { name: /^(Editar|Edit)$/i }).click();
+    const editor = page.getByRole('dialog', { name: /Refinar Automatización|Refine Automation/i });
+    await expect(editor).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(editor).not.toBeVisible();
+    await card.getByRole('button', { name: /^(Eliminar|Delete)$/i }).click();
+    await expect(page.getByRole('dialog', { name: /Eliminar Automatización|Delete Automation/i })).toBeVisible();
+    expect(runs).toBe(1);
+  });
+}
+
+test('Feature: Stable scene cards — Scenario: Compact from first frame before favorites settle (AC49)', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await prepareAuthenticatedDashboard(page);
+  await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: 'responsive-home', ownerId: dashboardUser.id, name: 'Casa' }] }));
+  await page.route('**/api/v1/scenes', route => route.fulfill({ json: [{ id: 'stable-scene', homeId: 'responsive-home', name: 'Trabajo', roomId: null, actions: [] }] }));
+  let finish: () => void = () => {};
+  const gate = new Promise<void>(resolve => { finish = resolve; });
+  await page.route('**/api/v1/scenes/favorites', async route => {
+    await gate;
+    await route.fulfill({ json: { sceneIds: ['stable-scene'], initialized: true } });
+  });
+  await page.addInitScript(() => {
+    const frames: { width: number; height: number }[] = [];
+    Object.assign(window, { sceneFrames: frames });
+    const record = () => {
+      for (const article of document.querySelectorAll('article')) if (article.textContent?.includes('Trabajo')) {
+        const bounds = article.getBoundingClientRect();
+        frames.push({ width: bounds.width, height: bounds.height });
+      }
+      requestAnimationFrame(record);
+    };
+    requestAnimationFrame(record);
+  });
+  await page.goto('/routines/scenes');
+  const card = page.getByRole('article', { name: 'Trabajo', exact: true });
+  await expect(card).toBeVisible();
+  const before = await card.evaluate(element => element.offsetWidth);
+  finish();
+  await expect(card.getByRole('button', { name: /Quitar de favoritas|Remove from favorites/i })).toHaveAttribute('aria-pressed', 'true');
+  expect(await card.evaluate(element => element.offsetWidth)).toBe(before);
+  const frames = await page.evaluate(() => (window as unknown as { sceneFrames: { width: number; height: number }[] }).sceneFrames);
+  expect(frames.length).toBeGreaterThan(0);
+  expect(Math.max(...frames.map(frame => frame.width))).toBeLessThanOrEqual(320);
+  expect(Math.max(...frames.map(frame => frame.height))).toBeLessThan(160);
+});
+
+for (const route of ['scenes', 'automations']) {
+  test(`Feature: Reusable collection empty state — Scenario: ${route} has one creation control (AC50)`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 320, height: 720 });
+    await prepareAuthenticatedDashboard(page);
+    await page.route('**/api/v1/homes', request => request.fulfill({ json: [{ id: 'responsive-home', name: 'Casa', ownerId: dashboardUser.id }] }));
+    await page.route('**/api/v1/scenes', request => request.fulfill({ json: [] }));
+    await page.route('**/api/v1/automations', request => request.fulfill({ json: [] }));
+    await page.goto(`/routines/${route}`);
+    const title = route === 'scenes' ? /Aún no tienes escenas|No scenes yet/i : /Aún no tienes automatizaciones|No automations yet/i;
+    const empty = page.getByRole('status').filter({ has: page.getByRole('heading', { name: title }) });
+    await expect(empty).toBeVisible();
+    await expect(empty.getByRole('button')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: route === 'scenes' ? /^(Crear escena|Create scene)$/i : /^(Crear regla|Create rule)$/i })).toHaveCount(1);
+    for (const light of [false, true]) {
+      await page.evaluate(value => document.documentElement.classList.toggle('light', value), light);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath(`empty-${route}-${light ? 'light' : 'dark'}.png`), animations: 'disabled' });
+    }
+  });
+}
+
+test('Feature: Compact automation cards — Scenario: Execution errors permit retry without changing the schedule (AC50)', async ({ page }) => {
+  await prepareAuthenticatedDashboard(page);
+  const rule = { id: 'retry-rule', name: 'Rutina pausada', enabled: false, trigger: { type: 'time', timeLocal: '19:00' }, action: { type: 'device_command', targetDeviceId: 'cover-living', command: 'open' } };
+  await page.route('**/api/v1/automations', route => route.fulfill({ json: [rule] }));
+  await page.route('**/api/v1/scenes', route => route.fulfill({ json: [] }));
+  await page.route('**/api/v1/automations/favorites', route => route.fulfill({ json: { automationIds: [], initialized: true } }));
+  let runs = 0;
+  let toggles = 0;
+  await page.route('**/api/v1/automations/retry-rule/run', route => {
+    runs += 1;
+    return runs === 1 ? route.fulfill({ status: 502, json: { message: 'Device unavailable' } }) : route.fulfill({ json: { success: true } });
+  });
+  await page.route('**/api/v1/automations/retry-rule/enable', route => { toggles += 1; return route.fulfill({ json: rule }); });
+  await page.goto('/routines/automations');
+  const card = page.getByRole('article', { name: rule.name });
+  const execute = card.getByRole('button', { name: /^(Ejecutar ahora|Run now)$/i });
+  await execute.click();
+  await expect(page.getByRole('alert')).toContainText('Device unavailable');
+  await expect(execute).toBeEnabled();
+  await expect(card.getByRole('button', { name: /Activar o pausar|Enable or pause/i })).toHaveAttribute('aria-pressed', 'false');
+  await execute.click();
+  await expect(card.getByRole('status')).toHaveText(/Ejecutada|Completed/i);
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  expect(runs).toBe(2);
+  expect(toggles).toBe(0);
+});
+
 const setupStatus = {
   isInitialized: true,
   requiresOnboarding: false,

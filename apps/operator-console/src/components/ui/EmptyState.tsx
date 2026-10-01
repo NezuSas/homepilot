@@ -7,6 +7,7 @@ export interface EmptyStateProps extends React.HTMLAttributes<HTMLDivElement> {
   title: string;
   description?: string;
   action?: React.ReactNode;
+  variant?: 'default' | 'collection';
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
@@ -14,6 +15,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   title,
   description,
   action,
+  variant = 'default',
   className,
   ...props
 }) => {
@@ -28,13 +30,14 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       aria-describedby={description ? descriptionId : undefined}
       className={cn(
         'flex min-w-0 flex-col items-center justify-center rounded-panel border border-border/45 bg-card/35 px-4 py-10 text-center shadow-depth-1 backdrop-blur-md sm:px-6 sm:py-16',
+        variant === 'collection' && 'rounded-section bg-card px-5 py-8 shadow-none sm:py-10',
         className
       )}
       {...props}
     >
       {Icon && (
-        <div className="mb-5 flex h-14 w-14 shrink-0 items-center justify-center rounded-panel border border-primary/20 bg-primary/10 text-primary shadow-depth-1">
-          <Icon aria-hidden="true" className="h-5 w-5" />
+        <div className={cn('mb-5 flex h-14 w-14 shrink-0 items-center justify-center rounded-panel border border-primary/20 bg-primary/10 text-primary shadow-depth-1', variant === 'collection' && 'h-20 w-20 rounded-section shadow-none')}>
+          <Icon aria-hidden="true" className={variant === 'collection' ? 'h-9 w-9' : 'h-5 w-5'} />
         </div>
       )}
       <h3 id={titleId} className="min-w-0 break-words text-section-title font-black tracking-tight text-foreground/90">{title}</h3>

@@ -560,8 +560,8 @@
       "load_failed": "No se pudieron cargar las escenas",
       "no_home": "No existe un hogar disponible para guardar la escena"
     },
-    "empty_title": "No se encontraron escenas",
-    "empty_description": "Crea escenas persistentes para agrupar múltiples acciones de dispositivos en un solo toque.",
+    "empty_title": "Aún no tienes escenas",
+    "empty_description": "Usa «Crear escena» para reunir las acciones de tu hogar en un solo toque.",
     "delete_title": "¿Eliminar Escena?",
     "delete_description": "Esto eliminará permanentemente la escena. Los dispositivos individuales no se verán afectados.",
     "builder": {
@@ -1011,6 +1011,9 @@
     "loading": "Sincronizando Workbench...",
     "active_recipes": "{{count}} Automatizaciones Activas",
     "create_rule": "Crear Regla",
+    "execute_now": "Ejecutar ahora",
+    "executed": "Ejecutada",
+    "toggle_schedule": "Activar o pausar {{name}}",
     "rule_created": "Regla Creada Exitosamente",
     "rule_deleted": "Regla Eliminada",
     "edit_rule": "Editar Regla",
@@ -1020,8 +1023,8 @@
     "updated_success": "Automatización actualizada exitosamente",
     "created_success": "Automatización creada exitosamente",
     "empty_state": {
-      "title": "No hay reglas locales",
-      "description": "Crea tu primera automatización local para hacer tu hogar más inteligente.",
+      "title": "Aún no tienes automatizaciones",
+      "description": "Usa «Crear regla» para que tu hogar responda a tus horarios y dispositivos.",
       "timers_only_title": "No hay automatizaciones permanentes",
       "timers_only_description": "Los temporizadores de arriba se ejecutarán una sola vez."
     },    "form": {

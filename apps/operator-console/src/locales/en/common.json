@@ -560,8 +560,8 @@
       "load_failed": "Scenes could not be loaded",
       "no_home": "No home is available for saving the scene"
     },
-    "empty_title": "No scenes found",
-    "empty_description": "Create persistent scenes to group multiple device actions into a single tap.",
+    "empty_title": "No scenes yet",
+    "empty_description": "Use “Create scene” to bring your home’s actions together in one tap.",
     "delete_title": "Delete Scene?",
     "delete_description": "This will permanently remove the scene. Individual devices will not be affected.",
     "builder": {
@@ -1011,6 +1011,9 @@
     "loading": "Synchronizing Workbench...",
     "active_recipes": "{{count}} Active Automations",
     "create_rule": "Create Rule",
+    "execute_now": "Run now",
+    "executed": "Completed",
+    "toggle_schedule": "Enable or pause {{name}}",
     "rule_created": "Rule Created Successfully",
     "rule_deleted": "Rule Deleted",
     "edit_rule": "Edit Rule",
@@ -1020,8 +1023,8 @@
     "updated_success": "Automation updated successfully",
     "created_success": "Automation created successfully",
     "empty_state": {
-      "title": "No local rules",
-      "description": "Create your first local automation to make your home smarter.",
+      "title": "No automations yet",
+      "description": "Use “Create rule” to make your home respond to schedules and devices.",
       "timers_only_title": "No permanent automations",
       "timers_only_description": "The timers above will run only once."
     },    "form": {

@@ -206,13 +206,13 @@ const ScenesView: React.FC<{
   };
 
   return (
-    <div className="flex flex-col gap-6 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 sm:gap-7">
+    <div className="flex flex-col gap-6 pb-8 sm:gap-7">
       <ScenesHeader sceneCount={scenes.length} onCreateScene={openCreateScene} />
 
       {error && <AlertBanner variant="danger" message={error} />}
 
       {scenes.length === 0 ? (
-        <ScenesEmptyState onCreateScene={openCreateScene} />
+        <ScenesEmptyState />
       ) : (
         <div className="flex flex-col gap-8 sm:gap-10">
           <ScenesGroup

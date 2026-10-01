@@ -1,6 +1,7 @@
 import React from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { SceneCard, type SceneCardScene } from './SceneCard';
+import { RoutineCardGrid } from './RoutineCardGrid';
 
 interface Room {
   id: string;
@@ -46,7 +47,7 @@ export const ScenesGroup = <TScene extends SceneCardScene & { roomId: string | n
         <Icon className={iconClassName} />
         <h3 className="text-caption font-semibold text-muted-foreground">{title}</h3>
       </div>
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,17rem),1fr))] gap-3">
+      <RoutineCardGrid>
         {scenes.map((scene) => {
           const room = scene.roomId ? rooms.find((candidate) => candidate.id === scene.roomId) : null;
 
@@ -65,7 +66,7 @@ export const ScenesGroup = <TScene extends SceneCardScene & { roomId: string | n
             />
           );
         })}
-      </div>
+      </RoutineCardGrid>
     </div>
   );
 };

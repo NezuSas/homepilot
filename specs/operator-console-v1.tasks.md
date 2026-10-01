@@ -237,3 +237,13 @@
 - **Descripción**: Reutilizar Modal/Input/Button/Select/SegmentedControl e incorporar `SceneDeviceSelector` compartido entre crear/editar. Seleccionadas arriba, catálogo por espacios ordenados con grupo «Sin espacio», búsqueda, filtro de navegación sin alterar alcance/acciones y grupos plegables para listas largas. Verificar selección, edición de comandos, guardado, teclado táctil y responsive focalizado.
 - **Criterio Relacionado**: **AC48**.
 - **Evidencia (2026-10-01)**: 9 tests Jest de `SceneCard`/`SceneDeviceSelector` PASS. 17 escenarios responsive focalizados PASS; tras ajustar la legibilidad de comandos se repitieron únicamente los 5 tamaños del editor y el escenario de teclado táctil (6 PASS). Guardado conserva alcance, descripción y comandos. Typecheck, lint consola, builds raíz/consola, i18n, spec coverage, BDD y module-test-coverage PASS. Capturas desktop/celular revisadas. No se ejecutó responsive completo, Git, GitHub, Docker ni deploy.
+
+### [UI-Routines-04] Geometría inicial y tarjetas de Automatizaciones
+- **Descripción**: Acotar las pistas del listado mediante RoutineCardGrid para mantener Escenas compactas desde el primer frame. Compactar AutomationRuleCard con superficie estándar, resumen SI/Entonces y botones independientes: ejecutar ahora con el endpoint y feedback momentáneo existentes del Dashboard, activar/pausar, favoritas, editar y eliminar. Conservar temporizadores y contratos backend.
+- **Criterio Relacionado**: **AC49–AC50**.
+- **Evidencia (2026-10-01)**: 10 tests Jest focalizados PASS. 20 escenarios responsive distintos PASS: 7 de Escenas, 7 de Automatizaciones, primer frame con favoritos diferidos, 2 estados vacíos, recuperación ante error y 2 de creación/edición de iconos. Typecheck raíz/consola, lint consola, builds raíz/consola, i18n y controles de trazabilidad PASS. Validación visual focalizada de tarjetas y estados vacíos; sin responsive completo, Git, GitHub, Docker ni deploy. Advertencias de build existentes: Browserslist antiguo y chunks mayores de 500 kB.
+
+### [UI-Routines-05] Estado vacío de colección reutilizable
+- **Descripción**: Ampliar EmptyState con una variante de colección, icono domótico decorativo y orientación a la creación del encabezado; retirar CTAs duplicados en Escenas/Automatizaciones sin cambiar consumidores existentes. Validar con Jest y responsive focalizado en ambos temas y orientaciones.
+- **Criterio Relacionado**: **AC50**.
+- **Evidencia (2026-10-01)**: 3 casos Jest de EmptyState incluidos en los 10 focalizados; estados vacíos de Escenas/Automatizaciones comprobados en ambos temas con un solo control de creación en el encabezado. Se mantiene la acción opcional del consumidor default.
