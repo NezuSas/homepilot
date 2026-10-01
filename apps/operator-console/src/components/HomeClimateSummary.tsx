@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useClockData } from '../views/dashboards/widgets/clock/useClockData';
 import { formatMonth, formatTemperature, formatWeekday } from '../views/dashboards/widgets/clock/clockUtils';
 import { loadDashboards } from '../views/dashboards/dashboardOperations';
-import { SlideToDashboardButton } from './SlideToDashboardButton';
+import { HomeDashboardButton } from './HomeDashboardButton';
 import { HomeContextIndicator } from './HomeContextIndicator';
 import { HomeFlipClock } from './HomeFlipClock';
 
@@ -60,10 +60,9 @@ export const HomeClimateSummary: React.FC<HomeClimateSummaryProps> = ({ currentU
           <span className="block">by NEZU</span>
         </div>
       </div>
-      <SlideToDashboardButton
+      <HomeDashboardButton
         label={t('dashboard.open_dashboard')}
-        accessibleLabel={ownDefault ? t('dashboard.slide_own_default_tab', { title: ownDefault.title }) : t('dashboard.no_default_tab')}
-        instruction={t('dashboard.slide_dashboard_instruction')}
+        accessibleLabel={ownDefault ? t('dashboard.open_own_default_tab', { title: ownDefault.title }) : t('dashboard.no_default_tab')}
         disabled={!ownDefault}
         onActivate={() => { if (ownDefault) onOpenOwnDashboardTab(ownDefault.dashboardId, ownDefault.tabId); }}
       />

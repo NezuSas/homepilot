@@ -274,8 +274,6 @@
     "own_dashboard_indicator": "Dashboard",
     "no_default_tab": "No main tab",
     "open_dashboard": "Go to dashboard",
-    "slide_own_default_tab": "Slide to open {{title}} in my dashboard",
-    "slide_dashboard_instruction": "Slide the icon to the right to enter, or press Enter or Space when the button is focused.",
     "open_own_default_tab": "Open {{title}} in my dashboard",
     "temperature_unavailable": "Temperature unavailable",
     "turn_off_lights": "Turn off lights",

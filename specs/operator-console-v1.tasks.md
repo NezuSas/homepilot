@@ -207,13 +207,13 @@
 - **Módulos**: `DashboardView`, reloj digital de Inicio, `HomeClimateSummary` y pruebas del hero.
 - **Criterio Relacionado**: **AC22, AC25, AC31, AC38–AC40**.
 
-### [UI-Home-07] Acceso deslizable al tablero
-- **Descripción**: Convertir «Ir a tablero» en un control modular de deslizamiento real, con retroceso si el gesto no se completa, acceso equivalente por teclado, estados deshabilitado y movimiento reducido. Usar ondas interiores visibles que avancen de izquierda a derecha, pausadas cuando el control no esté visible o activo; mantener una cápsula ajustada al contenido y el relleno naranja siempre redondeado y bordeado. Conservar la navegación a la pestaña propia predeterminada y la posición derecha del hero.
-- **Módulos**: `HomeClimateSummary`, `SlideToDashboardButton` y estilos del hero.
+### [UI-Home-07] Acceso directo al tablero
+- **Descripción**: Mostrar «Ir a tablero» como botón modular compacto con icono de tablero y una flecha, superficie cálida contrastada y respuesta breve al hover, foco y pulsación, sin animación continua ni gesto obligatorio. Clic, toque, Intro y Espacio abren la pestaña propia predeterminada. Conservar el estado deshabilitado, el movimiento reducido y la posición derecha en celular, tablet y escritorio.
+- **Módulos**: `HomeClimateSummary`, `HomeDashboardButton` y estilos del hero.
 - **Criterio Relacionado**: **AC39**.
 
-### [QA-Home-06] Gesto de entrada al tablero
-- **Descripción**: Verificar focalizadamente que toque y deslizamiento corto no navegan, que el deslizamiento completo y el teclado sí abren la pestaña correcta, que el control deshabilitado no activa la navegación y que las ondas no se animan con movimiento reducido.
+### [QA-Home-06] Acceso al tablero
+- **Descripción**: Verificar focalizadamente que clic, toque y teclado abren la pestaña propia correcta, que el control deshabilitado no activa la navegación, que el botón permanece compacto y alineado a la derecha en celular, tablet y escritorio, y que la respuesta visual respeta el movimiento reducido.
 - **Dependencias**: `UI-Home-07`.
 - **Criterio Relacionado**: **AC39**.
 

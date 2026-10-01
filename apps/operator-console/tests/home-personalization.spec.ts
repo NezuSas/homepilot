@@ -66,7 +66,7 @@ test('empty personalization keeps the shipped image and neutral phrase', async (
   await expect(hero.getByText(/Todo está bajo control|Everything is under control/i)).toBeVisible();
 });
 
-test('Home dashboard control opens the own default tab only after a complete slide or keyboard activation', async ({ page }) => {
+test('Home dashboard button opens the own default tab by click or keyboard', async ({ page }) => {
   await page.setViewportSize({ width: 768, height: 1024 });
   await prepare(page);
   await page.route('**/api/v1/dashboards', (route) => route.fulfill({ json: [{
@@ -75,45 +75,9 @@ test('Home dashboard control opens the own default tab only after a complete sli
     tabs: [{ id: 'home-default-tab', title: 'Principal', isDefault: true, widgets: [] }],
   }] }));
   await page.goto('/');
-  const action = page.locator('.homepilot-home-hero').getByRole('button', { name: /deslizar para abrir|slide to open/i });
-  const handle = action.locator('.homepilot-slide-dashboard-handle');
+  const action = page.locator('.homepilot-home-hero').getByRole('button', { name: /abrir la pestaña Principal de mi tablero|open Principal in my dashboard/i });
   await expect(action).toBeEnabled();
-  await expect(action).toHaveAccessibleDescription(/desliza el icono|slide the icon/i);
-
   await action.click();
-  await expect(page).toHaveURL('/');
-
-  const railBox = await action.boundingBox();
-  const handleBox = await handle.boundingBox();
-  expect(railBox && handleBox).toBeTruthy();
-  const startX = handleBox!.x + handleBox!.width / 2;
-  const centerY = handleBox!.y + handleBox!.height / 2;
-  const distance = railBox!.width - handleBox!.width - 12;
-  await page.mouse.move(startX, centerY);
-  await page.mouse.down();
-  await page.mouse.move(startX + distance * 0.4, centerY, { steps: 6 });
-  const fillSurface = await action.locator('.homepilot-slide-dashboard-fill').evaluate((element) => {
-    const style = getComputedStyle(element);
-    return { radius: Number.parseFloat(style.borderTopRightRadius), borderWidth: Number.parseFloat(style.borderRightWidth), borderColor: style.borderRightColor };
-  });
-  expect(fillSurface.radius).toBeGreaterThan(0);
-  expect(fillSurface.borderWidth).toBeGreaterThanOrEqual(1);
-  expect(fillSurface.borderColor).not.toBe('rgba(0, 0, 0, 0)');
-  await page.mouse.up();
-  await expect(page).toHaveURL('/');
-
-  await page.reload();
-  await expect(action).toBeEnabled();
-  const fullRailBox = await action.boundingBox();
-  const fullHandleBox = await handle.boundingBox();
-  expect(fullRailBox && fullHandleBox).toBeTruthy();
-  const fullStartX = fullHandleBox!.x + fullHandleBox!.width / 2;
-  const fullCenterY = fullHandleBox!.y + fullHandleBox!.height / 2;
-  const fullDistance = fullRailBox!.width - fullHandleBox!.width - 12;
-  await page.mouse.move(fullStartX, fullCenterY);
-  await page.mouse.down();
-  await page.mouse.move(fullStartX + fullDistance, fullCenterY, { steps: 8 });
-  await page.mouse.up();
   await expect(page).toHaveURL(/\/dashboards\/home-owned-dashboard\/home-default-tab$/);
 
   await page.goto('/');
@@ -127,7 +91,7 @@ test('Home dashboard control opens the own default tab only after a complete sli
   await expect(page).toHaveURL(/\/dashboards\/home-owned-dashboard\/home-default-tab$/);
 });
 
-test('Home dashboard slide control shows left-to-right waves at compact width and respects reduced motion', async ({ page }) => {
+test('Home dashboard button is compact with clear hover and reduced-motion states', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await prepare(page);
   await page.route('**/api/v1/dashboards', (route) => route.fulfill({ json: [{
@@ -136,19 +100,19 @@ test('Home dashboard slide control shows left-to-right waves at compact width an
     tabs: [{ id: 'home-default-tab', title: 'Principal', isDefault: true, widgets: [] }],
   }] }));
   await page.goto('/');
-  const action = page.locator('.homepilot-home-hero').getByRole('button', { name: /deslizar para abrir|slide to open/i });
+  const action = page.locator('.homepilot-home-hero').getByRole('button', { name: /abrir la pestaña Principal de mi tablero|open Principal in my dashboard/i });
   await expect(action).toBeEnabled();
-  const cue = action.locator('.homepilot-slide-dashboard-cue');
-  await expect.poll(() => cue.evaluate((element) => getComputedStyle(element, '::before').animationName)).toBe('homepilot-slide-cue');
-  await expect(action.locator('.homepilot-slide-dashboard-chevrons')).toHaveCSS('animation-name', 'homepilot-slide-chevron');
   const bounds = await action.boundingBox();
   expect(bounds).toBeTruthy();
-  expect(bounds!.width).toBeGreaterThan(200);
   expect(bounds!.width).toBeLessThan(240);
+  expect(bounds!.height).toBeGreaterThanOrEqual(44);
+  await expect(action).toContainText(/Ir a tablero|Go to dashboard/);
+  const arrow = action.locator('svg').last();
+  await action.hover();
+  await expect(arrow).toHaveCSS('transform', /matrix\(1, 0, 0, 1, 3, 0\)/);
 
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await expect.poll(() => cue.evaluate((element) => getComputedStyle(element, '::before').animationName)).toBe('none');
-  await expect(action.locator('.homepilot-slide-dashboard-chevrons')).toHaveCSS('animation-name', 'none');
+  expect(await arrow.evaluate((element) => Number.parseFloat(getComputedStyle(element).transitionDuration))).toBeLessThanOrEqual(0.01);
   await expect(action).toBeEnabled();
 });
 
@@ -492,6 +456,8 @@ for (const viewport of [
     const secondBox = await chips.nth(0).boundingBox();
     const actionBox = await action.boundingBox();
     expect(heroBox && phraseBox && firstBox && secondBox && actionBox).toBeTruthy();
+    expect(actionBox!.height).toBeGreaterThanOrEqual(44);
+    expect(actionBox!.width).toBeLessThan(240);
     expect(Math.abs(brandBox!.x - firstBox!.x)).toBeLessThan(1);
     expect(firstBox!.width).toBeGreaterThan(firstBox!.height);
     expect(secondBox!.y).toBeGreaterThanOrEqual(firstBox!.y + firstBox!.height);

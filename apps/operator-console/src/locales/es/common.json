@@ -274,8 +274,6 @@
     "own_dashboard_indicator": "Tablero",
     "no_default_tab": "Sin pestaña principal",
     "open_dashboard": "Ir a tablero",
-    "slide_own_default_tab": "Deslizar para abrir la pestaña {{title}} de mi tablero",
-    "slide_dashboard_instruction": "Desliza el icono hacia la derecha para entrar, o pulsa Intro o Espacio con el botón enfocado.",
     "open_own_default_tab": "Abrir la pestaña {{title}} de mi tablero",
     "temperature_unavailable": "Temperatura no disponible",
     "turn_off_lights": "Apagar luces",
