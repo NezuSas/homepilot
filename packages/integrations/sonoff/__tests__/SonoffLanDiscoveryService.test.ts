@@ -59,6 +59,36 @@ describe('SonoffLanDiscoveryService - poll failure reachability tracking', () =>
 
   const pollOnce = () => (service as unknown as { pollStates(): Promise<void> }).pollStates();
 
+  it('tracks repeated failed pending-device probes and cleans only after more than a day (AC14)', async () => {
+    const now = Date.now();
+    const clock = jest.spyOn(Date, 'now').mockReturnValue(now);
+    const remover = { removeIfUnreferenced: jest.fn().mockResolvedValue(true), updatePendingState: jest.fn(async (_device: Device, state: Record<string, unknown>) => { device = { ...device, lastKnownState: state }; return true; }) };
+    device = { ...device, status: 'PENDING', roomId: null };
+    service = new SonoffLanDiscoveryService({ deviceRepository, homeRepository: {} as never, syncDeps, expiredInboxDeviceRemover: remover });
+    global.fetch = jest.fn().mockRejectedValue(new TypeError('fetch failed')) as unknown as typeof fetch;
+    try {
+      await pollOnce(); await pollOnce(); await pollOnce();
+      expect(device.lastKnownState?.homepilotUnavailableSince).toBe(now);
+      expect(remover.removeIfUnreferenced).not.toHaveBeenCalled();
+      device = { ...device, lastKnownState: { ...device.lastKnownState, homepilotUnavailableSince: now - 24 * 60 * 60 * 1000 - 1 } };
+      await pollOnce();
+      expect(remover.removeIfUnreferenced).toHaveBeenCalledTimes(1);
+      expect(SonoffConnectionRegistry.getIp('eWeLink_1000f28266')).toBeNull();
+      expect(syncDeps.eventPublisher.publish).not.toHaveBeenCalled();
+    } finally { clock.mockRestore(); }
+  });
+
+  it('clears the pending offline countdown when a reachable probe recovers (AC14)', async () => {
+    const remover = { removeIfUnreferenced: jest.fn(), updatePendingState: jest.fn(async (_device: Device, state: Record<string, unknown>) => { device = { ...device, lastKnownState: state }; return true; }) };
+    device = { ...device, status: 'PENDING', roomId: null, lastKnownState: { state: 'unavailable', homepilotUnavailableSince: 1, homepilotUnavailableCheckedAt: Date.now() } };
+    service = new SonoffLanDiscoveryService({ deviceRepository, homeRepository: {} as never, syncDeps, expiredInboxDeviceRemover: remover });
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: jest.fn().mockResolvedValue({ data: { switch: 'on' } }) }) as unknown as typeof fetch;
+    await pollOnce();
+    expect(device.lastKnownState?.state).toBe('on');
+    expect(device.lastKnownState).not.toHaveProperty('homepilotUnavailableSince');
+    expect(remover.removeIfUnreferenced).not.toHaveBeenCalled();
+  });
+
   it('marks a device unavailable after 3 consecutive failed polls, not before', async () => {
     global.fetch = jest.fn().mockRejectedValue(new TypeError('fetch failed')) as unknown as typeof fetch;
 

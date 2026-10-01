@@ -130,7 +130,7 @@ export function HomePersonalizationView() {
     } finally { finishOperation(); }
   };
 
-  return <div className="flex w-full max-w-5xl flex-col gap-6 pb-10">
+  return <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 pb-10">
     <SectionHeader level="view" icon={ImagePlus} title={t('home_personalization.title')} />
     {feedback && <AlertBanner variant={feedback.variant} message={feedback.message} />}
     {loading ? <HomePersonalizationSkeleton label={t('common.loading')} /> : <>

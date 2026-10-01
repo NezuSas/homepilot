@@ -184,4 +184,13 @@ describe('Sensor Metric Card status presentation', () => {
     const html = renderToStaticMarkup(<SensorMetricCard title="Conexión" device={sensor('Device', { state: 'on', device_class: 'connectivity' })} />);
     expect(html.replace(/<[^>]*>/g, '').match(/Encendido/g)).toHaveLength(1);
   });
+
+  it.each(['22.4', '-12.5', '0', '100', '123456.7'])('preserves the accessible numeric reading %s without fictional history', (value) => {
+    const html = renderToStaticMarkup(<SensorMetricCard title="Medición" device={sensor('Device', { state: value, unit_of_measurement: 'W' })} />);
+    expect(html.replace(/<[^>]*>/g, '')).toContain(value);
+    if (value.replace(/\D/g, '').length <= 5) expect(html).toContain(`role="img" aria-label="${value}"`);
+    expect(html).not.toContain('<button');
+    expect(html).not.toContain('role="meter"');
+    expect(html).not.toContain('months');
+  });
 });

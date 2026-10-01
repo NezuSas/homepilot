@@ -1,5 +1,7 @@
 # Spec-Driven Coverage Matrix
 
+- Descubrimiento offline y limpieza de pendientes: `device-discovery-inbox.md` AC10/AC14 → `ExpiredInboxDeviceRemover.test.ts`, `HomeAssistantRealtimeSyncManager.test.ts`, `DeviceRoutes.state-sync.test.ts`, responsive Compact discovery. Sensor fichas y geometría: `dashboard-layout-and-widgets-v1.md` AC40 → `SensorMetricCard.test.tsx`, responsive Sensor clarity/skeleton. Alineación de configuración: `operator-console-v1.md` AC61 → responsive Compact settings.
+
 This matrix connects implemented behavior to its primary specification. It
 does not replace code contracts or duplicate each spec's acceptance criteria.
 
@@ -62,7 +64,7 @@ The command fails if a file cannot be mapped to an existing spec.
 
 ## Audited Coverage
 
-- The **889** audited TypeScript/TSX files have a mapping rule to an existing
+- The **892** audited TypeScript/TSX files have a mapping rule to an existing
   spec.
 - All bounded contexts under `packages/` and all API route families are
   covered.

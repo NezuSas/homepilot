@@ -41,9 +41,11 @@ describe('Dashboard card initial loading', () => {
     expect(surface).not.toContain('h-12 w-2/5');
   });
 
-  it('keeps the approved value-first sensor layout', () => {
+  it('owns a decorative sensor loading state without fake readings or interactive controls', () => {
     const sensor = renderToStaticMarkup(<DashboardCardSkeleton variant="sensor" />);
-    expect(sensor).toContain('h-12 w-2/5');
-    expect(sensor).toContain('h-5 w-3/4');
+    expect(sensor).toContain('data-dashboard-skeleton="sensor"');
+    expect(sensor).toContain('aria-hidden="true"');
+    expect(sensor.replace(/<[^>]*>/g, '')).toBe('');
+    expect(sensor).not.toMatch(/<(button|input)\b/);
   });
 });

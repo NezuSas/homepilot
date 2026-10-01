@@ -1,4 +1,7 @@
 # Plan de Implementación Técnica (Task Breakdown)
+
+- [x] AC14: Restituir visibilidad offline; seguimiento de indisponibilidad con recuperación y caducidad de observaciones; limpieza transaccional de pendientes HA/Sonoff sin referencias después de 24 horas. Probar límite temporal, históricos, recuperación, fallos de transporte, configurados, asignación concurrente y referencias actuales/revisiones. Sin borrar bases reales durante validación.
+- Evidencia local 2026-10-01: 180/180 Jest focalizados en ocho suites, incluidos Sensor/skeletons y pruebas de esta feature; 18/18 responsive focalizados combinados (16 de Sensor/geometría/configuración/Descubrimiento y dos de carga inicial). Typecheck, lint consola, builds raíz/consola, spec coverage, BDD, module coverage, i18n, arquitectura, no-production-any, Tuya y perfiles estáticos PASS. Sin Jest/responsive completos, Git, GitHub, Docker, deploy ni borrado de bases reales. Gate UI primitives conserva fallos preexistentes de HomeContextIndicator/HomeDashboardButton, no modificados. Compilación advierte Browserslist antiguo y chunk MDI grande. Validación de disponibilidad/24 horas con fixtures y relojes controlados, no hardware real.
 **Spec:** "Descubrimiento de dispositivos y bandeja de dispositivos (Device Discovery & Device Inbox)"
 
 Este documento desglosa el trabajo en tareas atómicas diseñadas para flujos de Pull Requests (PRs) independientes. Respeta completamente la Inversión de Dependencias (SDD) y el diseño *Edge-First* del proyecto.

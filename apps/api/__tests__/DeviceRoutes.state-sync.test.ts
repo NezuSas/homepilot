@@ -386,7 +386,10 @@ describe('Feature: Home Assistant discovery and import route contracts', () => {
 
     expect(container.services.homeAssistantSettingsService.updateStatusFromOperation).toHaveBeenCalledWith('reachable');
     const entities = JSON.parse((res.end as jest.Mock).mock.calls[0][0]) as Array<{ entityId: string; state?: string; profile: Record<string, unknown> }>;
-    expect(entities).toEqual([expect.objectContaining({ entityId: 'light.office', profile: expect.objectContaining({ supportedCommandCount: expect.any(Number) }) })]);
+    expect(entities).toEqual([
+      expect.objectContaining({ entityId: 'light.office', profile: expect.objectContaining({ supportedCommandCount: expect.any(Number) }) }),
+      expect.objectContaining({ entityId: 'light.unavailable', available: false }),
+    ]);
     expect(entities[0]).not.toHaveProperty('state');
   });
 

@@ -16,6 +16,7 @@ import type { SQLiteDeviceRepository } from '../../packages/devices/infrastructu
 import type { SQLiteActivityLogRepository } from '../../packages/devices/infrastructure/repositories/SQLiteActivityLogRepository';
 import type { SQLiteHomeRepository } from '../../packages/topology/infrastructure/repositories/SQLiteHomeRepository';
 import type { EventBus } from '../../packages/shared/domain/events/EventBus';
+import type { ExpiredInboxDeviceRemover } from '../../packages/devices/application/ports/ExpiredInboxDeviceRemover';
 
 export interface HomeAssistantAssembly {
   connectionProvider: HomeAssistantConnectionProvider;
@@ -31,6 +32,7 @@ export interface HomeAssistantModuleDeps {
   activityLogRepository: SQLiteActivityLogRepository;
   homeRepository: SQLiteHomeRepository;
   eventBus: EventBus;
+  expiredInboxDeviceRemover?: ExpiredInboxDeviceRemover;
 }
 
 export async function buildHomeAssistantModule(deps: HomeAssistantModuleDeps): Promise<HomeAssistantAssembly> {
@@ -90,7 +92,11 @@ export async function buildHomeAssistantModule(deps: HomeAssistantModuleDeps): P
     settingsService,
     deviceRepository,
     activityLogRepository,
-    haClientProxy
+    { getAllStates: () => connectionProvider.hasClient()
+      ? haClientProxy.getAllStates()
+      : Promise.reject(new Error('Home Assistant is not configured for reconciliation')) },
+    undefined,
+    deps.expiredInboxDeviceRemover ?? null,
   );
   settingsService.setRealtimeSyncManager(syncManager);
   syncManager.on('device_state_updated', (event) => {

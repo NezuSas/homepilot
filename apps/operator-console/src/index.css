@@ -947,6 +947,25 @@
     box-shadow: 0 12px 26px -22px hsl(var(--foreground) / 0.16), inset 0 1px 0 hsl(var(--dashboard-surface-raised) / 0.65);
   }
 
+  .homepilot-sensor-reading .sensor-reading-digit {
+    position: relative;
+    display: inline-block;
+    padding: 0.08em 0.04em;
+    line-height: 1.05;
+    border-radius: 0.18em;
+    background: hsl(var(--dashboard-surface-raised));
+    border: 1px solid hsl(var(--dashboard-edge) / 0.7);
+    box-shadow: 0 3px 5px -4px hsl(var(--foreground) / 0.25);
+  }
+
+  .homepilot-sensor-reading .sensor-reading-digit::after {
+    content: '';
+    position: absolute;
+    inset: 50% 0 auto;
+    border-top: 1px solid hsl(var(--dashboard-edge) / 0.45);
+    pointer-events: none;
+  }
+
   .homepilot-sensor-reading .sensor-premium-gauge-track {
     stroke: hsl(var(--border-subtle));
   }

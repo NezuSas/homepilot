@@ -126,7 +126,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
   );
 
   return (
-    <div className="flex w-full min-w-0 max-w-4xl flex-col gap-4">
+    <div className="mx-auto flex w-full min-w-0 max-w-4xl flex-col gap-4">
       <SectionHeader level="view" icon={ShieldCheck} title={t('ha_settings.title')} />
       <div>
         {/* Status Card */}

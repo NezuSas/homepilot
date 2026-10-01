@@ -5,6 +5,7 @@ import { ActivityLogRepository } from '../../../devices/domain/repositories/Acti
 import { HomeAssistantRealtimeSocket, HomeAssistantRealtimeSyncManager } from '../application/HomeAssistantRealtimeSyncManager';
 import { HomeAssistantSettingsService } from '../application/HomeAssistantSettingsService';
 import { HomeAssistantStateReader } from '../application/ports/HomeAssistantStateReader';
+import { INBOX_OBSERVATION_INTERVAL_MS, UNAVAILABLE_INBOX_RETENTION_MS } from '../../../devices/application/deviceAvailability';
 
 const createDevice = (id: string, entityId: string): Device => ({
   id,
@@ -33,6 +34,38 @@ function asRealtimeSocket(socket: FakeRealtimeSocket): HomeAssistantRealtimeSock
   return socket as unknown as HomeAssistantRealtimeSocket;
 }
 describe('Feature: Home Assistant resilience and reconciliation', () => {
+  it('Scenario: AC14 successful periodic observations prune expired pending devices and stop with the connection', async () => {
+    jest.useFakeTimers();
+    const now = Date.now();
+    let device: Device = { ...createDevice('pending', 'sensor.pending'), status: 'PENDING', roomId: null,
+      lastKnownState: { state: 'unavailable', homepilotUnavailableSince: now - UNAVAILABLE_INBOX_RETENTION_MS - 1, homepilotUnavailableCheckedAt: now } };
+    const socket = new FakeRealtimeSocket();
+    const reader = { getAllStates: jest.fn().mockResolvedValue([{ entity_id: 'sensor.pending', state: 'unavailable', attributes: {} }]) };
+    const remover = { removeIfUnreferenced: jest.fn().mockResolvedValue(false), updatePendingState: jest.fn(async (_device: Device, state: Record<string, unknown>) => { device = { ...device, lastKnownState: state }; return true; }) };
+    const manager = new HomeAssistantRealtimeSyncManager(
+      { updateStatusFromOperation: jest.fn() } as unknown as HomeAssistantSettingsService,
+      { findAll: jest.fn(async () => [device]), saveDevice: jest.fn(async (updated: Device) => { device = updated; }) } as unknown as DeviceRepository,
+      { saveActivity: jest.fn().mockResolvedValue(undefined) } as unknown as ActivityLogRepository,
+      reader, () => asRealtimeSocket(socket), remover,
+    );
+    try {
+      manager.reconnect('http://ha:8123', 'fixture-token');
+      socket.emit('ready');
+      await jest.advanceTimersByTimeAsync(0);
+      expect(remover.removeIfUnreferenced).toHaveBeenCalledWith(expect.objectContaining({ id: 'pending', status: 'PENDING', roomId: null }));
+      reader.getAllStates.mockRejectedValueOnce(new Error('source unavailable'));
+      remover.removeIfUnreferenced.mockClear();
+      await jest.advanceTimersByTimeAsync(INBOX_OBSERVATION_INTERVAL_MS);
+      expect(remover.removeIfUnreferenced).not.toHaveBeenCalled();
+      expect(device.lastKnownState?.homepilotUnavailableCheckedAt).toBe(now);
+      await jest.advanceTimersByTimeAsync(INBOX_OBSERVATION_INTERVAL_MS);
+      expect(remover.removeIfUnreferenced).toHaveBeenCalledTimes(1);
+      manager.stop();
+      const reads = reader.getAllStates.mock.calls.length;
+      await jest.advanceTimersByTimeAsync(INBOX_OBSERVATION_INTERVAL_MS);
+      expect(reader.getAllStates).toHaveBeenCalledTimes(reads);
+    } finally { manager.stop(); jest.useRealTimers(); }
+  });
   it('Scenario: Given a reconnection reconciliation When remote state changes Then local state is silently restored', async () => {
     let devices = [
       createDevice('missing-cover', 'cover.old_master'),

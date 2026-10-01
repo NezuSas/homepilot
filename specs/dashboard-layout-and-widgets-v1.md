@@ -1,5 +1,7 @@
 # SPEC: Dashboard Layout and Widgets V1
 
+Refinamiento AC40 autorizado: las lecturas numéricas cortas usan fichas con tokens de la paleta Dashboard, sin animación ficticia ni historial inventado. Signos y decimales se conservan como separadores y los valores largos permanecen tipográficos. Se mantiene una lectura accesible unificada, meter circular proporcional, estado sin lectura y geometría exterior histórica; el indicador se adapta al espacio interno disponible.
+
 **Estado:** Implementado  
 **Autor:** HomePilot Engineering  
 **Fecha:** 2026-07-17  

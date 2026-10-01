@@ -19,7 +19,6 @@ import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import type { SnapshotDevice as Device, SnapshotRoom as Room } from '../stores/useDeviceSnapshotStore';
 import { humanize } from '../lib/naming-utils';
 import { resolveManagedDeviceKind, type ManagedDeviceKind } from '../lib/devicePresentation';
-import { isDeviceUnavailable } from '../lib/deviceAvailability';
 
 /**
  * Vista de Inbox principal para la Operator Console.
@@ -62,7 +61,6 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
   const filtered = useMemo(() => devices.filter((d: Device) => {
     if (mode === 'manager' && d.status !== 'ASSIGNED') return false;
     if (mode === 'discovery' && d.status !== 'PENDING') return false;
-    if (mode === 'discovery' && isDeviceUnavailable(d)) return false;
 
     const matchesType = filter === 'all' || resolveManagedDeviceKind(d) === filter;
     const isLocal = d.integrationSource === 'sonoff' || d.integrationSource === 'android-display';

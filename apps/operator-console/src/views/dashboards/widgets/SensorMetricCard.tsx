@@ -228,6 +228,7 @@ function SensorPresentationHero({ reading, title, t }: {
     ? t(`dashboard.editor.sections.sensor_${reading.binaryState}`)
     : displayValue(reading.value, t);
   const unit = isPercentage ? '%' : reading.unit;
+  const useDigitTiles = available && numericValue(reading.value) !== null && value.replace(/\D/g, '').length <= 5;
 
   return (
     <>
@@ -239,7 +240,13 @@ function SensorPresentationHero({ reading, title, t }: {
               ? 'line-clamp-2 break-words text-widget-title-small-fluid text-foreground'
               : 'truncate text-sensor-value-fluid text-foreground'
         }`}>
-          {value}
+          {useDigitTiles ? <span className="sensor-digit-reading" role="img" aria-label={value}>
+            <span aria-hidden="true" className="inline-flex items-center gap-[0.04em]">
+              {Array.from(value).map((character, index) => (
+                <span key={index} className={/\d/.test(character) ? 'sensor-reading-digit' : 'sensor-reading-punctuation'}>{character}</span>
+              ))}
+            </span>
+          </span> : value}
         </span>
         {available && unit ? <span className="shrink-0 text-widget-body-lg-fluid font-medium text-muted-foreground">{unit}</span> : null}
       </span>
@@ -251,7 +258,7 @@ function SensorPresentationHero({ reading, title, t }: {
           aria-valuemax={100}
           aria-valuenow={fill}
           aria-valuetext={`${reading.value}%`}
-          className="sensor-premium-gauge relative block aspect-square h-[clamp(2rem,22cqi,3.25rem)] max-h-full shrink-0"
+          className="sensor-premium-gauge relative block aspect-square h-[clamp(1.25rem,14cqi,2rem)] max-h-full shrink-0"
         >
           <svg aria-hidden="true" className="h-full w-full -rotate-90" viewBox="0 0 80 80">
             <circle className="sensor-premium-gauge-track" cx="40" cy="40" r="34" fill="none" strokeWidth="4" />

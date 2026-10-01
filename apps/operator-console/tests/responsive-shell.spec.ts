@@ -973,7 +973,7 @@ for (const viewport of [
       expect(route.request().postDataJSON()).toEqual({ roomId: 'office' });
       await route.fulfill({ json: { ...pending, roomId: 'office', status: 'ASSIGNED' } });
     });
-    const candidates = [{ entityId: 'light.new', friendlyName: 'Luz nueva', domain: 'light', profile: { displayName: 'Light', category: 'lighting', supportedCommandCount: 2 } }, { entityId: 'sensor.new', friendlyName: 'Temperatura nueva', domain: 'sensor' }];
+    const candidates = [{ entityId: 'light.new', friendlyName: 'Luz nueva', domain: 'light', profile: { displayName: 'Light', category: 'lighting', supportedCommandCount: 2 } }, { entityId: 'sensor.new', friendlyName: 'Temperatura nueva', domain: 'sensor' }, { entityId: 'sensor.offline', friendlyName: 'Sensor desconectado', domain: 'sensor', available: false }];
     await page.route('**/api/v1/ha/entities?mode=all&view=summary', route => route.fulfill({ json: candidates }));
     let imports = 0;
     await page.route('**/api/v1/ha/import', async route => {
@@ -988,7 +988,7 @@ for (const viewport of [
       await page.goto('/system/inbox');
       await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
       const main = page.getByRole('main');
-      await expect(main.getByText('Luz no disponible', { exact: true })).toHaveCount(0);
+      await expect(main.getByText('Luz no disponible', { exact: true })).toBeVisible();
       await expect(main).not.toContainText(/Local Nativo|Native Local|Pendiente de Puesta en Marcha|Pending Commissioning/i);
       await expect(main.getByRole('heading', { name: /^(Sin asignar|Unassigned)$/i })).toBeVisible();
       const origin = main.getByRole('button', { name: /^(Origen|Origin)$/i });
@@ -1006,6 +1006,7 @@ for (const viewport of [
       await expect(tile).toHaveCount(0);
       await main.getByRole('button', { name: /Descubrir entidades|Discover entities/i }).click();
       const discovery = page.getByRole('region', { name: /Home Assistant/i });
+      await expect(discovery.getByRole('article').filter({ hasText: 'Sensor desconectado' })).toContainText(/No disponible|Unavailable/);
       const candidate = discovery.getByRole('article').filter({ hasText: 'Luz nueva' });
       await expect(candidate).toBeVisible();
       await expect(candidate).toContainText(/2 comandos|2 commands/);
@@ -1014,7 +1015,8 @@ for (const viewport of [
       expect(importBounds!.y).toBeGreaterThan(titleBounds!.y + titleBounds!.height);
       await discovery.getByRole('button', { name: /^(Tipo|Type)$/i }).click();
       await page.getByRole('option', { name: 'Sensor', exact: true }).click();
-      await expect(discovery.getByRole('article')).toHaveCount(1);
+      await expect(discovery.getByRole('article')).toHaveCount(2);
+      await expect(discovery.getByRole('article').filter({ hasText: 'Sensor desconectado' })).toBeVisible();
       await discovery.getByRole('button', { name: /^(Tipo|Type)$/i }).click();
       await page.getByRole('option', { name: /^(Todo|All)$/i }).click();
       const beforeImports = imports;
@@ -1192,7 +1194,7 @@ for (const viewport of [
   { name: 'tablet landscape', width: 1024, height: 768 },
   { name: 'portrait kiosk', ...portraitKioskViewport },
 ]) {
-  test(`Feature: Sensor clarity — readings and missing data fit ${viewport.name} in both themes`, async ({ page }) => {
+  test(`Feature: Sensor clarity — readings and missing data fit ${viewport.name} in both themes`, async ({ page }, testInfo) => {
     await page.setViewportSize(viewport);
     const readings = [
       { id: 'clarity-temperature', title: 'Sala principal', deviceClass: 'temperature', state: '22.4', unit: '°C' },
@@ -1251,9 +1253,11 @@ for (const viewport of [
       await expect(missing.getByRole('meter')).toHaveCount(0);
       await expect(page.locator('[data-dashboard-card-id="clarity-memory"]').getByText(/^(Uso elevado|High usage)$/i)).toBeVisible();
       expect(await cards.evaluateAll((elements) => elements.every((element) => element.scrollWidth <= element.clientWidth && element.scrollHeight <= element.clientHeight))).toBe(true);
-      expect(await cards.locator('.sensor-reading-value > span').evaluateAll((elements) => elements.every((element) => element.scrollWidth <= element.clientWidth))).toBe(true);
+      const valueBounds = await cards.locator('.sensor-reading-value > span').evaluateAll((elements) => elements.map(element => ({ reading: element.textContent, width: element.clientWidth, contentWidth: element.scrollWidth })));
+      expect(valueBounds.every(value => value.contentWidth <= value.width), JSON.stringify(valueBounds)).toBe(true);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
       expect(await geometry()).toEqual(darkGeometry);
+      await page.screenshot({ path: testInfo.outputPath(`sensor-fiches-${theme}.png`), fullPage: true });
     }
   });
 }

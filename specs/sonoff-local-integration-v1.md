@@ -39,6 +39,8 @@ Los dispositivos Sonoff compatibles deben descubrirse y controlarse localmente m
 
 ## 7. Notas Técnicas y Arquitectura
 
+- Limpieza de pendientes offline bajo `device-discovery-inbox.md` AC14: sondas LAN existentes, marcador opcional en estado, actualización condicional y eliminación transaccional solo sin habitación/referencias. El equipo remoto y los dispositivos configurados permanecen intactos. Tras reiniciar, un nuevo anuncio mDNS registra también la IP de una importación existente para recuperar sus sondas.
+
 - Implementación en `SonoffLanDiscoveryService` y `SonoffDeviceDriver`, registrado en `buildCommandRouter` como única vía de despacho Sonoff.
 - Los diagnósticos LAN se emiten mediante `logRuntimeDiagnostic`, conservando los mensajes operativos en runtime y suprimiendo el ruido durante pruebas automatizadas.
 - Sigue los contratos de `packages/devices`; el inspector reutiliza la eliminación local genérica y su confirmación.

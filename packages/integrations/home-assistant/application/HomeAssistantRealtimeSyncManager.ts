@@ -5,7 +5,8 @@ import { ActivityLogRepository } from '../../../devices/domain/repositories/Acti
 import { HomeAssistantSettingsService } from './HomeAssistantSettingsService';
 import { HomeAssistantStateReader } from './ports/HomeAssistantStateReader';
 import { ObservableRealtimeSyncStateProvider, RealtimeSyncObservableState } from '../../../system-observability/domain/ObservableStateProviders';
-import { buildUnavailableDeviceState } from '../../../devices/application/deviceAvailability';
+import { buildUnavailableDeviceState, trackInboxAvailability, hasExpiredInboxAvailability, INBOX_OBSERVATION_INTERVAL_MS } from '../../../devices/application/deviceAvailability';
+import type { ExpiredInboxDeviceRemover } from '../../../devices/application/ports/ExpiredInboxDeviceRemover';
 import { logRuntimeDiagnostic } from '../../../shared/config/runtimeEnvironment';
 
 export interface SystemStateChangeEvent {
@@ -124,6 +125,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
   // ─── Reconciliation Guard ────────────────────────────────────────────────────
   /** Garantiza que solo una reconciliación corra a la vez. */
   private isReconciling: boolean = false;
+  private reconciliationTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     private readonly settingsService: HomeAssistantSettingsService,
@@ -134,6 +136,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
     private readonly socketFactory: HomeAssistantRealtimeSocketFactory = (baseUrl, token) => (
       new HomeAssistantWebSocketClient(baseUrl, token)
     ),
+    private readonly expiredInboxDeviceRemover: ExpiredInboxDeviceRemover | null = null,
   ) {
     super();
   }
@@ -174,11 +177,17 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
    * Destruye el socket actual de forma controlada sin borrar listeners externos.
    */
   private _destroySocket(reason: CloseReason): void {
+    this._cancelReconciliationTimer();
     this.lastCloseReason = reason;
     if (this.client) {
       this.client.forceClose();
       this.client = null;
     }
+  }
+
+  private _cancelReconciliationTimer(): void {
+    if (this.reconciliationTimer !== null) clearInterval(this.reconciliationTimer);
+    this.reconciliationTimer = null;
   }
 
   /**
@@ -213,6 +222,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
         this._destroySocket('auth_error');
         this._logResilienceEvent('auth_error', 0, 0, `Permanent authentication failure with Home Assistant.`);
       } else if (this.client === client) {
+        this._cancelReconciliationTimer();
         // HomeAssistantWebSocketClient can tear down its underlying socket before
         // emitting an unreachable error, so a subsequent `close` event is not
         // guaranteed. Release this manager reference and schedule the retry here.
@@ -224,6 +234,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
 
     client.on('close', () => {
       if (this.client !== client) return;
+      this._cancelReconciliationTimer();
 
       // Solo reconectar si el cierre fue por caída de red, no voluntario.
       if (this.lastCloseReason !== 'stop_manual'
@@ -236,6 +247,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
     });
 
     client.on('ready', () => {
+      if (this.client !== client) return;
       // WS listo y suscrito.
       this.settingsService.updateStatusFromOperation('reachable');
       this._cancelRetry();
@@ -248,6 +260,14 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
 
       // Secuencia de bootstrap: Conectar → Suscribir → Reconciliar
       this._runReconciliation();
+      this._cancelReconciliationTimer();
+      if (this.expiredInboxDeviceRemover) {
+        this.reconciliationTimer = setInterval(() => {
+          void this._runReconciliation().catch((error: unknown) =>
+            logRuntimeDiagnostic('warn', '[HA-Sync] Periodic reconciliation failed:', getErrorMessage(error)));
+        }, INBOX_OBSERVATION_INTERVAL_MS);
+        this.reconciliationTimer.unref();
+      }
     });
 
     client.on('event', async (data: unknown) => {
@@ -318,14 +338,19 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
 
       const updatedDevice = {
         ...device,
-        lastKnownState: {
+        lastKnownState: device.status === 'PENDING' && device.roomId === null
+          ? trackInboxAvailability(device.lastKnownState, { state: String(newState), attributes }, Date.now()) : {
           state: String(newState),
           attributes: attributes
         },
         updatedAt: new Date().toISOString()
       };
 
-      await this.deviceRepository.saveDevice(updatedDevice);
+      if (device.status === 'PENDING' && device.roomId === null && this.expiredInboxDeviceRemover) {
+        if (!await this.expiredInboxDeviceRemover.updatePendingState(device, updatedDevice.lastKnownState)) return;
+      } else {
+        await this.deviceRepository.saveDevice(updatedDevice);
+      }
 
       try {
         const cryptoRandom = typeof crypto !== 'undefined' ? crypto : (await import('crypto')).webcrypto;
@@ -382,8 +407,10 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
       // Iniciando reconciliación de estado...
 
       let allStates;
+      const reconciliationClient = this.client;
       try {
         allStates = await this.haStateReader.getAllStates();
+        if (this.client !== reconciliationClient) return;
       } catch (fetchError: unknown) {
         // /api/states falló: log de warning pero NO cerrar el WS.
         const errorMessage = getErrorMessage(fetchError);
@@ -408,6 +435,24 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
       for (const device of localHaDevices) {
         try {
           const haState = statesByExternalId.get(device.externalId);
+          if (device.status === 'PENDING' && device.roomId === null && this.expiredInboxDeviceRemover) {
+            const now = Date.now();
+            const nextState = haState
+              ? { state: String(haState.state), attributes: haState.attributes || {} }
+              : buildUnavailableDeviceState(device.lastKnownState);
+            const updated = { ...device, lastKnownState: trackInboxAvailability(device.lastKnownState, nextState, now), updatedAt: new Date(now).toISOString() };
+            if (this.client !== reconciliationClient) return;
+            if (!await this.expiredInboxDeviceRemover.updatePendingState(device, updated.lastKnownState)) continue;
+            if (hasExpiredInboxAvailability(updated.lastKnownState, now)) {
+              const removed = await this.expiredInboxDeviceRemover.removeIfUnreferenced(updated);
+              if (removed) await this.activityLogRepository.saveActivity({
+                timestamp: updated.updatedAt, deviceId: null, type: 'HA_RESILIENCE',
+                description: 'Expired unassigned discovery removed locally', data: { source: 'reconciliation', deviceId: device.id },
+              });
+            }
+            reconciledCount++;
+            continue;
+          }
           if (!haState) {
             if (device.lastKnownState?.state === 'unavailable') {
               skippedCount++;

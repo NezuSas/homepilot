@@ -2,6 +2,7 @@ import { buildDatabase } from './infrastructure/assemblers/buildDatabase';
 import { buildEventBus } from './infrastructure/assemblers/buildEventBus';
 import { buildRepositories } from './infrastructure/assemblers/buildRepositories';
 import { buildHomeAssistantModule } from './infrastructure/assemblers/buildHomeAssistantModule';
+import { SQLiteExpiredInboxDeviceRemover } from './packages/devices/infrastructure/repositories/SQLiteExpiredInboxDeviceRemover';
 import { buildSystemVarsModule } from './infrastructure/assemblers/buildSystemVarsModule';
 import { buildAutomationModule } from './infrastructure/assemblers/buildAutomationModule';
 import { buildAuthModule } from './infrastructure/assemblers/buildAuthModule';
@@ -222,6 +223,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     activityLogRepository: repos.activityLogRepository,
     homeRepository: repos.homeRepository,
     eventBus,
+    expiredInboxDeviceRemover: new SQLiteExpiredInboxDeviceRemover(db),
   });
 
 
@@ -265,6 +267,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
 
   // 5. Enrutamiento de Comandos (debe construirse antes del motor de automatización)
   const commandRouterAssembly = buildCommandRouter({
+    expiredInboxDeviceRemover: new SQLiteExpiredInboxDeviceRemover(db),
     deviceRepository: repos.deviceRepository,
     activityLogRepository: repos.activityLogRepository,
     deviceEventPublisher,

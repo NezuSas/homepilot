@@ -13,6 +13,7 @@ interface HaEntityCandidate {
   entityId: string;
   friendlyName: string;
   domain: string;
+  available?: boolean;
   profile?: {
     displayName: string;
     category: string;
@@ -187,6 +188,7 @@ export const HomeAssistantDiscoverySection: React.FC<HomeAssistantDiscoverySecti
                     <div className="flex min-w-0 flex-col gap-1">
                       <span className="break-words text-card-title font-semibold">{entity.friendlyName}</span>
                       <span className="break-all text-caption text-muted-foreground">{entity.entityId}</span>
+                      {entity.available === false && <span className="text-caption text-muted-foreground">{t('device_states.unavailable')}</span>}
                       {entity.profile && (
                         <p className="break-words text-caption text-muted-foreground">
                           {entity.profile.displayName} · {entity.profile.supportedCommandCount > 0

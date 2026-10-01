@@ -4,6 +4,8 @@ import { DeviceRepository } from '../../../devices/domain/repositories/DeviceRep
 import { HomeRepository } from '../../../topology/domain/repositories/HomeRepository';
 import { syncDeviceStateUseCase, SyncDeviceStateDependencies } from '../../../devices/application/syncDeviceStateUseCase';
 import { logRuntimeDiagnostic } from '../../../shared/config/runtimeEnvironment';
+import { trackInboxAvailability, hasExpiredInboxAvailability } from '../../../devices/application/deviceAvailability';
+import type { ExpiredInboxDeviceRemover } from '../../../devices/application/ports/ExpiredInboxDeviceRemover';
 
 interface DnsRecord {
   type?: string;
@@ -15,6 +17,7 @@ export interface SonoffLanDiscoveryServiceDependencies {
   deviceRepository: DeviceRepository;
   homeRepository: HomeRepository;
   syncDeps?: SyncDeviceStateDependencies;
+  expiredInboxDeviceRemover?: ExpiredInboxDeviceRemover;
 }
 
 export class SonoffConnectionRegistry {
@@ -45,6 +48,11 @@ export class SonoffConnectionRegistry {
   }
 
   static resetPollFailures(externalIdMatch: string): void {
+    this.failureCounts.delete(externalIdMatch);
+  }
+
+  static unregister(externalIdMatch: string): void {
+    this.connections.delete(externalIdMatch);
     this.failureCounts.delete(externalIdMatch);
   }
 }
@@ -88,7 +96,9 @@ export class SonoffLanDiscoveryService {
     
     // Start lightweight polling if syncDeps is provided
     if (this.deps.syncDeps) {
-      this.pollingTimer = setInterval(() => this.pollStates(), 30000);
+      this.pollingTimer = setInterval(() => {
+        void this.pollStates().catch((error: unknown) => this.logError('[Sonoff Discovery] Poll failed:', error));
+      }, 30000);
       this.pollingTimer.unref?.();
     }
 
@@ -142,6 +152,7 @@ export class SonoffLanDiscoveryService {
     for (const [externalIdMatch, { ip }] of SonoffConnectionRegistry.getAllConnections()) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
+      let probeAnswered = false;
 
       try {
         const url = `http://${ip}:8081/zeroconf/info`;
@@ -159,6 +170,18 @@ export class SonoffLanDiscoveryService {
         // reachable on the LAN even if it returned a non-OK response — reset the
         // failure streak that would otherwise mark it unavailable.
         SonoffConnectionRegistry.resetPollFailures(externalIdMatch);
+        probeAnswered = true;
+        if (this.deps.expiredInboxDeviceRemover) {
+          const pendingDevice = await this.deps.deviceRepository.findByExternalId(`sonoff:${externalIdMatch}`);
+          if (pendingDevice?.status === 'PENDING' && pendingDevice.roomId === null) {
+            const recovered = trackInboxAvailability(pendingDevice.lastKnownState, {
+              ...pendingDevice.lastKnownState,
+              state: pendingDevice.lastKnownState?.state === 'unavailable' || pendingDevice.lastKnownState?.state === 'offline'
+                ? 'unknown' : pendingDevice.lastKnownState?.state,
+            }, Date.now());
+            await this.deps.expiredInboxDeviceRemover.updatePendingState(pendingDevice, recovered);
+          }
+        }
 
         if (!res.ok) continue;
 
@@ -176,6 +199,10 @@ export class SonoffLanDiscoveryService {
             on: currentStateOn,
             state: currentStateOn ? 'on' : 'off'
           };
+          if (device.status === 'PENDING' && device.roomId === null && this.deps.expiredInboxDeviceRemover) {
+            await this.deps.expiredInboxDeviceRemover.updatePendingState(device, trackInboxAvailability(device.lastKnownState, newState, Date.now()));
+            continue;
+          }
 
           // Compare logic to avoid spamming the event bus if state hasn't changed.
           // A device previously marked unavailable always needs the sync, even if
@@ -189,6 +216,10 @@ export class SonoffLanDiscoveryService {
           }
         }
       } catch (e) {
+        if (probeAnswered) {
+          this.logError('[Sonoff Discovery] Error processing reachable device:', e);
+          continue;
+        }
         // Network-level failure (timeout, connection refused, DHCP IP change, etc.):
         // after a few consecutive misses, mark the device unavailable so bulk
         // assistant actions ("apaga todo") stop trying to reach a device that
@@ -207,7 +238,19 @@ export class SonoffLanDiscoveryService {
     if (!this.deps.syncDeps) return;
     const externalId = `sonoff:${externalIdMatch}`;
     const device = await this.deps.deviceRepository.findByExternalId(externalId);
-    if (!device || device.lastKnownState?.state === 'unavailable') return;
+    if (!device) return;
+    if (device.status === 'PENDING' && device.roomId === null && this.deps.expiredInboxDeviceRemover) {
+      const now = Date.now();
+      const updated = { ...device, lastKnownState: trackInboxAvailability(device.lastKnownState, { ...device.lastKnownState, state: 'unavailable' }, now) };
+      if (!await this.deps.expiredInboxDeviceRemover.updatePendingState(device, updated.lastKnownState)) return;
+      if (hasExpiredInboxAvailability(updated.lastKnownState, now) && await this.deps.expiredInboxDeviceRemover.removeIfUnreferenced(updated)) {
+        SonoffConnectionRegistry.unregister(externalIdMatch);
+        this.discoveredDevices.delete(device.externalId);
+        this.logInfo('[Sonoff Discovery] Expired unassigned discovery removed locally');
+      }
+      return;
+    }
+    if (device.lastKnownState?.state === 'unavailable') return;
 
     const newState = { ...device.lastKnownState, state: 'unavailable' };
     await syncDeviceStateUseCase(device.id, newState, 'sonoff-lan-poll', this.deps.syncDeps);
@@ -239,7 +282,6 @@ export class SonoffLanDiscoveryService {
       if (!targetHomeId) return;
 
       const existing = await this.deps.deviceRepository.findByExternalIdAndHomeId(externalId, targetHomeId);
-      if (existing) return;
 
       // Extract device type/info if available from TXT
       let deviceType: 'light' | 'switch' | 'sensor' | 'cover' = 'switch';
@@ -252,6 +294,7 @@ export class SonoffLanDiscoveryService {
       if (resolvedIp) {
         SonoffConnectionRegistry.registerIp(externalIdMatch, resolvedIp);
       }
+      if (existing) return;
 
       const txtRecord = records.find(r => r.type === 'TXT' && typeof r.name === 'string' && r.name.includes(externalIdMatch));
       if (txtRecord && Array.isArray(txtRecord.data)) {

@@ -35,9 +35,9 @@ export function DashboardCardSkeleton({ variant, className, mediaOnly = false, v
         </>
       ) : variant === 'sensor' ? (
         <>
-          <div className="flex items-center gap-3"><DashboardSkeletonBar className="h-10 w-10 shrink-0" /><DashboardSkeletonBar className="h-3 w-20" /></div>
-          <div className="mt-3 flex flex-1 flex-col justify-center gap-3"><DashboardSkeletonBar className="h-12 w-2/5" /><DashboardSkeletonBar className="h-5 w-3/4" /></div>
-          <DashboardSkeletonBar className="h-3 w-1/3" />
+          <div className="flex shrink-0 items-center gap-2"><DashboardSkeletonBar className="h-5 w-5 shrink-0" /><DashboardSkeletonBar className="h-3 w-20" /></div>
+          <div className="mt-2 flex min-h-0 flex-1 items-center gap-2"><DashboardSkeletonBar className="h-10 w-6" /><DashboardSkeletonBar className="h-10 w-6" /><DashboardSkeletonBar className="h-4 w-5" /></div>
+          <div className="mt-1 flex min-h-4 shrink-0 items-center"><DashboardSkeletonBar className="h-3 w-1/3" /></div>
         </>
       ) : variant === 'media' ? (
         <>

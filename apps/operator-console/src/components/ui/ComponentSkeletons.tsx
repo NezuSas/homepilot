@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import type { View } from '../../types';
+import { cn } from '../../lib/utils';
 import { LoadingState } from './LoadingState';
 import { DashboardSkeletonBar as Bar, DashboardCardSkeleton } from './DashboardCardSkeleton';
 
@@ -98,11 +99,13 @@ export function SystemStatusSkeleton(props: SkeletonProps) {
 export function SettingsSkeleton(props: SkeletonProps) {
   return <LoadingState {...props}><ViewHeadingSkeleton /><div className="space-y-5 rounded-section border border-border bg-card p-4">{Array.from({ length: 3 }, (_, i) => <div key={i} className="space-y-2"><Bar className="h-4 w-32" /><Bar className="h-11 w-full" /></div>)}</div></LoadingState>;
 }
-export function HomePersonalizationSkeleton(props: SkeletonProps) {
+export function HomePersonalizationSkeleton(providedProps: SkeletonProps) {
+  const props = { ...providedProps, className: cn('mx-auto max-w-5xl', providedProps.className) };
   return <LoadingState {...props}><div className="space-y-4 rounded-section border border-border bg-card p-4"><Bar className="h-6 w-48" /><div className="grid gap-3 md:grid-cols-3">{Array.from({ length: 3 }, (_, i) => <div key={i} className="space-y-2"><Bar className="h-4 w-28" /><Bar className="h-28 w-full" /></div>)}</div><Bar className="h-11 w-36" /></div><div className="space-y-3 rounded-section border border-border bg-card p-4"><Bar className="h-6 w-40" /><Bar className="h-4 w-3/4" /><Bar className="h-11 w-36" /><div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">{Array.from({ length: 5 }, (_, i) => <div key={i} className="space-y-2"><HomeHeroImageSkeleton /><Bar className="h-11 w-full" /></div>)}</div></div></LoadingState>;
 }
 export function HomeHeroImageSkeleton() { return <Bar className="aspect-video w-full" />; }
-export function HomeAssistantSettingsSkeleton(props: SkeletonProps) {
+export function HomeAssistantSettingsSkeleton(providedProps: SkeletonProps) {
+  const props = { ...providedProps, className: cn('mx-auto max-w-4xl', providedProps.className) };
   return <LoadingState {...props}><ViewHeadingSkeleton /><div className="space-y-3 rounded-section border border-border bg-card p-4"><Bar className="h-6 w-48" /><div className="grid gap-3 sm:grid-cols-2"><Bar className="h-12 w-full" /><Bar className="h-12 w-full" /></div></div><div className="space-y-4 rounded-section border border-border bg-card p-4"><Bar className="h-6 w-40" />{Array.from({ length: 2 }, (_, i) => <div key={i} className="space-y-2"><Bar className="h-4 w-32" /><Bar className="h-11 w-full" /><Bar className="h-4 w-3/4" /></div>)}<div className="flex flex-wrap justify-between gap-3"><Bar className="h-11 w-36" /><Bar className="h-11 w-36" /></div></div></LoadingState>;
 }
 export function OnboardingSkeleton(props: SkeletonProps) {

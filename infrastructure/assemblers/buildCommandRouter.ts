@@ -11,6 +11,7 @@ import { LocalDeviceDriver } from '../../packages/devices/infrastructure/drivers
 import { HomeAssistantDeviceDriver } from '../../packages/integrations/home-assistant/infrastructure/HomeAssistantDeviceDriver';
 import { SonoffDeviceDriver } from '../../packages/integrations/sonoff/infrastructure/SonoffDeviceDriver';
 import { SonoffLanDiscoveryService } from '../../packages/integrations/sonoff/application/SonoffLanDiscoveryService';
+import type { ExpiredInboxDeviceRemover } from '../../packages/devices/application/ports/ExpiredInboxDeviceRemover';
 import { SQLiteTopologyReferenceAdapter } from '../../packages/topology/infrastructure/adapters/SQLiteTopologyReferenceAdapter';
 import { AssistantActionService } from '../../packages/assistant/application/AssistantActionService';
 import { DashboardService } from '../../packages/topology/application/DashboardService';
@@ -45,6 +46,7 @@ export interface CommandRouterAssembly {
 }
 
 export interface CommandRouterDeps {
+  expiredInboxDeviceRemover?: ExpiredInboxDeviceRemover;
   deviceRepository: SQLiteDeviceRepository;
   activityLogRepository: SQLiteActivityLogRepository;
   deviceEventPublisher: EventBusDeviceEventPublisher;
@@ -126,7 +128,8 @@ export function buildCommandRouter(deps: CommandRouterDeps): CommandRouterAssemb
   const sonoffDiscoveryService = new SonoffLanDiscoveryService({
     deviceRepository,
     homeRepository,
-    syncDeps: sharedSyncDeps
+    syncDeps: sharedSyncDeps,
+    expiredInboxDeviceRemover: deps.expiredInboxDeviceRemover,
   });
   
   if (process.env.NODE_ENV !== 'test') {
