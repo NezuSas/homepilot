@@ -92,6 +92,13 @@ test('Home dashboard control opens the own default tab only after a complete sli
   await page.mouse.move(startX, centerY);
   await page.mouse.down();
   await page.mouse.move(startX + distance * 0.4, centerY, { steps: 6 });
+  const fillSurface = await action.locator('.homepilot-slide-dashboard-fill').evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { radius: Number.parseFloat(style.borderTopRightRadius), borderWidth: Number.parseFloat(style.borderRightWidth), borderColor: style.borderRightColor };
+  });
+  expect(fillSurface.radius).toBeGreaterThan(0);
+  expect(fillSurface.borderWidth).toBeGreaterThanOrEqual(1);
+  expect(fillSurface.borderColor).not.toBe('rgba(0, 0, 0, 0)');
   await page.mouse.up();
   await expect(page).toHaveURL('/');
 
@@ -120,7 +127,7 @@ test('Home dashboard control opens the own default tab only after a complete sli
   await expect(page).toHaveURL(/\/dashboards\/home-owned-dashboard\/home-default-tab$/);
 });
 
-test('Home dashboard slide control shows moving waves at compact width and respects reduced motion', async ({ page }) => {
+test('Home dashboard slide control shows left-to-right waves at compact width and respects reduced motion', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await prepare(page);
   await page.route('**/api/v1/dashboards', (route) => route.fulfill({ json: [{
@@ -131,15 +138,16 @@ test('Home dashboard slide control shows moving waves at compact width and respe
   await page.goto('/');
   const action = page.locator('.homepilot-home-hero').getByRole('button', { name: /deslizar para abrir|slide to open/i });
   await expect(action).toBeEnabled();
-  await expect.poll(() => action.evaluate((element) => getComputedStyle(element, '::before').animationName)).toBe('homepilot-slide-wave');
+  const cue = action.locator('.homepilot-slide-dashboard-cue');
+  await expect.poll(() => cue.evaluate((element) => getComputedStyle(element, '::before').animationName)).toBe('homepilot-slide-cue');
   await expect(action.locator('.homepilot-slide-dashboard-chevrons')).toHaveCSS('animation-name', 'homepilot-slide-chevron');
   const bounds = await action.boundingBox();
   expect(bounds).toBeTruthy();
-  expect(bounds!.width).toBeGreaterThan(270);
-  expect(bounds!.width).toBeLessThan(304);
+  expect(bounds!.width).toBeGreaterThan(200);
+  expect(bounds!.width).toBeLessThan(240);
 
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await expect.poll(() => action.evaluate((element) => getComputedStyle(element, '::before').animationName)).toBe('none');
+  await expect.poll(() => cue.evaluate((element) => getComputedStyle(element, '::before').animationName)).toBe('none');
   await expect(action.locator('.homepilot-slide-dashboard-chevrons')).toHaveCSS('animation-name', 'none');
   await expect(action).toBeEnabled();
 });

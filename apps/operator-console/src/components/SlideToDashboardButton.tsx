@@ -63,11 +63,16 @@ export const SlideToDashboardButton: React.FC<SlideToDashboardButtonProps> = ({
       title={disabled ? accessibleLabel : undefined}
       data-dragging={dragging}
       data-motion={inView && !disabled && !dragging ? 'on' : 'off'}
-      style={{ '--slide-progress': progress, '--slide-offset': `${progress * travel()}px` } as React.CSSProperties}
+      style={{
+        '--slide-progress': progress,
+        '--slide-offset': `${progress * travel()}px`,
+        '--slide-fill-width': `${progress * Math.max(0, (railRef.current?.clientWidth ?? 0) - 6)}px`,
+      } as React.CSSProperties}
       onClick={(event) => { if (event.detail === 0) activate(); }}
       onKeyDown={(event) => { if (event.key === 'Escape') reset(); }}
     >
       <span className="homepilot-slide-dashboard-fill" aria-hidden="true" />
+      <span className="homepilot-slide-dashboard-cue" aria-hidden="true" />
       <span
         ref={handleRef}
         className="homepilot-slide-dashboard-handle"

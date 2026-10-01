@@ -208,7 +208,7 @@
 - **Criterio Relacionado**: **AC22, AC25, AC31, AC38–AC40**.
 
 ### [UI-Home-07] Acceso deslizable al tablero
-- **Descripción**: Convertir «Ir a tablero» en un control modular de deslizamiento real, con retroceso si el gesto no se completa, acceso equivalente por teclado, estados deshabilitado y movimiento reducido. Añadir ondas cálidas de contorno y una señal direccional animada, pausadas cuando el control no esté visible o activo, y mantener una cápsula compacta. Conservar la navegación a la pestaña propia predeterminada y la posición derecha del hero.
+- **Descripción**: Convertir «Ir a tablero» en un control modular de deslizamiento real, con retroceso si el gesto no se completa, acceso equivalente por teclado, estados deshabilitado y movimiento reducido. Usar ondas interiores visibles que avancen de izquierda a derecha, pausadas cuando el control no esté visible o activo; mantener una cápsula ajustada al contenido y el relleno naranja siempre redondeado y bordeado. Conservar la navegación a la pestaña propia predeterminada y la posición derecha del hero.
 - **Módulos**: `HomeClimateSummary`, `SlideToDashboardButton` y estilos del hero.
 - **Criterio Relacionado**: **AC39**.
 
