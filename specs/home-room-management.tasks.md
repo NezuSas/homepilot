@@ -154,3 +154,13 @@
 - [x] Redistribuir detalle de estancia en escritorio: tarjetas de estancias superiores y detalle seleccionado de ancho completo, con resumen compacto y luces en cuadrícula responsive.
 - [x] Refinar detalle residencial: métricas compactas y luces a ancho completo; eliminar la etiqueta técnica “Cluster de hogar” de topología e inspector.
 - [x] Alinear las luces del detalle de estancia: columnas estables para nombre, estado y control; etiquetas de estado compactas de 10 px y sin desbordes.
+
+## Mejora local — Espacios operativos (AC16, AC24, AC25)
+
+- [x] Mostrar todos los dispositivos asignados a la estancia, con búsqueda y orden estable.
+- [x] Reutilizar SectionActionCard, SensorMetricCard, CurtainDeviceTile y MediaPlayerCard sin duplicar presentaciones ni crear stores. Cámaras y otros dispositivos sin control se muestran como información, sin iniciar streams.
+- [x] Resolver comandos mediante capacidades; conservar feedback momentáneo y estados desconocidos/no disponibles.
+- [x] Compactar la distribución y validar controles táctiles, temas y orientaciones.
+- [x] Ejecutar tests focalizados, responsive focalizado, typecheck, lint, builds y trazabilidad. Sin Git, GitHub, Docker ni deploy.
+
+Validación local (2026-10-01): 51/51 Jest en cinco suites; 12/12 responsive focalizados (siete escenarios de Espacios en ambos temas, control/renombrado/cierre y cuatro escenarios de geometría inicial del Dashboard). Typecheck, lint Operator Console, build raíz, build Operator Console, spec coverage, BDD traceability, module test coverage e i18n: PASS. Detector visual sin hallazgos; revisión independiente de seis capturas de escritorio/móvil/tablet: ship, acotado a Espacios. No se ejecutaron suites completas ni Docker; no constituye aprobación de publicación. Builds conservan advertencias de Browserslist desactualizado y chunks grandes.

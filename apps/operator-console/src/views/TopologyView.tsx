@@ -15,15 +15,14 @@ import type { UserContext } from '../lib/useSession';
 import { useDeviceSnapshotStore, type SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 import {
   filterTopologyRooms,
-  isActiveTopologyDevice,
-  isTopologyLight,
-  sortTopologyLights,
-  type TopologyDevice as Device,
   type TopologyHome as Home,
   type TopologyRoom as Room,
 } from './topology/topologyPresentation';
 import { TopologyRoomCard } from './topology/TopologyRoomCard';
 import { TopologyRoomDetailPanel } from './topology/TopologyRoomDetailPanel';
+import { getRoomDeviceState, isRoomDeviceMomentary, sortRoomDevices } from './topology/topologyDeviceControl';
+import { canExecuteCommand } from '../lib/deviceCapabilities';
+import { isDeviceUnavailable } from '../lib/deviceAvailability';
 
 interface TopologyViewProps {
   currentUser: UserContext | null;
@@ -35,7 +34,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
   const { t } = useTranslation();
   const [selectedHome, setSelectedHome] = useState<Home | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [devices, setDevices] = useState<Device[]>([]);
+  const [devices, setDevices] = useState<SnapshotDevice[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [loadingHomes, setLoadingHomes] = useState(true);
   const [newRoomName, setNewRoomName] = useState('');
@@ -50,7 +49,6 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
   const [homeNameDraft, setHomeNameDraft] = useState('');
   const [isRenamingHome, setIsRenamingHome] = useState(false);
   const [deviceSearch, setDeviceSearch] = useState('');
-  const [deviceProcessingId, setDeviceProcessingId] = useState<string | null>(null);
   const [topologyError, setTopologyError] = useState('');
   const [roomSearch, setRoomSearch] = useState('');
   const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
@@ -234,26 +232,25 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
     }
   };
 
-  const canToggleDevice = (device: Device) => isTopologyLight(device);
-
-  const handleToggleDevice = async (device: Device) => {
-    if (!canToggleDevice(device) || deviceProcessingId) return;
-    setDeviceProcessingId(device.id);
+  const executeRoomDeviceCommand = async (deviceId: string, command: string, params?: Record<string, unknown>): Promise<SnapshotDevice | null> => {
+    const device = devices.find(candidate => candidate.id === deviceId);
+    if (!device || device.roomId !== selectedRoomId || device.homeId !== selectedHome?.id
+      || device.status !== 'ASSIGNED' || isDeviceUnavailable(device) || !canExecuteCommand(device, command)) return null;
     setTopologyError('');
     try {
       const res = await apiFetch(`${API_URL}/devices/${encodeURIComponent(device.id)}/command`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command: isActiveTopologyDevice(device) ? 'turn_off' : 'turn_on' }),
+        body: JSON.stringify({ command: params ? { name: command, params } : command }),
       });
       if (!res.ok) throw new Error(await readApiError(res, t('common.errors.operation_failed')));
       const updatedDevice = await res.json() as SnapshotDevice;
       setDevices((currentDevices) => currentDevices.map((currentDevice) => currentDevice.id === updatedDevice.id ? updatedDevice : currentDevice));
       upsertDevice(updatedDevice);
+      return updatedDevice;
     } catch (error_: unknown) {
       setTopologyError(error_ instanceof Error ? error_.message : t('common.errors.operation_failed'));
-    } finally {
-      setDeviceProcessingId(null);
+      return null;
     }
   };
 
@@ -266,18 +263,18 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
     return filterTopologyRooms(rooms, roomSearch);
   }, [rooms, roomSearch]);
 
-  const selectedRoomLights = useMemo(
-    () => selectedRoom ? devices.filter((device) => device.roomId === selectedRoom.id && isTopologyLight(device)) : [],
-    [devices, selectedRoom],
+  const selectedRoomDevices = useMemo(
+    () => selectedRoom ? devices.filter((device) => device.roomId === selectedRoom.id && device.homeId === selectedHome?.id && device.status === 'ASSIGNED') : [],
+    [devices, selectedRoom, selectedHome?.id],
   );
 
   const visibleSelectedRoomDevices = useMemo(() => {
-    return sortTopologyLights(selectedRoomLights, deviceSearch);
-  }, [deviceSearch, selectedRoomLights]);
+    return sortRoomDevices(selectedRoomDevices, deviceSearch);
+  }, [deviceSearch, selectedRoomDevices]);
 
   const activeRoomDeviceCount = useMemo(
-    () => selectedRoomLights.filter(isActiveTopologyDevice).length,
-    [selectedRoomLights],
+    () => selectedRoomDevices.filter(device => !isRoomDeviceMomentary(device) && getRoomDeviceState(device) === true).length,
+    [selectedRoomDevices],
   );
 
   if (loadingHomes) {
@@ -417,8 +414,8 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
 
                     {selectedRoom && <TopologyRoomDetailPanel
                       room={selectedRoom}
-                      lights={selectedRoomLights}
-                      visibleLights={visibleSelectedRoomDevices}
+                      devices={selectedRoomDevices}
+                      visibleDevices={visibleSelectedRoomDevices}
                       activeLightCount={activeRoomDeviceCount}
                       canManage={canManageHome(selectedHome)}
                       editing={editingRoomId === selectedRoom.id}
@@ -426,7 +423,6 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                       renameError={roomRenameError}
                       isRenaming={isRenamingRoom}
                       deviceSearch={deviceSearch}
-                      processingDeviceId={deviceProcessingId}
                       isDeleting={isDeletingRoom}
                       t={t}
                       onDraftChange={setRoomNameDraft}
@@ -435,7 +431,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                       onCancelRename={cancelRoomRename}
                       onClose={() => setSelectedRoomId(null)}
                       onDeviceSearchChange={setDeviceSearch}
-                      onToggleDevice={(device) => { void handleToggleDevice(device); }}
+                      onDeviceCommand={executeRoomDeviceCommand}
                       onDelete={() => setRoomPendingDelete(selectedRoom)}
                     />}
                   </>

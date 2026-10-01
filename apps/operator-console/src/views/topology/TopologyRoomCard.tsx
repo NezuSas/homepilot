@@ -15,7 +15,7 @@ interface TopologyRoomCardProps {
 
 /** One selectable room summary, isolated from the topology coordinator. */
 export function TopologyRoomCard({ room, devices, selected, t, onSelect }: TopologyRoomCardProps) {
-  const roomDevices = devices.filter(device => device.roomId === room.id);
+  const roomDevices = devices.filter(device => device.roomId === room.id && device.status === 'ASSIGNED');
   const hasActiveLight = roomDevices.some(device => isTopologyLight(device) && isActiveTopologyDevice(device));
 
   return <Button
@@ -23,8 +23,9 @@ export function TopologyRoomCard({ room, devices, selected, t, onSelect }: Topol
     variant="ghost"
     size="sm"
     onClick={onSelect}
+    aria-pressed={selected}
     className={cn(
-      'group h-auto min-h-24 self-start justify-start rounded-xl border bg-card p-3.5 text-left shadow-sm hover:border-primary/50 hover:shadow-md sm:p-4',
+      'group h-auto min-h-20 self-start justify-start rounded-xl border bg-card p-3 text-left hover:border-primary/50',
       selected ? 'border-primary bg-primary/5 shadow-primary/10' : 'border-border',
     )}
   >

@@ -27,6 +27,7 @@ The command fails if a file cannot be mapped to an existing spec.
 | Authentication, roles, and users | `packages/auth`, `AuthRoutes`, `AdminRoutes`, `UsersView` | Auth RBAC and user management |
 | Setup and installation profiles | `packages/system-setup`, `SystemRoutes`, onboarding views | Setup, installation, and Edge customer specs |
 | Home topology | `packages/topology`, `TopologyRoutes`, topology views | Home and room management |
+| Espacios operativos compactos | TopologyRoomDetailPanel, TopologyDeviceTile, topologyDeviceControl, presentaciones compartidas del Dashboard | `specs/home-room-management.md` AC16, AC24, AC25 |
 | Dashboards and widgets | Dashboard routes, dashboard views, widgets | Dashboard layout and user navigation |
 | Devices and commands | `packages/devices`, device routes, inbox, controls | Device command, capability, and state specs |
 | Discovery and import | device routes, inbox, Home Assistant integration | Device discovery inbox |
@@ -57,7 +58,7 @@ The command fails if a file cannot be mapped to an existing spec.
 
 ## Audited Coverage
 
-- The **870** audited TypeScript/TSX files have a mapping rule to an existing
+- The **874** audited TypeScript/TSX files have a mapping rule to an existing
   spec.
 - All bounded contexts under `packages/` and all API route families are
   covered.

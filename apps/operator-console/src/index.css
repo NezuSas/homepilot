@@ -850,27 +850,27 @@
     color: rgb(var(--hp-section-accent));
   }
 
-  :is(.homepilot-dashboard-screen, .homepilot-home-routines) .homepilot-section-light-tile-surface,
-  :is(.homepilot-dashboard-screen, .homepilot-home-routines) .homepilot-section-tile-inactive {
+  :is(.homepilot-dashboard-screen, .homepilot-home-routines, .homepilot-room-devices) .homepilot-section-light-tile-surface,
+  :is(.homepilot-dashboard-screen, .homepilot-home-routines, .homepilot-room-devices) .homepilot-section-tile-inactive {
     border-color: hsl(var(--dashboard-tile-edge) / 0.52);
     background: hsl(var(--dashboard-tile-surface) / 0.94);
     box-shadow: 0 8px 18px -18px hsl(var(--background) / 0.9);
   }
 
-  :is(.homepilot-dashboard-screen, .homepilot-home-routines) .homepilot-section-light-tile-active {
+  :is(.homepilot-dashboard-screen, .homepilot-home-routines, .homepilot-room-devices) .homepilot-section-light-tile-active {
     border-color: hsl(var(--primary) / 0.7);
     background: linear-gradient(150deg, hsl(var(--primary) / 0.16), hsl(var(--dashboard-tile-surface) / 0.96) 65%);
     box-shadow: 0 12px 24px -22px hsl(var(--primary) / 0.58), inset 0 1px 0 hsl(var(--primary) / 0.13);
   }
 
-  :is(.homepilot-dashboard-screen, .homepilot-home-routines) .homepilot-section-light-tile-active .homepilot-section-light-tile-surface {
+  :is(.homepilot-dashboard-screen, .homepilot-home-routines, .homepilot-room-devices) .homepilot-section-light-tile-active .homepilot-section-light-tile-surface {
     border-color: transparent;
     background: transparent;
     box-shadow: none;
   }
 
-  :is(.homepilot-dashboard-screen, .homepilot-home-routines) .homepilot-section-tile-inactive:hover,
-  :is(.homepilot-dashboard-screen, .homepilot-home-routines) .homepilot-section-light-tile-surface:hover {
+  :is(.homepilot-dashboard-screen, .homepilot-home-routines, .homepilot-room-devices) .homepilot-section-tile-inactive:hover,
+  :is(.homepilot-dashboard-screen, .homepilot-home-routines, .homepilot-room-devices) .homepilot-section-light-tile-surface:hover {
     border-color: hsl(var(--dashboard-tile-edge) / 0.82);
   }
 
@@ -980,44 +980,44 @@
     box-shadow: 0 12px 28px -22px rgb(7 5 4 / 0.46), inset 0 1px 0 rgb(255 230 210 / 0.045);
   }
 
-  .dark:not(.light) :is(.homepilot-dashboard-screen, .homepilot-home-routines) .homepilot-section-light-tile-surface,
-  .dark:not(.light) :is(.homepilot-dashboard-screen, .homepilot-home-routines) .homepilot-section-tile-inactive {
+  .dark:not(.light) :is(.homepilot-dashboard-screen, .homepilot-home-routines, .homepilot-room-devices) .homepilot-section-light-tile-surface,
+  .dark:not(.light) :is(.homepilot-dashboard-screen, .homepilot-home-routines, .homepilot-room-devices) .homepilot-section-tile-inactive {
     border-color: rgb(var(--dashboard-premium-edge) / 0.13);
     background: rgb(var(--dashboard-premium-tile) / 0.84);
     box-shadow: 0 8px 18px -17px rgb(9 6 4 / 0.52), inset 0 1px 0 rgb(255 230 210 / 0.025);
   }
 
-  .dark:not(.light) :is(.homepilot-dashboard-screen, .homepilot-home-routines) .homepilot-section-tile-inactive:hover,
-  .dark:not(.light) :is(.homepilot-dashboard-screen, .homepilot-home-routines) .homepilot-section-light-tile-surface:hover {
+  .dark:not(.light) :is(.homepilot-dashboard-screen, .homepilot-home-routines, .homepilot-room-devices) .homepilot-section-tile-inactive:hover,
+  .dark:not(.light) :is(.homepilot-dashboard-screen, .homepilot-home-routines, .homepilot-room-devices) .homepilot-section-light-tile-surface:hover {
     border-color: rgb(var(--dashboard-premium-edge) / 0.22);
     background: rgb(var(--dashboard-premium-tile-hover) / 0.9);
     box-shadow: 0 10px 21px -17px rgb(9 6 4 / 0.6), inset 0 1px 0 rgb(255 230 210 / 0.045);
   }
 
-  .dark:not(.light) :is(.homepilot-dashboard-screen, .homepilot-home-routines) .homepilot-section-tile-inactive svg,
-  .dark:not(.light) :is(.homepilot-dashboard-screen, .homepilot-home-routines) .homepilot-section-light-tile-surface svg {
+  .dark:not(.light) :is(.homepilot-dashboard-screen, .homepilot-home-routines, .homepilot-room-devices) .homepilot-section-tile-inactive svg,
+  .dark:not(.light) :is(.homepilot-dashboard-screen, .homepilot-home-routines, .homepilot-room-devices) .homepilot-section-light-tile-surface svg {
     color: rgb(var(--dashboard-premium-text) / 0.88);
   }
 
-  .dark:not(.light) :is(.homepilot-dashboard-screen, .homepilot-home-routines) .homepilot-section-light-tile-active,
+  .dark:not(.light) :is(.homepilot-dashboard-screen, .homepilot-home-routines, .homepilot-room-devices) .homepilot-section-light-tile-active,
   .dark:not(.light) .homepilot-dashboard-screen .homepilot-section-device-tile-active {
     border-color: var(--dashboard-premium-accent-border);
     background: linear-gradient(180deg, rgb(var(--dashboard-premium-accent) / 0.18), rgb(var(--dashboard-premium-accent) / 0.08)), rgb(var(--dashboard-premium-tile) / 0.88);
     box-shadow: 0 8px 22px -14px var(--dashboard-premium-accent-glow), 0 0 22px var(--dashboard-premium-accent-glow), inset 0 0 20px rgb(var(--dashboard-premium-accent) / 0.05);
   }
 
-  .dark:not(.light) :is(.homepilot-dashboard-screen, .homepilot-home-routines) .homepilot-section-light-tile-active > .homepilot-section-light-tile-surface {
+  .dark:not(.light) :is(.homepilot-dashboard-screen, .homepilot-home-routines, .homepilot-room-devices) .homepilot-section-light-tile-active > .homepilot-section-light-tile-surface {
     border-color: transparent;
     background: transparent;
     box-shadow: none;
   }
 
-  .dark:not(.light) :is(.homepilot-dashboard-screen, .homepilot-home-routines) .homepilot-section-light-tile-active svg,
+  .dark:not(.light) :is(.homepilot-dashboard-screen, .homepilot-home-routines, .homepilot-room-devices) .homepilot-section-light-tile-active svg,
   .dark:not(.light) .homepilot-dashboard-screen .homepilot-section-device-tile-active svg {
     color: rgb(var(--dashboard-premium-accent-light));
   }
 
-  .dark:not(.light) :is(.homepilot-dashboard-screen, .homepilot-home-routines) .homepilot-section-light-tile-surface:focus-visible,
+  .dark:not(.light) :is(.homepilot-dashboard-screen, .homepilot-home-routines, .homepilot-room-devices) .homepilot-section-light-tile-surface:focus-visible,
   .dark:not(.light) .homepilot-dashboard-screen .homepilot-section-device-tile-active:focus-visible {
     outline: 2px solid var(--dashboard-premium-accent-border);
     outline-offset: 2px;

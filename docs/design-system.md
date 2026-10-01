@@ -102,3 +102,8 @@ implementations.
 10. Scenes and Automations use one stable list with an independent favorite star.
     Device selectors reuse `SearchableSelectField`: optional labeled groups,
     searchable space/type descriptions and keyboard navigation across groups.
+11. Spaces is the everyday room view, not a second device configuration manager.
+    Reuse Dashboard action, sensor, cover and media presenters in bounded compact
+    tracks. Keep momentary feedback separate from toggle state and never render
+    a missing reading as off. Empty rooms reuse the collection EmptyState without
+    a duplicate creation action; device configuration remains in Device manager.

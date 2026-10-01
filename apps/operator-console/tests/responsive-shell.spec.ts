@@ -395,6 +395,83 @@ const viewports = [
 
 const portraitKioskViewport = { width: 1080, height: 1920 };
 
+for (const viewport of [
+  { name: 'mobile portrait', width: 320, height: 720 },
+  { name: 'mobile landscape', width: 844, height: 390 },
+  { name: 'tablet portrait', width: 768, height: 1024 },
+  { name: 'tablet landscape', width: 1024, height: 768 },
+  { name: 'desktop', width: 1440, height: 900 },
+  { name: 'kiosk portrait', width: 1080, height: 1920 },
+  { name: 'kiosk landscape', width: 1920, height: 1080 },
+]) {
+  test(`Feature: Room devices — Scenario: Shared compact controls and readings fit ${viewport.name} (AC16, AC24, AC25)`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport);
+    await prepareAuthenticatedDashboard(page);
+    const room = { id: 'room-compact', homeId: 'responsive-home', name: 'Kitchen' };
+    const base = { homeId: room.homeId, roomId: room.id, status: 'ASSIGNED' };
+    const devices = [
+      { ...base, id: 'room-light', name: 'Desayunador blanca', type: 'light', lastKnownState: { on: false } },
+      { ...base, id: 'room-action', name: 'On/Off TV', type: 'sensor', semanticType: 'light', lastKnownState: { state: 'unknown' }, capabilities: [{ type: 'button', name: 'Button', commands: [{ name: 'press' }] }] },
+      { ...base, id: 'room-sensor', name: 'Temperatura Kitchen', type: 'sensor', lastKnownState: { state: '22.5', unit_of_measurement: '°C' } },
+      { ...base, id: 'room-missing', name: 'Batería sin lectura', type: 'sensor', lastKnownState: { state: 'unavailable', unit_of_measurement: '%' } },
+      { ...base, id: 'room-cover', name: 'Cortina Kitchen', type: 'cover', lastKnownState: { state: 'closed', current_position: 0 }, capabilities: [{ type: 'cover', name: 'Cover', commands: [{ name: 'open' }, { name: 'close' }, { name: 'stop' }] }] },
+      { ...base, id: 'room-camera', name: 'Cámara Kitchen', type: 'camera', lastKnownState: null },
+      { ...base, id: 'other-room', roomId: 'other', name: 'Luz de otra estancia', type: 'light', lastKnownState: { on: false } },
+    ];
+    const commands: { id: string; command: string }[] = [];
+    await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: room.homeId, name: 'Casa', ownerId: dashboardUser.id }] }));
+    await page.route('**/api/v1/rooms', route => route.fulfill({ json: [room] }));
+    await page.route('**/api/v1/devices', route => route.fulfill({ json: devices }));
+    await page.route('**/api/v1/devices/*/command', async route => {
+      const id = new URL(route.request().url()).pathname.split('/').at(-2)!;
+      const command = route.request().postDataJSON().command;
+      commands.push({ id, command });
+      const device = devices.find(candidate => candidate.id === id)!;
+      await route.fulfill({ json: { ...device, lastKnownState: id === 'room-light' ? { on: true } : device.lastKnownState } });
+    });
+    for (const theme of ['dark', 'light']) {
+      await page.goto('/spaces');
+      await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
+      await page.getByRole('button', { name: /Kitchen.*6 dispositivos|Kitchen.*6 devices/i }).click();
+      const detail = page.getByRole('complementary', { name: /Detalle de la estancia|Room details|Detalle de estancia/i });
+      await expect(detail).toBeVisible();
+      await expect(detail).toContainText('22.5');
+      await expect(detail).toContainText(/Sin lectura|No reading/i);
+      await expect(detail.getByRole('heading', { name: /^Cortina Kitchen$/i })).toBeVisible();
+      await expect(detail).toContainText('Cámara Kitchen');
+      await expect(detail).not.toContainText('Luz de otra estancia');
+      await expect(detail).not.toContainText('Iluminación');
+      const light = detail.getByRole('button', { name: /Encender dispositivo: Desayunador blanca|Turn on device: Desayunador blanca/i });
+      const action = detail.getByRole('button', { name: /On\/Off TV/i });
+      await expect(light).toHaveAttribute('aria-pressed', 'false');
+      await expect(action).not.toHaveAttribute('aria-pressed');
+      for (const control of [light, action]) {
+        const bounds = await control.boundingBox();
+        expect(bounds!.width).toBeGreaterThanOrEqual(44);
+        expect(bounds!.height).toBeGreaterThanOrEqual(44);
+        expect(bounds!.width).toBeLessThanOrEqual(176);
+        expect(bounds!.height).toBeLessThanOrEqual(112);
+      }
+      await light.click();
+      await expect(detail.getByRole('button', { name: /Apagar dispositivo: Desayunador blanca|Turn off device: Desayunador blanca/i })).toHaveAttribute('aria-pressed', 'true');
+      await action.click();
+      await expect(action).toHaveAttribute('data-action-state', 'success');
+      await expect(action).toHaveAttribute('data-action-state', 'idle');
+      expect(commands.slice(-2)).toEqual([{ id: 'room-light', command: 'turn_on' }, { id: 'room-action', command: 'press' }]);
+      const search = detail.getByRole('textbox', { name: /Buscar dispositivos|Search devices/i });
+      await search.fill('Batería');
+      await expect(detail).toContainText('Batería sin lectura');
+      await expect(detail.getByRole('button', { name: /On\/Off TV/i })).toHaveCount(0);
+      await search.fill('');
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+      expect(overflow).toBe(false);
+      if (['desktop', 'mobile portrait', 'tablet portrait'].includes(viewport.name)) {
+        await page.screenshot({ path: testInfo.outputPath(`room-devices-${theme}.png`), fullPage: true });
+      }
+    }
+  });
+}
+
 const dashboardUser = {
   id: 'responsive-admin',
   username: 'admin',
@@ -3895,7 +3972,7 @@ test('Feature: Room details — Scenario: A home owner selects a room, controls 
   const room = { id: 'responsive-room', homeId: 'responsive-home', name: 'Sala de prueba' };
   const light = {
     id: 'responsive-light', name: 'Lámpara central', type: 'light', semanticType: 'light',
-    status: 'ASSIGNED', roomId: room.id, lastKnownState: { on: false },
+    status: 'ASSIGNED', homeId: room.homeId, roomId: room.id, lastKnownState: { on: false },
   };
   let commandCount = 0;
   await page.route('**/api/v1/homes', async route => {
@@ -3931,7 +4008,7 @@ test('Feature: Room details — Scenario: A home owner selects a room, controls 
   await page.getByRole('button', { name: /Sala de prueba/ }).click();
   const detail = page.locator('aside.self-start');
   await expect(detail).toContainText('Lámpara central');
-  await expect(detail).toContainText(/Encendidas|On/i);
+  await expect(detail).toContainText(/Dispositivos en la estancia|Devices in room/i);
 
   await detail.getByRole('button', { name: /Encender dispositivo|Turn on device/i }).click();
   await expect(detail.getByRole('button', { name: /Apagar dispositivo|Turn off device/i })).toBeVisible();

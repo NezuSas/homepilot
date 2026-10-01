@@ -17,6 +17,8 @@ interface SectionActionCardProps {
   onAction?: () => void;
   actionFeedback?: 'pending' | 'success' | 'error';
   isBlocked?: boolean;
+  ariaLabel?: string;
+  pressed?: boolean;
 }
 
 export function SectionActionCard({
@@ -31,6 +33,8 @@ export function SectionActionCard({
   onAction,
   actionFeedback,
   isBlocked,
+  ariaLabel,
+  pressed,
 }: SectionActionCardProps) {
   const { t } = useTranslation();
   const Icon = getDashboardIconComponent(icon ?? getDefaultIcon(normalizeKind(kind)));
@@ -45,7 +49,8 @@ export function SectionActionCard({
       disabled={!isPresentationOnly && (unavailable || isBlocked || actionFeedback === 'pending')}
       aria-disabled={!isInteractiveAction || isBlocked || actionFeedback === 'pending' || undefined}
       aria-busy={actionFeedback === 'pending' || undefined}
-      aria-label={t('dashboard.editor.sections.action_button_aria', { name: title })}
+      aria-label={ariaLabel ?? t('dashboard.editor.sections.action_button_aria', { name: title })}
+      aria-pressed={pressed}
       data-action-state={actionFeedback ?? 'idle'}
       title={actionFeedback === 'error' ? t('dashboard.editor.sections.action_button_error') : unavailable ? t('dashboard.editor.sections.action_button_unavailable') : subtitle}
       variant="ghost"
