@@ -841,8 +841,8 @@
       "smart_display": "Pizarras",
       "local": "Local",
       "bridged": "Puenteado",
-      "origin_label": "Origen del dispositivo",
-      "type_label": "Tipo de dispositivo"
+      "origin_label": "Origen",
+      "type_label": "Tipo"
   },
   "device_inspector": {
     "entity_id": "ID de entidad",
@@ -864,7 +864,7 @@
     "cover_inverted_hint": "Actívalo cuando Home Assistant reporte abierta pero físicamente está cerrada."
   },
   "rooms": {
-      "unassigned": "Sin Asignar / Pendiente de Puesta en Marcha",
+      "unassigned": "Sin asignar",
       "device_count_one": "1 Unidad",
       "device_count_other": "{{count}} Unidades",
       "device_count": "{{count}} Unidades"
@@ -1359,7 +1359,7 @@
       "username_placeholder": "ej. operador_1"
     },
     "header": {
-      "title": "Directorio de Edge Activo",
+      "title": "Usuarios y Acceso",
       "subtitle": "Gestionar acceso organizacional y límites de sesión.",
       "add_button": "Añadir Usuario"
     },

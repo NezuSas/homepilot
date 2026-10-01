@@ -7,9 +7,9 @@ jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) =>
 const device = (type: string): SnapshotDevice => ({ id: 'd', homeId: 'h', roomId: 'r', name: 'Equipo', type, status: 'ASSIGNED', lastKnownState: { on: false } });
 describe('Feature: Configuration-only device manager (AC54)', () => {
   it.each(['camera', 'cover', 'light', 'sensor', 'smart_display'])('shows only configuration for %s without operational controls or media', type => {
-    const html = renderToStaticMarkup(<ManagedDeviceTile device={device(type)} roomName="Sala" onInspect={() => {}} />);
+    const html = renderToStaticMarkup(<ManagedDeviceTile device={device(type)} onInspect={() => {}} />);
     expect(html).toContain('Equipo');
-    expect(html).toContain('Sala');
+    expect(html).not.toContain('Sala');
     expect(html).toContain('inbox.manage_device');
     expect(html).toContain('aria-label="inbox.manage_device: Equipo"');
     expect(html).not.toContain('device_types.');

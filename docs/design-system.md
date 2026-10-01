@@ -113,9 +113,15 @@ implementations.
     and daily controls live in Spaces/Dashboard. Room displays use the existing
     validated catalog and momentary action presenter; hidden, non-executable,
     slider or confirmation-required entries never become executable buttons.
-13. Device manager tiles show only name, room and one touch-sized configuration
+13. Device manager tiles show only name and one touch-sized configuration
     control. Use the shared searchable selectors for origin/type. Keep the same
     Drawer mounted through initial loading; display catalogs remain available
     inside configuration instead of adding a second tile action.
+    Room headings provide location without repeating it on each tile. Inventory
+    filters use short Origin/Type labels and bounded right-aligned widths.
+15. Pending assignment, HA candidates and user-access cards own compact layouts
+    and matching skeletons. HA candidates and pending assignment hide unavailable
+    devices without deletion. Users retain explicit status and independent
+    security controls, with a single card presentation across breakpoints.
 14. Hide scrollbar chrome globally, never scrolling itself. Preserve native
     overflow, keyboard focus, wheel/touch navigation and access to final options.

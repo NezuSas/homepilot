@@ -195,7 +195,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 
 - [x] AC76: La paleta aprobada del Dashboard es el estándar global Light/Dark de la consola. Inicio, Rutinas, formularios y overlays con portal comparten tokens de identidad, superficies, texto y foco; ningún contenedor redefine la identidad localmente. Se conservan colores semánticos, geometría y comportamiento. Texto de controles primarios conserva contraste mínimo 4.5:1. Tokens runtime referencian CSS, sin paletas hex duplicadas.
 
-- [x] AC77: El Gestor presenta fichas compactas de nombre y estancia con un único acceso táctil a configuración. Sus filtros de origen/tipo reutilizan SearchableSelectField; se retira el banner Edge redundante. El inspector conserva un solo Drawer desde skeleton hasta datos, sin reiniciar entrada ni foco; el catálogo informativo de pizarra sigue accesible desde configuración.
+- [x] AC77: El Gestor presenta fichas compactas de nombre con un único acceso táctil a configuración; el espacio aparece en el encabezado del grupo, no se repite por ficha. Sus filtros «Origen»/«Tipo» reutilizan SearchableSelectField con ancho acotado y alineación derecha; se retira el banner Edge redundante. El inspector conserva un solo Drawer desde skeleton hasta datos, sin reiniciar entrada ni foco; el catálogo informativo de pizarra sigue accesible desde configuración.
 - [x] AC78: Todas las superficies de la consola ocultan la barra visual de desplazamiento, sin cambiar overflow ni impedir rueda, tacto o teclado. Los selectores y overlays mantienen scroll hasta sus controles finales y foco visible.
 
 ## 8. Notas Técnicas y Arquitectura

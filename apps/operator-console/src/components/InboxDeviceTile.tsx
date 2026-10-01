@@ -1,236 +1,58 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { Settings2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import {
-  AlertCircle,
-  Blinds,
-  Box,
-  Cpu,
-  Loader2,
-  RadioTower,
-  RefreshCw,
-} from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
-import { cn } from '../lib/utils';
 import { isDeviceUnavailable } from '../lib/deviceAvailability';
 import type { SnapshotDevice as Device, SnapshotRoom as Room } from '../stores/useDeviceSnapshotStore';
 import { Button } from './ui/Button';
+import { IconButton } from './ui/IconButton';
 import { SearchableSelectField } from './ui/SearchableSelectField';
-
-interface DeviceState {
-  on?: boolean;
-  state?: 'on' | 'off';
-  brightness?: number;
-  power?: number;
-  [key: string]: unknown;
-}
 
 interface InboxDeviceTileProps {
   device: Device;
   rooms: Room[];
   onUpdate?: (updated: Device) => void;
   onInspect?: () => void;
-  hideControls?: boolean;
 }
 
-const API_URL = `${API_BASE_URL}/api/v1`;
-
-/**
- * Appliance-style compact device tile for inbox and device manager lists.
- */
-export const InboxDeviceTile: React.FC<InboxDeviceTileProps> = ({
-  device,
-  rooms,
-  onUpdate,
-  onInspect,
-  hideControls,
-}) => {
+/** A pending configuration item, never an operational device control. */
+export function InboxDeviceTile({ device, rooms, onUpdate, onInspect }: InboxDeviceTileProps) {
   const { t } = useTranslation();
-  const isAssigned = device.status === 'ASSIGNED';
-  const unavailable = isDeviceUnavailable(device);
+  const [selectedRoomId, setSelectedRoomId] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedRoomId, setSelectedRoomId] = useState('');
-
-  const lastState = (device.lastKnownState || {}) as DeviceState;
-  const isOn = lastState.on === true
-    || lastState.state === 'on'
-    || Number(lastState.brightness) > 0
-    || Number(lastState.power) > 0;
-
-  const supportsCommands = device.type === 'light' || device.type === 'switch' || device.type === 'cover';
-
-  const isSonoff = device.integrationSource === 'sonoff';
-  const isOnline = Date.now() - new Date(device.updatedAt || new Date()).getTime() < 300000;
-
-  const handleToggle = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isProcessing || unavailable || !supportsCommands) return;
-
+  const unavailable = isDeviceUnavailable(device);
+  const handleAssign = async () => {
+    if (!selectedRoomId || isProcessing || unavailable) return;
     setIsProcessing(true);
     setError(null);
     try {
-      const command = isOn ? 'turn_off' : 'turn_on';
-      const res = await apiFetch(`${API_URL}/devices/${device.id}/command`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command }),
+      const response = await apiFetch(`${API_BASE_URL}/api/v1/devices/${device.id}/assign`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId: selectedRoomId }),
       });
-      if (res.ok && onUpdate) {
-        onUpdate(await res.json());
-      } else {
-        const data = await res.json();
-        setError(data?.error?.message || t('common.errors.operation_failed'));
-      }
+      if (!response.ok) throw new Error(t('common.errors.operation_failed'));
+      onUpdate?.(await response.json() as Device);
     } catch {
-      setError(t('common.errors.connection_error'));
+      setError(t('common.errors.operation_failed'));
     } finally {
       setIsProcessing(false);
     }
   };
-
-  const handleAssign = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!selectedRoomId || isProcessing) return;
-    setIsProcessing(true);
-    setError(null);
-    try {
-      const res = await apiFetch(`${API_URL}/devices/${device.id}/assign`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomId: selectedRoomId }),
-      });
-      if (res.ok && onUpdate) {
-        onUpdate(await res.json());
-      } else {
-        setError(t('common.errors.operation_failed'));
-      }
-    } catch {
-      setError(t('common.errors.connection_error'));
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const Icon = device.type === 'light'
-    ? RadioTower
-    : (device.type === 'switch' ? Box : (device.type === 'cover' ? Blinds : Cpu));
-
-  return (
-    <div
-      onClick={onInspect}
-      className={cn(
-        'relative group cursor-pointer transition-all duration-500',
-        'min-w-inbox-device rounded-2xl border-2 p-3.5 transition-all duration-500 sm:p-4 aspect-square flex flex-col justify-between hover:-translate-y-1 hover:shadow-xl',
-        'bg-card hover:border-border',
-        isOn && isAssigned && !unavailable ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10 hover:shadow-primary/20' : 'border-border shadow-md',
-        (!isAssigned && isSonoff) ? 'border-success/30 bg-success/5 shadow-lg shadow-success/10 animate-in fade-in zoom-in-95 duration-700' : '',
-        isProcessing && 'opacity-70 scale-[0.98] bg-muted/50 hover:translate-y-0 hover:shadow-none',
-        error && 'border-danger/40 bg-danger/5 hover:translate-y-0',
-      )}
-    >
-      <div className="flex justify-between items-start">
-        <div className={cn(
-          'p-2.5 rounded-xl transition-all duration-300',
-          isOn && isAssigned ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20' : 'bg-muted text-muted-foreground',
-          isProcessing && 'animate-pulse',
-        )}>
-          <Icon className="w-5 h-5" />
-        </div>
-
-        {supportsCommands && isAssigned && !unavailable && !hideControls && (
-          <Button
-            type="button"
-            onClick={handleToggle}
-            disabled={isProcessing}
-            size="icon"
-            variant="outline"
-            className={cn(
-              'rounded-full border-2',
-              isOn ? 'bg-primary border-primary text-primary-foreground shadow-md hover:bg-primary/90' : 'bg-background border-border text-muted-foreground hover:border-primary/50',
-              isProcessing && 'bg-muted border-primary/20',
-            )}
-          >
-            {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className={cn('w-4 h-4', isOn && 'rotate-180')} />}
-          </Button>
-        )}
-      </div>
-
-      {error && !isProcessing && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-danger/10 backdrop-blur-micro rounded-2xl p-2 text-center">
-          <AlertCircle className="w-5 h-5 text-danger mb-1" />
-          <span className="text-micro font-black uppercase text-danger leading-tight">{error}</span>
-          <Button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); setError(null); }}
-            variant="ghost"
-            size="xs"
-            className="mt-1 rounded-none border-b border-muted-foreground/30 px-0 text-micro font-black uppercase text-muted-foreground"
-          >
-            {t('common.cancel')}
-          </Button>
-        </div>
-      )}
-
-      <div className={cn('flex flex-col gap-1 overflow-hidden transition-opacity', (isProcessing || error) && 'opacity-30')}>
-        <div className="flex items-center gap-2 overflow-hidden">
-          <span className="text-micro font-semibold uppercase tracking-control truncate opacity-60">{device.type}</span>
-          {isSonoff && (
-            <span className="shrink-0 rounded-full border border-success/30 bg-success/20 px-1.5 py-0.5 text-nano font-semibold uppercase tracking-control text-success shadow-success-pill">{t('inbox.native_local')}</span>
-          )}
-          {unavailable && (
-            <span className="shrink-0 rounded-full border border-danger/30 bg-danger/10 px-1.5 py-0.5 text-nano font-semibold uppercase tracking-control text-danger">
-              {t('device_states.unavailable')}
-            </span>
-          )}
-        </div>
-        <h4 className="text-card-title font-bold truncate">{device.name}</h4>
-        {isAssigned ? (
-          <div className="flex items-center gap-1.5 mt-1">
-            <div className={cn('w-1.5 h-1.5 rounded-full shrink-0', isOn ? 'bg-primary animate-pulse' : 'bg-muted-foreground/30')} />
-            <span className={cn('min-w-0 truncate text-micro font-semibold uppercase tracking-control', isOn ? 'text-primary' : 'text-muted-foreground')}>
-              {isOn ? t('device_states.on') : t('device_states.off')}
-            </span>
-            {isSonoff && (
-              <>
-                <span className="w-1 h-1 bg-border rounded-full shrink-0" />
-                <span className={cn('shrink-0 text-nano font-semibold uppercase tracking-control', isOnline ? 'text-success' : 'text-danger opacity-80')}>
-                  {isOnline ? t('common.online') : t('common.offline')}
-                </span>
-              </>
-            )}
-          </div>
-        ) : (
-          <div
-            className="mt-2 flex flex-col gap-2"
-            onClick={(event) => event.stopPropagation()}
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <SearchableSelectField
-              size="small"
-              fullWidth
-              disabled={isProcessing}
-              value={selectedRoomId}
-              onChange={setSelectedRoomId}
-              options={Array.isArray(rooms) ? rooms.map((room) => ({ value: room.id, label: room.name })) : []}
-              placeholder={t('common.unassigned')}
-              className="mt-1"
-            />
-            <Button
-              size="sm"
-              onClick={handleAssign}
-              disabled={!selectedRoomId || isProcessing}
-              className={cn(
-                'w-full text-micro uppercase tracking-label',
-                isSonoff ? 'bg-success text-success-foreground hover:bg-success/90 shadow-success/10' : '',
-              )}
-              isLoading={isProcessing}
-            >
-              {t('common.save')}
-            </Button>
-          </div>
-        )}
-      </div>
+  return <article className="min-w-0 space-y-3 rounded-control border border-border bg-card p-3">
+    <div className="flex items-center gap-3">
+      <h4 className="min-w-0 flex-1 break-words text-body-compact font-semibold">{device.name}</h4>
+      {onInspect && <IconButton icon={Settings2} size="lg" label={`${t('inbox.manage_device')}: ${device.name}`} onClick={onInspect} />}
     </div>
-  );
-};
+    <div className="flex min-w-0 items-center gap-2">
+      <SearchableSelectField value={selectedRoomId} onChange={setSelectedRoomId}
+        options={rooms.map(room => ({ value: room.id, label: room.name }))}
+        placeholder={t('common.unassigned')}
+        disabled={isProcessing || unavailable} className="min-w-0 flex-1" />
+      <Button onClick={() => { void handleAssign(); }} size="lg" disabled={!selectedRoomId || isProcessing || unavailable} isLoading={isProcessing}>
+        {t('common.save')}
+      </Button>
+    </div>
+    {error && <p role="alert" className="text-caption text-danger">{error}</p>}
+  </article>;
+}

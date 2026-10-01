@@ -82,3 +82,4 @@ La conexión con Home Assistant (HA) debe ser dinámica, persistente y administr
 3. El estado de la UI distingue entre "Configurado" y "Conectado".
 4. El sistema mantiene el `env-fallback` si no hay nada en DB, marcando `activeSource: env-fallback`.
 5. Un fallo de red, incluso si no es una instancia de `Error`, retorna un resultado controlado con estado `unreachable`.
+6. El resumen de descubrimiento `GET /api/v1/ha/entities?view=summary` omite estados `unavailable` antes de construir candidatos, conservando el contrato ligero sin atributos/estado. La consulta completa sigue disponible para sus consumidores actuales. No elimina dispositivos guardados ni modifica persistencia; revertir el filtro restaura el listado anterior sin migración.

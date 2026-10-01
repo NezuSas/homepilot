@@ -19,6 +19,7 @@ import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import type { SnapshotDevice as Device, SnapshotRoom as Room } from '../stores/useDeviceSnapshotStore';
 import { humanize } from '../lib/naming-utils';
 import { resolveManagedDeviceKind, type ManagedDeviceKind } from '../lib/devicePresentation';
+import { isDeviceUnavailable } from '../lib/deviceAvailability';
 
 /**
  * Vista de Inbox principal para la Operator Console.
@@ -61,6 +62,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
   const filtered = useMemo(() => devices.filter((d: Device) => {
     if (mode === 'manager' && d.status !== 'ASSIGNED') return false;
     if (mode === 'discovery' && d.status !== 'PENDING') return false;
+    if (mode === 'discovery' && isDeviceUnavailable(d)) return false;
 
     const matchesType = filter === 'all' || resolveManagedDeviceKind(d) === filter;
     const isLocal = d.integrationSource === 'sonoff' || d.integrationSource === 'android-display';
@@ -129,11 +131,11 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
       {/* Control Bar */}
       <SectionHeader
         level="view"
-        className="sm:!flex-row sm:!items-center sm:!justify-start sm:gap-5 sm:[&>div:first-child]:flex-none sm:[&>div:last-child]:flex-1 sm:[&>div:last-child]:max-w-none"
+        className="sm:items-center"
         title={mode === 'manager' ? t('nav.system_devices') : t('nav.system_inbox')}
         icon={mode === 'manager' ? Settings : Inbox}
         action={
-          <div className="grid w-full min-w-0 gap-2 min-[520px]:grid-cols-2 sm:!w-full">
+          <div className="ml-auto grid w-full max-w-80 grid-cols-2 gap-2 sm:w-80">
             {/* Origin Filter */}
             <SearchableSelectField
               value={originFilter}
@@ -188,17 +190,15 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
               'grid gap-3 sm:gap-4',
               mode === 'manager'
                 ? 'grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))]'
-                : 'grid-cols-1 min-[400px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6',
+                : 'grid-cols-[repeat(auto-fill,minmax(min(100%,17rem),1fr))]',
             )}>
               {Array.isArray(group.devices) && group.devices.map((device) => {
-                const roomName = roomsFlattened.find((room) => room.id === device.roomId)?.name;
                 const isDuplicateName = (duplicateNames.get(humanize(device.id, device.name)) || 0) > 1;
 
                 return mode === 'manager' ? (
                   <ManagedDeviceTile
                     key={device.id}
                     device={device}
-                    roomName={roomName}
                     isDuplicateName={isDuplicateName}
                     onInspect={() => setInspectingDeviceId(device.id)}
                   />
@@ -209,7 +209,6 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
                     rooms={roomsByHome[device.homeId] || []}
                     onUpdate={(updated) => handleDeviceUpdate(device.id, updated)}
                     onInspect={() => setInspectingDeviceId(device.id)}
-                    hideControls
                   />
                 );
               })}

@@ -1,10 +1,8 @@
-import React from 'react';
-import { Activity, KeyRound, Power, Shield, ShieldCheck, UserMinus } from 'lucide-react';
+import { Activity, KeyRound, Power, UserMinus } from 'lucide-react';
 import { API_BASE_URL } from '../config';
-import { Card } from './ui/Card';
-import { Button } from './ui/Button';
 import { IconButton } from './ui/IconButton';
 import { SearchableSelectField } from './ui/SearchableSelectField';
+import { StatusPill } from './ui/StatusPill';
 import type { UserRole } from './UserCreateForm';
 
 export interface PublicUserDto {
@@ -46,209 +44,41 @@ interface UsersTableProps {
   currentUserId: string | null;
 }
 
-const getRoleClassName = (role: UserRole) => {
-  switch (role) {
-    case 'admin':
-      return 'bg-warning/10 text-warning border-warning/20';
-    case 'parent':
-      return 'bg-primary/10 text-primary border-primary/20';
-    case 'child':
-      return 'bg-foreground/10 text-foreground border-foreground/20';
-    case 'guest':
-      return 'bg-muted text-muted-foreground border-border';
-    case 'operator':
-      return 'bg-foreground/5 text-foreground/70 border-foreground/10';
-  }
-};
 
-export const UsersTable: React.FC<UsersTableProps> = ({
-  users,
-  labels,
-  roleOptions,
-  getRoleLabel,
-  onToggleActive,
-  onChangeRole,
-  onRevokeSessions,
-  onResetPassword,
-  currentUserId,
-}) => (
-  <Card className="rounded-panel">
-    <div className="grid gap-3 p-3 sm:grid-cols-2 xl:hidden">
-      {users.map((user) => (
-        <article key={user.id} className="flex min-w-0 flex-col gap-4 rounded-card border border-border/60 bg-background/45 p-4 shadow-depth-1">
-          <div className="flex min-w-0 items-start gap-3">
-            <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full border border-primary/20 bg-primary/10 text-primary shadow-sm">
-              {user.avatarDataUri
-                ? <img
-                    src={user.avatarDataUri.startsWith('/') ? `${API_BASE_URL}${user.avatarDataUri}` : user.avatarDataUri}
-                    alt={user.username}
-                    className="h-full w-full object-cover"
-                  />
-                : <span className="flex h-full w-full items-center justify-center text-caption font-bold uppercase">{user.username.substring(0, 2)}</span>
-              }
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-semibold text-foreground">{user.displayName || user.username}</p>
-              <p className="truncate text-micro font-mono text-muted-foreground/60">@{user.username}</p>
-              <span className={`mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-label font-bold ${getRoleClassName(user.role)}`}>
-                {user.role === 'admin' ? <ShieldCheck className="h-3 w-3 shrink-0" /> : <Shield className="h-3 w-3 shrink-0" />}
-                <span className="whitespace-normal leading-tight">{getRoleLabel(user.role)}</span>
-              </span>
-            </div>
-            <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${user.isActive ? 'status-dot-synced' : 'status-dot-error'}`} title={user.isActive ? labels.active : labels.suspended} />
-          </div>
-
-          <div className="grid grid-cols-1 gap-2 min-[430px]:grid-cols-2">
-            <SearchableSelectField
-              size="small"
-              className="w-full min-w-0 min-[430px]:col-span-2"
-              value={user.role}
-              onChange={(selectedRole) => {
-                const role = selectedRole as UserRole;
-                if (role !== user.role) onChangeRole(user, role);
-              }}
-              options={roleOptions}
-              title={labels.swapRoleTitle(user.role)}
-            />
-            <Button
-              onClick={() => onToggleActive(user)}
-              variant="outline"
-              size="sm"
-              className="min-w-0 text-micro text-muted-foreground hover:text-foreground"
-            >
-              <Power className="h-4 w-4 shrink-0" />
-              <span className="truncate">{user.isActive ? labels.suspendTitle : labels.restoreTitle}</span>
-            </Button>
-            <Button
-              onClick={() => onRevokeSessions(user)}
-              disabled={!user.hasActiveSessions}
-              variant="outline"
-              size="sm"
-              className="min-w-0 text-micro text-muted-foreground"
-            >
-              <UserMinus className="h-4 w-4 shrink-0" />
-              <span className="truncate">{labels.revokeTitle}</span>
-            </Button>
-            {user.id !== currentUserId && (
-              <Button
-                onClick={() => onResetPassword(user)}
-                variant="outline"
-                size="sm"
-                className="min-w-0 border-primary/20 bg-primary/5 text-micro text-primary hover:bg-primary/10 min-[430px]:col-span-2"
-              >
-                <KeyRound className="h-4 w-4 shrink-0" />
-                <span className="truncate">{labels.resetPasswordTitle}</span>
-              </Button>
-            )}
-          </div>
-        </article>
-      ))}
+export function UserAccessCard({ user, labels, roleOptions, onToggleActive, onChangeRole, onRevokeSessions, onResetPassword, currentUserId }: Omit<UsersTableProps, 'users' | 'getRoleLabel'> & { user: PublicUserDto }) {
+  return <article aria-label={user.displayName || user.username} className="min-w-0 space-y-3 rounded-control border border-border bg-card p-3">
+    <div className="flex min-w-0 items-center gap-3">
+      <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-primary">
+        {user.avatarDataUri ? <img src={user.avatarDataUri.startsWith('/') ? `${API_BASE_URL}${user.avatarDataUri}` : user.avatarDataUri} alt="" className="size-full object-cover" />
+          : <span className="text-caption font-semibold uppercase">{user.username.substring(0, 2)}</span>}
+      </div>
+      <div className="min-w-0 flex-1">
+        <h3 className="break-words text-body-compact font-semibold">{user.displayName || user.username}</h3>
+        <p className="break-all text-caption text-muted-foreground">@{user.username}</p>
+      </div>
+      {user.hasActiveSessions && <Activity className="size-4 shrink-0 text-primary" aria-label={labels.live} role="img" />}
     </div>
-
-    <div className="hidden overflow-x-auto xl:block">
-      <table className="w-full min-w-data-table whitespace-nowrap text-left text-body">
-        <thead className="bg-muted/50 border-b">
-          <tr>
-            <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-micro tracking-wider">{labels.identity}</th>
-            <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-micro tracking-wider">{labels.access}</th>
-            <th className="px-5 py-3.5 font-semibold text-muted-foreground uppercase text-micro tracking-wider">{labels.status}</th>
-            <th className="w-[21rem] px-5 py-3.5 font-semibold text-muted-foreground uppercase text-micro tracking-wider text-center">{labels.controls}</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y">
-          {users.map(user => (
-            <tr key={user.id} className="hover:bg-muted/30 transition-colors group">
-              <td className="px-5 py-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20 overflow-hidden shadow-sm">
-                    {user.avatarDataUri
-                      ? <img
-                          src={user.avatarDataUri.startsWith('/') ? `${API_BASE_URL}${user.avatarDataUri}` : user.avatarDataUri}
-                          alt={user.username}
-                          className="w-full h-full object-cover"
-                        />
-                      : <span className="font-bold text-caption uppercase">{user.username.substring(0, 2)}</span>
-                    }
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="font-semibold text-foreground">{user.displayName || user.username}</span>
-                    <span className="text-micro text-muted-foreground font-mono opacity-60">@{user.username}</span>
-                  </div>
-                </div>
-              </td>
-              <td className="px-5 py-4">
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-label font-bold border ${getRoleClassName(user.role)}`}>
-                  {user.role === 'admin' ? <ShieldCheck className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
-                  {getRoleLabel(user.role)}
-                </span>
-              </td>
-              <td className="px-5 py-4">
-                <div className="flex flex-col gap-1.5 items-start">
-                  <span className={`flex items-center text-label font-bold ${user.isActive ? 'text-success' : 'text-danger'}`}>
-                    <span className={`w-2 h-2 rounded-full mr-2 ${user.isActive ? 'status-dot-synced animate-pulse' : 'status-dot-error shrink-0'}`} />
-                    {user.isActive ? labels.active : labels.suspended}
-                  </span>
-                  {user.hasActiveSessions && (
-                    <span className="inline-flex items-center gap-1.5 text-micro bg-muted/80 px-2 py-0.5 rounded border text-muted-foreground font-bold italic">
-                      <Activity className="w-3 h-3 text-primary" /> {labels.live}
-                    </span>
-                  )}
-                </div>
-              </td>
-              <td className="w-[21rem] px-5 py-4 text-center">
-                <div className="grid grid-cols-[2.25rem_minmax(0,1fr)_2.25rem_2.25rem] items-center justify-items-center gap-2 transition-all">
-                  <IconButton
-                    onClick={() => onToggleActive(user)}
-                    icon={Power}
-                    label={user.isActive ? labels.suspendTitle : labels.restoreTitle}
-                    size="sm"
-                    className={`h-9 w-9 rounded-lg ${
-                      user.isActive
-                        ? 'bg-background hover:bg-danger/10 border-border hover:border-danger/30 hover:text-danger text-muted-foreground shadow-sm'
-                        : 'bg-background hover:bg-success/10 border-border hover:border-success/30 hover:text-success text-muted-foreground shadow-sm'
-                    }`}
-                    title={user.isActive ? labels.suspendTitle : labels.restoreTitle}
-                  />
-
-                  <SearchableSelectField
-                    size="small"
-                    className="w-44"
-                    value={user.role}
-                    onChange={(selectedRole) => {
-                      const role = selectedRole as UserRole;
-                      if (role === user.role) return;
-                      onChangeRole(user, role);
-                    }}
-                    options={roleOptions}
-                    title={labels.swapRoleTitle(user.role)}
-                  />
-
-                  <IconButton
-                    onClick={() => onRevokeSessions(user)}
-                    icon={UserMinus}
-                    label={labels.revokeTitle}
-                    size="sm"
-                    className="h-9 w-9 rounded-lg bg-background border-border text-muted-foreground hover:bg-warning/10 hover:border-warning/30 hover:text-warning shadow-sm"
-                    disabled={!user.hasActiveSessions}
-                    title={labels.revokeTitle}
-                  />
-
-                  {user.id !== currentUserId && (
-                    <IconButton
-                      onClick={() => onResetPassword(user)}
-                      icon={KeyRound}
-                      label={labels.resetPasswordTitle}
-                      size="sm"
-                      className="h-9 w-9 rounded-lg border-border bg-background text-muted-foreground shadow-sm hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
-                      title={labels.resetPasswordTitle}
-                    />
-                  )}
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="flex min-w-0 items-center gap-2">
+      <SearchableSelectField value={user.role} options={roleOptions} label={labels.access}
+        title={labels.swapRoleTitle(user.role)} className="min-w-0 flex-1"
+        onChange={selected => {
+          const role = roleOptions.find(option => option.value === selected)?.value;
+          if (role && role !== user.role) onChangeRole(user, role);
+        }} />
     </div>
-  </Card>
-);
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <StatusPill variant={user.isActive ? 'success' : 'danger'}>{user.isActive ? labels.active : labels.suspended}</StatusPill>
+      <div className="flex items-center gap-1">
+        <IconButton size="lg" icon={Power} label={user.isActive ? labels.suspendTitle : labels.restoreTitle} onClick={() => onToggleActive(user)} />
+        <IconButton size="lg" icon={UserMinus} label={labels.revokeTitle} disabled={!user.hasActiveSessions} onClick={() => onRevokeSessions(user)} />
+        {user.id !== currentUserId && <IconButton size="lg" icon={KeyRound} label={labels.resetPasswordTitle} onClick={() => onResetPassword(user)} />}
+      </div>
+    </div>
+  </article>;
+}
+
+export function UsersTable({ users, ...props }: UsersTableProps) {
+  return <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,19rem),1fr))] gap-3">
+    {users.map(user => <UserAccessCard key={user.id} user={user} {...props} />)}
+  </div>;
+}

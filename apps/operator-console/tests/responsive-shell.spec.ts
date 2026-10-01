@@ -605,19 +605,19 @@ for (const viewport of [
       await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
       const manager = page.getByRole('main');
       const tile = manager.getByRole('article').filter({ has: page.getByRole('heading', { name: light.name, exact: true }) });
-      await expect(tile).toContainText('Oficina');
+      await expect(tile).not.toContainText('Oficina');
       await expect(tile.getByRole('button')).toHaveCount(1);
       expect((await tile.boundingBox())?.height).toBeLessThanOrEqual(96);
       await expect(manager.getByText(/Modo Edge Activo|Edge mode active/i)).toHaveCount(0);
-      const typeFilter = manager.getByRole('button', { name: /Tipo de dispositivo|Device type/i });
+      const typeFilter = manager.getByRole('button', { name: /^(Tipo|Type)$/i });
       await typeFilter.click();
-      let popup = page.getByRole('dialog', { name: /Tipo de dispositivo|Device type/i });
+      let popup = page.getByRole('dialog', { name: /^(Tipo|Type)$/i });
       await popup.getByRole('searchbox').fill('c');
       await popup.getByRole('option', { name: /^(Cámaras|Cameras)$/i }).click();
       await expect(manager.getByRole('article')).toHaveCount(1);
       await expect(manager.getByRole('heading', { name: camera.name, exact: true })).toBeVisible();
       await typeFilter.click();
-      popup = page.getByRole('dialog', { name: /Tipo de dispositivo|Device type/i });
+      popup = page.getByRole('dialog', { name: /^(Tipo|Type)$/i });
       await popup.getByRole('option', { name: /^(Todo|All)$/i }).click();
       const originFilter = manager.getByRole('button', { name: /Origen|Origin/i });
       await originFilter.click();
@@ -667,6 +667,96 @@ for (const viewport of [
       await page.keyboard.press('Escape');
       expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
       if (['desktop', 'mobile portrait', 'tablet portrait'].includes(viewport.name)) await page.screenshot({ path: testInfo.outputPath(`compact-manager-${theme}.png`), fullPage: true });
+    }
+  });
+}
+
+for (const viewport of [
+  { name: 'mobile portrait', width: 320, height: 720 },
+  { name: 'mobile landscape', width: 844, height: 390 },
+  { name: 'tablet portrait', width: 768, height: 1024 },
+  { name: 'tablet landscape', width: 1024, height: 768 },
+  { name: 'desktop', width: 1440, height: 900 },
+  { name: 'kiosk portrait', width: 1080, height: 1920 },
+  { name: 'kiosk landscape', width: 1920, height: 1080 },
+]) {
+  test(`Feature: Compact discovery and access — Scenario: Assignment, import and user controls fit ${viewport.name} (AC55, AC56)`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport);
+    await prepareAuthenticatedDashboard(page);
+    const pending = { id: 'pending-desk', homeId: 'responsive-home', roomId: null, name: 'Luz pendiente', type: 'light', status: 'PENDING', integrationSource: 'sonoff', lastKnownState: { state: 'off' } };
+    let devices = [pending, { ...pending, id: 'pending-unavailable', name: 'Luz no disponible', lastKnownState: { state: 'unavailable' } }];
+    await page.route('**/api/v1/devices', route => route.fulfill({ json: devices }));
+    await page.route('**/api/v1/rooms', route => route.fulfill({ json: [{ id: 'office', homeId: pending.homeId, name: 'Oficina' }] }));
+    await page.route('**/api/v1/devices/pending-desk/assign', async route => {
+      expect(route.request().postDataJSON()).toEqual({ roomId: 'office' });
+      await route.fulfill({ json: { ...pending, roomId: 'office', status: 'ASSIGNED' } });
+    });
+    const candidates = [{ entityId: 'light.new', friendlyName: 'Luz nueva', domain: 'light' }, { entityId: 'sensor.new', friendlyName: 'Temperatura nueva', domain: 'sensor' }];
+    await page.route('**/api/v1/ha/entities?mode=all&view=summary', route => route.fulfill({ json: candidates }));
+    let imports = 0;
+    await page.route('**/api/v1/ha/import', async route => {
+      expect(route.request().postDataJSON()).toEqual({ entityId: 'light.new' });
+      imports++;
+      await route.fulfill({ json: { ...pending, id: 'new-light', name: 'Luz nueva', integrationSource: 'home-assistant' } });
+    });
+    const user = { id: 'other-user', username: 'ana', displayName: 'Ana', avatarDataUri: null, role: 'operator', isActive: true, hasActiveSessions: true, createdAt: '', updatedAt: '' };
+    await page.route('**/api/v1/admin/users', route => route.fulfill({ json: [user, { ...user, id: dashboardUser.id, username: 'admin', displayName: 'Administrador', role: 'admin', hasActiveSessions: false }] }));
+    for (const theme of ['dark', 'light']) {
+      devices = [pending, { ...pending, id: 'pending-unavailable', name: 'Luz no disponible', lastKnownState: { state: 'unavailable' } }];
+      await page.goto('/system/inbox');
+      await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
+      const main = page.getByRole('main');
+      await expect(main.getByText('Luz no disponible', { exact: true })).toHaveCount(0);
+      await expect(main).not.toContainText(/Local Nativo|Native Local|Pendiente de Puesta en Marcha|Pending Commissioning/i);
+      await expect(main.getByRole('heading', { name: /^(Sin asignar|Unassigned)$/i })).toBeVisible();
+      const origin = main.getByRole('button', { name: /^(Origen|Origin)$/i });
+      const type = main.getByRole('button', { name: /^(Tipo|Type)$/i });
+      expect((await origin.boundingBox())?.width).toBeLessThanOrEqual(160);
+      expect((await type.boundingBox())?.width).toBeLessThanOrEqual(160);
+      const typeBounds = await type.boundingBox();
+      const mainBounds = await main.boundingBox();
+      expect(typeBounds!.x + typeBounds!.width).toBeGreaterThan(mainBounds!.x + mainBounds!.width - 40);
+      const tile = main.getByRole('article').filter({ hasText: 'Luz pendiente' });
+      expect((await tile.boundingBox())?.height).toBeLessThanOrEqual(140);
+      await tile.getByRole('button', { name: /^(Sin asignar|Unassigned)$/i }).click();
+      await page.getByRole('option', { name: 'Oficina', exact: true }).click();
+      await tile.getByRole('button', { name: /^(Guardar|Save)$/i }).click();
+      await expect(tile).toHaveCount(0);
+      await main.getByRole('button', { name: /Descubrir entidades|Discover entities/i }).click();
+      const discovery = page.getByRole('region', { name: /Home Assistant/i });
+      const candidate = discovery.getByRole('article').filter({ hasText: 'Luz nueva' });
+      await expect(candidate).toBeVisible();
+      expect((await candidate.boundingBox())?.height).toBeLessThanOrEqual(110);
+      await discovery.getByRole('button', { name: /^(Tipo|Type)$/i }).click();
+      await page.getByRole('option', { name: 'sensor', exact: true }).click();
+      await expect(discovery.getByRole('article')).toHaveCount(1);
+      await discovery.getByRole('button', { name: /^(Tipo|Type)$/i }).click();
+      await page.getByRole('option', { name: /^(Todo|All)$/i }).click();
+      const beforeImports = imports;
+      await candidate.getByRole('button', { name: /^(Importar|Import)$/i }).click();
+      await expect(candidate).toHaveCount(0);
+      expect(imports).toBe(beforeImports + 1);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+      if (['mobile portrait', 'tablet portrait', 'desktop'].includes(viewport.name)) await page.screenshot({ path: testInfo.outputPath(`discovery-${theme}.png`), fullPage: true });
+      await page.goto('/system/users');
+      await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
+      await expect(page.getByRole('heading', { name: /Usuarios y Acceso|Users and Access/i })).toBeVisible();
+      const card = page.getByRole('article', { name: 'Ana', exact: true });
+      await expect(card.getByRole('button', { name: /Suspender|Suspend/i })).toBeVisible();
+      await expect(card.getByRole('button', { name: /Revocar|Revoke/i })).toBeEnabled();
+      const reset = card.getByRole('button', { name: /Restablecer|Reset/i });
+      await expect(reset).toBeVisible();
+      await expect(page.getByRole('article', { name: 'Administrador', exact: true }).getByRole('button', { name: /Restablecer|Reset/i })).toHaveCount(0);
+      expect((await card.boundingBox())?.height).toBeLessThanOrEqual(240);
+      const resetBounds = await reset.boundingBox();
+      expect(resetBounds?.height).toBeGreaterThanOrEqual(44);
+      expect(resetBounds?.width).toBeGreaterThanOrEqual(44);
+      await reset.click();
+      await expect(page.getByRole('dialog')).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('dialog')).toHaveCount(0);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+      if (['mobile portrait', 'tablet portrait', 'desktop'].includes(viewport.name)) await page.screenshot({ path: testInfo.outputPath(`users-${theme}.png`), fullPage: true });
     }
   });
 }

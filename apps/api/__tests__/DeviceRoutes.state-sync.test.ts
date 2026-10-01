@@ -377,6 +377,7 @@ describe('Feature: Home Assistant discovery and import route contracts', () => {
     (container.adapters.homeAssistantClient.getAllStates as jest.Mock).mockResolvedValue([
       { entity_id: 'light.existing', state: 'on', attributes: { friendly_name: 'Existing' } },
       { entity_id: 'light.office', state: 'off', attributes: { friendly_name: 'Office Light' } },
+      { entity_id: 'light.unavailable', state: 'unavailable', attributes: { friendly_name: 'Disconnected Light' } },
       { entity_id: 'unsupported.hidden', state: 'on', attributes: {} },
     ]);
     const res = response();

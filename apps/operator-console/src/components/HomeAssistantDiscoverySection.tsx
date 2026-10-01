@@ -1,11 +1,12 @@
 import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight, Loader2, RadioTower, RefreshCw } from 'lucide-react';
+import { ArrowRight, RadioTower, RefreshCw } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { Button } from './ui/Button';
-import { DiscoverySkeleton } from './ui/ComponentSkeletons';
-import { SearchFilterBar } from './ui/SearchFilterBar';
+import { HaDiscoverySkeleton } from './ui/ComponentSkeletons';
+import { SearchInput } from './ui/Input';
+import { SearchableSelectField } from './ui/SearchableSelectField';
 import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 
 interface HaEntityCandidate {
@@ -161,19 +162,13 @@ export const HomeAssistantDiscoverySection: React.FC<HomeAssistantDiscoverySecti
       {showDiscovery && (
         <div className="flex flex-col gap-3 animate-in slide-in-from-top-2 duration-300">
           {loading && entities.length === 0 ? (
-            <div className="flex min-h-36 items-center justify-center gap-3 rounded-panel border border-border/60 bg-card/35 text-body text-muted-foreground">
-              <DiscoverySkeleton label={t('inbox.discovery.loading_entities')} className="w-full" />
-            </div>
+            <HaDiscoverySkeleton label={t('inbox.discovery.loading_entities')} />
           ) : (
             <>
-              <SearchFilterBar
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                searchPlaceholder={t('inbox.discovery.search_placeholder')}
-                activeFilter={domainFilter}
-                onFilterChange={setDomainFilter}
-                options={domainOptions}
-              />
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div className="w-full max-w-sm"><SearchInput value={searchQuery} onChange={event => setSearchQuery(event.target.value)} placeholder={t('inbox.discovery.search_placeholder')} /></div>
+                <SearchableSelectField label={t('inbox.filters.type_label')} value={domainFilter} onChange={setDomainFilter} options={domainOptions} className="ml-auto w-40 max-w-full" />
+              </div>
 
               <div className="flex flex-wrap items-center justify-between gap-2 text-caption text-muted-foreground">
                 <span>{t('inbox.discovery.result_count', { visible: visibleEntities.length, total: filteredEntities.length })}</span>
@@ -183,32 +178,24 @@ export const HomeAssistantDiscoverySection: React.FC<HomeAssistantDiscoverySecti
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,17rem),1fr))] gap-3">
                 {visibleEntities.map((entity) => (
-                  <article key={entity.entityId} className="group relative flex min-w-0 flex-col gap-3 overflow-hidden rounded-card border border-border bg-card p-3.5">
-                    <RadioTower className="absolute right-2 top-2 h-8 w-8 opacity-5" aria-hidden="true" />
+                  <article key={entity.entityId} className="flex min-w-0 items-center gap-3 rounded-control border border-border bg-card p-3">
                     <div className="flex min-w-0 flex-col">
-                      <span className="truncate font-mono text-micro uppercase text-muted-foreground" title={entity.entityId}>{entity.entityId}</span>
-                      <span className="truncate text-body font-bold" title={entity.friendlyName}>{entity.friendlyName}</span>
-                      {entity.profile && (
-                        <span className="truncate text-caption text-muted-foreground">
-                          {entity.profile.displayName} · {entity.profile.supportedCommandCount > 0
-                            ? t('inbox.discovery.command_count', { count: entity.profile.supportedCommandCount })
-                            : t('inbox.discovery.read_only')}
-                        </span>
-                      )}
+                      <span className="break-words text-body-compact font-semibold">{entity.friendlyName}</span>
+                      <span className="break-all text-micro text-muted-foreground">{entity.entityId}</span>
                     </div>
-                    <div className="mt-auto flex items-center justify-between gap-3 border-t border-border/20 pt-2">
-                      <span className="rounded bg-muted px-2 py-0.5 text-micro font-bold uppercase">{entity.domain.replaceAll('_', ' ')}</span>
+                    <div className="ml-auto shrink-0">
                       <Button
                         type="button"
                         onClick={() => { void handleImport(entity); }}
                         disabled={importingId !== null}
                         variant="ghost"
-                        size="xs"
+                        size="lg"
+                        isLoading={importingId === entity.entityId}
                         className="gap-1 bg-primary/10 uppercase tracking-control text-primary hover:bg-primary/20"
                       >
-                        {importingId === entity.entityId ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowRight className="h-3 w-3" />}
+                        <ArrowRight className="h-4 w-4" aria-hidden="true" />
                         {t('common.import')}
                       </Button>
                     </div>

@@ -652,6 +652,7 @@ export class DeviceRoutes extends ApiRoutes {
 
       const entities = allStates
         .filter((s) => {
+          if (isSummaryView && s.state === 'unavailable') return false;
           if (existingEntityIdsSet.has(s.entity_id)) return false;
 
           const domain = s.entity_id.split('.')[0];

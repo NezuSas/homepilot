@@ -843,8 +843,8 @@
       "smart_display": "Displays",
       "local": "Local",
       "bridged": "Bridged",
-      "origin_label": "Device origin",
-      "type_label": "Device type"
+      "origin_label": "Origin",
+      "type_label": "Type"
   },
   "device_inspector": {
     "entity_id": "Entity ID",
@@ -866,7 +866,7 @@
     "cover_inverted_hint": "Enable this when Home Assistant reports open while it is physically closed."
   },
   "rooms": {
-      "unassigned": "Unassigned / Pending Commissioning",
+      "unassigned": "Unassigned",
       "device_count_one": "1 Unit",
       "device_count_other": "{{count}} Units",
       "device_count": "{{count}} Units"
@@ -1359,7 +1359,7 @@
       "username_placeholder": "e.g. operator_1"
     },
     "header": {
-      "title": "Active Edge Directory",
+      "title": "Users and Access",
       "subtitle": "Manage organizational access and session boundaries.",
       "add_button": "Add User"
     },

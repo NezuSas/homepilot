@@ -131,6 +131,9 @@ Se propone una consola de administración pragmática:
 - [x] AC54: El Gestor muestra resúmenes de configuración, sin controles operativos ni sesiones de cámara; el inspector abierto desde el Gestor conserva función, nombre, asignación, diagnóstico y eliminación, pero no encendido ni controles de cortina. El catálogo de pizarra permanece informativo allí. Cámaras y comandos cotidianos se presentan en Espacios/Dashboard sin cambiar los endpoints ni permisos.
   Las fichas compactas muestran nombre/estancia con un único botón de configuración; el catálogo de pizarra se accede desde el inspector. Origen/tipo usan selectores modulares con búsqueda, sin banner Edge. El Drawer permanece montado de skeleton a datos y mantiene su posición derecha.
 
+- [x] AC55: Gestor/Descubrimiento muestran filtros «Origen»/«Tipo» compactos alineados a la derecha, reutilizando SearchableSelectField. Las fichas agrupadas del Gestor no repiten el espacio; las pendientes muestran únicamente «Sin asignar», sin etiqueta Local Nativo ni formato cuadrado. Resultados HA usan filtro Tipo y tarjetas compactas con importación explícita. Los no disponibles se excluyen del descubrimiento/asignación, sin borrar registros, referencias ni datos persistentes; el resumen HA conserva su formato ligero y filtra `unavailable` antes de responder.
+- [x] AC56: Usuarios y Acceso presenta su título correcto y una composición compacta modular en todos los breakpoints, con skeleton propio; conserva roles, estados, confirmaciones, sesiones y protección del usuario actual, sin cambiar RBAC ni endpoints.
+
 ## 9. Notas Técnicas y Arquitectura
 
 - El backend actual debe exponer (si no lo hace aún) los endpoints mínimos para soportar estas vistas (ej. REST V1 `GET /api/devices/inbox`, `POST /api/devices/{id}/assign`, etc.).
