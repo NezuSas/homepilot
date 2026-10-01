@@ -124,6 +124,24 @@ describe('Automation → SceneExecutionService integration', () => {
     expect(commandDispatcher.dispatch).toHaveBeenCalledTimes(1);
   });
 
+  it('automatización ejecuta activate una sola vez como acción momentánea', async () => {
+    await addDevice('scene-action');
+    await ruleRepo.save({
+      id: 'rule-momentary', homeId: 'home-1', userId: 'u1', name: 'Momentary', enabled: true,
+      trigger: { type: 'device_state_changed', deviceId: 'sensor-momentary', stateKey: 'state', expectedValue: 'on' },
+      action: { type: 'device_command', targetDeviceId: 'scene-action', command: 'activate' },
+    });
+
+    await engine.handleSystemEvent({
+      eventId: 'evt-momentary', occurredAt: new Date().toISOString(),
+      source: 'home_assistant', deviceId: 'sensor-momentary', externalId: 'ext-momentary',
+      newState: { state: 'on' },
+    });
+
+    expect(commandDispatcher.dispatch).toHaveBeenCalledTimes(1);
+    expect(commandDispatcher.dispatch).toHaveBeenCalledWith('scene-action', expect.objectContaining({ name: 'activate' }));
+  });
+
   it('metadata source="automation" se propaga al dispatch correctamente', async () => {
     await addDevice('light-2');
     await ruleRepo.save({

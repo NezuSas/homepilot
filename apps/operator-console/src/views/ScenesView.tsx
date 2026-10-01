@@ -12,6 +12,7 @@ import { ScenesHeader } from '../components/ScenesHeader';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { useDeviceSnapshotStore, type SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 import { useSceneFavorites } from '../lib/useSceneFavorites';
+import type { RoutineDeviceCommand } from '../lib/deviceCapabilities';
 
 interface Room {
   id: string;
@@ -20,7 +21,7 @@ interface Room {
 
 interface SceneAction {
   deviceId: string;
-  command: 'turn_on' | 'turn_off';
+  command: RoutineDeviceCommand;
 }
 
 interface Scene {

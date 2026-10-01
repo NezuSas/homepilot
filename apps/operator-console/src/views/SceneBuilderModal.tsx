@@ -13,7 +13,7 @@ import { Input, SearchInput } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { IconPicker } from './dashboards/components/IconPicker';
 import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
-import { canExecuteCommand, hasCapability, isCameraDevice } from '../lib/deviceCapabilities';
+import { getRoutineDeviceCommands, isCameraDevice, type RoutineDeviceCommand } from '../lib/deviceCapabilities';
 
 const API_URL = `${API_BASE_URL}/api/v1`;
 
@@ -24,7 +24,7 @@ interface Room {
 
 interface SceneAction {
   deviceId: string;
-  command: 'turn_on' | 'turn_off' | 'open' | 'close' | 'stop';
+  command: RoutineDeviceCommand;
 }
 
 interface Scene {
@@ -58,19 +58,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
   const [error, setError] = useState<string | null>(null);
   const [deviceSearch, setDeviceSearch] = useState('');
 
-  const isCoverDevice = (device: SnapshotDevice) => hasCapability(device, 'cover') || device.semanticType === 'cover' || device.type === 'cover';
-  const isPowerDevice = (device: SnapshotDevice) => (
-    hasCapability(device, 'light')
-    || hasCapability(device, 'switch')
-    || device.semanticType === 'light'
-    || device.semanticType === 'switch'
-    || device.semanticType === 'outlet'
-    || ['light', 'switch', 'outlet'].includes(device.type)
-  );
-  const canAddSceneAction = (device: SnapshotDevice) => (
-    (isCoverDevice(device) && (canExecuteCommand(device, 'open') || canExecuteCommand(device, 'close')))
-    || (isPowerDevice(device) && (canExecuteCommand(device, 'turn_on') || canExecuteCommand(device, 'turn_off')))
-  );
+  const canAddSceneAction = (device: SnapshotDevice) => getRoutineDeviceCommands(device).length > 0;
   const nonCameraDevices = devices.filter(device => !isCameraDevice(device));
   let availableDevices = roomId ? nonCameraDevices.filter(d => d.roomId === roomId) : nonCameraDevices;
   
@@ -87,12 +75,12 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
     } else {
       const device = devices.find(d => d.id === deviceId);
       if (!device || !canAddSceneAction(device)) return;
-      const defaultCommand: SceneAction['command'] = isCoverDevice(device) ? 'open' : 'turn_on';
-      setActions([...actions, { deviceId, command: defaultCommand }]);
+      const defaultCommand = getRoutineDeviceCommands(device)[0];
+      if (defaultCommand) setActions([...actions, { deviceId, command: defaultCommand }]);
     }
   };
 
-  const setCommand = (deviceId: string, command: 'turn_on' | 'turn_off' | 'open' | 'close' | 'stop') => {
+  const setCommand = (deviceId: string, command: RoutineDeviceCommand) => {
     setActions(actions.map(a => a.deviceId === deviceId ? { ...a, command } : a));
   };
 
@@ -280,23 +268,22 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
 
                         {isSelected && (
                           <div className="w-full min-[520px]:w-52" onClick={e => e.stopPropagation()}>
-                            <SegmentedControl<'activate' | 'deactivate'>
-                              value={action?.command === 'turn_on' || action?.command === 'open' ? 'activate' : 'deactivate'}
-                              onChange={(value) => setCommand(
-                                d.id,
-                                value === 'activate'
-                                  ? (isCoverDevice(d) ? 'open' : 'turn_on')
-                                  : (isCoverDevice(d) ? 'close' : 'turn_off'),
-                              )}
-                              options={[
-                                { value: 'activate', label: isCoverDevice(d) ? t('common.actions.open') : t('common.on') },
-                                { value: 'deactivate', label: isCoverDevice(d) ? t('common.actions.close') : t('common.off') },
-                              ]}
-                              label={t('automations.form.action_type')}
-                              tone="primary"
-                              className="w-full rounded-lg p-1"
-                              optionClassName="min-h-9 px-2 py-1.5 text-nano font-black tracking-widest"
-                            />
+                            {action && ['press', 'activate'].includes(action.command) ? (
+                              <span className="text-nano font-bold text-primary">{t('scenes.builder.momentary_action')}</span>
+                            ) : (
+                              <SegmentedControl<RoutineDeviceCommand>
+                                value={action?.command ?? getRoutineDeviceCommands(d)[0]}
+                                onChange={(command) => setCommand(d.id, command)}
+                                options={getRoutineDeviceCommands(d).map(command => ({
+                                  value: command,
+                                  label: t(`automations.builder.commands.${command}`),
+                                }))}
+                                label={t('automations.form.action_type')}
+                                tone="primary"
+                                className="w-full rounded-lg p-1"
+                                optionClassName="min-h-9 px-2 py-1.5 text-nano font-black tracking-widest"
+                              />
+                            )}
                           </div>
                         )}
                       </div>

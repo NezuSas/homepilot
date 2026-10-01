@@ -1,4 +1,4 @@
-import { canExecuteCommand, getCapability, hasCapability, isCameraDevice } from '../deviceCapabilities';
+import { canExecuteCommand, getCapability, getRoutineDeviceCommands, hasCapability, isCameraDevice } from '../deviceCapabilities';
 import type { SnapshotDevice } from '../../stores/useDeviceSnapshotStore';
 
 function device(capabilities?: SnapshotDevice['capabilities']): SnapshotDevice {
@@ -47,5 +47,19 @@ describe('deviceCapabilities', () => {
     for (const type of ['light', 'switch', 'outlet', 'sensor', 'cover', 'unknown']) {
       expect(isCameraDevice({ type })).toBe(false);
     }
+  });
+
+  it('uses real momentary commands even when a button is labeled as a light', () => {
+    const action = { ...device([{ type: 'button', name: 'Button', commands: [{ name: 'press' }] }]), type: 'button', semanticType: 'light' as const };
+    expect(getRoutineDeviceCommands(action)).toEqual(['press']);
+    expect(getRoutineDeviceCommands({ ...action, capabilities: [{ type: 'scene', name: 'Scene', commands: [{ name: 'activate' }] }] })).toEqual(['activate']);
+    expect(getRoutineDeviceCommands({ ...action, type: 'sensor', capabilities: [{ type: 'scene', name: 'Scene', commands: [{ name: 'activate' }] }] })).toEqual(['activate']);
+  });
+
+  it('keeps real power commands and rejects commandless sensors or cameras', () => {
+    expect(getRoutineDeviceCommands(device([{ type: 'light', name: 'Light', commands: [{ name: 'turn_on' }, { name: 'turn_off' }] }]))).toEqual(['turn_on', 'turn_off']);
+    expect(getRoutineDeviceCommands({ ...device([{ type: 'sensor', name: 'Sensor', commands: [] }]), type: 'sensor', semanticType: 'light' })).toEqual([]);
+    expect(getRoutineDeviceCommands({ ...device(), type: 'sensor', semanticType: 'light', capabilities: undefined })).toEqual([]);
+    expect(getRoutineDeviceCommands({ ...device([{ type: 'button', name: 'Button', commands: [{ name: 'press' }] }]), type: 'camera' })).toEqual([]);
   });
 });

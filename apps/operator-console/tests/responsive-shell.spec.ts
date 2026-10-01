@@ -622,6 +622,54 @@ test('Feature: Routine device identities — Scenes and automations list non-cam
   await expect(options.getByRole('option', { name: 'Cámara de sala' })).toHaveCount(0);
 });
 
+test('Feature: momentary routine targets — a light-labeled HA action saves press for scenes and automations', async ({ page }) => {
+  await prepareAuthenticatedDashboard(page);
+  await page.route('**/api/v1/homes', (route) => route.fulfill({ json: [{ id: 'responsive-home', ownerId: dashboardUser.id, name: 'Casa' }] }));
+  await page.route('**/api/v1/devices', (route) => route.fulfill({ json: [
+    { id: 'tv-action', homeId: 'responsive-home', roomId: null, name: 'On/Off tv', type: 'button', semanticType: 'light', status: 'ASSIGNED', capabilities: [{ type: 'button', name: 'Button', commands: [{ name: 'press' }] }] },
+    { id: 'read-only', homeId: 'responsive-home', roomId: null, name: 'Read only', type: 'sensor', semanticType: 'light', status: 'ASSIGNED', capabilities: [{ type: 'sensor', name: 'Sensor' }] },
+  ] }));
+  let sceneCommand: string | undefined;
+  let automationCommand: string | undefined;
+  await page.route('**/api/v1/scenes', (route) => {
+    if (route.request().method() === 'POST') {
+      sceneCommand = (route.request().postDataJSON() as { actions: { command: string }[] }).actions[0]?.command;
+      return route.fulfill({ status: 201, json: { id: 'tv-scene' } });
+    }
+    return route.fulfill({ json: [] });
+  });
+  await page.route('**/api/v1/automations', (route) => {
+    if (route.request().method() === 'POST') {
+      automationCommand = (route.request().postDataJSON() as { action: { command: string } }).action.command;
+      return route.fulfill({ status: 201, json: { id: 'tv-automation' } });
+    }
+    return route.fulfill({ json: [] });
+  });
+
+  await page.goto('/routines/scenes');
+  await page.getByRole('button', { name: /^(Crear Escena|Create Scene)$/i }).first().click();
+  const sceneEditor = page.getByRole('dialog', { name: /^(Crear Escena|Create Scene)$/i });
+  await sceneEditor.getByRole('textbox', { name: /Cena con invitados|Dinner Party/i }).fill('Escena TV');
+  await expect(sceneEditor.getByRole('button', { name: /Read only/i })).toHaveAttribute('aria-disabled', 'true');
+  await sceneEditor.getByRole('button', { name: /On\/off tv/i }).click();
+  await expect(sceneEditor.getByText(/Acción momentánea|Momentary action/)).toBeVisible();
+  await sceneEditor.getByRole('button', { name: /^(Guardar Escena|Save Scene)$/i }).click();
+  await expect.poll(() => sceneCommand).toBe('press');
+
+  await page.goto('/routines/automations');
+  await page.getByRole('button', { name: /^(Crear Regla|Create Rule)$/i }).first().click();
+  const automationEditor = page.getByRole('dialog', { name: /^(Nueva Automatización|New Automation)$/i });
+  await automationEditor.getByRole('textbox', { name: /Asignar nombre|Naming this Automation/i }).fill('Auto TV');
+  await automationEditor.getByRole('radiogroup', { name: /Disparador de Inteligencia|Intelligence Trigger/i }).getByRole('radio', { name: /^(Hora|Time)$/i }).click();
+  await automationEditor.getByText(/^(Dispositivo Objetivo|Target Device)$/i).locator('..').getByRole('button').click();
+  const targetOptions = page.getByRole('listbox');
+  await expect(targetOptions.getByRole('option', { name: /Read only/i })).toHaveCount(0);
+  await targetOptions.getByRole('option', { name: /On\/off tv/i }).click();
+  await expect(automationEditor.getByRole('button', { name: /Pulsar una vez|Press once/i })).toBeVisible();
+  await automationEditor.getByRole('button', { name: /^(Confirmar Automatización|Confirm Automation)$/i }).click();
+  await expect.poll(() => automationCommand).toBe('press');
+});
+
 test('Feature: automation favorites — valid legacy IDs migrate once, merge with server data and never overwrite it with an empty local list', async ({ page }) => {
   await page.addInitScript(() => {
     if (sessionStorage.getItem('legacy-automation-favorites-seeded')) return;
@@ -2464,7 +2512,7 @@ test('Feature: Automation lifecycle — Scenario: Given a new time automation Wh
   await page.route('**/api/v1/devices', async (route) => {
     await route.fulfill({
       contentType: 'application/json',
-      body: JSON.stringify([{ id: 'light-1', name: 'Living Room Light' }]),
+      body: JSON.stringify([{ id: 'light-1', name: 'Living Room Light', type: 'light', status: 'ASSIGNED' }]),
     });
   });
   await page.route('**/api/v1/scenes', async (route) => {

@@ -1,4 +1,6 @@
-export interface AutomationBuilderDevice {
+import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
+
+export interface AutomationBuilderDevice extends Pick<SnapshotDevice, 'type' | 'semanticType' | 'capabilities'> {
   id: string;
   name: string;
 }

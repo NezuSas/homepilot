@@ -26,7 +26,7 @@ export function isCameraDevice(device: Pick<SnapshotDevice, 'type' | 'semanticTy
  * y comandos permitidos que vienen desde el backend.
  * Implementa un fallback conservador para dispositivos legacy.
  */
-export function canExecuteCommand(device: SnapshotDevice, command: string): boolean {
+export function canExecuteCommand(device: Pick<SnapshotDevice, 'capabilities'>, command: string): boolean {
   // 1. Fallback total si no hay ninguna capacidad declarada (Dispositivos legacy/desconocidos)
   if (!device.capabilities || device.capabilities.length === 0) {
     const legacyAllowed = ['turn_on', 'turn_off', 'toggle', 'open', 'close', 'stop'];
@@ -42,4 +42,24 @@ export function canExecuteCommand(device: SnapshotDevice, command: string): bool
     
     return cap.commands.some(cmd => cmd.name === command);
   });
+}
+
+export type RoutineDeviceCommand = 'turn_on' | 'turn_off' | 'toggle' | 'open' | 'close' | 'stop' | 'press' | 'activate';
+
+/** Commands usable as a scene step or an automation consequence, based on real capabilities. */
+export function getRoutineDeviceCommands(device: Pick<SnapshotDevice, 'type' | 'semanticType' | 'capabilities'>): RoutineDeviceCommand[] {
+  if (isCameraDevice(device)) return [];
+
+  // A button or imported HA scene remains momentary even if the user labels it as a light.
+  const momentary: RoutineDeviceCommand[] = ['press', 'activate'];
+  const availableMomentary = momentary.filter(command => canExecuteCommand(device, command));
+  if (availableMomentary.length > 0) return availableMomentary;
+
+  const stateful: RoutineDeviceCommand[] = ['turn_on', 'turn_off', 'toggle', 'open', 'close', 'stop'];
+  if (device.capabilities?.length) return stateful.filter(command => canExecuteCommand(device, command));
+
+  // The legacy fallback has no published commands; keep it limited to known physical roles.
+  const candidates = device.type === 'cover' ? ['open', 'close', 'stop']
+    : ['light', 'switch', 'outlet'].includes(device.type) ? ['turn_on', 'turn_off', 'toggle'] : [];
+  return candidates.filter((command): command is RoutineDeviceCommand => canExecuteCommand(device, command));
 }

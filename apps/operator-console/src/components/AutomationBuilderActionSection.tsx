@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { SegmentedControl } from './ui/SegmentedControl';
 import { SearchableSelectField } from './ui/SearchableSelectField';
 import { humanize } from '../lib/naming-utils';
+import { getRoutineDeviceCommands } from '../lib/deviceCapabilities';
 import type { AutomationActionConfig, AutomationBuilderDevice, AutomationBuilderScene } from './AutomationBuilderTypes';
 
 interface AutomationBuilderActionSectionProps {
@@ -24,6 +25,12 @@ export const AutomationBuilderActionSection: React.FC<AutomationBuilderActionSec
   onActionConfigChange
 }) => {
   const { t } = useTranslation();
+  const actionableDevices = devices.filter(device => getRoutineDeviceCommands(device).length > 0
+    || device.id === actionConfig.targetDeviceId);
+  const selectedDevice = devices.find(device => device.id === actionConfig.targetDeviceId);
+  const availableCommands = selectedDevice ? getRoutineDeviceCommands(selectedDevice) : [];
+  const displayedCommands = actionConfig.command && !availableCommands.some(command => command === actionConfig.command)
+    ? [...availableCommands, actionConfig.command] : availableCommands;
 
   return (
     <div className="relative space-y-5 rounded-card border border-primary/20 bg-automation-action p-5 shadow-primary-button ring-1 ring-background/45 sm:p-6">
@@ -51,21 +58,21 @@ export const AutomationBuilderActionSection: React.FC<AutomationBuilderActionSec
             <label className="hp-type-label-accent ml-1">{t('automations.form.target_device')}</label>
             <SearchableSelectField
               value={actionConfig.targetDeviceId || ''}
-              onChange={(value: string) => onActionConfigChange({ ...actionConfig, targetDeviceId: value })}
-              options={devices.map(device => ({ value: device.id, label: humanize(device.id, device.name) }))}
+              onChange={(value: string) => {
+                const device = actionableDevices.find(candidate => candidate.id === value);
+                onActionConfigChange({ ...actionConfig, targetDeviceId: value, command: device ? getRoutineDeviceCommands(device)[0] : '' });
+              }}
+              options={actionableDevices.map(device => ({ value: device.id, label: humanize(device.id, device.name) }))}
               placeholder={t('automations.form.select_device')}
             />
           </div>
           <div className="space-y-2">
             <label className="hp-type-label-accent ml-1">{t('automations.form.action_type')}</label>
             <SearchableSelectField
-              value={actionConfig.command || 'turn_on'}
+              value={actionConfig.command || ''}
               onChange={(value: string) => onActionConfigChange({ ...actionConfig, command: value })}
-              options={[
-                { value: 'turn_on', label: t('automations.builder.commands.turn_on') },
-                { value: 'turn_off', label: t('automations.builder.commands.turn_off') },
-                { value: 'toggle', label: t('automations.builder.commands.toggle') }
-              ]}
+              options={displayedCommands.map(command => ({ value: command, label: t(`automations.builder.commands.${command}`) }))}
+              disabled={displayedCommands.length === 0}
             />
           </div>
         </div>

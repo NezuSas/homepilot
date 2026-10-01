@@ -571,6 +571,7 @@
       "intent": "Scene Intent",
       "select_units": "Select Active Units ({{count}})",
       "no_compatible_command": "No scene-compatible commands",
+      "momentary_action": "Momentary action · runs once",
       "grouping_hint": "Intelligent grouping",
       "commit": "Save Scene",
       "errors": {
@@ -1092,7 +1093,12 @@
       "commands": {
         "turn_on": "Turn On",
         "turn_off": "Turn Off",
-        "toggle": "Toggle"
+        "toggle": "Toggle",
+        "open": "Open",
+        "close": "Close",
+        "stop": "Stop",
+        "press": "Press once",
+        "activate": "Activate once"
       },
       "properties": {
         "state": "STATE",

@@ -16,10 +16,11 @@ import {
 import { cn } from '../lib/utils';
 import { IconButton } from './ui/IconButton';
 import { getDashboardIconComponent } from '../views/dashboards/components/IconPicker';
+import type { RoutineDeviceCommand } from '../lib/deviceCapabilities';
 
 interface SceneAction {
   deviceId: string;
-  command: 'turn_on' | 'turn_off';
+  command: RoutineDeviceCommand;
 }
 
 export interface SceneCardScene {

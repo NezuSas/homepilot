@@ -571,6 +571,7 @@
       "intent": "Intención de la Escena",
       "select_units": "Seleccionar Unidades Activas ({{count}})",
       "no_compatible_command": "Sin comandos compatibles para una escena",
+      "momentary_action": "Acción momentánea · se ejecuta una vez",
       "grouping_hint": "Agrupamiento inteligente",
       "commit": "Guardar Escena",
       "errors": {
@@ -1092,7 +1093,12 @@
       "commands": {
         "turn_on": "Encender",
         "turn_off": "Apagar",
-        "toggle": "Alternar"
+        "toggle": "Alternar",
+        "open": "Abrir",
+        "close": "Cerrar",
+        "stop": "Detener",
+        "press": "Pulsar una vez",
+        "activate": "Activar una vez"
       },
       "properties": {
         "state": "ESTADO",

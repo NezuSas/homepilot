@@ -18,6 +18,7 @@ import { humanize } from '../lib/naming-utils';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import { useAutomationFavorites } from '../lib/useSceneFavorites';
 import { isCameraDevice } from '../lib/deviceCapabilities';
+import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 
 interface AutomationRule {
   id: string;
@@ -44,12 +45,7 @@ interface AutomationRule {
   };
 }
 
-interface Device {
-  id: string;
-  name: string;
-  integrationSource?: string;
-  updatedAt?: string;
-}
+type Device = SnapshotDevice;
 
 interface Scene {
   id: string;

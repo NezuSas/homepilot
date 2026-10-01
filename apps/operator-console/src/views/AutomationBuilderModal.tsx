@@ -11,6 +11,7 @@ import { AutomationBuilderTriggerSection } from '../components/AutomationBuilder
 import { Modal } from '../components/ui/Modal';
 import { IconPicker } from './dashboards/components/IconPicker';
 import type { AutomationActionConfig, AutomationBuilderDevice, AutomationBuilderScene, AutomationRuleDraft, AutomationTriggerConfig } from '../components/AutomationBuilderTypes';
+import { getRoutineDeviceCommands } from '../lib/deviceCapabilities';
 
 interface AutomationBuilderModalProps {
   isOpen: boolean;
@@ -143,7 +144,13 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
   const isSubmitDisabled = isSubmitting
     || !name
     || (triggerType === 'device_state_changed' && !triggerConfig.deviceId)
-    || (actionType === 'device_command' && !actionConfig.targetDeviceId)
+    || (actionType === 'device_command' && !(
+      (existingAutomation?.action.type === 'device_command'
+        && existingAutomation.action.targetDeviceId === actionConfig.targetDeviceId
+        && existingAutomation.action.command === actionConfig.command)
+      || devices.some(device => device.id === actionConfig.targetDeviceId
+        && getRoutineDeviceCommands(device).some(command => command === actionConfig.command))
+    ))
     || (actionType === 'execute_scene' && !actionConfig.sceneId);
 
   const handleTriggerTypeChange = (nextType: 'device_state_changed' | 'time') => {

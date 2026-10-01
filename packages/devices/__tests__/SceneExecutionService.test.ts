@@ -33,6 +33,13 @@ describe('Feature: ejecución confiable de escenas', () => {
   // ---------------------------------------------------------------------------
 
   describe('Modo parallel (default / sin executionMode)', () => {
+    it('despacha una acción momentánea press una sola vez sin convertirla en turn_on', async () => {
+      const result = await service.execute(makeScene({ actions: [{ deviceId: 'tv-action', command: 'press' }] }));
+      expect(result.status).toBe('success');
+      expect(dispatcher.dispatch).toHaveBeenCalledTimes(1);
+      expect(dispatcher.dispatch).toHaveBeenCalledWith('tv-action', expect.objectContaining({ name: 'press' }));
+    });
+
     it('Scenario: Given una escena sin modo explícito When se ejecuta Then despacha cada acción en paralelo', async () => {
       const scene = makeScene({
         actions: [

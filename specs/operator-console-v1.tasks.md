@@ -211,3 +211,8 @@
 - **Descripción**: Cambiar el saludo y frase a noche a las 18:30 local; excluir cámaras de los selectores de escenas y automatizaciones, mostrando identidades no cámara sin permitir acciones incompatibles en escenas.
 - **Módulos**: personalización de Inicio, constructores de escenas y automatizaciones, pruebas de período y capacidades.
 - **Criterio Relacionado**: **AC45**.
+
+### [UI-Routines-01] Acciones momentáneas compatibles
+- **Descripción**: Ofrecer `press` y `activate` en Escenas y Automatizaciones solo cuando las capacidades efectivas del dispositivo los declaren. Priorizar la acción momentánea frente a la identidad semántica de luz, sin mostrar selector ON/OFF para ella; conservar los comandos existentes y evitar objetivos sin comando ejecutable.
+- **Módulos**: constructores de Escenas y Automatizaciones, selector compartido de capacidades y pruebas de regresión.
+- **Criterio Relacionado**: **AC46**.
