@@ -237,14 +237,14 @@ function SensorPresentationHero({ reading, t }: {
     : displayValue(reading.value, t);
   const unit = isPercentage ? '%' : reading.unit;
   const readingWidth = value.length * 0.62;
-  const readingScale = Math.min(17, 80 / readingWidth);
+  const readingScale = value.length > 6 ? Math.min(17, 80 / readingWidth) : 17;
   const isState = available && (reading.presentation === 'binary' || reading.presentation === 'categorical');
 
   return (
     <>
       {isState ? <span aria-hidden="true" className={cn('sensor-state-symbol', reading.binaryState === 'off' && 'sensor-state-symbol-idle')}><CategoryIcon category={reading.category} percentage={reading.percentage} /></span> : null}
       <span className="sensor-reading-value" style={{ '--sensor-reading-scale': `${readingScale}cqi` } as CSSProperties}>
-        <span className={cn('sensor-reading-number tabular-nums tracking-tight', !available && 'text-muted-foreground', isState && 'sensor-reading-state', available && numericValue(reading.value) !== null && value.length > 4 && 'sensor-reading-plain')}>
+        <span className={cn('sensor-reading-number tabular-nums tracking-tight', !available && 'text-muted-foreground', isState && 'sensor-reading-state', available && numericValue(reading.value) !== null && value.length > 6 && 'sensor-reading-plain')}>
           {value}
         </span>
         {available && unit ? <span className="sensor-reading-unit font-medium text-muted-foreground">{unit}</span> : null}

@@ -405,7 +405,7 @@ export function DashboardWidgetNode({
           <div className={cn("pointer-events-auto absolute z-30 flex items-center", isSection ? "-top-5 right-3" : "right-2 top-2")}>
             <div className="flex items-center gap-1 rounded-xl border border-border/50 bg-background/95 p-1 shadow-lg backdrop-blur-md">
               {/* The grip reorders the section without capturing its card controls. */}
-              {!isTitleWidget && canDrag && (
+              {!isTitleWidget && !isSection && canDrag && (
                 <IconButton
                   icon={GripVertical}
                   label={t('common.reorder')}
@@ -416,7 +416,7 @@ export function DashboardWidgetNode({
                   className="h-9 w-7 touch-none cursor-grab text-muted-foreground/50 active:cursor-grabbing hover:text-primary"
                 />
               )}
-              {!isTitleWidget && canDrag && (canConfigureWidget || Boolean(onDelete)) && <div className="mx-0.5 h-4 w-px bg-border/40" />}
+              {!isTitleWidget && !isSection && canDrag && (canConfigureWidget || Boolean(onDelete)) && <div className="mx-0.5 h-4 w-px bg-border/40" />}
               {canConfigureWidget && (
                 <IconButton
                   icon={Pencil}

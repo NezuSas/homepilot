@@ -23,7 +23,7 @@ El pie conserva la política existente: batería/señal baja o crítica, memoria
 
 ## Typography
 
-Rubik es la familia residente de HomePilot y también la familia de las marcas Canvas. El nombre tiene peso medio (500), tamaño adaptable al contenedor y saltos naturales. La lectura analógica tiene peso (550), dígitos tabulares y escala dependiente de su longitud; signos, cero y decimales permanecen en la lectura. La unidad se sitúa debajo. El pie y la escala tienen jerarquía secundaria y admiten saltos.
+Rubik es la familia residente de HomePilot y también la familia de las marcas Canvas. El nombre tiene peso medio (500), tamaño adaptable al contenedor y saltos naturales. La lectura analógica tiene peso (550), dígitos tabulares y un tamaño común para valores de hasta seis caracteres, incluidos signos y decimales. Solo lecturas excepcionalmente largas se reducen para no desbordar. La unidad se sitúa junto al número, sobre la misma línea y alineada a su baseline. El pie y la escala tienen jerarquía secundaria y admiten saltos.
 
 Las marcas usan `formatSensorGaugeTick`: cuatro cifras significativas, sufijo `k` desde magnitudes de 10 000 y `M` desde 1 000 000. Así, 150 000 y 75 000 se dibujan como `150k` y `75k`. Esta compactación afecta exclusivamente las marcas; no modifica límites, lectura real ni texto completo de escala del pie.
 
@@ -31,7 +31,7 @@ Las marcas usan `formatSensorGaugeTick`: cuatro cifras significativas, sufijo `k
 
 El Sensor conserva el tamaño medio y su integración en el grid existente, incluidos valores históricos/importados. El presenter no modifica el algoritmo de masonry ni la distribución de otras tarjetas. Dashboard y Espacios muestran el nombre una vez sin repetir la estancia; la prop opcional `roomName` continúa disponible para un contexto que la necesite.
 
-La composición reserva tres bandas: cabecera con icono y nombre; instrumento dominante con lectura/unidad; pie con estado y escala. La carcasa usa altura mínima proporcional al contenedor (`clamp(16rem, 110cqi, 26rem)`), padding adaptable y contenedor `sensor-card`. El instrumento ocupa el ancho disponible con máximo (22rem) y relación Canvas (320/265). Por debajo de un ancho de instrumento de 200px se dibujan dos divisiones numéricas en lugar de cinco, conservando los extremos.
+La composición reserva tres bandas: cabecera con icono y nombre; instrumento dominante con lectura/unidad; pie con estado y escala. La carcasa usa altura mínima proporcional al contenedor (`clamp(12rem, 95cqi, 24rem)`), padding adaptable y contenedor `sensor-card`. El instrumento ocupa el ancho disponible con máximo (22rem) y relación Canvas (320/265). Por debajo de un ancho de instrumento de 200px se dibujan cuatro divisiones (cinco etiquetas) y en anchos mayores cinco divisiones (seis etiquetas), conservando los extremos. El pie reserva las mismas filas con o sin estado para evitar saltos durante carga.
 
 El skeleton Sensor usa la misma carcasa, cabecera, banda del instrumento, relación de aspecto y reserva del pie. No representa una lectura. La selección del skeleton durante la primera carga corresponde al contenedor existente; esta extensión no cambia el contrato de carga ni añade estado al store. Los placeholders son decorativos, no interactivos y heredan la política compartida de movimiento reducido.
 

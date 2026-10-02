@@ -1,5 +1,7 @@
 # Spec-Driven Coverage Matrix
 
+- Refinamiento Sensor/drag 2026-10-02: 76/76 Jest en SensorMetricCard/SensorAnalogGauge/DashboardCardSkeleton/sectionSlots/sectionCardDrag; responsive focalizado 19/19 en `.impeccable/review/compact-drag-verified/`. Unidad inline, tipografía común, graduaciones adicionales, ausencia compacta, preview elevado, Section desde fondo libre y masonry por columna con huecos persistidos. Geometría skeleton/contenido, mouse/touch/teclado y cancelación seguida de movimiento comprobados. Typecheck/lint/builds y spec/BDD/module/i18n/arquitectura/no-any PASS. No responsive completo, Git ni deploy.
+
 - Sensor analógico AC40 vigente (2026-10-02): `SensorAnalogGauge.test.tsx`, `SensorMetricCard.test.tsx`, `DashboardCardSkeleton.test.tsx`, `TopologyDeviceTile.test.tsx` → 75/75 PASS; responsive Sensor clarity/Sensor width/Room devices/geometría inicial → 17/17 y confirmación Sensor 5/5 PASS. Presenter modular y escala instrumental real sustituyen fichas/barra; spec y tareas Dashboard actualizadas, documento `docs/components/SensorMetricCard.md`. Typecheck/lint/builds y spec/BDD/module/i18n/arquitectura/no-any PASS. Evidencia `.impeccable/review/analog-final/`; no suite responsive completa ni publicación. Las entradas Sensor del 2026-10-01 conservadas abajo son históricas.
 
 Verificación documental final 2026-10-01 por el coordinador: spec coverage, BDD traceability y module test coverage PASS tras la actualización Sensor v2; la repetición mencionada abajo quedó completada.

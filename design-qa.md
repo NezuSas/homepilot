@@ -80,3 +80,11 @@ Historial de comparación: primer lote detectó P2 superposición de lectura y t
 Validación: 75/75 Jest (cuatro suites), 17/17 responsive focalizados y confirmación Sensor 5/5 en ambos temas con las cuatro mediciones de referencia, sin cambiar la prueba skeleton. Typecheck, lint, builds raíz/consola y spec/BDD/module/i18n/architecture/no-production-any PASS. Detector de targets sin hallazgos. Consola mock registró WebSocket sin backend y un refresh DEVICE_REFRESH_ERROR; no son prueba de telemetría real, todas las aserciones UI pasan. Browserslist y chunk MDI conservan sus advertencias previas. No Git/GitHub/Docker/deploy ni responsive completo. Tablet física, Safari, lector de pantalla y contraste instrumental numérico siguen sin certificar. No cambios backend/schema/migración en esta tarea.
 
 final result: passed
+
+## Refinamiento Sensor y arrastre elevado — 2026-10-02
+
+Alcance acotado: unidades inline, tamaño de lectura común hasta seis caracteres, reserva interna compacta incluso sin lectura, cinco/seis etiquetas de escala. Misma paleta y semántica meter. Preview elevado de card/Section con tamaño real, portal inert sin captura de pointer events, long press de Section desde fondo libre y slots densos por columna conservando huecos persistidos.
+
+Lote visual inspeccionado: Sensor móvil/tablet oscuro y desktop claro, y Section elevada durante movimiento. Capturas en `.impeccable/review/compact-drag-verified/` (Sensor) y `.impeccable/review/compact-drag-final/` (Section). No se detectaron cruces entre unidades/lectura ni pérdida de las graduaciones adicionales; ausencia neutral sin dato ficticio. Detector de layout de targets: lista vacía. No se ejecutó una nueva revisión por agente independiente ni se afirma aprobación visual del usuario.
+
+Validación final: 76/76 Jest, 19/19 responsive focalizados; typecheck, lint, builds raíz/consola y controles spec/BDD/module/i18n/arquitectura/no-any PASS. Se corrigió el hit-testing de la capa externa de DragOverlay descubierto al repetir movimiento tras cancelar; el test usa interacción real sin force ni sleeps. Reloj simulado táctil reanudado antes de reload. No cambios backend/schema, Git/GitHub/Docker/deploy ni responsive completo. Advertencias previas Browserslist/chunk MDI y WebSocket sin backend en fixtures; tablet física/Safari siguen sin certificar.

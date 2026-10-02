@@ -1,5 +1,15 @@
 # Tareas: Dashboard Layout and Widgets V1
 
+## Compactación Sensor y arrastre elevado — 2026-10-02
+
+- [x] Unidad junto a lectura; tamaño común para valores de hasta seis caracteres; compactar carcasa y ausencia sin quitar información.
+- [x] Cinco etiquetas de escala en instrumento angosto y seis en ancho, conservando las marcas.
+- [x] Preview elevado de tarjeta/Section con dimensiones reales, portal no interactivo y foco excluido.
+- [x] Arrastre de Sections desde superficie libre, mouse/touch/teclado, sin grip; slots por columna bajo la Section más corta, preservando huecos.
+- [x] Mantener estabilidad skeleton/contenido y persistencia; probar cancelación seguida de un nuevo arrastre.
+
+Evidencia local: 76/76 Jest en SensorMetricCard, SensorAnalogGauge, DashboardCardSkeleton, sectionSlots y sectionCardDrag; 19/19 responsive focalizados en `.impeccable/review/compact-drag-verified/`. Incluye móvil, tablet portrait/landscape, desktop y kiosco portrait; mouse/touch/teclado, traslado entre Sections, huecos persistidos y cuatro escenarios de geometría inicial sin relajar sus assertions. Typecheck, lint, builds raíz/Operator Console y controles spec/BDD/module/i18n/arquitectura/no-any PASS. La confirmación corrigió una capa exterior de DragOverlay que interceptaba el siguiente gesto tras cancelar y reanudó el reloj simulado del test touch antes de recargar. Revisión visual conjunta Sensor móvil/tablet oscuro, desktop claro y preview elevado de Section; detector sin hallazgos. Sin Git/GitHub/Docker/deploy ni responsive completo. Tablet física/Safari no certificados.
+
 ## Sensor analógico — referencia autorizada 2026-10-02
 
 - [x] Presenter analógico modular, aguja real y escala de visualización explícita/automática sin salud inventada.

@@ -47,7 +47,13 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     expect(saved.tabs[0].widgets.find(widget => widget.id === 'tech')?.config.extra.cards.map(card => card.id)).toEqual(['movable']);
     const sourceBounds = await source.boundingBox();
     if (!sourceBounds) throw new Error('Missing draggable card bounds');
-    await source.dragTo(regions[1].getByRole('heading', { name: 'Patio' }), { sourcePosition: { x: sourceBounds.width / 4, y: sourceBounds.height * 0.75 }, steps: 12 });
+    const destinationBounds = await regions[1].getByRole('heading', { name: 'Patio' }).boundingBox();
+    if (!destinationBounds) throw new Error('Missing destination section bounds');
+    await page.mouse.move(sourceBounds.x + sourceBounds.width * 0.1, sourceBounds.y + sourceBounds.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(destinationBounds.x + destinationBounds.width / 2, destinationBounds.y + destinationBounds.height / 2, { steps: 12 });
+    await expect(source).toHaveAttribute('aria-pressed', 'true');
+    await page.mouse.up();
     await expect.poll(() => saved.tabs[0].widgets.find(widget => widget.id === 'patio')?.config.extra?.cards.map(card => card.id)).toEqual(['tall', 'movable']);
     await expect(regions[0].locator('[data-dashboard-card-id="movable"]')).toHaveCount(0);
     await expect(regions[1].locator('[data-dashboard-card-id="movable"]')).toBeVisible();
@@ -91,6 +97,10 @@ test('Feature: Dashboard unified editing — Scenario: Touch hold moves a card i
     await expect(card).not.toHaveAttribute('aria-pressed', 'true');
     await page.clock.runFor(100);
     await expect(card).toHaveAttribute('aria-pressed', 'true');
+    const preview = page.locator('[data-dashboard-drag-preview]');
+    await expect(preview).toContainText('Gata');
+    const previewBounds = await preview.boundingBox();
+    expect(previewBounds!.width).toBeCloseTo(source.width, -1);
     await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: target.x + target.width / 2, y: target.y + target.height / 2 }] });
     await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await expect.poll(() => saved.tabs[0].widgets.find(widget => widget.id === 'patio')?.config.extra.cards.map(card => card.id)).toEqual(['touch-card']);
@@ -1539,6 +1549,14 @@ for (const viewport of [
           const readingBounds = await card.getByText(reading.state, { exact: true }).boundingBox();
           expect(readingBounds!.y).toBeGreaterThanOrEqual(meterBounds!.y);
           expect(readingBounds!.y + readingBounds!.height).toBeLessThanOrEqual(meterBounds!.y + meterBounds!.height + 1);
+          const unitBounds = await card.getByText(reading.unit, { exact: true }).boundingBox();
+          expect(unitBounds!.x).toBeGreaterThanOrEqual(readingBounds!.x + readingBounds!.width - 1);
+          expect(unitBounds!.y).toBeGreaterThanOrEqual(readingBounds!.y);
+          expect(unitBounds!.y).toBeLessThan(readingBounds!.y + readingBounds!.height);
+          if (reading.state.length <= 6) {
+            expect(await card.getByText(reading.state, { exact: true }).evaluate(element => getComputedStyle(element).fontSize))
+              .toBe(await temperature.getByText('22.4', { exact: true }).evaluate(element => getComputedStyle(element).fontSize));
+          }
         }
       }
       const missing = page.locator('[data-dashboard-card-id="clarity-missing"] .sensor-metric-card');
@@ -1649,11 +1667,17 @@ test('Feature: Section slots — moving to a gap and swapping Sections persist w
   await enterDashboardEdit(page);
 
   const section = (name: string) => page.locator('.homepilot-dashboard-widget').filter({ has: page.getByRole('heading', { name, exact: true }) });
-  const handle = (name: string) => section(name).getByRole('button', { name: /Drag to reorder|Arrastrar para reordenar/i });
+  const handle = (name: string) => page.getByRole('button', { name: new RegExp(`^(Drag to reorder|Arrastrar para reordenar): ${name}$`) });
+  const dragSection = async (name: string, destination: import('@playwright/test').Locator) => {
+    const source = handle(name);
+    const bounds = await source.boundingBox();
+    if (!bounds) throw new Error('Missing section bounds');
+    await source.dragTo(destination, { sourcePosition: { x: bounds.width * 0.02, y: bounds.height / 2 }, steps: 12 });
+  };
   await expect(page.locator('[data-section-slot="3"]')).toBeVisible();
-  await handle('B').dragTo(page.locator('[data-section-slot="4"]'), { steps: 12 });
+  await dragSection('B', page.locator('[data-section-slot="4"]'));
   await expect.poll(() => dashboard.tabs[0]?.sectionLayout.columns4).toEqual(['a', null, 'c', null, 'b']);
-  await handle('A').dragTo(section('C'), { steps: 12 });
+  await dragSection('A', section('C'));
   await expect.poll(() => dashboard.tabs[0]?.sectionLayout.columns4).toEqual(['c', null, 'a', null, 'b']);
   expect(dashboard.tabs[0]?.sectionLayout.columns3).toEqual(['c', 'b', 'a']);
 
@@ -1670,6 +1694,67 @@ test('Feature: Section slots — moving to a gap and swapping Sections persist w
     await expect(page.locator('[data-section-slot="1"] .homepilot-dashboard-widget')).toHaveCount(profile.gap ? 0 : 1);
   }
 });
+
+for (const input of ['mouse', 'touch'] as const) {
+  test(`Feature: Section masonry drag — ${input} moves a section under the shorter third column`, async ({ browser }, testInfo) => {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, hasTouch: input === 'touch' });
+    const page = await context.newPage();
+    try {
+      const template = responsiveDashboard.tabs[0].widgets[1];
+      const makeSection = (id: string, tall: boolean) => ({ ...template, id, config: { ...template.config,
+        appearance: { title: id.toUpperCase(), showTitle: true }, extra: { cards: tall ? Array.from({ length: 4 }, (_, index) => ({ id: `${id}-${index}`, kind: 'sensor', title: `Lectura ${index}`, entityId: 'sensor-memory', span: 'medium' })) : [] } } });
+      let saved = { ...responsiveDashboard, tabs: [{ ...responsiveDashboard.tabs[0], widgets: [makeSection('a', true), makeSection('b', true), makeSection('c', false), makeSection('d', false)], sectionLayout: { columns3: ['a', 'b', 'c', 'd'] as Array<string | null> } }] };
+      await prepareAuthenticatedDashboard(page, saved);
+      await page.route('**/api/v1/dashboards', route => route.fulfill({ json: [saved] }));
+      await page.route('**/api/v1/dashboards/responsive-dashboard', route => {
+        if (route.request().method() === 'PATCH') saved = { ...saved, ...route.request().postDataJSON() };
+        return route.fulfill({ json: saved });
+      });
+      await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+      await enterDashboardEdit(page, input === 'touch');
+      const source = page.getByRole('button', { name: /^(Drag to reorder|Arrastrar para reordenar): D$/ });
+      const destination = page.locator('[data-section-slot="5"]');
+      await source.scrollIntoViewIfNeeded();
+      const sourceBounds = await source.boundingBox();
+      const targetBounds = await destination.boundingBox();
+      if (!sourceBounds || !targetBounds) throw new Error('Missing masonry drag bounds');
+      expect(targetBounds.y).toBeLessThan(sourceBounds.y);
+      await expect(source.getByRole('button', { name: /Drag to reorder|Arrastrar para reordenar/ })).toHaveCount(0);
+      const start = { x: sourceBounds.x + sourceBounds.width * 0.02, y: sourceBounds.y + sourceBounds.height / 2 };
+      const end = { x: targetBounds.x + targetBounds.width / 2, y: targetBounds.y + targetBounds.height / 2 };
+      if (input === 'touch') {
+        await page.clock.install({ time: new Date('2026-10-02T12:00:00Z') });
+        await page.clock.pauseAt(new Date('2026-10-02T12:00:01Z'));
+        const session = await context.newCDPSession(page);
+        await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [start] });
+        await page.clock.runFor(450);
+        await expect(source).not.toHaveAttribute('aria-pressed', 'true');
+        await page.clock.runFor(100);
+        await expect(source).toHaveAttribute('aria-pressed', 'true');
+        await expect(page.locator('[data-dashboard-drag-preview]')).toContainText('D');
+        await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [end] });
+        await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      } else {
+        await page.mouse.move(start.x, start.y);
+        await page.mouse.down();
+        await page.mouse.move(end.x, end.y, { steps: 12 });
+        const preview = page.locator('[data-dashboard-drag-preview]');
+        await expect(preview).toContainText('D');
+        await page.screenshot({ path: testInfo.outputPath('section-elevated.png') });
+        await page.mouse.up();
+      }
+      await expect.poll(() => saved.tabs[0].sectionLayout.columns3).toEqual(['a', 'b', 'c', null, null, 'd']);
+      if (input === 'touch') await page.clock.resume();
+      await page.reload();
+      const c = await page.getByRole('region', { name: 'C', exact: true }).boundingBox();
+      const d = await page.getByRole('region', { name: 'D', exact: true }).boundingBox();
+      const a = await page.getByRole('region', { name: 'A', exact: true }).boundingBox();
+      expect(d!.x).toBeCloseTo(c!.x, 0);
+      expect(d!.y).toBeGreaterThanOrEqual(c!.y + c!.height);
+      expect(d!.y).toBeLessThan(a!.y + a!.height);
+    } finally { await context.close(); }
+  });
+}
 
 test('Feature: Section slots — a historical wide Section edits and saves as one slot without a width picker', async ({ page }) => {
   const baseSection = responsiveDashboard.tabs[0]!.widgets[1]!;

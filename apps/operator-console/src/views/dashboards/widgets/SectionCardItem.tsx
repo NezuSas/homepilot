@@ -1,4 +1,4 @@
-import { useEffect, useState, type MouseEvent } from 'react';
+import { useEffect, useState, useRef, type MouseEvent } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { sectionCardDragId } from '../sectionCardDrag';
@@ -72,11 +72,7 @@ export function SectionCardItem({
   const { t } = useTranslation();
   const [isCardMenuOpen, setIsCardMenuOpen] = useState(false);
   const [cardMenuPosition, setCardMenuPosition] = useState<{ top: number; right: number } | null>(null);
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: sectionId ? sectionCardDragId(sectionId, card.id) : card.id,
-    data: { kind: 'section-card', sectionId, cardId: card.id },
-    disabled: !isEditing,
-  });
+  const previewNode = useRef<HTMLDivElement | null>(null);
 
   // getEffectiveCardSpan guards against a stale/manually-dragged 'small'
   // span on a kind that can't render as a quarter-width tile; media is
@@ -115,11 +111,6 @@ export function SectionCardItem({
   const isActionable = Boolean(card.entityId)
     && !isEditing
     && (normalizedKind === 'device' || normalizedKind === 'light' || normalizedKind === 'action');
-  const interactionAttributes = isEditing
-    ? attributes
-    : isActionable && normalizedKind !== 'action'
-      ? { role: 'button' as const, tabIndex: 0, 'aria-label': card.title || catalogLabel(card.kind) }
-      : {};
   // Sensor copy determines its intrinsic masonry row height. Cover loading
   // reserves the real tile's structural rows without the preview's
   // illustrative controls or a magic pixel height.
@@ -160,11 +151,21 @@ export function SectionCardItem({
     actionFeedback={processingCardId === card.id ? 'pending' : actionFeedback?.id === card.id ? actionFeedback.status : undefined}
   />;
 
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: sectionId ? sectionCardDragId(sectionId, card.id) : card.id,
+    data: { kind: 'section-card', sectionId, cardId: card.id, preview: cardContent, getPreviewRect: () => previewNode.current?.getBoundingClientRect() },
+    disabled: !isEditing,
+  });
+  const interactionAttributes = isEditing ? attributes
+    : isActionable && normalizedKind !== 'action'
+      ? { role: 'button' as const, tabIndex: 0, 'aria-label': card.title || catalogLabel(card.kind) } : {};
+
   return (
     <div
       key={card.id}
       data-dashboard-card-id={card.id}
       ref={(element) => {
+        previewNode.current = element;
         setNodeRef(element);
         registerRowSpanRef(card.id, element);
       }}

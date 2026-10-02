@@ -16,7 +16,8 @@ import type { CollisionDetection, DragEndEvent, DragStartEvent } from '@dnd-kit/
 import { SectionCardDragContext, moveSectionCard } from './sectionCardDrag';
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, isValidElement } from 'react';
+import { createPortal } from 'react-dom';
 import type { CSSProperties, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
@@ -130,17 +131,28 @@ function SortableCanvasWidget({
   onDelete?: (id: string) => void;
   slotMode?: boolean;
 }) {
+  const { nodeRef, rowSpan } = useMeasuredRowSpan(gap);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: widget.id,
-    data: { kind: widget.type === 'section' ? 'section' : 'widget', sectionId: widget.id, cardCount: Array.isArray(widget.config.extra?.cards) ? widget.config.extra.cards.length : 0 },
+    data: { kind: widget.type === 'section' ? 'section' : 'widget', sectionId: widget.id, cardCount: Array.isArray(widget.config.extra?.cards) ? widget.config.extra.cards.length : 0, getPreviewRect: () => nodeRef.current?.getBoundingClientRect() },
     disabled: !canDrag,
   });
-  const { nodeRef, rowSpan } = useMeasuredRowSpan(gap);
   const span = clampSectionSpan(getSectionSpan(widget), columns);
+  const { t } = useTranslation();
+  const sectionDrag = canDrag && widget.type === 'section';
+  const dragSurface = (target: EventTarget | null, surface: HTMLElement) => {
+    if (!(target instanceof Element)) return false;
+    const control = target.closest('[data-dashboard-card-id], button, input, select, textarea, a, [role="button"], [role="slider"]');
+    return !control || control === surface;
+  };
 
   return (
     <div
       ref={(node) => { setNodeRef(node); nodeRef.current = node; }}
+      {...(sectionDrag ? { ...attributes, 'aria-label': `${t('common.reorder')}: ${widget.config.appearance?.title || t('dashboard.editor.sections.untitled_section')}` } : {})}
+      onMouseDown={sectionDrag ? event => { if (dragSurface(event.target, event.currentTarget)) listeners?.onMouseDown?.(event); } : undefined}
+      onTouchStart={sectionDrag ? event => { if (dragSurface(event.target, event.currentTarget)) listeners?.onTouchStart?.(event); } : undefined}
+      onKeyDown={sectionDrag ? event => { if (event.target === event.currentTarget) listeners?.onKeyDown?.(event); } : undefined}
       style={{
         gridColumn: slotMode ? undefined : `span ${span}`,
         gridRow: slotMode ? undefined : `span ${rowSpan}`,
@@ -150,6 +162,7 @@ function SortableCanvasWidget({
       }}
       className={cn(
         "min-w-0 min-h-0 select-none relative rounded-section sm:rounded-panel lg:rounded-dashboard",
+        sectionDrag && 'touch-pan-y cursor-grab active:cursor-grabbing focus-visible:outline focus-visible:outline-primary',
         isSelected && isEditing && widget.type !== 'section' && "z-10 ring-4 ring-primary ring-offset-4 ring-offset-background shadow-primary-ring"
       )}
     >
@@ -189,6 +202,7 @@ export function DashboardCanvas({
   tabs, currentTabId, onSelectTab }: DashboardCanvasProps) {
   const { t } = useTranslation();
   const [activeWidget, setActiveWidget] = useState<DashboardWidget | null>(null);
+  const [dragPreview, setDragPreview] = useState<{ content?: ReactNode; width: number; height: number } | null>(null);
   const [pendingDeleteWidgetId, setPendingDeleteWidgetId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -299,10 +313,15 @@ export function DashboardCanvas({
     if (!canEditLayout) return;
     const widget = flowWidgets.find((w) => w.id === event.active.id);
     if (widget) setActiveWidget(widget);
+    const getPreviewRect = event.active.data.current?.getPreviewRect;
+    const rect = event.active.rect.current.initial ?? (typeof getPreviewRect === 'function' ? getPreviewRect() : null);
+    if (rect) setDragPreview({ width: rect.width, height: rect.height,
+      content: isValidElement(event.active.data.current?.preview) ? event.active.data.current.preview : undefined });
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveWidget(null);
+    setDragPreview(null);
     if (!canEditLayout) return;
 
     const { active, over } = event;
@@ -339,6 +358,7 @@ export function DashboardCanvas({
 
   const handleDragCancel = () => {
     setActiveWidget(null);
+    setDragPreview(null);
   };
 
   const collisionDetection: CollisionDetection = (args) => {
@@ -414,7 +434,7 @@ export function DashboardCanvas({
 
         {useSectionSlots && <CanvasFlowItem span={columns} gap={gap}>
           <SortableContext items={sectionWidgets.map((widget) => widget.id)} strategy={rectSortingStrategy}>
-            <div className="grid min-w-0 items-start" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gridAutoRows: `${CANVAS_ROW_UNIT}px`, gap: `${gap}px` }}>
+            <div className="grid min-w-0 items-start" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gridAutoRows: `${CANVAS_ROW_UNIT}px`, gridAutoFlow: 'row dense', gap: `${gap}px` }}>
               {Array.from({ length: slotCount }, (_, index) => {
                 const widget = sectionById.get(sectionSlots[index] ?? '');
                 return <SectionDropSlot key={index} index={index} columns={columns} gap={gap} editing={isEditing}>
@@ -462,7 +482,7 @@ export function DashboardCanvas({
           cancelText={t('common.cancel')}
           variant="danger"
         />
-        <DragOverlay dropAnimation={{
+        {createPortal(<DragOverlay zIndex={60} style={{ pointerEvents: 'none' }} dropAnimation={{
           sideEffects: defaultDropAnimationSideEffects({
             styles: {
               active: {
@@ -471,23 +491,24 @@ export function DashboardCanvas({
             },
           }),
         }}>
-          {canEditLayout && activeWidget ? (
+          {canEditLayout && dragPreview ? (
             <div
-              className="rounded-panel shadow-2xl opacity-80 border border-primary/20 bg-card/80 backdrop-blur-xl"
+              aria-hidden="true"
+              inert
+              data-dashboard-drag-preview="true"
+              className="pointer-events-none grid rounded-panel shadow-depth-3 ring-2 ring-primary/50 bg-card motion-safe:scale-[1.025]"
               style={{
-                width: containerWidth > 0
-                  ? (containerWidth / columns) * clampSectionSpan(getSectionSpan(activeWidget), columns) - gap
-                  : undefined,
+                width: dragPreview.width, height: dragPreview.height, containerType: 'inline-size',
               }}
             >
-              <WidgetContent
+              {dragPreview.content ?? (activeWidget && <SectionCardDragContext.Provider value={false}><WidgetContent
                 widget={activeWidget}
                 isEditing={false}
                 onClick={() => {}}
-              />
+              /></SectionCardDragContext.Provider>)}
             </div>
           ) : null}
-        </DragOverlay>
+        </DragOverlay>, document.body)}
       </div>
       {canEditLayout && !titleWidget && <Button type="button" variant="outline" size="md" onClick={onAddTitleClick}>{t('dashboard.editor.sections.add_title')}</Button>}
       {canEditLayout && (
