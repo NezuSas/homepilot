@@ -3,7 +3,7 @@ import type { DeviceRepository } from '../../../devices/domain/repositories/Devi
 import type { HomeRepository } from '../../../topology/domain/repositories/HomeRepository';
 import type { DeviceDriver, DeviceDriverCommand, DeviceDriverResult } from '../../../devices/domain/drivers/DeviceDriver';
 import type { Device } from '../../../devices/domain/types';
-import { ModbusError, validateConnection, validateVariable, type ModbusConnection, type ModbusVariable } from '../domain/Modbus';
+import { ModbusError, validateConnection, validateVariable, type ModbusConnection, type ModbusVariable, type ModbusProbeResult } from '../domain/Modbus';
 import type { ModbusRepository, ModbusTransport } from './ModbusPorts';
 
 export class ModbusService implements DeviceDriver {
@@ -13,6 +13,7 @@ export class ModbusService implements DeviceDriver {
   private timer?: ReturnType<typeof setTimeout>;
   private running = false;
   private cycle?: Promise<void>;
+  private readonly probes = new Set<string>();
   constructor(private readonly repository: ModbusRepository, private readonly transport: ModbusTransport,
     private readonly devices: DeviceRepository, private readonly homes: HomeRepository,
     private readonly publishState: (deviceId: string, state: Record<string, unknown>) => Promise<void>) {}
@@ -41,6 +42,34 @@ export class ModbusService implements DeviceDriver {
   async list(userId: string, homeId: string) {
     await this.authorize(userId, homeId);
     return this.repository.connections(homeId).map(connection => ({ ...connection, variables: this.repository.variables(connection.id) }));
+  }
+  async probe(userId: string, homeId: string, input: Record<string, unknown>, signal?: AbortSignal): Promise<ModbusProbeResult> {
+    await this.authorize(userId, homeId);
+    const settings = validateConnection({ ...input, name: 'Read test', enabled: false });
+    if (settings.timeoutMs > 5000) throw new ModbusError('INVALID_CONFIG', 'Probe timeout exceeded');
+    const map = validateVariable({ ...input, name: 'Read test', address: input.start, dataType: input.area === 'coil' || input.area === 'discrete_input' ? 'boolean' : 'uint16', scale: 1, offset: 0, writable: false });
+    const end = input.end;
+    if (typeof end !== 'number' || !Number.isInteger(end) || end < map.address || end > 65535 || end - map.address >= 64) throw new ModbusError('INVALID_CONFIG', 'Invalid read range');
+    if (input.writable === true) throw new ModbusError('READ_ONLY', 'Discovery is read-only');
+    if (this.probes.has(homeId)) throw new ModbusError('LIMIT', 'A probe is already running');
+    this.probes.add(homeId);
+    const match = this.repository.connections(homeId).find(c => c.host === settings.host && c.unitId === settings.unitId);
+    const connection: ModbusConnection = { ...settings, id: match?.id ?? `probe:${homeId}:${settings.host}:${settings.unitId}`, homeId };
+    try {
+      return await this.serialize(connection.id, async () => {
+        if (signal?.aborted) throw new ModbusError('CANCELLED', 'Read cancelled');
+        const started = Date.now();
+        try {
+          const raw = await this.transport.readRange(connection, map.area, map.address, end - map.address + 1, signal);
+          if (signal?.aborted) throw new ModbusError('CANCELLED', 'Read cancelled');
+          if (raw.length !== end - map.address + 1) throw new ModbusError('PROTOCOL', 'Incomplete read');
+          return { sampledAt: new Date().toISOString(), rows: raw.map((value, i) => ({ address: map.address + i, raw: value, status: 'ok' as const, elapsedMs: Date.now() - started })) };
+        } catch (error: unknown) {
+          if (signal?.aborted || (error instanceof ModbusError && error.code === 'CANCELLED')) throw new ModbusError('CANCELLED', 'Read cancelled');
+          return { sampledAt: new Date().toISOString(), rows: Array.from({ length: end - map.address + 1 }, (_, i) => ({ address: map.address + i, raw: null, status: 'error' as const, elapsedMs: Date.now() - started, error: error instanceof ModbusError ? error.code : 'CONNECTION', ...(error instanceof ModbusError && error.exceptionCode !== undefined ? { exceptionCode: error.exceptionCode } : {}) })) };
+        }
+      });
+    } finally { this.probes.delete(homeId); }
   }
   async saveConnection(userId: string, homeId: string, input: Record<string, unknown>, id?: string): Promise<ModbusConnection> {
     await this.authorize(userId, homeId);

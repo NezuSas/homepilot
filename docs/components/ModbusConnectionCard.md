@@ -41,7 +41,9 @@ Los botones principales de configuración utilizan tamaño `lg`, con altura mín
 
 Conexiones nuevas: deshabilitadas, puerto fijo de solo lectura (502), Unit ID (1), timeout (2000 ms) e intervalo (5000 ms). Los campos indican límites de Unit ID (1–247), timeout (250–10000 ms) e intervalo (1000–60000 ms); el backend mantiene la validación autoritativa.
 
-Variables nuevas: holding register, dirección (0), `uint16`, escala (1), offset (0), orden `high_first` y escritura desactivada. Área coil/discrete input fija tipo boolean; registros ofrecen `uint16`, `int16` y `float32`. Cambiar área restablece tipo, escritura, escala y offset. Campos escala/offset/unidad solo aparecen en tipos numéricos y orden de palabras solo en `float32`. Dirección PDU cero-basada: máximo (65535), o (65534) para `float32` de dos registros. El permiso de escritura solo aparece en coils y exige activación explícita.
+Variables nuevas: holding register, dirección (0), `uint16`, escala (1), offset (0), orden `high_first` y escritura desactivada. Área coil/discrete input fija tipo boolean; registros ofrecen `uint16`, `int16`, `uint32`, `int32` y `float32`. Cambiar área restablece tipo, escritura, escala y offset. Campos escala/offset/unidad solo aparecen en tipos numéricos y orden de palabras en `uint32`, `int32` y `float32`. Dirección PDU cero-basada: máximo (65535), o (65534) para esos tipos de dos registros. El permiso de escritura solo aparece en coils y exige activación explícita.
+
+La acción Probar lectura de la cabecera abre [ModbusReadProbe](ModbusReadProbe.md). Desde una fila válida se abre este mismo editor con dirección, área y conversión precargadas y `writable=false`; una conexión nueva se guarda deshabilitada y la variable solo se persiste al confirmar Guardar en el editor.
 
 ## Accesibilidad e internacionalización
 

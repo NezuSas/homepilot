@@ -2,6 +2,72 @@ import { expect, test } from '@playwright/test';
 import { mdiAutoFix, mdiHome, mdiRobot, mdiWeatherWindy } from '@mdi/js';
 
 for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'tablet portrait', width: 768, height: 1024 }, { name: 'tablet landscape', width: 1024, height: 768 }, { name: 'desktop', width: 1440, height: 900 }]) {
+  test(`Feature: Modbus commissioning — Scenario: Read-only RAW conversion and mapping fits ${viewport.name} (AC8/AC9/AC10)`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport); await prepareAuthenticatedDashboard(page);
+    await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: 'h', name: 'Home' }] }));
+    const connections: Array<Record<string, unknown>> = []; let savedVariable: Record<string, unknown> | undefined; let probeBody: Record<string, unknown> | undefined;
+    await page.route('**/api/v1/modbus/**', async route => {
+      const request = route.request();
+      if (request.method() === 'GET') return route.fulfill({ json: { connections } });
+      const body = request.postDataJSON();
+      if (request.url().endsWith('/probe')) { probeBody = body; return route.fulfill({ json: { sampledAt: '2026-10-02T12:00:00Z', rows: [22, 100, 1].map((raw, i) => ({ address: 100 + i, raw, status: 'ok', elapsedMs: 12 })) } }); }
+      if (request.url().includes('/variables')) { savedVariable = { ...body, deviceId: 'v', connectionId: 'c' }; connections[0].variables = [savedVariable]; return route.fulfill({ json: { variable: savedVariable } }); }
+      connections.push({ ...body, id: 'c', variables: [] }); return route.fulfill({ json: { connection: connections[0] } });
+    });
+    await page.goto('/system/modbus');
+    await page.getByRole('button', { name: /^(Test reading|Probar lectura)$/i }).click();
+    const dialog = page.getByRole('dialog', { name: /^(Test reading|Probar lectura)$/i });
+    await dialog.getByLabel(/^(PLC private IP|IP privada del PLC)$/i).fill('192.168.1.5');
+    await dialog.getByLabel(/^(End PDU|PDU final)$/i).fill('102');
+    await dialog.getByRole('button', { name: /^(Read range|Leer rango)$/i }).click();
+    const row = dialog.getByRole('row').filter({ has: page.getByRole('rowheader', { name: '100', exact: true }) });
+    await expect(row).toContainText('22'); await expect(row).toContainText('12 ms');
+    expect(probeBody).toMatchObject({ host: '192.168.1.5', unitId: 1, area: 'holding_register', start: 100, end: 102 });
+    expect(probeBody).not.toHaveProperty('writable'); expect(connections).toEqual([]);
+    await dialog.getByLabel(/^(Scale|Escala)$/i).fill('0.1'); await dialog.getByLabel(/^(Offset|Desplazamiento)$/i).fill('2'); await dialog.getByLabel(/^(Unit|Unidad)$/i, { exact: true }).fill('°C');
+    await expect(row).toContainText('4.2'); await expect(row).toContainText('°C');
+    await dialog.getByRole('button', { name: /^(Data type|Tipo de dato)$/i }).click(); await page.getByRole('option', { name: 'uint32', exact: true }).click();
+    const last = dialog.getByRole('row').filter({ has: page.getByRole('rowheader', { name: '102', exact: true }) });
+    await expect(last.getByRole('button', { name: /^(Create variable|Crear variable)$/i })).toBeDisabled();
+    const bounds = await dialog.boundingBox(); expect(bounds!.height).toBeLessThanOrEqual(viewport.height);
+    for (const theme of ['dark', 'light']) {
+      await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+      await dialog.getByRole('heading', { name: /^(Test reading|Probar lectura)$/i }).scrollIntoViewIfNeeded();
+      await page.screenshot({ path: testInfo.outputPath(`modbus-probe-${theme}.png`), animations: 'disabled', fullPage: true });
+      await row.getByRole('rowheader', { name: '100', exact: true }).scrollIntoViewIfNeeded();
+      await page.screenshot({ path: testInfo.outputPath(`modbus-probe-results-${theme}.png`), animations: 'disabled', fullPage: true });
+    }
+    await row.getByRole('button', { name: /^(Create variable|Crear variable)$/i }).click();
+    await expect(dialog).not.toBeVisible(); expect(connections[0]).toMatchObject({ enabled: false });
+    const variableEditor = page.getByRole('dialog', { name: /^(Configure variable|Configurar variable)$/i });
+    await expect(variableEditor.getByLabel(/^(Address|Dirección)$/i, { exact: true })).toHaveValue('100');
+    await expect(variableEditor.getByRole('button', { name: /^(Data type|Tipo de dato)$/i })).toContainText('uint32');
+    await variableEditor.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
+    expect(savedVariable).toMatchObject({ address: 100, dataType: 'uint32', scale: 0.1, offset: 2, unit: '°C', writable: false });
+    await page.reload(); await expect(page.getByRole('region', { name: 'PLC 192.168.1.5' })).toContainText('uint32');
+  });
+}
+test('Feature: Modbus commissioning — Scenario: Periodic read failure keeps RAW marked previous and Stop prevents further reads (AC9)', async ({ page }) => {
+  await prepareAuthenticatedDashboard(page); await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: 'h', name: 'Home' }] }));
+  let reads = 0;
+  await page.route('**/api/v1/modbus/connections*', route => route.fulfill({ json: { connections: [] } }));
+  await page.route('**/api/v1/modbus/probe', route => { reads++; return route.fulfill({ json: { sampledAt: '2026-10-02T12:00:00Z', rows: [{ address: 100, raw: reads === 1 ? 42 : null, status: reads === 1 ? 'ok' : 'error', error: reads === 1 ? undefined : 'TIMEOUT', elapsedMs: 20 }] } }); });
+  await page.goto('/system/modbus'); await page.getByRole('button', { name: /^(Test reading|Probar lectura)$/i }).click();
+  const dialog = page.getByRole('dialog', { name: /^(Test reading|Probar lectura)$/i });
+  await dialog.getByLabel(/^(PLC private IP|IP privada del PLC)$/i).fill('192.168.1.5'); await dialog.getByLabel(/^(End PDU|PDU final)$/i).fill('100');
+  await dialog.getByRole('button', { name: /^(Refresh|Refresco)$/i }).click(); await page.getByRole('option', { name: '5 s', exact: true }).click();
+  await page.clock.install({ time: new Date('2026-10-02T12:00:00Z') }); await page.clock.pauseAt(new Date('2026-10-02T12:00:01Z'));
+  await dialog.getByRole('button', { name: /^(Read range|Leer rango)$/i }).click();
+  await expect(dialog.getByRole('row').filter({ has: page.getByRole('rowheader', { name: '100', exact: true }) })).toContainText('42');
+  await expect(dialog.getByRole('status')).toHaveText(/Waiting for next refresh|Esperando próximo refresco/i);
+  expect(reads).toBe(1); await page.clock.runFor(5000);
+  await expect(dialog.getByText(/^(Previous|Anterior)$/i)).toBeVisible(); expect(reads).toBe(2);
+  await expect(dialog.getByRole('button', { name: /^(Create variable|Crear variable)$/i })).toBeDisabled();
+  await dialog.getByRole('button', { name: /^(Stop|Detener)$/i }).click(); await page.clock.runFor(20000); expect(reads).toBe(2);
+});
+
+for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'tablet portrait', width: 768, height: 1024 }, { name: 'tablet landscape', width: 1024, height: 768 }, { name: 'desktop', width: 1440, height: 900 }]) {
   test(`Feature: Native Modbus configuration — Scenario: Safe explicit mapping fits ${viewport.name} (AC7)`, async ({ page }, testInfo) => {
     await page.setViewportSize(viewport);
     await prepareAuthenticatedDashboard(page);

@@ -1,5 +1,5 @@
 import type { Device } from '../../../devices/domain/types';
-import type { ModbusConnection, ModbusVariable } from '../domain/Modbus';
+import type { ModbusArea, ModbusConnection, ModbusVariable } from '../domain/Modbus';
 export interface ModbusRepository {
   connections(homeId?: string): ModbusConnection[];
   connection(id: string): ModbusConnection | null;
@@ -10,6 +10,7 @@ export interface ModbusRepository {
   saveVariable(variable: ModbusVariable, device: Device): void;
 }
 export interface ModbusTransport {
+  readRange(connection: ModbusConnection, area: ModbusArea, start: number, count: number, signal?: AbortSignal): Promise<Array<number | boolean>>;
   read(connection: ModbusConnection, variable: ModbusVariable): Promise<number | boolean>;
   writeCoil(connection: ModbusConnection, address: number, value: boolean): Promise<void>;
 }

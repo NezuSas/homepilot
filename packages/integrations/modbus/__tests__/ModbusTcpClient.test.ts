@@ -78,4 +78,27 @@ describe('Feature: Native Modbus TCP protocol (AC3/AC4)', () => {
     const connection = await plc((request, socket) => { count++; request[11] = 1; socket.end(request); });
     await expect(client.writeCoil(connection, 123, true)).rejects.toMatchObject({ code: 'PROTOCOL' }); expect(count).toBe(1);
   });
+  it('Scenario: Given a register range When probed Then one FC03 reads exact unsigned RAW words', async () => {
+    const connection = await plc((request, socket) => { expect(request[7]).toBe(3); expect(request.readUInt16BE(8)).toBe(100); expect(request.readUInt16BE(10)).toBe(3); socket.end(frame(request, [3, 6, 0xff, 0xff, 0, 22, 0, 1])); });
+    expect(await client.readRange(connection, 'holding_register', 100, 3)).toEqual([65535, 22, 1]);
+  });
+  it('Scenario: Given a bit range across bytes When probed Then every RAW bit is expanded in address order', async () => {
+    const connection = await plc((request, socket) => { expect(request[7]).toBe(2); socket.end(frame(request, [2, 2, 0x81, 1])); });
+    expect(await client.readRange(connection, 'discrete_input', 100, 9)).toEqual([true, false, false, false, false, false, false, true, true]);
+  });
+  it.each(['uint32', 'int32'] as const)('Scenario: Given %s When the driver reads Then both words use the common decoder', async dataType => {
+    const connection = await plc((request, socket) => { expect(request.readUInt16BE(10)).toBe(2); socket.end(frame(request, [3, 4, 0xff, 0xff, 0xff, 0xfe])); });
+    expect(await client.read(connection, { ...variable, dataType })).toBe(dataType === 'uint32' ? 4294967294 : -2);
+  });
+  it('Scenario: Given a waiting probe When aborted Then the socket closes without write or retry', async () => {
+    let started!: () => void; const sent = new Promise<void>(resolve => { started = resolve; });
+    const connection = await plc(() => started()); const controller = new AbortController();
+    const read = client.readRange(connection, 'holding_register', 100, 3, controller.signal);
+    await sent; controller.abort(); await expect(read).rejects.toMatchObject({ code: 'CANCELLED' });
+  });
+  it('Scenario: Given an invalid range When requested Then no network is contacted', async () => {
+    const connection = await plc(() => { throw new Error('Unexpected network'); });
+    await expect(client.readRange(connection, 'holding_register', 65535, 2)).rejects.toMatchObject({ code: 'INVALID_CONFIG' });
+    await expect(client.readRange(connection, 'holding_register', 0, 65)).rejects.toMatchObject({ code: 'INVALID_CONFIG' });
+  });
 });

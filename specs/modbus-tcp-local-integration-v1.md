@@ -13,7 +13,7 @@ Conexiones nuevas deshabilitadas y variables de solo lectura por defecto. Activa
 - IPv4 privada RFC1918 literal, puerto TCP 502; sin DNS, loopback, direcciones públicas o multicast en configuración de producción.
 - Unit ID 1–247, timeout 250–10000 ms, intervalo 1000–60000 ms. Máximo 16 conexiones por hogar y 128 variables por conexión.
 - Dirección PDU cero-basada 0–65535, introducida explícitamente; no aceptar notación 40001 ni convertir símbolos de fabricante.
-- Lecturas FC01 coils, FC02 discrete inputs, FC03 holding registers y FC04 input registers. Tipos boolean, uint16, int16 y float32; orden de palabras alto/bajo configurable para float32, escala y offset finitos.
+- Lecturas FC01 coils, FC02 discrete inputs, FC03 holding registers y FC04 input registers. Tipos boolean, uint16, int16, uint32, int32 y float32; orden de palabras alto/bajo configurable para tipos de 32 bits, escala y offset finitos.
 - V1 permite escritura FC05 únicamente sobre coils explícitamente habilitadas, mediante los comandos existentes turn_on/turn_off/toggle de Button/switch. Registros permanecen de lectura; no se inventa un comando genérico ni pulsos con reset inseguro. Las seguridades y enclavamientos permanecen en el PLC.
 - Tramas limitadas, transaction/unit/protocol/function/byte-count/echo validados, timeout absoluto y socket cerrado siempre. No reintentar escrituras: un timeout no demuestra que el PLC no recibió la orden.
 - Modbus TCP clásico no aporta autenticación ni cifrado. Usar solo LAN confiable/segmentada y firewall, sin exposición a Internet; los permisos HomePilot no reemplazan el aislamiento de la red PLC.
@@ -34,6 +34,13 @@ Migración aditiva 035: tablas modbus_connections y modbus_variables con referen
 - AC5: polling serial, reconexión/backoff y lectura stale preservan dato sin fingir disponibilidad; start/stop no dejan timers activos.
 - AC6: variables alimentan inventario/snapshot/eventos existentes y conservan estancia al editar.
 - AC7: UI Admin, estado inicial con skeleton propio, configuración compacta y accesible en desktop/tablet/mobile, claro/oscuro; sin controles físicos en configuración.
+
+## Ampliación aprobada — asistente de puesta en marcha
+
+- AC8: Admin puede ejecutar POST `/api/v1/modbus/probe` con hogar, IPv4 privada, Unit ID, área y rango PDU inclusivo. Solo FC01–04; nunca activar polling, guardar datos ni escribir durante la prueba. Máximo 64 direcciones por lectura, timeout 250–5000 ms, una prueba activa por hogar; no barrido automático de redes ni CLI. Lectura de bloque: una excepción afecta al bloque completo, no demuestra qué dirección falló. Tabla con RAW por dirección (palabra uint16 o bit), tipo seleccionado, valor convertido, estado, error y tiempo del bloque compartido por filas.
+- AC9: refresco manual o periódico 1–60 s, sin solapamientos; Detener/cerrar cancela solicitud y futuras lecturas. Resultados se conservan marcados anteriores ante errores. Crear variable desde una fila válida abre el editor normal con dirección, área y conversión, siempre writable=false; conexión nueva se guarda deshabilitada solo por confirmación. No escribir ni inferir símbolos de fabricante.
+- AC10: conversión compartida backend/frontend: uint16, int16, uint32, int32 y float32; 32 bits ocupan dos palabras consecutivas y requieren la siguiente dirección leída. Orden high_first/low_first, escala/offset/unidad y preview; ausencia/NaN muestran error, no valor ficticio. Tipos históricos se conservan y no hay migración SQL nueva. El JSON admite tipos nuevos; para volver al binario V1 previo, cambiar variables uint32/int32 a un tipo admitido o restaurar backup antes del downgrade. No convertir configuraciones históricas automáticamente.
+- Desarrollo/pruebas solo con PLC simulado. Configuración y pruebas de lectura usan los mismos límites de red y permisos; seguridad física y aislamiento LAN siguen siendo responsabilidad del instalador.
 
 ## Referencias
 

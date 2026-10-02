@@ -81,7 +81,7 @@ The command fails if a file cannot be mapped to an existing spec.
 
 ## Audited Coverage
 
-- The **918** audited TypeScript/TSX files have a mapping rule to an existing
+- The **920** audited TypeScript/TSX files have a mapping rule to an existing
   spec.
 - All bounded contexts under `packages/` and all API route families are
   covered.
@@ -90,6 +90,8 @@ The command fails if a file cannot be mapped to an existing spec.
   acceptance criteria, and required component documentation.
 
 ## Review Gate
+
+Puesta en marcha Modbus local: `modbus-tcp-local-integration-v1` AC8–AC10 cubre probe Admin/hogar, bloque RAW readonly acotado, cancelación/refresco y conversión común de 16/32 bits con creación explícita desde una fila probada. Evidencia focal: 136/136 Jest y 10/10 responsive PASS; lectura TCP simulada, no PLC físico. Sin migración adicional; downgrade de variables uint32/int32 exige conversión compatible o backup.
 
 Refinamiento local rutinas/observabilidad/tema automático: `scene-lifecycle-v1` AC6 y `automation-rules-engine-v1` AC6 cubren concesiones explícitas read/run/favorite y administración exclusiva del creador. Migración 034 aditiva requiere backup antes de MiniPC. `assistant-v1` cubre zona horaria del sistema y evidencia de cuatro días locales para hábitos; `operator-console-v1` y `observability-diagnostics-v1` cubren densidad, skeletons propios y filtros recientes por nombre. Componentes reutilizables documentados en `docs/components/RoutineSharingField.md` y `EventFilters.md`. Pruebas: SceneRoutes.sharing, SQLiteAutomationRuleRepository.sharing, BehaviorAnalysisService, AutomationEngine, eventFiltering, automaticTheme y escenarios responsive focalizados de filtros/editores.
 

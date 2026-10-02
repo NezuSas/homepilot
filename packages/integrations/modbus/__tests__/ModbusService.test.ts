@@ -17,7 +17,7 @@ export function modbusFixture() {
   for (const file of ['001_initial_schema.sql', '006_add_invert_state_to_devices.sql', '015_add_device_integration_source.sql', '022_add_semantic_type_to_devices.sql', '035_modbus_tcp.sql']) db.exec(readFileSync(join(process.cwd(), 'migrations', file), 'utf8'));
   db.prepare('INSERT INTO homes(id,owner_id,name) VALUES (?,?,?)').run('h', 'admin', 'Home');
   const repository = new SQLiteModbusRepository(dbPath), devices = new SQLiteDeviceRepository(dbPath), homes = new SQLiteHomeRepository(dbPath);
-  const transport: jest.Mocked<ModbusTransport> = { read: jest.fn().mockResolvedValue(42), writeCoil: jest.fn().mockResolvedValue(undefined) };
+  const transport: jest.Mocked<ModbusTransport> = { readRange: jest.fn().mockResolvedValue([42]), read: jest.fn().mockResolvedValue(42), writeCoil: jest.fn().mockResolvedValue(undefined) };
   const publish = jest.fn(async (id: string, state: Record<string, unknown>) => { const device = await devices.findDeviceById(id); if (device) await devices.saveDevice({ ...device, lastKnownState: state }); });
   const service = new ModbusService(repository, transport, devices, homes, publish);
   const cleanup = () => { SqliteDatabaseManager.close(dbPath); for (const name of readdirSync(directory)) unlinkSync(join(directory, name)); rmdirSync(directory); };
@@ -130,6 +130,52 @@ describe('Feature: Modbus configuration, inventory and lifecycle (AC1/AC2/AC4/AC
     expect(await f.service.executeCommand(device, { name: 'turn_on' })).toMatchObject({ success: false, error: 'READ_ONLY' });
     expect(f.transport.writeCoil).not.toHaveBeenCalled();
     expect(validateDeviceCommand((await f.devices.findDeviceById(device.id))!, { name: 'turn_on' }).valid).toBe(false);
+  });
+  it('Scenario: Given no saved connection When an Admin tests a range Then RAW rows return without inventory or writes', async () => {
+    f.transport.readRange.mockResolvedValue([65535, 22, 1]);
+    const result = await f.service.probe('admin', 'h', { ...connectionInput, area: 'holding_register', start: 100, end: 102 });
+    expect(result.rows).toEqual([65535, 22, 1].map((raw, i) => ({ address: 100 + i, raw, status: 'ok', elapsedMs: expect.any(Number) })));
+    expect(f.repository.connections()).toEqual([]); expect(f.publish).not.toHaveBeenCalled(); expect(f.transport.writeCoil).not.toHaveBeenCalled();
+  });
+  it.each([{ start: -1 }, { end: 164 }, { end: 99 }, { host: '127.0.0.1' }, { unitId: 0 }, { area: 'write' }, { writable: true }, { timeoutMs: 10000 }])
+    ('Scenario: Given invalid discovery %j When tested Then networking is rejected', async invalid => {
+      await expect(f.service.probe('admin', 'h', { ...connectionInput, area: 'holding_register', start: 100, end: 120, ...invalid })).rejects.toBeDefined();
+      expect(f.transport.readRange).not.toHaveBeenCalled(); expect(f.transport.writeCoil).not.toHaveBeenCalled();
+    });
+  it('Scenario: Given a foreign home When probing Then no address is contacted', async () => {
+    await expect(f.service.probe('admin', 'other', { ...connectionInput, area: 'coil', start: 0, end: 1 })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    expect(f.transport.readRange).not.toHaveBeenCalled();
+  });
+  it('Scenario: Given a failed block When probing Then every address reports the same bounded error without invented RAW', async () => {
+    f.transport.readRange.mockRejectedValue(new Error('Private transport detail'));
+    const result = await f.service.probe('admin', 'h', { ...connectionInput, area: 'input_register', start: 100, end: 101 });
+    expect(result.rows).toHaveLength(2); expect(result.rows[0]).toMatchObject({ raw: null, status: 'error', error: 'CONNECTION' });
+    expect(JSON.stringify(result)).not.toContain('Private transport detail');
+  });
+  it('Scenario: Given an active probe When another starts Then reads do not overlap and cancellation cleans the lock', async () => {
+    let release!: () => void, started!: () => void;
+    const begun = new Promise<void>(resolve => { started = resolve; });
+    const controller = new AbortController();
+    f.transport.readRange.mockImplementationOnce(() => new Promise(resolve => { release = () => resolve([42]); started(); }));
+    const input = { ...connectionInput, area: 'holding_register', start: 100, end: 100 };
+    const first = f.service.probe('admin', 'h', input, controller.signal); await begun;
+    await expect(f.service.probe('admin', 'h', input)).rejects.toMatchObject({ code: 'LIMIT' });
+    controller.abort(); release(); await expect(first).rejects.toMatchObject({ code: 'CANCELLED' });
+    await expect(f.service.probe('admin', 'h', input)).resolves.toHaveProperty('rows');
+  });
+  it('Scenario: Given existing polling When testing its endpoint Then probe waits for the same connection queue', async () => {
+    await create(); let release!: (value: number) => void, started!: () => void;
+    const begun = new Promise<void>(resolve => { started = resolve; });
+    f.transport.read.mockImplementationOnce(() => new Promise(resolve => { release = resolve; started(); }));
+    const poll = f.service.pollOnce(0); await begun;
+    const probe = f.service.probe('admin', 'h', { ...connectionInput, area: 'holding_register', start: 100, end: 100 });
+    expect(f.transport.readRange).not.toHaveBeenCalled(); release(42); await poll; await probe;
+    expect(f.transport.readRange).toHaveBeenCalledTimes(1);
+  });
+  it.each(['uint32', 'int32'])('Scenario: Given %s When saved and reloaded Then the new JSON type persists without SQL migration', async dataType => {
+    const { connection } = await create(false);
+    const variable = await f.service.saveVariable('admin', connection.id, { ...variableInput, dataType });
+    expect(new SQLiteModbusRepository(f.dbPath).variable(variable.deviceId)).toMatchObject({ dataType, writable: false });
   });
 });
 function awaitedDevicePlaceholder() {
