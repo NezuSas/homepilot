@@ -13,6 +13,7 @@ export const primarySidebarNavigation: SidebarNavigationItem[] = [
 ];
 
 export const systemSidebarNavigation: SidebarNavigationItem[] = [
+  { view: 'system-modbus', labelKey: 'modbus.title', icon: Network, requires: 'admin-role' },
   { view: 'resilience-showcase', labelKey: 'nav.resilience_showcase', icon: ShieldCheck },
   { view: 'system-devices', labelKey: 'nav.system_devices', icon: Network }, { view: 'system-inbox', labelKey: 'nav.system_inbox', icon: Server }, { view: 'system-diagnostics', labelKey: 'nav.system_diagnostics', icon: Activity }, { view: 'system-audit', labelKey: 'nav.system_audit', icon: ShieldAlert }, { view: 'system-executions', labelKey: 'nav.system_executions', icon: Activity }, { view: 'system-users', labelKey: 'nav.system_users', icon: Users, requires: 'admin-role' }, { view: 'system-ha', labelKey: 'nav.system_ha', icon: Settings }, { view: 'system-cameras', labelKey: 'nav.system_cameras', icon: Camera }, { view: 'system-onboarding', labelKey: 'nav.system_onboarding', icon: Monitor },
   { view: 'system-home-personalization', labelKey: 'nav.system_home_personalization', icon: Settings, requires: 'admin-role' },

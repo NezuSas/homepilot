@@ -1,4 +1,10 @@
 {
+  "modbus": {
+    "title": "Modbus TCP", "subtitle": "Connect your local PLC using an explicit variable map.", "add_connection": "Add connection", "empty": "No Modbus connections", "empty_hint": "Configure the connection and addresses verified in the PLC manual. Reading starts only when enabled.",
+    "configure": "Configure", "enabled": "Reading enabled", "disabled": "Disabled", "no_variables": "No variables configured yet.", "add_variable": "Add variable", "edit_variable": "Configure {{name}}", "connection_title": "Configure connection", "variable_title": "Configure variable", "safe_hint": "No automatic connection on save. Enabling reading contacts the PLC; safety logic stays in the device.",
+    "name": "Name", "host": "PLC private IP", "port": "TCP port", "unitId": "Unit ID", "timeoutMs": "Timeout (ms)", "pollIntervalMs": "Interval (ms)", "enable_polling": "Enable periodic reading", "address": "Address", "address_hint": "Zero-based PDU address; do not use M/D or 40001 notation.", "area": "Area", "dataType": "Data type", "coil": "Coil", "discrete_input": "Discrete input", "holding_register": "Holding register", "input_register": "Input register", "scale": "Scale", "offset": "Offset", "unit": "Unit", "wordOrder": "Word order", "high_first": "High word first", "low_first": "Low word first", "allow_write": "Allow commands on this coil", "write_allowed": "Writing enabled", "read_only": "Read only", "assignment_hint": "Assign this variable to a space in Device Manager to use it in the dashboard. Registers are read-only.",
+    "save": "Save", "cancel": "Cancel", "retry": "Retry", "load_error": "Could not load connections. Retry and check your Admin access.", "save_error": "Could not save. Check the private IP, limits and variable address."
+  },
   "routine_sharing": { "scope": "Access", "private": "Private · only you", "shared": "Shared · selected users can run and favorite", "users": "Share with users", "load_error": "Could not load available users.", "name": "Name", "description": "Description", "space": "Room" },
   "nav": {
     "dashboard": "Home",

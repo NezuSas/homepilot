@@ -1,5 +1,7 @@
 # Spec-Driven Coverage Matrix
 
+- Modbus TCP nativo: `specs/modbus-tcp-local-integration-v1.md` AC1–AC7; protocolo TCP simulado, configuración/inventario SQLite, driver, lifecycle y rutas Admin en `ModbusTcpClient.test.ts`, `ModbusService.test.ts`, `ModbusRoutes.test.ts`. Jest focalizado 102/102 PASS en 6 suites (67 Modbus y 35 regresión); responsive `Native Modbus configuration` 5/5 PASS: móvil, tablet portrait/landscape, desktop, claro/oscuro y no-Admin. Typecheck/lint/builds y controles de trazabilidad/arquitectura/i18n PASS. Evidencia `.impeccable/review/modbus-v1/`. Sin suites completas, Docker ni certificación del PLC físico/mapa Xinje.
+
 - Densidad Sensor / llegada entre Sections: 73/73 Jest focalizados; 10/10 responsive en `.impeccable/review/sensor-density-cross-drop/`, confirmación de arrastre 7/7 en `.impeccable/review/sensor-density-drag-confirm/` (16 escenarios únicos). Padding vertical computado ≤8px y separación lectura/pie ≤8px en todas las presentaciones; misma geometría skeleton/contenido; overlay sobre otra Section y animación Web Animations real después de soltar, con persistencia y sin comandos físicos. Typecheck/lint/builds raíz/consola y controles spec/BDD/module/i18n/arquitectura/no-any PASS. Ajuste local sin schema ni IDs persistidos.
 
 - Refinamiento Sensor/drag 2026-10-02: 76/76 Jest en SensorMetricCard/SensorAnalogGauge/DashboardCardSkeleton/sectionSlots/sectionCardDrag; responsive focalizado 19/19 en `.impeccable/review/compact-drag-verified/`. Unidad inline, tipografía común, graduaciones adicionales, ausencia compacta, preview elevado, Section desde fondo libre y masonry por columna con huecos persistidos. Geometría skeleton/contenido, mouse/touch/teclado y cancelación seguida de movimiento comprobados. Typecheck/lint/builds y spec/BDD/module/i18n/arquitectura/no-any PASS. No responsive completo, Git ni deploy.
@@ -79,7 +81,7 @@ The command fails if a file cannot be mapped to an existing spec.
 
 ## Audited Coverage
 
-- The **907** audited TypeScript/TSX files have a mapping rule to an existing
+- The **918** audited TypeScript/TSX files have a mapping rule to an existing
   spec.
 - All bounded contexts under `packages/` and all API route families are
   covered.

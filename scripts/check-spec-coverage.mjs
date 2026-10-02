@@ -15,6 +15,7 @@ const modularComponentDocs = [
 ];
 
 const rules = [
+  ['modbus-tcp-local-integration-v1.md', /(?:Modbus|integrations\/modbus)/i],
   ['installation-profiles-v1.md', /(?:getInstallationProfile|SystemSetupService|OnboardingView)/i],
   ['media-player-local-control-v1.md', /(?:MediaPlayer|MediaRoutes|MediaService)/i],
   ['native-camera-local-integration-v1.md', /(?:NativeCamera|Onvif|integrations\/native-camera)/i],

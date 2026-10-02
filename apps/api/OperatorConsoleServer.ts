@@ -21,6 +21,7 @@ import { MediaPlayerRoutes } from './routes/MediaPlayerRoutes';
 import { ExecutionRoutes } from './routes/ExecutionRoutes';
 import { CameraRoutes } from './routes/CameraRoutes';
 import { NativeCameraRoutes } from './routes/NativeCameraRoutes';
+import { ModbusRoutes } from './routes/ModbusRoutes';
 import { AndroidDisplayRoutes } from './routes/AndroidDisplayRoutes';
 
 /**
@@ -39,6 +40,7 @@ export class OperatorConsoleServer {
     const mediaService = new MediaService();
     const loginAttemptRateLimiter = new LoginAttemptRateLimiter();
     const handlers: RouteHandler[] = [
+        new ModbusRoutes(container.services.modbusService),
         new MediaRoutes(mediaService),
         new MediaPlayerRoutes(),
         new NativeCameraRoutes(container.services.nativeCameraService),

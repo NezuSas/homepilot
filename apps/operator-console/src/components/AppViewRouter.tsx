@@ -5,6 +5,7 @@ import type { AssistantTurnCoordinator } from '../lib/assistantTurnCoordinator';
 import { AssistantView, AuditLogsView, DashboardView, DashboardsView, DiagnosticsView, EnergyView, ExecutionLogsView, HomeAssistantSettingsView, HomePersonalizationView, HomeConversationView, InboxView, NativeCamerasView, ResilienceShowcaseView, RoutinesView, TopologyView, UsersView } from '../appRouteViews';
 import type { SetupStatus } from '../appShellTypes';
 import { OnboardingView } from '../views/OnboardingView';
+import { ModbusView } from '../appRouteViews';
 import { ViewSkeleton } from './ui/ComponentSkeletons';
 import { PageFrame } from './ui/PageFrame';
 import { useTranslation } from 'react-i18next';
@@ -49,6 +50,7 @@ export function AppViewRouter(props: AppViewRouterProps) {
     {props.currentView === 'system-onboarding' && <OnboardingView statusProvider={props.setupStatus} userContext={props.user} onCompleted={props.onOnboardingCompleted} />}
     {props.currentView === 'system-users' && <UsersView currentUserId={props.user?.id ?? null} />}
     {props.currentView === 'system-home-personalization' && props.user?.role === 'admin' && <HomePersonalizationView />}
+    {props.currentView === 'system-modbus' && props.user?.role === 'admin' && <ModbusView />}
     {props.currentView === 'home-conversation' && <HomeConversationView pendingPrompt={props.pendingPrompt} assistantTurnCoordinator={props.assistantTurnCoordinator} onPendingPromptConsumed={props.onPendingPromptConsumed} />}
   </Suspense></PageFrame>;
 }

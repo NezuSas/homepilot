@@ -9,6 +9,8 @@ import { buildAuthModule } from './infrastructure/assemblers/buildAuthModule';
 import { buildAssistantModule } from './infrastructure/assemblers/buildAssistantModule';
 import { buildCommandRouter } from './infrastructure/assemblers/buildCommandRouter';
 import { buildNativeCameraModule } from './infrastructure/assemblers/buildNativeCameraModule';
+import { buildModbusModule } from './infrastructure/assemblers/buildModbusModule';
+import type { ModbusService } from './packages/integrations/modbus/application/ModbusService';
 import { HttpAndroidDisplayBridgeClient } from './packages/integrations/android-display/infrastructure/HttpAndroidDisplayBridgeClient';
 import { AndroidDisplayService } from './packages/integrations/android-display/application/AndroidDisplayService';
 import { DiagnosticsService } from './packages/system-observability/application/DiagnosticsService';
@@ -123,6 +125,7 @@ export interface BootstrapContainer {
     systemVariableRepository: SqliteSystemVariableRepository;
   };
   services: {
+    modbusService: ModbusService;
     dashboardService: DashboardService;
     homeAssistantSettingsService: HomeAssistantSettingsService;
     diagnosticsService: DiagnosticsService;
@@ -262,6 +265,10 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   });
 
   const androidDisplayBridge = HttpAndroidDisplayBridgeClient.fromEnvironment();
+  const modbusService = buildModbusModule(dbPath, repos.homeRepository, {
+    deviceRepository: repos.deviceRepository, eventPublisher: deviceEventPublisher,
+    activityLogRepository: repos.activityLogRepository,
+  });
   const androidDisplayService = new AndroidDisplayService(
     repos.androidDisplaySourceRepository, repos.homeRepository, androidDisplayBridge,
   );
@@ -287,6 +294,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     nativeCameraDriverRegistry: nativeCameraModule.nativeCameraDriverRegistry,
     androidDisplaySourceRepository: repos.androidDisplaySourceRepository,
     androidDisplayBridge,
+    modbusDriver: modbusService,
   });
 
   // 6. Motor de Automatización (usa el commandDispatcher ya construido)
@@ -453,6 +461,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
       systemSetupRepository: authModule.systemSetupRepository
     },
     services: {
+      modbusService,
       dashboardService: commandRouterAssembly.dashboardService,
       homeAssistantSettingsService: haModule.settingsService,
       diagnosticsService,

@@ -16,10 +16,12 @@ export function resolveView(view: View): View {
 }
 
 export function isSystemView(view: View): boolean {
+  if (view === 'system-modbus') return true;
   return ['system-devices', 'system-inbox', 'system-diagnostics', 'system-audit', 'system-executions', 'system-users', 'system-ha', 'system-home-personalization', 'system-cameras', 'system-onboarding'].includes(view);
 }
 
 export function viewToPath(view: View): string {
+  if (view === 'system-modbus') return '/system/modbus';
   const paths: Partial<Record<View, string>> = {
     dashboard: '/', spaces: '/spaces', routines: '/routines/scenes', scenes: '/routines/scenes', automations: '/routines/automations', assistant: '/assistant', energy: '/energy', 'resilience-showcase': '/resilience-showcase', 'home-conversation': '/home-conversation', dashboards: '/dashboards', 'system-devices': '/system/devices', 'system-inbox': '/system/inbox', 'system-diagnostics': '/system/diagnostics', 'system-audit': '/system/audit', 'system-executions': '/system/executions', 'system-users': '/system/users', 'system-ha': '/system/ha', 'system-home-personalization': '/system/home-personalization', 'system-cameras': '/system/cameras', 'system-onboarding': '/system/onboarding'
   };
@@ -27,6 +29,7 @@ export function viewToPath(view: View): string {
 }
 
 export function pathToView(pathname: string): View {
+  if (pathname === '/system/modbus') return 'system-modbus';
   if (pathname.startsWith('/dashboards')) return 'dashboards';
   const paths: Record<string, View> = {
     '/spaces': 'spaces', '/routines': 'routines', '/routines/scenes': 'routines', '/routines/automations': 'routines', '/scenes': 'routines', '/automations': 'routines', '/assistant': 'assistant', '/energy': 'energy', '/resilience-showcase': 'resilience-showcase', '/home-conversation': 'home-conversation', '/system/devices': 'system-devices', '/system/inbox': 'system-inbox', '/system/diagnostics': 'system-diagnostics', '/system/audit': 'system-audit', '/system/executions': 'system-executions', '/system/users': 'system-users', '/system/ha': 'system-ha', '/system/home-personalization': 'system-home-personalization', '/system/cameras': 'system-cameras', '/system/onboarding': 'system-onboarding'

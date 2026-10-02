@@ -26,6 +26,12 @@ async function main(): Promise<void> {
     const dbPath = getDatabasePath();
     const server = new OperatorConsoleServer(container, dbPath, 3000);
     server.start();
+    if (process.env.NODE_ENV !== 'test') {
+      container.services.modbusService.start();
+      const stopModbus = (): void => { void container.services.modbusService.stop(); };
+      process.once('SIGINT', stopModbus);
+      process.once('SIGTERM', stopModbus);
+    }
 
     const cloudGatewayConnector = CloudGatewayConnector.fromEnvironment(
       new EdgeGatewayRelayExecutor({

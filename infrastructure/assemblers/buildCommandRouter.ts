@@ -5,6 +5,7 @@
  * Integra dispatchers para consolas locales, Home Assistant y dispositivos Sonoff.
  */
 import { randomUUID } from 'crypto';
+import type { DeviceDriver } from '../../packages/devices/domain/drivers/DeviceDriver';
 import { DeviceCommandService } from '../../packages/devices/application/DeviceCommandService';
 import { DefaultDeviceDriverRegistry } from '../../packages/devices/infrastructure/drivers/DefaultDeviceDriverRegistry';
 import { LocalDeviceDriver } from '../../packages/devices/infrastructure/drivers/LocalDeviceDriver';
@@ -46,6 +47,7 @@ export interface CommandRouterAssembly {
 }
 
 export interface CommandRouterDeps {
+  modbusDriver?: DeviceDriver;
   expiredInboxDeviceRemover?: ExpiredInboxDeviceRemover;
   deviceRepository: SQLiteDeviceRepository;
   activityLogRepository: SQLiteActivityLogRepository;
@@ -138,6 +140,7 @@ export function buildCommandRouter(deps: CommandRouterDeps): CommandRouterAssemb
 
   // -- DRIVER LAYER SETUP --
   const driverRegistry = new DefaultDeviceDriverRegistry();
+  if (deps.modbusDriver) driverRegistry.register('modbus-tcp', deps.modbusDriver);
   
   // Registrar drivers
   driverRegistry.register('ha', new HomeAssistantDeviceDriver(connectionProvider));

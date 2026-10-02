@@ -16,3 +16,4 @@ export const EnergyView = lazy(() => import('./views/EnergyView').then(module =>
 export const ExecutionLogsView = lazy(() => import('./views/ExecutionLogsView').then(module => ({ default: module.ExecutionLogsView })));
 export const HomeConversationView = lazy(() => import('./views/HomeConversationView').then(module => ({ default: module.HomeConversationView })));
 export const NativeCamerasView = lazy(() => import('./views/NativeCamerasView').then(module => ({ default: module.NativeCamerasView })));
+export const ModbusView = lazy(() => import('./views/ModbusView').then(module => ({ default: module.ModbusView })));

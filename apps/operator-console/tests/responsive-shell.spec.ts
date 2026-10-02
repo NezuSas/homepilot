@@ -1,6 +1,76 @@
 import { expect, test } from '@playwright/test';
 import { mdiAutoFix, mdiHome, mdiRobot, mdiWeatherWindy } from '@mdi/js';
 
+for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'tablet portrait', width: 768, height: 1024 }, { name: 'tablet landscape', width: 1024, height: 768 }, { name: 'desktop', width: 1440, height: 900 }]) {
+  test(`Feature: Native Modbus configuration — Scenario: Safe explicit mapping fits ${viewport.name} (AC7)`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport);
+    await prepareAuthenticatedDashboard(page);
+    await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: 'h', name: 'Home' }] }));
+    const connections: Array<Record<string, unknown>> = [];
+    const variables: Array<Record<string, unknown>> = [];
+    await page.route('**/api/v1/modbus/**', async route => {
+      const request = route.request();
+      if (request.method() === 'GET') return route.fulfill({ json: { connections } });
+      const data = request.postDataJSON();
+      if (request.url().includes('/variables')) { variables.push({ ...data, deviceId: `v-${variables.length}`, connectionId: 'c' }); connections[0].variables = variables; return route.fulfill({ json: { variable: variables[variables.length - 1] } }); }
+      connections.push({ ...data, id: 'c', variables: [] }); return route.fulfill({ json: { connection: connections[0] } });
+    });
+    await page.goto('/system/modbus');
+    await expect(page.getByRole('heading', { name: 'Modbus TCP', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: /^(Add connection|Añadir conexión)$/i }).click();
+    const dialog = page.getByRole('dialog', { name: /^(Configure connection|Configurar conexión)$/i });
+    await dialog.getByLabel(/^(Name|Nombre)$/i).fill('PLC simulado');
+    await dialog.getByLabel(/^(PLC private IP|IP privada del PLC)$/i).fill('192.168.1.5');
+    await expect(dialog.getByRole('switch')).toHaveAttribute('aria-checked', 'false');
+    const connectionBounds = await dialog.boundingBox();
+    expect(connectionBounds!.height).toBeLessThanOrEqual(viewport.height);
+    await page.screenshot({ path: testInfo.outputPath('modbus-connection-editor.png'), animations: 'disabled' });
+    await dialog.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
+    await expect(dialog).not.toBeVisible();
+    expect(connections[0]).toMatchObject({ enabled: false, host: '192.168.1.5', port: 502 });
+    const card = page.getByRole('region', { name: 'PLC simulado', exact: true });
+    await expect(card).toBeVisible();
+    await card.getByRole('button', { name: /^(Add variable|Añadir variable)$/i }).click();
+    const variableDialog = page.getByRole('dialog', { name: /^(Configure variable|Configurar variable)$/i });
+    await variableDialog.getByLabel(/^(Name|Nombre)$/i).fill('Temperatura ambiente');
+    await variableDialog.getByLabel(/^(Address|Dirección)$/i, { exact: true }).fill('123');
+    await variableDialog.getByLabel(/^(Unit|Unidad)$/i, { exact: true }).fill('°C');
+    await variableDialog.getByRole('button', { name: /^(Save|Guardar)$/i }).scrollIntoViewIfNeeded();
+    await expect(variableDialog.getByRole('button', { name: /^(Save|Guardar)$/i })).toBeInViewport({ ratio: 1 });
+    await page.screenshot({ path: testInfo.outputPath('modbus-variable-editor.png'), animations: 'disabled' });
+    await variableDialog.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
+    await expect(variableDialog).not.toBeVisible();
+    expect(variables[0]).toMatchObject({ writable: false, address: 123, dataType: 'uint16' });
+    await expect(card.getByText('Temperatura ambiente', { exact: true })).toBeVisible();
+    await card.getByRole('button', { name: /^(Add variable|Añadir variable)$/i }).click();
+    await variableDialog.getByLabel(/^(Name|Nombre)$/i).fill('Luz patio');
+    await variableDialog.getByRole('button', { name: /^(Area|Área)$/i }).click();
+    await page.getByRole('option', { name: 'Coil', exact: true }).click();
+    const writePermission = variableDialog.getByRole('switch', { name: /^(Allow commands on this coil|Permitir órdenes sobre esta coil)$/i });
+    await expect(writePermission).toHaveAttribute('aria-checked', 'false');
+    await writePermission.click();
+    await variableDialog.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
+    await expect(variableDialog).not.toBeVisible();
+    expect(variables[1]).toMatchObject({ area: 'coil', dataType: 'boolean', writable: true });
+    await page.reload(); await expect(page.getByRole('region', { name: 'PLC simulado' })).toContainText('Temperatura ambiente');
+    for (const theme of ['dark', 'light']) {
+      await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+      expect(overflow).toBe(false);
+      await page.screenshot({ path: testInfo.outputPath(`modbus-${theme}.png`), fullPage: true, animations: 'disabled' });
+    }
+  });
+}
+test('Feature: Native Modbus configuration — Scenario: Non-Admin direct navigation never requests configuration (AC2)', async ({ page }) => {
+  await prepareAuthenticatedDashboard(page, responsiveDashboard, { ...dashboardUser, role: 'operator' });
+  let calls = 0;
+  await page.route('**/api/v1/modbus/**', route => { calls++; return route.fulfill({ json: { connections: [] } }); });
+  await page.goto('/system/modbus');
+  await expect(page.getByRole('button', { name: /^(Add connection|Añadir conexión)$/i })).toHaveCount(0);
+  await expect(page.getByRole('navigation').getByText('Modbus TCP', { exact: true })).toHaveCount(0);
+  expect(calls).toBe(0);
+});
+
 async function enterDashboardEdit(page: import('@playwright/test').Page, touch = false) {
   const header = page.locator('.homepilot-dashboard-titlebar');
   const more = header.getByLabel(/^(More|Más)$/i);

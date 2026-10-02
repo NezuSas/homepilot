@@ -4,6 +4,7 @@ import { cn } from '../../lib/utils';
 import { LoadingState } from './LoadingState';
 import { DashboardSkeletonBar as Bar, DashboardCardSkeleton } from './DashboardCardSkeleton';
 import { EventFiltersSkeleton } from '../EventFilters';
+import { ModbusSettingsSkeleton } from '../ModbusConnectionCard';
 
 interface SkeletonProps { label: string; className?: string }
 const collectionGrid = 'grid grid-cols-[repeat(auto-fill,minmax(min(100%,17rem),min(100%,20rem)))] gap-3';
@@ -144,6 +145,7 @@ export function EnergyDataSkeleton(props: SkeletonProps) {
 }
 export function ViewSkeleton({ view, section, ...props }: SkeletonProps & { view: View; section?: 'scenes' | 'automations' }) {
   const components: Partial<Record<View, ComponentType<SkeletonProps>>> = {
+    'system-modbus': ModbusSettingsSkeleton,
     dashboard: HomeSkeleton, spaces: SpacesSkeleton, routines: section === 'automations' ? AutomationsSkeleton : ScenesSkeleton,
     dashboards: DashboardsSkeleton, assistant: AssistantSkeleton, 'home-conversation': AssistantSkeleton,
     energy: EnergySkeleton, 'system-devices': DeviceManagerSkeleton, 'system-inbox': DiscoverySkeleton,
