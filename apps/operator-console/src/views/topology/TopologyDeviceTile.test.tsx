@@ -37,6 +37,11 @@ describe('Room Dashboard presenters (AC24, AC25)', () => {
     expect(html).not.toContain('<button');
     expect(html).not.toContain('Apagado');
   });
+  it('does not repeat the room on a sensor already displayed within that room', () => {
+    const html = renderToStaticMarkup(<TopologyDeviceTile device={device({ type: 'sensor', name: 'Temperatura', lastKnownState: { state: '22.4', unit: '°C' } })} roomName="Tech" onCommand={async () => null} />);
+    expect(html).not.toContain('Tech');
+    expect(html).toContain('Temperatura');
+  });
   it('disables an unavailable light rather than reporting it as off', () => {
     const html = render(device({ lastKnownState: { state: 'unavailable' } }));
     expect(html).toContain('disabled');

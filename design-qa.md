@@ -42,3 +42,9 @@ La corrección toca SensorMetricCard.tsx, index.css, DashboardCardSkeleton.tsx y
 P2 radio, P2 lectura larga y P3 skeleton confirmados resueltos por revisión fresca. Curvas históricas, presión analógica y estimaciones del mock no se reproducen con datos inventados. La evidencia no certifica aceptación global ni fidelidad exacta a la imagen fuente.
 
 Estado: lista de correcciones confirmada; aprobación visual del usuario pendiente.
+
+## Refinamiento posterior — densidad y agrupación
+
+La petición posterior fija Sensor a medio y elimina la estancia repetida en Dashboard/Espacios. Se compactan cabecera, padding y altura mínima (12–14 rem según ancho), manteniendo lectura, unidad, avisos, meter y estado sin lectura. El skeleton comparte padding y bandas; la utilidad genérica p-4 queda exclusivamente en otros tipos. Espacios separa grids por tipo efectivo y ordena nombres dentro de cada grupo. Sin cambio de paleta, backend ni masonry.
+
+Evidencia nueva: 79/79 Jest en cinco suites; 17/17 responsive focalizados (cinco Sensor, un ancho Sensor, siete Espacios y cuatro geometría skeleton). Typecheck, lint y builds raíz/consola PASS. Capturas `sensor-fiches-dark.png` y `room-devices-dark.png` de tablet revisadas directamente desde test-results: nombres y lecturas visibles, sin estancia redundante; grupos independientes. Las capturas sensor-v2 anteriores siguen siendo históricas, no representan este refinamiento. No se ejecutó responsive completo, Git, Docker ni deploy. Sin certificación de hardware/tablet física.

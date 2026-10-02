@@ -1,5 +1,5 @@
 import type { SnapshotDevice } from '../../stores/useDeviceSnapshotStore';
-import { getRoomDeviceCommand, getRoomDeviceState, isRoomDeviceMomentary, sortRoomDevices } from './topologyDeviceControl';
+import { getRoomDeviceCommand, getRoomDeviceGroup, getRoomDeviceState, isRoomDeviceMomentary, sortRoomDevices } from './topologyDeviceControl';
 
 const device = (extra: Partial<SnapshotDevice> = {}): SnapshotDevice => ({
   id: 'light', homeId: 'home', roomId: 'room', name: 'Luz', type: 'light', status: 'ASSIGNED', lastKnownState: { on: false }, ...extra,
@@ -30,12 +30,17 @@ describe('Room device control (AC16, AC25)', () => {
     expect(getRoomDeviceCommand(device({ status: 'PENDING' }))).toBeNull();
     expect(getRoomDeviceCommand(device({ lastKnownState: { state: 'unavailable' } }))).toBeNull();
   });
-  it('sorts all types alphabetically without moving cards when state changes', () => {
+  it('keeps types together and names alphabetical within each type without moving cards when state changes', () => {
     const devices = [device({ name: 'Zeta', id: 'z' }), device({ name: 'Alfa', id: 'a', type: 'sensor' })];
-    expect(sortRoomDevices(devices, '').map(item => item.id)).toEqual(['a', 'z']);
+    expect(sortRoomDevices(devices, '').map(item => item.id)).toEqual(['z', 'a']);
     devices[0].lastKnownState = { on: true };
-    expect(sortRoomDevices(devices, '').map(item => item.id)).toEqual(['a', 'z']);
+    expect(sortRoomDevices(devices, '').map(item => item.id)).toEqual(['z', 'a']);
     expect(sortRoomDevices(devices, 'ALF').map(item => item.id)).toEqual(['a']);
     expect(devices[0].id).toBe('z');
+  });
+  it('separates music and sensors from lights using their effective type', () => {
+    const devices = [device({ id: 'sensor', type: 'sensor' }), device({ id: 'media', type: 'media_player' }), device({ id: 'z', name: 'Zeta' }), device({ id: 'a', name: 'Alfa', type: 'sensor', semanticType: 'light' })];
+    expect(sortRoomDevices(devices, '').map(item => item.id)).toEqual(['a', 'z', 'media', 'sensor']);
+    expect(getRoomDeviceGroup(device({ type: 'other', capabilities: [{ type: 'media_player', name: 'Player' }] }))).toBe('media_player');
   });
 });

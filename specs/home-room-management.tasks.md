@@ -157,6 +157,8 @@
 
 ## Mejora local — Espacios operativos (AC16, AC24, AC25)
 
+- [x] Refinamiento AC16: agrupar por tipo efectivo, separar multimedia/sensores/luces y ordenar alfabéticamente dentro de cada grupo. Reutilizar tarjetas existentes y omitir estancia redundante del Sensor. Validación conjunta: 79/79 Jest y 17/17 responsive focalizados, incluidos siete perfiles de Espacios, PASS; sin cambiar comandos ni persistencia.
+
 - [x] Mostrar todos los dispositivos asignados a la estancia, con búsqueda y orden estable.
 - [x] Reutilizar SectionActionCard, SensorMetricCard, CurtainDeviceTile y MediaPlayerCard sin duplicar presentaciones ni crear stores. La extensión AC26 reutiliza CameraDeviceTile y su visor, en lugar de la ficha genérica de cámara inicial.
 - [x] Resolver comandos mediante capacidades; conservar feedback momentáneo y estados desconocidos/no disponibles.

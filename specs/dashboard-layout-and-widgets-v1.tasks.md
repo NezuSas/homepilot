@@ -71,4 +71,11 @@ Los pases Sensor anteriores de este mismo día descritos a continuación tuviero
 - [x] AC31: Removed standalone Room and Scene catalog types and hid the redundant Action button option while keeping persisted action cards compatible. Light/activator catalog previews resolve their localized size label correctly.
 - [x] AC32: Added cache policies for versioned bundles, named console visual assets, and private local media. Home imagery is decoded asynchronously and critical above-the-fold imagery receives high fetch priority.
 
+## Refinamiento local — Sensor medio y densidad (AC40)
+
+- [x] Normalizar Sensor a medio para creación, configuración histórica/importada, render y guardado; retirar selector y resize exclusivamente de Sensor.
+- [x] Omitir estancia redundante en Dashboard/Espacios y compactar cabecera, padding y altura interna; mantener fichas, unidad, avisos, meter y ausencia de lectura.
+- [x] Adaptar el skeleton propio con las mismas bandas y padding, sin modificar masonry ni skeletons de otros widgets.
+- [x] Validar 79/79 Jest en cinco suites y 17/17 responsive focalizados (cinco Sensor, un ancho Sensor, siete Espacios y cuatro skeleton geometry). Typecheck, lint y builds raíz/consola PASS. Capturas tablet Sensor/Espacios inspeccionadas; sin suite responsive completa, Git o deploy.
+
 - [x] AC35: Unificar las tarjetas de cámara del Dashboard y Gestor mediante `CameraDeviceTile`, conservando el diseño de imagen con título y espacio superpuestos del Dashboard; mostrar carga inicial hasta el primer fotograma, retirar «Imagen actualizada» y permitir ampliar desde toda la tarjeta sin botón flotante. El visor ampliado debe ajustarse a la proporción nativa del video sin recortar contenido y superponer «En vivo», título y cierre. Cubrir los tres contextos y el visor en escritorio y móvil con pruebas responsive.

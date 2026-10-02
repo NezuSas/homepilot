@@ -102,10 +102,10 @@ export function getDefaultSpan(kind: SectionCardKind): SectionCardSpan {
   if (normalized === 'light') return 'small';
   // Legacy action cards and other tiles retain their two-per-row default.
   if (normalized === 'action' || normalized === 'device' || normalized === 'cover') return 'medium';
+  if (normalized === 'sensor') return 'medium';
   if (isClockKind(normalized)) return 'full';
-  // Media players, cameras, and sensors need real room for controls/
-  // gauges and default to the section's full width.
-  if (normalized === 'camera' || normalized === 'media' || normalized === 'sensor') return 'full';
+  // Media players and cameras default to the section's full width.
+  if (normalized === 'camera' || normalized === 'media') return 'full';
   return 'medium';
 }
 
@@ -120,6 +120,7 @@ export function canUseCompactSpan(kind: SectionCardKind): boolean {
 }
 
 export function getEffectiveCardSpan(kind: SectionCardKind, span: SectionCardSpan): SectionCardSpan {
+  if (normalizeKind(kind) === 'sensor') return 'medium';
   if (normalizeKind(kind) === 'media') return 'full';
   if (span === 'small' && !canUseCompactSpan(kind)) return 'medium';
   return span;

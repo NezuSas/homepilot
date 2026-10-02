@@ -44,7 +44,7 @@ export function TopologyDeviceTile({ device, roomName, onCommand }: TopologyDevi
   };
 
   if (kind === 'sensor' && !command) return <div className="grid min-w-0 max-w-44" style={{ containerType: 'inline-size' }}>
-    <SensorMetricCard device={device} title={device.name} roomName={roomName} />
+    <SensorMetricCard device={device} title={device.name} />
   </div>;
   if (kind === 'camera') return <div className="col-span-full min-w-0 sm:col-span-2"><CameraDeviceTile device={device} title={device.name} roomName={roomName} dashboard /></div>;
   if (kind === 'smart_display') return <RoomDisplayControls device={device} />;

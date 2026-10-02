@@ -90,7 +90,7 @@ export function SectionCardItem({
   const isCover = normalizedKind === 'cover';
   const isTileKind = normalizedKind === 'device' || normalizedKind === 'light' || normalizedKind === 'action';
   const isCompactDeviceCard = isTileKind && span === 'small';
-  const canResize = isEditing && !isClock && normalizedKind !== 'media';
+  const canResize = isEditing && !isClock && !['media', 'sensor'].includes(normalizedKind);
   const spanOrder = canUseCompactSpan(card.kind) ? COMPACT_CARD_SPAN_ORDER : STANDARD_CARD_SPAN_ORDER;
   const roomDevices = normalizedKind === 'room' && card.entityId
     ? devices.filter((device) => device.roomId === card.entityId)
@@ -137,7 +137,6 @@ export function SectionCardItem({
     kind={card.kind}
     title={card.title || catalogLabel(card.kind)}
     subtitle={isCamera ? assignedRoomName : subtitle}
-    roomName={assignedRoomName}
     span={span}
     icon={actionIcon ?? card.icon}
     mediaVariant={card.mediaVariant}

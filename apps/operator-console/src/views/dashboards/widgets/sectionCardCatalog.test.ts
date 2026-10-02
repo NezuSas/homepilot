@@ -150,6 +150,10 @@ describe('section card catalog contracts', () => {
     expect(getEffectiveCardSpan('media', 'full')).toBe('full');
     expect(getEffectiveCardSpan('camera', 'small')).toBe('medium');
     expect(getEffectiveCardSpan('sensor', 'small')).toBe('medium');
+    expect(getEffectiveCardSpan('sensor', 'medium')).toBe('medium');
+    expect(getEffectiveCardSpan('sensor', 'full')).toBe('medium');
+    expect(getDefaultSpan('sensor')).toBe('medium');
+    expect(normalizeCards({ cards: [{ kind: 'sensor', span: 'full' }] })[0].span).toBe('medium');
     expect(getEffectiveCardSpan('device', 'small')).toBe('medium');
     expect(getEffectiveCardSpan('action', 'small')).toBe('small');
     expect(getEffectiveCardSpan('cover', 'small')).toBe('medium');

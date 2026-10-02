@@ -83,6 +83,8 @@ The command fails if a file cannot be mapped to an existing spec.
 
 ## Review Gate
 
+Refinamiento local Sensor/Espacios: `dashboard-layout-and-widgets-v1` AC40 cubre tamaño medio fijo, ausencia de selector/resize, estancia no repetida y carcasa/skeleton compactos. `home-room-management` AC16 cubre grupos por tipo efectivo y orden alfabético interno. Evidencia: `sectionCardCatalog.test.ts`, `topologyDeviceControl.test.ts`, `TopologyDeviceTile.test.tsx` y escenarios responsive `Sensor width`, `Sensor clarity`, `Room devices` y geometría inicial del skeleton. Validación focalizada: 79/79 Jest y 17/17 responsive PASS.
+
 A change must stop for specification work when the relevant spec cannot answer:
 who can execute it, which data it changes, how it fails safely, and how it is
 validated.

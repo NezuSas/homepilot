@@ -679,6 +679,7 @@ for (const viewport of [
       { ...base, id: 'room-missing', name: 'Batería sin lectura', type: 'sensor', lastKnownState: { state: 'unavailable', unit_of_measurement: '%' } },
       { ...base, id: 'room-cover', name: 'Cortina Kitchen', type: 'cover', lastKnownState: { state: 'closed', current_position: 0 }, capabilities: [{ type: 'cover', name: 'Cover', commands: [{ name: 'open' }, { name: 'close' }, { name: 'stop' }] }] },
       { ...base, id: 'room-camera', name: 'Cámara Kitchen', type: 'camera', lastKnownState: null },
+      { ...base, id: 'room-music', name: 'Speaker Kitchen', type: 'media_player', lastKnownState: { state: 'idle' } },
       { ...base, id: 'other-room', roomId: 'other', name: 'Luz de otra estancia', type: 'light', lastKnownState: { on: false } },
     ];
     const commands: { id: string; command: string }[] = [];
@@ -696,7 +697,7 @@ for (const viewport of [
     for (const theme of ['dark', 'light']) {
       await page.goto('/spaces');
       await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
-      await page.getByRole('button', { name: /Kitchen.*6 dispositivos|Kitchen.*6 devices/i }).click();
+      await page.getByRole('button', { name: /Kitchen.*7 dispositivos|Kitchen.*7 devices/i }).click();
       const detail = page.getByRole('complementary', { name: /Detalle de la estancia|Room details|Detalle de estancia/i });
       await expect(detail).toBeVisible();
       await expect(detail).toContainText('22.5');
@@ -705,6 +706,15 @@ for (const viewport of [
       await expect(detail).toContainText('Cámara Kitchen');
       await expect(detail).not.toContainText('Luz de otra estancia');
       await expect(detail).not.toContainText('Iluminación');
+      const lights = detail.getByRole('region', { name: /^(Luces|Lights)$/i });
+      const sensors = detail.getByRole('region', { name: /^(Sensores|Sensors)$/i });
+      const music = detail.getByRole('region', { name: /^(Multimedia|Media Player)$/i });
+      await expect(lights).toContainText('Desayunador blanca');
+      await expect(lights).toContainText('On/Off TV');
+      await expect(lights).not.toContainText('Temperatura Kitchen');
+      await expect(sensors).toContainText('Temperatura Kitchen');
+      await expect(sensors).not.toContainText('Speaker Kitchen');
+      await expect(music).toContainText('Speaker Kitchen');
       const light = detail.getByRole('button', { name: /Encender dispositivo: Desayunador blanca|Turn on device: Desayunador blanca/i });
       const action = detail.getByRole('button', { name: /On\/Off TV/i });
       await expect(light).toHaveAttribute('aria-pressed', 'false');
@@ -1245,7 +1255,7 @@ for (const viewport of [
         expect(titleFits.contentWidth).toBeLessThanOrEqual(titleFits.width);
         expect(titleFits.contentHeight).toBeLessThanOrEqual(titleFits.height);
         expect(await card.evaluate(element => getComputedStyle(element).borderRadius)).toBe('16px');
-        await expect(card.getByText('Oficina', { exact: true })).toHaveCount(1);
+        await expect(card.getByText('Oficina', { exact: true })).toHaveCount(0);
         await expect(card).not.toContainText(`Technical ${reading.id}`);
         await expect(card.getByRole('button')).toHaveCount(0);
         if (reading.unit === '%') {
@@ -1276,6 +1286,32 @@ for (const viewport of [
     }
   });
 }
+
+test('Feature: Sensor width — Scenario: A sensor stays medium without a width control or repeated room', async ({ page }) => {
+  const baseSection = responsiveDashboard.tabs[0]!.widgets[1]!;
+  const dashboard = { ...responsiveDashboard, tabs: [{ ...responsiveDashboard.tabs[0]!, widgets: [{
+    ...baseSection, config: { ...baseSection.config, extra: { cards: [{ ...baseSection.config.extra.cards[0]!, span: 'full' }] } },
+  }] }] };
+  await prepareAuthenticatedDashboard(page, dashboard);
+  let savedDashboard = dashboard;
+  await page.route('**/api/v1/dashboards/responsive-dashboard', async route => {
+    if (route.request().method() !== 'PATCH') return route.fallback();
+    savedDashboard = { ...savedDashboard, ...route.request().postDataJSON() };
+    await route.fulfill({ json: savedDashboard });
+  });
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).click();
+  const sensor = page.locator('[data-dashboard-card-id="responsive-sensor"]');
+  await expect(sensor.getByRole('slider', { name: /resize card|redimensionar tarjeta/i })).toHaveCount(0);
+  await sensor.hover();
+  await sensor.getByRole('button', { name: /^(Edit|Editar)$/i }).click();
+  const heading = page.getByRole('heading', { name: /^(Edit|Editar)$/i });
+  await expect(heading).toBeVisible();
+  const editor = heading.locator('..').locator('..').locator('..');
+  await expect(editor.getByText(/^(Card width|Ancho de tarjeta)$/i)).toHaveCount(0);
+  await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
+  await expect.poll(() => savedDashboard.tabs[0]!.widgets[0]!.config.extra.cards[0]!.span).toBe('medium');
+});
 
 test('disables the Home dashboard action without an owned main tab', async ({ page }) => {
   const shared = { ...responsiveDashboard, ownerId: 'another-user' };

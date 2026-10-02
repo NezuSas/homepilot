@@ -136,7 +136,7 @@ export function SectionCardEditorModal({
               />
             )}
 
-            {!isClockKind(cardDraft.kind) && normalizeKind(cardDraft.kind) !== 'media' && (
+            {!isClockKind(cardDraft.kind) && !['media', 'sensor'].includes(normalizeKind(cardDraft.kind)) && (
               <SearchableSelectField
                 label={t('dashboard.editor.sections.card_size')}
                 value={cardDraft.span}

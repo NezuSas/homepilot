@@ -9,6 +9,7 @@ import { cn } from '../../lib/utils';
 import type { TopologyRoom } from './topologyPresentation';
 import type { SnapshotDevice } from '../../stores/useDeviceSnapshotStore';
 import { TopologyDeviceTile } from './TopologyDeviceTile';
+import { getRoomDeviceGroup, type RoomDeviceGroup } from './topologyDeviceControl';
 
 interface TopologyRoomDetailPanelProps {
   room: TopologyRoom;
@@ -40,6 +41,15 @@ export function TopologyRoomDetailPanel({
   onDraftChange, onRename, onStartRename, onCancelRename, onClose,
   onDeviceSearchChange, onDeviceCommand, onDelete,
 }: TopologyRoomDetailPanelProps) {
+  const deviceGroups = new Map<RoomDeviceGroup, SnapshotDevice[]>();
+  for (const device of visibleDevices) {
+    const kind = getRoomDeviceGroup(device);
+    const group = deviceGroups.get(kind) ?? [];
+    group.push(device);
+    deviceGroups.set(kind, group);
+  }
+  const groupLabel = (kind: RoomDeviceGroup) => t(kind === 'media_player' ? 'device_types.media_player'
+    : kind === 'other' ? 'device_types.none' : `inbox.filters.${kind}`);
   return (
     <aside aria-label={t('topology.room_details')} className="min-w-0 self-start rounded-xl border border-border bg-card p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -127,19 +137,26 @@ export function TopologyRoomDetailPanel({
               placeholder={t('topology.search_devices')}
               aria-label={t('topology.search_devices')}
             />
-            <div className="homepilot-room-devices grid grid-cols-[repeat(auto-fill,minmax(min(100%,8.5rem),1fr))] items-start gap-3">
+            <div className="homepilot-room-devices space-y-4">
               {visibleDevices.length === 0 && (
                 <p className="col-span-full text-body text-muted-foreground">
                   {t('topology.no_device_search_results')}
                 </p>
               )}
-              {visibleDevices.map((device) => (
+              {Array.from(deviceGroups, ([kind, group]) => (
+                <section key={kind} aria-label={groupLabel(kind)} className="space-y-2">
+                  <h5 className="text-caption font-medium text-muted-foreground">{groupLabel(kind)}</h5>
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,8.5rem),1fr))] items-start gap-3">
+                    {group.map((device) => (
                 <TopologyDeviceTile
                   key={device.id}
                   device={device}
                   roomName={room.name}
                   onCommand={onDeviceCommand}
                 />
+                    ))}
+                  </div>
+                </section>
               ))}
             </div>
           </div>
