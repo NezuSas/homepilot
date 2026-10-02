@@ -24,6 +24,47 @@ export function modbusFixture() {
   const cleanup = () => { SqliteDatabaseManager.close(dbPath); for (const name of readdirSync(directory)) unlinkSync(join(directory, name)); rmdirSync(directory); };
   return { db, dbPath, repository, devices, transport, publish, service, cleanup };
 }
+describe('Feature: Safe Modbus deletion (AC18)', () => {
+  let f: ReturnType<typeof modbusFixture>;
+  beforeEach(() => { f = modbusFixture(); });
+  afterEach(async () => { await f.service.stop(); f.cleanup(); });
+  async function create() {
+    const c = await f.service.saveConnection('admin', 'h', { name: 'PLC', host: '192.168.1.5', enabled: true });
+    const v = await f.service.saveVariable('admin', c.id, { name: 'Reading', area: 'holding_register', address: 100, dataType: 'uint16' });
+    return { c, v };
+  }
+  it('Scenario: Variables must be deleted before their connection, with no physical writes', async () => {
+    const { c, v } = await create();
+    await expect(f.service.deleteConnection('admin', c.id)).rejects.toMatchObject({ code: 'IN_USE' });
+    await f.service.deleteVariable('admin', c.id, v.deviceId);
+    expect(f.repository.variable(v.deviceId)).toBeNull(); expect(await f.devices.findDeviceById(v.deviceId)).toBeNull();
+    await f.service.deleteConnection('admin', c.id); await f.service.pollOnce();
+    expect(f.repository.connection(c.id)).toBeNull(); expect(f.transport.read).not.toHaveBeenCalled(); expect(f.transport.writeCoil).not.toHaveBeenCalled();
+  });
+  it('Scenario: Inaccessible home and wrong connection cannot delete a variable', async () => {
+    const { c, v } = await create();
+    const access = jest.spyOn(SQLiteHomeRepository.prototype, 'findHomesByUserId').mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+    await expect(f.service.deleteVariable('other', c.id, v.deviceId)).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(f.service.deleteConnection('other', c.id)).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    access.mockRestore();
+    const other = await f.service.saveConnection('admin', 'h', { name: 'Other', host: '192.168.1.6' });
+    await expect(f.service.deleteVariable('admin', other.id, v.deviceId)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(f.repository.variable(v.deviceId)).not.toBeNull();
+  });
+  it.each(['scene', 'trigger', 'action', 'dashboard'])('Scenario: %s nested binding blocks deletion atomically', async kind => {
+    const { c, v } = await create();
+    const binding = JSON.stringify({ nested: [{ deviceId: kind === 'dashboard' ? `modbus:${v.deviceId}` : v.deviceId }] });
+    if (kind === 'scene') {
+      f.db.exec('CREATE TABLE scenes (actions TEXT)'); f.db.prepare('INSERT INTO scenes VALUES (?)').run(binding);
+    } else if (kind === 'dashboard') {
+      f.db.exec('CREATE TABLE dashboards (tabs TEXT)'); f.db.prepare('INSERT INTO dashboards VALUES (?)').run(binding);
+    } else {
+      f.db.prepare('INSERT INTO automation_rules(id,home_id,user_id,name,trigger,action) VALUES (?,?,?,?,?,?)').run('a', 'h', 'admin', 'Rule', kind === 'trigger' ? binding : '{}', kind === 'action' ? binding : '{}');
+    }
+    await expect(f.service.deleteVariable('admin', c.id, v.deviceId)).rejects.toMatchObject({ code: 'IN_USE' });
+    expect(f.repository.variable(v.deviceId)).not.toBeNull(); expect(await f.devices.findDeviceById(v.deviceId)).not.toBeNull();
+  });
+});
 describe('Feature: Profile resolution and persistence (AC12/AC13/AC14)', () => {
   let f: ReturnType<typeof modbusFixture>;
   const profileId = 'xinje-xl5e-16t-v1';

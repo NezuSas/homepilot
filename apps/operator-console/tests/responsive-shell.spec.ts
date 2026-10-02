@@ -54,6 +54,13 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
       await lastRow.getByRole('button', { name: /^(Create variable|Crear variable)$/i }).scrollIntoViewIfNeeded();
       await expect(header).toBeVisible();
       const headerBounds = (await header.boundingBox())!, regionBounds = (await region.boundingBox())!;
+      const frame = region.locator('..');
+      expect(await frame.evaluate(element => ({ left: element.scrollLeft, overflow: getComputedStyle(element).overflowX }))).toEqual({ left: 0, overflow: 'hidden' });
+      const scrolling = await region.evaluate(element => ({ left: element.scrollLeft, width: element.scrollWidth, visible: element.clientWidth }));
+      if (scrolling.width > scrolling.visible) expect(scrolling.left).toBeGreaterThan(0);
+      else expect(scrolling.left).toBe(0);
+      const frameBounds = (await frame.boundingBox())!, dialogBounds = (await dialog.boundingBox())!;
+      expect(frameBounds.x).toBeGreaterThanOrEqual(dialogBounds.x); expect(frameBounds.x + frameBounds.width).toBeLessThanOrEqual(dialogBounds.x + dialogBounds.width);
       expect(Math.abs(headerBounds.y - regionBounds.y)).toBeLessThan(2);
       expect(await header.evaluate(element => getComputedStyle(element).backgroundColor)).not.toBe('rgba(0, 0, 0, 0)');
       expect(await lastRow.getByRole('button', { name: /^(Create variable|Crear variable)$/i }).evaluate(element => getComputedStyle(element).whiteSpace)).toBe('nowrap');
@@ -63,6 +70,47 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     await dialog.getByRole('button', { name: /^(Close|Cerrar)$/i }).click(); await expect(dialog).not.toBeVisible();
   });
 }
+
+test('Feature: Safe Modbus deletion — Scenario: Confirm cancel conflict and deletion on tablet (AC18)', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 768, height: 1024 }); await prepareAuthenticatedDashboard(page);
+  await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: 'h', name: 'Home' }] }));
+  let exists = true, linked = true, variables = [{ deviceId: 'v', connectionId: 'c', name: 'Temperature', area: 'holding_register', address: 100, dataType: 'uint16', wordOrder: 'high_first', scale: 1, offset: 0, unit: '°C', writable: false }];
+  let deletes = 0;
+  await page.route('**/api/v1/modbus/**', route => {
+    const request = route.request();
+    if (request.method() === 'DELETE') {
+      deletes++;
+      if (request.url().includes('/variables/')) {
+        if (linked) return route.fulfill({ status: 409, json: { code: 'IN_USE' } });
+        variables = [];
+      } else {
+        if (variables.length) return route.fulfill({ status: 409, json: { code: 'IN_USE' } });
+        exists = false;
+      }
+      return route.fulfill({ json: { deleted: true } });
+    }
+    return route.fulfill({ json: { connections: exists ? [{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: false, variables }] : [] } });
+  });
+  await page.goto('/system/modbus');
+  const card = page.getByRole('region', { name: 'PLC', exact: true });
+  await card.getByRole('button', { name: /^(Configure|Configurar)$/i, exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: /^(Delete|Eliminar)$/i }).click();
+  let confirmation = page.getByRole('dialog', { name: /^(Delete connection|Eliminar conexión)$/i });
+  await confirmation.getByRole('button', { name: /^(Cancel|Cancelar)$/i }).click(); expect(deletes).toBe(0);
+  await page.getByRole('dialog').getByRole('button', { name: /^(Delete|Eliminar)$/i }).click();
+  await confirmation.getByRole('button', { name: /^(Delete|Eliminar)$/i }).click(); await expect(confirmation.getByRole('alert')).toContainText(/variables/);
+  await confirmation.getByRole('button', { name: /^(Cancel|Cancelar)$/i }).click(); await page.getByRole('dialog').getByRole('button', { name: /^(Cancel|Cancelar)$/i }).click();
+  await card.getByRole('button', { name: /Configure Temperature|Configurar Temperature/i }).click();
+  await page.getByRole('dialog').getByRole('button', { name: /^(Delete|Eliminar)$/i }).click();
+  confirmation = page.getByRole('dialog', { name: /^(Delete variable|Eliminar variable)$/i });
+  await confirmation.getByRole('button', { name: /^(Delete|Eliminar)$/i }).click(); await expect(confirmation.getByRole('alert')).toContainText(/scene|escena/i);
+  await page.screenshot({ path: testInfo.outputPath('delete-conflict.png'), animations: 'disabled' });
+  linked = false; await confirmation.getByRole('button', { name: /^(Delete|Eliminar)$/i }).click(); await expect(confirmation).not.toBeVisible(); await expect(card).not.toContainText('Temperature');
+  await card.getByRole('button', { name: /^(Configure|Configurar)$/i, exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: /^(Delete|Eliminar)$/i }).click();
+  await page.getByRole('dialog', { name: /^(Delete connection|Eliminar conexión)$/i }).getByRole('button', { name: /^(Delete|Eliminar)$/i }).click(); await expect(card).not.toBeVisible();
+  await page.reload(); await expect(page.getByRole('region', { name: 'PLC', exact: true })).not.toBeVisible();
+});
 
 test('Feature: Sensor fixed scale — Scenario: Editor preview and reload keep optional bounds (AC42)', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 768, height: 1024 });

@@ -88,6 +88,7 @@ export class ModbusService implements DeviceDriver {
     if (existing && existing.homeId !== homeId) throw new ModbusError('FORBIDDEN', 'Home is not accessible');
     const connection = { ...validateConnection({ ...existing, ...input }), id: existing?.id ?? randomUUID(), homeId };
     return this.serialize(connection.id, async () => {
+      if (existing) this.requireConnection(connection.id);
       if (existing) {
         try { for (const variable of this.repository.variables(existing.id)) validateProfileMapping(variable, modbusWordCount(variable.dataType), connection.moduleCapacities); }
         catch { throw new ModbusError('INVALID_CONFIG', 'Capacity would invalidate an existing variable'); }
@@ -102,6 +103,7 @@ export class ModbusService implements DeviceDriver {
     const connection = this.requireConnection(connectionId);
     await this.authorize(userId, connection.homeId);
     return this.serialize(connectionId, async () => {
+      this.requireConnection(connectionId);
       const existing = deviceId ? this.repository.variable(deviceId) : null;
       if (deviceId && (!existing || existing.connectionId !== connectionId)) throw new ModbusError('NOT_FOUND', 'Modbus variable not found');
       if (!existing && this.repository.variables(connectionId).length >= 128) throw new ModbusError('LIMIT', 'Too many Modbus variables');
@@ -123,6 +125,27 @@ export class ModbusService implements DeviceDriver {
     });
   }
   supports(device: Device): boolean { return device.integrationSource === 'modbus-tcp'; }
+  async deleteConnection(userId: string, id: string): Promise<void> {
+    await this.authorize(userId, this.requireConnection(id).homeId);
+    await this.serialize(id, async () => {
+      this.requireConnection(id);
+      this.repository.deleteConnection(id);
+      this.schedule.delete(id);
+    });
+  }
+  async deleteVariable(userId: string, connectionId: string, deviceId: string): Promise<void> {
+    const connection = this.requireConnection(connectionId);
+    await this.authorize(userId, connection.homeId);
+    await this.serialize(connectionId, async () => {
+      this.requireConnection(connectionId);
+      const variable = this.repository.variable(deviceId);
+      if (!variable || variable.connectionId !== connectionId) throw new ModbusError('NOT_FOUND', 'Modbus variable not found');
+      const device = await this.devices.findDeviceById(deviceId);
+      if (!device || device.homeId !== connection.homeId || !this.supports(device)) throw new ModbusError('FORBIDDEN', 'Invalid Modbus binding');
+      this.repository.deleteVariable(deviceId);
+      this.schedule.delete(connectionId);
+    });
+  }
   private state(variable: ModbusVariable, value: number | boolean): Record<string, unknown> {
     return { state: typeof value === 'boolean' ? value ? 'on' : 'off' : String(value), value,
       unit_of_measurement: variable.unit, available: true, stale: false };

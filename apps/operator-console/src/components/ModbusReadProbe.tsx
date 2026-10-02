@@ -78,7 +78,7 @@ export function ModbusReadProbe({ homeId, initial, onClose, onCreate }: {
       variable: { name: resolved?.symbolicAddress ?? `${t(`modbus.${effectiveArea}`)} ${address}`, area: effectiveArea, address, ...conversion, unit: bit ? '' : unit, writable: false, ...(resolved ? { profileId, symbolicAddress: resolved.symbolicAddress } : {}) } }); }
     catch { setError(t('modbus.save_error')); } finally { setCreating(false); }
   };
-  return <Modal isOpen onClose={close} title={t('modbus.probe_title')} description={t('modbus.probe_hint')} headerAlign="start" className="max-w-5xl text-card-foreground">
+  return <Modal isOpen onClose={close} title={t('modbus.probe_title')} description={t('modbus.probe_hint')} headerAlign="start" className="max-w-5xl text-card-foreground" bodyClassName="overflow-x-hidden overscroll-contain" layerClassName="overflow-hidden">
     <form className="space-y-4" onSubmit={event => { event.preventDefault(); if (!profileId || addresses) setRunning(true); }}>
       <fieldset disabled={running || creating} className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="sm:col-span-2 lg:col-span-full"><ModbusProfileSelect value={profileId} disabled={running || creating} onChange={value => { setProfileId(value); reset(); setDataType('uint16'); }} /></div>
@@ -118,7 +118,8 @@ export function ModbusReadProbe({ homeId, initial, onClose, onCreate }: {
       <p className="mb-2 text-caption text-muted-foreground">{t('modbus.sampled_at', { time: new Date(result.sampledAt).toLocaleTimeString() })}</p>
       <p id={tableHintId} className="mb-2 text-caption text-muted-foreground">{t('modbus.table_scroll_hint')}</p>
       <p aria-live="polite" className="mb-2 text-caption text-muted-foreground">{t('modbus.filtered_count', { count: displayedRows.length, total: result.rows.length })}</p>
-      <div className="relative isolate max-h-80 overflow-auto overscroll-contain rounded-xl border border-border" tabIndex={0} role="region" aria-label={t('modbus.probe_results')} aria-describedby={tableHintId}>
+      <div className="min-w-0 max-w-full overflow-hidden rounded-xl border border-border">
+      <div className="relative isolate max-h-80 min-w-0 max-w-full overflow-auto overscroll-contain" tabIndex={0} role="region" aria-label={t('modbus.probe_results')} aria-describedby={tableHintId}>
         <table className="w-full border-separate border-spacing-0 text-left text-caption tabular-nums">
           <caption className="sr-only">{t('modbus.probe_results')}</caption>
           <thead><tr>{[...(profileId ? ['symbol', 'area'] : []), 'pdu', 'raw', 'dataType', 'converted', ...(profileId ? ['unit'] : []), 'read_status', 'response_time', 'read_error', 'variable'].map(key => <th key={key} scope="col" className="sticky top-0 z-10 whitespace-nowrap border-b border-border bg-card p-3 font-semibold">{t(`modbus.${key}`)}</th>)}</tr></thead>
@@ -134,6 +135,7 @@ export function ModbusReadProbe({ homeId, initial, onClose, onCreate }: {
             </tr>;
           })}{!displayedRows.length && <tr><td colSpan={profileId ? 11 : 8} className="p-4 text-muted-foreground">{t('common.no_results')}</td></tr>}</tbody>
         </table>
+      </div>
       </div>
     </>}
   </Modal>;

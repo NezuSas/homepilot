@@ -8,6 +8,9 @@ export interface ModbusRepository {
   saveConnection(connection: ModbusConnection): void;
   /** Atomic mapping + inventory persistence, preserving room and state. */
   saveVariable(variable: ModbusVariable, device: Device): void;
+  deleteConnection(id: string): void;
+  /** Atomic reference check, mapping and inventory deletion; rejects linked devices. */
+  deleteVariable(deviceId: string): void;
 }
 export interface ModbusTransport {
   readRange(connection: ModbusConnection, area: ModbusArea, start: number, count: number, signal?: AbortSignal): Promise<Array<number | boolean>>;

@@ -1,5 +1,6 @@
 {
   "modbus": {
+    "delete": "Delete", "delete_connection": "Delete connection", "delete_variable": "Delete variable", "delete_confirmation": "This removes the saved configuration. It does not write to the PLC. This cannot be undone.", "delete_error": "Could not delete. Check your access and try again.", "connection_in_use": "Delete this connection's variables first.", "variable_in_use": "This variable is used by a scene, automation or dashboard. Remove those references before deleting it.",
     "no_unit": "No unit", "result_filter": "Readings", "filter_all": "All", "filter_valid": "Valid readings", "filter_active": "With activity / non-zero RAW", "filtered_count": "{{count}} of {{total}} readings",
     "addressing": "Addressing", "generic": "Generic Modbus", "symbol": "PLC element", "symbol_end": "Final PLC element",
     "reserved_capacity": "Reserved addresses: physical channels are not confirmed. Set the installed module capacity before commissioning.",

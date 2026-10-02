@@ -35,10 +35,14 @@ export class ModbusRoutes extends ApiRoutes {
         const body = await this.parseBody<Record<string, unknown>>(req);
         if (!body || typeof body !== 'object' || Array.isArray(body)) throw new ModbusError('INVALID_CONFIG', 'Configuration required');
         this.sendJson(res, { variable: await this.service.saveVariable(req.user.id, variable[1], body, variable[2]) });
+      } else if (connection && method === 'DELETE') {
+        await this.service.deleteConnection(req.user.id, connection[1]); this.sendJson(res, { deleted: true });
+      } else if (variable?.[2] && method === 'DELETE') {
+        await this.service.deleteVariable(req.user.id, variable[1], variable[2]); this.sendJson(res, { deleted: true });
       } else this.sendError(res, 404, 'NOT_FOUND', 'Modbus route not found');
     } catch (error: unknown) {
       if (res.destroyed) return true;
-      const status = error instanceof ModbusError ? error.code === 'FORBIDDEN' ? 403 : error.code === 'NOT_FOUND' ? 404 : error.code === 'LIMIT' ? 409 : 400 : 500;
+      const status = error instanceof ModbusError ? error.code === 'FORBIDDEN' ? 403 : error.code === 'NOT_FOUND' ? 404 : ['LIMIT', 'IN_USE'].includes(error.code) ? 409 : 400 : 500;
       this.sendError(res, status, error instanceof ModbusError ? error.code : 'INTERNAL_ERROR', 'Modbus request could not be completed');
     }
     return true;

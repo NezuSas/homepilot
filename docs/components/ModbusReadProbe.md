@@ -61,6 +61,8 @@ La tabla tiene caption accesible, encabezados de columna y dirección como encab
 
 ## Seguridad, compatibilidad y evidencia
 
+El marco con borde de resultados no es el scroller: contiene un hijo `region` desplazable, con header sticky opaco. Anchos mínimos cero y overflow horizontal contenido en el body del probe evitan desplazar el formulario completo; se conserva el scroll vertical del formulario y el scroll de datos en ambos ejes. No se habilita drag ni se bloquean gestos globalmente.
+
 Ruta y API son exclusivas de Admin; backend verifica pertenencia al hogar. No se aceptan DNS, loopback, IP pública ni multicast en configuración de producción. Las pruebas de desarrollo usan simuladores TCP; los permisos HomePilot no aportan autenticación/cifrado a Modbus TCP ni sustituyen segmentación LAN, firewall o enclavamientos del PLC.
 
 No hay migración SQL nueva para esta ampliación. Tipos y configuraciones genéricas históricos se conservan; JSON admite `uint32/int32` y metadatos de perfil opcionales. Antes de volver al binario V1 anterior, convertir explícitamente esas variables a un tipo admitido o restaurar backup. Un editor antiguo puede perder perfil/símbolo/capacidades al guardar, aunque mantenga área/PDU: realizar backup antes de instalar o revertir. No hay conversión automática de configuraciones históricas; futuras versiones del perfil requieren IDs distintos.

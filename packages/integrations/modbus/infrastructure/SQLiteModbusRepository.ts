@@ -1,7 +1,7 @@
 import { SqliteDatabaseManager } from '../../../shared/infrastructure/database/SqliteDatabaseManager';
 import type { Device } from '../../../devices/domain/types';
 import type { ModbusRepository } from '../application/ModbusPorts';
-import { validateConnection, validateVariable, type ModbusConnection, type ModbusVariable } from '../domain/Modbus';
+import { ModbusError, validateConnection, validateVariable, type ModbusConnection, type ModbusVariable } from '../domain/Modbus';
 export class SQLiteModbusRepository implements ModbusRepository {
   constructor(private readonly dbPath: string) {}
   private get db() { return SqliteDatabaseManager.getInstance(this.dbPath); }
@@ -20,6 +20,28 @@ export class SQLiteModbusRepository implements ModbusRepository {
   }
   saveConnection(connection: ModbusConnection): void {
     this.db.prepare('INSERT INTO modbus_connections(id,home_id,config) VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET config=excluded.config').run(connection.id,connection.homeId,JSON.stringify(connection));
+  }
+  deleteConnection(id: string): void {
+    this.db.transaction(() => {
+      if (this.variables(id).length) throw new ModbusError('IN_USE', 'Delete variables first');
+      this.db.prepare('DELETE FROM modbus_connections WHERE id=?').run(id);
+    })();
+  }
+  deleteVariable(deviceId: string): void {
+    this.db.transaction(() => {
+      // Exact JSON leaves cover nested conditions/actions and imported dashboard bindings.
+      // Optional tables can be absent in the isolated integration fixture.
+      for (const [table, columns] of [['scenes', ['actions']], ['automation_rules', ['trigger', 'action']], ['dashboards', ['tabs']]] as const) {
+        if (!this.db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(table)) continue;
+        for (const column of columns) {
+          if (this.db.prepare(`SELECT 1 FROM ${table}, json_tree(${table}.${column}) AS binding WHERE binding.atom IN (?, ?) LIMIT 1`).get(deviceId, `modbus:${deviceId}`)) {
+            throw new ModbusError('IN_USE', 'Variable has persistent references');
+          }
+        }
+      }
+      this.db.prepare('DELETE FROM modbus_variables WHERE device_id=?').run(deviceId);
+      this.db.prepare('DELETE FROM devices WHERE id=?').run(deviceId);
+    })();
   }
   saveVariable(variable: ModbusVariable, device: Device): void {
     this.db.transaction(() => {

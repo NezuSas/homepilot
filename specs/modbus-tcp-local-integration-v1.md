@@ -24,7 +24,14 @@ Conexiones nuevas deshabilitadas y variables de solo lectura por defecto. Activa
 - Modbus TCP clásico no aporta autenticación ni cifrado. Usar solo LAN confiable/segmentada y firewall, sin exposición a Internet; los permisos HomePilot no reemplazan el aislamiento de la red PLC.
 - Operaciones serializadas por conexión; polling no solapa comandos. Cada intento abre nueva conexión; backoff de lectura acotado a 60 s. Error conserva último valor pero marca state unavailable y stale; no presentar una lectura antigua como actual.
 - Variables se incorporan al inventario como PENDING, sin estancia. Asignación y selección de widgets siguen el flujo existente; fuente modbus-tcp, switch solo para coils escribibles, sensor para lectura. Cambiar permisos actualiza esa capacidad; el driver vuelve a verificar permiso, hogar y habilitación antes de transmitir.
-- API /api/v1/modbus/connections y /:id/variables: listado, creación y actualización Admin; no endpoint de escritura fuera del dispatcher existente. Deshabilitar no borra dispositivos ni referencias. Eliminación de conexiones/variables queda fuera de V1 para no romper escenas, automatizaciones o bindings.
+- API /api/v1/modbus/connections y /:id/variables: listado, creación, actualización y eliminación Admin; no endpoint de escritura física fuera del dispatcher existente. Deshabilitar no borra dispositivos ni referencias.
+
+### Eliminación autorizada y scroll contenido (AC18)
+
+- DELETE de variable requiere confirmación explícita en UI, Admin y hogar autorizado. Borra transaccionalmente mapping e inventario solo si no hay referencias persistentes en escenas, triggers/acciones de automatizaciones o tabs de Dashboard; conflicto HTTP 409 conserva todos los datos. No modificar ni eliminar esas referencias automáticamente.
+- DELETE de conexión solo se permite sin variables. Serializar eliminación con polling/comandos; volver a comprobar existencia dentro de la cola para evitar recrear mappings después de borrar. No transmitir escrituras físicas ni borrar históricos de auditoría.
+- Sin migración SQL; endpoints aditivos compatibles. Backup SQLite antes de instalar/revertir; una eliminación confirmada no se restaura por downgrade, requiere backup. Reconstruir API y UI posteriormente; sin deploy en esta tarea.
+- La región con borde de resultados queda fija: scroll de datos únicamente en su hijo interior, con ancho mínimo cero y overflow horizontal contenido en el formulario del probe. No desactivar scroll de resultados ni el scroll vertical del formulario.
 
 ## Persistencia y reversión
 

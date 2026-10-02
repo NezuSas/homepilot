@@ -1,5 +1,7 @@
 # Tareas — Modbus TCP local V1
 
+- [x] AC18: eliminación confirmada Admin/hogar, conflictos por variables/referencias, cola compartida y región de tabla fija. Evidencia: 212/212 Jest Modbus/API, 4/4 responsive focalizados (tabla móvil/tablet/escritorio y eliminación tablet); typecheck, lint y builds raíz/consola PASS. Spec/BDD/módulos/i18n/arquitectura/no-production-any PASS; capturas revisadas y detector sin hallazgos. Sin SQL nuevo, base real, escritura física, suites completas, Git o deploy. La comprobación responsive usa navegador de escritorio con tamaños tablet/móvil, no certifica gestos de Safari en hardware físico.
+
 - [x] AC16/AC17: tabla fija/filtros locales, unidades modulares y edición numérica segura; responsive focalizado.
   - Evidencia (2026-10-02): validación conjunta, 324/324 Jest y 21/21 responsive focalizados PASS; typecheck, lint y builds raíz/consola PASS. Tabla en móvil/tablet/escritorio y ambos temas revisada visualmente; filtros conservan el bloque completo para conversión de 32 bits. Sin conexión/escritura a PLC físico, migración SQL adicional, responsive completo, Git ni deploy.
 

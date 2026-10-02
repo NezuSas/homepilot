@@ -33,7 +33,7 @@ export interface ModbusVariable {
 }
 export class ModbusError extends Error {
   readonly exceptionCode?: number;
-  readonly code: 'INVALID_CONFIG' | 'FORBIDDEN' | 'NOT_FOUND' | 'READ_ONLY' | 'DISABLED' | 'LIMIT' | 'PROTOCOL' | 'TIMEOUT' | 'CONNECTION' | 'CANCELLED';
+  readonly code: 'INVALID_CONFIG' | 'FORBIDDEN' | 'NOT_FOUND' | 'IN_USE' | 'READ_ONLY' | 'DISABLED' | 'LIMIT' | 'PROTOCOL' | 'TIMEOUT' | 'CONNECTION' | 'CANCELLED';
   constructor(code: ModbusError['code'], message: string, exceptionCode?: number) { super(message); this.code = code; this.exceptionCode = exceptionCode; }
 }
 const invalid = (): never => { throw new ModbusError('INVALID_CONFIG', 'Invalid Modbus configuration'); };

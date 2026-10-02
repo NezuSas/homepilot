@@ -7,21 +7,35 @@ import { ModbusRoutes } from '../routes/ModbusRoutes';
 import { EventEmitter } from 'node:events';
 
 describe('Feature: Admin-only native Modbus routes (AC2)', () => {
-  const service = { list: jest.fn(), saveConnection: jest.fn(), saveVariable: jest.fn(), probe: jest.fn() };
+  const service = { list: jest.fn(), saveConnection: jest.fn(), saveVariable: jest.fn(), probe: jest.fn(), deleteConnection: jest.fn(), deleteVariable: jest.fn() };
   const routes = new ModbusRoutes(service as unknown as ModbusService);
   const protect = jest.fn();
   const container = { guards: { authGuard: { protect } } } as unknown as BootstrapContainer;
   const req = (url: string, body?: unknown): HomePilotRequest => Object.assign(new EventEmitter(), { url, headers: {}, user: { id: 'admin', role: 'admin' }, _fastifyParsedBody: body === undefined ? undefined : JSON.stringify(body) }) as HomePilotRequest;
   const response = () => Object.assign(new EventEmitter(), { writeHead: jest.fn(), end: jest.fn(), writableEnded: false });
   beforeEach(() => { jest.resetAllMocks(); protect.mockResolvedValue(true); service.list.mockResolvedValue([]); service.saveConnection.mockResolvedValue({ enabled: false }); service.saveVariable.mockResolvedValue({ writable: false }); });
-  it.each(['GET', 'POST', 'PUT'])('Scenario: Given non-Admin access When %s requests config Then the Admin guard blocks the service', async method => {
+  it.each(['GET', 'POST', 'PUT', 'DELETE'])('Scenario: Given non-Admin access When %s requests config Then the Admin guard blocks the service', async method => {
     protect.mockResolvedValue(false); const res = response();
     await routes.handle(req('/api/v1/modbus/connections?homeId=h'), res as unknown as ServerResponse, '/api/v1/modbus/connections', method, container);
     expect(protect).toHaveBeenCalledWith(expect.anything(), expect.anything(), true); expect(service.list).not.toHaveBeenCalled(); expect(service.saveConnection).not.toHaveBeenCalled();
+    expect(service.deleteConnection).not.toHaveBeenCalled(); expect(service.deleteVariable).not.toHaveBeenCalled();
   });
   it('Scenario: Given an Admin When listing Then actor and home are forwarded for ownership validation', async () => {
     const res = response(); await routes.handle(req('/api/v1/modbus/connections?homeId=h'), res as unknown as ServerResponse, '/api/v1/modbus/connections', 'GET', container);
     expect(service.list).toHaveBeenCalledWith('admin', 'h'); expect(JSON.parse(res.end.mock.calls[0][0])).toEqual({ connections: [] });
+  });
+  it('Scenario: DELETE forwards the authenticated actor and actual mapping (AC18)', async () => {
+    const res = response();
+    await routes.handle(req('/api/v1/modbus/connections/c/variables/v'), res as unknown as ServerResponse, '/api/v1/modbus/connections/c/variables/v', 'DELETE', container);
+    expect(service.deleteVariable).toHaveBeenCalledWith('admin', 'c', 'v');
+    await routes.handle(req('/api/v1/modbus/connections/c'), response() as unknown as ServerResponse, '/api/v1/modbus/connections/c', 'DELETE', container);
+    expect(service.deleteConnection).toHaveBeenCalledWith('admin', 'c');
+  });
+  it('Scenario: Linked variable deletion returns a safe conflict (AC18)', async () => {
+    service.deleteVariable.mockRejectedValue(new ModbusError('IN_USE', 'private references'));
+    const res = response();
+    await routes.handle(req('/api/v1/modbus/connections/c/variables/v'), res as unknown as ServerResponse, '/api/v1/modbus/connections/c/variables/v', 'DELETE', container);
+    expect(res.writeHead.mock.calls[0][0]).toBe(409); expect(res.end.mock.calls[0][0]).not.toContain('private references');
   });
   it('Scenario: Given another home When listing Then forbidden is preserved without leaking config', async () => {
     service.list.mockRejectedValue(new ModbusError('FORBIDDEN', 'private address'));

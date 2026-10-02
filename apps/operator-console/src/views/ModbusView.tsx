@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { Cable, Plus } from 'lucide-react';
+import { Cable, Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { modbusRegisterTypes, modbusWordCount, type ModbusConnection, type ModbusVariable } from '../../../../packages/integrations/modbus/domain/Modbus';
 import { ModbusReadProbe, type ModbusProbeSelection } from '../components/ModbusReadProbe';
@@ -33,6 +33,7 @@ export function ModbusView() {
   const [loading, setLoading] = useState(true), [busy, setBusy] = useState(false);
   const [error, setError] = useState(''), [formError, setFormError] = useState('');
   const [editor, setEditor] = useState<Editor | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [probe, setProbe] = useState(false);
   const [connectionForm, setConnectionForm] = useState(connectionDefaults);
   const [variableForm, setVariableForm] = useState(variableDefaults);
@@ -60,6 +61,19 @@ export function ModbusView() {
     setVariableForm(variable ?? { ...variableDefaults, ...(profileId ? { profileId, symbolicAddress: 'D0' } : {}) }); setFormError(''); setEditor({ kind: 'variable', connectionId, deviceId: variable?.deviceId });
   };
   const close = () => { if (!busy) setEditor(null); };
+  const remove = async () => {
+    if (!editor || busy) return;
+    const path = editor.kind === 'connection' ? `connections/${editor.id}` : `connections/${editor.connectionId}/variables/${editor.deviceId}`;
+    setBusy(true); setFormError('');
+    try {
+      const response = await apiFetch(`${API_BASE_URL}/api/v1/modbus/${path}`, { method: 'DELETE' });
+      if (!response.ok) {
+        setFormError(t(response.status === 409 ? editor.kind === 'connection' ? 'modbus.connection_in_use' : 'modbus.variable_in_use' : 'modbus.delete_error'));
+        return;
+      }
+      setConfirmDelete(false); setEditor(null); await load(); await refresh();
+    } catch { setFormError(t('modbus.delete_error')); } finally { setBusy(false); }
+  };
   const createFromProbe = async ({ connection, variable }: ModbusProbeSelection) => {
     let saved = connections.find(item => item.host === connection.host && item.unitId === connection.unitId);
     if (!saved) {
@@ -95,7 +109,7 @@ export function ModbusView() {
     {!error && !connections.length && <EmptyState icon={Cable} title={t('modbus.empty')} description={t('modbus.empty_hint')} />}
     <div className="grid items-start gap-4 lg:grid-cols-2">{connections.map(connection => <ModbusConnectionCard key={connection.id} connection={connection} onEdit={() => openConnection(connection)} onAdd={() => openVariable(connection.id)} onVariable={variable => openVariable(connection.id, variable)} />)}</div>
     {probe && <ModbusReadProbe homeId={homeId} onClose={() => setProbe(false)} onCreate={createFromProbe} />}
-    <Modal isOpen={editor !== null} onClose={close} title={t(editor?.kind === 'variable' ? 'modbus.variable_title' : 'modbus.connection_title')} description={t('modbus.safe_hint')} className="max-w-xl text-card-foreground" headerAlign="start">
+    <Modal isOpen={editor !== null && !confirmDelete} onClose={close} title={t(editor?.kind === 'variable' ? 'modbus.variable_title' : 'modbus.connection_title')} description={t('modbus.safe_hint')} className="max-w-xl text-card-foreground" headerAlign="start">
       <form onSubmit={save} className="grid gap-3 sm:grid-cols-2">
         {formError && <div className="sm:col-span-2"><AlertBanner role="alert" variant="danger" message={formError} /></div>}
         {editor?.kind === 'connection' ? <>
@@ -129,8 +143,15 @@ export function ModbusView() {
           {canWrite && <div className="flex items-center justify-between gap-3 sm:col-span-2"><span className="text-body-compact">{t('modbus.allow_write')}</span><ToggleSwitch label={t('modbus.allow_write')} checked={variableForm.writable} onCheckedChange={writable => setVariableForm({ ...variableForm, writable })} /></div>}
           <p className="text-caption text-muted-foreground sm:col-span-2">{t('modbus.assignment_hint')}</p>
         </>}
-        <div className="flex justify-end gap-2 border-t border-border pt-3 sm:col-span-2"><Button variant="secondary" type="button" size="lg" disabled={busy} onClick={close}>{t('modbus.cancel')}</Button><Button type="submit" size="lg" isLoading={busy}>{t('modbus.save')}</Button></div>
+        <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-3 sm:col-span-2">
+          {(editor?.kind === 'connection' ? editor.id : editor?.deviceId) && <Button variant="ghost" className="mr-auto text-danger" type="button" size="lg" disabled={busy} onClick={() => { setFormError(''); setConfirmDelete(true); }}><Trash2 aria-hidden="true" className="size-4" />{t('modbus.delete')}</Button>}
+          <Button variant="secondary" type="button" size="lg" disabled={busy} onClick={close}>{t('modbus.cancel')}</Button><Button type="submit" size="lg" isLoading={busy}>{t('modbus.save')}</Button></div>
       </form>
+    </Modal>
+    <Modal isOpen={confirmDelete} onClose={() => { if (!busy) setConfirmDelete(false); }} title={t(editor?.kind === 'connection' ? 'modbus.delete_connection' : 'modbus.delete_variable')} description={t('modbus.delete_confirmation')} headerAlign="start">
+      <p className="mb-4 break-words font-semibold">{editor?.kind === 'connection' ? connectionForm.name : variableForm.name}</p>
+      {formError && <AlertBanner role="alert" variant="danger" message={formError} />}
+      <div className="mt-4 flex justify-end gap-2"><Button variant="secondary" size="lg" disabled={busy} onClick={() => { setFormError(''); setConfirmDelete(false); }}>{t('modbus.cancel')}</Button><Button variant="danger" size="lg" isLoading={busy} onClick={() => void remove()}>{t('modbus.delete')}</Button></div>
     </Modal>
   </div>;
 }
