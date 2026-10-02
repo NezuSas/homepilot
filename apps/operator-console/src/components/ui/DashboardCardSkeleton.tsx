@@ -39,8 +39,8 @@ export function DashboardCardSkeleton({ variant, className, mediaOnly = false, v
       ) : variant === 'sensor' ? (
         <>
           <div className="sensor-premium-header"><DashboardSkeletonBar className="sensor-category-icon shrink-0" /><div className="w-full min-w-0"><DashboardSkeletonBar className="h-3 w-3/4" /></div></div>
-          <div className="sensor-reading-layout"><div className="flex items-baseline justify-center gap-1"><DashboardSkeletonBar className="h-[clamp(2.75rem,40cqi,5.5rem)] w-[clamp(1.375rem,20cqi,2.75rem)]" /><DashboardSkeletonBar className="h-[clamp(2.75rem,40cqi,5.5rem)] w-[clamp(1.375rem,20cqi,2.75rem)]" /><DashboardSkeletonBar className="h-4 w-3" /></div></div>
-          <div className="sensor-reading-footer"><DashboardSkeletonBar className="h-2 w-full rounded-full" /><div className="sensor-reading-status flex items-center"><DashboardSkeletonBar className="h-3 w-1/3" /></div></div>
+          <div className="sensor-reading-layout sensor-analog-layout"><div className="sensor-analog-instrument"><div className="sensor-analog-skeleton" /><div className="sensor-analog-readout"><DashboardSkeletonBar className="mx-auto h-8 w-16" /><DashboardSkeletonBar className="mx-auto mt-1 h-3 w-6" /></div></div></div>
+          <div className="sensor-reading-footer"><DashboardSkeletonBar className="mx-auto h-7 w-3/5 rounded-full" /><DashboardSkeletonBar className="mx-auto h-3 w-4/5" /></div>
         </>
       ) : variant === 'media' ? (
         <>

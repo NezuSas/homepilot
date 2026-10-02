@@ -92,7 +92,7 @@ describe('Sensor Metric Card status presentation', () => {
     expect(html).not.toContain('Uso de memoria');
   });
 
-  it('shows GPU temperature without a percentage meter or invented range', () => {
+  it('shows GPU temperature with a measurement scale, not an invented normal range', () => {
     const device = sensor('Temperatura GPU', { state: '63', unit_of_measurement: '°C', attributes: { device_class: 'gpu' } });
     const reading = getSensorReading(device);
     const html = renderToStaticMarkup(<SensorMetricCard title={device.name} device={device} />);
@@ -100,7 +100,8 @@ describe('Sensor Metric Card status presentation', () => {
     expect(html).toContain('63');
     expect(html).toContain('°C');
     expect(html).toContain('Temperatura GPU');
-    expect(html).not.toContain('role="meter"');
+    expect(html).toContain('role="meter"');
+    expect(html).not.toContain('Rango normal');
     expect(getSensorSeverity(reading)).toBe('informational');
   });
 
@@ -124,13 +125,14 @@ describe('Sensor Metric Card status presentation', () => {
     expect(html).not.toContain('role="meter"');
   });
 
-  it('shows an unbounded numeric reading and its unit without a gauge', () => {
+  it('shows an unbounded numeric reading with an automatic instrument scale', () => {
     const device = sensor('Potencia', { state: '1240', unit_of_measurement: 'W', attributes: { device_class: 'power' } });
     const html = renderToStaticMarkup(<SensorMetricCard title={device.name} device={device} />);
     expect(getSensorReading(device).presentation).toBe('numeric');
     expect(html).toContain('1240');
     expect(html).toContain('W');
-    expect(html).not.toContain('role="meter"');
+    expect(html).toContain('role="meter"');
+    expect(html).toContain('sensor_scale_automatic');
   });
 
   it('uses the same presentation for a bound sensor and its preview', () => {
@@ -203,9 +205,8 @@ describe('Sensor Metric Card status presentation', () => {
   it.each(['22.4', '-12.5', '0', '100', '123456.7'])('preserves the accessible numeric reading %s without fictional history', (value) => {
     const html = renderToStaticMarkup(<SensorMetricCard title="Medición" device={sensor('Device', { state: value, unit_of_measurement: 'W' })} />);
     expect(html.replace(/<[^>]*>/g, '')).toContain(value);
-    if (value.replace(/\D/g, '').length <= 5) expect(html).toContain(`role="img" aria-label="${value}"`);
     expect(html).not.toContain('<button');
-    expect(html).not.toContain('role="meter"');
+    expect(html).toContain('role="meter"');
     expect(html).not.toContain('months');
   });
 });

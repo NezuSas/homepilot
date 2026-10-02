@@ -1478,6 +1478,9 @@ for (const viewport of [
     await page.setViewportSize(viewport);
     const readings = [
       { id: 'clarity-temperature', title: 'Sala principal', deviceClass: 'temperature', state: '22.4', unit: '°C' },
+      { id: 'clarity-pressure', title: 'Presión de agua', deviceClass: 'pressure', state: '3.2', unit: 'bar' },
+      { id: 'clarity-atmosphere', title: 'Presión atmosférica', deviceClass: 'pressure', state: '1013', unit: 'hPa' },
+      { id: 'clarity-humidity', title: 'Humedad ambiente', deviceClass: 'humidity', state: '58', unit: '%' },
       { id: 'clarity-battery', title: 'Batería de la tablet', deviceClass: 'battery', state: '18', unit: '%' },
       { id: 'clarity-memory', title: 'RAM del estudio', deviceClass: 'memory', state: '74.03', unit: '%' },
       { id: 'clarity-load', title: 'Procesador', deviceClass: 'cpu', state: '100', unit: '%' },
@@ -1528,13 +1531,14 @@ for (const viewport of [
         await expect(card.getByText('Oficina', { exact: true })).toHaveCount(0);
         await expect(card).not.toContainText(`Technical ${reading.id}`);
         await expect(card.getByRole('button')).toHaveCount(0);
-        if (reading.unit === '%') {
+        if (Number.isFinite(Number(reading.state))) {
           await expect(card.getByText(reading.state, { exact: true })).toBeVisible();
           await expect(card.getByRole('meter', { name: reading.title })).toHaveAttribute('aria-valuenow', reading.state);
-          await expect(card.getByRole('meter', { name: reading.title })).toHaveAttribute('aria-valuetext', `${reading.state}%`);
+          await expect(card.getByRole('meter', { name: reading.title })).toHaveAttribute('aria-valuetext', `${reading.state}${reading.unit === '%' ? '%' : ` ${reading.unit}`}`);
           const meterBounds = await card.getByRole('meter', { name: reading.title }).boundingBox();
-          const digitsBounds = await card.getByRole('img', { name: reading.state, exact: true }).boundingBox();
-          expect(meterBounds!.y).toBeGreaterThanOrEqual(digitsBounds!.y + digitsBounds!.height);
+          const readingBounds = await card.getByText(reading.state, { exact: true }).boundingBox();
+          expect(readingBounds!.y).toBeGreaterThanOrEqual(meterBounds!.y);
+          expect(readingBounds!.y + readingBounds!.height).toBeLessThanOrEqual(meterBounds!.y + meterBounds!.height + 1);
         }
       }
       const missing = page.locator('[data-dashboard-card-id="clarity-missing"] .sensor-metric-card');

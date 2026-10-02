@@ -5,8 +5,9 @@ import { cn } from '../../../lib/utils';
 import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
 import { getDashboardIconComponent } from '../components/dashboardIconRegistry';
 import { getDefaultIcon, type SectionCardIcon } from './sectionCardCatalog';
+import { getSensorGaugeScale, SensorAnalogGauge } from './SensorAnalogGauge';
 
-export type SensorCategory = 'battery' | 'temperature' | 'humidity' | 'memory' | 'load' | 'power' | 'energy' | 'signal' | 'illuminance' | 'air_quality' | 'presence' | 'measurement' | 'status';
+export type SensorCategory = 'battery' | 'temperature' | 'humidity' | 'pressure' | 'memory' | 'load' | 'power' | 'energy' | 'signal' | 'illuminance' | 'air_quality' | 'presence' | 'measurement' | 'status';
 export type SensorPresentation = 'percentage' | 'temperature' | 'binary' | 'categorical' | 'numeric';
 
 interface SensorReading {
@@ -67,6 +68,7 @@ function classifySensor(deviceClass: string, haystack: string, unit: string | nu
   if (deviceClass === 'battery') return 'battery';
   if (deviceClass === 'temperature' || (unit && temperatureUnits.has(unit.toLowerCase()))) return 'temperature';
   if (deviceClass === 'humidity') return 'humidity';
+  if (deviceClass === 'pressure' || ['bar', 'hPa', 'Pa', 'kPa'].includes(unit ?? '')) return 'pressure';
   if (deviceClass === 'memory') return 'memory';
   if (deviceClass === 'cpu' || deviceClass === 'gpu' || deviceClass === 'processor') return 'load';
   if (deviceClass === 'power' || deviceClass === 'voltage') return 'power';
@@ -113,7 +115,7 @@ export function getSensorReading(device?: SnapshotDevice, isPreview = false): Se
     attributes.unit,
     attributes.native_unit_of_measurement,
   ]);
-  const valueWithUnit = rawValue?.match(/^([+-]?(?:\d+(?:[.,]\d+)?|[.,]\d+))\s*(%|°[CF]|kWh|Wh|kW|W|V|A|RPM|rpm|lx|ppm)$/i);
+  const valueWithUnit = rawValue?.match(/^([+-]?(?:\d+(?:[.,]\d+)?|[.,]\d+))\s*(%|°[CF]|kWh|Wh|kW|W|V|A|RPM|rpm|lx|ppm|hPa|kPa|Pa|bar)$/i);
   const value = valueWithUnit ? valueWithUnit[1] : rawValue;
   const unit = metadataUnit ?? valueWithUnit?.[2] ?? null;
   const deviceClass = firstText([state.device_class, state.deviceClass, attributes.device_class, attributes.deviceClass])?.toLowerCase() ?? '';
@@ -157,6 +159,7 @@ function CategoryIcon({ category, percentage }: { category: SensorCategory; perc
     case 'battery': return <BatteryIcon percentage={percentage} />;
     case 'temperature': return <Thermometer className={className} />;
     case 'humidity': return <Droplets className={className} />;
+    case 'pressure': return <Gauge className={className} />;
     case 'memory': return <MemoryStick className={className} />;
     case 'load': return <Gauge className={className} />;
     case 'power': return <Zap className={className} />;
@@ -209,6 +212,7 @@ function getCategoryLabel(category: SensorCategory, t: (key: string) => string):
     case 'battery': return t('dashboard.editor.sections.sensor_battery');
     case 'temperature': return t('dashboard.editor.sections.sensor_temperature');
     case 'humidity': return t('dashboard.editor.sections.sensor_humidity');
+    case 'pressure': return t('dashboard.editor.sections.sensor_pressure');
     case 'memory': return t('dashboard.editor.sections.sensor_memory');
     case 'load': return t('dashboard.editor.sections.sensor_load');
     case 'power': return t('dashboard.editor.sections.sensor_power');
@@ -232,24 +236,16 @@ function SensorPresentationHero({ reading, t }: {
     ? t(`dashboard.editor.sections.sensor_${reading.binaryState}`)
     : displayValue(reading.value, t);
   const unit = isPercentage ? '%' : reading.unit;
-  const useDigitTiles = available && numericValue(reading.value) !== null && value.replace(/\D/g, '').length <= 5;
-  const digitCount = value.replace(/\D/g, '').length;
-  const readingWidth = useDigitTiles ? digitCount * 0.72 + (value.length - digitCount) * 0.3 : value.length * 0.6;
-  const readingScale = Math.min(30, 94 / (readingWidth + (unit ? 1.05 : 0)));
+  const readingWidth = value.length * 0.62;
+  const readingScale = Math.min(17, 80 / readingWidth);
   const isState = available && (reading.presentation === 'binary' || reading.presentation === 'categorical');
 
   return (
     <>
       {isState ? <span aria-hidden="true" className={cn('sensor-state-symbol', reading.binaryState === 'off' && 'sensor-state-symbol-idle')}><CategoryIcon category={reading.category} percentage={reading.percentage} /></span> : null}
-      <span className="sensor-reading-value" style={{ '--sensor-reading-scale': `${readingScale}cqi`, '--sensor-reading-stacked-scale': `${Math.min(30, 94 / readingWidth)}cqi` } as CSSProperties}>
-        <span className={cn('sensor-reading-number tabular-nums tracking-tight', !available && 'text-muted-foreground', isState && 'sensor-reading-state', useDigitTiles && digitCount >= 4 && 'sensor-reading-dense', available && numericValue(reading.value) !== null && !useDigitTiles && 'sensor-reading-plain')}>
-          {useDigitTiles ? <span className="sensor-digit-reading" role="img" aria-label={value}>
-            <span aria-hidden="true" className="inline-flex items-center gap-[0.04em]">
-              {Array.from(value).map((character, index) => (
-                <span key={index} className={/\d/.test(character) ? 'sensor-reading-digit' : 'sensor-reading-punctuation'}>{character}</span>
-              ))}
-            </span>
-          </span> : value}
+      <span className="sensor-reading-value" style={{ '--sensor-reading-scale': `${readingScale}cqi` } as CSSProperties}>
+        <span className={cn('sensor-reading-number tabular-nums tracking-tight', !available && 'text-muted-foreground', isState && 'sensor-reading-state', available && numericValue(reading.value) !== null && value.length > 4 && 'sensor-reading-plain')}>
+          {value}
         </span>
         {available && unit ? <span className="sensor-reading-unit font-medium text-muted-foreground">{unit}</span> : null}
       </span>
@@ -262,7 +258,13 @@ export function SensorMetricCard({ device, title, isPreview = false, icon, roomN
   const reading = getSensorReading(device, isPreview);
   const severity = getSensorSeverity(reading);
   const isPercentage = reading.value !== null && reading.presentation === 'percentage';
-  const fill = isPercentage ? numericPercentage(reading.value) ?? 0 : 0;
+  const number = numericValue(reading.value);
+  const state = asRecord(device?.lastKnownState);
+  const attributes = asRecord(state.attributes);
+  const scale = number === null ? null : getSensorGaugeScale(number, isPercentage,
+    attributes.min_value ?? attributes.min ?? state.min_value ?? state.min,
+    attributes.max_value ?? attributes.max ?? state.max_value ?? state.max, reading.unit);
+  const analog = number !== null || reading.value === null;
   const categoryLabel = getCategoryLabel(reading.category, t);
   const displayTitle = title.trim() || device?.name?.trim() || categoryLabel;
   const ConfiguredIcon = icon && icon !== getDefaultIcon('sensor') ? getDashboardIconComponent(icon) : null;
@@ -288,21 +290,28 @@ export function SensorMetricCard({ device, title, isPreview = false, icon, roomN
           {roomName ? <span className="sensor-reading-room block text-muted-foreground">{roomName}</span> : null}
         </div>
       </div>
-      <div className="sensor-reading-layout">
-        <SensorPresentationHero reading={reading} t={t} />
+      <div className={cn('sensor-reading-layout', analog && 'sensor-analog-layout')}>
+        {analog ? <div className="sensor-analog-instrument"
+          role={scale ? 'meter' : undefined}
+          aria-label={scale ? displayTitle : undefined}
+          aria-valuemin={scale?.min} aria-valuemax={scale?.max}
+          aria-valuenow={scale && number !== null ? Math.max(scale.min, Math.min(scale.max, number)) : undefined}
+          aria-valuetext={scale ? `${reading.value}${isPercentage ? '%' : reading.unit ? ` ${reading.unit}` : ''}` : undefined}
+        >
+          <SensorAnalogGauge value={number} scale={scale} />
+          <div className="sensor-analog-readout"><SensorPresentationHero reading={reading} t={t} /></div>
+        </div> : <SensorPresentationHero reading={reading} t={t} />}
       </div>
       <div className="sensor-reading-footer">
-        {isPercentage ? <span role="meter" aria-label={displayTitle} aria-valuemin={0} aria-valuemax={100} aria-valuenow={fill} aria-valuetext={`${reading.value}%`} className="sensor-percentage-meter">
-          <span aria-hidden="true" className="sensor-percentage-fill" style={{ width: `${fill}%` }} />
-        </span> : null}
-        <div className="sensor-reading-status flex min-h-4 items-center gap-1.5 text-widget-caption-fluid text-muted-foreground">
+        <div className="sensor-reading-status text-muted-foreground">
           {hasStatus ? (
-          <>
-            {(severity === 'low' || severity === 'critical') && <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', severity === 'critical' ? 'bg-danger' : 'bg-warning')} aria-hidden="true" />}
+          <span className="sensor-status-badge">
+            {severity !== 'unavailable' && <span className={cn('sensor-status-dot', severity === 'critical' ? 'bg-danger' : severity === 'low' ? 'bg-warning' : 'bg-success')} aria-hidden="true" />}
             <span className="min-w-0">{statusLabel}</span>
-          </>
+          </span>
           ) : null}
         </div>
+        {scale ? <span className="sensor-scale-caption text-muted-foreground">{t(`dashboard.editor.sections.sensor_scale_${scale.source === 'automatic' ? 'automatic' : 'label'}`)}: {scale.min} – {scale.max}{isPercentage ? ' %' : reading.unit ? ` ${reading.unit}` : ''}</span> : null}
       </div>
     </div>
   );

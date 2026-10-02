@@ -1,5 +1,7 @@
 # Spec-Driven Coverage Matrix
 
+- Sensor analógico AC40 vigente (2026-10-02): `SensorAnalogGauge.test.tsx`, `SensorMetricCard.test.tsx`, `DashboardCardSkeleton.test.tsx`, `TopologyDeviceTile.test.tsx` → 75/75 PASS; responsive Sensor clarity/Sensor width/Room devices/geometría inicial → 17/17 y confirmación Sensor 5/5 PASS. Presenter modular y escala instrumental real sustituyen fichas/barra; spec y tareas Dashboard actualizadas, documento `docs/components/SensorMetricCard.md`. Typecheck/lint/builds y spec/BDD/module/i18n/arquitectura/no-any PASS. Evidencia `.impeccable/review/analog-final/`; no suite responsive completa ni publicación. Las entradas Sensor del 2026-10-01 conservadas abajo son históricas.
+
 Verificación documental final 2026-10-01 por el coordinador: spec coverage, BDD traceability y module test coverage PASS tras la actualización Sensor v2; la repetición mencionada abajo quedó completada.
 
 - Evidencia Sensor AC40 vigente, 2026-10-01: extensión local en la paleta Dashboard existente. Cabecera/hero/pie en bandas comunes, nombres completos con salto natural, icono encima en angosto, cifras de peso 450, profundidad compacta y meter porcentual en el pie. Radio 16 px efectivo en CSS y wrapper Sensor de `SectionCardItem`; skeleton propio sin radio general conflictivo y con iguales bandas y `containerName: sensor-card`. `123456.7` continuo, aproximadamente 19–20 px en angosto, unidad debajo; ausencia «— / Sin lectura» sin interrogación ni datos ficticios. Modelo/presenter, grid, masonry y backend sin cambios en esta corrección. Capturas `.impeccable/review/sensor-v2-*`; revisión final fresca confirma resueltos P2 radio, P2 lectura larga y P3 skeleton. Aprobación visual del usuario pendiente.
@@ -73,7 +75,7 @@ The command fails if a file cannot be mapped to an existing spec.
 
 ## Audited Coverage
 
-- The **905** audited TypeScript/TSX files have a mapping rule to an existing
+- The **907** audited TypeScript/TSX files have a mapping rule to an existing
   spec.
 - All bounded contexts under `packages/` and all API route families are
   covered.

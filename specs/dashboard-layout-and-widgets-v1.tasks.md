@@ -1,5 +1,14 @@
 # Tareas: Dashboard Layout and Widgets V1
 
+## Sensor analógico — referencia autorizada 2026-10-02
+
+- [x] Presenter analógico modular, aguja real y escala de visualización explícita/automática sin salud inventada.
+- [x] Mantener binding, estados textuales, preview, tamaño medio y menú funcional.
+- [x] Skeleton propio de esfera, misma reserva exterior y paleta claro/oscuro.
+- [x] Validaciones focalizadas, responsive y comparación visual con referencia; sin Git/GitHub/Docker/deploy.
+
+Evidencia local 2026-10-02: 75/75 Jest en cuatro suites SensorMetricCard/SensorAnalogGauge/DashboardCardSkeleton/TopologyDeviceTile. Responsive focalizado 17/17 Sensor/Espacios/geometría y confirmación 5/5 Sensor con temperatura, presión bar/hPa y humedad, claro/oscuro. Typecheck, lint y builds raíz/Operator Console PASS; spec/BDD/module/i18n/architecture/no-production-any PASS. Detector sin hallazgos. Fuente y capturas comparadas conjuntamente; lectura separada de graduaciones y marcas compactas 75k/150k corregidas. Revisión fresca: disposition ship limitada a los dos hallazgos corregidos. Evidencia final `.impeccable/review/analog-final/`, documento `docs/components/SensorMetricCard.md`. No responsive completo ni hardware físico/Safari. Advertencias preexistentes Browserslist/chunk MDI y red mock sin servicios reales no equivalen a validación de telemetría.
+
 ## Refinamiento local — edición, pestañas y drag táctil
 
 - [x] Unificar entrada Editar en Más y renombrado dentro de ese modo.
