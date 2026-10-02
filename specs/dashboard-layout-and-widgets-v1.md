@@ -1,5 +1,7 @@
 # SPEC: Dashboard Layout and Widgets V1
 
+Refinamiento de densidad y continuidad: Sensor usa padding vertical compacto y contenido sin expansión flexible, con o sin lectura, manteniendo esfera/unidad inline y geometría de carga estable. La identidad de arrastre se conserva localmente al trasladar una tarjeta a otra Section para que la animación de llegada alcance su nodo de destino; no cambia el ID persistido ni el formato de las tarjetas.
+
 ## Sensor analógico — referencia autorizada 2026-10-02
 
 Refinamiento autorizado: unidad junto al número; tamaño tipográfico común para lecturas habituales (incluidos cuatro dígitos y decimales), reducción excepcional solo para lecturas largas que no caben. Compactar bandas y ausencia sin recortar contenido; cinco graduaciones legibles también en tarjetas estrechas. Arrastre: copia elevada de tamaño real para tarjeta/Section, mantener pulsado 500 ms en el fondo de Section (no controles ni tarjetas), sin grip de seis puntos; teclado sigue disponible. Slots conservados por columna con colocación masonry densa para poder mover a la columna bajo una Section más baja; sin cambio de schema/backend.

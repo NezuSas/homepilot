@@ -42,7 +42,8 @@ function getBoundRoutineIcon(entityId: string | undefined, scenes: AssignableSce
 
 export function SectionWidget({ config, isEditing, onUpdate, sectionId }: SectionWidgetProps) {
   const { t } = useTranslation();
-  const sharedDrag = useContext(SectionCardDragContext) && Boolean(sectionId);
+  const dragIdentities = useContext(SectionCardDragContext);
+  const sharedDrag = Boolean(dragIdentities) && Boolean(sectionId);
 
   const catalogLabel = (kind: SectionCardKind) => t(getCatalogLabelKey(kind));
 
@@ -390,7 +391,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
   ) : null;
 
   const sortableCards = (
-    <SortableContext items={cards.map((card) => sharedDrag ? sectionCardDragId(sectionId!, card.id) : card.id)} strategy={rectSortingStrategy}>
+    <SortableContext items={cards.map((card) => sharedDrag ? sectionCardDragId(sectionId!, card.id, dragIdentities) : card.id)} strategy={rectSortingStrategy}>
       {cards.map((card) => (
         <SectionCardItem
           key={card.id}

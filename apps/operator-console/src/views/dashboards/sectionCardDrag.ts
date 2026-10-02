@@ -3,8 +3,11 @@ import { arrayMove } from '@dnd-kit/sortable';
 import type { DashboardWidget } from './types';
 
 /** Only the active tab's canvas owns this context; standalone previews stay local. */
-export const SectionCardDragContext = createContext(false);
-export const sectionCardDragId = (sectionId: string, cardId: string) => JSON.stringify(['section-card', sectionId, cardId]);
+export const SectionCardDragContext = createContext<false | Readonly<Record<string, string>>>(false);
+export const sectionCardDragId = (sectionId: string, cardId: string, identities: false | Readonly<Record<string, string>> = false) => {
+  const key = JSON.stringify(['section-card', sectionId, cardId]);
+  return identities && identities[key] || key;
+};
 
 type StoredCard = Record<string, unknown> & { id: string };
 function storedCards(widget: DashboardWidget): StoredCard[] {

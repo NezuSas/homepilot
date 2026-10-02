@@ -1,7 +1,7 @@
-import { useEffect, useState, useRef, type MouseEvent } from 'react';
+import { useContext, useEffect, useState, useRef, type MouseEvent } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { sectionCardDragId } from '../sectionCardDrag';
+import { SectionCardDragContext, sectionCardDragId } from '../sectionCardDrag';
 import { Loader2, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
@@ -70,6 +70,7 @@ export function SectionCardItem({
   rowSpan: number;
 }) {
   const { t } = useTranslation();
+  const dragIdentities = useContext(SectionCardDragContext);
   const [isCardMenuOpen, setIsCardMenuOpen] = useState(false);
   const [cardMenuPosition, setCardMenuPosition] = useState<{ top: number; right: number } | null>(null);
   const previewNode = useRef<HTMLDivElement | null>(null);
@@ -152,7 +153,7 @@ export function SectionCardItem({
   />;
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: sectionId ? sectionCardDragId(sectionId, card.id) : card.id,
+    id: sectionId ? sectionCardDragId(sectionId, card.id, dragIdentities) : card.id,
     data: { kind: 'section-card', sectionId, cardId: card.id, preview: cardContent, getPreviewRect: () => previewNode.current?.getBoundingClientRect() },
     disabled: !isEditing,
   });

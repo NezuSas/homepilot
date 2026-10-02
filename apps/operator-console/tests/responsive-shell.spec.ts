@@ -66,7 +66,7 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
   });
 }
 
-test('Feature: Dashboard unified editing — Scenario: Touch hold moves a card into an empty section without executing it', async ({ browser }) => {
+test('Feature: Dashboard unified editing — Scenario: Touch hold moves a card into an empty section without executing it', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 768, height: 1024 }, hasTouch: true, isMobile: true });
   const page = await context.newPage();
   try {
@@ -101,8 +101,19 @@ test('Feature: Dashboard unified editing — Scenario: Touch hold moves a card i
     await expect(preview).toContainText('Gata');
     const previewBounds = await preview.boundingBox();
     expect(previewBounds!.width).toBeCloseTo(source.width, -1);
+    await page.clock.resume();
     await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: target.x + target.width / 2, y: target.y + target.height / 2 }] });
+    await expect(preview).toContainText('Gata');
+    await expect.poll(async () => (await preview.boundingBox())!.x).toBeCloseTo(target.x + target.width / 2 - source.width / 2, -1);
+    await page.screenshot({ path: testInfo.outputPath('card-over-other-section.png') });
     await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    const landingAnimation = await page.evaluate(() => document.getAnimations().some(animation => {
+      const effect = animation.effect;
+      return effect instanceof KeyframeEffect && effect.target instanceof Element
+        && Boolean(effect.target.querySelector('[data-dashboard-drag-preview]'))
+        && effect.getKeyframes().some(frame => typeof frame.transform === 'string');
+    }));
+    expect(landingAnimation).toBe(true);
     await expect.poll(() => saved.tabs[0].widgets.find(widget => widget.id === 'patio')?.config.extra.cards.map(card => card.id)).toEqual(['touch-card']);
     expect(commands).toBe(0);
     await page.reload();
@@ -1538,6 +1549,15 @@ for (const viewport of [
         expect(titleFits.contentWidth).toBeLessThanOrEqual(titleFits.width);
         expect(titleFits.contentHeight).toBeLessThanOrEqual(titleFits.height);
         expect(await card.evaluate(element => getComputedStyle(element).borderRadius)).toBe('16px');
+        const density = await card.evaluate(element => {
+          const style = getComputedStyle(element);
+          const value = element.querySelector('.sensor-reading-value')!.getBoundingClientRect();
+          const footer = element.querySelector('.sensor-reading-footer')!.getBoundingClientRect();
+          return { top: parseFloat(style.paddingTop), bottom: parseFloat(style.paddingBottom), readingToFooter: footer.top - value.bottom };
+        });
+        expect(density.top).toBeLessThanOrEqual(8);
+        expect(density.bottom).toBeLessThanOrEqual(8);
+        expect(density.readingToFooter).toBeLessThanOrEqual(8);
         await expect(card.getByText('Oficina', { exact: true })).toHaveCount(0);
         await expect(card).not.toContainText(`Technical ${reading.id}`);
         await expect(card.getByRole('button')).toHaveCount(0);

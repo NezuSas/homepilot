@@ -1,4 +1,4 @@
-import { moveSectionCard } from './sectionCardDrag';
+import { moveSectionCard, sectionCardDragId } from './sectionCardDrag';
 import type { DashboardWidget } from './types';
 
 const section = (id: string, cards: Array<Record<string, unknown>>): DashboardWidget => ({
@@ -6,6 +6,12 @@ const section = (id: string, cards: Array<Record<string, unknown>>): DashboardWi
 });
 
 describe('moving cards within one tab', () => {
+  it('keeps the moved runtime identity while separating equal card IDs in other sections', () => {
+    const original = sectionCardDragId('tech', 'card');
+    const destination = sectionCardDragId('patio', 'card');
+    expect(sectionCardDragId('patio', 'card', { [destination]: original })).toBe(original);
+    expect(sectionCardDragId('other', 'card', { [destination]: original })).not.toBe(original);
+  });
   const card = { id: 'media', kind: 'media', mediaVariant: 'classic', entityId: 'speaker', span: 'full', customMetadata: { preserve: true } };
   it('updates both sections together without losing binding, variant, metadata or unrelated cards', () => {
     const widgets = [section('tech', [card]), section('patio', [{ id: 'other' }])];

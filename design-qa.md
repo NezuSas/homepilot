@@ -81,6 +81,12 @@ Validación: 75/75 Jest (cuatro suites), 17/17 responsive focalizados y confirma
 
 final result: passed
 
+## Corrección tablet — densidad y llegada entre Sections
+
+Se retiró la altura mínima adicional y el estiramiento flexible de la banda central Sensor; padding vertical 8px, cabecera mínima 32px y banda central 4px. Mismos datos, esfera, graduaciones, lectura/unidad inline, estados neutrales y colores. Se conserva la reserva del pie para evitar layout shift. Identidades runtime de tarjetas conservadas al cambiar de Section, sin modificar IDs persistidos: la animación de drop existente encuentra ahora el nodo de destino.
+
+Inspección visual conjunta de tablet oscuro, móvil claro y tarjeta elevada sobre otra Section, en `.impeccable/review/sensor-density-cross-drop/`. Sin recortes de esfera/lectura ni desbordes. Detector de layout: lista vacía. Tests comprueban padding y proximidad lectura/pie tanto con datos como sin lectura, overlay sobre destino y animación Web Animations real después de soltar. 73/73 Jest; 10/10 responsive y confirmación drag 7/7 (16 escenarios únicos); typecheck, lint, builds raíz/consola y controles spec/BDD/module/i18n/arquitectura/no-any PASS. Advertencias previas Browserslist/chunk MDI y WebSocket de fixtures. Sin responsive completo, Git/GitHub/Docker/deploy ni certificación de hardware físico/Safari.
+
 ## Refinamiento Sensor y arrastre elevado — 2026-10-02
 
 Alcance acotado: unidades inline, tamaño de lectura común hasta seis caracteres, reserva interna compacta incluso sin lectura, cinco/seis etiquetas de escala. Misma paleta y semántica meter. Preview elevado de card/Section con tamaño real, portal inert sin captura de pointer events, long press de Section desde fondo libre y slots densos por columna conservando huecos persistidos.

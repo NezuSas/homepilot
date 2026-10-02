@@ -1,5 +1,13 @@
 # Tareas: Dashboard Layout and Widgets V1
 
+## Ajuste tablet — densidad y llegada entre Sections
+
+- [x] Eliminar altura mínima adicional y expansión flexible del centro Sensor; padding vertical 8px, cabecera 32px y separación interna 4px, manteniendo esfera, lectura/unidad y reserva de carga.
+- [x] Conservar identidad de arrastre local al cambiar de Section para que la animación existente encuentre el nodo de llegada; sin cambios de ID persistido.
+- [x] Comprobar preview sobre otra Section y animación real al soltar, sin ejecutar comandos físicos; cobertura de densidad computada con/sin lectura y ambos temas.
+
+Evidencia final del ajuste: 73/73 Jest en cuatro suites SensorMetricCard/SensorAnalogGauge/DashboardCardSkeleton/sectionCardDrag; 10/10 responsive focalizados Sensor clarity, movimiento touch entre Sections y cuatro geometrías skeleton. Confirmación mouse/touch/teclado, cancelación y Section masonry 7/7 PASS (16 escenarios únicos en total). Typecheck, lint, builds raíz/Operator Console y controles spec/BDD/module/i18n/arquitectura/no-any PASS. Capturas `.impeccable/review/sensor-density-cross-drop/`, revisadas en tablet oscuro, móvil claro y overlay sobre destino. No responsive completo, Git/GitHub ni deploy; no certificación de tablet física.
+
 ## Compactación Sensor y arrastre elevado — 2026-10-02
 
 - [x] Unidad junto a lectura; tamaño común para valores de hasta seis caracteres; compactar carcasa y ausencia sin quitar información.

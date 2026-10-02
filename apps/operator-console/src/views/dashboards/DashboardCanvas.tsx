@@ -13,7 +13,7 @@ import {
   useDroppable,
 } from '@dnd-kit/core';
 import type { CollisionDetection, DragEndEvent, DragStartEvent } from '@dnd-kit/core';
-import { SectionCardDragContext, moveSectionCard } from './sectionCardDrag';
+import { SectionCardDragContext, moveSectionCard, sectionCardDragId } from './sectionCardDrag';
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useState, useMemo, useRef, useEffect, isValidElement } from 'react';
@@ -202,6 +202,7 @@ export function DashboardCanvas({
   tabs, currentTabId, onSelectTab }: DashboardCanvasProps) {
   const { t } = useTranslation();
   const [activeWidget, setActiveWidget] = useState<DashboardWidget | null>(null);
+  const [cardDragIdentities, setCardDragIdentities] = useState<Record<string, string>>({});
   const [dragPreview, setDragPreview] = useState<{ content?: ReactNode; width: number; height: number } | null>(null);
   const [pendingDeleteWidgetId, setPendingDeleteWidgetId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -331,7 +332,19 @@ export function DashboardCanvas({
     if (source?.kind === 'section-card') {
       if (typeof source.sectionId !== 'string' || typeof source.cardId !== 'string' || typeof destination?.sectionId !== 'string') return;
       const moved = moveSectionCard(widgets, source.sectionId, source.cardId, destination.sectionId, destination.kind === 'section-card' ? destination.cardId : undefined);
-      if (moved !== widgets) onLayoutChange(moved, sectionLayout);
+      if (moved !== widgets) {
+        if (source.sectionId !== destination.sectionId) {
+          const sourceKey = sectionCardDragId(source.sectionId, source.cardId);
+          const targetKey = sectionCardDragId(destination.sectionId, source.cardId);
+          // Preserve the active registration at its new node for drop motion.
+          setCardDragIdentities(current => {
+            const next = { ...current, [targetKey]: current[sourceKey] ?? sourceKey };
+            delete next[sourceKey];
+            return next;
+          });
+        }
+        onLayoutChange(moved, sectionLayout);
+      }
       return;
     }
 
@@ -385,7 +398,7 @@ export function DashboardCanvas({
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <SectionCardDragContext.Provider value={true}>
+      <SectionCardDragContext.Provider value={cardDragIdentities}>
       <div
         ref={containerRef}
         className={cn(
