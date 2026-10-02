@@ -1,4 +1,5 @@
 import { DateTime } from 'luxon';
+import { canAccessRoutine } from '../../devices/domain/routineAccess';
 import { AutomationRuleRepository } from '../../devices/domain/repositories/AutomationRuleRepository';
 import type { AutomationTrigger } from '../../devices/domain/automation/types';
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
@@ -293,6 +294,10 @@ export class AutomationEngine {
       }
 
       if (action.type === 'execute_scene') {
+        const scene = await this.sceneRepository.findSceneById(action.sceneId);
+        if (!scene || scene.homeId !== rule.homeId || !canAccessRoutine(scene, rule.userId)) {
+          throw new Error('SCENE_ACCESS_DENIED');
+        }
         await this.commandDispatcher.executeScene(rule.homeId, action.sceneId, correlationId, rule.id);
         this.totalSuccesses++;
         return;

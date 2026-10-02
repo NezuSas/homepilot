@@ -1,4 +1,5 @@
 {
+  "routine_sharing": { "scope": "Access", "private": "Private · only you", "shared": "Shared · selected users can run and favorite", "users": "Share with users", "load_error": "Could not load available users.", "name": "Name", "description": "Description", "space": "Room" },
   "nav": {
     "dashboard": "Home",
     "spaces": "Spaces",
@@ -35,6 +36,10 @@
     "talk_to_home": "Talk to my Home"
   },
   "home_personalization": {
+    "theme_mode": "Appearance",
+    "theme_manual": "Manual",
+    "theme_automatic": "Automatic",
+    "theme_schedule": "Dark from 18:30 to 06:00; light for the rest of the day.",
     "title": "Home personalization",
     "phrases": "Phrases by time of day",
     "morningPhrase": "Morning phrase",
@@ -686,7 +691,7 @@
   },
   "diagnostics": {
     "categories": { "resilience": "Resilience", "automation": "Automation", "scene": "Scene", "auth": "Access", "command": "Command" },
-"filters": { "choose_date": "Choose date", "date": "Date", "action": "Action", "all": "All", "scene": "Scenes", "command": "Commands", "automation": "Automations", "recent_only": "Filters apply to the loaded recent events.", "no_matches": "No events match the filters." },
+"filters": { "choose_date": "Choose date", "date": "Date", "action": "Action", "name": "Name", "search_name": "Search by name…", "all": "All", "scene": "Scenes", "command": "Commands", "automation": "Automations", "recent_only": "Filters apply to the loaded recent events.", "no_matches": "No events match the filters." },
     "timeline": "Timeline",
     "loading": "Gathering diagnostics heartbeat...",
     "error_loading": "Failed to load diagnostics",

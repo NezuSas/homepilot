@@ -1,4 +1,5 @@
 {
+  "routine_sharing": { "scope": "Alcance", "private": "Privada · solo tú", "shared": "Compartida · los usuarios elegidos pueden ejecutar y marcar como favorita", "users": "Compartir con usuarios", "load_error": "No se pudieron cargar los usuarios disponibles.", "name": "Nombre", "description": "Descripción", "space": "Espacio" },
   "nav": {
     "dashboard": "Inicio",
     "spaces": "Espacios",
@@ -35,6 +36,10 @@
     "talk_to_home": "Conversar con mi casa"
   },
   "home_personalization": {
+    "theme_mode": "Apariencia",
+    "theme_manual": "Manual",
+    "theme_automatic": "Automática",
+    "theme_schedule": "Oscuro de 18:30 a 06:00; claro el resto del día.",
     "title": "Personalización de Inicio",
     "phrases": "Frases por momento del día",
     "morningPhrase": "Frase de la mañana",
@@ -686,7 +691,7 @@
   },
   "diagnostics": {
     "categories": { "resilience": "Resiliencia", "automation": "Automatización", "scene": "Escena", "auth": "Acceso", "command": "Comando" },
-"filters": { "choose_date": "Elegir fecha", "date": "Fecha", "action": "Acción", "all": "Todas", "scene": "Escenas", "command": "Comandos", "automation": "Automatizaciones", "recent_only": "Filtros sobre los eventos recientes cargados.", "no_matches": "No hay eventos que coincidan con los filtros." },
+"filters": { "choose_date": "Elegir fecha", "date": "Fecha", "action": "Acción", "name": "Nombre", "search_name": "Buscar por nombre…", "all": "Todas", "scene": "Escenas", "command": "Comandos", "automation": "Automatizaciones", "recent_only": "Filtros sobre los eventos recientes cargados.", "no_matches": "No hay eventos que coincidan con los filtros." },
     "timeline": "Línea de tiempo",
     "loading": "Recuperando pulso de diagnósticos...",
     "error_loading": "Error al cargar diagnósticos",

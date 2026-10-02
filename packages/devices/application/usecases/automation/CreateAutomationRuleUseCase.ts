@@ -11,6 +11,7 @@ export interface CreateAutomationRuleRequest {
   userId: string;
   name: string;
   icon?: string;
+  sharedUserIds?: string[];
   trigger: AutomationTrigger;
   action: AutomationAction;
 }
@@ -58,6 +59,7 @@ export async function createAutomationRuleUseCase(
     userId: request.userId,
     name: request.name,
     icon: request.icon,
+    sharedUserIds: request.sharedUserIds,
     trigger: request.trigger,
     action: request.action
   }, deps.idGenerator);

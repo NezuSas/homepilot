@@ -7,5 +7,5 @@ interface UsersProtectionNoteProps {
 }
 
 export const UsersProtectionNote: React.FC<UsersProtectionNoteProps> = ({ message }) => (
-  <AlertBanner variant="warning" icon={ShieldAlert} message={message} />
+  <AlertBanner variant="info" icon={ShieldAlert} message={message} className="py-3 [&_p]:text-caption" />
 );

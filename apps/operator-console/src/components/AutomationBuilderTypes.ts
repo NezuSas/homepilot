@@ -30,6 +30,8 @@ export interface AutomationActionConfig {
 }
 
 export interface AutomationRuleDraft {
+  userId?: string;
+  sharedUserIds?: string[];
   id: string;
   name: string;
   icon?: string;

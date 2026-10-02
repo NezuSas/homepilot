@@ -2,6 +2,10 @@
 
 ## Implementado
 
+- [x] Compartir explícitamente con varios usuarios activos: lectura/ejecución/favoritos, nunca edición/eliminación por receptor; revocación inmediata en solicitudes futuras.
+- [x] Migración aditiva 034 con default privado y descripción dentro del payload existente; no atribuir escenas históricas sin creador.
+- [ ] Backup SQLite y validación en MiniPC antes de aplicar la migración fuera del entorno temporal de pruebas.
+
 - [x] CRUD local y ejecución mediante `SceneRoutes`.
 - [x] Constructor de escenas y listado responsive en Operator Console.
 - [x] Favoritos, validación de capacidades, auditoría y sincronización visual.

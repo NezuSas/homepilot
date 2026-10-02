@@ -64,7 +64,7 @@ function createHarness(rules: ReadonlyArray<AutomationRule>, targetDevice: Devic
   const deviceRepository = {
     findDeviceById: jest.fn().mockResolvedValue(targetDevice),
   } as unknown as DeviceRepository;
-  const sceneRepository = { findSceneById: jest.fn().mockResolvedValue(null), deleteScene: jest.fn().mockResolvedValue(undefined) };
+  const sceneRepository = { findSceneById: jest.fn().mockImplementation((id: string) => Promise.resolve({ id, homeId: 'home-1', userId: 'user-1' })), deleteScene: jest.fn().mockResolvedValue(undefined) };
   const dispatcher: jest.Mocked<AutomationCommandDispatcher> = {
     dispatchCommand: jest.fn().mockResolvedValue(undefined),
     executeScene: jest.fn().mockResolvedValue(undefined),
@@ -352,6 +352,24 @@ describe('Feature: automation rule execution', () => {
 });
 
 describe('Feature: manual "run now" execution (dashboard routine action cards)', () => {
+  it('executes a shared scene as the rule owner and rejects it after access is revoked', async () => {
+    const harness = createHarness([createRule({ action: { type: 'execute_scene', sceneId: 'shared' } })]);
+    harness.sceneRepository.findSceneById.mockResolvedValue({ id: 'shared', homeId: 'home-1', userId: 'other', sharedUserIds: ['user-1'] });
+    expect((await harness.engine.runRuleNow('automation-1', 'shared-run')).success).toBe(true);
+    harness.sceneRepository.findSceneById.mockResolvedValue({ id: 'shared', homeId: 'home-1', userId: 'other', sharedUserIds: [] });
+    expect((await harness.engine.runRuleNow('automation-1', 'revoked-run')).success).toBe(false);
+    expect(harness.dispatcher.executeScene).toHaveBeenCalledTimes(1);
+    expect(harness.sceneRepository.deleteScene).not.toHaveBeenCalled();
+  });
+
+  it('never deletes another creator’s shared scene when a one-off timer finishes', async () => {
+    const rule = createRule({ trigger: { type: 'time', timeLocal: '12:00', timezone: 'UTC', timeUTC: '12:00', dateLocal: '2026-08-16' }, action: { type: 'execute_scene', sceneId: 'shared' } });
+    const harness = createHarness([rule]);
+    harness.sceneRepository.findSceneById.mockResolvedValue({ id: 'shared', homeId: 'home-1', userId: 'other', sharedUserIds: ['user-1'] });
+    await harness.engine.handleTimeEvent('12:00', new Date('2026-08-16T12:00:00Z'));
+    expect(harness.dispatcher.executeScene).toHaveBeenCalledTimes(1);
+    expect(harness.sceneRepository.deleteScene).not.toHaveBeenCalled();
+  });
   it('runs a rule immediately, bypassing its trigger and the loop-prevention cache', async () => {
     const harness = createHarness([createRule()]);
     const internals = harness.engine as unknown as { loopPreventionCache: Map<string, number> };

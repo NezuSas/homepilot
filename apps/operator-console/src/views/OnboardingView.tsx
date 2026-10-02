@@ -157,7 +157,7 @@ export function OnboardingView({ onCompleted, statusProvider, userContext }: Onb
   if (!statusProvider) return <OnboardingSkeleton label={t('common.loading')} />;
 
   return (
-    <div className="min-w-0 flex-1 bg-muted/20 px-3 py-4 sm:px-4">
+    <div className="min-w-0 flex-1">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-5">
         
         <div className="min-w-0 rounded-section border border-border bg-card p-4">

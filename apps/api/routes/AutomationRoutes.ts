@@ -12,8 +12,10 @@ import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import type { AutomationAction, AutomationTrigger } from '../../../packages/devices/domain/automation/types';
 import { ForbiddenOwnershipError, TopologyResourceNotFoundError } from '../../../packages/devices/application/errors';
 import type { TopologyReferencePort } from '../../../packages/devices/application/ports/TopologyReferencePort';
+import { canAccessRoutine, parseRoutineSharedUsers } from '../../../packages/devices/domain/routineAccess';
 
 interface CreateAutomationPayload {
+  sharedUserIds?: unknown;
   name: string;
   icon?: string;
   trigger: AutomationTrigger;
@@ -21,6 +23,7 @@ interface CreateAutomationPayload {
 }
 
 interface UpdateAutomationPayload {
+  sharedUserIds?: unknown;
   name?: string;
   icon?: string;
   trigger?: AutomationTrigger;
@@ -31,11 +34,20 @@ interface UpdateAutomationPayload {
  * Automation routes: /api/v1/automations/*
  */
 export class AutomationRoutes extends ApiRoutes {
+  private async validateSharedUsers(raw: unknown, ownerId: string, container: BootstrapContainer): Promise<string[]> {
+    const ids = parseRoutineSharedUsers(raw).filter(id => id !== ownerId);
+    for (const id of ids) {
+      const user = await container.repositories.userRepository.findById(id);
+      if (!user?.isActive) throw new Error('INVALID_SHARED_USERS');
+    }
+    return ids;
+  }
   private async validateSceneAction(action: AutomationAction | undefined, userId: string, homeId: string, container: BootstrapContainer): Promise<boolean> {
     const sceneAction = action?.type === 'delay' ? action.then : action;
     if (sceneAction?.type !== 'execute_scene') return true;
     const scene = await container.repositories.sceneRepository.findSceneById(sceneAction.sceneId);
-    return scene?.userId === userId && scene.homeId === homeId;
+    // This validates an execution dependency, never permission to edit the scene.
+    return !!scene && scene.homeId === homeId && canAccessRoutine(scene, userId);
   }
 
   private createTopologyReferencePort(container: BootstrapContainer): TopologyReferencePort {
@@ -82,7 +94,7 @@ export class AutomationRoutes extends ApiRoutes {
         if (method === 'GET') {
           const accessible = await Promise.all(ids.map(async (id) => {
             const rule = await container.repositories.automationRuleRepository.findById(id);
-            return rule?.userId === userId && homeIds.has(rule.homeId) ? id : null;
+            return rule && canAccessRoutine(rule, userId) && homeIds.has(rule.homeId) ? id : null;
           }));
           return this.sendJson(res, {
             automationIds: accessible.filter((id): id is string => id !== null),
@@ -98,7 +110,7 @@ export class AutomationRoutes extends ApiRoutes {
         const nextIds = payload.automationIds as string[];
         for (const id of nextIds) {
           const rule = await container.repositories.automationRuleRepository.findById(id);
-          if (!rule || rule.userId !== userId || !homeIds.has(rule.homeId)) {
+          if (!rule || !canAccessRoutine(rule, userId) || !homeIds.has(rule.homeId)) {
             return this.sendError(res, 403, 'FORBIDDEN', 'Automation is not accessible'), true;
           }
         }
@@ -132,6 +144,7 @@ export class AutomationRoutes extends ApiRoutes {
       if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         const payload = await this.parseBody<CreateAutomationPayload>(req);
+        const sharedUserIds = await this.validateSharedUsers(payload.sharedUserIds, req.user!.id, container);
         const homes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
         const home = homes[0];
         if (!home) return this.sendError(res, 404, 'HOME_NOT_FOUND', 'No home belongs to the current user'), true;
@@ -145,6 +158,7 @@ export class AutomationRoutes extends ApiRoutes {
             userId: req.user!.id,
             name: payload.name,
             icon: payload.icon,
+            sharedUserIds,
             trigger: payload.trigger,
             action: payload.action,
           },
@@ -161,7 +175,8 @@ export class AutomationRoutes extends ApiRoutes {
         const { name, message } = this.getErrorDetails(error);
         let code = 'AUTOMATION_ERROR';
         let status = 500;
-        if (name === 'DeviceNotFoundError') { status = 404; code = 'DEVICE_NOT_FOUND'; }
+        if (message === 'INVALID_SHARED_USERS') { status = 400; code = 'INVALID_SHARED_USERS'; }
+        else if (name === 'DeviceNotFoundError') { status = 404; code = 'DEVICE_NOT_FOUND'; }
         else if (name === 'AutomationLoopError' || name === 'InvalidAutomationRuleError') { status = 400; code = name.toUpperCase(); }
         this.sendError(res, status, code, message);
       }
@@ -184,7 +199,10 @@ export class AutomationRoutes extends ApiRoutes {
           return this.sendError(res, 404, 'SCENE_NOT_FOUND', 'Scene is not accessible'), true;
         }
 
-        const result = await updateAutomationRuleUseCase(ruleId, req.user!.id, payload, {
+        const result = await updateAutomationRuleUseCase(ruleId, req.user!.id, {
+          ...payload,
+          sharedUserIds: payload.sharedUserIds === undefined ? existing.sharedUserIds : await this.validateSharedUsers(payload.sharedUserIds, req.user!.id, container),
+        }, {
           automationRuleRepository: container.repositories.automationRuleRepository,
           deviceRepository: container.repositories.deviceRepository,
           topologyReferencePort: ports,
@@ -194,7 +212,8 @@ export class AutomationRoutes extends ApiRoutes {
         const { name, message } = this.getErrorDetails(error);
         let code = 'AUTOMATION_ERROR';
         let status = 500;
-        if (name === 'AutomationRuleNotFoundError') { status = 404; code = 'AUTOMATION_NOT_FOUND'; }
+        if (message === 'INVALID_SHARED_USERS') { status = 400; code = 'INVALID_SHARED_USERS'; }
+        else if (name === 'AutomationRuleNotFoundError') { status = 404; code = 'AUTOMATION_NOT_FOUND'; }
         else if (name === 'AutomationLoopError' || name === 'InvalidAutomationRuleError') { status = 400; code = name.toUpperCase(); }
         this.sendError(res, status, code, message);
       }
@@ -234,7 +253,7 @@ export class AutomationRoutes extends ApiRoutes {
       const ruleId = runMatch[1];
       try {
         const rule = await container.repositories.automationRuleRepository.findById(ruleId);
-        if (!rule || rule.userId !== req.user!.id) { this.sendError(res, 404, 'AUTOMATION_NOT_FOUND', `Automation ${ruleId} not found`); return true; }
+        if (!rule || !canAccessRoutine(rule, req.user!.id)) { this.sendError(res, 404, 'AUTOMATION_NOT_FOUND', `Automation ${ruleId} not found`); return true; }
         await this.createTopologyReferencePort(container).validateHomeOwnership(rule.homeId, req.user!.id);
 
         if (!container.engine) {

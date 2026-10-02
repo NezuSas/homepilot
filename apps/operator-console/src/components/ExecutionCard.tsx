@@ -31,29 +31,22 @@ export const ExecutionCard: React.FC<ExecutionCardProps> = ({ record, onRetrySuc
 
   return (
     <div className={cn(
-      "group relative overflow-hidden rounded-dashboard border transition-all duration-500 bg-card/40 backdrop-blur-xl",
-      isExpanded ? "p-6" : "p-5",
+      "group relative min-w-0 overflow-hidden rounded-card border bg-card",
+      "p-3",
       statusColors[record.status],
-      isExpanded ? "shadow-2xl scale-[1.01]" : "shadow-md hover:shadow-lg hover:-translate-y-0.5"
+      "text-foreground"
     )}>
-      {/* Dynamic Background Glow */}
-      <div className={cn(
-        "absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-48 h-48 rounded-full blur-glow opacity-20 transition-opacity duration-1000",
-        record.status === 'success' ? "bg-success" :
-        record.status === 'failed' ? "bg-danger" : "bg-warning"
-      )} />
-
-      <div className="flex items-center justify-between gap-4 relative z-10">
-        <div className="flex items-center gap-4 flex-1 min-w-0">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0 basis-48">
           {/* Source Icon Bubble */}
-          <div className="p-3 bg-background/60 rounded-2xl border border-border/40 shadow-inner group-hover:scale-110 transition-transform duration-500">
+          <div className="shrink-0 p-2 bg-primary/10 text-primary rounded-control">
             <SourceIcon className="w-5 h-5 opacity-70" />
           </div>
 
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-micro font-black uppercase tracking-control opacity-40">
-                {record.sourceType}
+                {t(`diagnostics.filters.${record.sourceType === 'manual' ? 'command' : record.sourceType}`)}
               </span>
               <span className="text-micro font-mono opacity-20">/</span>
               <span className="text-micro font-mono font-bold truncate opacity-60">

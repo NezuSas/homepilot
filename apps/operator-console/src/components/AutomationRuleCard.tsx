@@ -15,6 +15,7 @@ interface AutomationRule {
 }
 
 interface AutomationRuleCardProps {
+  canManage?: boolean;
   rule: AutomationRule;
   processingId: string | null;
   getDeviceName: (id?: string) => string;
@@ -30,7 +31,7 @@ interface AutomationRuleCardProps {
   onExecute: (id: string) => void;
 }
 
-export function AutomationRuleCard({ rule, processingId, getDeviceName, getSceneName, onToggle, onEdit, onDelete, isFavorite, onToggleFavorite, isExecuting, isExecutionBusy, isSuccessful, onExecute }: AutomationRuleCardProps) {
+export function AutomationRuleCard({ rule, processingId, getDeviceName, getSceneName, onToggle, onEdit, onDelete, isFavorite, onToggleFavorite, isExecuting, isExecutionBusy, isSuccessful, onExecute, canManage = true }: AutomationRuleCardProps) {
   const { t } = useTranslation();
   const titleId = useId();
   const Icon = (rule.icon ? getDashboardIconComponent(rule.icon) : null) || (rule.trigger.type === 'time' ? Clock : Zap);
@@ -50,7 +51,7 @@ export function AutomationRuleCard({ rule, processingId, getDeviceName, getScene
         <dt className="text-muted-foreground">{t('automations.summary.then')}</dt>
         <dd className="break-words">{rule.action.type === 'execute_scene' ? t('automations.summary.run_scene', { name: getSceneName(rule.action.sceneId) }) : t('automations.summary.run_command', { command: t(`automations.builder.commands.${rule.action.command}`, { defaultValue: rule.action.command || '' }), name: getDeviceName(rule.action.targetDeviceId) })}</dd>
       </dl>
-      <Button type="button" variant="outline" size="md" aria-pressed={rule.enabled} aria-label={t('automations.toggle_schedule', { name: rule.name })} isLoading={processingId === rule.id} onClick={() => onToggle(rule.id, rule.enabled)} className="min-h-11 w-full text-caption">
+      <Button type="button" variant="outline" size="md" disabled={!canManage} aria-pressed={rule.enabled} aria-label={t('automations.toggle_schedule', { name: rule.name })} isLoading={processingId === rule.id} onClick={() => onToggle(rule.id, rule.enabled)} className="min-h-11 w-full text-caption">
         {t(rule.enabled ? 'automations.summary.active' : 'automations.summary.paused')}
       </Button>
       <div className="flex items-center gap-2 border-t border-border pt-3">
@@ -58,8 +59,8 @@ export function AutomationRuleCard({ rule, processingId, getDeviceName, getScene
           {isSuccessful ? <Check aria-hidden="true" className="h-4 w-4" /> : <Play aria-hidden="true" className="h-4 w-4" />}
           <span role={isSuccessful ? 'status' : undefined} aria-live="polite">{t(isSuccessful ? 'automations.executed' : 'automations.execute_now')}</span>
         </Button>
-        <IconButton icon={Pencil} label={t('common.edit')} onClick={() => onEdit(rule)} size="lg" variant="default" />
-        <IconButton icon={Trash2} label={t('common.delete')} onClick={() => onDelete(rule.id)} size="lg" variant="danger" />
+        {canManage && <IconButton icon={Pencil} label={t('common.edit')} onClick={() => onEdit(rule)} size="lg" variant="default" />}
+        {canManage && <IconButton icon={Trash2} label={t('common.delete')} onClick={() => onDelete(rule.id)} size="lg" variant="danger" />}
       </div>
     </article>
   );

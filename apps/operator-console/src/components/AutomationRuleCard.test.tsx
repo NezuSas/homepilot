@@ -9,6 +9,14 @@ const props = {
   isFavorite: false, isExecuting: false, isExecutionBusy: false, isSuccessful: false,
 };
 describe('Feature: Compact automation cards (AC50)', () => {
+  it('keeps shared execution and favorites available without edit/delete or schedule changes', () => {
+    const html = renderToStaticMarkup(<AutomationRuleCard {...props} canManage={false} />);
+    expect(html).toContain('automations.execute_now');
+    expect(html).toContain('automations.add_favorite');
+    expect(html).not.toContain('aria-label="common.edit"');
+    expect(html).not.toContain('aria-label="common.delete"');
+    expect(html.match(/disabled=""/g)).toHaveLength(1);
+  });
   it('renders an article with separate execution, scheduling and management controls', () => {
     const html = renderToStaticMarkup(<AutomationRuleCard {...props} />);
     expect(html).toMatch(/^<article aria-labelledby=/);

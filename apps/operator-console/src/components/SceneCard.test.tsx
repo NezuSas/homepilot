@@ -27,6 +27,13 @@ const props = {
 };
 
 describe('Feature: Compact scene cards (AC47)', () => {
+  it('offers execution and favorites, but no management, to a shared recipient', () => {
+    const html = renderToStaticMarkup(<SceneCard {...props} canManage={false} />);
+    expect(html).toContain('Ejecutar');
+    expect(html).toContain('aria-label="Añadir a favoritas"');
+    expect(html).not.toContain('aria-label="Editar"');
+    expect(html).not.toContain('aria-label="Eliminar"');
+  });
   it('renders a named non-button article and four independent named controls', () => {
     const html = renderToStaticMarkup(<SceneCard {...props} />);
     expect(html).toMatch(/^<article aria-labelledby=/);

@@ -6,6 +6,8 @@
 Introduce an intelligent assistant layer that detects system issues and suggests actionable improvements to the user.
 
 ## 2. Requirements
+
+Refinamiento autorizado de hábitos: utilizar la zona horaria configurada del sistema (no la zona UTC del contenedor), contar comandos reales en al menos cuatro días locales distintos dentro de la franja, ignorar sincronizaciones de fondo, timestamps inválidos, dispositivos sin estancia o de otro hogar. Nunca sustituir evidencia temporal ausente por 00:00. Medianoche válida puede aparecer si realmente está registrada.
 - Detect new devices (not imported).
 - Detect devices missing room assignments.
 - Detect technical naming (snake_case, HA prefixes).

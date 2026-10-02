@@ -50,6 +50,11 @@ describe('Feature: Scene editor organization (AC48)', () => {
     expect(html).not.toContain('<details open');
     expect(html).toContain('Luz 29');
   });
+  it('also starts a small available room group closed', () => {
+    const html = renderToStaticMarkup(<SceneDeviceSelector devices={[device('l', 'Luz', 'office')]} rooms={rooms} roomId={null} actions={[]} onToggle={() => {}} onCommand={() => {}} />);
+    expect(html).toContain('<details');
+    expect(html).not.toContain('<details open');
+  });
   it('warns about a historical unassigned binding without listing it or mutating it (AC60)', () => {
     const actions = [{ deviceId: 'u', command: 'turn_on' as const }];
     const html = renderToStaticMarkup(<SceneDeviceSelector devices={devices} rooms={rooms} roomId={null} actions={actions} onToggle={() => {}} onCommand={() => {}} />);

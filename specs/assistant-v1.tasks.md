@@ -1,5 +1,7 @@
 # Tareas: HomePilot Assistant V1
 
+- [x] Habits: usar zona horaria configurada del sistema, comandos explícitos y cuatro días locales distintos en una misma franja; ignorar sincronización/fechas inválidas y entidades no asignadas o de otro hogar. Regresión UTC→America/Guayaquil y ráfagas de un solo día en BehaviorAnalysisService.test.ts.
+
 ## Implementado
 
 - [x] Hallazgos de inventario y su interfaz de resolución están cubiertos por pruebas de Assistant y rutas API.

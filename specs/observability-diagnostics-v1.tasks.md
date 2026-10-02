@@ -1,5 +1,7 @@
 # Tasks: Observability & Diagnostics V1
 
+- [x] Shared date/action/name filters for recent loaded diagnostics, audit and execution records; names resolved only from explicit metadata/device relationships. Preserve correlated traces and bounded internal JSON scrolling; no new historical API.
+
 - [ ] Planning
     - [x] Create `specs/observability-diagnostics-v1.md`
     - [x] Create `specs/observability-diagnostics-v1.tasks.md`

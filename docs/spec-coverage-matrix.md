@@ -73,7 +73,7 @@ The command fails if a file cannot be mapped to an existing spec.
 
 ## Audited Coverage
 
-- The **892** audited TypeScript/TSX files have a mapping rule to an existing
+- The **903** audited TypeScript/TSX files have a mapping rule to an existing
   spec.
 - All bounded contexts under `packages/` and all API route families are
   covered.
@@ -82,6 +82,8 @@ The command fails if a file cannot be mapped to an existing spec.
   acceptance criteria, and required component documentation.
 
 ## Review Gate
+
+Refinamiento local rutinas/observabilidad/tema automático: `scene-lifecycle-v1` AC6 y `automation-rules-engine-v1` AC6 cubren concesiones explícitas read/run/favorite y administración exclusiva del creador. Migración 034 aditiva requiere backup antes de MiniPC. `assistant-v1` cubre zona horaria del sistema y evidencia de cuatro días locales para hábitos; `operator-console-v1` y `observability-diagnostics-v1` cubren densidad, skeletons propios y filtros recientes por nombre. Componentes reutilizables documentados en `docs/components/RoutineSharingField.md` y `EventFilters.md`. Pruebas: SceneRoutes.sharing, SQLiteAutomationRuleRepository.sharing, BehaviorAnalysisService, AutomationEngine, eventFiltering, automaticTheme y escenarios responsive focalizados de filtros/editores.
 
 Refinamiento local Sensor/Espacios: `dashboard-layout-and-widgets-v1` AC40 cubre tamaño medio fijo, ausencia de selector/resize, estancia no repetida y carcasa/skeleton compactos. `home-room-management` AC16 cubre grupos por tipo efectivo y orden alfabético interno. Evidencia: `sectionCardCatalog.test.ts`, `topologyDeviceControl.test.ts`, `TopologyDeviceTile.test.tsx` y escenarios responsive `Sensor width`, `Sensor clarity`, `Room devices` y geometría inicial del skeleton. Validación focalizada: 79/79 Jest y 17/17 responsive PASS.
 

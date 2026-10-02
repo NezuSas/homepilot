@@ -223,6 +223,7 @@ describe('Feature: scene execution result contracts', () => {
   const makeContainer = (result: { status: 'success' | 'partial'; actions: Array<{ status: 'success' | 'failed' }> }) => ({
     guards: { authGuard: { protect: jest.fn().mockResolvedValue(true) } },
     repositories: {
+      homeRepository: { findHomesByUserId: jest.fn().mockResolvedValue([{ id: 'home-1' }]) },
       sceneRepository: { findSceneById: jest.fn().mockResolvedValue(scene) },
       activityLogRepository: { saveActivity: jest.fn().mockResolvedValue(undefined) },
     },
@@ -273,6 +274,7 @@ describe('Feature: scene ownership and failed execution contracts', () => {
     const container = {
       guards: { authGuard: { protect: jest.fn().mockResolvedValue(true) } },
       repositories: {
+        homeRepository: { findHomesByUserId: jest.fn().mockResolvedValue([{ id: 'home-1' }]) },
         sceneRepository: { findSceneById: jest.fn().mockResolvedValue(scene) },
         activityLogRepository: { saveActivity: jest.fn().mockResolvedValue(undefined) },
       },
@@ -377,6 +379,7 @@ describe('Feature: scene route boundary contracts', () => {
       repositories: {
         sceneRepository: { findSceneById: jest.fn().mockResolvedValue(scene) },
         activityLogRepository: {
+          // Execution now verifies home access before dispatching.
           saveActivity: jest.fn()
             .mockResolvedValueOnce(undefined)
             .mockRejectedValueOnce(new Error('audit storage unavailable')),
@@ -384,6 +387,7 @@ describe('Feature: scene route boundary contracts', () => {
       },
       services: { sceneExecutionService: { execute: jest.fn().mockResolvedValue({ status: 'success', actions: [{ status: 'success' }] }) } },
     } as unknown as BootstrapContainer;
+    container.repositories.homeRepository = createContainer().repositories.homeRepository;
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
     const response = new MockResponse();
 

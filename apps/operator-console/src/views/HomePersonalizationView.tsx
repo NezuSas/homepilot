@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { ImagePlus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../components/ui/Button';
+import { SearchableSelectField } from '../components/ui/SearchableSelectField';
+import { useAppShellStore } from '../stores/useAppShellStore';
 import { HomeHeroImageSkeleton, HomePersonalizationSkeleton } from '../components/ui/ComponentSkeletons';
 import ConfirmModal from '../components/ConfirmModal';
 import { AlertBanner } from '../components/ui/AlertBanner';
@@ -28,6 +30,8 @@ function HeroImageThumbnail({ url, slot }: { url: string; slot: number }) {
 }
 
 export function HomePersonalizationView() {
+  const automaticTheme = useAppShellStore(state => state.automaticTheme);
+  const setAutomaticTheme = useAppShellStore(state => state.setAutomaticTheme);
   const { t } = useTranslation();
   const [settings, setSettings] = useState<HomePersonalization>(EMPTY_HOME_PERSONALIZATION);
   const [loading, setLoading] = useState(true);
@@ -134,6 +138,8 @@ export function HomePersonalizationView() {
     <SectionHeader level="view" icon={ImagePlus} title={t('home_personalization.title')} />
     {feedback && <AlertBanner variant={feedback.variant} message={feedback.message} />}
     {loading ? <HomePersonalizationSkeleton label={t('common.loading')} /> : <>
+      <SearchableSelectField label={t('home_personalization.theme_mode')} value={automaticTheme ? 'automatic' : 'manual'} onChange={value => setAutomaticTheme(value === 'automatic')}
+        options={[{ value: 'manual', label: t('home_personalization.theme_manual') }, { value: 'automatic', label: t('home_personalization.theme_automatic'), description: t('home_personalization.theme_schedule') }]} className="w-full sm:max-w-sm" />
       <Card className="flex flex-col gap-4 p-4">
         <h2 className="text-card-title font-semibold">{t('home_personalization.phrases')}</h2>
         <div className="grid gap-3 md:grid-cols-3">{PHRASE_KEYS.map((key) => <div key={key} className="flex min-w-0 flex-col gap-2">

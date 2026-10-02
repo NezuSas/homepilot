@@ -24,6 +24,7 @@ describe('Room Dashboard presenters (AC24, AC25)', () => {
     expect(html).toContain('aria-pressed="false"');
     expect(html).toContain('Lámpara');
     expect(html).not.toContain('Iluminación');
+    expect(html).not.toContain('>Apagado<');
   });
   it('shows momentary controls without toggle semantics', () => {
     const html = render(device({ type: 'sensor', semanticType: 'light', capabilities: [{ type: 'button', name: 'Button', commands: [{ name: 'press' }] }] }));

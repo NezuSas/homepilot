@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { Activity } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
-import { DateField } from './ui/DateField';
-import { SearchableSelectField } from './ui/SearchableSelectField';
+import { EventFilters, EMPTY_EVENT_FILTERS } from './EventFilters';
+import { eventNames, matchesEventName } from '../lib/eventFiltering';
+import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 
 interface DiagnosticEvent {
   occurredAt: string;
@@ -135,26 +136,25 @@ const actionKind = (event: DiagnosticEvent) => {
 
 export const DiagnosticsTimeline: React.FC<DiagnosticsTimelineProps> = ({ events, expandedIds, onToggleExpand }) => {
   const { t, i18n } = useTranslation();
-  const [date, setDate] = useState('');
-  const [action, setAction] = useState('all');
+  const [filters, setFilters] = useState(EMPTY_EVENT_FILTERS);
+  const { date, action } = filters;
+  const devices = useDeviceSnapshotStore(state => state.devices);
   const groups = groupEvents(Array.isArray(events) ? events : []).filter(group =>
     (!date || localDate(group.main.occurredAt) === date)
-    && (action === 'all' || actionKind(group.main) === action));
+    && (action === 'all' || actionKind(group.main) === action)
+    && matchesEventName(filters.name, [group.main, ...group.children].flatMap(event => eventNames(event.data, devices))));
 
   return (
     <div className="space-y-4 pt-4">
       <h3 className="text-micro font-black tracking-widest uppercase text-muted-foreground opacity-50">{t('diagnostics.timeline')}</h3>
-      <div className="grid gap-3 sm:grid-cols-2 sm:max-w-lg">
-        <DateField label={t('diagnostics.filters.date')} value={date} onChange={event => setDate(event.target.value)} />
-        <SearchableSelectField label={t('diagnostics.filters.action')} value={action} onChange={setAction} options={['all', 'scene', 'command', 'automation'].map(value => ({ value, label: t(`diagnostics.filters.${value}`) }))} />
-      </div>
+      <EventFilters value={filters} onChange={setFilters} />
       <p className="text-caption text-muted-foreground">{t('diagnostics.filters.recent_only')}</p>
       <div className="border border-border bg-card rounded-2xl overflow-hidden">
         <div className="divide-y divide-border/50 max-h-timeline overflow-y-auto custom-scrollbar">
           {groups.length === 0 ? (
             <div className="p-10 text-center flex flex-col items-center justify-center opacity-40">
               <Activity className="w-8 h-8 mb-4 text-muted-foreground" />
-              <p className="text-micro font-black uppercase tracking-widest">{t(date || action !== 'all' ? 'diagnostics.filters.no_matches' : 'diagnostics.no_events')}</p>
+              <p className="text-micro font-black uppercase tracking-widest">{t(date || filters.name || action !== 'all' ? 'diagnostics.filters.no_matches' : 'diagnostics.no_events')}</p>
             </div>
           ) : (
             groups.map(group => {

@@ -9,6 +9,7 @@ interface Room {
 }
 
 interface ScenesGroupProps<TScene extends SceneCardScene & { roomId: string | null }> {
+  canManage?: (scene: TScene) => boolean;
   title?: string;
   icon?: LucideIcon;
   iconClassName: string;
@@ -36,6 +37,7 @@ export const ScenesGroup = <TScene extends SceneCardScene & { roomId: string | n
   onToggleFavorite,
   onEdit,
   onDelete,
+  canManage,
 }: ScenesGroupProps<TScene>) => {
   if (scenes.length === 0) {
     return null;
@@ -55,6 +57,7 @@ export const ScenesGroup = <TScene extends SceneCardScene & { roomId: string | n
             <SceneCard
               key={scene.id}
               scene={scene}
+              canManage={canManage?.(scene)}
               roomName={room?.name || null}
               isFavorite={favorites.includes(scene.id)}
               isExecuting={executingId === scene.id}

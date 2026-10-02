@@ -9,6 +9,17 @@
 HomePilot ya tiene implementado y operando de manera validada todo su core backend local: Topología (homes, rooms), Dispositivos (discovery, inbox, asignación, ejecución de comandos, state sync), Reglas de Automatización V1 y Persistencia Durable con SQLite. Sin embargo, el sistema carece actualmente de cualquier interfaz visual (UI). Sin una UI, los desarrolladores, operadores técnicos y/o instaladores no pueden inspeccionar el estado en tiempo real del sistema, operar dispositivos directamente, examinar el log de auditorías ni habilitar/deshabilitar las automatizaciones sin usar llamadas a API o consultas SQL manuales.
 
 ## 2. Alcance (Scope)
+
+### Refinamiento local autorizado — operación, filtros y tema automático
+
+- Compactar Estado del Sistema, ejecuciones y usuarios con la paleta existente y skeletons propios; Estado del Sistema pertenece al grupo Sistema y enlaza a Diagnósticos.
+- Espacios omite etiquetas redundantes encendido/apagado en luces conocidas, conservando estado accesible, errores y estados desconocidos.
+- Editor de Escenas usa labels Nombre/Descripción, indicador menos para quitar seleccionados y grupos de estancia cerrados inicialmente.
+- Diagnósticos, Auditoría y Ejecuciones comparten filtros de fecha local, acción y nombre (coincidencia parcial, sin distinguir mayúsculas). Solo sobre registros cargados y nombres verificables; no se inventan asociaciones.
+- Auditoría permite scroll interno de JSON sin expansión lateral; identidad en dos líneas. Omitir «Auditoría Técnica V1», «Observabilidad Edge en tiempo real» y subtítulo organizacional de Usuarios. Conservar aviso modular de protección.
+- Asistente de instalación usa el contenedor de página estándar, sin fondo adicional.
+- Personalización de Inicio añade modo automático opcional, desactivado inicialmente: oscuro desde 18:30 inclusive hasta 06:00 exclusiva; claro el resto, según hora local del navegador. Preferencia del terminal persistida junto al tema existente. Desactivado conserva selección manual; no modifica tema de otros terminales.
+- Validar límites horarios, interacción accesible, responsive móvil/tablet/kiosco/escritorio y skeletons; no Git, GitHub ni deploy.
 Definir una interfaz de usuario Web Local V1 orientada netamente a un **operador, instalador técnico o propósitos de debugging**. El alcance incluye:
 - **Vista de Homes / Rooms:** Navegación básica sobre la topología persistida.
 - **Vista de Devices:**

@@ -8,6 +8,10 @@
 HomePilot permite actualmente el control manual de dispositivos y la visualización de su estado. Sin embargo, para convertirse en un sistema de hogar inteligente real, necesita la capacidad de reaccionar de forma autónoma ante eventos del entorno sin intervención humana. El "Motor de Reglas V1" busca proveer una capa de automatización básica pero robusta, permitiendo encadenar el estado de un dispositivo (disparador) con la ejecución de un comando en otro (acción), manteniendo los principios de Zero-Trust y seguridad ya establecidos.
 
 ## 2. Alcance (Scope)
+
+### Acceso compartido local autorizado
+
+Automatizaciones privadas por defecto, con columna JSON aditiva `shared_user_ids` default `[]`. Solo el creador comparte con usuarios activos de la instalación, edita, elimina, habilita/deshabilita o revoca. Receptores pueden listar, ejecutar manualmente y marcar favoritas, sujetos a permisos existentes y pertenencia al hogar. El motor sigue ejecutando como creador; compartir no transfiere identidad ni permite usar escenas ajenas sin autorización. Backend y UI distinguen lectura/ejecución de administración. Sin exposición automática histórica ni migración de creadores. Backup antes de publicar y reversión mediante backup/versiones compatibles; pruebas de persistencia, revocación y aislamiento.
 *   **Modelo de Regla de Automatización**: Definir la entidad `AutomationRule` que vincula una condición sobre un dispositivo con una acción sobre otro.
 *   **Disparadores Basados en Estado**: Evaluación desacoplada basada en la observación de cambios de estado efectivos.
 *   **Acciones de Comando**: Ejecutar comandos (`turn_on`, `turn_off`, `toggle`) de forma automática, pasando por todas las validaciones de ownership y capacidades.
@@ -101,7 +105,7 @@ HomePilot permite actualmente el control manual de dispositivos y la visualizaci
 *   [x] **AC3: Gestión de Fallos de Acción**: Si una regla intenta ejecutar un comando no soportado, el sistema debe registrar un registro de tipo `AUTOMATION_FAILED` en el `ActivityLog` del dispositivo objetivo.
 *   [x] **AC4: Protección Zero-Trust**: Un usuario intenta borrar o crear una regla en un hogar que no le pertenece y recibe un `403 Forbidden`.
 *   [x] **AC5: Prevención de Auto-Bucle**: El sistema rechaza la creación de una regla que use el mismo dispositivo para trigger y action sobre la misma clave de estado.
-*   [x] **AC6: Privacidad por creador**: Dos usuarios del mismo hogar solo listan, marcan como favoritas y administran sus propias automatizaciones. Conocer el ID de una regla ajena no permite editarla, habilitarla, deshabilitarla, eliminarla ni ejecutarla manualmente; el motor conserva la ejecución automática con la identidad persistida de su creador.
+*   [x] **AC6: Privacidad y concesión explícita**: Privadas por defecto; solo el creador administra, edita, habilita/deshabilita y elimina. Un receptor autorizado del mismo hogar puede listar, ejecutar y marcar favorita. Conocer un ID no concede acceso. Revocar impide operaciones futuras. El motor conserva la identidad persistida del creador y comprueba acceso a escenas antes de ejecutar; no borra escenas compartidas ajenas al finalizar temporizadores.
 
 ## Evidencia verificada
 

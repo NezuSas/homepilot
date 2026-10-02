@@ -36,6 +36,7 @@ export interface AssistantAssembly {
 
 export interface AssistantModuleDeps {
   dbPath: string;
+  getSystemTimezone?: () => Promise<string>;
   deviceRepository: SQLiteDeviceRepository;
   roomRepository: SQLiteRoomRepository;
   automationRuleRepository: SQLiteAutomationRuleRepository;
@@ -74,7 +75,7 @@ export function buildAssistantModule(deps: AssistantModuleDeps): AssistantAssemb
     roomRepository
   );
 
-  const behaviorService = new BehaviorAnalysisService(activityLogRepository, deviceRepository, contextAnalysisService);
+  const behaviorService = new BehaviorAnalysisService(activityLogRepository, deviceRepository, contextAnalysisService, deps.getSystemTimezone);
   const energyAnalysisService = new EnergyAnalysisService(activityLogRepository, deviceRepository, contextAnalysisService);
   
   const assistantDetectionService = new AssistantDetectionService(

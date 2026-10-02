@@ -1,5 +1,11 @@
 # Tareas Técnicas: Motor de Reglas de Automatización V1 (Automation Rules Engine V1)
 
+## Extensión local de accesos compartidos
+
+- [x] Persistir sharedUserIds con default privado; creador administra y receptores solo consultan/ejecutan/favoritas.
+- [x] El motor verifica acceso de su creador a la escena en cada ejecución; revocación impide ejecución. Un temporizador no elimina escenas compartidas ajenas.
+- [ ] Backup y comprobación de migración aditiva 034 en MiniPC antes de publicar; no deploy en esta tarea.
+
 Este documento detalla el desglose de tareas para implementar la funcionalidad de automatización básica en HomePilot, siguiendo la arquitectura modular y los principios de diseño establecidos.
 
 ## Fase 1: Capa de Dominio (Domain)

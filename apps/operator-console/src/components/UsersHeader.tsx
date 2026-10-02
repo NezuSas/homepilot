@@ -10,12 +10,11 @@ interface UsersHeaderProps {
   onAdd: () => void;
 }
 
-export const UsersHeader: React.FC<UsersHeaderProps> = ({ title, subtitle, addLabel, onAdd }) => (
+export const UsersHeader: React.FC<UsersHeaderProps> = ({ title, addLabel, onAdd }) => (
   <SectionHeader
     level="view"
     icon={Users}
     title={title}
-    subtitle={subtitle}
     action={
       <Button onClick={onAdd} size="sm" className="gap-2">
         <Plus className="w-4 h-4" />

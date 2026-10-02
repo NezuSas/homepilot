@@ -34,6 +34,7 @@ export interface SceneCardScene {
 }
 
 interface SceneCardProps {
+  canManage?: boolean;
   scene: SceneCardScene;
   roomName: string | null;
   isFavorite: boolean;
@@ -66,6 +67,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({
   onToggleFavorite,
   onEdit,
   onDelete,
+  canManage = true,
 }) => {
   const { t } = useTranslation();
   const titleId = useId();
@@ -117,21 +119,21 @@ export const SceneCard: React.FC<SceneCardProps> = ({
           {!isExecuting && (isSuccessful ? <Check aria-hidden="true" className="size-4 shrink-0" /> : <Play aria-hidden="true" className="size-4 shrink-0" />)}
           <span role="status" aria-live="polite">{t(isSuccessful ? 'scenes.executed' : 'scenes.execute')}</span>
         </Button>
-        <IconButton
+        {canManage && <IconButton
           icon={Edit2}
           label={t('common.edit')}
           onClick={(event) => onEdit(scene, event)}
           variant="default"
           size="lg"
-        />
-        <IconButton
+        />}
+        {canManage && <IconButton
           icon={Trash2}
           label={t('common.delete')}
           onClick={(event) => onDelete(scene.id, event)}
           variant="ghost"
           size="lg"
           className="hover:text-danger"
-        />
+        />}
       </div>
     </article>
   );

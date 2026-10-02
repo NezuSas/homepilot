@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Activity, CheckCircle2, Home, Router, Workflow } from 'lucide-react';
 import { API_BASE_URL } from '../config';
@@ -83,7 +84,7 @@ export const ResilienceShowcaseView: React.FC = () => {
 
       <section aria-label={t('system_status.summary_label')} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map(({ icon: Icon, label, value, description, tone }) => (
-          <Card key={label} className="flex min-h-40 flex-col gap-5 p-5">
+          <Card key={label} className="flex flex-col gap-3 p-3">
             <div className="flex items-start justify-between gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted text-muted-foreground"><Icon className="h-5 w-5" aria-hidden="true" /></span>
               <StatusPill variant={tone}>{value}</StatusPill>
@@ -99,6 +100,7 @@ export const ResilienceShowcaseView: React.FC = () => {
       <Card className="p-5 sm:p-6">
         <h2 className="text-section-title font-semibold tracking-tight text-foreground">{t('system_status.privacy_title')}</h2>
         <p className="mt-2 max-w-3xl text-caption leading-relaxed text-muted-foreground">{t('system_status.privacy_description')}</p>
+        <Link to="/system/diagnostics" className="mt-2 inline-flex min-h-11 items-center text-caption font-medium text-primary underline underline-offset-4">{t('nav.system_diagnostics')}</Link>
       </Card>
     </div>
   );

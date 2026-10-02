@@ -13,6 +13,11 @@ function activity(deviceId: string | null, timestamp: string, description = 'Tur
 }
 
 describe('BehaviorAnalysisService', () => {
+  it('does not recommend a habit inferred solely from automatic commands', async () => {
+    const logs = [10, 11, 12, 13].map(day => ({ ...activity('light-1', `2026-08-${day}T00:05:00Z`), data: { ruleId: 'automatic-rule' } }));
+    const { service } = createService(logs, [device({ id: 'light-1' })]);
+    expect((await service.analyzeProactively('home-1')).filter(finding => finding.type === 'habit')).toEqual([]);
+  });
   beforeEach(() => jest.useFakeTimers().setSystemTime(new Date('2026-08-17T12:00:00.000Z')));
   afterEach(() => jest.useRealTimers());
 
@@ -42,7 +47,7 @@ describe('BehaviorAnalysisService', () => {
 
     const findings = await service.analyzeProactively('home-1');
 
-    expect(activityLogRepository.findAllByTypes).toHaveBeenCalledWith(['COMMAND_DISPATCHED', 'STATE_CHANGED'], expect.any(String));
+    expect(activityLogRepository.findAllByTypes).toHaveBeenCalledWith(['COMMAND_DISPATCHED'], expect.any(String));
     expect(findings).toContainEqual(expect.objectContaining({
       type: 'habit', deviceId: 'light-1', deviceName: 'Hall light', reasonKey: 'repeated_control_time', confidence: 0.85,
       metadata: expect.objectContaining({ occurrences: 4, days: 4, action: 'Turned on' }),
@@ -95,5 +100,21 @@ describe('BehaviorAnalysisService', () => {
     expect(findings.filter((item) => item.type === 'low_usage')).toEqual([
       expect.objectContaining({ deviceId: 'inactive', reasonKey: 'no_activity_long_term', metadata: { daysInactive: 21, lastActive: '2026-07-20T12:00:00.000Z' } }),
     ]);
+  });
+
+  it('uses the configured home timezone rather than UTC midnight and ignores background synchronizations', async () => {
+    const logs = [10, 11, 12, 13].map(day => activity('light-1', `2026-08-${day}T00:05:00.000Z`));
+    logs.push({ ...activity('light-1', 'invalid'), type: 'STATE_CHANGED' });
+    const { activityLogRepository, deviceRepository } = createService(logs, [device({ id: 'light-1' })]);
+    const service = new BehaviorAnalysisService(activityLogRepository as never, deviceRepository as never, {} as never, async () => 'America/Guayaquil');
+    const habits = (await service.analyzeProactively('home-1')).filter(finding => finding.type === 'habit');
+    expect(habits).toHaveLength(1);
+    expect(habits[0]?.metadata).toMatchObject({ timeWindow: '19:00', timezone: 'America/Guayaquil', days: 4 });
+    expect((await service.analyzeProactively('other-home')).filter(finding => finding.type === 'habit')).toEqual([]);
+  });
+  it('does not treat a burst on one day as a four-day habit', async () => {
+    const logs = [...Array.from({ length: 10 }, () => activity('light-1', '2026-08-10T19:05:00.000Z')), ...[11, 12, 13].map(day => activity('light-1', `2026-08-${day}T10:05:00.000Z`))];
+    const { service } = createService(logs, [device({ id: 'light-1' })]);
+    expect((await service.analyzeProactively('home-1')).filter(finding => finding.type === 'habit')).toEqual([]);
   });
 });

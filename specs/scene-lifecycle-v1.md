@@ -11,6 +11,12 @@ Una escena debe encapsular un conjunto nombrado de acciones sobre dispositivos p
 
 ## 2. Alcance
 
+### Acceso compartido local autorizado
+
+Escenas nuevas e históricas siguen privadas por defecto. El creador puede seleccionar varios usuarios activos de esta instalación para lectura, ejecución y favoritos; solo el creador administra, elimina y cambia accesos. Revocar acceso impide operaciones futuras y oculta favoritos inaccesibles. Se valida pertenencia al hogar y autorización en backend, no solo en UI. Compartir no transfiere ownership ni autoriza editar dispositivos. La ejecución automática continúa bajo identidad del creador.
+
+Persistencia aditiva autorizada: columna JSON `shared_user_ids` con default `[]`, sin reescribir ownership ni acciones. Registros sin creador no se comparten automáticamente. Backup SQLite antes de publicar; reversión recomendada restaurando backup y versión compatible. Pruebas: aislamiento, compartir/revocar, ejecución/favoritos y rechazo de mutaciones por receptor.
+
 - Crear, consultar, editar, eliminar y ejecutar escenas locales.
 - Definir acciones por dispositivo usando las capacidades que HomePilot conoce.
 - Marcar escenas favoritas para su uso en Inicio y exponerlas a automatizaciones y al asistente.
@@ -30,7 +36,7 @@ Una escena debe encapsular un conjunto nombrado de acciones sobre dispositivos p
 - **REQ-03:** Cada acción debe validarse contra las capacidades del dispositivo antes de persistirse o ejecutarse.
 - **REQ-04:** La ejecución debe devolver un resultado por acción y registrar el evento con actor, origen y marca de tiempo.
 - **REQ-05:** La UI debe conservar el estado anterior durante refrescos y actualizar estados de dispositivos por eventos en tiempo real.
-- **REQ-06:** Cada escena nueva pertenece al usuario autenticado que la crea, aunque todos compartan el mismo hogar local. Listado, favoritos, consulta indirecta, edición, eliminación y ejecución manual solo admiten escenas propias; una escena sin creador registrado no se atribuye automáticamente a nadie ni se expone.
+- **REQ-06:** Cada escena nueva pertenece al usuario autenticado que la crea y es privada por defecto. Solo su creador la edita/elimina/administra. Una concesión explícita permite al receptor del mismo hogar listar, ejecutar y marcar favorita; no transfiere ownership. Una escena sin creador no se atribuye automáticamente ni se expone. El asistente mantiene sus permisos restringidos actuales.
 
 ## 5. Requisitos No Funcionales
 
@@ -45,7 +51,7 @@ Una escena debe encapsular un conjunto nombrado de acciones sobre dispositivos p
 - [x] AC3: Ejecutar una escena registra ejecución y sincroniza el estado visible de los dispositivos.
 - [x] AC4: Eliminar una escena impide que aparezca en favoritos, automatizaciones y selectores.
 - [x] AC5: Un usuario no autorizado no puede administrar escenas ajenas.
-- [x] AC6: Dos usuarios del mismo hogar ven y pueden marcar como favoritas únicamente sus propias escenas. Conocer el ID de una escena ajena no permite modificarla, eliminarla ni ejecutarla mediante API o asistente. Las escenas sin creador histórico permanecen inaccesibles, sin migración automática.
+- [x] AC6: Dos usuarios del mismo hogar permanecen aislados salvo concesión explícita de lectura/ejecución/favoritos. Conocer un ID ajeno no concede acceso. El receptor nunca modifica/elimina/administra; revocar impide futuras ejecuciones/favoritos. El asistente mantiene aislamiento por creador. Las escenas sin creador histórico permanecen inaccesibles, sin atribución automática.
 
 ## 7. Notas Técnicas y Arquitectura
 

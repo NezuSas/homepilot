@@ -13,6 +13,8 @@ import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import { humanize } from '../lib/naming-utils';
+import { EventFilters, EMPTY_EVENT_FILTERS } from '../components/EventFilters';
+import { eventNames, matchesEventName, eventAction, localEventDate } from '../lib/eventFiltering';
 
 /**
  * Registro de actividad atómico para la UI.
@@ -23,6 +25,7 @@ interface ActivityRecord {
   type: string;
   description: string;
   data: Record<string, unknown>;
+  correlationId?: string;
 }
 
 interface DisplayActivityRecord extends ActivityRecord {
@@ -71,6 +74,7 @@ export const AuditLogsView: React.FC = () => {
   const initialLoading = useInitialLoading(!initialSettled || loading);
   const [error, setError] = useState<string | null>(null);
   const devices = useDeviceSnapshotStore((state) => state.devices);
+  const [filters, setFilters] = useState(EMPTY_EVENT_FILTERS);
   const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
 
   const fetchLogs = useCallback(async () => {
@@ -99,7 +103,11 @@ export const AuditLogsView: React.FC = () => {
     return device ? humanize(device.id, device.name) : t('common.unknown');
   };
 
-  const displayLogs = useMemo(() => summarizeRepetitiveSyncs(logs), [logs]);
+  const displayLogs = useMemo(() => summarizeRepetitiveSyncs(logs.filter(log =>
+    (!filters.date || localEventDate(log.timestamp) === filters.date)
+    && (filters.action === 'all' || eventAction(log.type, log.data) === filters.action)
+    && matchesEventName(filters.name, logs.filter(candidate => candidate === log || (log.correlationId && candidate.correlationId === log.correlationId))
+      .flatMap(candidate => eventNames({ ...candidate, data: candidate.data }, devices))))), [logs, filters, devices]);
 
   if (initialLoading) {
     return <AuditLogsSkeleton label={t('audit_logs.loading')} />;
@@ -144,7 +152,6 @@ export const AuditLogsView: React.FC = () => {
         level="view"
         icon={ShieldAlert}
         title={t('nav.system_audit')}
-        subtitle={t('audit_logs.v1_title')}
         action={
           <Button variant="secondary" size="sm" onClick={fetchLogs} className="gap-2">
             <RefreshCw className="h-4 w-4" />
@@ -153,7 +160,10 @@ export const AuditLogsView: React.FC = () => {
         }
       />
 
-      <div className="grid gap-3">
+      <EventFilters value={filters} onChange={setFilters} />
+      <p className="text-caption text-muted-foreground">{t('diagnostics.filters.recent_only')}</p>
+      {!displayLogs.length && <p role="status" className="text-caption text-muted-foreground">{t('diagnostics.filters.no_matches')}</p>}
+      <div className="grid min-w-0 gap-3">
         {displayLogs.map((log, i) => (
           <div key={`${log.timestamp}-${i}`} className="group flex flex-col md:flex-row border border-border/50 bg-card hover:border-primary/30 transition-all rounded-2xl overflow-hidden shadow-sm">
             {/* Metadata Col */}
@@ -172,10 +182,10 @@ export const AuditLogsView: React.FC = () => {
             </div>
 
             {/* Content Col */}
-            <div className="flex-1 p-5 flex flex-col justify-center gap-4">
+            <div className="min-w-0 flex-1 p-3 flex flex-col justify-center gap-3">
                <div className="flex items-center gap-3">
-                  <Zap className="w-4 h-4 text-primary opacity-40" />
-                  <p className="text-body font-bold tracking-tight text-foreground/90">
+                  <Zap className="w-4 h-4 shrink-0 text-primary opacity-40" />
+                  <p className="min-w-0 break-words text-body font-bold tracking-tight text-foreground/90">
                     {log.occurrences > 1
                       ? t('audit_logs.messages.REPETITIVE_SYNC_SUMMARY', {
                         count: log.occurrences,
@@ -252,10 +262,9 @@ export const AuditLogsView: React.FC = () => {
                     </span>
                   )}
                   {log.deviceId && (
-                    <div className="flex items-center gap-2 px-3 py-1 bg-muted/40 rounded-xl border border-border/40">
-                       <span className="text-micro font-black text-muted-foreground uppercase">{t('audit_logs.device_label')}</span>
-                       <span className="text-label font-bold text-foreground/80">{getDeviceName(log.deviceId)}</span>
-                       <span className="text-micro font-mono text-muted-foreground/60">{log.deviceId}</span>
+                    <div className="flex min-w-0 flex-col gap-1 px-3 py-2 bg-muted/40 rounded-xl border border-border/40">
+                       <span className="break-words text-label font-medium text-foreground/80">{getDeviceName(log.deviceId)}</span>
+                       <span className="break-all text-micro font-mono text-muted-foreground">{log.deviceId}</span>
                     </div>
                   )}
                </div>
@@ -263,13 +272,13 @@ export const AuditLogsView: React.FC = () => {
 
             {/* Data Preview */}
             {log.data && Object.keys(log.data).length > 0 && (
-              <div className="p-5 md:w-80 bg-muted/5 flex items-center">
-                 <details className="w-full cursor-pointer group/data">
+              <div className="min-w-0 p-3 md:w-64 md:shrink-0 bg-muted/5 flex items-center">
+                 <details className="min-w-0 w-full cursor-pointer group/data">
                     <summary className="text-micro font-black text-muted-foreground/60 uppercase tracking-widest list-none flex items-center gap-2 group-hover/data:text-primary transition-colors">
                        <div className="w-1.5 h-1.5 bg-primary/40 rounded-full" />
                        {t('audit_logs.payload_button')}
                     </summary>
-                    <pre className="mt-3 p-3 bg-background border rounded-xl text-micro font-mono text-foreground/80 overflow-x-auto shadow-inner max-h-32">
+                    <pre className="mt-3 w-full max-w-full resize-none p-3 bg-background border rounded-xl text-micro font-mono text-foreground/80 overflow-auto max-h-32">
                        {JSON.stringify(log.data, null, 2)}
                     </pre>
                  </details>

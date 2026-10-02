@@ -5,6 +5,7 @@
  * su conexión con el SyncManager (HA) y EventBus (Local), y el timer del latido base.
  */
 import { randomUUID } from 'crypto';
+import { canAccessRoutine } from '../../packages/devices/domain/routineAccess';
 import { AutomationEngine } from '../../packages/automation/application/AutomationEngine';
 import { SceneExecutionService } from '../../packages/devices/application/SceneExecutionService';
 import type { DeviceStateUpdatedPayload } from '../../packages/devices/domain/events/types';
@@ -94,7 +95,7 @@ export function buildAutomationModule(deps: AutomationModuleDeps): AutomationMod
       executeScene: async (homeId: string, sceneId: string, correlationId: string, ruleId: string) => {
         const rule = await automationRuleRepository.findById(ruleId);
         const scene = await sceneRepository.findSceneById(sceneId);
-        if (!rule || !scene || rule.homeId !== homeId || scene.homeId !== homeId || scene.userId !== rule.userId) {
+        if (!rule || !scene || rule.homeId !== homeId || scene.homeId !== homeId || !canAccessRoutine(scene, rule.userId)) {
           throw new Error('Scene is not accessible to this automation');
         }
 

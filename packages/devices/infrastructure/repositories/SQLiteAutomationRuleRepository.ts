@@ -12,6 +12,7 @@ interface AutomationRuleRow {
   id: string;
   home_id: string;
   user_id: string;
+  shared_user_ids: string;
   name: string;
   icon: string | null;
   enabled: number; // 0 o 1
@@ -45,8 +46,8 @@ export class SQLiteAutomationRuleRepository implements AutomationRuleRepository 
 
     const stmt = this.db.prepare(`
       INSERT INTO automation_rules (
-        id, home_id, user_id, name, icon, enabled, trigger, action, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'NOW'))
+        id, home_id, user_id, name, icon, enabled, trigger, action, shared_user_ids, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'NOW'))
       ON CONFLICT(id) DO UPDATE SET
         home_id = excluded.home_id,
         user_id = excluded.user_id,
@@ -55,6 +56,7 @@ export class SQLiteAutomationRuleRepository implements AutomationRuleRepository 
         enabled = excluded.enabled,
         trigger = excluded.trigger,
         action = excluded.action,
+        shared_user_ids = excluded.shared_user_ids,
         updated_at = STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'NOW')
     `);
 
@@ -66,7 +68,8 @@ export class SQLiteAutomationRuleRepository implements AutomationRuleRepository 
       rule.icon ?? null,
       isEnabled,
       serializedTrigger,
-      serializedAction
+      serializedAction,
+      JSON.stringify(rule.sharedUserIds ?? [])
     );
   }
 
@@ -132,6 +135,7 @@ export class SQLiteAutomationRuleRepository implements AutomationRuleRepository 
       id: row.id,
       homeId: row.home_id,
       userId: row.user_id,
+      sharedUserIds: JSON.parse(row.shared_user_ids ?? '[]') as string[],
       name: row.name,
       ...(row.icon ? { icon: row.icon } : {}),
       enabled: row.enabled === 1,

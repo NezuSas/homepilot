@@ -8,6 +8,8 @@ El sistema HomePilot es funcional y resiliente, pero carece de una capa explíci
 
 ## 2. Objetivo
 
+Refinamiento autorizado: filtros modulares alineados de fecha local, tipo de acción y nombre en timeline, auditoría e historial de ejecución. Coincidencia parcial por nombre de entidad/recurso disponible en el registro o catálogo cargado; incluir hijos correlacionados y acciones de una ejecución cuando contienen dispositivo conocido. No buscar IDs como sustituto de nombre ni prometer historial no cargado. JSON mantiene ancho del contenedor y scroll interno.
+
 Proveer una primera capa real de observabilidad y diagnóstico local mediante:
 1. Un modelo de salud del sistema derivado de reglas explícitas.
 2. Un snapshot de diagnóstico consolidado en un endpoint REST.

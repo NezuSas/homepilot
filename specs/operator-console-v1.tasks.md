@@ -1,5 +1,17 @@
 # TASK BREAKDOWN: HomePilot Operator Console V1
 
+## Refinamiento local autorizado: rutinas, observabilidad y tema automático
+
+- [x] Edición de Escena: Nombre/Descripción, señal de quitar entidades y grupos disponibles cerrados; acceso compartido por usuarios activos mediante campo modular reutilizado en Automatizaciones.
+- [x] Receptor: ejecutar/favorita sin controles de administración. Creador conserva permisos y puede revocar.
+- [x] Quitar On/Off visual redundante en luces de Espacios, preservando nombre accesible y estados desconocidos.
+- [x] Estado del sistema compacto dentro de Sistema, con enlace a Diagnósticos.
+- [x] Filtros modulares fecha/acción/nombre parcial sobre registros recientes en Diagnósticos, Auditoría e Historial; JSON acotado y desplazable.
+- [x] Compactar Historial y Usuarios; nota de protección reutiliza AlertBanner; skeletons propios adaptados.
+- [x] Instalación sin fondo exterior redundante; modo automático opcional local del terminal (oscuro 18:30–06:00), manual por defecto.
+- [x] Completar evidencia focalizada y revisión responsive antes de recomendar entrega. No ejecutar Git, GitHub, Docker ni deploy.
+- Evidencia local del refinamiento: 190/190 tests Jest en 23 suites; 50 escenarios responsive focalizados únicos PASS, incluida confirmación final de 17/17 y Usuarios/Acceso de 3/3. Typecheck, lint de Operator Console, builds raíz/consola, spec coverage, BDD, cobertura modular, i18n, arquitectura, ausencia de `any`, política Tuya y perfiles Docker (control estático, sin iniciar Docker) PASS. Capturas de Auditoría/Historial móvil y tablet y Usuarios móvil/tablet/escritorio revisadas directamente. Detector de layout de EventFilters, RoutineSharingField y ExecutionCard sin hallazgos. Sin suite Jest completa ni responsive completo; sin certificación física de tablet/Safari. Migración 034 validada en SQLite temporal, no aplicada a datos reales; respaldar MiniPC antes de aplicarla.
+
 ## UI-Compact-60 — Uso operativo por estancia y listas compactas (AC60)
 - AC60: Descubrimiento conserva dispositivos sin estancia y Asistente sus alertas de asignación. Selectores operativos y recomendaciones de uso requieren estancia válida. Inicio muestra hasta cinco recomendaciones reales, Asistente filas compactas y Energía lecturas asignadas agrupadas. Skeletons específicos, sin borrar datos ni vínculos históricos ni modificar API/ejecución.
 - Excluir dispositivos sin estancia válida de selectores operativos y sugerencias de uso; conservar Descubrimiento y alertas de asignación.

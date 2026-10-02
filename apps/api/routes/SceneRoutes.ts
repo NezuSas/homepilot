@@ -4,11 +4,20 @@ import { BootstrapContainer } from '../../../bootstrap';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { Scene } from '../../../packages/devices/domain/Scene';
+import { canAccessRoutine, parseRoutineSharedUsers } from '../../../packages/devices/domain/routineAccess';
 
 /**
  * Scene routes: /api/v1/scenes/*
  */
 export class SceneRoutes extends ApiRoutes {
+  private async validateSharedUsers(raw: unknown, ownerId: string, container: BootstrapContainer): Promise<string[]> {
+    const ids = parseRoutineSharedUsers(raw).filter(id => id !== ownerId);
+    for (const id of ids) {
+      const user = await container.repositories.userRepository.findById(id);
+      if (!user?.isActive) throw new Error('INVALID_SHARED_USERS');
+    }
+    return ids;
+  }
   async handle(
     req: HomePilotRequest,
     res: http.ServerResponse,
@@ -21,7 +30,18 @@ export class SceneRoutes extends ApiRoutes {
     const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return true;
 
-    // Favorites are a per-user preference over scenes owned by that same user.
+    if (method === 'GET' && pathname === '/api/v1/scenes/share-users') {
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
+      try {
+        const users = await container.repositories.userRepository.findAll();
+        this.sendJson(res, users.filter(user => user.isActive && user.id !== req.user!.id).map(user => ({ id: user.id, name: user.displayName || user.username })));
+      } catch {
+        this.sendError(res, 500, 'SHARING_DIRECTORY_ERROR', 'Sharing directory unavailable');
+      }
+      return true;
+    }
+
+    // Favorites are a per-user preference over owned or explicitly shared scenes.
     if (pathname === '/api/v1/scenes/favorites' && (method === 'GET' || method === 'PUT')) {
       try {
         const key = 'pref:scene-favorites';
@@ -34,7 +54,7 @@ export class SceneRoutes extends ApiRoutes {
         if (method === 'GET') {
           const accessible = await Promise.all(ids.map(async (id) => {
             const scene = await container.repositories.sceneRepository.findSceneById(id);
-            return scene?.userId === req.user!.id && homeIds.has(scene.homeId) ? id : null;
+            return scene && canAccessRoutine(scene, req.user!.id) && homeIds.has(scene.homeId) ? id : null;
           }));
           return this.sendJson(res, {
             sceneIds: accessible.filter((id): id is string => id !== null),
@@ -48,7 +68,7 @@ export class SceneRoutes extends ApiRoutes {
         const nextIds = payload.sceneIds as string[];
         for (const id of nextIds) {
           const scene = await container.repositories.sceneRepository.findSceneById(id);
-          if (!scene || scene.userId !== req.user!.id || !homeIds.has(scene.homeId)) {
+          if (!scene || !canAccessRoutine(scene, req.user!.id) || !homeIds.has(scene.homeId)) {
             return this.sendError(res, 403, 'FORBIDDEN', 'Scene is not accessible'), true;
           }
         }
@@ -77,7 +97,7 @@ export class SceneRoutes extends ApiRoutes {
         if (!homeId) return this.sendJson(res, []), true;
 
         const scenes = await container.repositories.sceneRepository.findScenesByHomeId(homeId);
-        this.sendJson(res, scenes.filter((scene) => scene.userId === req.user!.id));
+        this.sendJson(res, scenes.filter((scene) => canAccessRoutine(scene, req.user!.id)));
       } catch (error: unknown) {
         this.sendError(res, 500, 'DB_ERROR', error instanceof Error ? error.message : 'Unknown error');
       }
@@ -90,6 +110,8 @@ export class SceneRoutes extends ApiRoutes {
       try {
         const payload = await this.parseBody<{
           name?: string;
+          description?: string;
+          sharedUserIds?: unknown;
           icon?: string;
           homeId?: string;
           roomId?: string | null;
@@ -120,6 +142,8 @@ export class SceneRoutes extends ApiRoutes {
           userId: req.user!.id,
           roomId: payload.roomId ?? null,
           name: payload.name,
+          description: typeof payload.description === 'string' ? payload.description : undefined,
+          sharedUserIds: await this.validateSharedUsers(payload.sharedUserIds, req.user!.id, container),
           ...(payload.icon !== undefined ? { icon: payload.icon } : {}),
           actions: payload.actions as Scene['actions'],
           ...(payload.executionMode !== undefined ? { executionMode: payload.executionMode } : {}),
@@ -129,7 +153,7 @@ export class SceneRoutes extends ApiRoutes {
         await container.repositories.sceneRepository.saveScene(newScene);
         this.sendJson(res, newScene, 201);
       } catch (error: unknown) {
-        this.sendError(res, 500, 'SCENE_CREATE_ERROR', error instanceof Error ? error.message : 'Unknown error');
+        this.sendError(res, error instanceof Error && error.message === 'INVALID_SHARED_USERS' ? 400 : 500, 'SCENE_CREATE_ERROR', error instanceof Error ? error.message : 'Unknown error');
       }
       return true;
     }
@@ -145,6 +169,8 @@ export class SceneRoutes extends ApiRoutes {
 
         const payload = await this.parseBody<{
           name?: string;
+          description?: string;
+          sharedUserIds?: unknown;
           icon?: string;
           roomId?: string | null;
           actions?: Scene['actions'];
@@ -157,6 +183,8 @@ export class SceneRoutes extends ApiRoutes {
         const updated: Scene = {
           ...scene,
           name: payload.name ?? scene.name,
+          description: typeof payload.description === 'string' ? payload.description : scene.description,
+          sharedUserIds: payload.sharedUserIds === undefined ? scene.sharedUserIds : await this.validateSharedUsers(payload.sharedUserIds, req.user!.id, container),
           icon: payload.icon ?? scene.icon,
           actions: payload.actions ?? scene.actions,
           roomId: payload.roomId !== undefined ? payload.roomId : scene.roomId,
@@ -168,7 +196,7 @@ export class SceneRoutes extends ApiRoutes {
         await container.repositories.sceneRepository.saveScene(updated);
         this.sendJson(res, updated);
       } catch (error: unknown) {
-        this.sendError(res, 500, 'SCENE_UPDATE_ERROR', error instanceof Error ? error.message : 'Unknown error');
+        this.sendError(res, error instanceof Error && error.message === 'INVALID_SHARED_USERS' ? 400 : 500, 'SCENE_UPDATE_ERROR', error instanceof Error ? error.message : 'Unknown error');
       }
       return true;
     }
@@ -194,7 +222,9 @@ export class SceneRoutes extends ApiRoutes {
       try {
         const sceneId = executeSceneMatch[1];
         const scene = await container.repositories.sceneRepository.findSceneById(sceneId);
-        if (!scene || scene.userId !== req.user!.id) return this.sendError(res, 404, 'NOT_FOUND', 'Scene not found'), true;
+        if (!scene || !canAccessRoutine(scene, req.user!.id)) return this.sendError(res, 404, 'NOT_FOUND', 'Scene not found'), true;
+        const homes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
+        if (!homes.some(home => home.id === scene.homeId)) return this.sendError(res, 403, 'FORBIDDEN', 'Home is not accessible'), true;
 
         if (scene.actions.length === 0) {
           return this.sendJson(res, {

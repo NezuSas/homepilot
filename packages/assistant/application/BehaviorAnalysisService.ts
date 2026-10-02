@@ -16,14 +16,15 @@ export class BehaviorAnalysisService {
   constructor(
     private readonly activityLogRepository: ActivityLogRepository,
     private readonly deviceRepository: DeviceRepository,
-    private readonly contextService: ContextAnalysisService
+    private readonly contextService: ContextAnalysisService,
+    private readonly getTimezone: () => Promise<string> = async () => Intl.DateTimeFormat().resolvedOptions().timeZone
   ) {}
 
   public async analyzeProactively(homeId: string): Promise<BehaviorFinding[]> {
     const findings: BehaviorFinding[] = [];
     
-    // 1. Detect Habits (3+ days, same time window)
-    const habitFindings = await this.detectHabits();
+    // 1. Detect Habits (4+ local days, same time window)
+    const habitFindings = await this.detectHabits(homeId);
     findings.push(...habitFindings);
 
     // 2. Detect Energy Waste (> 8h usage without motion) - Tightened from 6h
@@ -37,14 +38,25 @@ export class BehaviorAnalysisService {
     return findings;
   }
 
-  private async detectHabits(): Promise<BehaviorFinding[]> {
+  private async detectHabits(homeId: string): Promise<BehaviorFinding[]> {
+    const timezone = await this.getTimezone();
+    const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+    const localParts = (timestamp: string) => {
+      const date = new Date(timestamp);
+      if (!Number.isFinite(date.getTime())) return null;
+      const parts = formatter.formatToParts(date);
+      const part = (type: string) => parts.find(item => item.type === type)?.value ?? '';
+      return { day: `${part('year')}-${part('month')}-${part('day')}`, minutes: Number(part('hour')) * 60 + Number(part('minute')) };
+    };
     const since = new Date();
     since.setDate(since.getDate() - 7);
-    const logs = await this.activityLogRepository.findAllByTypes(['COMMAND_DISPATCHED', 'STATE_CHANGED'], since.toISOString());
+    const logs = await this.activityLogRepository.findAllByTypes(['COMMAND_DISPATCHED'], since.toISOString());
 
     const deviceActions: Record<string, ActivityRecord[]> = {};
     for (const log of logs) {
-      if (!log.deviceId) continue;
+      if (!log.deviceId || log.type !== 'COMMAND_DISPATCHED' || !localParts(log.timestamp)) continue;
+      // Automatic executions are not evidence of a user's manual routine.
+      if (log.data?.ruleId || log.data?.automationId || log.data?.isAutomation === true || log.data?.sourceType === 'automation' || log.data?.source === 'automation') continue;
       const key = `${log.deviceId}:${log.description}`;
       if (!deviceActions[key]) deviceActions[key] = [];
       deviceActions[key].push(log);
@@ -55,23 +67,22 @@ export class BehaviorAnalysisService {
     for (const [key, actions] of Object.entries(deviceActions)) {
       const [deviceId] = key.split(':');
       const device = await this.deviceRepository.findDeviceById(deviceId);
-      if (!device) continue;
+      if (!device || device.homeId !== homeId || !device.roomId) continue;
 
       // Group by day to check if it occurs on 4+ distinct days (Tightened from 3)
-      const days = new Set(actions.map(a => a.timestamp.split('T')[0]));
+      const days = new Set(actions.map(a => localParts(a.timestamp)!.day));
       if (days.size < 4) continue;
 
       // Check for time alignment (+/- 30 mins)
-      const timeBuckets: Record<string, number> = {};
+      const timeBuckets: Record<string, Set<string>> = {};
       for (const action of actions) {
-        const date = new Date(action.timestamp);
-        const minutes = date.getHours() * 60 + date.getMinutes();
+        const { minutes, day } = localParts(action.timestamp)!;
         const bucket = Math.floor(minutes / 30);
-        timeBuckets[bucket] = (timeBuckets[bucket] || 0) + 1;
+        (timeBuckets[bucket] ??= new Set()).add(day);
       }
 
-      for (const [bucket, count] of Object.entries(timeBuckets)) {
-        if (count >= 3) {
+      for (const [bucket, bucketDays] of Object.entries(timeBuckets)) {
+        if (bucketDays.size >= 4) {
           const hour = Math.floor(Number(bucket) * 30 / 60);
           const min = (Number(bucket) * 30) % 60;
           const timeStr = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
@@ -83,7 +94,7 @@ export class BehaviorAnalysisService {
             roomId: device.roomId,
             reasonKey: 'repeated_control_time',
             confidence: 0.85,
-            metadata: { timeWindow: timeStr, action: actions[0].description, occurrences: count, days: days.size }
+            metadata: { timeWindow: timeStr, timezone, action: actions[0].description, occurrences: actions.filter(a => Math.floor(localParts(a.timestamp)!.minutes / 30) === Number(bucket)).length, days: bucketDays.size }
           });
           break; 
         }

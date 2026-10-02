@@ -10,6 +10,7 @@ import { isValidCommand } from '../commands';
 export interface UpdateAutomationRulePatch {
   readonly name?: string;
   readonly icon?: string;
+  readonly sharedUserIds?: string[];
   readonly trigger?: AutomationTrigger;
   readonly action?: AutomationAction;
 }
@@ -109,6 +110,7 @@ export function updateAutomationRule(
     id: existing.id,
     homeId: existing.homeId,
     userId: existing.userId,
+    ...(patch.sharedUserIds !== undefined || existing.sharedUserIds !== undefined ? { sharedUserIds: patch.sharedUserIds ?? existing.sharedUserIds } : {}),
     enabled: existing.enabled,
     name: resolvedName,
     ...(patch.icon !== undefined || existing.icon !== undefined ? { icon: patch.icon ?? existing.icon } : {}),

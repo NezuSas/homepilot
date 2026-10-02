@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from './lib/utils';
+import { useAutomaticTheme } from './lib/useAutomaticTheme';
 import { API_ENDPOINTS, API_BASE_URL } from './config';
 import { apiFetch } from './lib/apiClient';
 import { consumeBrowserDirectoryHandoff, type BrowserDirectoryHandoff } from './lib/browserDirectoryHandoff';
@@ -143,6 +144,7 @@ function App() {
   const resetSnapshotState = useDeviceSnapshotStore((state) => state.resetSnapshotState);
 
   const theme = useAppShellStore((state) => state.theme);
+  useAutomaticTheme();
   const setTheme = useAppShellStore((state) => state.setTheme);
 
   useEffect(() => {
@@ -819,7 +821,10 @@ function App() {
           theme={theme}
           demoStepCount={APP_DEMO_STEPS.length}
           onStartDemo={() => startDemo(APP_DEMO_STEPS)}
-          onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          onToggleTheme={() => {
+            useAppShellStore.getState().setAutomaticTheme(false);
+            setTheme(theme === 'dark' ? 'light' : 'dark');
+          }}
           onToggleLanguage={toggleLanguage}
           onChangePassword={() => setShowPwdModal(true)}
           onLogout={onLogout}

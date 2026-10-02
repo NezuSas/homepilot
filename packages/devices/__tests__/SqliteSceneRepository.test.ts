@@ -1,4 +1,6 @@
 import Database from 'better-sqlite3';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { SqliteSceneRepository } from '../infrastructure/repositories/SqliteSceneRepository';
 import type { Scene } from '../domain/Scene';
 
@@ -15,10 +17,20 @@ describe('SqliteSceneRepository', () => {
   beforeEach(() => {
     database = new Database(':memory:');
     database.exec('CREATE TABLE scenes (id TEXT PRIMARY KEY, home_id TEXT NOT NULL, room_id TEXT, name TEXT NOT NULL, actions TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)');
+    database.exec('CREATE TABLE automation_rules (id TEXT PRIMARY KEY)');
+    database.exec(readFileSync(join(process.cwd(), 'migrations/034_routine_sharing.sql'), 'utf8'));
     repository = new SqliteSceneRepository(database);
   });
 
   afterEach(() => database.close());
+
+  it('round-trips sharing and description and revokes access without changing ownership', async () => {
+    await repository.saveScene(scene('scene-1', { userId: 'owner', sharedUserIds: ['recipient'], description: 'Salir de casa' }));
+    const saved = await repository.findSceneById('scene-1');
+    expect(saved).toMatchObject({ userId: 'owner', sharedUserIds: ['recipient'], description: 'Salir de casa' });
+    await repository.saveScene({ ...saved!, sharedUserIds: [] });
+    expect(await repository.findSceneById('scene-1')).toMatchObject({ userId: 'owner', sharedUserIds: [] });
+  });
 
   it('persists the modern payload including sequential execution mode and updates atomically', async () => {
     await repository.saveScene(scene('scene-1', { userId: 'user-1', executionMode: 'sequential', icon: 'mdi:home' }));

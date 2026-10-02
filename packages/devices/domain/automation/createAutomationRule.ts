@@ -9,6 +9,7 @@ export interface CreateAutomationRulePayload {
   userId: string;
   name: string;
   icon?: string;
+  sharedUserIds?: string[];
   trigger: AutomationTrigger;
   action: AutomationAction;
 }
@@ -106,6 +107,7 @@ export function createAutomationRule(
     id: idGenerator.generate(),
     homeId: payload.homeId.trim(),
     userId: payload.userId.trim(),
+    ...(payload.sharedUserIds !== undefined ? { sharedUserIds: [...payload.sharedUserIds] } : {}),
     name: payload.name.trim(),
     ...(payload.icon !== undefined ? { icon: payload.icon } : {}),
     enabled: true,

@@ -91,6 +91,7 @@ export interface AutomationRule {
   readonly id: string;
   readonly homeId: string;
   readonly userId: string;
+  readonly sharedUserIds?: string[];
   readonly name: string;
   readonly icon?: string;
   readonly enabled: boolean;

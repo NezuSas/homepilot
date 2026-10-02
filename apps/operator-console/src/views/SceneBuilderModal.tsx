@@ -9,6 +9,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { SceneDeviceSelector, type SceneDeviceAction } from '../components/SceneDeviceSelector';
+import { RoutineSharingField } from '../components/RoutineSharingField';
 import { IconPicker } from './dashboards/components/IconPicker';
 import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 import { getRoutineDeviceCommands, type RoutineDeviceCommand } from '../lib/deviceCapabilities';
@@ -22,6 +23,7 @@ interface Scene {
   name: string;
   icon?: string;
   description?: string;
+  sharedUserIds?: string[];
   actions: SceneDeviceAction[];
 }
 interface SceneBuilderModalProps {
@@ -39,6 +41,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
   const [name, setName] = useState(existingScene?.name || '');
   const [icon, setIcon] = useState(existingScene?.icon || '');
   const [description, setDescription] = useState(existingScene?.description || '');
+  const [sharedUserIds, setSharedUserIds] = useState(existingScene?.sharedUserIds ?? []);
   const [roomId, setRoomId] = useState<string | null>(existingScene ? existingScene.roomId : initialRoomId);
   const [actions, setActions] = useState<SceneDeviceAction[]>(existingScene?.actions || []);
   const [saving, setSaving] = useState(false);
@@ -64,7 +67,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
     setSaving(true);
     setError(null);
     try {
-      const payload = { homeId, roomId, name: name.trim(), icon: icon || undefined, description: description.trim(), actions };
+      const payload = { homeId, roomId, name: name.trim(), icon: icon || undefined, description: description.trim(), actions, sharedUserIds };
       const url = existingScene ? `${API_URL}/scenes/${existingScene.id}` : `${API_URL}/scenes`;
       const res = await apiFetch(url, {
         method: existingScene ? 'PATCH' : 'POST',
@@ -105,16 +108,17 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
       <div className="space-y-5">
         {error && <p role="alert" className="rounded-control bg-danger/10 p-3 text-caption text-danger">{error}</p>}
         <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
-          <Input label={t('scenes.builder.placeholders.name')} value={name} onChange={event => setName(event.target.value)} placeholder={t('scenes.builder.placeholders.name')} className="h-11" autoFocus />
+          <Input label={t('routine_sharing.name')} value={name} onChange={event => setName(event.target.value)} placeholder={t('scenes.builder.placeholders.name')} className="h-11" autoFocus />
           <div className="space-y-1.5">
-            <p className="text-micro font-semibold text-muted-foreground">{t('scenes.builder.scope')}</p>
+            <p className="text-micro font-semibold text-muted-foreground">{t('routine_sharing.space')}</p>
             <SearchableSelectField value={roomId || ''} onChange={value => { setRoomId(value || null); setActions([]); }} options={[
               { value: '', label: t('dashboard.scene_global') },
               ...rooms.map(room => ({ value: room.id, label: room.name })),
             ]} placeholder={t('dashboard.scene_global')} />
           </div>
         </div>
-        <Input label={t('scenes.builder.placeholders.description')} value={description} onChange={event => setDescription(event.target.value)} placeholder={t('scenes.builder.placeholders.description')} className="h-11" />
+        <Input label={t('routine_sharing.description')} value={description} onChange={event => setDescription(event.target.value)} placeholder={t('scenes.builder.placeholders.description')} className="h-11" />
+        <RoutineSharingField value={sharedUserIds} onChange={setSharedUserIds} />
         <IconPicker value={icon} onChange={setIcon} />
         <SceneDeviceSelector key={roomId ?? 'global'} devices={devices} rooms={rooms} roomId={roomId} actions={actions} onToggle={toggleDevice} onCommand={setCommand} />
       </div>

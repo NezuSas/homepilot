@@ -1,6 +1,7 @@
 import { AutomationRuleRepository } from '../../../domain/repositories/AutomationRuleRepository';
 import { TopologyReferencePort } from '../../ports/TopologyReferencePort';
 import { AutomationRule } from '../../../domain';
+import { canAccessRoutine } from '../../../domain/routineAccess';
 
 /**
  * Caso de uso para listar todas las reglas de automatización de un hogar.
@@ -19,5 +20,5 @@ export async function listAutomationRulesUseCase(
 
   // 2. El hogar es compartido; la gestión y visibilidad de reglas no lo son.
   const rules = await deps.automationRuleRepository.findByHomeId(homeId);
-  return rules.filter((rule) => rule.userId === userId);
+  return rules.filter((rule) => canAccessRoutine(rule, userId));
 }

@@ -24,6 +24,8 @@ function isAssistantSummary(value: unknown): value is AssistantSummary {
 }
 
 interface AppShellState {
+  automaticTheme: boolean;
+  setAutomaticTheme: (automatic: boolean) => void;
   theme: 'dark' | 'light';
   setTheme: (theme: 'dark' | 'light') => void;
   assistantSummary: AssistantSummary | null;
@@ -56,6 +58,7 @@ const getInitialTheme = (): 'dark' | 'light' => {
 };
 
 const initialState = {
+  automaticTheme: typeof window !== 'undefined' && localStorage.getItem('__homepilot_automatic_theme') === 'true',
   theme: getInitialTheme(),
   assistantSummary: null,
   isAllSynced: true,
@@ -67,6 +70,10 @@ const initialState = {
 
 export const useAppShellStore = create<AppShellState>((set) => ({
   ...initialState,
+  setAutomaticTheme: (automaticTheme) => {
+    if (typeof window !== 'undefined') localStorage.setItem('__homepilot_automatic_theme', String(automaticTheme));
+    set({ automaticTheme });
+  },
 
   setTheme: (theme) => {
     if (typeof window !== 'undefined') {

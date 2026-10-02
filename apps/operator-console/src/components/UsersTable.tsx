@@ -46,9 +46,9 @@ interface UsersTableProps {
 
 
 export function UserAccessCard({ user, labels, roleOptions, onToggleActive, onChangeRole, onRevokeSessions, onResetPassword, currentUserId }: Omit<UsersTableProps, 'users' | 'getRoleLabel'> & { user: PublicUserDto }) {
-  return <article aria-label={user.displayName || user.username} className="min-w-0 space-y-3 rounded-control border border-border bg-card p-3">
+  return <article aria-label={user.displayName || user.username} className="min-w-0 space-y-2 rounded-control border border-border bg-card p-3">
     <div className="flex min-w-0 items-center gap-3">
-      <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-primary">
+      <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-primary">
         {user.avatarDataUri ? <img src={user.avatarDataUri.startsWith('/') ? `${API_BASE_URL}${user.avatarDataUri}` : user.avatarDataUri} alt="" className="size-full object-cover" />
           : <span className="text-caption font-semibold uppercase">{user.username.substring(0, 2)}</span>}
       </div>

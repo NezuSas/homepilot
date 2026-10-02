@@ -25,6 +25,8 @@ import { getSceneOrRoutineUrl, toAutomationEntityId } from './dashboards/widgets
 import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 
 interface AutomationRule {
+  userId?: string;
+  sharedUserIds?: string[];
   id: string;
   name: string;
   icon?: string;
@@ -234,7 +236,7 @@ const AutomationsView: React.FC<{ currentUserId: string | null }> = ({ currentUs
             <div className="flex items-center gap-3"><div className="flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground"><Clock3 className="size-5" /></div><div><h2 id="active-timers-title" className="text-panel-title">{t('automations.timers.title')}</h2><p className="mt-1 text-sm text-muted-foreground">{t('automations.timers.description')}</p></div></div>
             <span className="hp-type-control rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-primary">{t('automations.timers.pending_count', { count: activeTimers.length })}</span>
           </div>
-          <div className="mt-4 grid gap-3 lg:grid-cols-2">{activeTimers.map(({ rule, remainingMinutes }) => <article key={rule.id} className="flex flex-col gap-4 rounded-card border border-border/70 bg-background/45 p-4 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><p className="truncate text-section-title">{rule.name}</p><p className="mt-1 text-sm text-muted-foreground">{remainingMinutes >= 60 ? t('automations.timers.remaining_hours', { count: Math.ceil(remainingMinutes / 60) }) : t('automations.timers.remaining_minutes', { count: remainingMinutes })}</p></div><Button type="button" variant="outline" size="sm" isLoading={processingId === rule.id} onClick={() => toggleRule(rule.id, true)} className="shrink-0 border-danger/30 text-danger hover:bg-danger/10">{t('automations.timers.cancel')}</Button></article>)}</div>
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">{activeTimers.map(({ rule, remainingMinutes }) => <article key={rule.id} className="flex flex-col gap-4 rounded-card border border-border/70 bg-background/45 p-4 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><p className="truncate text-section-title">{rule.name}</p><p className="mt-1 text-sm text-muted-foreground">{remainingMinutes >= 60 ? t('automations.timers.remaining_hours', { count: Math.ceil(remainingMinutes / 60) }) : t('automations.timers.remaining_minutes', { count: remainingMinutes })}</p></div>{rule.userId === currentUserId && <Button type="button" variant="outline" size="sm" isLoading={processingId === rule.id} onClick={() => toggleRule(rule.id, true)} className="shrink-0 border-danger/30 text-danger hover:bg-danger/10">{t('automations.timers.cancel')}</Button>}</article>)}</div>
         </section>
       )}
 
@@ -244,6 +246,7 @@ const AutomationsView: React.FC<{ currentUserId: string | null }> = ({ currentUs
         <RoutineCardGrid>
           {persistentRules.map((rule) => (
             <AutomationRuleCard
+              canManage={rule.userId === currentUserId}
               key={rule.id}
               rule={rule}
               processingId={processingId}

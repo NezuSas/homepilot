@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, Plus } from 'lucide-react';
+import { Minus, Plus } from 'lucide-react';
 import { Button } from './ui/Button';
 import { SearchInput } from './ui/Input';
 import { SearchableSelectField } from './ui/SearchableSelectField';
@@ -62,7 +62,7 @@ export function SceneDeviceSelector({ devices, rooms, roomId, actions, onToggle,
     return (
       <div key={device.id} className="flex min-w-0 flex-col gap-2 border-b border-border/40 py-2 last:border-0 sm:flex-row sm:items-center">
         <Button type="button" variant="ghost" size="lg" className="min-w-0 flex-1 justify-start gap-3 px-2 text-left" aria-pressed={!!action} aria-disabled={!canToggle} disabled={!canToggle} onClick={() => onToggle(device.id)}>
-          {action ? <Check aria-hidden="true" className="size-5 shrink-0 text-primary" /> : <Plus aria-hidden="true" className="size-5 shrink-0 text-muted-foreground" />}
+          {action ? <Minus aria-hidden="true" className="size-5 shrink-0 text-primary" /> : <Plus aria-hidden="true" className="size-5 shrink-0 text-muted-foreground" />}
           <span className="min-w-0 flex-1">
             <span className="block break-words text-body-compact font-semibold">{humanize(device.id, device.name)}</span>
             <span className="block text-caption font-normal text-muted-foreground">{roomName(device)} · {device.semanticType || device.type}</span>
@@ -105,7 +105,7 @@ export function SceneDeviceSelector({ devices, rooms, roomId, actions, onToggle,
         </div>
         {!result.groups.length && <p className="py-3 text-caption text-muted-foreground">{t('dashboard.scene_no_devices')}</p>}
         {result.groups.map(group => (
-          <details key={`${group.id}:${search}:${spaceFilter}`} open={!!search || !!spaceFilter || group.devices.length <= 8} className="border-b border-border/50 pb-2 last:border-0">
+          <details key={`${group.id}:${search}:${spaceFilter}`} open={!!search || !!spaceFilter} className="border-b border-border/50 pb-2 last:border-0">
             <summary className="min-h-11 cursor-pointer content-center rounded-control px-2 text-body-compact font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
               {group.name ?? t('scenes.builder.unassigned')} <span className="text-caption font-normal text-muted-foreground">({group.devices.length})</span>
             </summary>

@@ -8,6 +8,7 @@ interface LocalSceneRow {
   room_id: string | null;
   name: string;
   actions: string; // JSON string — includes executionMode as top-level key
+  shared_user_ids: string;
   created_at: string;
   updated_at: string;
 }
@@ -21,6 +22,7 @@ interface SceneJsonPayload {
   userId?: string;
   executionMode?: 'sequential' | 'parallel';
   icon?: string;
+  description?: string;
 }
 
 export class SqliteSceneRepository implements SceneRepository {
@@ -48,6 +50,8 @@ export class SqliteSceneRepository implements SceneRepository {
       id: row.id,
       homeId: row.home_id,
       userId: payload.userId,
+      sharedUserIds: JSON.parse(row.shared_user_ids ?? '[]') as string[],
+      description: payload.description,
       roomId: row.room_id,
       name: row.name,
       actions: payload.actions,
@@ -77,13 +81,14 @@ export class SqliteSceneRepository implements SceneRepository {
 
   public async saveScene(scene: Scene): Promise<void> {
     const stmt = this.db.prepare(`
-      INSERT INTO scenes (id, home_id, room_id, name, actions, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO scenes (id, home_id, room_id, name, actions, created_at, updated_at, shared_user_ids)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         home_id = excluded.home_id,
         room_id = excluded.room_id,
         name = excluded.name,
         actions = excluded.actions,
+        shared_user_ids = excluded.shared_user_ids,
         updated_at = excluded.updated_at
     `);
 
@@ -92,6 +97,7 @@ export class SqliteSceneRepository implements SceneRepository {
       ...(scene.userId !== undefined ? { userId: scene.userId } : {}),
       ...(scene.executionMode !== undefined ? { executionMode: scene.executionMode } : {}),
       ...(scene.icon !== undefined ? { icon: scene.icon } : {}),
+      ...(scene.description !== undefined ? { description: scene.description } : {}),
     };
 
     stmt.run(
@@ -101,7 +107,8 @@ export class SqliteSceneRepository implements SceneRepository {
       scene.name,
       JSON.stringify(payload),
       scene.createdAt,
-      scene.updatedAt
+      scene.updatedAt,
+      JSON.stringify(scene.sharedUserIds ?? [])
     );
   }
 

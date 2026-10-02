@@ -127,5 +127,11 @@ describe('buildAutomationModule', () => {
     expect(commandDispatcher.dispatch).toHaveBeenCalledWith('device-1', expect.objectContaining({ name: 'turn_off' }));
     expect(activityLogRepository.saveActivity).toHaveBeenNthCalledWith(1, expect.objectContaining({ type: 'SCENE_EXECUTION_STARTED', correlationId: 'corr-scene' }));
     expect(activityLogRepository.saveActivity).toHaveBeenNthCalledWith(2, expect.objectContaining({ type: 'SCENE_EXECUTION_COMPLETED', correlationId: 'corr-scene' }));
+    sceneRepository.findSceneById.mockResolvedValueOnce({ id: 'shared', homeId: 'home-1', userId: 'other', sharedUserIds: ['user-1'], name: 'Shared', roomId: null, actions: [{ deviceId: 'device-1', command: 'turn_off' }], createdAt: '', updatedAt: '' });
+    await adapter.commandDispatcher.executeScene('home-1', 'shared', 'corr-shared', 'rule-1');
+    expect(commandDispatcher.dispatch).toHaveBeenCalledTimes(2);
+    sceneRepository.findSceneById.mockResolvedValueOnce({ id: 'shared', homeId: 'home-1', userId: 'other', sharedUserIds: [], actions: [] });
+    await expect(adapter.commandDispatcher.executeScene('home-1', 'shared', 'corr-revoked', 'rule-1')).rejects.toThrow('Scene is not accessible');
+    expect(commandDispatcher.dispatch).toHaveBeenCalledTimes(2);
   });
 });

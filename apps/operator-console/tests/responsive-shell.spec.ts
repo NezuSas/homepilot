@@ -1,6 +1,106 @@
 import { expect, test } from '@playwright/test';
 import { mdiAutoFix, mdiHome, mdiRobot, mdiWeatherWindy } from '@mdi/js';
 
+test('Feature: Routine sharing — Scenario: A recipient can execute and favorite but never manage shared routines', async ({ page }) => {
+  await prepareAuthenticatedDashboard(page, responsiveDashboard, { ...dashboardUser, id: 'recipient' });
+  await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: 'home', ownerId: 'owner', name: 'Casa compartida' }] }));
+  await page.route('**/api/v1/rooms', route => route.fulfill({ json: [] }));
+  await page.route('**/api/v1/homes/home/rooms', route => route.fulfill({ json: [] }));
+  await page.route('**/api/v1/scenes', route => route.fulfill({ json: [{ id: 'shared-scene', userId: 'owner', sharedUserIds: ['recipient'], homeId: 'home', roomId: null, name: 'Escena compartida', actions: [] }] }));
+  await page.route('**/api/v1/automations', route => route.fulfill({ json: [{ id: 'shared-rule', userId: 'owner', sharedUserIds: ['recipient'], homeId: 'home', name: 'Rutina compartida', enabled: true, trigger: { type: 'time', timeLocal: '19:00' }, action: { type: 'execute_scene', sceneId: 'shared-scene' } }] }));
+  for (const routine of [{ collection: 'scenes', id: 'shared-scene', name: 'Escena compartida', endpoint: 'execute', key: 'sceneIds' }, { collection: 'automations', id: 'shared-rule', name: 'Rutina compartida', endpoint: 'run', key: 'automationIds' }]) {
+    let favorites: string[] = [];
+    let runs = 0;
+    await page.route(`**/api/v1/${routine.collection}/favorites`, route => {
+      if (route.request().method() === 'PUT') favorites = route.request().postDataJSON()[routine.key];
+      return route.fulfill({ json: { [routine.key]: favorites, initialized: true } });
+    });
+    await page.route(`**/api/v1/${routine.collection}/${routine.id}/${routine.endpoint}`, route => { runs += 1; return route.fulfill({ json: { success: true, status: 'success' } }); });
+    await page.goto(`/routines/${routine.collection}`);
+    const card = page.getByRole('article', { name: routine.name, exact: true });
+    await expect(card).toBeVisible();
+    await expect(card.getByRole('button', { name: /^(Edit|Editar|Delete|Eliminar)$/i })).toHaveCount(0);
+    if (routine.collection === 'automations') await expect(card.getByRole('button', { name: /Enable or pause|Activar o pausar/i })).toBeDisabled();
+    await card.getByRole('button', { name: /^(Run|Execute|Ejecutar|Run now|Ejecutar ahora)$/i }).click();
+    await expect.poll(() => runs).toBe(1);
+    await card.getByRole('button', { name: /^(Add to favorites|Añadir a favoritas)$/i }).click();
+    await expect.poll(() => favorites).toEqual([routine.id]);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+  }
+});
+
+for (const viewport of [
+  { name: 'mobile', width: 320, height: 720 }, { name: 'tablet portrait', width: 768, height: 1024 },
+  { name: 'tablet landscape', width: 1024, height: 768 }, { name: 'desktop', width: 1440, height: 900 },
+  { name: 'kiosk portrait', width: 1080, height: 1920 },
+]) {
+  test(`Feature: Shared event filters — Scenario: Audit and execution names stay usable on ${viewport.name}`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport);
+    await prepareAuthenticatedDashboard(page);
+    await page.addInitScript(() => localStorage.setItem('i18nextLng', 'es'));
+    await page.route('**/api/v1/rooms', route => route.fulfill({ json: [] }));
+    await page.route('**/api/v1/devices', route => route.fulfill({ json: [{ id: 'gata', name: 'Gata', type: 'light', roomId: 'room', homeId: 'home', status: 'ASSIGNED', lastKnownState: { state: 'on' } }] }));
+    await page.route('**/api/v1/activity-logs', route => route.fulfill({ json: [
+      { timestamp: '2026-10-01T12:00:00Z', deviceId: 'gata', type: 'COMMAND_DISPATCHED', description: 'Gata command', data: { deviceName: 'Gata', command: 'turn_on', isAutomation: false, detail: 'x'.repeat(600) } },
+      { timestamp: '2026-10-01T12:00:00Z', deviceId: 'other', type: 'COMMAND_DISPATCHED', description: 'Patio command', data: { deviceName: 'Patio', command: 'turn_off', isAutomation: false } },
+    ] }));
+    await page.route('**/api/v1/executions/recent?*', route => route.fulfill({ json: [
+      { id: 'run-gata', sourceType: 'scene', sourceId: 'scene', status: 'success', startedAt: '2026-10-01T12:00:00Z', completedAt: '2026-10-01T12:00:01Z', durationMs: 1000, actionCount: 1, successCount: 1, failedCount: 0, skippedCount: 0, summary: 'Escena Gata', actions: [{ deviceId: 'gata', commandName: 'turn_on', status: 'success' }] },
+      { id: 'run-patio', sourceType: 'manual', sourceId: 'other', status: 'success', startedAt: '2026-10-01T12:00:00Z', completedAt: '2026-10-01T12:00:01Z', durationMs: 1000, actionCount: 0, successCount: 0, failedCount: 0, skippedCount: 0, summary: 'Comando Patio', actions: [] },
+    ] }));
+    for (const path of ['/system/audit', '/system/executions']) {
+      await page.goto(path);
+      const main = page.getByRole('main');
+      const search = main.getByRole('textbox', { name: 'Nombre', exact: true });
+      await expect(search).toBeVisible();
+      const date = await main.getByLabel('Fecha', { exact: true }).boundingBox();
+      const action = await main.getByRole('button', { name: 'Acción', exact: true }).boundingBox();
+      expect(date!.height).toBeCloseTo(action!.height, 1);
+      if (viewport.width >= 640) expect(date!.y).toBeCloseTo(action!.y, 1);
+      await search.fill('Gat');
+      await expect(main.getByText(path.endsWith('audit') ? 'Gata' : 'Escena Gata', { exact: true })).toBeVisible();
+      await expect(main.getByText(path.endsWith('audit') ? 'Patio' : 'Comando Patio', { exact: true })).toHaveCount(0);
+      await search.fill('No existe');
+      await expect(main.getByText('No hay eventos que coincidan con los filtros.', { exact: true })).toBeVisible();
+      await search.fill('Gat');
+      if (path.endsWith('audit')) {
+        await main.locator('summary').click();
+        const payload = main.locator('pre');
+        await expect(payload).toBeVisible();
+        expect(await payload.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(true);
+        await payload.evaluate(element => { element.scrollLeft = element.scrollWidth; });
+        expect(await payload.evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
+      }
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      if (viewport.name === 'mobile' || viewport.name === 'tablet portrait') await page.screenshot({ path: testInfo.outputPath(`${path.split('/').pop()}.png`), fullPage: true });
+    }
+  });
+}
+
+test('Feature: Automatic appearance — Scenario: Optional schedule switches at local boundaries and manual disables it', async ({ page }) => {
+  await prepareAuthenticatedDashboard(page);
+  const localStart = await page.evaluate(() => new Date(2026, 9, 1, 18, 29, 59).getTime());
+  await page.clock.install({ time: localStart });
+  await page.clock.pauseAt(localStart);
+  await page.route('**/api/v1/settings/home-personalization', route => route.fulfill({ json: { morningPhrase: '', afternoonPhrase: '', nightPhrase: '', heroImages: [] } }));
+  await page.goto('/system/home-personalization');
+  const selector = page.getByRole('button', { name: /Appearance|Apariencia/i });
+  await expect(selector).toContainText(/Manual/i);
+  await selector.click();
+  await page.getByRole('listbox', { name: /Appearance|Apariencia/i }).getByRole('option', { name: /^(Automatic|Automático)\b/i }).click();
+  await expect(page.locator('html')).toHaveClass(/light/);
+  await page.clock.fastForward(1000);
+  await expect(page.locator('html')).not.toHaveClass(/light/);
+  await page.clock.fastForward(11.5 * 60 * 60 * 1000);
+  await expect(page.locator('html')).toHaveClass(/light/);
+  // The existing inactivity policy returns to Home while the clock advances overnight.
+  await page.goto('/system/home-personalization');
+  await selector.click();
+  await page.getByRole('option', { name: 'Manual', exact: true }).click();
+  await page.clock.fastForward(12.5 * 60 * 60 * 1000);
+  await expect(page.locator('html')).toHaveClass(/light/);
+});
+
 for (const viewport of [
   { name: 'mobile', width: 320, height: 720 }, { name: 'tablet portrait', width: 768, height: 1024 },
   { name: 'tablet landscape', width: 1024, height: 768 }, { name: 'desktop', width: 1920, height: 1080 },
@@ -219,7 +319,7 @@ for (const viewport of [{ name: 'mobile', width: 320, height: 720 }, { name: 'ta
     await page.route('**/api/v1/system/backups', route => route.fulfill({ json: [] }));
     await page.route('**/api/v1/system/diagnostics/events', route => route.fulfill({ json: [
       { occurredAt: '2026-10-01T12:00:00Z', category: 'automation', eventType: 'AUTOMATION_EXECUTED', description: 'Rule ran', data: { ruleId: 'a', ruleName: 'Regla única' }, correlationId: 'rule' },
-      { occurredAt: '2026-10-01T12:00:01Z', category: 'command', eventType: 'COMMAND_SUCCESS', description: 'Traza conservada', data: {}, correlationId: 'rule' },
+      { occurredAt: '2026-10-01T12:00:01Z', category: 'command', eventType: 'COMMAND_SUCCESS', description: 'Traza conservada', data: { deviceName: 'Gata' }, correlationId: 'rule' },
       { occurredAt: '2026-10-01T13:00:00Z', category: 'automation', eventType: 'SCENE_EXECUTED', description: 'Escena única', data: { sceneId: 's', sceneName: 'Escena única' } },
       { occurredAt: '2026-09-30T12:00:00Z', category: 'automation', eventType: 'AUTOMATION_EXECUTED', description: 'Comando único', data: { command: 'Comando único', isAutomation: false } },
     ] }));
@@ -256,6 +356,8 @@ for (const viewport of [{ name: 'mobile', width: 320, height: 720 }, { name: 'ta
     await main.getByLabel('Fecha', { exact: true }).fill('');
     await action.click();
     await page.getByRole('option', { name: 'Automatizaciones', exact: true }).click();
+    await main.getByRole('textbox', { name: 'Nombre', exact: true }).fill('Gat');
+    await expect(main.getByText('Regla única', { exact: false })).toBeVisible();
     await main.getByText('Regla única', { exact: false }).click();
     await expect(main.getByText('Traza conservada', { exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
@@ -309,8 +411,8 @@ for (const view of [
 test('Feature: Initial view skeletons — Scenario: Home waits for favorites and settings but stays visible during refresh (AC51)', async ({ page }, testInfo) => {
   await prepareAuthenticatedDashboard(page);
   await page.route('**/api.open-meteo.com/**', route => route.fulfill({ json: { current: { temperature_2m: 19, weather_code: 3, wind_speed_10m: 1 } } }));
-  const scene = { id: 'ready-scene', homeId: 'responsive-home', name: 'Trabajo', roomId: null, actions: [] };
-  const automation = { id: 'ready-rule', name: 'Noche', enabled: true, trigger: { type: 'time', timeLocal: '19:00' }, action: { type: 'execute_scene', sceneId: scene.id } };
+  const scene = { id: 'ready-scene', userId: dashboardUser.id, homeId: 'responsive-home', name: 'Trabajo', roomId: null, actions: [] };
+  const automation = { id: 'ready-rule', userId: dashboardUser.id, name: 'Noche', enabled: true, trigger: { type: 'time', timeLocal: '19:00' }, action: { type: 'execute_scene', sceneId: scene.id } };
   let findingsRead = 0;
   let releaseRefresh: () => void = () => {};
   const refresh = new Promise<void>(resolve => { releaseRefresh = resolve; });
@@ -361,7 +463,7 @@ test('Feature: Initial view skeletons — Scenario: Early favorites do not relea
   await page.route('**/api/v1/automations/favorites', route => route.fulfill({ json: { automationIds: [], initialized: true } }));
   await page.route('**/api/v1/settings/home-personalization', route => route.fulfill({ json: { morningPhrase: '', afternoonPhrase: '', nightPhrase: '', heroImages: [] } }));
   await page.route('**/api.open-meteo.com/**', route => route.fulfill({ json: { current: { temperature_2m: 19, weather_code: 3 } } }));
-  const scene = { id: 'late-catalog-scene', homeId: 'responsive-home', name: 'Descanso', roomId: null, actions: [] };
+  const scene = { id: 'late-catalog-scene', userId: dashboardUser.id, homeId: 'responsive-home', name: 'Descanso', roomId: null, actions: [] };
   let releaseCatalog: () => void = () => {};
   const catalog = new Promise<void>(resolve => { releaseCatalog = resolve; });
   await page.route('**/api/v1/scenes', async route => {
@@ -437,7 +539,7 @@ for (const viewport of [{ name: 'mobile', width: 320, height: 720 }, { name: 'ta
     await page.route('**/api/v1/rooms', route => route.fulfill({ json: rooms }));
     const devices = Array.from({ length: 100 }, (_, index) => ({ ...responsiveDevices[0], id: `group-device-${index}`, name: `Dispositivo ${String(index).padStart(2, '0')}`, roomId: index < 40 ? 'oficina' : index < 99 ? 'cocina' : null, semanticType: 'light', capabilities: [{ type: 'light', name: 'Light', commands: [{ name: 'turn_on' }, { name: 'turn_off' }] }] }));
     await page.route('**/api/v1/devices', route => route.fulfill({ json: [...devices].reverse() }));
-    const rule = { id: 'group-rule', name: 'Trabajo', enabled: true, trigger: { type: 'device_state_changed', deviceId: devices[0].id, stateKey: 'state', expectedValue: 'on' }, action: { type: 'device_command', targetDeviceId: devices[0].id, command: 'turn_on' } };
+    const rule = { id: 'group-rule', userId: dashboardUser.id, name: 'Trabajo', enabled: true, trigger: { type: 'device_state_changed', deviceId: devices[0].id, stateKey: 'state', expectedValue: 'on' }, action: { type: 'device_command', targetDeviceId: devices[0].id, command: 'turn_on' } };
     await page.route('**/api/v1/automations', route => route.fulfill({ json: [rule] }));
     await page.route('**/api/v1/scenes', route => route.fulfill({ json: [] }));
     await page.route('**/api/v1/automations/favorites', route => route.fulfill({ json: { automationIds: [], initialized: true } }));
@@ -484,7 +586,7 @@ for (const viewport of [
   test(`Feature: Compact automation cards — Scenario: Independent controls fit ${viewport.name} (AC50)`, async ({ page }, testInfo) => {
     await page.setViewportSize(viewport);
     await prepareAuthenticatedDashboard(page);
-    let rule = { id: 'compact-rule', name: 'Trabajo automático', enabled: true, trigger: { type: 'time', timeLocal: '19:00' }, action: { type: 'execute_scene', sceneId: 'work-scene' } };
+    let rule = { id: 'compact-rule', userId: dashboardUser.id, name: 'Trabajo automático', enabled: true, trigger: { type: 'time', timeLocal: '19:00' }, action: { type: 'execute_scene', sceneId: 'work-scene' } };
     await page.route('**/api/v1/automations', route => route.fulfill({ json: [rule] }));
     await page.route('**/api/v1/scenes', route => route.fulfill({ json: [{ id: 'work-scene', name: 'Trabajo', actions: [] }] }));
     let favorites: string[] = [];
@@ -615,7 +717,7 @@ for (const route of ['scenes', 'automations']) {
 
 test('Feature: Compact automation cards — Scenario: Execution errors permit retry without changing the schedule (AC50)', async ({ page }) => {
   await prepareAuthenticatedDashboard(page);
-  const rule = { id: 'retry-rule', name: 'Rutina pausada', enabled: false, trigger: { type: 'time', timeLocal: '19:00' }, action: { type: 'device_command', targetDeviceId: 'cover-living', command: 'open' } };
+  const rule = { id: 'retry-rule', userId: dashboardUser.id, name: 'Rutina pausada', enabled: false, trigger: { type: 'time', timeLocal: '19:00' }, action: { type: 'device_command', targetDeviceId: 'cover-living', command: 'open' } };
   await page.route('**/api/v1/automations', route => route.fulfill({ json: [rule] }));
   await page.route('**/api/v1/scenes', route => route.fulfill({ json: [] }));
   await page.route('**/api/v1/automations/favorites', route => route.fulfill({ json: { automationIds: [], initialized: true } }));
@@ -1168,6 +1270,7 @@ async function prepareAuthenticatedDashboard(page: import('@playwright/test').Pa
   await page.route('**/api/v1/auth/me', async (route) => {
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(user) });
   });
+  await page.route('**/api/v1/scenes/share-users', route => route.fulfill({ json: [{ id: 'share-recipient', name: 'Ana' }, { id: 'share-recipient-2', name: 'Luis' }] }));
   await page.route('**/api/v1/system/setup-status', async (route) => {
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(setupStatus) });
   });
@@ -1619,7 +1722,7 @@ for (const viewport of [
     await prepareAuthenticatedDashboard(page);
     await page.route('**/api/v1/homes', (route) => route.fulfill({ json: [{ id: 'responsive-home', ownerId: dashboardUser.id, name: 'Casa' }] }));
     const scenes = Array.from({ length: 5 }, (_, index) => ({
-      id: `compact-scene-${index}`, homeId: 'responsive-home', roomId: null,
+      id: `compact-scene-${index}`, userId: dashboardUser.id, homeId: 'responsive-home', roomId: null,
       name: index === 0 ? 'Trabajo' : `Escena ${index}`, actions: [{ deviceId: 'cover-living', command: 'open' }],
     }));
     await page.route('**/api/v1/scenes', (route) => route.fulfill({ json: scenes }));
@@ -1714,7 +1817,7 @@ for (const viewport of [
       device('chosen', 'Zeta elegida', 'office'), device('unassigned', 'Luz sin asignar', null),
       device('orphan', 'Luz huérfana', 'deleted-room'),
     ] }));
-    let scene = { id: 'organized-scene', homeId: 'responsive-home', roomId: null, name: 'Trabajo organizada', description: 'Descripción conservada', actions: [{ deviceId: 'chosen', command: 'turn_off' }, { deviceId: 'unassigned', command: 'turn_on' }] };
+    let scene = { id: 'organized-scene', userId: dashboardUser.id, sharedUserIds: [] as string[], homeId: 'responsive-home', roomId: null, name: 'Trabajo organizada', description: 'Descripción conservada', actions: [{ deviceId: 'chosen', command: 'turn_off' }, { deviceId: 'unassigned', command: 'turn_on' }] };
     await page.route('**/api/v1/scenes', (route) => route.fulfill({ json: [scene] }));
     await page.route('**/api/v1/scenes/favorites', (route) => route.fulfill({ json: { sceneIds: [], initialized: true } }));
     let saved = false;
@@ -1732,6 +1835,9 @@ for (const viewport of [
     await expect(selected.getByRole('radio', { name: /^(Apagar|Turn Off)$/i })).toHaveAttribute('aria-checked', 'true');
     expect(await editor.getByRole('region').evaluateAll(elements => elements.map(element => element.getAttribute('aria-label')))).toEqual(['Selected', 'Available entities']);
     const office = available.locator('summary').filter({ hasText: 'Oficina' });
+    await expect(office.locator('..')).not.toHaveAttribute('open');
+    await editor.getByRole('checkbox', { name: 'Ana', exact: true }).check();
+    await editor.getByRole('checkbox', { name: 'Luis', exact: true }).check();
     await office.click();
     const last = available.getByRole('button', { name: /Luz 19 / });
     await last.scrollIntoViewIfNeeded();
@@ -1754,6 +1860,7 @@ for (const viewport of [
     await expect.poll(() => saved).toBe(true);
     expect(scene.roomId).toBeNull();
     expect(scene.description).toBe('Descripción conservada');
+    expect(scene.sharedUserIds).toEqual(['share-recipient', 'share-recipient-2']);
     expect(scene.actions).toEqual([
       { deviceId: 'chosen', command: 'turn_off' }, { deviceId: 'unassigned', command: 'turn_on' }, { deviceId: 'office-19', command: 'turn_on' },
     ]);
@@ -1769,11 +1876,12 @@ test('Feature: routine icons — editing scenes and automations persists one ico
   await prepareAuthenticatedDashboard(page);
   await page.route('**/api/v1/homes', (route) => route.fulfill({ json: [{ id: 'responsive-home', ownerId: dashboardUser.id, name: 'Casa' }] }));
   let scene = {
-    id: 'scene-icon', homeId: 'responsive-home', roomId: null, name: 'Escena icono',
+    id: 'scene-icon', userId: dashboardUser.id, homeId: 'responsive-home', roomId: null, name: 'Escena icono',
     actions: [{ deviceId: 'cover-living', command: 'open' }], icon: undefined as string | undefined,
   };
   let automation = {
-    id: 'automation-icon', homeId: 'responsive-home', name: 'Auto icono', enabled: true,
+    id: 'automation-icon', userId: dashboardUser.id, homeId: 'responsive-home', name: 'Auto icono', enabled: true,
+    sharedUserIds: [] as string[],
     trigger: { type: 'time', timeLocal: '22:00', timezone: 'America/Guayaquil' },
     action: { type: 'device_command', targetDeviceId: 'cover-living', command: 'open' },
     icon: undefined as string | undefined,
@@ -1813,11 +1921,14 @@ test('Feature: routine icons — editing scenes and automations persists one ico
   await page.goto('/routines/automations');
   await page.getByRole('button', { name: /^(Editar|Edit)$/i }).click();
   const automationEditor = page.getByRole('dialog', { name: /^(Refinar Automatización|Refine Automation)$/i });
+  await automationEditor.getByRole('checkbox', { name: 'Ana', exact: true }).check();
+  await automationEditor.getByRole('checkbox', { name: 'Luis', exact: true }).check();
   await automationEditor.getByRole('button', { name: /^(Icono|Icon)$/i }).click();
   await picker.getByRole('searchbox').fill('weather windy');
   await picker.getByRole('listbox').getByRole('option', { name: 'weather-windy', exact: true }).click();
   await automationEditor.getByRole('button', { name: /^(Confirmar Automatización|Confirm Automation)$/i }).click();
   expect(automation.icon).toBe('mdi:weather-windy');
+  expect(automation.sharedUserIds).toEqual(['share-recipient', 'share-recipient-2']);
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Auto icono' })).toBeVisible();
 

@@ -244,6 +244,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
   // 4. Assistant (necesario por buildCommandRouter)
   const assistantAssembly = buildAssistantModule({
     dbPath,
+    getSystemTimezone: () => systemVariableService.getSystemTimezone(),
     deviceRepository: repos.deviceRepository,
     roomRepository: repos.roomRepository,
     automationRuleRepository: repos.automationRuleRepository,

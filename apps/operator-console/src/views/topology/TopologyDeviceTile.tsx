@@ -61,6 +61,7 @@ export function TopologyDeviceTile({ device, roomName, onCommand }: TopologyDevi
   const stateLabel = momentary ? t('topology.momentary_action')
     : isDeviceUnavailable(device) ? t('device_states.unavailable')
       : active === null ? t('dashboard.editor.sections.sensor_unavailable') : t(`device_states.${active ? 'on' : 'off'}`);
+  const showStateLabel = momentary || !['light', 'switch'].includes(kind) || active === null || isDeviceUnavailable(device);
   return <div className="flex h-28 min-w-0 max-w-44 flex-col gap-1" style={{ containerType: 'inline-size' }}>
     <div className={cn('grid min-h-0 flex-1 overflow-hidden rounded-section border border-transparent',
       (momentary ? processing || feedback === 'success' : active === true) && 'homepilot-section-light-tile-active')}>
@@ -73,7 +74,7 @@ export function TopologyDeviceTile({ device, roomName, onCommand }: TopologyDevi
         actionFeedback={processing ? 'pending' : feedback}
       /> : <SectionDeviceCard kind="device" title={device.name} icon={getDefaultIcon('device')} isAssigned />}
     </div>
-    <span className="text-center text-micro text-muted-foreground">{command || ['light', 'switch'].includes(kind) || momentary
-      ? stateLabel : t(`device_types.${device.semanticType || device.type}`, { defaultValue: t('device_types.none') })}</span>
+    {showStateLabel && <span className="text-center text-micro text-muted-foreground">{command || ['light', 'switch'].includes(kind) || momentary
+      ? stateLabel : t(`device_types.${device.semanticType || device.type}`, { defaultValue: t('device_types.none') })}</span>}
   </div>;
 }

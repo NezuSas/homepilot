@@ -9,6 +9,7 @@ import { AutomationBuilderIdentityField } from '../components/AutomationBuilderI
 import { AutomationBuilderSubmitButton } from '../components/AutomationBuilderSubmitButton';
 import { AutomationBuilderTriggerSection } from '../components/AutomationBuilderTriggerSection';
 import { Modal } from '../components/ui/Modal';
+import { RoutineSharingField } from '../components/RoutineSharingField';
 import { IconPicker } from './dashboards/components/IconPicker';
 import type { AutomationActionConfig, AutomationBuilderDevice, AutomationBuilderScene, AutomationRuleDraft, AutomationTriggerConfig } from '../components/AutomationBuilderTypes';
 import { getRoutineDeviceCommands } from '../lib/deviceCapabilities';
@@ -56,6 +57,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('');
+  const [sharedUserIds, setSharedUserIds] = useState<string[]>([]);
   const [triggerType, setTriggerType] = useState<'device_state_changed' | 'time'>('device_state_changed');
   const [triggerConfig, setTriggerConfig] = useState<AutomationTriggerConfig>(DEFAULT_TRIGGER_CONFIG);
   const [actionType, setActionType] = useState<'device_command' | 'execute_scene'>('device_command');
@@ -65,6 +67,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
     if (!isOpen) return;
 
     if (existingAutomation) {
+      setSharedUserIds(existingAutomation.sharedUserIds ?? []);
       setName(existingAutomation.name);
       setIcon(existingAutomation.icon ?? '');
       setTriggerType(existingAutomation.trigger.type);
@@ -72,6 +75,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
       setActionType(existingAutomation.action.type);
       setActionConfig({ ...existingAutomation.action });
     } else {
+      setSharedUserIds([]);
       setName('');
       setIcon('');
       setTriggerType('device_state_changed');
@@ -96,6 +100,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
 
     const timeLocal = triggerConfig.timeLocal || triggerConfig.time || '12:00';
     const payload = {
+      sharedUserIds,
       name: name.trim(),
       icon: icon || undefined,
       trigger: triggerType === 'time'
@@ -190,6 +195,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
         onChange={setName}
       />
       <IconPicker value={icon} onChange={setIcon} />
+      <RoutineSharingField value={sharedUserIds} onChange={setSharedUserIds} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <AutomationBuilderTriggerSection

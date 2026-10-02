@@ -26,6 +26,8 @@ interface SceneAction {
 }
 
 interface Scene {
+  userId?: string;
+  sharedUserIds?: string[];
   id: string;
   homeId: string;
   roomId: string | null;
@@ -207,6 +209,7 @@ const ScenesView: React.FC<{
       ) : (
         <div className="flex flex-col gap-8 sm:gap-10">
           <ScenesGroup
+            canManage={scene => scene.userId === currentUserId}
             iconClassName=""
             scenes={scenes}
             rooms={rooms}
