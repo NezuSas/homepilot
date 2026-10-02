@@ -1,5 +1,7 @@
 # Drawer
 
+AC80 refinement: `dismissible` defaults false. Backdrop/Escape do not discard editing; close/Cancel remain explicit. `dismissible=true` opts an informational drawer into dismissal without changing focus trap/restore.
+
 **Source:** `apps/operator-console/src/components/ui/Drawer.tsx`
 **Family spec:** `specs/operator-console-modular-components-v1.md`
 
@@ -22,6 +24,6 @@ flexible column with internal scrolling when it exceeds viewport height.
 
 ## States and Acceptance
 
-Locks document scrolling while open, restores focus after close, closes with
-Escape, contains Tab navigation, retains focus changes leaving the top layer,
+Locks document scrolling while open, restores focus after explicit close,
+optionally dismisses with Escape, contains Tab navigation, retains focus changes leaving the top layer,
 and keeps the panel inside the viewport on mobile, tablet, and desktop.

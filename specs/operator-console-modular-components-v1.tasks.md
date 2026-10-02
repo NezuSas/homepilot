@@ -1,5 +1,8 @@
 # Tareas: Operator Console Modular Components V1
 
+- [x] AC79/AC80: NumberInput borrable, medidas comunes y cierre explícito de overlays; pruebas focalizadas.
+  - Evidencia (2026-10-02): validación conjunta, 324/324 Jest y 21/21 responsive focalizados PASS; typecheck, lint y builds raíz/consola PASS. Spec coverage, BDD, módulos, i18n, arquitectura y no-production-any PASS. `check:ui-primitives` sigue señalando botones existentes en HomeContextIndicator y HomeDashboardButton, no modificados en este alcance; no se declara ese control verde. Sin suite completa, Git ni deploy.
+
 ## Implementado
 
 - [x] Catálogo de primitivos, navegación, feedback, contenedores y dispositivos comunes.

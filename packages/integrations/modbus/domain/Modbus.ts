@@ -1,8 +1,10 @@
+import { addressProfile, validateModuleCapacities, validateProfileMapping, type ModbusModuleCapacities } from './ModbusAddressProfile';
+
 export type ModbusArea = 'coil' | 'discrete_input' | 'holding_register' | 'input_register';
 export type ModbusDataType = 'boolean' | 'uint16' | 'int16' | 'uint32' | 'int32' | 'float32';
 export const modbusRegisterTypes = ['uint16', 'int16', 'uint32', 'int32', 'float32'] as const;
 export function modbusWordCount(type: ModbusDataType): number { return type === 'uint32' || type === 'int32' || type === 'float32' ? 2 : 1; }
-export interface ModbusProbeRow { address: number; raw: number | boolean | null; status: 'ok' | 'error'; elapsedMs: number | null; error?: string; exceptionCode?: number; }
+export interface ModbusProbeRow { address: number; raw: number | boolean | null; status: 'ok' | 'error'; elapsedMs: number | null; error?: string; exceptionCode?: number; symbolicAddress?: string; area?: ModbusArea; }
 export interface ModbusProbeResult { rows: ModbusProbeRow[]; sampledAt: string; }
 /** One decoder for driver reads and installer previews. RAW words are unsigned and unscaled. */
 export function convertModbusValue(words: readonly (number | boolean)[], config: Pick<ModbusVariable, 'dataType' | 'wordOrder' | 'scale' | 'offset'>): number | boolean {
@@ -21,11 +23,13 @@ export function convertModbusValue(words: readonly (number | boolean)[], config:
 export interface ModbusConnection {
   id: string; homeId: string; name: string; host: string; port: number; unitId: number;
   timeoutMs: number; pollIntervalMs: number; enabled: boolean;
+  profileId?: string; moduleCapacities?: ModbusModuleCapacities;
 }
 export interface ModbusVariable {
   deviceId: string; connectionId: string; name: string; area: ModbusArea; address: number;
   dataType: ModbusDataType; wordOrder: 'high_first' | 'low_first'; scale: number; offset: number;
   unit: string; writable: boolean;
+  profileId?: string; symbolicAddress?: string;
 }
 export class ModbusError extends Error {
   readonly exceptionCode?: number;
@@ -51,7 +55,9 @@ export function validateConnection(input: Record<string, unknown>): Omit<ModbusC
   if (parts.length !== 4 || parts.some(p => !/^(0|[1-9]\d{0,2})$/.test(p) || Number(p) > 255)) return invalid();
   const [a, b, , d] = parts.map(Number);
   if (!(a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)) || d === 0 || d === 255) return invalid();
-  return { name: text(input.name, 80), host, port: integer(input.port, 502, 502, 502),
+  let profileId: string | undefined, moduleCapacities: ModbusModuleCapacities | undefined;
+  try { if (input.profileId != null && input.profileId !== '') { profileId = text(input.profileId, 80); addressProfile(profileId); } moduleCapacities = validateModuleCapacities(input.moduleCapacities); if (moduleCapacities && !profileId) return invalid(); } catch { return invalid(); }
+  return { ...(profileId ? { profileId } : {}), ...(moduleCapacities ? { moduleCapacities } : {}), name: text(input.name, 80), host, port: integer(input.port, 502, 502, 502),
     unitId: integer(input.unitId, 1, 1, 247), timeoutMs: integer(input.timeoutMs, 2000, 250, 10000),
     pollIntervalMs: integer(input.pollIntervalMs, 5000, 1000, 60000), enabled: flag(input.enabled) };
 }
@@ -69,5 +75,8 @@ export function validateVariable(input: Record<string, unknown>): Omit<ModbusVar
   if (dataType === 'boolean' && (scale !== 1 || offset !== 0)) return invalid();
   const unit = input.unit ?? '';
   if (typeof unit !== 'string' || unit.length > 24) return invalid();
-  return { name: text(input.name, 80), area, address, dataType, wordOrder, scale, offset, unit: unit.trim(), writable };
+  const profileId = input.profileId == null || input.profileId === '' ? undefined : text(input.profileId, 80);
+  const symbolicAddress = input.symbolicAddress == null || input.symbolicAddress === '' ? undefined : text(input.symbolicAddress, 32).toUpperCase();
+  try { validateProfileMapping({ profileId, symbolicAddress, area, address, writable }, modbusWordCount(dataType)); } catch { return invalid(); }
+  return { ...(profileId ? { profileId, symbolicAddress } : {}), name: text(input.name, 80), area, address, dataType, wordOrder, scale, offset, unit: unit.trim(), writable };
 }

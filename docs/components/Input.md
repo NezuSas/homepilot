@@ -1,5 +1,7 @@
 # Input
 
+AC79 refinement: standard surface is 44px high; label typography and 8px gap match the normal SearchableSelectField. Specialized explicit sizes remain opt-in. Numeric draft editing uses [NumberInput](NumberInput.md), not immediate `Number('')` conversion.
+
 **Source:** `apps/operator-console/src/components/ui/Input.tsx`
 **Family spec:** `specs/operator-console-modular-components-v1.md`
 
@@ -23,7 +25,7 @@ or beside the field. It applies to text, password, identity, onboarding, home,
 room, and scene names. Use `SearchInput` for simple modular searches. It does
 not replace ranges, files, text areas, radios, or domain-specific inputs. When
 sharing a row with a primary action, use `Button size="md"` or `IconButton`
-with `h-10 w-10` to preserve the field's base `h-10` height.
+with `h-11 w-11` to preserve the field's base `h-11` height.
 
 ## States and Acceptance
 

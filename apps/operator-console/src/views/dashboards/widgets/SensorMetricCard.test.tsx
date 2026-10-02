@@ -2,6 +2,20 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
 import { getSensorReading, getSensorSeverity, SensorMetricCard } from './SensorMetricCard';
 
+describe('Fixed measurement scale (AC42)', () => {
+  it.each(['5', '80', '130'])('keeps configured bounds and real value %s', value => {
+    const html = renderToStaticMarkup(<SensorMetricCard title="Fixed" sensorScale={{ min: 10, max: 100 }}
+      device={sensor('Fixed', { state: value, unit: 'bar', attributes: { min: 0, max: 6 } })} />);
+    expect(html).toContain('aria-valuemin="10"');
+    expect(html).toContain('aria-valuemax="100"');
+    expect(html).toContain(`aria-valuetext="${value} bar"`);
+  });
+  it('does not invent a meter when a configured sensor has no reading', () => {
+    const html = renderToStaticMarkup(<SensorMetricCard title="Fixed" sensorScale={{ min: 0, max: 100 }} />);
+    expect(html).not.toContain('role="meter"');
+  });
+});
+
 jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => ({
   'dashboard.editor.sections.sensor_battery': 'Batería',
   'dashboard.editor.sections.sensor_battery_level': 'Nivel de batería',

@@ -2,6 +2,7 @@ import { createServer, type Server, type Socket } from 'node:net';
 import type { AddressInfo } from 'node:net';
 import { ModbusTcpClient } from '../infrastructure/ModbusTcpClient';
 import type { ModbusConnection, ModbusVariable } from '../domain/Modbus';
+import { resolveModbusAddress } from '../domain/ModbusAddressProfile';
 
 describe('Feature: Native Modbus TCP protocol (AC3/AC4)', () => {
   let server: Server;
@@ -34,6 +35,12 @@ describe('Feature: Native Modbus TCP protocol (AC3/AC4)', () => {
     const connection = await plc((request, socket) => socket.end(frame(request, [3, 2, 0xff, 0x9c])));
     expect(await client.read(connection, { ...variable, dataType: 'int16', scale: 0.1, offset: 2 })).toBe(-8);
   });
+  it.each([['uint16', [3, 2, 0, 22], 22], ['uint32', [3, 4, 0, 1, 0, 2], 65538], ['float32', [3, 4, 0x41, 0xb4, 0, 0], 22.5]] as const)
+    ('Scenario: Profile D100 %s uses unchanged generic transport and shared decoder', async (dataType, payload, expected) => {
+      const resolved = resolveModbusAddress('xinje-xl5e-16t-v1', 'D100');
+      const connection = await plc((request, socket) => { expect(request[7]).toBe(3); expect(request.readUInt16BE(8)).toBe(100); socket.end(frame(request, [...payload])); });
+      expect(await client.read(connection, { ...variable, area: resolved.area, address: resolved.address, profileId: 'xinje-xl5e-16t-v1', symbolicAddress: 'D100', dataType })).toBe(expected);
+    });
   it.each(['high_first', 'low_first'] as const)('Scenario: Given float32 %s When two registers are read Then word order is respected', async wordOrder => {
     const payload = Buffer.alloc(4); payload.writeFloatBE(22.5);
     if (wordOrder === 'low_first') { const first = payload.readUInt16BE(0); payload.writeUInt16BE(payload.readUInt16BE(2), 0); payload.writeUInt16BE(first, 2); }

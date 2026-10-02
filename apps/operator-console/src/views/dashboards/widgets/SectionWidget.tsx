@@ -10,6 +10,7 @@ import { fetchDiagnosticResource } from '../../../lib/diagnosticResourceRequests
 import { apiFetch } from '../../../lib/apiClient';
 import { useDeviceSnapshotStore } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig } from '../types';
+import { normalizeSensorScale, type SensorScale } from './sectionCardCatalog';
 import { cardKinds, createId, getCatalogCategory, getCatalogDescriptionKey, getCatalogLabelKey, getDefaultIcon, getDefaultSpan, getEffectiveCardSpan, getRecommendedSectionHeight, getWidgetType, isClockKind, normalizeCards, normalizeKind, normalizeMediaVariant, type AssignableAutomation, type AssignableDisplayAction, type AssignableScene, type CardDraft, type MediaVariant, type NormalizedSectionCardItem, type NormalizedSectionCardKind, type SectionCardCategory, type SectionCardIcon, type SectionCardKind, type SectionCardSpan } from './sectionCardCatalog';
 import { getAssignableDevicesForSectionCard, isDeviceActive } from '../dashboardUtils';
 import { Button } from '../../../components/ui/Button';
@@ -250,11 +251,15 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       span: getEffectiveCardSpan(card.kind, card.span ?? getDefaultSpan(card.kind)),
       icon: nextIcon,
       mediaVariant: normalizeMediaVariant(card.mediaVariant),
+      sensorMin: card.sensorScale?.min,
+      sensorMax: card.sensorScale?.max,
     });
   };
 
   const saveCardEditor = () => {
     if (!editingCard) return;
+    const sensorScale = normalizeSensorScale({ min: cardDraft.sensorMin, max: cardDraft.sensorMax });
+    if (cardDraft.kind === 'sensor' && (cardDraft.sensorMin !== undefined || cardDraft.sensorMax !== undefined) && !sensorScale) return;
     const nextCards = cards.map((card) => {
       if (card.id !== editingCard.id) return card;
 
@@ -271,6 +276,8 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       };
       if (cardDraft.kind === 'media') updatedCard.mediaVariant = cardDraft.mediaVariant;
       else delete updatedCard.mediaVariant;
+      if (cardDraft.kind === 'sensor' && sensorScale) updatedCard.sensorScale = sensorScale;
+      else delete updatedCard.sensorScale;
       return updatedCard;
     });
 
@@ -312,6 +319,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     deviceIdOverride?: string,
     isEditorPreview = false,
     mediaVariantOverride?: MediaVariant,
+    sensorScaleOverride?: SensorScale,
   ) => {
     const title = titleOverride || catalogLabel(kind);
     const span = getEffectiveCardSpan(kind, spanOverride ?? getDefaultSpan(kind));
@@ -352,6 +360,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           isActive={previewDevice ? isDeviceActive(previewDevice) : false}
           device={previewDevice}
           mediaVariant={mediaVariantOverride}
+          sensorScale={sensorScaleOverride}
           isPreview={true}
           roomDeviceCount={roomDevices.length}
           roomActiveCount={roomDevices.filter(isDeviceActive).length}

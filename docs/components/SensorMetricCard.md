@@ -1,5 +1,7 @@
 # SensorMetricCard — instrumento analógico local
 
+AC42: optional `sensorScale: { min, max }` comes from each Dashboard card. Finite min < max overrides device/automatic scale for live and preview. Real readings and out-of-range accessible text remain unchanged; needle is clamped only visually. Missing readings still have no fabricated meter. Editor clears both bounds to restore historical behavior. JSON extra.cards persists/imports it without SQL migration; earlier editors may discard it on downgrade.
+
 ## Overview
 
 Este documento registra la extensión visual del Sensor existente, derivada del componente implementado. No define una identidad global nueva. HomePilot conserva su modelo de appliance local-first: el estado procede del snapshot del dispositivo y el navegador lo presenta, según [la arquitectura](../architecture.md).

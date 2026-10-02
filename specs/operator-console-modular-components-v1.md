@@ -1,5 +1,10 @@
 # SPEC: Operator Console Modular Components V1
 
+## Refinamiento autorizado de edición segura
+
+- AC79: Inputs estándar y selector normal comparten altura 44px. `NumberInput` permite borrado y reemplazo temporal sin forzar cero; valida mediante constraints y solo comunica números finitos. Campos opcionales notifican borrado explícito. No altera el contrato de Input existente.
+- AC80: Modal/Drawer modulares permanecen abiertos por defecto ante fondo/Escape; Cancelar/cerrar explícito mantiene foco restaurado y Tab trap. Un overlay informativo puede optar por dismissal; desplegables/listboxes siguen cerrándose normalmente. No se desactiva globalmente el focus trap. Unidad reutiliza selector buscable y preserva unidad histórica desconocida.
+
 **Estado:** Implementado  
 **Autor:** HomePilot Engineering  
 **Fecha:** 2026-07-17  

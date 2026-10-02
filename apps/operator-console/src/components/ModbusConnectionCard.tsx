@@ -20,7 +20,7 @@ export function ModbusConnectionCard({ connection, onEdit, onAdd, onVariable }: 
       </div>
     </div>
     {connection.variables.length ? <ul className="mt-3 divide-y divide-border border-t border-border">{connection.variables.map(variable => <li key={variable.deviceId} className="flex flex-wrap items-center gap-2 py-2">
-      <div className="min-w-0 flex-1"><p className="break-words text-body-compact font-medium">{variable.name}</p><p className="break-words text-caption text-muted-foreground">{t(`modbus.${variable.area}`)} · {variable.address} · {variable.dataType} · {t(variable.writable ? 'modbus.write_allowed' : 'modbus.read_only')}</p></div>
+      <div className="min-w-0 flex-1"><p className="break-words text-body-compact font-medium">{variable.name}</p><p className="break-words text-caption text-muted-foreground">{variable.symbolicAddress ? `${variable.symbolicAddress} · ` : ''}{t(`modbus.${variable.area}`)} · {variable.address} · {variable.dataType} · {t(variable.writable ? 'modbus.write_allowed' : 'modbus.read_only')}</p></div>
       <Button variant="ghost" size="lg" aria-label={t('modbus.edit_variable', { name: variable.name })} onClick={() => onVariable(variable)}>{t('modbus.configure')}</Button>
     </li>)}</ul> : <p className="my-3 text-caption text-muted-foreground">{t('modbus.no_variables')}</p>}
     <Button variant="outline" size="lg" onClick={onAdd}>{t('modbus.add_variable')}</Button>

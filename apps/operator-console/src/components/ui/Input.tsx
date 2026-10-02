@@ -19,9 +19,9 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const describedBy = [ariaDescribedBy, (error || helperText) && messageId].filter(Boolean).join(' ') || undefined;
 
     return (
-      <div className={cn("flex min-w-0 w-full flex-col gap-1.5", containerClassName)}>
+      <div className={cn("flex min-w-0 w-full flex-col gap-2", containerClassName)}>
         {label && (
-          <label htmlFor={inputId} className={cn("ml-1 break-words text-micro font-black uppercase tracking-widest", error ? "text-danger" : "text-muted-foreground", disabled && "opacity-50")}>
+          <label htmlFor={inputId} className={cn("block break-words text-caption font-black uppercase tracking-label", error ? "text-danger" : "text-muted-foreground", disabled && "opacity-50")}>
             {label}
           </label>
         )}
@@ -38,7 +38,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             aria-describedby={describedBy}
             aria-invalid={error ? true : ariaInvalid}
             className={cn(
-              "surface-transition flex h-10 min-w-0 w-full rounded-xl border bg-background px-3 py-2 text-body shadow-sm",
+              "surface-transition flex h-11 min-w-0 w-full rounded-xl border bg-background px-3 py-2 text-body shadow-sm",
               "border-border placeholder:text-muted-foreground/40",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary/40 focus-visible:shadow-depth-1",
               "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted/50",

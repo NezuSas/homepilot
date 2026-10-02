@@ -4,6 +4,8 @@ import type { HomeRepository } from '../../../topology/domain/repositories/HomeR
 import type { DeviceDriver, DeviceDriverCommand, DeviceDriverResult } from '../../../devices/domain/drivers/DeviceDriver';
 import type { Device } from '../../../devices/domain/types';
 import { ModbusError, validateConnection, validateVariable, type ModbusConnection, type ModbusVariable, type ModbusProbeResult } from '../domain/Modbus';
+import { resolveModbusRange, validateProfileMapping } from '../domain/ModbusAddressProfile';
+import { modbusWordCount } from '../domain/Modbus';
 import type { ModbusRepository, ModbusTransport } from './ModbusPorts';
 
 export class ModbusService implements DeviceDriver {
@@ -47,13 +49,22 @@ export class ModbusService implements DeviceDriver {
     await this.authorize(userId, homeId);
     const settings = validateConnection({ ...input, name: 'Read test', enabled: false });
     if (settings.timeoutMs > 5000) throw new ModbusError('INVALID_CONFIG', 'Probe timeout exceeded');
-    const map = validateVariable({ ...input, name: 'Read test', address: input.start, dataType: input.area === 'coil' || input.area === 'discrete_input' ? 'boolean' : 'uint16', scale: 1, offset: 0, writable: false });
-    const end = input.end;
+    const match = this.repository.connections(homeId).find(c => c.host === settings.host && c.unitId === settings.unitId);
+    let resolved: ReturnType<typeof resolveModbusRange> | undefined;
+    if (settings.profileId) {
+      try {
+        if (typeof input.symbolicStart !== 'string' || typeof input.symbolicEnd !== 'string') throw new Error();
+        resolved = resolveModbusRange(settings.profileId, input.symbolicStart, input.symbolicEnd, match?.moduleCapacities ?? settings.moduleCapacities);
+        if ((input.area !== undefined && input.area !== resolved[0].area) || (input.start !== undefined && input.start !== resolved[0].address) || (input.end !== undefined && input.end !== resolved[resolved.length - 1].address)) throw new Error();
+      } catch { throw new ModbusError('INVALID_CONFIG', 'Invalid symbolic range'); }
+    } else if (input.symbolicStart != null || input.symbolicEnd != null) throw new ModbusError('INVALID_CONFIG', 'Profile required');
+    const area = resolved?.[0].area ?? input.area;
+    const map = validateVariable({ name: 'Read test', area, address: resolved?.[0].address ?? input.start, dataType: area === 'coil' || area === 'discrete_input' ? 'boolean' : 'uint16', scale: 1, offset: 0, writable: false });
+    const end = resolved?.[resolved.length - 1].address ?? input.end;
     if (typeof end !== 'number' || !Number.isInteger(end) || end < map.address || end > 65535 || end - map.address >= 64) throw new ModbusError('INVALID_CONFIG', 'Invalid read range');
     if (input.writable === true) throw new ModbusError('READ_ONLY', 'Discovery is read-only');
     if (this.probes.has(homeId)) throw new ModbusError('LIMIT', 'A probe is already running');
     this.probes.add(homeId);
-    const match = this.repository.connections(homeId).find(c => c.host === settings.host && c.unitId === settings.unitId);
     const connection: ModbusConnection = { ...settings, id: match?.id ?? `probe:${homeId}:${settings.host}:${settings.unitId}`, homeId };
     try {
       return await this.serialize(connection.id, async () => {
@@ -63,10 +74,10 @@ export class ModbusService implements DeviceDriver {
           const raw = await this.transport.readRange(connection, map.area, map.address, end - map.address + 1, signal);
           if (signal?.aborted) throw new ModbusError('CANCELLED', 'Read cancelled');
           if (raw.length !== end - map.address + 1) throw new ModbusError('PROTOCOL', 'Incomplete read');
-          return { sampledAt: new Date().toISOString(), rows: raw.map((value, i) => ({ address: map.address + i, raw: value, status: 'ok' as const, elapsedMs: Date.now() - started })) };
+          return { sampledAt: new Date().toISOString(), rows: raw.map((value, i) => ({ address: map.address + i, raw: value, status: 'ok' as const, elapsedMs: Date.now() - started, ...(resolved ? { symbolicAddress: resolved[i].symbolicAddress, area: map.area } : {}) })) };
         } catch (error: unknown) {
           if (signal?.aborted || (error instanceof ModbusError && error.code === 'CANCELLED')) throw new ModbusError('CANCELLED', 'Read cancelled');
-          return { sampledAt: new Date().toISOString(), rows: Array.from({ length: end - map.address + 1 }, (_, i) => ({ address: map.address + i, raw: null, status: 'error' as const, elapsedMs: Date.now() - started, error: error instanceof ModbusError ? error.code : 'CONNECTION', ...(error instanceof ModbusError && error.exceptionCode !== undefined ? { exceptionCode: error.exceptionCode } : {}) })) };
+          return { sampledAt: new Date().toISOString(), rows: Array.from({ length: end - map.address + 1 }, (_, i) => ({ address: map.address + i, raw: null, status: 'error' as const, elapsedMs: Date.now() - started, error: error instanceof ModbusError ? error.code : 'CONNECTION', ...(error instanceof ModbusError && error.exceptionCode !== undefined ? { exceptionCode: error.exceptionCode } : {}), ...(resolved ? { symbolicAddress: resolved[i].symbolicAddress, area: map.area } : {}) })) };
         }
       });
     } finally { this.probes.delete(homeId); }
@@ -77,6 +88,10 @@ export class ModbusService implements DeviceDriver {
     if (existing && existing.homeId !== homeId) throw new ModbusError('FORBIDDEN', 'Home is not accessible');
     const connection = { ...validateConnection({ ...existing, ...input }), id: existing?.id ?? randomUUID(), homeId };
     return this.serialize(connection.id, async () => {
+      if (existing) {
+        try { for (const variable of this.repository.variables(existing.id)) validateProfileMapping(variable, modbusWordCount(variable.dataType), connection.moduleCapacities); }
+        catch { throw new ModbusError('INVALID_CONFIG', 'Capacity would invalidate an existing variable'); }
+      }
       if (!existing && this.repository.connections(homeId).length >= 16) throw new ModbusError('LIMIT', 'Too many Modbus connections');
       this.repository.saveConnection(connection); this.schedule.delete(connection.id);
       if (!connection.enabled || (existing && (existing.host !== connection.host || existing.unitId !== connection.unitId))) await this.markUnavailable(connection.id);
@@ -91,6 +106,7 @@ export class ModbusService implements DeviceDriver {
       if (deviceId && (!existing || existing.connectionId !== connectionId)) throw new ModbusError('NOT_FOUND', 'Modbus variable not found');
       if (!existing && this.repository.variables(connectionId).length >= 128) throw new ModbusError('LIMIT', 'Too many Modbus variables');
       const variable: ModbusVariable = { ...validateVariable({ ...existing, ...input }), deviceId: deviceId ?? randomUUID(), connectionId };
+      try { validateProfileMapping(variable, modbusWordCount(variable.dataType), this.requireConnection(connectionId).moduleCapacities); } catch { throw new ModbusError('INVALID_CONFIG', 'Invalid profile mapping'); }
       const previous = existing ? await this.devices.findDeviceById(variable.deviceId) : null;
       if (existing && (!previous || previous.homeId !== connection.homeId || previous.integrationSource !== 'modbus-tcp')) throw new ModbusError('FORBIDDEN', 'Invalid Modbus binding');
       const now = new Date().toISOString(), type = variable.writable ? 'switch' : variable.dataType === 'boolean' ? 'binary_sensor' : 'sensor';
@@ -119,6 +135,7 @@ export class ModbusService implements DeviceDriver {
         const current = this.repository.variable(device.id), connection = this.requireConnection(variable.connectionId);
         if (!this.supports(device) || connection.homeId !== device.homeId) throw new ModbusError('FORBIDDEN', 'Invalid Modbus binding');
         if (!current?.writable || current.area !== 'coil') throw new ModbusError('READ_ONLY', 'Modbus variable is read-only');
+        try { validateProfileMapping(current, modbusWordCount(current.dataType), connection.moduleCapacities); } catch { throw new ModbusError('READ_ONLY', 'Protected profile address'); }
         if (!connection.enabled) throw new ModbusError('DISABLED', 'Modbus connection is disabled');
         if (!['turn_on', 'turn_off', 'toggle'].includes(command.name) || Object.keys(command.params ?? {}).length) throw new ModbusError('READ_ONLY', 'Unsupported Modbus command');
         const value = command.name === 'toggle' ? !(await this.transport.read(connection, current)) : command.name === 'turn_on';

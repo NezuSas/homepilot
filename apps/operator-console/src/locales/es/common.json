@@ -1,5 +1,13 @@
 {
   "modbus": {
+    "no_unit": "Sin unidad", "result_filter": "Lecturas", "filter_all": "Todas", "filter_valid": "Lecturas válidas", "filter_active": "Con actividad / RAW distinto de cero", "filtered_count": "{{count}} de {{total}} lecturas",
+    "addressing": "Direccionamiento", "generic": "Modbus genérico", "symbol": "Elemento PLC", "symbol_end": "Elemento PLC final",
+    "reserved_capacity": "Direcciones reservadas: canales físicos sin confirmar. Configura la capacidad del módulo instalado antes de la puesta en marcha.",
+    "invalid_symbol": "Elemento o rango inválido. Revisa prefijo, numeración octal X/Y y capacidad física.",
+    "physical_module": "Módulo físico", "expansion": "Expansión {{number}}", "capacity_known": "Capacidad instalada confirmada",
+    "physical_inputs": "Entradas físicas", "physical_outputs": "Salidas físicas", "capacity_hint": "Indica canales instalados, no direcciones reservadas. Un módulo sin confirmar no implica 64 canales físicos.",
+    "two_words": "Los valores de 32 bits ocupan dos registros consecutivos. El orden de bytes dentro de cada palabra es fijo; el orden de palabras se puede seleccionar.",
+    "input_active": "Activada", "input_inactive": "Desactivada",
     "probe_title": "Probar lectura", "probe_hint": "Puesta en marcha · solo lectura. No se habilitan escrituras ni se guarda el mapa durante la prueba.", "exception": "Excepción Modbus {{code}}; consulta el manual del PLC y revisa el rango.",
     "range_start": "PDU inicial", "range_end": "PDU final", "range_hint": "Hasta 64 direcciones por prueba. Tiempo de respuesta del bloque completo; una excepción puede afectar a todo el rango. Para 32 bits incluye la siguiente dirección.",
     "refresh": "Refresco", "manual": "Manual", "probe_start": "Leer rango", "probe_stop": "Detener", "reading": "Leyendo…", "waiting": "Esperando próximo refresco", "stopped": "Lectura detenida",
@@ -510,6 +518,7 @@
         "sensor_normal": "Normal",
         "sensor_pressure": "Presión",
         "sensor_scale_label": "Escala",
+        "sensor_scale_settings": "Escala de medición fija", "sensor_min": "Mínimo", "sensor_max": "Máximo", "sensor_scale_hint": "Opcional. Define ambos límites para mantener la escala fija, o borra ambos para usar la escala del dispositivo/automática.", "sensor_scale_invalid": "Define ambos límites finitos; el máximo debe ser mayor que el mínimo.",
         "sensor_scale_automatic": "Escala automática",
         "sensor_low": "Bajo",
         "sensor_critical": "Crítico",

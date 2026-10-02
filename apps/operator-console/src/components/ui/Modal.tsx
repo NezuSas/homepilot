@@ -24,6 +24,7 @@ export interface ModalProps {
   headerAlign?: 'center' | 'start';
   closeLabel?: string;
   hideCloseButton?: boolean;
+  dismissible?: boolean;
 }
 
 const variantConfig = {
@@ -50,7 +51,8 @@ export const Modal: React.FC<ModalProps> = ({
   footerClassName,
   headerAlign = 'center',
   closeLabel,
-  hideCloseButton = false
+  hideCloseButton = false,
+  dismissible = false
 }) => {
   const { t } = useTranslation();
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -59,7 +61,7 @@ export const Modal: React.FC<ModalProps> = ({
   const viewportBounds = useVisualViewportBounds(isOpen);
   const { handleOverlayKeyDown } = useOverlayAccessibility({
     isOpen,
-    onClose,
+    onClose: dismissible ? onClose : undefined,
     containerRef: dialogRef,
   });
 
@@ -72,7 +74,7 @@ export const Modal: React.FC<ModalProps> = ({
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-background/80 backdrop-blur-md animate-in fade-in duration-base"
-        onClick={onClose}
+        onClick={dismissible ? onClose : undefined}
       />
       
       {/* Modal */}

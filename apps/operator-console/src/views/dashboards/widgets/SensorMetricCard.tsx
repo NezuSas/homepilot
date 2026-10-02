@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
 import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
 import { getDashboardIconComponent } from '../components/dashboardIconRegistry';
-import { getDefaultIcon, type SectionCardIcon } from './sectionCardCatalog';
+import { getDefaultIcon, normalizeSensorScale, type SensorScale, type SectionCardIcon } from './sectionCardCatalog';
 import { getSensorGaugeScale, SensorAnalogGauge } from './SensorAnalogGauge';
 
 export type SensorCategory = 'battery' | 'temperature' | 'humidity' | 'pressure' | 'memory' | 'load' | 'power' | 'energy' | 'signal' | 'illuminance' | 'air_quality' | 'presence' | 'measurement' | 'status';
@@ -26,6 +26,7 @@ interface SensorMetricCardProps {
   isPreview?: boolean;
   icon?: SectionCardIcon;
   roomName?: string;
+  sensorScale?: SensorScale;
 }
 
 const unavailableStates = new Set(['', 'none', 'null', 'unknown', 'unavailable', 'offline']);
@@ -253,7 +254,7 @@ function SensorPresentationHero({ reading, t }: {
   );
 }
 
-export function SensorMetricCard({ device, title, isPreview = false, icon, roomName }: SensorMetricCardProps) {
+export function SensorMetricCard({ device, title, isPreview = false, icon, roomName, sensorScale }: SensorMetricCardProps) {
   const { t } = useTranslation();
   const reading = getSensorReading(device, isPreview);
   const severity = getSensorSeverity(reading);
@@ -261,9 +262,10 @@ export function SensorMetricCard({ device, title, isPreview = false, icon, roomN
   const number = numericValue(reading.value);
   const state = asRecord(device?.lastKnownState);
   const attributes = asRecord(state.attributes);
+  const configuredScale = normalizeSensorScale(sensorScale);
   const scale = number === null ? null : getSensorGaugeScale(number, isPercentage,
-    attributes.min_value ?? attributes.min ?? state.min_value ?? state.min,
-    attributes.max_value ?? attributes.max ?? state.max_value ?? state.max, reading.unit);
+    configuredScale?.min ?? attributes.min_value ?? attributes.min ?? state.min_value ?? state.min,
+    configuredScale?.max ?? attributes.max_value ?? attributes.max ?? state.max_value ?? state.max, reading.unit);
   const analog = number !== null || reading.value === null;
   const categoryLabel = getCategoryLabel(reading.category, t);
   const displayTitle = title.trim() || device?.name?.trim() || categoryLabel;

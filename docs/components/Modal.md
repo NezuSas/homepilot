@@ -1,5 +1,7 @@
 # Modal
 
+AC80 refinement: `dismissible` defaults false. Backdrop and Escape do not close a form; explicit close/Cancel still call onClose, preserving Tab trap and restored focus. Informational overlays may opt into `dismissible=true`. Controlled popup/listbox dismissal remains independent.
+
 **Source:** `apps/operator-console/src/components/ui/Modal.tsx`
 **Family spec:** `specs/operator-console-modular-components-v1.md`
 
@@ -26,7 +28,7 @@ critical confirmation.
 ## States and Acceptance
 
 Supports default, info, danger, warning, and success variants, backdrop,
-initial focus, focus restoration, Escape, and Tab cycling; it also retains
+initial focus, focus restoration, opt-in Escape dismissal, and Tab cycling; it also retains
 focus that leaves due to a programmatic interaction and respects nested
 dialogs. It preserves mobile, tablet, and desktop viewport behavior. Optional
 children support confirmations that show only a shared header and footer. Title

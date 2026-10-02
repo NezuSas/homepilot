@@ -1,5 +1,13 @@
 {
   "modbus": {
+    "no_unit": "No unit", "result_filter": "Readings", "filter_all": "All", "filter_valid": "Valid readings", "filter_active": "With activity / non-zero RAW", "filtered_count": "{{count}} of {{total}} readings",
+    "addressing": "Addressing", "generic": "Generic Modbus", "symbol": "PLC element", "symbol_end": "Final PLC element",
+    "reserved_capacity": "Reserved addresses: physical channels are not confirmed. Set the installed module capacity before commissioning.",
+    "invalid_symbol": "Invalid element or range. Check the prefix, octal X/Y numbering and physical capacity.",
+    "physical_module": "Physical module", "expansion": "Expansion {{number}}", "capacity_known": "Installed capacity confirmed",
+    "physical_inputs": "Physical inputs", "physical_outputs": "Physical outputs", "capacity_hint": "Enter installed channel counts, not reserved addresses. Unconfirmed modules do not imply 64 physical channels.",
+    "two_words": "32-bit values occupy two consecutive registers. Byte order inside each word is fixed; word order is selectable.",
+    "input_active": "Active", "input_inactive": "Inactive",
     "probe_title": "Test reading", "probe_hint": "Commissioning · read only. Testing never enables writes or saves the map.", "exception": "Modbus exception {{code}}; consult the PLC manual and check the range.",
     "range_start": "Start PDU", "range_end": "End PDU", "range_hint": "Up to 64 addresses per test. Response time covers the whole block; an exception can affect the entire range. Include the next address for 32-bit values.",
     "refresh": "Refresh", "manual": "Manual", "probe_start": "Read range", "probe_stop": "Stop", "reading": "Reading…", "waiting": "Waiting for next refresh", "stopped": "Reading stopped",
@@ -510,6 +518,7 @@
         "sensor_normal": "Normal",
         "sensor_pressure": "Pressure",
         "sensor_scale_label": "Scale",
+        "sensor_scale_settings": "Fixed measurement scale", "sensor_min": "Minimum", "sensor_max": "Maximum", "sensor_scale_hint": "Optional. Set both bounds to keep the scale fixed, or clear both to use the device/default scale.", "sensor_scale_invalid": "Set both finite bounds; maximum must be greater than minimum.",
         "sensor_scale_automatic": "Automatic scale",
         "sensor_low": "Low",
         "sensor_critical": "Critical",

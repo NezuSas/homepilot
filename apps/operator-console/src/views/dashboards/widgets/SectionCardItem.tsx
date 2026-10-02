@@ -136,6 +136,7 @@ export function SectionCardItem({
     span={span}
     icon={actionIcon ?? card.icon}
     mediaVariant={card.mediaVariant}
+    sensorScale={card.sensorScale}
     isAssigned={Boolean(card.entityId)}
     isActive={tileIsActive}
     device={assignedDevice}

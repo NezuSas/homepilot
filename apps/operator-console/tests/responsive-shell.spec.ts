@@ -1,6 +1,171 @@
 import { expect, test } from '@playwright/test';
 import { mdiAutoFix, mdiHome, mdiRobot, mdiWeatherWindy } from '@mdi/js';
 
+for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'tablet portrait', width: 768, height: 1024 }, { name: 'desktop', width: 1440, height: 900 }]) {
+  test(`Feature: Modbus table refinement — Scenario: Fixed headers filters and safe drafts fit ${viewport.name} (AC16/AC17/AC79/AC80)`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport); await prepareAuthenticatedDashboard(page);
+    await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: 'h', name: 'Home' }] }));
+    let reads = 0;
+    await page.route('**/api/v1/modbus/connections*', route => route.fulfill({ json: { connections: [] } }));
+    await page.route('**/api/v1/modbus/probe', route => {
+      reads++;
+      return route.fulfill({ json: { sampledAt: '2026-10-02T12:00:00Z', rows: Array.from({ length: 31 }, (_, i) => ({
+        address: 100 + i, raw: i === 0 ? 0x41b4 : i === 29 ? 17 : 0, status: i === 30 ? 'error' : 'ok', elapsedMs: 10,
+        ...(i === 30 ? { error: 'TIMEOUT' } : {}),
+      })) } });
+    });
+    await page.goto('/system/modbus'); await page.getByRole('button', { name: /^(Test reading|Probar lectura)$/i }).click();
+    const dialog = page.getByRole('dialog', { name: /^(Test reading|Probar lectura)$/i });
+    const id = dialog.getByLabel(/^(Unit ID)$/i);
+    await dialog.getByLabel(/^(PLC private IP|IP privada del PLC)$/i).fill('192.168.1.5');
+    await id.fill(''); await expect(id).toHaveValue('');
+    await dialog.getByRole('button', { name: /^(Read range|Leer rango)$/i }).click(); expect(reads).toBe(0);
+    await id.fill('2'); await id.press('Escape'); await expect(dialog).toBeVisible(); await expect(id).toHaveValue('2');
+    const bounds = (await dialog.boundingBox())!;
+    await page.mouse.click(bounds.x / 2, bounds.y + bounds.height / 2);
+    await expect(dialog).toBeVisible(); await expect(id).toHaveValue('2');
+    const area = dialog.getByRole('button', { name: /^(Area|Área)$/i });
+    const inputBounds = (await id.boundingBox())!, selectBounds = (await area.boundingBox())!;
+    expect(inputBounds.height).toBeCloseTo(44, 1); expect(selectBounds.height).toBeCloseTo(44, 1);
+    if (viewport.name !== 'mobile') {
+      const neighbor = (await dialog.getByLabel(/^(Timeout \(ms\)|Espera máxima \(ms\))$/i).boundingBox())!;
+      expect(Math.abs(neighbor.y - selectBounds.y)).toBeLessThan(1);
+    }
+    await dialog.getByLabel(/^(End PDU|PDU final)$/i).fill('130');
+    await dialog.getByRole('button', { name: /^(Read range|Leer rango)$/i }).click();
+    const table = dialog.getByRole('table'); await expect(table.getByRole('row')).toHaveCount(32);
+    const filter = dialog.getByRole('button', { name: /^(Readings|Lecturas)$/i });
+    await filter.click(); await page.getByRole('option', { name: /^(Valid readings|Lecturas válidas)$/i }).click();
+    await expect(table.getByRole('row')).toHaveCount(31);
+    await filter.click(); await page.getByRole('option', { name: /With activity|Con actividad/ }).click();
+    await expect(table.getByRole('row')).toHaveCount(3);
+    await dialog.getByRole('button', { name: /^(Data type|Tipo de dato)$/i }).click(); await page.getByRole('option', { name: 'float32', exact: true }).click();
+    const row = table.getByRole('row').filter({ has: page.getByRole('rowheader', { name: '100', exact: true }) });
+    await expect(row).toContainText('22.5');
+    await dialog.getByRole('button', { name: /^(Unit|Unidad)$/i }).click(); await page.getByRole('option', { name: '°C', exact: true }).click();
+    await expect(row).toContainText('°C');
+    await dialog.getByRole('button', { name: /^(Data type|Tipo de dato)$/i }).click(); await page.getByRole('option', { name: 'uint16', exact: true }).click();
+    await filter.click(); await page.getByRole('option', { name: /^(All|Todas)$/i, exact: true }).click();
+    const lastRow = table.getByRole('row').filter({ has: page.getByRole('rowheader', { name: '130', exact: true }) });
+    const region = dialog.getByRole('region', { name: /Read results|Resultados de lectura/ });
+    const header = table.getByRole('columnheader', { name: /^(Variable)$/i });
+    for (const theme of ['dark', 'light']) {
+      await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
+      await lastRow.getByRole('button', { name: /^(Create variable|Crear variable)$/i }).scrollIntoViewIfNeeded();
+      await expect(header).toBeVisible();
+      const headerBounds = (await header.boundingBox())!, regionBounds = (await region.boundingBox())!;
+      expect(Math.abs(headerBounds.y - regionBounds.y)).toBeLessThan(2);
+      expect(await header.evaluate(element => getComputedStyle(element).backgroundColor)).not.toBe('rgba(0, 0, 0, 0)');
+      expect(await lastRow.getByRole('button', { name: /^(Create variable|Crear variable)$/i }).evaluate(element => getComputedStyle(element).whiteSpace)).toBe('nowrap');
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+      await page.screenshot({ path: testInfo.outputPath(`table-refinement-${theme}.png`), animations: 'disabled' });
+    }
+    await dialog.getByRole('button', { name: /^(Close|Cerrar)$/i }).click(); await expect(dialog).not.toBeVisible();
+  });
+}
+
+test('Feature: Sensor fixed scale — Scenario: Editor preview and reload keep optional bounds (AC42)', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 768, height: 1024 });
+  const section = responsiveDashboard.tabs[0]!.widgets[1]!;
+  let dashboard = { ...responsiveDashboard, tabs: [{ ...responsiveDashboard.tabs[0]!, widgets: [section] }] };
+  await prepareAuthenticatedDashboard(page, dashboard);
+  await page.route('**/api/v1/devices', route => route.fulfill({ json: responsiveDevices.map(device => device.id === 'sensor-climate'
+    ? { ...device, lastKnownState: { state: '22.4', unit_of_measurement: '°C' } } : device) }));
+  let savedScale: unknown;
+  await page.route('**/api/v1/dashboards', route => route.fulfill({ json: [dashboard] }));
+  await page.route('**/api/v1/dashboards/responsive-dashboard', route => {
+    if (route.request().method() === 'PATCH') {
+      dashboard = { ...dashboard, ...route.request().postDataJSON() };
+      savedScale = (dashboard.tabs[0]!.widgets[0]!.config.extra.cards[0] as { sensorScale?: unknown }).sensorScale;
+    }
+    return route.fulfill({ json: dashboard });
+  });
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab'); await enterDashboardEdit(page);
+  const sensor = page.locator('[data-dashboard-card-id="responsive-sensor"]');
+  await sensor.hover(); await sensor.getByRole('button', { name: /^(Edit|Editar)$/i }).click();
+  const heading = page.getByRole('heading', { name: /^(Edit|Editar)$/i });
+  const editor = heading.locator('..').locator('..').locator('..');
+  const minimum = editor.getByLabel(/^(Minimum|Mínimo)$/i), maximum = editor.getByLabel(/^(Maximum|Máximo)$/i);
+  await expect(minimum).toHaveValue(''); await minimum.fill('-20');
+  const save = editor.getByRole('button', { name: /^(Save|Guardar)$/i });
+  await expect(save).toBeDisabled(); await maximum.fill('100'); await expect(save).toBeEnabled();
+  const preview = editor.getByRole('meter'); await expect(preview).toHaveAttribute('aria-valuemin', '-20'); await expect(preview).toHaveAttribute('aria-valuemax', '100');
+  for (const theme of ['dark', 'light']) {
+    await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
+    await minimum.scrollIntoViewIfNeeded(); await page.screenshot({ path: testInfo.outputPath(`sensor-scale-${theme}.png`), animations: 'disabled' });
+  }
+  await save.click(); await expect.poll(() => savedScale).toEqual({ min: -20, max: 100 });
+  await page.reload(); await expect(sensor.getByRole('meter')).toHaveAttribute('aria-valuemin', '-20');
+  await enterDashboardEdit(page); await sensor.hover(); await sensor.getByRole('button', { name: /^(Edit|Editar)$/i }).click();
+  await expect(minimum).toHaveValue('-20'); await expect(maximum).toHaveValue('100');
+  await minimum.fill(''); await maximum.fill(''); await save.click(); await expect.poll(() => savedScale).toBeUndefined();
+});
+
+for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'tablet portrait', width: 768, height: 1024 }, { name: 'tablet landscape', width: 1024, height: 768 }, { name: 'desktop', width: 1440, height: 900 }]) {
+  test(`Feature: PLC address profiles — Scenario: Symbol resolution read preview and persistence fits ${viewport.name} (AC11/AC12/AC13/AC14)`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport); await prepareAuthenticatedDashboard(page);
+    await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: 'h', name: 'Home' }] }));
+    const connections: Array<Record<string, unknown>> = []; const probes: Array<Record<string, unknown>> = []; let saved: Record<string, unknown> | undefined;
+    await page.route('**/api/v1/modbus/**', route => {
+      const request = route.request();
+      if (request.method() === 'GET') return route.fulfill({ json: { connections } });
+      const body = request.postDataJSON();
+      if (request.url().endsWith('/probe')) {
+        probes.push(body); const bits = body.area === 'coil';
+        return route.fulfill({ json: { sampledAt: '2026-10-02T12:00:00Z', rows: (bits ? [true, false] : [0x41b4, 0]).map((raw, i) => ({ address: body.start + i, raw, status: 'ok', elapsedMs: 12 })) } });
+      }
+      if (request.url().includes('/variables')) { saved = { ...body, deviceId: 'v', connectionId: 'c' }; connections[0].variables = [saved]; return route.fulfill({ json: { variable: saved } }); }
+      connections.push({ ...body, id: 'c', variables: [] }); return route.fulfill({ json: { connection: connections[0] } });
+    });
+    await page.goto('/system/modbus'); await page.getByRole('button', { name: /^(Test reading|Probar lectura)$/i }).click();
+    const dialog = page.getByRole('dialog', { name: /^(Test reading|Probar lectura)$/i });
+    await dialog.getByLabel(/^(PLC private IP|IP privada del PLC)$/i).fill('192.168.1.5');
+    await dialog.getByRole('button', { name: /^(Addressing|Direccionamiento)$/i }).click();
+    await page.getByRole('option', { name: 'Xinje XL5E · XL5E-16T v1', exact: true }).click();
+    const symbol = dialog.getByLabel(/^(PLC element|Elemento PLC)$/i, { exact: true });
+    const end = dialog.getByLabel(/^(Final PLC element|Elemento PLC final)$/i, { exact: true });
+    await symbol.fill('X8'); await end.fill('X10');
+    await expect(dialog.getByRole('button', { name: /^(Read range|Leer rango)$/i })).toBeDisabled(); expect(probes).toHaveLength(0);
+    await symbol.fill('X10007'); await end.fill('X10010');
+    await expect(dialog.getByText(/X10007 – X10010 · .* · PDU 20743 – 20744/)).toBeVisible();
+    await expect(dialog.getByText(/Reserved addresses:|Direcciones reservadas:/)).toBeVisible();
+    await dialog.getByRole('button', { name: /^(Read range|Leer rango)$/i }).click();
+    const bitRow = dialog.getByRole('row').filter({ has: page.getByRole('rowheader', { name: '20743', exact: true }) });
+    await expect(bitRow).toContainText(/Active|Activada/);
+    expect(probes[0]).toMatchObject({ profileId: 'xinje-xl5e-16t-v1', symbolicStart: 'X10007', symbolicEnd: 'X10010', area: 'coil', start: 20743, end: 20744 });
+    expect(probes[0]).not.toHaveProperty('writable'); expect(connections).toEqual([]);
+    await symbol.fill('D100'); await end.fill('D101');
+    await expect(dialog.getByText(/D100 – D101 · .* · PDU 100 – 101/)).toBeVisible();
+    await dialog.getByRole('button', { name: /^(Read range|Leer rango)$/i }).click();
+    const row = dialog.getByRole('row').filter({ has: page.getByRole('rowheader', { name: '100', exact: true }) });
+    await expect(row).toContainText('16820');
+    await dialog.getByRole('button', { name: /^(Data type|Tipo de dato)$/i }).click(); await page.getByRole('option', { name: 'float32', exact: true }).click();
+    await dialog.getByLabel(/^(Scale|Escala)$/i).fill('0.1'); await dialog.getByLabel(/^(Offset|Desplazamiento)$/i).fill('2');
+    await dialog.getByRole('button', { name: /^(Unit|Unidad)$/i, exact: true }).click(); await page.getByRole('option', { name: '°C', exact: true }).click();
+    await expect(row).toContainText('4.25'); await expect(row).toContainText('D100'); await expect(row).toContainText('°C');
+    await expect(dialog.getByRole('row').filter({ has: page.getByRole('rowheader', { name: '101', exact: true }) }).getByRole('button', { name: /^(Create variable|Crear variable)$/i })).toBeDisabled();
+    for (const theme of ['dark', 'light']) {
+      await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
+      await dialog.getByRole('heading', { name: /^(Test reading|Probar lectura)$/i }).scrollIntoViewIfNeeded();
+      await page.screenshot({ path: testInfo.outputPath(`plc-profile-${theme}.png`), animations: 'disabled', fullPage: true });
+      await row.getByRole('rowheader', { name: '100', exact: true }).scrollIntoViewIfNeeded();
+      await page.screenshot({ path: testInfo.outputPath(`plc-profile-results-${theme}.png`), animations: 'disabled', fullPage: true });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+      expect((await dialog.boundingBox())!.height).toBeLessThanOrEqual(viewport.height);
+    }
+    await row.getByRole('button', { name: /^(Create variable|Crear variable)$/i }).click();
+    const editor = page.getByRole('dialog', { name: /^(Configure variable|Configurar variable)$/i });
+    await expect(editor.getByLabel(/^(PLC element|Elemento PLC)$/i, { exact: true })).toHaveValue('D100');
+    await expect(editor.getByRole('switch', { name: /Allow coil writes|Permitir escritura de coil/ })).toHaveCount(0);
+    await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
+    expect(saved).toMatchObject({ profileId: 'xinje-xl5e-16t-v1', symbolicAddress: 'D100', area: 'holding_register', address: 100, dataType: 'float32', wordOrder: 'high_first', scale: 0.1, offset: 2, unit: '°C', writable: false });
+    expect(connections[0]).toMatchObject({ profileId: 'xinje-xl5e-16t-v1', enabled: false });
+    await page.reload(); const card = page.getByRole('region', { name: 'PLC 192.168.1.5' }); await expect(card).toContainText('D100');
+    await card.getByRole('button', { name: /Configure D100|Configurar D100/i }).click();
+    await expect(page.getByRole('dialog').getByLabel(/^(PLC element|Elemento PLC)$/i, { exact: true })).toHaveValue('D100');
+  });
+}
+
 for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'tablet portrait', width: 768, height: 1024 }, { name: 'tablet landscape', width: 1024, height: 768 }, { name: 'desktop', width: 1440, height: 900 }]) {
   test(`Feature: Modbus commissioning — Scenario: Read-only RAW conversion and mapping fits ${viewport.name} (AC8/AC9/AC10)`, async ({ page }, testInfo) => {
     await page.setViewportSize(viewport); await prepareAuthenticatedDashboard(page);
@@ -24,7 +189,8 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     await expect(row).toContainText('22'); await expect(row).toContainText('12 ms');
     expect(probeBody).toMatchObject({ host: '192.168.1.5', unitId: 1, area: 'holding_register', start: 100, end: 102 });
     expect(probeBody).not.toHaveProperty('writable'); expect(connections).toEqual([]);
-    await dialog.getByLabel(/^(Scale|Escala)$/i).fill('0.1'); await dialog.getByLabel(/^(Offset|Desplazamiento)$/i).fill('2'); await dialog.getByLabel(/^(Unit|Unidad)$/i, { exact: true }).fill('°C');
+    await dialog.getByLabel(/^(Scale|Escala)$/i).fill('0.1'); await dialog.getByLabel(/^(Offset|Desplazamiento)$/i).fill('2');
+    await dialog.getByRole('button', { name: /^(Unit|Unidad)$/i, exact: true }).click(); await page.getByRole('option', { name: '°C', exact: true }).click();
     await expect(row).toContainText('4.2'); await expect(row).toContainText('°C');
     await dialog.getByRole('button', { name: /^(Data type|Tipo de dato)$/i }).click(); await page.getByRole('option', { name: 'uint32', exact: true }).click();
     const last = dialog.getByRole('row').filter({ has: page.getByRole('rowheader', { name: '102', exact: true }) });
@@ -100,7 +266,7 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     const variableDialog = page.getByRole('dialog', { name: /^(Configure variable|Configurar variable)$/i });
     await variableDialog.getByLabel(/^(Name|Nombre)$/i).fill('Temperatura ambiente');
     await variableDialog.getByLabel(/^(Address|Dirección)$/i, { exact: true }).fill('123');
-    await variableDialog.getByLabel(/^(Unit|Unidad)$/i, { exact: true }).fill('°C');
+    await variableDialog.getByRole('button', { name: /^(Unit|Unidad)$/i, exact: true }).click(); await page.getByRole('option', { name: '°C', exact: true }).click();
     await variableDialog.getByRole('button', { name: /^(Save|Guardar)$/i }).scrollIntoViewIfNeeded();
     await expect(variableDialog.getByRole('button', { name: /^(Save|Guardar)$/i })).toBeInViewport({ ratio: 1 });
     await page.screenshot({ path: testInfo.outputPath('modbus-variable-editor.png'), animations: 'disabled' });
@@ -3043,15 +3209,16 @@ test('Feature: Modal visual viewport — Scenario: The tablet scene editor remai
   await prepareAuthenticatedDashboard(page);
   await page.route('**/api/v1/homes', (route) => route.fulfill({ json: [{ id: 'responsive-home', ownerId: dashboardUser.id, name: 'Casa' }] }));
   await page.route('**/api/v1/scenes', (route) => route.fulfill({ json: [] }));
+  await page.route('**/api/v1/rooms', route => route.fulfill({ json: [{ id: 'responsive-room', homeId: 'responsive-home', name: 'Sala' }] }));
   await page.route('**/api/v1/devices', (route) => route.fulfill({ json: [
     ...responsiveDevices,
-    { id: 'modal-light', homeId: 'responsive-home', roomId: null, name: 'Luz de prueba', type: 'light', status: 'ASSIGNED' },
+    { id: 'modal-light', homeId: 'responsive-home', roomId: 'responsive-room', name: 'Luz de prueba', type: 'light', status: 'ASSIGNED', capabilities: [{ type: 'light', name: 'Light', commands: [{ name: 'turn_on' }, { name: 'turn_off' }] }] },
   ] }));
 
   await page.goto('/routines/scenes');
   await page.getByRole('button', { name: /^(Crear Escena|Create Scene)$/i }).first().click();
   const modal = page.getByRole('dialog', { name: /^(Crear Escena|Create Scene)$/i });
-  const name = modal.getByRole('textbox', { name: /Cena con invitados|Dinner Party/i });
+  const name = modal.getByRole('textbox', { name: /^(Name|Nombre)$/i });
   const save = modal.getByRole('button', { name: /^(Guardar Escena|Save Scene)$/i });
   await expect(modal).toBeVisible();
   await expect.poll(() => modal.evaluate((element) => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(1024);
@@ -3071,6 +3238,7 @@ test('Feature: Modal visual viewport — Scenario: The tablet scene editor remai
   )))).toBe(true);
 
   const lastDevice = modal.getByRole('button', { name: /Luz de prueba/i });
+  await modal.getByRole('searchbox').fill('Luz de prueba');
   await lastDevice.scrollIntoViewIfNeeded();
   await expect.poll(() => lastDevice.evaluate((element) => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(420);
   await expect(lastDevice).toBeEnabled();

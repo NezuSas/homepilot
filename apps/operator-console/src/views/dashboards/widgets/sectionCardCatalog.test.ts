@@ -18,7 +18,19 @@ import {
   isClockKind,
   normalizeCards,
   normalizeKind,
+  normalizeSensorScale,
 } from './sectionCardCatalog';
+
+describe('Sensor fixed scale (AC42)', () => {
+  it.each([{ min: 0, max: 100 }, { min: -20, max: 40 }])('retains valid scale through card normalization', sensorScale => {
+    const [card] = normalizeCards({ cards: [{ id: 'sensor', kind: 'sensor', sensorScale }] });
+    expect(card.sensorScale).toEqual(sensorScale);
+    expect(normalizeCards({ cards: [card] })[0].sensorScale).toEqual(sensorScale);
+  });
+  it.each([undefined, { min: 1 }, { min: 2, max: 1 }, { min: 1, max: 1 }, { min: NaN, max: 4 }, { min: 0, max: Infinity }])('ignores invalid/historical scales %j', scale => {
+    expect(normalizeSensorScale(scale)).toBeUndefined();
+  });
+});
 import { executeDeviceActionTarget, getDeviceActionExecuteUrl, isDeviceActionEntityId,
   normalizeAssignableDisplayAction, parseDeviceActionEntityId, toDeviceActionEntityId } from './sectionCardAssignments';
 

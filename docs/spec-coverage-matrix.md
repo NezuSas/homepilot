@@ -81,7 +81,7 @@ The command fails if a file cannot be mapped to an existing spec.
 
 ## Audited Coverage
 
-- The **920** audited TypeScript/TSX files have a mapping rule to an existing
+- The **929** audited TypeScript/TSX files have a mapping rule to an existing
   spec.
 - All bounded contexts under `packages/` and all API route families are
   covered.
@@ -90,6 +90,10 @@ The command fails if a file cannot be mapped to an existing spec.
   acceptance criteria, and required component documentation.
 
 ## Review Gate
+
+Escala Sensor configurable y refinamiento Modbus: Dashboard AC42 conserva `sensorScale` opcional en JSON, preview/recarga/import-export y lectura real fuera de límites. Modbus AC16/AC17 cubre tabla fija/filtros locales tras conversión y selector de unidades compatible. Modular AC79/AC80 cubre NumberInput borrable, altura 44px y cierre explícito de Modal/Drawer; el popup de opciones mantiene dismissal propio. Sin migración SQL nueva ni alteración del motor Modbus.
+
+Perfiles PLC Modbus: `modbus-tcp-local-integration-v1` AC11–AC15 cubre resolución versionada Xinje XL5E, X/Y octales y capacidades físicas de expansiones, metadatos JSON compatibles, validación backend y UI modular símbolo→PDU→RAW→decoder compartido. Jest focal 238/238 PASS en 8 suites; responsive focal 14/14 PASS y confirmación final de perfiles 4/4 PASS, claro/oscuro en móvil/tablet/escritorio. Sin SQL nuevo, base real ni hardware PLC.
 
 Puesta en marcha Modbus local: `modbus-tcp-local-integration-v1` AC8–AC10 cubre probe Admin/hogar, bloque RAW readonly acotado, cancelación/refresco y conversión común de 16/32 bits con creación explícita desde una fila probada. Evidencia focal: 136/136 Jest y 10/10 responsive PASS; lectura TCP simulada, no PLC físico. Sin migración adicional; downgrade de variables uint32/int32 exige conversión compatible o backup.
 

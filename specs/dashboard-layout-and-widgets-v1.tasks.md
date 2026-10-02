@@ -1,5 +1,8 @@
 # Tareas: Dashboard Layout and Widgets V1
 
+- [x] AC42: escala Sensor opcional persistente, editor/preview y regresión focal.
+  - Evidencia (2026-10-02): validación conjunta del refinamiento, 324/324 Jest y 21/21 responsive focalizados PASS; typecheck, lint y builds raíz/consola PASS. Escala guardada/importada y limpieza de límites cubiertas. Sin responsive completo, Git ni deploy.
+
 ## Ajuste tablet — densidad y llegada entre Sections
 
 - [x] Eliminar altura mínima adicional y expansión flexible del centro Sensor; padding vertical 8px, cabecera 32px y separación interna 4px, manteniendo esfera, lectura/unidad y reserva de carga.

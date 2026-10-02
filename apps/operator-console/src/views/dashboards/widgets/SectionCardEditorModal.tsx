@@ -1,4 +1,4 @@
-import { type Dispatch, type ReactNode, type SetStateAction } from 'react';
+import { useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { IconPicker } from '../components/IconPicker';
@@ -6,6 +6,8 @@ import { SearchableSelectField } from '../../../components/ui/SearchableSelectFi
 import { Button } from '../../../components/ui/Button';
 import { IconButton } from '../../../components/ui/IconButton';
 import { Input } from '../../../components/ui/Input';
+import { NumberInput } from '../../../components/ui/NumberInput';
+import { normalizeSensorScale, type SensorScale } from './sectionCardCatalog';
 import type { SnapshotDevice, SnapshotRoom } from '../../../stores/useDeviceSnapshotStore';
 import { getAssignableDevicesForSectionCard } from '../dashboardUtils';
 import { ModalPortal } from './ModalPortal';
@@ -37,6 +39,7 @@ interface SectionCardEditorModalProps {
     deviceIdOverride?: string,
     isEditorPreview?: boolean,
     mediaVariantOverride?: MediaVariant,
+    sensorScaleOverride?: SensorScale,
   ) => ReactNode;
   onClose: () => void;
   onSave: () => void;
@@ -47,6 +50,10 @@ export function SectionCardEditorModal({
   scenes, automations, displayActions, devices, renderCatalogPreview, onClose, onSave,
 }: SectionCardEditorModalProps) {
   const { t } = useTranslation();
+  const [validMinimum, setValidMinimum] = useState(true);
+  const [validMaximum, setValidMaximum] = useState(true);
+  const sensorScale = normalizeSensorScale({ min: cardDraft.sensorMin, max: cardDraft.sensorMax });
+  const invalidScale = cardDraft.kind === 'sensor' && (!validMinimum || !validMaximum || ((cardDraft.sensorMin !== undefined || cardDraft.sensorMax !== undefined) && !sensorScale));
   return (
     <ModalPortal>
       <div
@@ -83,6 +90,7 @@ export function SectionCardEditorModal({
               normalizeKind(cardDraft.kind) === 'camera' || normalizeKind(cardDraft.kind) === 'cover' || normalizeKind(cardDraft.kind) === 'room' || normalizeKind(cardDraft.kind) === 'sensor' || normalizeKind(cardDraft.kind) === 'media' || normalizeKind(cardDraft.kind) === 'action' ? cardDraft.entityId : undefined,
               true,
               cardDraft.mediaVariant,
+              sensorScale,
             )}
 
             {normalizeKind(cardDraft.kind) === 'media' && (
@@ -104,6 +112,19 @@ export function SectionCardEditorModal({
                 </div>
               </fieldset>
             )}
+
+            {cardDraft.kind === 'sensor' && <fieldset className="space-y-2">
+              <legend className="text-caption font-semibold text-foreground">{t('dashboard.editor.sections.sensor_scale_settings')}</legend>
+              <div className="grid grid-cols-2 gap-3">
+                <NumberInput label={t('dashboard.editor.sections.sensor_min')} required={false} step="any" value={cardDraft.sensorMin}
+                  onValidityChange={setValidMinimum}
+                  onValueChange={sensorMin => setCardDraft(draft => ({ ...draft, sensorMin }))} onEmpty={() => setCardDraft(draft => ({ ...draft, sensorMin: undefined }))} />
+                <NumberInput label={t('dashboard.editor.sections.sensor_max')} required={false} step="any" value={cardDraft.sensorMax}
+                  onValidityChange={setValidMaximum}
+                  onValueChange={sensorMax => setCardDraft(draft => ({ ...draft, sensorMax }))} onEmpty={() => setCardDraft(draft => ({ ...draft, sensorMax: undefined }))} />
+              </div>
+              <p role={invalidScale ? 'alert' : undefined} className="text-caption text-muted-foreground">{t(invalidScale ? 'dashboard.editor.sections.sensor_scale_invalid' : 'dashboard.editor.sections.sensor_scale_hint')}</p>
+            </fieldset>}
 
             <Input
               label={t('dashboard.editor.sections.name')}
@@ -298,7 +319,7 @@ export function SectionCardEditorModal({
               {t('dashboard.editor.sections.cancel')}
             </Button>
 
-            <Button type="button" onClick={onSave} variant="primary" size="md">
+            <Button type="button" onClick={onSave} disabled={invalidScale} variant="primary" size="md">
               {t('dashboard.editor.sections.save')}
             </Button>
           </div>

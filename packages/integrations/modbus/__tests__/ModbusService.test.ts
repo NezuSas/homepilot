@@ -9,6 +9,7 @@ import { ModbusService } from '../application/ModbusService';
 import type { ModbusTransport } from '../application/ModbusPorts';
 import { validateConnection, validateVariable, type ModbusConnection, type ModbusVariable } from '../domain/Modbus';
 import { validateDeviceCommand } from '../../../devices/domain/CommandCapabilityValidator';
+import { convertModbusValue } from '../domain/Modbus';
 
 export function modbusFixture() {
   const directory = mkdtempSync(join(tmpdir(), 'homepilot-modbus-'));
@@ -23,6 +24,44 @@ export function modbusFixture() {
   const cleanup = () => { SqliteDatabaseManager.close(dbPath); for (const name of readdirSync(directory)) unlinkSync(join(directory, name)); rmdirSync(directory); };
   return { db, dbPath, repository, devices, transport, publish, service, cleanup };
 }
+describe('Feature: Profile resolution and persistence (AC12/AC13/AC14)', () => {
+  let f: ReturnType<typeof modbusFixture>;
+  const profileId = 'xinje-xl5e-16t-v1';
+  beforeEach(() => { f = modbusFixture(); });
+  afterEach(async () => { await f.service.stop(); f.cleanup(); });
+  it('Scenario: Symbol to probe RAW to shared decoder to persistence preserves generic effective address', async () => {
+    f.transport.readRange.mockResolvedValue([0x41b4, 0]);
+    const result = await f.service.probe('admin', 'h', { host: '192.168.1.5', profileId, symbolicStart: 'D100', symbolicEnd: 'D101' });
+    expect(f.transport.readRange).toHaveBeenCalledWith(expect.anything(), 'holding_register', 100, 2, undefined);
+    expect(result.rows[0]).toMatchObject({ address: 100, symbolicAddress: 'D100', area: 'holding_register', raw: 0x41b4 });
+    const connection = await f.service.saveConnection('admin', 'h', { name: 'PLC', host: '192.168.1.5', profileId, moduleCapacities: { CPU: { inputs: 8, outputs: 8 } } });
+    const variable = await f.service.saveVariable('admin', connection.id, { name: 'D100', profileId, symbolicAddress: 'D100', area: 'holding_register', address: 100, dataType: 'float32', scale: 0.1, offset: 2 });
+    expect(convertModbusValue(result.rows.map(row => row.raw!), variable)).toBe(4.25);
+    const reloaded = new SQLiteModbusRepository(f.dbPath);
+    expect(reloaded.connection(connection.id)).toEqual(connection); expect(reloaded.variable(variable.deviceId)).toEqual(variable);
+    expect(f.transport.writeCoil).not.toHaveBeenCalled(); expect(f.publish).not.toHaveBeenCalled();
+  });
+  it.each([{ profileId: 'unknown', symbolicStart: 'D100', symbolicEnd: 'D101' }, { profileId, symbolicStart: 'X8', symbolicEnd: 'X10' }, { profileId, symbolicStart: 'D100', symbolicEnd: 'D101', start: 999 }, { symbolicStart: 'D100', symbolicEnd: 'D101' }])
+    ('Scenario: Invalid metadata %j cannot contact the PLC', async fields => {
+      await expect(f.service.probe('admin', 'h', { host: '192.168.1.5', ...fields })).rejects.toMatchObject({ code: 'INVALID_CONFIG' });
+      expect(f.transport.readRange).not.toHaveBeenCalled(); expect(f.transport.writeCoil).not.toHaveBeenCalled();
+    });
+  it('Scenario: Saved physical capacity cannot be bypassed by probe or variable creation or invalidated by editing connection', async () => {
+    const connection = await f.service.saveConnection('admin', 'h', { name: 'PLC', host: '192.168.1.5', profileId, moduleCapacities: { CPU: { inputs: 8, outputs: 8 } } });
+    await expect(f.service.probe('admin', 'h', { host: connection.host, profileId, symbolicStart: 'X0', symbolicEnd: 'X10', moduleCapacities: { CPU: { inputs: 64, outputs: 64 } } })).rejects.toMatchObject({ code: 'INVALID_CONFIG' });
+    await expect(f.service.saveVariable('admin', connection.id, { name: 'X10', profileId, symbolicAddress: 'X10', area: 'coil', address: 20488, dataType: 'boolean' })).rejects.toMatchObject({ code: 'INVALID_CONFIG' });
+    await f.service.saveVariable('admin', connection.id, { name: 'X7', profileId, symbolicAddress: 'X7', area: 'coil', address: 20487, dataType: 'boolean' });
+    await expect(f.service.saveConnection('admin', 'h', { ...connection, moduleCapacities: { CPU: { inputs: 4, outputs: 8 } } }, connection.id)).rejects.toMatchObject({ code: 'INVALID_CONFIG' });
+    expect(f.transport.readRange).not.toHaveBeenCalled();
+  });
+  it.each(['SM5', 'X0', 'T0', 'C0', 'HT0', 'HC0'])('Scenario: Protected %s cannot opt into write', async symbolicAddress => {
+    const connection = await f.service.saveConnection('admin', 'h', { name: 'PLC', host: '192.168.1.5' });
+    const { resolveModbusAddress } = await import('../domain/ModbusAddressProfile');
+    const resolved = resolveModbusAddress(profileId, symbolicAddress);
+    await expect(f.service.saveVariable('admin', connection.id, { name: symbolicAddress, profileId, symbolicAddress, area: resolved.area, address: resolved.address, dataType: 'boolean', writable: true })).rejects.toMatchObject({ code: 'INVALID_CONFIG' });
+    expect(f.transport.writeCoil).not.toHaveBeenCalled();
+  });
+});
 describe('Feature: Modbus configuration, inventory and lifecycle (AC1/AC2/AC4/AC5/AC6)', () => {
   let f: ReturnType<typeof modbusFixture>;
   const connectionInput = { name: 'PLC', host: '192.168.1.5' };

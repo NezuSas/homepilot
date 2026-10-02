@@ -19,6 +19,7 @@ export interface DrawerProps {
   backdropClassName?: string;
   closeLabel?: string;
   hideCloseButton?: boolean;
+  dismissible?: boolean;
 }
 
 export const Drawer: React.FC<DrawerProps> = ({
@@ -33,6 +34,7 @@ export const Drawer: React.FC<DrawerProps> = ({
   backdropClassName,
   closeLabel,
   hideCloseButton = false,
+  dismissible = false,
 }) => {
   const { t } = useTranslation();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -41,7 +43,7 @@ export const Drawer: React.FC<DrawerProps> = ({
   const viewportBounds = useVisualViewportBounds(isOpen);
   const { handleOverlayKeyDown } = useOverlayAccessibility({
     isOpen,
-    onClose,
+    onClose: dismissible ? onClose : undefined,
     containerRef: panelRef,
   });
 
@@ -52,7 +54,7 @@ export const Drawer: React.FC<DrawerProps> = ({
       <div
         aria-hidden="true"
         className={cn('absolute inset-0 bg-background/40 backdrop-blur-sm animate-in fade-in duration-base', backdropClassName)}
-        onClick={onClose}
+        onClick={dismissible ? onClose : undefined}
       />
       <div
         ref={panelRef}

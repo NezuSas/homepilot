@@ -392,6 +392,16 @@ describe('DashboardService', () => {
     expect(cards[0]).toMatchObject({ entityId: 'speaker-1', mediaVariant: 'classic' });
   });
 
+  it('preserves a Sensor fixed scale through export and import (AC42)', async () => {
+    const source = createDashboard('source', 'Control');
+    source.tabs[0].widgets = [{ id: 'section', type: 'room_summary', config: {
+      extra: { cards: [{ id: 'sensor-1', kind: 'sensor', entityId: 'sensor-1', sensorScale: { min: -20, max: 100 } }] },
+    } }];
+    const service = new DashboardService(createDashboardRepository(source), createHomeRepository(), { exists: async () => true });
+    const imported = await service.importDashboard('user-1', await service.exportDashboard('user-1', source.id));
+    expect(imported.tabs[0].widgets[0].config.extra).toMatchObject({ cards: [{ sensorScale: { min: -20, max: 100 } }] });
+  });
+
   it('round-trips a Button bound to an existing scene without reporting it unresolved', async () => {
     const source = createDashboard('source', 'Control');
     source.tabs[0].widgets = [{ id: 'section', type: 'room_summary', config: {

@@ -25,6 +25,13 @@ export type LegacySectionCardKind = SectionCardKind | 'system';
 export type SectionCardSpan = 'small' | 'medium' | 'full';
 export type SectionCardIcon = string;
 export type MediaVariant = 'premium' | 'classic';
+export interface SensorScale { min: number; max: number }
+export function normalizeSensorScale(value: unknown): SensorScale | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const { min, max } = value as Partial<SensorScale>;
+  return typeof min === 'number' && typeof max === 'number' && Number.isFinite(min) && Number.isFinite(max) && min < max
+    ? { min, max } : undefined;
+}
 
 export function normalizeMediaVariant(value: unknown): MediaVariant {
   return value === 'classic' ? 'classic' : 'premium';
@@ -41,6 +48,7 @@ export interface SectionCardItem {
   span?: SectionCardSpan;
   icon?: SectionCardIcon;
   mediaVariant?: MediaVariant;
+  sensorScale?: SensorScale;
 }
 
 export interface NormalizedSectionCardItem extends Omit<SectionCardItem, 'kind'> {
@@ -54,6 +62,8 @@ export interface CardDraft {
   span: SectionCardSpan;
   icon: SectionCardIcon;
   mediaVariant: MediaVariant;
+  sensorMin?: number;
+  sensorMax?: number;
 }
 
 export interface AssignableScene {
@@ -333,6 +343,7 @@ export function normalizeCards(extra?: DashboardWidgetConfig['extra']): Normaliz
       ...(kind === 'media' && (card.mediaVariant === 'classic' || card.mediaVariant === 'premium')
         ? { mediaVariant: card.mediaVariant }
         : {}),
+      ...(kind === 'sensor' && normalizeSensorScale(card.sensorScale) ? { sensorScale: normalizeSensorScale(card.sensorScale) } : {}),
       order: typeof card.order === 'number' ? card.order : index,
     }];
   });
