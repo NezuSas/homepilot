@@ -64,6 +64,28 @@ export class DashboardRoutes extends ApiRoutes {
       return true;
     }
 
+    const tabExportMatch = method === 'GET' && pathname.match(/^\/api\/v1\/dashboards\/([^\/]+)\/tabs\/([^\/]+)\/export$/);
+    const tabImportMatch = method === 'POST' && pathname.match(/^\/api\/v1\/dashboards\/([^\/]+)\/tabs\/import$/);
+    if (tabExportMatch || tabImportMatch) {
+      try {
+        if (tabExportMatch) {
+          this.sendJson(res, await container.services.dashboardService.exportTab(req.user!.id, tabExportMatch[1], tabExportMatch[2]));
+        } else if (tabImportMatch) {
+          const transfer = await this.parseBody<unknown>(req);
+          const requestedLanguage = req.headers['accept-language'];
+          const language = Array.isArray(requestedLanguage) ? requestedLanguage[0] : requestedLanguage;
+          this.sendJson(res, await container.services.dashboardService.importTab(req.user!.id, tabImportMatch[1], transfer, language ?? 'es'), 201);
+        }
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'DASHBOARD_ERROR';
+        const status = message === 'FORBIDDEN' ? 403 : message.endsWith('_NOT_FOUND') ? 404
+          : message === 'DASHBOARD_IMPORT_INVALID' || message === 'DASHBOARD_IMPORT_UNSUPPORTED_VERSION' ? 400
+            : message === 'DASHBOARD_OWNER_CONFLICT' ? 409 : 500;
+        this.sendError(res, status, message, message);
+      }
+      return true;
+    }
+
     // GET /api/v1/dashboards/:id/export
     const exportMatch = method === 'GET' && pathname.match(/^\/api\/v1\/dashboards\/([^\/]+)\/export$/);
     if (exportMatch) {

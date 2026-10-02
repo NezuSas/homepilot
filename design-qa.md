@@ -1,5 +1,13 @@
 # Sensor — corrección local de composición
 
+## Dashboard — edición y transferencia de pestañas (2026-10-02)
+
+- Alcance independiente: una entrada Editar en Más, nombre en modo edición, transferencia de pestaña privada no destructiva y drag entre Sections. Paleta y presentaciones de tarjetas existentes conservadas.
+- Causa de los huecos extra al editar: slots de Sections con filas compartidas por altura máxima; ahora las vistas normal/edición comparten tracks finos con medición individual, preservando slots vacíos.
+- Revisión visual batched de `apps/operator-console/test-results/responsive-shell-Feature-D-{43db4--section-movement-on-mobile,d8596--section-movement-on-tablet,11bbf-section-movement-on-desktop}/dashboard-editing.png`, a 390×844, 1024×768 y 1440×900. Una corrección de separación del control Añadir tarjeta y una confirmación conjunta: sin solapamiento de los controles ni desborde del header. Evidencia automatizada, no aprobación visual del usuario ni prueba de hardware físico.
+- Jest focalizado: 7 suites, 83/83 PASS. Responsive focalizado final: 23/23 PASS, incluye móvil/tablet/escritorio/kiosco vertical para geometría inicial, Clock, slots e historial. Mouse, touch (500 ms) y teclado conservan movimiento/persistencia/cancelación; la escucha diferida de dnd-kit se sincroniza por frame en el test, sin sleep ni force.
+- Typecheck, lint, builds raíz/Operator Console y controles spec/BDD/module/i18n/architecture/no-production-any PASS. Detector final sobre TitleBar/Canvas/SectionWidget/SectionCardItem sin hallazgos. Advertencias preexistentes de Browserslist y chunk MDI. Responsive completo, Git, GitHub, Docker y deploy: no ejecutados. Sin migración de base de datos; API histórica completa conservada.
+
 Fecha: 2026-10-01. Alcance: SensorMetricCard, CSS propio, skeleton y radio del wrapper Sensor de SectionCardItem. Extensión local dentro de la paleta HomePilot establecida; no auditoría global ni nueva identidad visual.
 
 ## Fuente y evidencia

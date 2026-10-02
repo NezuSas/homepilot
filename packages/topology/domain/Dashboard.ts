@@ -36,6 +36,14 @@ export interface Dashboard {
 
 export const DASHBOARD_TRANSFER_FORMAT = 'homepilot-dashboard';
 export const DASHBOARD_TRANSFER_VERSION = 1;
+export const DASHBOARD_TAB_TRANSFER_FORMAT = 'homepilot-dashboard-tab';
+
+export interface DashboardTabTransferPackage {
+  format: typeof DASHBOARD_TAB_TRANSFER_FORMAT;
+  version: typeof DASHBOARD_TRANSFER_VERSION;
+  exportedAt: string;
+  tab: DashboardTransferPackage['dashboard']['tabs'][number];
+}
 
 /**
  * Portable dashboard representation. It deliberately excludes ownership,

@@ -2,10 +2,11 @@ import { useState, type Dispatch, type SetStateAction } from 'react';
 import type { TFunction } from 'i18next';
 import type { DashboardRevisionSummary } from '../../components/DashboardHistoryModal';
 import type { Dashboard, DashboardImportReport } from './types';
-import { exportDashboard, importDashboard, loadDashboardHistory, restoreDashboardRevision } from './dashboardOperations';
+import { exportDashboardTab, importDashboardTab, loadDashboardHistory, restoreDashboardRevision } from './dashboardOperations';
 
 interface DashboardTransferHistoryOptions {
   active: Dashboard | null;
+  activeTabId?: string;
   t: TFunction;
   language: string;
   setError: Dispatch<SetStateAction<string>>;
@@ -17,7 +18,7 @@ interface DashboardTransferHistoryOptions {
 }
 
 export function useDashboardTransferHistory({
-  active, t, language, setError, publishDashboards, setActive,
+  active, activeTabId, t, language, setError, publishDashboards, setActive,
   setActiveTabIdx, setIsEditing, getDefaultTabIndex,
 }: DashboardTransferHistoryOptions) {
   const [isTransferring, setIsTransferring] = useState(false);
@@ -29,17 +30,17 @@ export function useDashboardTransferHistory({
   const [isRestoringRevision, setIsRestoringRevision] = useState(false);
 
   const handleExport = async () => {
-    if (!active || isTransferring) return;
+    if (!active || !activeTabId || isTransferring) return;
     setIsTransferring(true);
     setError('');
     try {
-      const transfer = await exportDashboard(active.id, t('dashboards.transfer.error_export'));
+      const transfer = await exportDashboardTab(active.id, activeTabId, t('dashboards.transfer.error_export'));
       const file = new Blob([JSON.stringify(transfer, null, 2)], { type: 'application/json' });
       const objectUrl = URL.createObjectURL(file);
       const link = document.createElement('a');
-      const fileTitle = active.title.trim().replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'dashboard';
+      const fileTitle = (active.tabs.find((tab) => tab.id === activeTabId)?.title ?? 'tab').trim().replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'tab';
       link.href = objectUrl;
-      link.download = `${fileTitle}.homepilot-dashboard.json`;
+      link.download = `${fileTitle}.homepilot-dashboard-tab.json`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -52,7 +53,7 @@ export function useDashboardTransferHistory({
   };
 
   const handleImport = async (file: File) => {
-    if (isTransferring) return;
+    if (!active || isTransferring) return;
     setIsTransferring(true);
     setError('');
     setImportReport(null);
@@ -63,7 +64,7 @@ export function useDashboardTransferHistory({
       } catch {
         throw new Error(t('dashboards.transfer.error_import'));
       }
-      const imported = await importDashboard(transfer, t('dashboards.transfer.error_import'), language);
+      const imported = await importDashboardTab(active.id, transfer, t('dashboards.transfer.error_import'), language);
       const { importReport: report, ...dashboard } = imported;
       publishDashboards((current) => {
         const existing = current.find((candidate) => candidate.id === dashboard.id);
@@ -72,7 +73,7 @@ export function useDashboardTransferHistory({
           : [...current, dashboard];
       });
       setActive(dashboard);
-      setActiveTabIdx(getDefaultTabIndex(dashboard));
+      setActiveTabIdx(Math.max(0, dashboard.tabs.findIndex((tab) => !active.tabs.some((existing) => existing.id === tab.id))));
       setIsEditing(true);
       if (report && (report.unresolvedBindings.length > 0 || report.nonPortableBackgrounds > 0)) {
         setImportReport({ dashboardId: dashboard.id, report });

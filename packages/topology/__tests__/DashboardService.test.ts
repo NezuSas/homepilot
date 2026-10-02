@@ -10,6 +10,43 @@ import {
 import { HomeRepository } from '../domain/repositories/HomeRepository';
 
 describe('DashboardService', () => {
+  it('transfers only one tab, privately appends with fresh IDs, preserves slots and default, and saves a revision', async () => {
+    const owned = createDashboard('owned', 'Casa');
+    owned.tabs[0].isDefault = true;
+    owned.tabs.push({ id: 'tab-2', title: 'Patio', visibility: { users: ['other'] }, background: '/api/media/private.webp', widgets: [{ id: 'section-2', type: 'section', config: { layout: { span: 1 }, extra: { cards: [{ id: 'card-2', kind: 'media', mediaVariant: 'classic', span: 'full' }] } } }], sectionLayout: { columns2: ['section-2', null] } });
+    const saveDashboard = jest.fn();
+    const saveRevision = jest.fn();
+    const service = new DashboardService({ ...createDashboardRepository(owned), findAllVisibleTo: async () => [owned], saveDashboard, saveRevision }, createHomeRepository());
+    const transfer = await service.exportTab('user-1', owned.id, 'tab-2');
+    expect(transfer.format).toBe('homepilot-dashboard-tab');
+    expect(transfer).not.toHaveProperty('dashboard');
+    expect(transfer.tab).not.toHaveProperty('visibility');
+    expect(transfer.tab).not.toHaveProperty('background');
+    const imported = await service.importTab('user-1', owned.id, transfer);
+    expect(imported.tabs.slice(0, 2)).toEqual(owned.tabs);
+    expect(imported.tabs[2].title).toBe('Patio · Importado');
+    expect(imported.tabs[2].id).not.toBe('tab-2');
+    expect(imported.tabs[2].widgets[0].id).not.toBe('section-2');
+    expect(imported.tabs[2].sectionLayout?.columns2).toEqual([imported.tabs[2].widgets[0].id, null]);
+    expect(imported.tabs[2].visibility).toBeUndefined();
+    expect(imported.tabs[2].isDefault).toBe(false);
+    expect(imported.importReport?.nonPortableBackgrounds).toBe(1);
+    expect(saveRevision).toHaveBeenCalledTimes(1);
+    expect(saveDashboard).toHaveBeenCalledTimes(1);
+  });
+
+  it('denies tab transfer on somebody else’s dashboard and rejects malformed or whole-dashboard packages', async () => {
+    const owned = createDashboard('owned', 'Casa');
+    const repository = { ...createDashboardRepository(owned), findAllVisibleTo: async () => [owned], saveDashboard: jest.fn(), saveRevision: jest.fn() };
+    const service = new DashboardService(repository, createHomeRepository());
+    await expect(service.exportTab('other-user', owned.id, 'tab-1')).rejects.toThrow('FORBIDDEN');
+    await expect(service.importTab('other-user', owned.id, {})).rejects.toThrow('FORBIDDEN');
+    await expect(service.exportTab('user-1', owned.id, 'missing')).rejects.toThrow('DASHBOARD_TAB_NOT_FOUND');
+    await expect(service.importTab('user-1', owned.id, await service.exportDashboard('user-1', owned.id))).rejects.toThrow('DASHBOARD_IMPORT_INVALID');
+    await expect(service.importTab('user-1', owned.id, { format: 'homepilot-dashboard-tab', version: 1, tab: {} })).rejects.toThrow('DASHBOARD_IMPORT_INVALID');
+    expect(repository.saveDashboard).not.toHaveBeenCalled();
+    expect(repository.saveRevision).not.toHaveBeenCalled();
+  });
   it('creates a trimmed dashboard with a usable default tab', async () => {
     let savedDashboard: Dashboard | null = null;
     const dashboardRepository: DashboardRepository = {

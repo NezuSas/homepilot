@@ -32,6 +32,8 @@ function createContainer(isAuthorized = true): BootstrapContainer {
         getDashboardsForUser: jest.fn().mockResolvedValue([]),
         createDashboard: jest.fn().mockResolvedValue({ id: 'dashboard-1', ownerId: 'owner-1', title: 'Main' }),
         exportDashboard: jest.fn().mockResolvedValue({ version: 1 }),
+        exportTab: jest.fn().mockResolvedValue({ format: 'homepilot-dashboard-tab', version: 1, tab: { title: 'Patio' } }),
+        importTab: jest.fn().mockResolvedValue({ id: 'dashboard-1', tabs: [{ id: 'new-tab' }] }),
       },
     },
   } as unknown as BootstrapContainer;
@@ -46,6 +48,30 @@ function createMediaService(): MediaService {
 }
 
 describe('Feature: dashboard route contract', () => {
+  it('Scenario: Tab export and import use the authenticated owner, active tab and requested language', async () => {
+    const routes = new DashboardRoutes(createMediaService());
+    const container = createContainer();
+    const exported = new MockResponse();
+    await routes.handle(createRequest(), exported as unknown as http.ServerResponse, '/api/v1/dashboards/dashboard-1/tabs/tab-1/export', 'GET', container);
+    expect(container.services.dashboardService.exportTab).toHaveBeenCalledWith('owner-1', 'dashboard-1', 'tab-1');
+    expect(exported.end).toHaveBeenCalledWith(expect.stringContaining('homepilot-dashboard-tab'));
+    const transfer = { format: 'homepilot-dashboard-tab', version: 1, tab: { id: 't', title: 'Patio', widgets: [] } };
+    const request = createRequest(transfer);
+    request.headers['accept-language'] = 'en';
+    const imported = new MockResponse();
+    await routes.handle(request, imported as unknown as http.ServerResponse, '/api/v1/dashboards/dashboard-1/tabs/import', 'POST', container);
+    expect(container.services.dashboardService.importTab).toHaveBeenCalledWith('owner-1', 'dashboard-1', transfer, 'en');
+    expect(imported.writeHead).toHaveBeenCalledWith(201, expect.any(Object));
+  });
+
+  it.each(['FORBIDDEN', 'DASHBOARD_IMPORT_INVALID', 'DASHBOARD_OWNER_CONFLICT'])('Scenario: Tab import preserves the %s error without mutating through another endpoint', async (message) => {
+    const container = createContainer();
+    container.services.dashboardService.importTab = jest.fn().mockRejectedValue(new Error(message));
+    const response = new MockResponse();
+    await new DashboardRoutes(createMediaService()).handle(createRequest({}), response as unknown as http.ServerResponse, '/api/v1/dashboards/dashboard-1/tabs/import', 'POST', container);
+    expect(response.writeHead).toHaveBeenCalledWith(message === 'FORBIDDEN' ? 403 : message === 'DASHBOARD_OWNER_CONFLICT' ? 409 : 400, expect.any(Object));
+    expect(container.services.dashboardService.createDashboard).not.toHaveBeenCalled();
+  });
   it('Scenario: Given an unauthenticated request When a dashboard is requested Then the route does not call the dashboard service', async () => {
     const routes = new DashboardRoutes(createMediaService());
     const container = createContainer(false);

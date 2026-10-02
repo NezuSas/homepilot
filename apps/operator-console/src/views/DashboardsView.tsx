@@ -65,7 +65,6 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
   const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
   const snapshotLoading = useDeviceSnapshotStore((state) => state.isLoading);
   const snapshotLastUpdatedAt = useDeviceSnapshotStore((state) => state.lastUpdatedAt);
-  const [editingTitle, setEditingTitle] = useState(false);
   const [draftTitle, setDraftTitle]     = useState('');
   const [addingTab, setAddingTab]       = useState(false);
   const [error, setError]               = useState('');
@@ -73,13 +72,14 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
   const [tabConfigIdx, setTabConfigIdx] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  useEffect(() => { if (active && !isEditing) setDraftTitle(active.title); }, [active, isEditing]);
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
   const {
     isTransferring, handleExport, handleImport, importReport, isHistoryOpen, setIsHistoryOpen,
     isHistoryLoading, revisions, revisionPendingRestore, setRevisionPendingRestore,
     isRestoringRevision, handleOpenHistory, handleRestoreRevision,
   } = useDashboardTransferHistory({
-    active, t, language: i18n.language, setError, publishDashboards,
+    active, activeTabId: active?.tabs[activeTabIdx]?.id, t, language: i18n.language, setError, publishDashboards,
     setActive, setActiveTabIdx, setIsEditing, getDefaultTabIndex,
   });
 
@@ -156,7 +156,6 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
     lastResolvedRouteDashboardId.current = initialDashboardId;
     setActive(selected);
     setActiveTabIdx(getInitialTabIndex(selected, initialTabId));
-    setEditingTitle(false);
     setSelectedWidgetId(null);
   }, [dashboards, initialDashboardId, initialTabId]);
 
@@ -199,9 +198,8 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
   };
 
   const handleRenameConfirm = async () => {
-    if (!active || !draftTitle.trim()) { setEditingTitle(false); return; }
+    if (!active || !draftTitle.trim()) return;
     await patch(active.id, { title: draftTitle.trim() });
-    setEditingTitle(false);
   };
 
   const handleAddTab = async (title: string) => {
@@ -369,7 +367,6 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
               visibleTabs={visibleTabs}
               isOwner={isOwner}
               isEditing={isEditing}
-              editingTitle={editingTitle}
               draftTitle={draftTitle}
               isAddingTab={addingTab}
               selectedWidgetId={selectedWidgetId}
@@ -377,15 +374,20 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
               t={t}
               onOpenMobileMenu={onOpenMobileMenu}
               onDraftTitleChange={setDraftTitle}
-              onStartEditingTitle={() => { setDraftTitle(active.title); setEditingTitle(true); }}
-              onCancelEditingTitle={() => setEditingTitle(false)}
               onConfirmTitle={() => { void handleRenameConfirm(); }}
               onToggleEditing={() => {
-                setIsEditing(!isEditing);
-                if (isEditing) {
+                if (!isEditing) {
+                  setDraftTitle(active.title);
+                  setIsEditing(true);
+                  return;
+                }
+                void (async () => {
+                  if (!draftTitle.trim()) return;
+                  if (draftTitle.trim() !== active.title && !await patch(active.id, { title: draftTitle.trim() })) return;
+                  setIsEditing(false);
                   setSelectedWidgetId(null);
                   setTabConfigIdx(null);
-                }
+                })();
               }}
               onExport={() => { void handleExport(); }}
               onImport={(file) => { void handleImport(file); }}

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { useContext, useEffect, useMemo, useState } from 'react';
+import { DndContext, KeyboardSensor, MouseSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SectionCardDragContext, sectionCardDragId } from '../sectionCardDrag';
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +24,7 @@ import { getDashboardIconComponent } from '../components/dashboardIconRegistry';
 import { isDeviceOperational } from '../../../lib/deviceOperationalEligibility';
 
 interface SectionWidgetProps {
+  sectionId?: string;
   config: DashboardWidgetConfig;
   isEditing: boolean;
   onUpdate?: (config: Partial<DashboardWidgetConfig>) => void;
@@ -38,8 +40,9 @@ function getBoundRoutineIcon(entityId: string | undefined, scenes: AssignableSce
   return scene ? scene.icon ?? 'mdi:auto-fix' : undefined;
 }
 
-export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProps) {
+export function SectionWidget({ config, isEditing, onUpdate, sectionId }: SectionWidgetProps) {
   const { t } = useTranslation();
+  const sharedDrag = useContext(SectionCardDragContext) && Boolean(sectionId);
 
   const catalogLabel = (kind: SectionCardKind) => t(getCatalogLabelKey(kind));
 
@@ -56,7 +59,8 @@ export function SectionWidget({ config, isEditing, onUpdate }: SectionWidgetProp
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const { rowSpans, registerCard } = useMasonryRowSpans();
   const cardDragSensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 500, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
   const [cardDraft, setCardDraft] = useState<CardDraft>({ title: '', kind: 'device', entityId: '', span: 'small', icon: 'lightbulb', mediaVariant: 'premium' });
@@ -385,46 +389,49 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     />
   ) : null;
 
+  const sortableCards = (
+    <SortableContext items={cards.map((card) => sharedDrag ? sectionCardDragId(sectionId!, card.id) : card.id)} strategy={rectSortingStrategy}>
+      {cards.map((card) => (
+        <SectionCardItem
+          key={card.id}
+          sectionId={sharedDrag ? sectionId : undefined}
+          card={card}
+          actionIcon={normalizeKind(card.kind) === 'action' ? getBoundRoutineIcon(card.entityId, scenes, automations) : undefined}
+          isEditing={isEditing}
+          devices={devices}
+          roomsByHome={roomsByHome}
+          snapshotPending={snapshotLoading && devices.length === 0}
+          processingCardId={processingCardId}
+          actionFeedback={actionFeedback}
+          catalogLabel={catalogLabel}
+          handleCardAction={handleCardAction}
+          handleMediaCardAction={handleMediaCardAction}
+          executeSectionDeviceCommand={executeSectionDeviceCommand}
+          upsertDevice={upsertDevice}
+          openCardEditor={openCardEditor}
+          removeCard={removeCard}
+          resizeCard={resizeCard}
+          registerRowSpanRef={registerCard}
+          rowSpan={rowSpans[card.id] ?? 1}
+        />
+      ))}
+    </SortableContext>
+  );
   const sectionGrid = (
     <div
       onClick={(event) => event.stopPropagation()}
       className="grid min-h-0 min-w-0 flex-1 grid-cols-2 content-start items-start gap-2 overflow-visible pr-1 sm:grid-cols-4 auto-rows-[minmax(20px,auto)] grid-flow-row-dense"
     >
-      <DndContext sensors={cardDragSensors} onDragEnd={handleCardDragEnd}>
-        <SortableContext items={cards.map((card) => card.id)} strategy={rectSortingStrategy}>
-          {cards.map((card) => (
-            <SectionCardItem
-              key={card.id}
-              card={card}
-              actionIcon={normalizeKind(card.kind) === 'action' ? getBoundRoutineIcon(card.entityId, scenes, automations) : undefined}
-              isEditing={isEditing}
-              devices={devices}
-              roomsByHome={roomsByHome}
-              snapshotPending={snapshotLoading && devices.length === 0}
-              processingCardId={processingCardId}
-              actionFeedback={actionFeedback}
-              catalogLabel={catalogLabel}
-              handleCardAction={handleCardAction}
-              handleMediaCardAction={handleMediaCardAction}
-              executeSectionDeviceCommand={executeSectionDeviceCommand}
-              upsertDevice={upsertDevice}
-              openCardEditor={openCardEditor}
-              removeCard={removeCard}
-              resizeCard={resizeCard}
-              registerRowSpanRef={registerCard}
-              rowSpan={rowSpans[card.id] ?? 1}
-            />
-          ))}
-        </SortableContext>
-      </DndContext>
+      {sharedDrag ? sortableCards : <DndContext sensors={cardDragSensors} onDragEnd={handleCardDragEnd}>{sortableCards}</DndContext>}
     </div>
   );
 
   return (
     <section
+      aria-label={title || t('dashboard.editor.sections.untitled_section')}
       onClick={(event) => event.stopPropagation()}
       className={cn(
-        "flex h-full w-full min-w-0 flex-col gap-3 overflow-visible px-5 pb-2 pt-3",
+        "relative flex h-full w-full min-w-0 flex-col gap-3 overflow-visible px-5 pb-2 pt-3",
         isEditing && "group/section relative text-left",
       )}
     >
@@ -442,7 +449,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       {sectionGrid}
 
       {isEditing ? (
-        <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="absolute -top-5 right-36 z-30">
           <Button
             type="button"
             variant="ghost"
@@ -452,10 +459,10 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
               event.stopPropagation();
               setIsCatalogOpen(true);
             }}
-            className="flex min-h-24 w-full flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-primary/50 bg-background/40 p-2 text-center text-primary hover:border-primary hover:bg-primary/10"
+            title={t('dashboard.editor.sections.add_card')}
+            className="h-11 w-11 rounded-control border border-border/50 bg-background text-primary shadow-depth-1 hover:bg-primary/10"
           >
             <Plus aria-hidden="true" className="h-5 w-5" />
-            <span className="text-micro font-semibold">{t('dashboard.editor.sections.add_card')}</span>
           </Button>
         </div>
       ) : null}

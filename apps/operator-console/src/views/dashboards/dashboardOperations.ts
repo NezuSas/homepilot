@@ -71,6 +71,22 @@ export async function exportDashboard(id: string, fallback: string): Promise<unk
   return response.json();
 }
 
+export async function exportDashboardTab(dashboardId: string, tabId: string, fallback: string): Promise<unknown> {
+  const response = await apiFetch(`${API}/dashboards/${encodeURIComponent(dashboardId)}/tabs/${encodeURIComponent(tabId)}/export`);
+  if (!response.ok) throw new Error(await readApiError(response, fallback));
+  return response.json();
+}
+
+export async function importDashboardTab(dashboardId: string, transfer: unknown, fallback: string, language: string): Promise<DashboardImportResponse> {
+  const response = await apiFetch(`${API}/dashboards/${encodeURIComponent(dashboardId)}/tabs/import`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept-Language': language }, body: JSON.stringify(transfer),
+  });
+  if (!response.ok) throw new Error(await readApiError(response, fallback));
+  const imported = await response.json() as DashboardImportResponse;
+  invalidateDashboardCatalog();
+  return imported;
+}
+
 export async function importDashboard(transfer: unknown, fallback: string, language: string): Promise<DashboardImportResponse> {
   const response = await apiFetch(`${API}/dashboards/import`, {
     method: 'POST',

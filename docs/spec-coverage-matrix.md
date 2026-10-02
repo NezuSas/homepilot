@@ -73,7 +73,7 @@ The command fails if a file cannot be mapped to an existing spec.
 
 ## Audited Coverage
 
-- The **903** audited TypeScript/TSX files have a mapping rule to an existing
+- The **905** audited TypeScript/TSX files have a mapping rule to an existing
   spec.
 - All bounded contexts under `packages/` and all API route families are
   covered.

@@ -1,6 +1,7 @@
 import { useEffect, useState, type MouseEvent } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { sectionCardDragId } from '../sectionCardDrag';
 import { Loader2, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
@@ -29,6 +30,7 @@ const STANDARD_CARD_SPAN_ORDER: SectionCardSpan[] = ['medium', 'full'];
 
 export function SectionCardItem({
   card,
+  sectionId,
   actionIcon,
   isEditing,
   devices,
@@ -48,6 +50,7 @@ export function SectionCardItem({
   rowSpan,
 }: {
   card: NormalizedSectionCardItem;
+  sectionId?: string;
   actionIcon?: string;
   isEditing: boolean;
   devices: SnapshotDevice[];
@@ -70,7 +73,8 @@ export function SectionCardItem({
   const [isCardMenuOpen, setIsCardMenuOpen] = useState(false);
   const [cardMenuPosition, setCardMenuPosition] = useState<{ top: number; right: number } | null>(null);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: card.id,
+    id: sectionId ? sectionCardDragId(sectionId, card.id) : card.id,
+    data: { kind: 'section-card', sectionId, cardId: card.id },
     disabled: !isEditing,
   });
 
@@ -198,6 +202,7 @@ export function SectionCardItem({
         // (painted by CardPreview) could end up shorter than this outer
         // box, leaving a transparent gap at the bottom.
         "group/card relative grid min-w-0 overflow-hidden shadow-sm transition-all",
+        isEditing && "touch-pan-y",
         normalizedKind === 'sensor' ? 'rounded-2xl' : 'rounded-section',
         isTileKind
           ? "min-h-device-card-compact"
@@ -239,7 +244,7 @@ export function SectionCardItem({
       {isEditing ? (
         <>
           {!isClock && (
-            <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center opacity-0 transition-opacity duration-150 group-hover/card:opacity-100 group-focus-within/card:opacity-100">
+            <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center opacity-0 transition-opacity duration-150 group-hover/card:opacity-100 group-focus-within/card:opacity-100 [@media(hover:none)]:hidden">
               <IconButton
                 icon={Pencil}
                 label={t('common.edit')}
@@ -255,7 +260,7 @@ export function SectionCardItem({
               />
             </div>
           )}
-          <div className={cn("pointer-events-none absolute right-2 top-2 z-30 opacity-0 transition-opacity duration-150 group-hover/card:pointer-events-auto group-hover/card:opacity-100 group-focus-within/card:pointer-events-auto group-focus-within/card:opacity-100", isCompactDeviceCard && "right-1 top-1")}>
+          <div className={cn("pointer-events-none absolute right-2 top-2 z-30 opacity-0 transition-opacity duration-150 group-hover/card:pointer-events-auto group-hover/card:opacity-100 group-focus-within/card:pointer-events-auto group-focus-within/card:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100", isCompactDeviceCard && "right-1 top-1")}>
             <IconButton
               icon={MoreVertical}
               label={t('dashboard.editor.sections.card_actions')}

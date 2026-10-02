@@ -11,6 +11,8 @@ import {
   DashboardVisibility,
   DASHBOARD_TRANSFER_FORMAT,
   DASHBOARD_TRANSFER_VERSION,
+  DASHBOARD_TAB_TRANSFER_FORMAT,
+  DashboardTabTransferPackage,
 } from '../domain/Dashboard';
 import { HomeRepository } from '../domain/repositories/HomeRepository';
 import {
@@ -93,6 +95,31 @@ export class DashboardService {
   }
 
   public async importDashboard(userId: string, transfer: unknown, language = 'es'): Promise<DashboardImportResponse> {
+    return this.importTransfer(userId, transfer, language);
+  }
+
+  public async exportTab(userId: string, dashboardId: string, tabId: string): Promise<DashboardTabTransferPackage> {
+    const transfer = await this.exportDashboard(userId, dashboardId);
+    const tab = transfer.dashboard.tabs.find((candidate) => candidate.id === tabId);
+    if (!tab) throw new Error('DASHBOARD_TAB_NOT_FOUND');
+    return { format: DASHBOARD_TAB_TRANSFER_FORMAT, version: DASHBOARD_TRANSFER_VERSION, exportedAt: transfer.exportedAt, tab: { ...tab, isDefault: false } };
+  }
+
+  public async importTab(userId: string, dashboardId: string, value: unknown, language = 'es'): Promise<DashboardImportResponse> {
+    await this.getOwnedDashboard(userId, dashboardId);
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('DASHBOARD_IMPORT_INVALID');
+    const candidate = value as Partial<DashboardTabTransferPackage>;
+    if (candidate.format !== DASHBOARD_TAB_TRANSFER_FORMAT) throw new Error('DASHBOARD_IMPORT_INVALID');
+    if (candidate.version !== DASHBOARD_TRANSFER_VERSION) throw new Error('DASHBOARD_IMPORT_UNSUPPORTED_VERSION');
+    const transfer = {
+      format: DASHBOARD_TRANSFER_FORMAT, version: candidate.version,
+      dashboard: { title: 'Tab', tabs: [candidate.tab] },
+    };
+    if (!isDashboardTransferPackage(transfer)) throw new Error('DASHBOARD_IMPORT_INVALID');
+    return this.importTransfer(userId, transfer, language, dashboardId);
+  }
+
+  private async importTransfer(userId: string, transfer: unknown, language: string, targetDashboardId?: string): Promise<DashboardImportResponse> {
     if (!isDashboardTransferPackage(transfer)) {
       throw new Error('DASHBOARD_IMPORT_INVALID');
     }
@@ -112,6 +139,7 @@ export class DashboardService {
     const visibleDashboards = await this.dashboardRepository.findAllVisibleTo(userId, '', []);
     const ownedDashboards = visibleDashboards.filter((candidate) => candidate.ownerId === userId);
     if (ownedDashboards.length > 1) throw new Error('DASHBOARD_OWNER_CONFLICT');
+    if (targetDashboardId && ownedDashboards[0]?.id !== targetDashboardId) throw new Error('DASHBOARD_NOT_FOUND');
     if (transfer.dashboard.tabs.filter((tab) => tab.isDefault).length > 1) {
       throw new Error('DASHBOARD_MULTIPLE_DEFAULT_TABS');
     }
@@ -128,7 +156,14 @@ export class DashboardService {
     const report: DashboardImportReport = { unresolvedBindings: [], nonPortableBackgrounds: 0 };
     const authorizedHomeIds = new Set((await this.homeRepository.findHomesByUserId(userId)).map((home) => home.id));
     const tabIds = new Map(transfer.dashboard.tabs.map((tab) => [tab.id, randomUUID()]));
+    const usedTabTitles = new Set(targetDashboardId ? ownedDashboards[0].tabs.map((tab) => tab.title.trim().toLowerCase()) : []);
     const tabs = await Promise.all(transfer.dashboard.tabs.map(async (tab) => {
+      let tabTitle = tab.title.trim();
+      if (targetDashboardId && usedTabTitles.has(tabTitle.toLowerCase())) {
+        tabTitle = `${tab.title.trim()} · ${suffix}`;
+        for (let number = 2; usedTabTitles.has(tabTitle.toLowerCase()); number += 1) tabTitle = `${tab.title.trim()} · ${suffix} ${number}`;
+      }
+      usedTabTitles.add(tabTitle.toLowerCase());
       const widgetIds = new Map(tab.widgets.map((widget) => [widget.id, randomUUID()]));
       const legacyBackground = (tab as unknown as Record<string, unknown>).background;
       const presetId = tab.backgroundPresetId
@@ -140,6 +175,7 @@ export class DashboardService {
       const { backgroundPresetId: _presetId, backgroundUnavailable: _unavailable, ...portableTab } = tab;
       return {
         ...portableTab,
+        title: tabTitle,
         id: tabIds.get(tab.id)!,
         sectionLayout: tab.sectionLayout && Object.fromEntries(Object.entries(tab.sectionLayout).map(([key, slots]) => [
           key, slots?.map((id) => id === null ? null : widgetIds.get(id) ?? null),
@@ -149,7 +185,7 @@ export class DashboardService {
           && Number.isFinite(tab.backgroundOpacity) && tab.backgroundOpacity >= 0 && tab.backgroundOpacity <= 100
           ? tab.backgroundOpacity : undefined,
         visibility: undefined,
-        isDefault: tab.isDefault === true,
+        isDefault: !targetDashboardId && tab.isDefault === true,
         widgets: await normalizeImportedWidgets(
           tab.widgets, tab.title, authorizedHomeIds, tabIds, this.importBindingResolver, report, widgetIds, userId,
         ),

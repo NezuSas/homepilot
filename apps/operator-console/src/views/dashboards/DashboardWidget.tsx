@@ -92,6 +92,7 @@ export function WidgetContent({ widget, isEditing, isSelected = false, onClick, 
     case 'section':
       return (
         <SectionWidget
+          sectionId={widget.id}
           config={widget.config}
           isEditing={isEditing}
           onUpdate={(patch) => onConfigChange?.(widget.id, patch)}

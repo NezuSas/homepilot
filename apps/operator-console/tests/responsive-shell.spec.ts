@@ -1,6 +1,173 @@
 import { expect, test } from '@playwright/test';
 import { mdiAutoFix, mdiHome, mdiRobot, mdiWeatherWindy } from '@mdi/js';
 
+async function enterDashboardEdit(page: import('@playwright/test').Page, touch = false) {
+  const header = page.locator('.homepilot-dashboard-titlebar');
+  const more = header.getByLabel(/^(More|Más)$/i);
+  if (touch) await more.tap(); else await more.click();
+  const edit = header.getByRole('menuitem', { name: /^(Edit|Editar)$/i });
+  if (touch) await edit.tap(); else await edit.click();
+}
+
+for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'tablet', width: 1024, height: 768 }, { name: 'desktop', width: 1440, height: 900 }]) {
+  test(`Feature: Dashboard unified editing — Scenario: Stable sections and cross-section movement on ${viewport.name}`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport);
+    const template = responsiveDashboard.tabs[0].widgets[1];
+    const makeSection = (id: string, title: string, cards: Array<Record<string, unknown>>) => ({ ...template, id, config: { ...template.config, layout: { ...template.config.layout, span: 1 }, appearance: { title, showTitle: true }, extra: { cards } } });
+    const dashboard = { ...responsiveDashboard, tabs: [{ ...responsiveDashboard.tabs[0], widgets: [responsiveDashboard.tabs[0].widgets[0],
+      makeSection('tech', 'Tech', [{ id: 'movable', kind: 'light', title: 'Gata', entityId: 'light-kitchen', span: 'small', icon: 'Lightbulb' }]),
+      makeSection('patio', 'Patio', [{ id: 'tall', kind: 'clock_minimal', title: 'Reloj', span: 'full', icon: 'Clock' }]),
+      makeSection('cocina', 'Cocina', [{ id: 'second-light', kind: 'light', title: 'Cocina', span: 'small', icon: 'Lightbulb' }]),
+    ] }] };
+    await prepareAuthenticatedDashboard(page, dashboard);
+    let saved = dashboard;
+    await page.route('**/api/v1/dashboards', route => route.fulfill({ json: [saved] }));
+    await page.route('**/api/v1/dashboards/responsive-dashboard', route => {
+      if (route.request().method() === 'PATCH') saved = { ...saved, ...route.request().postDataJSON() };
+      return route.fulfill({ json: saved });
+    });
+    await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+    const regions = ['Tech', 'Patio', 'Cocina'].map(name => page.getByRole('region', { name, exact: true }));
+    const bounds = async () => Promise.all(regions.map(region => region.boundingBox()));
+    await expect(regions[2]).toBeVisible();
+    const before = await bounds();
+    await enterDashboardEdit(page);
+    await expect.poll(bounds).toEqual(before);
+    await page.screenshot({ path: testInfo.outputPath('dashboard-editing.png'), fullPage: true });
+    const header = page.locator('.homepilot-dashboard-titlebar');
+    await expect(header.getByRole('button', { name: /^(Edit|Editar|Rename|Renombrar)$/i })).toHaveCount(0);
+    const source = page.locator('[data-dashboard-card-id="movable"]');
+    await source.scrollIntoViewIfNeeded();
+    await source.focus();
+    await page.keyboard.press('Space');
+    await expect(source).toHaveAttribute('aria-pressed', 'true');
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+    await page.keyboard.press('Escape');
+    await expect(source).not.toHaveAttribute('aria-pressed', 'true');
+    expect(saved.tabs[0].widgets.find(widget => widget.id === 'tech')?.config.extra.cards.map(card => card.id)).toEqual(['movable']);
+    const sourceBounds = await source.boundingBox();
+    if (!sourceBounds) throw new Error('Missing draggable card bounds');
+    await source.dragTo(regions[1].getByRole('heading', { name: 'Patio' }), { sourcePosition: { x: sourceBounds.width / 4, y: sourceBounds.height * 0.75 }, steps: 12 });
+    await expect.poll(() => saved.tabs[0].widgets.find(widget => widget.id === 'patio')?.config.extra?.cards.map(card => card.id)).toEqual(['tall', 'movable']);
+    await expect(regions[0].locator('[data-dashboard-card-id="movable"]')).toHaveCount(0);
+    await expect(regions[1].locator('[data-dashboard-card-id="movable"]')).toBeVisible();
+    await header.getByRole('textbox', { name: /^(Rename|Renombrar)$/i }).fill('Casa renovada');
+    await header.getByRole('button', { name: /^(Done|Listo)$/i }).click();
+    await expect.poll(() => saved.title).toBe('Casa renovada');
+    await page.reload();
+    await expect(regions[1].locator('[data-dashboard-card-id="movable"]')).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath('dashboard-unified-editing.png'), fullPage: true });
+  });
+}
+
+test('Feature: Dashboard unified editing — Scenario: Touch hold moves a card into an empty section without executing it', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 768, height: 1024 }, hasTouch: true, isMobile: true });
+  const page = await context.newPage();
+  try {
+    const template = responsiveDashboard.tabs[0].widgets[1];
+    const makeSection = (id: string, title: string, cards: Array<Record<string, unknown>>) => ({ ...template, id, config: { ...template.config, layout: { ...template.config.layout, span: 1 }, appearance: { title, showTitle: true }, extra: { cards } } });
+    const dashboard = { ...responsiveDashboard, tabs: [{ ...responsiveDashboard.tabs[0], widgets: [responsiveDashboard.tabs[0].widgets[0], makeSection('tech', 'Tech', [{ id: 'touch-card', kind: 'light', title: 'Gata', entityId: 'light-kitchen', span: 'small', icon: 'Lightbulb' }]), makeSection('patio', 'Patio', [])] }] };
+    let saved = dashboard;
+    let commands = 0;
+    await prepareAuthenticatedDashboard(page, dashboard);
+    await page.route('**/api/v1/dashboards', route => route.fulfill({ json: [saved] }));
+    await page.route('**/api/v1/dashboards/responsive-dashboard', route => {
+      if (route.request().method() === 'PATCH') saved = { ...saved, ...route.request().postDataJSON() };
+      return route.fulfill({ json: saved });
+    });
+    await page.route('**/api/v1/devices/*/command', route => { commands += 1; return route.fulfill({ json: {} }); });
+    await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+    await enterDashboardEdit(page, true);
+    const card = page.locator('[data-dashboard-card-id="touch-card"]');
+    await card.scrollIntoViewIfNeeded();
+    const source = await card.boundingBox();
+    const target = await page.getByRole('region', { name: 'Patio', exact: true }).boundingBox();
+    if (!source || !target) throw new Error('Missing touch drag bounds');
+    await page.clock.install({ time: new Date('2026-10-02T12:00:00Z') });
+    await page.clock.pauseAt(new Date('2026-10-02T12:00:01Z'));
+    const session = await context.newCDPSession(page);
+    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: source.x + source.width / 2, y: source.y + source.height / 2 }] });
+    await page.clock.runFor(450);
+    await expect(card).not.toHaveAttribute('aria-pressed', 'true');
+    await page.clock.runFor(100);
+    await expect(card).toHaveAttribute('aria-pressed', 'true');
+    await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: target.x + target.width / 2, y: target.y + target.height / 2 }] });
+    await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await expect.poll(() => saved.tabs[0].widgets.find(widget => widget.id === 'patio')?.config.extra.cards.map(card => card.id)).toEqual(['touch-card']);
+    expect(commands).toBe(0);
+    await page.reload();
+    await expect(page.getByRole('region', { name: 'Patio', exact: true }).locator('[data-dashboard-card-id="touch-card"]')).toBeVisible();
+  } finally { await context.close(); }
+});
+
+test('Feature: Dashboard tab transfer — Scenario: The active tab exports and imports as a new tab without replacing defaults', async ({ page }) => {
+  await prepareAuthenticatedDashboard(page);
+  const exported = { format: 'homepilot-dashboard-tab', version: 1, tab: { id: 'portable-tab', title: 'Patio', widgets: [] } };
+  let exportedTab = '';
+  let received: unknown;
+  let saved = responsiveDashboard;
+  await page.route('**/api/v1/dashboards', route => route.fulfill({ json: [saved] }));
+  await page.route('**/api/v1/dashboards/responsive-dashboard/tabs/responsive-tab/export', route => { exportedTab = 'responsive-tab'; return route.fulfill({ json: exported }); });
+  await page.route('**/api/v1/dashboards/responsive-dashboard/tabs/import', route => {
+    received = route.request().postDataJSON();
+    saved = { ...saved, tabs: [...saved.tabs, { ...saved.tabs[0], id: 'new-tab', title: 'Patio', widgets: [], isDefault: false }] };
+    return route.fulfill({ status: 201, json: saved });
+  });
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  const header = page.locator('.homepilot-dashboard-titlebar');
+  await header.getByLabel(/^(More|Más)$/i).click();
+  const download = page.waitForEvent('download');
+  await header.getByRole('menuitem', { name: /^(Export tab|Exportar pestaña)$/i }).click();
+  expect((await download).suggestedFilename()).toBe('principal.homepilot-dashboard-tab.json');
+  expect(exportedTab).toBe('responsive-tab');
+  await header.getByLabel(/^(More|Más)$/i).click();
+  const chooser = page.waitForEvent('filechooser');
+  await header.getByRole('menuitem', { name: /^(Import tab|Importar pestaña)$/i }).click();
+  await (await chooser).setFiles({ name: 'patio.homepilot-dashboard-tab.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(exported)) });
+  await expect.poll(() => received).toEqual(exported);
+  await expect(page).toHaveURL(/\/new-tab$/);
+  expect(saved.tabs).toHaveLength(2);
+  expect(saved.tabs[0].isDefault).toBe(true);
+  expect(saved.tabs[1].isDefault).toBe(false);
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Patio', exact: true })).toBeVisible();
+});
+
+test('Feature: Dashboard unified editing — Scenario: Keyboard transfers a card between sections and Escape cancels a second movement', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  const template = responsiveDashboard.tabs[0].widgets[1];
+  const makeSection = (id: string, title: string, cardId: string) => ({ ...template, id, config: { ...template.config, layout: { ...template.config.layout, span: 1 }, appearance: { title, showTitle: true }, extra: { cards: [{ id: cardId, kind: 'light', title: cardId, span: 'small', icon: 'Lightbulb' }] } } });
+  const dashboard = { ...responsiveDashboard, tabs: [{ ...responsiveDashboard.tabs[0], widgets: [responsiveDashboard.tabs[0].widgets[0], makeSection('tech', 'Tech', 'keyboard-card'), makeSection('patio', 'Patio', 'target-card')] }] };
+  let saved = dashboard;
+  let writes = 0;
+  await prepareAuthenticatedDashboard(page, dashboard);
+  await page.route('**/api/v1/dashboards/responsive-dashboard', route => {
+    if (route.request().method() === 'PATCH') { writes += 1; saved = { ...saved, ...route.request().postDataJSON() }; }
+    return route.fulfill({ json: saved });
+  });
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  await enterDashboardEdit(page);
+  const card = page.locator('[data-dashboard-card-id="keyboard-card"]');
+  await card.focus();
+  await page.keyboard.press('Space');
+  await expect(card).toHaveAttribute('aria-pressed', 'true');
+    // dnd-kit installs its document keyboard listener after activation; let
+    // the activated frame settle before the user's next key.
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByRole('status')).toContainText('target-card');
+  await page.keyboard.press('Space');
+  await expect.poll(() => saved.tabs[0].widgets.find(widget => widget.id === 'patio')?.config.extra.cards.map(card => card.id)).toEqual(['keyboard-card', 'target-card']);
+  await card.focus();
+  await page.keyboard.press('Space');
+    await expect(card).toHaveAttribute('aria-pressed', 'true');
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('Escape');
+  await expect(card).not.toHaveAttribute('aria-pressed', 'true');
+  expect(writes).toBe(1);
+});
+
 test('Feature: Routine sharing — Scenario: A recipient can execute and favorite but never manage shared routines', async ({ page }) => {
   await prepareAuthenticatedDashboard(page, responsiveDashboard, { ...dashboardUser, id: 'recipient' });
   await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: 'home', ownerId: 'owner', name: 'Casa compartida' }] }));
@@ -1403,7 +1570,7 @@ test('Feature: Sensor width — Scenario: A sensor stays medium without a width 
     await route.fulfill({ json: savedDashboard });
   });
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
-  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).click();
+  await enterDashboardEdit(page);
   const sensor = page.locator('[data-dashboard-card-id="responsive-sensor"]');
   await expect(sensor.getByRole('slider', { name: /resize card|redimensionar tarjeta/i })).toHaveCount(0);
   await sensor.hover();
@@ -1475,7 +1642,7 @@ test('Feature: Section slots — moving to a gap and swapping Sections persist w
     await route.fulfill({ json: dashboard });
   });
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
-  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).click();
+  await enterDashboardEdit(page);
 
   const section = (name: string) => page.locator('.homepilot-dashboard-widget').filter({ has: page.getByRole('heading', { name, exact: true }) });
   const handle = (name: string) => section(name).getByRole('button', { name: /Drag to reorder|Arrastrar para reordenar/i });
@@ -1518,7 +1685,7 @@ test('Feature: Section slots — a historical wide Section edits and saves as on
   });
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
-  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).click();
+  await enterDashboardEdit(page);
   await expect(page.locator('[data-section-slot="1"] .homepilot-dashboard-widget')).toHaveCount(0);
   await page.getByRole('button', { name: /Editar sección|Edit section/i }).click();
   const editor = page.getByRole('dialog', { name: /Editar sección|Edit section/i });
@@ -2195,7 +2362,7 @@ test('allows clearing the current open-on-load tab before enabling another', asy
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(dashboard) });
   });
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
-  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).click();
+  await enterDashboardEdit(page);
   const tabs = page.locator('.homepilot-dashboard-tabs');
   await tabs.getByRole('button', { name: /configurar vista: Sala|configure view: Sala/i }).click();
   let dialog = page.getByRole('dialog', { name: /configuración de la vista Sala|view configuration for Sala/i });
@@ -2835,12 +3002,7 @@ for (const viewport of [viewports[2], viewports[1], viewports[0], { name: 'portr
     await settleLayout();
     const view = await Promise.all(['Tech', 'Patio'].map(geometry));
 
-    const titlebar = page.locator('.homepilot-dashboard-titlebar');
-    if (viewport.width < 640) {
-      await titlebar.getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
-    } else {
-      await titlebar.getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
-    }
+    await enterDashboardEdit(page);
     await expect(section('Tech').getByRole('button', { name: /Drag to reorder|Arrastrar para reordenar/i })).toBeVisible();
     await settleLayout();
     const edit = await Promise.all(['Tech', 'Patio'].map(geometry));
@@ -2927,7 +3089,7 @@ test('Feature: Section card editing — Scenario: An owner adds and configures a
   });
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
 
-  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
+  await enterDashboardEdit(page);
   const originalCardCount = await page.locator('[class*="group/card"]').count();
   await page.getByRole('button', { name: /^(Add card|Añadir tarjeta)$/i }).click();
   await expect(page.getByRole('heading', { name: /Add card to section|Añadir tarjeta a la sección/i })).toBeVisible();
@@ -2981,7 +3143,7 @@ test('Feature: Section appearance — Scenario: An owner can select and clear an
   }));
   expect(sectionPadding).toEqual({ left: '20px', right: '20px' });
 
-  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
+  await enterDashboardEdit(page);
   await sectionWithoutIcon.getByRole('button', { name: /^(Edit section|Editar sección)$/i }).click();
   const editor = page.getByRole('dialog', { name: /^(Edit section|Editar sección)$/i });
   const preview = editor.getByRole('group', { name: /^(Section preview|Vista previa de la sección)$/i });
@@ -3019,7 +3181,7 @@ test.describe('Icon picker on touch tablets', () => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await prepareAuthenticatedDashboard(page);
       await page.goto('/dashboards/responsive-dashboard/responsive-tab');
-      await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().tap();
+      await enterDashboardEdit(page, true);
       const section = page.locator('.homepilot-dashboard-widget').filter({ has: page.getByRole('heading', { name: 'Lecturas del hogar', exact: true }) });
       await section.getByRole('button', { name: /^(Edit section|Editar sección)$/i }).tap();
       const editor = page.getByRole('dialog', { name: /^(Edit section|Editar sección)$/i });
@@ -3126,7 +3288,7 @@ test('Feature: Clock editing — Scenario: A fixed section clock can be moved, r
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(savedDashboard) });
   });
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
-  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
+  await enterDashboardEdit(page);
 
   const clock = page.locator('[data-dashboard-card-id="responsive-weather"]');
   const sensor = page.locator('[data-dashboard-card-id="responsive-sensor"]');
@@ -3196,7 +3358,7 @@ test('Feature: Clock editing — Scenario: A standalone clock has no Configure a
   };
   await prepareAuthenticatedDashboard(page, dashboard);
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
-  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
+  await enterDashboardEdit(page);
 
   const clock = page.locator('.homepilot-dashboard-widget').filter({ has: page.locator('[data-homepilot-clock]') });
   await expect(clock).toHaveCount(1);
@@ -3221,7 +3383,7 @@ test('Feature: Media card width — Scenario: A player occupies the full section
     await route.fulfill({ contentType: 'application/json', body: '[]' });
   });
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
-  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
+  await enterDashboardEdit(page);
   await page.getByRole('button', { name: /^(Add card|Añadir tarjeta)$/i }).click();
   await page.getByRole('button', { name: /^(Reproductor|Media player)$/i }).click();
 
@@ -3287,7 +3449,7 @@ test('Feature: Media Player design — Scenario: Classic preview and persisted d
   await card.getByRole('button', { name: /^(Play|Reproducir)$/i }).click();
   await expect.poll(() => commands.length).toBe(1);
 
-  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
+  await enterDashboardEdit(page);
   await card.hover();
   const cardActions = /^(Card actions|Acciones de tarjeta)$/i;
   await card.getByRole('button', { name: cardActions }).click();
@@ -3363,7 +3525,7 @@ test('Feature: Media player idle — Scenario: A player reports no playback with
   expect(Math.abs((await card.evaluate((element) => element.getBoundingClientRect().height)) - idleHeight)).toBeLessThanOrEqual(2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(1441);
 
-  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
+  await enterDashboardEdit(page);
   await expect(card.locator('[data-media-player] > div').first().locator('p').first().locator('..').locator('svg')).toHaveCount(0);
   await card.hover();
   const cardActions = card.getByRole('button', { name: /^(Card actions|Acciones de tarjeta)$/i });
@@ -3388,7 +3550,7 @@ test('Feature: Button card default — Scenario: A new button persists the first
     await route.fulfill({ contentType: 'application/json', body: '[]' });
   });
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
-  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
+  await enterDashboardEdit(page);
   await page.getByRole('button', { name: /^(Add card|Añadir tarjeta)$/i }).click();
   const catalogButton = page.getByRole('button', { name: /^(Button|Botón)$/i });
   const catalogCard = catalogButton.locator('..');
@@ -3418,15 +3580,13 @@ test('Feature: Button card default — Scenario: A new button persists the first
 test('Feature: Dashboard import — Scenario: Pending bindings and local backgrounds are reported without exposing source IDs', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await prepareAuthenticatedDashboard(page);
-  await page.route('**/api/v1/dashboards/import', async (route) => {
+  await page.route('**/api/v1/dashboards/responsive-dashboard/tabs/import', async (route) => {
     await route.fulfill({
       status: 201,
       contentType: 'application/json',
       body: JSON.stringify({
         ...responsiveDashboard,
-        id: 'imported-dashboard',
-        title: 'Importado',
-        tabs: [{ ...responsiveDashboard.tabs[0], id: 'imported-tab' }],
+        tabs: [...responsiveDashboard.tabs, { ...responsiveDashboard.tabs[0], id: 'imported-tab', isDefault: false }],
         importReport: {
           unresolvedBindings: [{ tabTitle: 'Principal', widgetId: 'imported-widget', cardId: 'card-1', title: 'Luz', targetType: 'device' }],
           nonPortableBackgrounds: 1,
@@ -3437,10 +3597,10 @@ test('Feature: Dashboard import — Scenario: Pending bindings and local backgro
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
   await page.locator('.homepilot-dashboard-titlebar input[type="file"]').setInputFiles({
     name: 'dashboard.json', mimeType: 'application/json',
-    buffer: Buffer.from(JSON.stringify({ format: 'homepilot-dashboard', version: 1, dashboard: { title: 'Importado', tabs: [] } })),
+    buffer: Buffer.from(JSON.stringify({ format: 'homepilot-dashboard-tab', version: 1, tab: { id: 'portable-tab', title: 'Principal', widgets: [] } })),
   });
 
-  await expect(page.getByText(/Tablero importado con asignaciones pendientes|Dashboard imported with pending assignments/i)).toBeVisible();
+  await expect(page.getByText(/Pestaña importada con asignaciones pendientes|Tab imported with pending assignments/i)).toBeVisible();
   await expect(page.getByText(/Asignaciones sin resolver: 1|Unresolved assignments: 1/i)).toBeVisible();
   await page.getByText(/Ver asignaciones pendientes|Show pending assignments/i).click();
   await expect(page.getByText(/Luz · Sin asignar|Luz · Unassigned/i)).toBeVisible();
@@ -3458,24 +3618,14 @@ for (const viewport of [...viewports, { name: 'portrait kiosk', ...portraitKiosk
     const titlebar = page.locator('.homepilot-dashboard-titlebar');
     const more = titlebar.locator('details > summary');
     await expect(titlebar.getByRole('button', { name: /new panel|nuevo panel|delete panel|eliminar panel/i })).toHaveCount(0);
-    if (viewport.width >= 1280) {
-      await expect(more).toBeHidden();
-      await expect(titlebar.getByRole('button', { name: /dashboard history|historial del tablero/i })).toBeVisible();
-      await expect(titlebar.getByRole('button', { name: /export dashboard|exportar tablero/i })).toBeVisible();
-      await expect(titlebar.getByRole('button', { name: /import dashboard|importar tablero/i })).toBeVisible();
-    } else {
-      await expect(more).toBeVisible();
-      await more.click();
-      await expect(titlebar.getByRole('menuitem', { name: /dashboard history|historial del tablero/i })).toBeVisible();
-      await expect(titlebar.getByRole('menuitem', { name: /export dashboard|exportar tablero/i })).toBeVisible();
-      await expect(titlebar.getByRole('menuitem', { name: /import dashboard|importar tablero/i })).toBeVisible();
-      await expect(titlebar.getByRole('button', { name: /dashboard history|historial del tablero/i })).toHaveCount(0);
-      await expect(titlebar.getByRole('menuitem', { name: /^(Edit|Editar)$/i })).toHaveCount(0);
-      await expect(titlebar.getByRole('menuitem', { name: /new panel|nuevo panel/i })).toHaveCount(0);
-      await expect(titlebar.getByRole('button', { name: /new panel|nuevo panel/i })).toHaveCount(0);
-    }
-
-    await expect(titlebar.getByRole('button', { name: /^(Edit|Editar)$/i }).last()).toBeVisible();
+    await expect(more).toBeVisible();
+    await more.click();
+    await expect(titlebar.getByRole('menuitem', { name: /dashboard history|historial del tablero/i })).toBeVisible();
+    await expect(titlebar.getByRole('menuitem', { name: /export tab|exportar pestaña/i })).toBeVisible();
+    await expect(titlebar.getByRole('menuitem', { name: /import tab|importar pestaña/i })).toBeVisible();
+    await expect(titlebar.getByRole('menuitem', { name: /^(Edit|Editar)$/i })).toHaveCount(1);
+    await expect(titlebar.getByRole('button', { name: /^(Edit|Editar|Rename|Renombrar)$/i })).toHaveCount(0);
+    await more.click();
     await expect(page.locator('.sensor-metric-card').first()).not.toContainText('LISTO');
     const geometry = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,
@@ -3491,9 +3641,9 @@ for (const viewport of [...viewports, { name: 'portrait kiosk', ...portraitKiosk
     geometry.sensors.forEach((card) => expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth));
     geometry.clocks.forEach((card) => expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth));
     if (viewport.width < 640) {
-      await titlebar.getByRole('button', { name: /^(Rename|Renombrar)$/i }).click();
+      await enterDashboardEdit(page);
       await expect(titlebar.getByRole('textbox', { name: /^(Rename|Renombrar)$/i })).toBeVisible();
-      await expect(more).toHaveCount(0);
+      await expect(more).toBeVisible();
       const titlebarWidth = await titlebar.evaluate((element) => ({ client: element.clientWidth, scroll: element.scrollWidth }));
       expect(titlebarWidth.scroll).toBeLessThanOrEqual(titlebarWidth.client);
     }
@@ -3525,7 +3675,7 @@ test('Feature: Button card — Scenario: A scene briefly lights its icon without
   });
 
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
-  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
+  await enterDashboardEdit(page);
   await page.getByRole('button', { name: /^(Add card|Añadir tarjeta)$/i }).click();
   await expect(page.getByRole('button', { name: /^(Button|Botón)$/i })).toHaveCount(1);
   await page.getByRole('button', { name: /^(Button|Botón)$/i }).click();
@@ -3582,7 +3732,7 @@ test('Feature: Unified control tile — Scenario: Selecting a light still sends 
   });
 
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
-  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
+  await enterDashboardEdit(page);
   await page.getByRole('button', { name: /^(Add card|Añadir tarjeta)$/i }).click();
   await page.getByRole('button', { name: /^(Button|Botón)$/i }).click();
   await page.getByText(/^(Light, scene, routine, or button|Luz, escena, rutina o botón)$/i).locator('..').getByRole('button').click();
@@ -3604,7 +3754,7 @@ test('Feature: Dashboard title editing — Scenario: An owner edits title conten
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ...responsiveDashboard, ...changes }) });
   });
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
-  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Edit|Editar)$/i }).last().click();
+  await enterDashboardEdit(page);
 
   const titleWidget = page.locator('.homepilot-dashboard-widget').filter({ has: page.locator('.homepilot-dashboard-title') });
   await titleWidget.hover();
@@ -3939,12 +4089,8 @@ for (const viewport of viewports) {
 
     await page.goto('/dashboards/responsive-dashboard/responsive-tab');
     const titlebar = page.locator('.homepilot-dashboard-titlebar');
-    if (viewport.width < 1280) {
-      await titlebar.locator('details > summary').click();
-      await titlebar.getByRole('menuitem', { name: /dashboard history|historial del tablero/i }).click();
-    } else {
-      await titlebar.getByRole('button', { name: /dashboard history|historial del tablero/i }).click();
-    }
+    await titlebar.getByLabel(/^(More|Más)$/i).click();
+    await titlebar.getByRole('menuitem', { name: /dashboard history|historial del tablero/i }).click();
 
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
@@ -4062,7 +4208,8 @@ test('Feature: User dashboard navigation — Scenario: Given an authenticated us
 
   await dashboardChild.click();
   await expect(page).toHaveURL(/\/dashboards\/responsive-dashboard/);
-  await expect(page.getByRole('button', { name: /dashboard history|historial del tablero/i })).toBeVisible();
+  await page.locator('.homepilot-dashboard-titlebar').getByLabel(/^(More|Más)$/i).click();
+  await expect(page.getByRole('menuitem', { name: /dashboard history|historial del tablero/i })).toBeVisible();
 
   await dashboardGroup.click();
   await expect(dashboardGroup).toHaveAttribute('aria-expanded', 'false');

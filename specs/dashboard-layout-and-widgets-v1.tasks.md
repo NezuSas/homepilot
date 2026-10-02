@@ -1,5 +1,15 @@
 # Tareas: Dashboard Layout and Widgets V1
 
+## Refinamiento local — edición, pestañas y drag táctil
+
+- [x] Unificar entrada Editar en Más y renombrado dentro de ese modo.
+- [x] Añadir transferencia por pestaña con validación/IDs privados y revisión previa; conservar endpoints históricos.
+- [x] Compartir geometría normal/edición y conservar slots vacíos.
+- [x] Arrastre touch prolongado y transferencia atómica de tarjetas entre Sections de la misma pestaña.
+- [x] Tests focalizados, responsive focalizado y controles técnicos; sin Git, GitHub, Docker ni deploy.
+
+Evidencia local 2026-10-02: Jest 7 suites / 83 tests PASS; responsive final focalizado 23/23 PASS (edición, transferencia de pestaña, movimiento mouse/touch/teclado, cancelación, slots, geometría inicial, Clock e historial). Typecheck, lint, build raíz y Operator Console PASS. Controles spec/BDD/module/i18n/architecture/no-production-any PASS. Revisión visual conjunta móvil/tablet/escritorio y una confirmación tras separar controles; detector sin hallazgos. Responsive completo: cero ejecuciones. No se certificó tablet física/Safari ni se desplegó; advertencias preexistentes Browserslist y chunk MDI.
+
 ## Implementado
 
 - [x] AC40 (corrección de composición vigente 2026-10-01): cabecera, hero central y pie en bandas comunes; nombre completo con salto natural e icono encima en tarjetas angostas; cifras de peso 450 y profundidad compacta. Meter porcentual en el pie sin desplazar el hero. Paleta Dashboard conservada; ausencia «— / Sin lectura», sin interrogación decorativa ni historia/rangos ficticios.

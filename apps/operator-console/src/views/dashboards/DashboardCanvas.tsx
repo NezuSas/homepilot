@@ -1,14 +1,19 @@
 import {
   DndContext,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
+  pointerWithin,
+  closestCenter,
+  rectIntersection,
   useSensor,
   useSensors,
   DragOverlay,
   defaultDropAnimationSideEffects,
   useDroppable,
 } from '@dnd-kit/core';
-import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
+import type { CollisionDetection, DragEndEvent, DragStartEvent } from '@dnd-kit/core';
+import { SectionCardDragContext, moveSectionCard } from './sectionCardDrag';
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useState, useMemo, useRef, useEffect } from 'react';
@@ -127,6 +132,7 @@ function SortableCanvasWidget({
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: widget.id,
+    data: { kind: widget.type === 'section' ? 'section' : 'widget', sectionId: widget.id, cardCount: Array.isArray(widget.config.extra?.cards) ? widget.config.extra.cards.length : 0 },
     disabled: !canDrag,
   });
   const { nodeRef, rowSpan } = useMeasuredRowSpan(gap);
@@ -163,10 +169,12 @@ function SortableCanvasWidget({
   );
 }
 
-function SectionDropSlot({ index, editing, children }: { index: number; editing: boolean; children?: ReactNode }) {
+function SectionDropSlot({ index, columns, gap, editing, children }: { index: number; columns: number; gap: number; editing: boolean; children?: ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id: `section-slot-${index}`, disabled: !editing });
+  const { nodeRef, rowSpan } = useMeasuredRowSpan(gap);
   return <div
-    ref={setNodeRef}
+    ref={(node) => { setNodeRef(node); nodeRef.current = node; }}
+    style={{ gridColumn: (index % columns) + 1, gridRow: `span ${rowSpan}` }}
     data-section-slot={index}
     className={cn('min-w-0', !children && 'min-h-36', editing && !children && 'rounded-panel border border-dashed border-primary/25 bg-primary/[0.025]', isOver && editing && 'border-primary/75 bg-primary/10')}
   >{children}</div>;
@@ -255,8 +263,7 @@ export function DashboardCanvas({
   // All Sections render in one slot, including historical multitrack data.
   // Keep the sparse slot map authoritative wherever a profile was saved.
   const useSectionSlots = sectionWidgets.length > 0
-    && sectionWidgets.every((widget) => getSectionSpan(widget) === 1)
-    && (isEditing || sectionLayout?.[sectionLayoutKey(columns)] !== undefined);
+    && sectionWidgets.every((widget) => getSectionSpan(widget) === 1);
   const slotCount = useSectionSlots
     ? Math.ceil(sectionSlots.length / columns) * columns + (isEditing ? columns : 0)
     : 0;
@@ -269,9 +276,22 @@ export function DashboardCanvas({
   }), []);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, sensorOptions),
+    useSensor(MouseSensor, sensorOptions),
+    useSensor(TouchSensor, { activationConstraint: { delay: 500, tolerance: 8 } }),
     useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
+      coordinateGetter: (event, args) => {
+        // Ancestor Sections are not card destinations unless empty. Leave the
+        // registered containers intact and filter only measured candidates.
+        const isCard = args.context.active?.data.current?.kind === 'section-card';
+        const droppableRects = new Map(args.context.droppableRects);
+        for (const container of args.context.droppableContainers.getEnabled()) {
+          const data = container.data.current;
+          const eligible = isCard ? data?.kind === 'section-card' || (data?.kind === 'section' && data.cardCount === 0)
+            : data?.kind !== 'section-card';
+          if (!eligible) droppableRects.delete(container.id);
+        }
+        return sortableKeyboardCoordinates(event, { ...args, context: { ...args.context, droppableRects } });
+      },
     }),
   );
 
@@ -287,6 +307,14 @@ export function DashboardCanvas({
 
     const { active, over } = event;
     if (!over || active.id === over.id) return;
+    const source = active.data.current;
+    const destination = over.data.current;
+    if (source?.kind === 'section-card') {
+      if (typeof source.sectionId !== 'string' || typeof source.cardId !== 'string' || typeof destination?.sectionId !== 'string') return;
+      const moved = moveSectionCard(widgets, source.sectionId, source.cardId, destination.sectionId, destination.kind === 'section-card' ? destination.cardId : undefined);
+      if (moved !== widgets) onLayoutChange(moved, sectionLayout);
+      return;
+    }
 
     if (useSectionSlots && sectionById.has(String(active.id))) {
       const target = String(over.id);
@@ -313,6 +341,17 @@ export function DashboardCanvas({
     setActiveWidget(null);
   };
 
+  const collisionDetection: CollisionDetection = (args) => {
+    const isCard = args.active.data.current?.kind === 'section-card';
+    const droppableContainers = args.droppableContainers.filter((container) => isCard
+      ? container.data.current?.kind === 'section-card' || container.data.current?.kind === 'section'
+      : container.data.current?.kind !== 'section-card');
+    if (!isCard) return rectIntersection({ ...args, droppableContainers });
+    const hits = pointerWithin({ ...args, droppableContainers });
+    const cardHits = hits.filter((hit) => droppableContainers.find((container) => container.id === hit.id)?.data.current?.kind === 'section-card');
+    return cardHits.length ? cardHits : hits.length ? hits : closestCenter({ ...args, droppableContainers });
+  };
+
 
   const pendingDeleteWidget = pendingDeleteWidgetId
     ? widgets.find((widget) => widget.id === pendingDeleteWidgetId) ?? null
@@ -321,25 +360,12 @@ export function DashboardCanvas({
   return (
     <DndContext
       sensors={sensors}
+      collisionDetection={collisionDetection}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      {canEditLayout && !titleWidget && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="md"
-          onClick={onAddTitleClick}
-          aria-label={t('dashboard.editor.sections.add_title')}
-          className="w-full rounded-section border-2 border-dashed border-border/60 bg-background/10 text-primary hover:border-primary/70 hover:bg-primary/5"
-        >
-          <span className="inline-flex items-center gap-2 rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-5 py-2 text-body font-semibold text-primary">
-            <span className="text-panel-title leading-none">+</span>
-            <span>{t('dashboard.editor.sections.add_title')}</span>
-          </span>
-        </Button>
-      )}
+      <SectionCardDragContext.Provider value={true}>
       <div
         ref={containerRef}
         className={cn(
@@ -388,10 +414,10 @@ export function DashboardCanvas({
 
         {useSectionSlots && <CanvasFlowItem span={columns} gap={gap}>
           <SortableContext items={sectionWidgets.map((widget) => widget.id)} strategy={rectSortingStrategy}>
-            <div className="grid min-w-0 items-start" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gap: `${gap}px` }}>
+            <div className="grid min-w-0 items-start" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gridAutoRows: `${CANVAS_ROW_UNIT}px`, gap: `${gap}px` }}>
               {Array.from({ length: slotCount }, (_, index) => {
                 const widget = sectionById.get(sectionSlots[index] ?? '');
-                return <SectionDropSlot key={index} index={index} editing={isEditing}>
+                return <SectionDropSlot key={index} index={index} columns={columns} gap={gap} editing={isEditing}>
                   {widget && <SortableCanvasWidget
                     widget={widget} columns={columns} gap={gap} slotMode
                     isEditing={isEditing} canDrag={canEditLayout}
@@ -463,6 +489,7 @@ export function DashboardCanvas({
           ) : null}
         </DragOverlay>
       </div>
+      {canEditLayout && !titleWidget && <Button type="button" variant="outline" size="md" onClick={onAddTitleClick}>{t('dashboard.editor.sections.add_title')}</Button>}
       {canEditLayout && (
         <Button
           type="button"
@@ -477,6 +504,7 @@ export function DashboardCanvas({
           </span>
         </Button>
       )}
+      </SectionCardDragContext.Provider>
     </DndContext>
   );
 }

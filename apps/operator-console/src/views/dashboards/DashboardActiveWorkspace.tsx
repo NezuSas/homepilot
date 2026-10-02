@@ -12,7 +12,6 @@ interface DashboardActiveWorkspaceProps {
   visibleTabs: DashboardTab[];
   isOwner: boolean;
   isEditing: boolean;
-  editingTitle: boolean;
   draftTitle: string;
   isAddingTab: boolean;
   selectedWidgetId: string | null;
@@ -20,8 +19,6 @@ interface DashboardActiveWorkspaceProps {
   t: TFunction;
   onOpenMobileMenu?: () => void;
   onDraftTitleChange: (title: string) => void;
-  onStartEditingTitle: () => void;
-  onCancelEditingTitle: () => void;
   onConfirmTitle: () => void;
   onToggleEditing: () => void;
   onExport: () => void;
@@ -46,7 +43,6 @@ export function DashboardActiveWorkspace({
   visibleTabs,
   isOwner,
   isEditing,
-  editingTitle,
   draftTitle,
   isAddingTab,
   selectedWidgetId,
@@ -54,8 +50,6 @@ export function DashboardActiveWorkspace({
   t,
   onOpenMobileMenu,
   onDraftTitleChange,
-  onStartEditingTitle,
-  onCancelEditingTitle,
   onConfirmTitle,
   onToggleEditing,
   onExport,
@@ -78,18 +72,13 @@ export function DashboardActiveWorkspace({
         <DashboardTitleBar
           title={active.title}
           draftTitle={draftTitle}
-          isEditingTitle={editingTitle}
           isEditingDashboard={isEditing}
           onDraftTitleChange={onDraftTitleChange}
-          onStartEditingTitle={onStartEditingTitle}
-          onCancelEditingTitle={onCancelEditingTitle}
           onConfirmTitle={onConfirmTitle}
           renameLabel={t('dashboards.rename')}
           editLabel={t('dashboards.action_edit')}
           doneLabel={t('common.done')}
           moreLabel={t('common.more')}
-          confirmLabel={t('common.confirm')}
-          cancelLabel={t('common.cancel')}
           onToggleEditing={onToggleEditing}
           onExport={onExport}
           onImport={onImport}

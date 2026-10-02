@@ -1663,12 +1663,12 @@
     "error_save": "No se pudieron guardar los cambios del panel",
     "error_delete": "No se pudo eliminar el panel",
     "transfer": {
-      "export": "Exportar tablero",
-      "import": "Importar tablero",
-      "error_export": "No se pudo exportar el tablero",
-      "error_import": "No se pudo importar el tablero",
-      "pending_title": "Tablero importado con asignaciones pendientes",
-      "pending_background_title": "Tablero importado sin su fondo local",
+      "export": "Exportar pestaña",
+      "import": "Importar pestaña",
+      "error_export": "No se pudo exportar la pestaña",
+      "error_import": "No se pudo importar la pestaña",
+      "pending_title": "Pestaña importada con asignaciones pendientes",
+      "pending_background_title": "Pestaña importada sin su fondo local",
       "pending_message": "Asignaciones sin resolver: {{bindings}} · Fondos locales no incluidos: {{backgrounds}}. Puedes reasignar los controles desde la edición del tablero.",
       "pending_details": "Ver asignaciones pendientes",
       "pending_item": "{{title}} · Sin asignar"
