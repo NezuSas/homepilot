@@ -202,7 +202,7 @@ test('Feature: Sensor fixed scale — Scenario: Editor preview and reload keep o
   await expect(sensor.getByRole('meter')).toHaveAttribute('aria-valuemin', '-20'); await expect(sensor.getByRole('meter')).toHaveAttribute('aria-valuemax', '100');
   await expect(sensor.locator('.sensor-reading-number')).toHaveText(/123[.,]46/);
   await expect(sensor.getByRole('meter')).toHaveAttribute('aria-valuetext', '123.4567 °C');
-  reading = 'unavailable'; await page.reload(); await expect(sensor.getByRole('meter')).toHaveCount(0); await expect(sensor.locator('.sensor-scale-caption')).toContainText('-20 – 100');
+  reading = 'unavailable'; await page.reload(); await expect(sensor.getByRole('meter')).toHaveCount(0); await expect(sensor.locator('.sensor-scale-caption')).toHaveCount(0);
   reading = '22.4567'; await page.reload();
   await enterDashboardEdit(page); await sensor.hover(); await sensor.getByRole('button', { name: /^(Edit|Editar)$/i }).click();
   await expect(minimum).toHaveValue('-20'); await expect(maximum).toHaveValue('100');
@@ -471,6 +471,9 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     await source.focus();
     await page.keyboard.press('Space');
     await expect(source).toHaveAttribute('aria-pressed', 'true');
+    await expect(source).toHaveAttribute('data-dashboard-drag-origin', 'true');
+    const overlay = page.locator('[data-dashboard-drag-preview="true"]');
+    await expect(overlay).toBeVisible();
     await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
     await page.keyboard.press('Escape');
     await expect(source).not.toHaveAttribute('aria-pressed', 'true');
@@ -483,6 +486,11 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     await page.mouse.down();
     await page.mouse.move(destinationBounds.x + destinationBounds.width / 2, destinationBounds.y + destinationBounds.height / 2, { steps: 12 });
     await expect(source).toHaveAttribute('aria-pressed', 'true');
+    await expect(source).toHaveAttribute('data-dashboard-drag-origin', 'true');
+    const dragBounds = (await page.locator('[data-dashboard-drag-preview="true"]').boundingBox())!;
+    expect(dragBounds.width).toBeCloseTo(sourceBounds.width, 1);
+    expect(dragBounds.height).toBeCloseTo(sourceBounds.height, 1);
+    await expect(page.locator('[data-dashboard-drop-target="true"]').filter({ visible: true })).not.toHaveCount(0);
     await page.mouse.up();
     await expect.poll(() => saved.tabs[0].widgets.find(widget => widget.id === 'patio')?.config.extra?.cards.map(card => card.id)).toEqual(['tall', 'movable']);
     await expect(regions[0].locator('[data-dashboard-card-id="movable"]')).toHaveCount(0);
@@ -621,7 +629,11 @@ test('Feature: Dashboard unified editing — Scenario: Keyboard transfers a card
   await expect(page.getByRole('status')).toContainText('target-card');
   await page.keyboard.press('Space');
   await expect.poll(() => saved.tabs[0].widgets.find(widget => widget.id === 'patio')?.config.extra.cards.map(card => card.id)).toEqual(['keyboard-card', 'target-card']);
+  await expect(page.locator('[data-dashboard-drag-preview="true"]')).toHaveCount(0);
+  // The transferred node registers its sortable listeners in a layout effect.
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
   await card.focus();
+  await expect(card).toBeFocused();
   await page.keyboard.press('Space');
     await expect(card).toHaveAttribute('aria-pressed', 'true');
     await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
@@ -1956,7 +1968,7 @@ for (const viewport of [
       ...responsiveDashboard,
       tabs: [{ ...responsiveDashboard.tabs[0]!, widgets: [{
         ...baseSection,
-        config: { ...baseSection.config, extra: { cards: readings.map(({ id, title }) => ({ id, title, kind: 'sensor', entityId: id, span: 'small' })) } },
+        config: { ...baseSection.config, extra: { cards: readings.map(({ id, title }) => ({ id, title, kind: 'sensor', entityId: id, span: 'small', sensorDecimals: true })) } },
       }] }],
     };
     await prepareAuthenticatedDashboard(page, dashboard);

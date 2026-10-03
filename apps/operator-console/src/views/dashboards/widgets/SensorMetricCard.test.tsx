@@ -19,7 +19,7 @@ describe('Fixed measurement scale (AC42)', () => {
   it('does not invent a meter when a configured sensor has no reading', () => {
     const html = renderToStaticMarkup(<SensorMetricCard title="Fixed" sensorScale={{ min: 0, max: 100 }} />);
     expect(html).not.toContain('role="meter"');
-    expect(html.replace(/<[^>]*>/g, '')).toContain('0 – 100');
+    expect(html).not.toContain('sensor-scale-caption');
   });
 });
 
@@ -61,7 +61,11 @@ describe('Sensor Metric Card status presentation', () => {
   ])('renders $name as information, not an action', ({ name, state, value, status }) => {
     const html = renderToStaticMarkup(<SensorMetricCard title={name} device={sensor(name, state)} />);
     expect(html).toContain(value);
-    expect(html).toContain(status);
+    if (status === 'Normal') {
+      expect(html).not.toContain('Normal');
+      expect(html).not.toContain('bg-success');
+    } else expect(html).toContain(status);
+    expect(html).not.toContain('sensor-scale-caption');
     expect(html).toContain(name);
     expect(html).not.toContain('LISTO');
     expect(html).not.toContain('<button');
@@ -153,7 +157,9 @@ describe('Sensor Metric Card status presentation', () => {
     expect(html).toContain('1240');
     expect(html).toContain('W');
     expect(html).toContain('role="meter"');
-    expect(html).toContain('sensor_scale_automatic');
+    expect(html).not.toContain('sensor-scale-caption');
+    expect(html).toContain('aria-valuemin="0"');
+    expect(html).toContain('aria-valuemax="1500"');
   });
 
   it('uses the same presentation for a bound sensor and its preview', () => {

@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState, useRef, type MouseEvent } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { SectionCardDragContext, sectionCardDragId } from '../sectionCardDrag';
+import { SectionCardDragContext, sectionCardDragId, DASHBOARD_DRAG_TRANSITION } from '../sectionCardDrag';
 import { Loader2, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
@@ -155,10 +155,11 @@ export function SectionCardItem({
     actionFeedback={processingCardId === card.id ? 'pending' : actionFeedback?.id === card.id ? actionFeedback.status : undefined}
   />;
 
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } = useSortable({
     id: sectionId ? sectionCardDragId(sectionId, card.id, dragIdentities) : card.id,
     data: { kind: 'section-card', sectionId, cardId: card.id, preview: cardContent, getPreviewRect: () => previewNode.current?.getBoundingClientRect() },
     disabled: !isEditing,
+    transition: DASHBOARD_DRAG_TRANSITION,
   });
   const interactionAttributes = isEditing ? attributes
     : isActionable && normalizedKind !== 'action'
@@ -168,6 +169,8 @@ export function SectionCardItem({
     <div
       key={card.id}
       data-dashboard-card-id={card.id}
+      data-dashboard-drag-origin={isDragging ? 'true' : undefined}
+      data-dashboard-drop-target={isEditing && isOver && !isDragging ? 'true' : undefined}
       ref={(element) => {
         previewNode.current = element;
         setNodeRef(element);
@@ -206,7 +209,7 @@ export function SectionCardItem({
         // was determined. Without this, the card's colored background
         // (painted by CardPreview) could end up shorter than this outer
         // box, leaving a transparent gap at the bottom.
-        "group/card relative grid min-w-0 overflow-hidden shadow-sm transition-all",
+        "group/card relative grid min-w-0 overflow-hidden shadow-sm",
         isEditing && "touch-pan-y",
         normalizedKind === 'sensor' ? 'rounded-2xl' : 'rounded-section',
         isTileKind
@@ -221,7 +224,7 @@ export function SectionCardItem({
         isActionable && !initialPending && "cursor-pointer hover:-translate-y-0.5 hover:shadow-depth-2 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         (normalizedKind === 'light' || normalizedKind === 'action') && !tileIsActive && "border border-transparent",
         (normalizedKind === 'light' || normalizedKind === 'action') && tileIsActive && "homepilot-section-light-tile-active",
-        isDragging && "z-30 opacity-45",
+        isDragging && "z-30 opacity-40",
         getSpanClass(span)
       )}
     >

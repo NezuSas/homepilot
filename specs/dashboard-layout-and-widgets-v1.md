@@ -2,6 +2,8 @@
 
 ## Visualizadores Sensor y estabilidad — alcance autorizado
 
+Refinamiento autorizado: no mostrar estado «Normal», punto verde ni leyenda textual de escala en Sensor. Mantener límites del instrumento/configuración, precisión y accesibilidad; conservar ausencia y advertencias reales. La reserva exterior/skeleton no cambia. Arrastre de tarjetas y Sections usa copia de tamaño real sin ampliación, origen tenue con acento, destino resaltado y transiciones comunes de 150 ms; reduced-motion elimina movimiento de llegada. Mantener gestos, teclado, slots/persistencia y transferencias, sin cambiar algoritmo/global grid ni adoptar otra librería DnD.
+
 - AC45: `visualStyle?: 'auto' | 'gauge' | 'thermometer' | 'level' | 'battery'` en la tarjeta, con selector modular y preview inmediato. Ausente conserva gauge histórico; nuevas tarjetas usan auto y metadatos semánticos antes que nombres. Temperatura → termómetro; batería → batería; nivel/porcentaje → nivel; humedad/presión/potencia y desconocidos → gauge. Persistencia y transferencias conservan el campo; sin migración ni cambios backend.
 - Carcasa, escala configurada, precisión real, decimales opcionales, estados, paleta y skeleton no cambian. Renderers comparten normalización limitada 0–1, no fabrican valores ni estado de carga. Sin datos no hay relleno ni aguja. Cambios reales se interpolan con cancelación y reduced-motion inmediato. Pruebas de límites, negativos, ausencia, selección, recarga y geometría focalizada claro/oscuro.
 - Clásico conserva espacio de metadatos y progreso tanto activo como inactivo; controles dependen de capacidades reales, nunca datos ficticios. Importar una pestaña selecciona su ID sin alternancia entre ruta anterior y nueva; navegación atrás/adelante sigue funcionando.

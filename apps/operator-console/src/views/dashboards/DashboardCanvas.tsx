@@ -13,7 +13,7 @@ import {
   useDroppable,
 } from '@dnd-kit/core';
 import type { CollisionDetection, DragEndEvent, DragStartEvent } from '@dnd-kit/core';
-import { SectionCardDragContext, moveSectionCard, sectionCardDragId } from './sectionCardDrag';
+import { SectionCardDragContext, moveSectionCard, sectionCardDragId, DASHBOARD_DRAG_TRANSITION } from './sectionCardDrag';
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useState, useMemo, useRef, useEffect, isValidElement } from 'react';
@@ -132,10 +132,11 @@ function SortableCanvasWidget({
   slotMode?: boolean;
 }) {
   const { nodeRef, rowSpan } = useMeasuredRowSpan(gap);
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } = useSortable({
     id: widget.id,
     data: { kind: widget.type === 'section' ? 'section' : 'widget', sectionId: widget.id, cardCount: Array.isArray(widget.config.extra?.cards) ? widget.config.extra.cards.length : 0, getPreviewRect: () => nodeRef.current?.getBoundingClientRect() },
     disabled: !canDrag,
+    transition: DASHBOARD_DRAG_TRANSITION,
   });
   const span = clampSectionSpan(getSectionSpan(widget), columns);
   const { t } = useTranslation();
@@ -149,6 +150,8 @@ function SortableCanvasWidget({
   return (
     <div
       ref={(node) => { setNodeRef(node); nodeRef.current = node; }}
+      data-dashboard-drag-origin={isDragging ? 'true' : undefined}
+      data-dashboard-drop-target={canDrag && isOver && !isDragging ? 'true' : undefined}
       {...(sectionDrag ? { ...attributes, 'aria-label': `${t('common.reorder')}: ${widget.config.appearance?.title || t('dashboard.editor.sections.untitled_section')}` } : {})}
       onMouseDown={sectionDrag ? event => { if (dragSurface(event.target, event.currentTarget)) listeners?.onMouseDown?.(event); } : undefined}
       onTouchStart={sectionDrag ? event => { if (dragSurface(event.target, event.currentTarget)) listeners?.onTouchStart?.(event); } : undefined}
@@ -156,9 +159,9 @@ function SortableCanvasWidget({
       style={{
         gridColumn: slotMode ? undefined : `span ${span}`,
         gridRow: slotMode ? undefined : `span ${rowSpan}`,
-        transform: CSS.Transform.toString(transform),
+        transform: CSS.Translate.toString(transform),
         transition: transition ?? undefined,
-        opacity: isDragging ? 0.3 : 1,
+        opacity: isDragging ? 0.4 : 1,
       }}
       className={cn(
         "min-w-0 min-h-0 select-none relative rounded-section sm:rounded-panel lg:rounded-dashboard",
@@ -495,7 +498,9 @@ export function DashboardCanvas({
           cancelText={t('common.cancel')}
           variant="danger"
         />
-        {createPortal(<DragOverlay zIndex={60} style={{ pointerEvents: 'none' }} dropAnimation={{
+        {createPortal(<DragOverlay zIndex={60} style={{ pointerEvents: 'none' }} dropAnimation={window.matchMedia('(prefers-reduced-motion: reduce)').matches ? null : {
+          duration: DASHBOARD_DRAG_TRANSITION.duration,
+          easing: DASHBOARD_DRAG_TRANSITION.easing,
           sideEffects: defaultDropAnimationSideEffects({
             styles: {
               active: {
@@ -509,7 +514,7 @@ export function DashboardCanvas({
               aria-hidden="true"
               inert
               data-dashboard-drag-preview="true"
-              className="pointer-events-none grid rounded-panel shadow-depth-3 ring-2 ring-primary/50 bg-card motion-safe:scale-[1.025]"
+              className="pointer-events-none grid cursor-grabbing rounded-panel shadow-depth-3 bg-card"
               style={{
                 width: dragPreview.width, height: dragPreview.height, containerType: 'inline-size',
               }}

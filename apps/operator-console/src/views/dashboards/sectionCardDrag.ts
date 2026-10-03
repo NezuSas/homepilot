@@ -34,3 +34,4 @@ export function moveSectionCard(widgets: DashboardWidget[], sourceId: string, ca
     return cards ? { ...widget, config: { ...widget.config, extra: { ...widget.config.extra, cards: cards.map((card, order) => ({ ...card, order })) } } } : widget;
   });
 }
+export const DASHBOARD_DRAG_TRANSITION = { duration: 150, easing: 'ease' };
