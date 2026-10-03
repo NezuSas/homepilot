@@ -4,7 +4,28 @@ export interface SensorVisualizerProps { value: number | null; scale: SensorGaug
 
 /** Shared liquid system: only the vessel changes, never the reading or scale. */
 export function SensorLevelGauge({ value, scale, charging = false, vessel = 'level' }: SensorVisualizerProps & { vessel?: 'level' | 'battery' | 'thermometer' }) {
+  const tankClipId = useId();
   const fraction = value !== null && scale ? sensorNeedleFraction(value, scale) : null;
+  if (vessel === 'level') {
+    const surfaceY = 201 - (fraction ?? 0) * 157;
+    return <svg viewBox="0 0 320 265" className="sensor-analog-canvas sensor-liquid-instrument" aria-hidden="true" data-sensor-visualizer="level" data-level={fraction ?? undefined}>
+      <defs><clipPath id={tankClipId}><path d="M76 44C76 22 224 22 224 44V201C224 223 76 223 76 201Z" /></clipPath></defs>
+      <path data-sensor-level-tank d="M76 44C76 22 224 22 224 44V201C224 223 76 223 76 201Z" className="sensor-vessel" />
+      <g clipPath={`url(#${tankClipId})`}>
+        <ellipse cx="150" cy="201" rx="70" ry="12" className="sensor-liquid" style={{ visibility: fraction === null || fraction === 0 ? 'hidden' : undefined }} />
+        <svg x="80" y="44" width="140" height="157" viewBox="0 0 140 157">
+          <rect y="0" width="140" height="157" className="sensor-liquid" style={{ transform: `scaleY(${fraction ?? 0})`, visibility: fraction === null ? 'hidden' : undefined }} />
+        </svg>
+        <ellipse data-sensor-level-surface cx="150" cy="0" rx="70" ry="10" className="sensor-liquid-surface" style={{ transform: `translateY(${surfaceY}px)`, visibility: fraction === null || fraction === 0 ? 'hidden' : undefined }} />
+      </g>
+      <ellipse cx="150" cy="44" rx="74" ry="13" className="sensor-tank-rim" />
+      <path d="M76 201C76 223 224 223 224 201" className="sensor-tank-rim" />
+      {scale && [0, .25, .5, .75, 1].map(step => <g key={step} className="sensor-liquid-tick">
+        <path d={`M232 ${201 - step * 157}h6`} />
+        <text x="246" y={206 - step * 157}>{formatSensorGaugeTick(scale.min + step * (scale.max - scale.min))}</text>
+      </g>)}
+    </svg>;
+  }
   const narrow = vessel === 'thermometer';
   const x = narrow ? 139 : 108;
   const width = narrow ? 42 : 104;
@@ -22,3 +43,4 @@ export function SensorLevelGauge({ value, scale, charging = false, vessel = 'lev
     </g>)}
   </svg>;
 }
+import { useId } from 'react';

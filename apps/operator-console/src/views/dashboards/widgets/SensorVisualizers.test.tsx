@@ -24,6 +24,17 @@ describe('Sensor visualizers (AC45)', () => {
     expect(renderToStaticMarkup(<SensorBatteryGauge {...props} />)).not.toContain('data-battery-charging');
     expect(renderToStaticMarkup(<SensorBatteryGauge {...props} charging />)).toContain('data-battery-charging');
   });
+  it('distinguishes the liquid tank from the battery silhouette', () => {
+    const props = { value: 50, scale: { min: 0, max: 100, source: 'percentage' as const } };
+    const level = renderToStaticMarkup(<SensorLevelGauge {...props} />);
+    const battery = renderToStaticMarkup(<SensorBatteryGauge {...props} />);
+    expect(level).toContain('data-sensor-level-tank');
+    expect(level).toContain('data-sensor-level-surface');
+    expect(level).toContain('translateY(122.5px)');
+    expect(battery).not.toContain('data-sensor-level-tank');
+    expect(battery).not.toContain('data-sensor-level-surface');
+    expect(battery).toContain('data-sensor-visualizer="battery"');
+  });
   it.each([-20, 0, 20, 60])('thermometer normalizes negative scale reading %s', value => {
     const html = renderToStaticMarkup(<SensorThermometer value={value} scale={{ min: -20, max: 60, source: 'metadata' }} />);
     expect(html).toContain(`data-level="${(value + 20) / 80}"`);

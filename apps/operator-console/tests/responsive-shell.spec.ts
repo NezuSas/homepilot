@@ -142,6 +142,8 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
       await selector.click(); await page.getByRole('option', { name: label }).click();
       if (style === 'gauge') await expect(preview.locator('canvas')).toBeVisible();
       else await expect(preview.locator(`[data-sensor-visualizer="${style}"]`)).toBeVisible();
+      if (style === 'level') await expect(preview.locator('[data-sensor-level-tank]')).toBeVisible();
+      if (style === 'battery') await expect(preview.locator('[data-sensor-level-tank]')).toHaveCount(0);
       await expect(preview.getByRole('meter')).toHaveAttribute('aria-valuetext', '22.4567 °C');
       const bounds = (await preview.boundingBox())!;
       expect(bounds.width).toBeCloseTo(original.width, 1); expect(bounds.height).toBeCloseTo(original.height, 1);
@@ -149,7 +151,7 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     }
     await selector.click(); await page.getByRole('option', { name: /^(Level|Nivel)$/ }).click();
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    expect(await preview.locator('.sensor-liquid').evaluate(el => getComputedStyle(el).transitionDuration)).toBe('0s');
+    expect(await preview.locator('.sensor-liquid, .sensor-liquid-surface').evaluateAll(elements => elements.every(el => getComputedStyle(el).transitionDuration === '0s'))).toBe(true);
     for (const theme of ['dark', 'light']) {
       await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
       await preview.scrollIntoViewIfNeeded(); await page.screenshot({ path: testInfo.outputPath(`sensor-visualizers-${theme}.png`), animations: 'disabled' });
