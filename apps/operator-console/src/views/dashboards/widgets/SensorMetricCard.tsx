@@ -27,6 +27,7 @@ interface SensorMetricCardProps {
   icon?: SectionCardIcon;
   roomName?: string;
   sensorScale?: SensorScale;
+  sensorDecimals?: boolean;
 }
 
 const unavailableStates = new Set(['', 'none', 'null', 'unknown', 'unavailable', 'offline']);
@@ -227,15 +228,21 @@ function getCategoryLabel(category: SensorCategory, t: (key: string) => string):
   }
 }
 
-function SensorPresentationHero({ reading, t }: {
+export function formatSensorValue(value: number, decimals = false): string {
+  return new Intl.NumberFormat(undefined, { useGrouping: false, maximumFractionDigits: decimals ? 2 : 0 }).format(value);
+}
+
+function SensorPresentationHero({ reading, t, decimals = false }: {
   reading: SensorReading;
   t: (key: string) => string;
+  decimals?: boolean;
 }) {
   const available = reading.value !== null;
   const isPercentage = available && reading.presentation === 'percentage';
+  const number = numericValue(reading.value);
   const value = reading.binaryState
     ? t(`dashboard.editor.sections.sensor_${reading.binaryState}`)
-    : displayValue(reading.value, t);
+    : number !== null ? formatSensorValue(number, decimals) : displayValue(reading.value, t);
   const unit = isPercentage ? '%' : reading.unit;
   const readingWidth = value.length * 0.62;
   const readingScale = value.length > 6 ? Math.min(17, 80 / readingWidth) : 17;
@@ -254,7 +261,7 @@ function SensorPresentationHero({ reading, t }: {
   );
 }
 
-export function SensorMetricCard({ device, title, isPreview = false, icon, roomName, sensorScale }: SensorMetricCardProps) {
+export function SensorMetricCard({ device, title, isPreview = false, icon, roomName, sensorScale, sensorDecimals = false }: SensorMetricCardProps) {
   const { t } = useTranslation();
   const reading = getSensorReading(device, isPreview);
   const severity = getSensorSeverity(reading);
@@ -263,9 +270,10 @@ export function SensorMetricCard({ device, title, isPreview = false, icon, roomN
   const state = asRecord(device?.lastKnownState);
   const attributes = asRecord(state.attributes);
   const configuredScale = normalizeSensorScale(sensorScale);
-  const scale = number === null ? null : getSensorGaugeScale(number, isPercentage,
-    configuredScale?.min ?? attributes.min_value ?? attributes.min ?? state.min_value ?? state.min,
-    configuredScale?.max ?? attributes.max_value ?? attributes.max ?? state.max_value ?? state.max, reading.unit);
+  const scale = configuredScale ? { ...configuredScale, source: 'metadata' as const }
+    : number === null ? null : getSensorGaugeScale(number, isPercentage,
+      attributes.min_value ?? attributes.min ?? state.min_value ?? state.min,
+      attributes.max_value ?? attributes.max ?? state.max_value ?? state.max, reading.unit);
   const analog = number !== null || reading.value === null;
   const categoryLabel = getCategoryLabel(reading.category, t);
   const displayTitle = title.trim() || device?.name?.trim() || categoryLabel;
@@ -294,15 +302,15 @@ export function SensorMetricCard({ device, title, isPreview = false, icon, roomN
       </div>
       <div className={cn('sensor-reading-layout', analog && 'sensor-analog-layout')}>
         {analog ? <div className="sensor-analog-instrument"
-          role={scale ? 'meter' : undefined}
+          role={scale && number !== null ? 'meter' : undefined}
           aria-label={scale ? displayTitle : undefined}
-          aria-valuemin={scale?.min} aria-valuemax={scale?.max}
+          aria-valuemin={number !== null ? scale?.min : undefined} aria-valuemax={number !== null ? scale?.max : undefined}
           aria-valuenow={scale && number !== null ? Math.max(scale.min, Math.min(scale.max, number)) : undefined}
-          aria-valuetext={scale ? `${reading.value}${isPercentage ? '%' : reading.unit ? ` ${reading.unit}` : ''}` : undefined}
+          aria-valuetext={scale && number !== null ? `${reading.value}${isPercentage ? '%' : reading.unit ? ` ${reading.unit}` : ''}` : undefined}
         >
           <SensorAnalogGauge value={number} scale={scale} />
-          <div className="sensor-analog-readout"><SensorPresentationHero reading={reading} t={t} /></div>
-        </div> : <SensorPresentationHero reading={reading} t={t} />}
+          <div className="sensor-analog-readout"><SensorPresentationHero reading={reading} t={t} decimals={sensorDecimals} /></div>
+        </div> : <SensorPresentationHero reading={reading} t={t} decimals={sensorDecimals} />}
       </div>
       <div className="sensor-reading-footer">
         <div className="sensor-reading-status text-muted-foreground">

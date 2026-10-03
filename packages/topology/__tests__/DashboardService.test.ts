@@ -395,11 +395,11 @@ describe('DashboardService', () => {
   it('preserves a Sensor fixed scale through export and import (AC42)', async () => {
     const source = createDashboard('source', 'Control');
     source.tabs[0].widgets = [{ id: 'section', type: 'room_summary', config: {
-      extra: { cards: [{ id: 'sensor-1', kind: 'sensor', entityId: 'sensor-1', sensorScale: { min: -20, max: 100 } }] },
+      extra: { cards: [{ id: 'sensor-1', kind: 'sensor', entityId: 'sensor-1', sensorScale: { min: -20, max: 100 }, sensorDecimals: true }] },
     } }];
     const service = new DashboardService(createDashboardRepository(source), createHomeRepository(), { exists: async () => true });
     const imported = await service.importDashboard('user-1', await service.exportDashboard('user-1', source.id));
-    expect(imported.tabs[0].widgets[0].config.extra).toMatchObject({ cards: [{ sensorScale: { min: -20, max: 100 } }] });
+    expect(imported.tabs[0].widgets[0].config.extra).toMatchObject({ cards: [{ sensorScale: { min: -20, max: 100 }, sensorDecimals: true }] });
   });
 
   it('round-trips a Button bound to an existing scene without reporting it unresolved', async () => {

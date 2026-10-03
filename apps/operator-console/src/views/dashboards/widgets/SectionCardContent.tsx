@@ -20,6 +20,7 @@ interface SectionCardContentProps {
   icon?: SectionCardIcon;
   mediaVariant?: MediaVariant;
   sensorScale?: SensorScale;
+  sensorDecimals?: boolean;
   isAssigned?: boolean;
   isActive?: boolean;
   device?: SnapshotDevice;
@@ -43,6 +44,7 @@ export function SectionCardContent({
   icon,
   mediaVariant,
   sensorScale,
+  sensorDecimals,
   isAssigned,
   isActive,
   device,
@@ -62,7 +64,7 @@ export function SectionCardContent({
 
   if (isClockKind(normalized)) return <SectionClockPreview kind={normalized} title={title} />;
   if (normalized === 'camera') return <SectionCameraPreview device={device} title={title} subtitle={subtitle} />;
-  if (normalized === 'sensor') return <SensorMetricCard device={device} title={title} icon={icon} isPreview={isPreview} sensorScale={sensorScale} />;
+  if (normalized === 'sensor') return <SensorMetricCard device={device} title={title} icon={icon} isPreview={isPreview} sensorScale={sensorScale} sensorDecimals={sensorDecimals} />;
   if (normalized === 'media') return <MediaPlayerCard device={device} title={title} isPreview={isPreview} isProcessing={isMediaProcessing} onCommand={onMediaCommand} compact={isSmall} mediaVariant={mediaVariant} />;
   if (normalized === 'cover') {
     const density = isSmall ? 'compact' : 'standard';

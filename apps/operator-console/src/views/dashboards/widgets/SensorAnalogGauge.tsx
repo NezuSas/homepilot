@@ -30,7 +30,7 @@ export function formatSensorGaugeTick(value: number): string {
   const magnitude = Math.abs(value);
   const divisor = magnitude >= 1_000_000 ? 1_000_000 : magnitude >= 10_000 ? 1_000 : 1;
   const suffix = divisor === 1_000_000 ? 'M' : divisor === 1_000 ? 'k' : '';
-  return `${Number((value / divisor).toPrecision(4))}${suffix}`;
+  return `${Number((value / divisor).toFixed(6))}${suffix}`;
 }
 
 /** A real, data-driven instrument, not a raster illustration. HTML owns the
@@ -93,16 +93,18 @@ export function SensorAnalogGauge({ value, scale }: { value: number | null; scal
         ctx.lineWidth = major ? 1.5 : 0.7; ctx.stroke();
       }
       ctx.globalAlpha = 1;
-      if (known) {
+      if (min !== undefined && max !== undefined) {
         ctx.fillStyle = ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.font = `400 ${Math.max(14, 10 * 320 / width)}px Rubik, sans-serif`;
-        const divisions = width < 200 ? 4 : 5;
+        const divisions = 5;
         for (let index = 0; index <= divisions; index += 1) {
           const p = point(index / divisions, 101);
           const tick = min + (max - min) * index / divisions;
           const label = formatSensorGaugeTick(tick);
           ctx.fillText(label, p.x, p.y);
         }
+      }
+      if (known) {
         // Pivot to tip: needle is positioned by the actual value, never by type.
         const fraction = sensorNeedleFraction(value, { min, max, source: 'metadata' });
         const tip = point(fraction, 111);

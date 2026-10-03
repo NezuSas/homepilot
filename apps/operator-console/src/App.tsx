@@ -144,6 +144,7 @@ function App() {
   const resetSnapshotState = useDeviceSnapshotStore((state) => state.resetSnapshotState);
 
   const theme = useAppShellStore((state) => state.theme);
+  const keepDashboard = useAppShellStore((state) => state.keepDashboard);
   useAutomaticTheme();
   const setTheme = useAppShellStore((state) => state.setTheme);
 
@@ -167,7 +168,7 @@ function App() {
   const { status, user, handleLoginSuccess, handleLogout, clearSession, validateSession } = useSession(onSessionCleared);
 
   useEffect(() => {
-    if (status !== 'authenticated' || currentView === 'dashboard') return;
+    if (status !== 'authenticated' || currentView === 'dashboard' || (keepDashboard && currentView === 'dashboards' && urlDashboardId)) return;
     let timer: number;
     const schedule = () => {
       window.clearTimeout(timer);
@@ -199,7 +200,7 @@ function App() {
       window.removeEventListener('wheel', onActivity);
       window.removeEventListener('scroll', onScroll, true);
     };
-  }, [status, currentView, navigate, resetMainScroll]);
+  }, [status, currentView, urlDashboardId, keepDashboard, navigate, resetMainScroll]);
   const [directorySsoToken, setDirectorySsoToken] = useState<string | null>(null);
   const [directorySsoError, setDirectorySsoError] = useState(false);
   const directoryHandoffRef = useRef<Promise<BrowserDirectoryHandoff | null> | null>(null);

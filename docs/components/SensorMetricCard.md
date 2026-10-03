@@ -90,3 +90,9 @@ El alcance es presentación de frontend. No cambia backend, contratos de API, au
 - Mantener ausencia neutral, sin valores de ejemplo en tarjetas reales ni estado saludable ficticio.
 - No reutilizar como norma las fichas partidas, estilos `sensor-reading-digit` ni barra porcentual de la composición descartada. Las reglas CSS residuales no justifican reintroducir esa presentación.
 - No considerar esta documentación evidencia de publicación, aprobación visual o ejecución de validaciones aún pendientes.
+## Precisión y rango fijo por tarjeta
+
+`sensorDecimals` ausente/false presenta enteros redondeados; true presenta hasta dos decimales. No modifica el estado, severidad ni posición de la aguja; `aria-valuetext` conserva el valor original. El editor y preview comparten esta opción persistida en JSON junto a `sensorScale`, compatible con import/export, sin SQL nuevo. Cuando una entidad seleccionada no está disponible, el preview no inventa la lectura de catálogo.
+
+La escala configurada se usa directamente y permanece visible aun sin lectura; sin lectura no hay meter accesible ni aguja inventada. Seis graduaciones estables independientemente del ancho y formato de etiquetas sin redondeo a cuatro cifras significativas; límites de tarjeta preceden siempre a metadatos y ventanas automáticas. No cambia la carcasa, paleta ni tamaño exterior.
+

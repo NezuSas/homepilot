@@ -58,6 +58,7 @@
     "talk_to_home": "Conversar con mi casa"
   },
   "home_personalization": {
+    "dashboard_return": "Navegación del tablero", "dashboard_return_auto": "Volver a Inicio tras 2 minutos", "dashboard_return_stay": "Permanecer en el tablero",
     "theme_mode": "Apariencia",
     "theme_manual": "Manual",
     "theme_automatic": "Automática",
@@ -519,6 +520,7 @@
         "sensor_normal": "Normal",
         "sensor_pressure": "Presión",
         "sensor_scale_label": "Escala",
+        "sensor_decimals": "Mostrar hasta dos decimales",
         "sensor_scale_settings": "Escala de medición fija", "sensor_min": "Mínimo", "sensor_max": "Máximo", "sensor_scale_hint": "Opcional. Define ambos límites para mantener la escala fija, o borra ambos para usar la escala del dispositivo/automática.", "sensor_scale_invalid": "Define ambos límites finitos; el máximo debe ser mayor que el mínimo.",
         "sensor_scale_automatic": "Escala automática",
         "sensor_low": "Bajo",

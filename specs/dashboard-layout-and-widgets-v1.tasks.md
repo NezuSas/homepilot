@@ -1,5 +1,6 @@
 # Tareas: Dashboard Layout and Widgets V1
 
+- [x] AC42 ampliado: decimales opcionales (enteros por defecto), escala fija incluso sin lectura y graduaciones estables. Evidencia: 133/133 Jest, 4/4 responsive focalizados junto a AC34; preview real, redondeo, lectura fuera de rango, ausencia, recarga/import-export y opción persistida. Typecheck/lint/builds raíz/consola y spec/BDD/módulos/i18n PASS. Capturas tablet revisadas; sin responsive completo, Git ni deploy.
 - [x] AC42: escala Sensor opcional persistente, editor/preview y regresión focal.
   - Evidencia (2026-10-02): validación conjunta del refinamiento, 324/324 Jest y 21/21 responsive focalizados PASS; typecheck, lint y builds raíz/consola PASS. Escala guardada/importada y limpieza de límites cubiertas. Sin responsive completo, Git ni deploy.
 

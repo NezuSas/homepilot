@@ -3,6 +3,7 @@
 ## Escala Sensor configurable — alcance autorizado
 
 - AC42: El editor Sensor admite mínimo/máximo opcionales por tarjeta en `sensorScale: { min, max }` dentro de `config.extra.cards`. Ambos finitos y min < max; sin ambos se conserva la escala histórica. La escala configurada tiene prioridad sobre metadatos/automática, permanece fija al cambiar la lectura y no expresa umbrales de salud. Aguja limitada a extremos; número real y accesibilidad preservados. Preview, guardado/recarga e import/export conservan el rango. Sin migración SQL ni cambios de geometría. Para revertir, el editor anterior puede descartar el campo; hacer backup antes de downgrade.
+- AC42 ampliado: `sensorDecimals?: boolean` por tarjeta; ausente/false muestra enteros redondeados, true hasta dos decimales. Solo formato visual: estado, aguja, umbrales y lectura accesible conservan precisión real. Preview y persistencia/import-export conservan la opción. Graduaciones del dial no cambian con el ancho ni la lectura; límites configurados se conservan incluso sin lectura, sin fabricar valor ni meter accesible.
 
 Refinamiento de densidad y continuidad: Sensor usa padding vertical compacto y contenido sin expansión flexible, con o sin lectura, manteniendo esfera/unidad inline y geometría de carga estable. La identidad de arrastre se conserva localmente al trasladar una tarjeta a otra Section para que la animación de llegada alcance su nodo de destino; no cambia el ID persistido ni el formato de las tarjetas.
 

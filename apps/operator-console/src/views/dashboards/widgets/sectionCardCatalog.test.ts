@@ -22,6 +22,11 @@ import {
 } from './sectionCardCatalog';
 
 describe('Sensor fixed scale (AC42)', () => {
+  it.each([undefined, false, true])('preserves decimal opt-in %s, defaults to integers', sensorDecimals => {
+    const [card] = normalizeCards({ cards: [{ id: 's', kind: 'sensor', sensorDecimals }] });
+    expect(card.sensorDecimals === true).toBe(sensorDecimals === true);
+    expect(normalizeCards({ cards: [card] })[0].sensorDecimals === true).toBe(sensorDecimals === true);
+  });
   it.each([{ min: 0, max: 100 }, { min: -20, max: 40 }])('retains valid scale through card normalization', sensorScale => {
     const [card] = normalizeCards({ cards: [{ id: 'sensor', kind: 'sensor', sensorScale }] });
     expect(card.sensorScale).toEqual(sensorScale);

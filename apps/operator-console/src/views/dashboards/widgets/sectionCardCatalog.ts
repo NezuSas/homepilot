@@ -49,6 +49,7 @@ export interface SectionCardItem {
   icon?: SectionCardIcon;
   mediaVariant?: MediaVariant;
   sensorScale?: SensorScale;
+  sensorDecimals?: boolean;
 }
 
 export interface NormalizedSectionCardItem extends Omit<SectionCardItem, 'kind'> {
@@ -64,6 +65,7 @@ export interface CardDraft {
   mediaVariant: MediaVariant;
   sensorMin?: number;
   sensorMax?: number;
+  sensorDecimals?: boolean;
 }
 
 export interface AssignableScene {
@@ -344,6 +346,7 @@ export function normalizeCards(extra?: DashboardWidgetConfig['extra']): Normaliz
         ? { mediaVariant: card.mediaVariant }
         : {}),
       ...(kind === 'sensor' && normalizeSensorScale(card.sensorScale) ? { sensorScale: normalizeSensorScale(card.sensorScale) } : {}),
+      ...(kind === 'sensor' && card.sensorDecimals === true ? { sensorDecimals: true } : {}),
       order: typeof card.order === 'number' ? card.order : index,
     }];
   });

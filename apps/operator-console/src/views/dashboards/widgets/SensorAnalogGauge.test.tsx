@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { formatSensorGaugeTick, getSensorGaugeScale, sensorNeedleFraction, SensorAnalogGauge } from './SensorAnalogGauge';
 
 describe('Sensor analog instrument scale', () => {
-  it.each([[150000, '150k'], [75000, '75k'], [-150000, '-150k'], [1013, '1013'], [3.2, '3.2']])('labels tick %s without rounding it to a different scale boundary', (value, label) => {
+  it.each([[150000, '150k'], [75000, '75k'], [-150000, '-150k'], [1013, '1013'], [1013.678, '1013.678'], [3.2, '3.2']])('labels tick %s without rounding it to a different scale boundary', (value, label) => {
     expect(formatSensorGaugeTick(value)).toBe(label);
   });
   it('uses 0–100 for percentages without claiming a safe range', () => {

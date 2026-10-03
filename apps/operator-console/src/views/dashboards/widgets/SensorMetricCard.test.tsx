@@ -1,8 +1,14 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
-import { getSensorReading, getSensorSeverity, SensorMetricCard } from './SensorMetricCard';
+import { formatSensorValue, getSensorReading, getSensorSeverity, SensorMetricCard } from './SensorMetricCard';
 
 describe('Fixed measurement scale (AC42)', () => {
+  it.each([[22.4567, false, '22'], [22.7567, false, '23'], [-12.756, false, '-13'], [22.4567, true, '22.46'], [0, true, '0']])('formats %s with decimals %s without changing the source', (value, decimals, expected) => {
+    expect(formatSensorValue(value as number, decimals as boolean)).toBe(expected);
+    const html = renderToStaticMarkup(<SensorMetricCard title="Reading" sensorDecimals={decimals as boolean} device={sensor('Reading', { state: String(value), unit: 'bar' })} />);
+    expect(html).toContain(`aria-valuetext="${value} bar"`);
+    expect(html.replace(/<[^>]*>/g, '')).toContain(expected);
+  });
   it.each(['5', '80', '130'])('keeps configured bounds and real value %s', value => {
     const html = renderToStaticMarkup(<SensorMetricCard title="Fixed" sensorScale={{ min: 10, max: 100 }}
       device={sensor('Fixed', { state: value, unit: 'bar', attributes: { min: 0, max: 6 } })} />);
@@ -13,6 +19,7 @@ describe('Fixed measurement scale (AC42)', () => {
   it('does not invent a meter when a configured sensor has no reading', () => {
     const html = renderToStaticMarkup(<SensorMetricCard title="Fixed" sensorScale={{ min: 0, max: 100 }} />);
     expect(html).not.toContain('role="meter"');
+    expect(html.replace(/<[^>]*>/g, '')).toContain('0 – 100');
   });
 });
 
@@ -164,7 +171,7 @@ describe('Sensor Metric Card status presentation', () => {
     expect(text).not.toContain(device.name);
     expect(text).not.toContain('Temperatura');
     expect(html.match(/<svg/g)).toHaveLength(1);
-    expect(text).toContain('22.4');
+    expect(text).toContain('22');
     expect(text).toContain('°C');
     expect(text).not.toContain('Lectura en vivo');
   });
@@ -218,7 +225,8 @@ describe('Sensor Metric Card status presentation', () => {
 
   it.each(['22.4', '-12.5', '0', '100', '123456.7'])('preserves the accessible numeric reading %s without fictional history', (value) => {
     const html = renderToStaticMarkup(<SensorMetricCard title="Medición" device={sensor('Device', { state: value, unit_of_measurement: 'W' })} />);
-    expect(html.replace(/<[^>]*>/g, '')).toContain(value);
+    expect(html.replace(/<[^>]*>/g, '')).toContain(formatSensorValue(Number(value)));
+    expect(html).toContain(`aria-valuetext="${value} W"`);
     expect(html).not.toContain('<button');
     expect(html).toContain('role="meter"');
     expect(html).not.toContain('months');

@@ -117,8 +117,9 @@ test('Feature: Sensor fixed scale — Scenario: Editor preview and reload keep o
   const section = responsiveDashboard.tabs[0]!.widgets[1]!;
   let dashboard = { ...responsiveDashboard, tabs: [{ ...responsiveDashboard.tabs[0]!, widgets: [section] }] };
   await prepareAuthenticatedDashboard(page, dashboard);
+  let reading = '22.4567';
   await page.route('**/api/v1/devices', route => route.fulfill({ json: responsiveDevices.map(device => device.id === 'sensor-climate'
-    ? { ...device, lastKnownState: { state: '22.4', unit_of_measurement: '°C' } } : device) }));
+    ? { ...device, lastKnownState: { state: reading, unit_of_measurement: '°C', attributes: { min: 0, max: 50 } } } : device) }));
   let savedScale: unknown;
   await page.route('**/api/v1/dashboards', route => route.fulfill({ json: [dashboard] }));
   await page.route('**/api/v1/dashboards/responsive-dashboard', route => {
@@ -137,6 +138,9 @@ test('Feature: Sensor fixed scale — Scenario: Editor preview and reload keep o
   await expect(minimum).toHaveValue(''); await minimum.fill('-20');
   const save = editor.getByRole('button', { name: /^(Save|Guardar)$/i });
   await expect(save).toBeDisabled(); await maximum.fill('100'); await expect(save).toBeEnabled();
+  const decimals = editor.getByRole('switch', { name: /Show up to two decimal places|Mostrar hasta dos decimales/ });
+  await expect(decimals).toHaveAttribute('aria-checked', 'false'); await decimals.click();
+  await expect(decimals).toHaveAttribute('aria-checked', 'true');
   const preview = editor.getByRole('meter'); await expect(preview).toHaveAttribute('aria-valuemin', '-20'); await expect(preview).toHaveAttribute('aria-valuemax', '100');
   for (const theme of ['dark', 'light']) {
     await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
@@ -144,9 +148,37 @@ test('Feature: Sensor fixed scale — Scenario: Editor preview and reload keep o
   }
   await save.click(); await expect.poll(() => savedScale).toEqual({ min: -20, max: 100 });
   await page.reload(); await expect(sensor.getByRole('meter')).toHaveAttribute('aria-valuemin', '-20');
+  await expect(sensor.locator('.sensor-reading-number')).toHaveText(/22[.,]46/);
+  await expect(sensor.getByRole('meter')).toHaveAttribute('aria-valuetext', '22.4567 °C');
+  reading = '123.4567'; await page.reload();
+  await expect(sensor.getByRole('meter')).toHaveAttribute('aria-valuemin', '-20'); await expect(sensor.getByRole('meter')).toHaveAttribute('aria-valuemax', '100');
+  await expect(sensor.locator('.sensor-reading-number')).toHaveText(/123[.,]46/);
+  await expect(sensor.getByRole('meter')).toHaveAttribute('aria-valuetext', '123.4567 °C');
+  reading = 'unavailable'; await page.reload(); await expect(sensor.getByRole('meter')).toHaveCount(0); await expect(sensor.locator('.sensor-scale-caption')).toContainText('-20 – 100');
+  reading = '22.4567'; await page.reload();
   await enterDashboardEdit(page); await sensor.hover(); await sensor.getByRole('button', { name: /^(Edit|Editar)$/i }).click();
   await expect(minimum).toHaveValue('-20'); await expect(maximum).toHaveValue('100');
+  await expect(decimals).toHaveAttribute('aria-checked', 'true'); await decimals.click();
   await minimum.fill(''); await maximum.fill(''); await save.click(); await expect.poll(() => savedScale).toBeUndefined();
+  await expect(sensor.locator('.sensor-reading-number')).toHaveText('22');
+});
+
+test('Feature: Dashboard idle preference — Scenario: Optional local stay preserves only the open dashboard (AC34)', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 768, height: 1024 }); await prepareAuthenticatedDashboard(page);
+  const start = Date.now(); await page.clock.install({ time: start }); await page.clock.pauseAt(start);
+  await page.route('**/api/v1/settings/home-personalization', route => route.fulfill({ json: { morningPhrase: '', afternoonPhrase: '', nightPhrase: '', heroImages: [] } }));
+  await page.goto('/system/home-personalization');
+  const selector = page.getByRole('button', { name: /Dashboard navigation|Navegación del tablero/ });
+  await expect(selector).toContainText(/Return to Home|Volver a Inicio/);
+  await selector.click(); await page.getByRole('option', { name: /Stay on the dashboard|Permanecer en el tablero/ }).click();
+  await page.screenshot({ path: testInfo.outputPath('dashboard-idle-preference.png'), animations: 'disabled' });
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab'); await expect(page.locator('[data-dashboard-card-id="responsive-sensor"]')).toBeVisible();
+  await page.clock.fastForward(121_000); await expect(page).toHaveURL(/\/dashboards\/responsive-dashboard\/responsive-tab$/);
+  await page.reload(); await expect(page.locator('[data-dashboard-card-id="responsive-sensor"]')).toBeVisible(); await page.clock.fastForward(121_000); await expect(page).toHaveURL(/\/dashboards\/responsive-dashboard\/responsive-tab$/);
+  await page.goto('/system/home-personalization'); await expect(selector).toContainText(/Stay on the dashboard|Permanecer en el tablero/);
+  await page.clock.fastForward(121_000); await expect(page).toHaveURL(/\/$/);
+  await page.goto('/system/home-personalization'); await selector.click(); await page.getByRole('option', { name: /Return to Home after 2 minutes|Volver a Inicio tras 2 minutos/ }).click();
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab'); await expect(page.locator('[data-dashboard-card-id="responsive-sensor"]')).toBeVisible(); await page.clock.fastForward(121_000); await expect(page).toHaveURL(/\/$/);
 });
 
 for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'tablet portrait', width: 768, height: 1024 }, { name: 'tablet landscape', width: 1024, height: 768 }, { name: 'desktop', width: 1440, height: 900 }]) {

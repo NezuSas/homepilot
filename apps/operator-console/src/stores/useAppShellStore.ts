@@ -24,6 +24,8 @@ function isAssistantSummary(value: unknown): value is AssistantSummary {
 }
 
 interface AppShellState {
+  keepDashboard: boolean;
+  setKeepDashboard: (keep: boolean) => void;
   automaticTheme: boolean;
   setAutomaticTheme: (automatic: boolean) => void;
   theme: 'dark' | 'light';
@@ -58,6 +60,7 @@ const getInitialTheme = (): 'dark' | 'light' => {
 };
 
 const initialState = {
+  keepDashboard: typeof window !== 'undefined' && localStorage.getItem('__homepilot_keep_dashboard') === 'true',
   automaticTheme: typeof window !== 'undefined' && localStorage.getItem('__homepilot_automatic_theme') === 'true',
   theme: getInitialTheme(),
   assistantSummary: null,
@@ -70,6 +73,10 @@ const initialState = {
 
 export const useAppShellStore = create<AppShellState>((set) => ({
   ...initialState,
+  setKeepDashboard: (keepDashboard) => {
+    if (typeof window !== 'undefined') localStorage.setItem('__homepilot_keep_dashboard', String(keepDashboard));
+    set({ keepDashboard });
+  },
   setAutomaticTheme: (automaticTheme) => {
     if (typeof window !== 'undefined') localStorage.setItem('__homepilot_automatic_theme', String(automaticTheme));
     set({ automaticTheme });
@@ -161,6 +168,6 @@ export const useAppShellStore = create<AppShellState>((set) => ({
       syncStatusResetTimer = null;
     }
 
-    set({ ...initialState });
+    set({ ...initialState, keepDashboard: typeof window !== 'undefined' && localStorage.getItem('__homepilot_keep_dashboard') === 'true' });
   },
 }));

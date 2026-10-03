@@ -253,6 +253,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       mediaVariant: normalizeMediaVariant(card.mediaVariant),
       sensorMin: card.sensorScale?.min,
       sensorMax: card.sensorScale?.max,
+      sensorDecimals: card.sensorDecimals === true,
     });
   };
 
@@ -278,6 +279,8 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       else delete updatedCard.mediaVariant;
       if (cardDraft.kind === 'sensor' && sensorScale) updatedCard.sensorScale = sensorScale;
       else delete updatedCard.sensorScale;
+      if (cardDraft.kind === 'sensor' && cardDraft.sensorDecimals) updatedCard.sensorDecimals = true;
+      else delete updatedCard.sensorDecimals;
       return updatedCard;
     });
 
@@ -320,6 +323,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     isEditorPreview = false,
     mediaVariantOverride?: MediaVariant,
     sensorScaleOverride?: SensorScale,
+    sensorDecimalsOverride?: boolean,
   ) => {
     const title = titleOverride || catalogLabel(kind);
     const span = getEffectiveCardSpan(kind, spanOverride ?? getDefaultSpan(kind));
@@ -361,7 +365,8 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           device={previewDevice}
           mediaVariant={mediaVariantOverride}
           sensorScale={sensorScaleOverride}
-          isPreview={true}
+          sensorDecimals={sensorDecimalsOverride}
+          isPreview={normalizedPreviewKind === 'sensor' ? !deviceIdOverride : true}
           roomDeviceCount={roomDevices.length}
           roomActiveCount={roomDevices.filter(isDeviceActive).length}
         />

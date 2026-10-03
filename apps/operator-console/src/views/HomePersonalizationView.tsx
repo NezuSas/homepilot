@@ -32,6 +32,8 @@ function HeroImageThumbnail({ url, slot }: { url: string; slot: number }) {
 export function HomePersonalizationView() {
   const automaticTheme = useAppShellStore(state => state.automaticTheme);
   const setAutomaticTheme = useAppShellStore(state => state.setAutomaticTheme);
+  const keepDashboard = useAppShellStore(state => state.keepDashboard);
+  const setKeepDashboard = useAppShellStore(state => state.setKeepDashboard);
   const { t } = useTranslation();
   const [settings, setSettings] = useState<HomePersonalization>(EMPTY_HOME_PERSONALIZATION);
   const [loading, setLoading] = useState(true);
@@ -140,6 +142,8 @@ export function HomePersonalizationView() {
     {loading ? <HomePersonalizationSkeleton label={t('common.loading')} /> : <>
       <SearchableSelectField label={t('home_personalization.theme_mode')} value={automaticTheme ? 'automatic' : 'manual'} onChange={value => setAutomaticTheme(value === 'automatic')}
         options={[{ value: 'manual', label: t('home_personalization.theme_manual') }, { value: 'automatic', label: t('home_personalization.theme_automatic'), description: t('home_personalization.theme_schedule') }]} className="w-full sm:max-w-sm" />
+      <SearchableSelectField label={t('home_personalization.dashboard_return')} value={keepDashboard ? 'stay' : 'return'} onChange={value => setKeepDashboard(value === 'stay')}
+        options={[{ value: 'return', label: t('home_personalization.dashboard_return_auto') }, { value: 'stay', label: t('home_personalization.dashboard_return_stay') }]} className="w-full sm:max-w-sm" />
       <Card className="flex flex-col gap-4 p-4">
         <h2 className="text-card-title font-semibold">{t('home_personalization.phrases')}</h2>
         <div className="grid gap-3 md:grid-cols-3">{PHRASE_KEYS.map((key) => <div key={key} className="flex min-w-0 flex-col gap-2">

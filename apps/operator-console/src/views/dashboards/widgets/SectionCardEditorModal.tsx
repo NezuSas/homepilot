@@ -7,6 +7,7 @@ import { Button } from '../../../components/ui/Button';
 import { IconButton } from '../../../components/ui/IconButton';
 import { Input } from '../../../components/ui/Input';
 import { NumberInput } from '../../../components/ui/NumberInput';
+import { ToggleSwitch } from '../../../components/ui/ToggleSwitch';
 import { normalizeSensorScale, type SensorScale } from './sectionCardCatalog';
 import type { SnapshotDevice, SnapshotRoom } from '../../../stores/useDeviceSnapshotStore';
 import { getAssignableDevicesForSectionCard } from '../dashboardUtils';
@@ -40,6 +41,7 @@ interface SectionCardEditorModalProps {
     isEditorPreview?: boolean,
     mediaVariantOverride?: MediaVariant,
     sensorScaleOverride?: SensorScale,
+    sensorDecimalsOverride?: boolean,
   ) => ReactNode;
   onClose: () => void;
   onSave: () => void;
@@ -91,6 +93,7 @@ export function SectionCardEditorModal({
               true,
               cardDraft.mediaVariant,
               sensorScale,
+              cardDraft.sensorDecimals,
             )}
 
             {normalizeKind(cardDraft.kind) === 'media' && (
@@ -115,6 +118,10 @@ export function SectionCardEditorModal({
 
             {cardDraft.kind === 'sensor' && <fieldset className="space-y-2">
               <legend className="text-caption font-semibold text-foreground">{t('dashboard.editor.sections.sensor_scale_settings')}</legend>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-body-compact">{t('dashboard.editor.sections.sensor_decimals')}</span>
+                <ToggleSwitch label={t('dashboard.editor.sections.sensor_decimals')} checked={cardDraft.sensorDecimals === true} onCheckedChange={sensorDecimals => setCardDraft(draft => ({ ...draft, sensorDecimals }))} />
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <NumberInput label={t('dashboard.editor.sections.sensor_min')} required={false} step="any" value={cardDraft.sensorMin}
                   onValidityChange={setValidMinimum}
