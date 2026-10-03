@@ -42,6 +42,12 @@ export function readCardGridOptions(value: unknown): CardGridOptions {
   const rows = raw.rows === 'auto' ? 'auto'
     : integer(raw.rows, 1, Number.MAX_SAFE_INTEGER, 'gridOptions.rows');
   const result: CardGridOptions = { ...raw, columns, rows };
+  if (raw.columnStart !== undefined) result.columnStart = integer(raw.columnStart, 1, 12, 'gridOptions.columnStart');
+  if (raw.rowStart !== undefined) result.rowStart = integer(raw.rowStart, 1, 10000, 'gridOptions.rowStart');
+  if ((result.columnStart === undefined) !== (result.rowStart === undefined)
+    || (result.columnStart !== undefined && result.columnStart + (columns === 'full' ? 12 : columns) > 13)) {
+    throw new Error('Invalid dashboard layout at gridOptions: invalid placement');
+  }
   for (const key of ['minColumns', 'maxColumns'] as const) {
     if (raw[key] !== undefined) result[key] = integer(raw[key], 1, 12, `gridOptions.${key}`) as CardColumns;
   }

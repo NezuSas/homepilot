@@ -1,6 +1,6 @@
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { DndContext, KeyboardSensor, MouseSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
-import { SectionCardDragContext, sectionCardDragId } from '../sectionCardDrag';
+import { SectionCardDragContext, sectionCardDragId, resolvePlacedCardRows } from '../sectionCardDrag';
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -433,6 +433,11 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     />
   ) : null;
 
+  const placedRows = resolvePlacedCardRows(cards.filter(card => (isEditing || !card.hidden) && card.gridOptions?.rowStart !== undefined).map(card => ({
+    id: card.id, column: card.gridOptions!.columnStart!, row: card.gridOptions!.rowStart!,
+    columns: card.gridOptions!.columns === 'full' ? 12 : card.gridOptions!.columns,
+    rows: Math.max(rowSpans[card.id] ?? 1, typeof card.gridOptions!.rows === 'number' ? card.gridOptions!.rows : 1),
+  })));
   const sortableCards = (
     <SortableContext items={cards.map((card) => sharedDrag ? sectionCardDragId(sectionId!, card.id, dragIdentities) : card.id)} strategy={sharedDrag ? () => null : rectSortingStrategy}>
       {cards.filter(card => isEditing || !card.hidden).map((card) => (
@@ -456,6 +461,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           removeCard={removeCard}
           registerRowSpanRef={registerCard}
           rowSpan={rowSpans[card.id] ?? 1}
+          placedRow={placedRows[card.id]}
         />
       ))}
     </SortableContext>
@@ -463,6 +469,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
   const sectionGrid = (
     <div
       ref={sectionGridRef}
+      data-section-card-grid="true"
       onClick={(event) => event.stopPropagation()}
       className="grid min-h-0 min-w-0 flex-1 grid-cols-12 content-start items-start gap-2 overflow-visible pr-1 auto-rows-[minmax(20px,auto)] grid-flow-row-dense"
     >
@@ -493,7 +500,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       {sectionGrid}
 
       {isEditing ? (
-        <div className="absolute -top-5 right-36 z-30">
+        <div className="flex w-full justify-center">
           <Button
             type="button"
             variant="ghost"

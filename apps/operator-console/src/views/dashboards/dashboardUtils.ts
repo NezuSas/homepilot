@@ -4,6 +4,11 @@ import type { DashboardWidget, DashboardWidgetConfig } from './types';
 import { generateId } from '../../utils/generateId';
 
 const DASHBOARD_MAX_SECTION_SPAN = 4;
+
+export function getAvailableSectionWidths(columns: number): number[] {
+  const maximum = Number.isFinite(columns) ? Math.max(1, Math.min(DASHBOARD_MAX_SECTION_SPAN, Math.floor(columns))) : 1;
+  return Array.from({ length: maximum }, (_, index) => index + 1);
+}
 // Must match DashboardCanvas's own grid-template-columns
 // (repeat(auto-fit, minmax(350px, 1fr))) exactly. This JS count decides
 // grid-column: span N for full-width items (the title bar, add-section

@@ -2,6 +2,15 @@
 
 ## Editor Sections V2 — workspace vigente
 
+### Colocación libre y acciones de Section — 2026-10-03
+
+- [x] Manual/Auto comparten gráfico Sensor; filas manuales solo modifican el mínimo exterior, sin estrechar el instrumento.
+- [x] Posiciones opcionales `columnStart`/`rowStart` autorizadas al elegir la mejor solución: conservar hueco, colocar debajo, transferencia entre secciones y evitar solapamientos. Validación del parser compartido; JSON V1, sin schema/migración SQLite ni escrituras al cargar. Versiones anteriores ignoran posiciones y mantienen contenido/bindings.
+- [x] Selector de ancho utiliza columnas reales del canvas y limita el valor guardado al perfil visible; rotar no escribe automáticamente.
+- [x] Añadir tarjeta centrado debajo del contenido; acciones de Section únicamente en tres puntos, sin lápiz/eliminar duplicados. Este cambio sustituye su posición flotante anterior.
+- [x] Proyección de filas colocadas evita solapamientos si aumenta la altura intrínseca, sin reescribir configuración durante render.
+- Tests focalizados: 222/222 PASS en 10 suites, incluyendo parser, servicio Dashboard, sesión de edición, posiciones y dimensiones. Typecheck, lint y ambos builds PASS; checks de spec/BDD/modular, ausencia de any y arquitectura PASS. Responsive no ejecutado por restricción; interacción visual en tablet física no certificada.
+
 ### Refinamiento de dimensiones y contraste — 2026-10-03
 
 - [x] Cuadrícula 12 × 8 por clic/toque/flechas, sin arrastre ni captura; actualización del escenario responsive existente sin ejecutarlo.

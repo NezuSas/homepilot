@@ -55,11 +55,16 @@ describe('Feature: Twelve-column card resizing (AC48)', () => {
     expect(getCardGridRowSpan('auto', 2, 4)).toBe(4);
     expect(getCardGridRowSpan('auto', 8, 4)).toBe(8);
   });
-  it('Scenario: Live and preview share a visual budget without fixing height or shrinking control targets', () => {
-    expect(getCardPresentationStyle(4)).toEqual({ containerType: 'inline-size', '--dashboard-card-height': '104px' });
-    expect(getCardPresentationStyle(8)).toEqual({ containerType: 'inline-size', '--dashboard-card-height': '216px' });
-    expect(getCardPresentationStyle('auto')).toEqual({ containerType: 'inline-size' });
+  it('Scenario: Manual and automatic sizing share presentation without capping the instrument or shrinking controls', () => {
+    expect(getCardPresentationStyle(4)).toEqual({ containerType: 'inline-size', minHeight: 104 });
+    expect(getCardPresentationStyle(8)).toEqual({ containerType: 'inline-size', minHeight: 216 });
+    expect(getCardPresentationStyle('auto')).toEqual({ containerType: 'inline-size', minHeight: undefined });
+    for (const rows of [4, 8, 'auto'] as const) {
+      expect(getCardPresentationStyle(rows).height).toBeUndefined();
+      expect(getCardPresentationStyle(rows).maxHeight).toBeUndefined();
+    }
     expect(pickCardGridSize({ columns: 6, rows: 20, maxRows: 20 }, 12, 20, 12, 8).rows).toBe(8);
     expect(getCardGridHeight(20)).toBe(552);
+    expect(pickCardGridSize({ columns: 3, rows: 4, columnStart: 10, rowStart: 5 }, 12, 4, 12, 8)).toMatchObject({ columns: 12, columnStart: 1, rowStart: 5 });
   });
 });

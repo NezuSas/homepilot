@@ -48,7 +48,7 @@ export function CardGridSizePicker({ value, onChange }: { value: CardGridOptions
     </div>
     <div className="flex flex-wrap gap-2">
       <Button type="button" variant="secondary" size="sm" aria-pressed={value.rows === 'auto'} onClick={() => onChange({ ...value, rows: 'auto' })}>{t('dashboards.edit_session.auto')}</Button>
-      {(value.maxColumns ?? 12) === 12 && <Button type="button" variant="secondary" size="sm" aria-pressed={value.columns === 'full'} onClick={() => onChange({ ...value, columns: 'full' })}>{t('dashboard.editor.sections.card_size_full')}</Button>}
+      {(value.maxColumns ?? 12) === 12 && <Button type="button" variant="secondary" size="sm" aria-pressed={value.columns === 'full'} onClick={() => onChange({ ...value, columns: 'full', ...(value.columnStart === undefined ? {} : { columnStart: 1 }) })}>{t('dashboard.editor.sections.card_size_full')}</Button>}
     </div>
   </div>;
 }

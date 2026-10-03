@@ -45,6 +45,7 @@ export function SectionCardItem({
   removeCard,
   registerRowSpanRef,
   rowSpan,
+  placedRow,
 }: {
   card: NormalizedSectionCardItem;
   sectionId?: string;
@@ -64,6 +65,7 @@ export function SectionCardItem({
   removeCard: (id: string) => void;
   registerRowSpanRef: (cardId: string, element: HTMLElement | null) => void;
   rowSpan: number;
+  placedRow?: number;
 }) {
   const { t } = useTranslation();
   const dragIdentities = useContext(SectionCardDragContext);
@@ -176,7 +178,7 @@ export function SectionCardItem({
       style={{
         ...getCardPresentationStyle(gridOptions?.rows),
         minHeight: explicitHeight,
-        gridColumn: gridOptions ? gridOptions.columns === 'full' ? '1 / -1' : `span ${gridOptions.columns}` : undefined,
+        gridColumn: gridOptions?.columnStart ? `${gridOptions.columnStart} / span ${gridOptions.columns === 'full' ? 12 : gridOptions.columns}` : gridOptions ? gridOptions.columns === 'full' ? '1 / -1' : `span ${gridOptions.columns}` : undefined,
         // Tile-kind cards get a fixed uniform height so identical tiles
         // don't jitter a few pixels apart from a 1- vs 2-line title. But
         // it's a floor, never a hard cap: Math.max against the actually
@@ -185,7 +187,7 @@ export function SectionCardItem({
         // clipped by the card's own overflow-hidden background.
         // Keep the same measured rows in view and edit so changing modes
         // cannot compress the section's vertical rhythm.
-        gridRow: `span ${getCardGridRowSpan(gridOptions?.rows, rowSpan, isTileKind ? COMPACT_TILE_ROW_SPAN : 1)}`,
+        gridRow: `${placedRow ?? gridOptions?.rowStart ? `${placedRow ?? gridOptions?.rowStart} / ` : ''}span ${getCardGridRowSpan(gridOptions?.rows, rowSpan, isTileKind ? COMPACT_TILE_ROW_SPAN : 1)}`,
         transform: CSS.Translate.toString(transform),
         transition: transition ?? undefined,
       }}

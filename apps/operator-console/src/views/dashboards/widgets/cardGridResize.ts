@@ -8,9 +8,11 @@ export const CARD_EDITOR_MAX_ROWS = 8;
 export function pickCardGridSize(initial: CardGridOptions, x: number, y: number, width: number, height: number): CardGridOptions {
   if (width <= 0 || height <= 0) return initial;
   const rowLimit = Math.min(initial.maxRows ?? CARD_EDITOR_MAX_ROWS, CARD_EDITOR_MAX_ROWS);
+  const columns = Math.min(initial.maxColumns ?? 12, Math.max(initial.minColumns ?? 1, Math.ceil(x / width * 12))) as CardColumns;
   return {
     ...initial,
-    columns: Math.min(initial.maxColumns ?? 12, Math.max(initial.minColumns ?? 1, Math.ceil(x / width * 12))) as CardColumns,
+    columns,
+    ...(initial.columnStart === undefined ? {} : { columnStart: Math.min(initial.columnStart, 13 - columns) }),
     rows: Math.min(rowLimit, Math.max(initial.minRows ?? 1, Math.ceil(y / height * CARD_EDITOR_MAX_ROWS))),
   };
 }
@@ -29,7 +31,7 @@ export function fitCardsToSectionWidth(cards: unknown, previousSpan: number, nex
     const minimum = typeof options?.minColumns === 'number' ? options.minColumns : 1;
     const maximum = typeof options?.maxColumns === 'number' ? options.maxColumns : 12;
     const fitted = Math.min(maximum, Math.max(minimum, Math.round(columns * previousSpan / nextSpan)));
-    return { ...card, gridOptions: { ...options, columns: fitted, rows: options?.rows ?? 'auto' } };
+    return { ...card, gridOptions: { ...options, columns: fitted, rows: options?.rows ?? 'auto', ...(typeof options?.columnStart === 'number' ? { columnStart: Math.min(options.columnStart, 13 - fitted) } : {}) } };
   });
 }
 
@@ -37,14 +39,10 @@ export function getCardGridHeight(rows: CardGridOptions['rows'] | undefined): nu
   return typeof rows === 'number' ? rows * (MASONRY_ROW_UNIT_PX + MASONRY_ROW_GAP_PX) - MASONRY_ROW_GAP_PX : undefined;
 }
 
-/** Shared visual budget for the live card and its editor preview; auto has no cap.
- * Only decorative instruments use this budget, never interactive hit targets. */
+/** Manual rows change the exterior floor, never the instrument's presentation.
+ * Auto and manual share width queries in the live card and editor preview. */
 export function getCardPresentationStyle(rows: CardGridOptions['rows'] | undefined): CSSProperties {
-  const height = getCardGridHeight(rows);
-  return {
-    containerType: 'inline-size',
-    ...(height === undefined ? {} : { '--dashboard-card-height': `${height}px` }),
-  } as CSSProperties;
+  return { containerType: 'inline-size', minHeight: getCardGridHeight(rows) };
 }
 
 export function getCardGridRowSpan(rows: CardGridOptions['rows'] | undefined, measuredRows: number, minimumRows = 1): number {

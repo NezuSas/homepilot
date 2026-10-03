@@ -10,6 +10,9 @@ export interface CardGridOptions {
   maxColumns?: CardColumns;
   minRows?: number;
   maxRows?: number;
+  /** Optional one-based placement; absence retains historical auto-flow. */
+  columnStart?: number;
+  rowStart?: number;
 }
 
 /** Additional presenter-specific fields and bindings must survive conversion. */

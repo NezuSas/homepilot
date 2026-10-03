@@ -1085,7 +1085,7 @@
   .sensor-analog-layout { padding-block: 0.25rem; }
   [data-dashboard-drag-origin="true"] { outline: 2px solid hsl(var(--primary)); outline-offset: -2px; background: hsl(var(--primary) / 0.1); }
   [data-dashboard-drop-target="true"] { outline: 2px solid hsl(var(--primary)); outline-offset: -2px; }
-  .sensor-analog-instrument { position: relative; container-type: inline-size; width: 100%; max-width: min(22rem, max(3rem, calc((var(--dashboard-card-height, 1000px) - 6rem) * 320 / 265))); flex-shrink: 0; }
+  .sensor-analog-instrument { position: relative; container-type: inline-size; width: 100%; max-width: 22rem; flex-shrink: 0; }
   .sensor-analog-canvas { display: block; width: 100%; height: auto; aspect-ratio: 320 / 265; }
   .sensor-vessel { fill: hsl(var(--popover)); stroke: hsl(var(--border)); stroke-width: 2; }
   .sensor-liquid { fill: hsl(var(--primary)); transform-origin: center bottom; transition: transform 400ms ease-out; }

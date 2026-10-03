@@ -156,6 +156,10 @@ describe('Feature: Sections editor model (AC46–AC47)', () => {
 describe('Feature: Card grid bounds (AC46)', () => {
   it('Scenario: retains additional grid metadata without interpreting it', () => {
     expect(readCardGridOptions({ columns: 6, rows: 'auto', customHint: 'preserved' })).toMatchObject({ customHint: 'preserved' });
+    expect(readCardGridOptions({ columns: 3, rows: 'auto', columnStart: 10, rowStart: 5 })).toMatchObject({ columnStart: 10, rowStart: 5 });
+    expect(() => readCardGridOptions({ columns: 6, rows: 'auto', columnStart: 10, rowStart: 5 })).toThrow('invalid placement');
+    expect(() => readCardGridOptions({ columns: 3, rows: 'auto', columnStart: 1 })).toThrow('invalid placement');
+    expect(() => readCardGridOptions({ columns: 3, rows: 'auto', columnStart: 1, rowStart: -1 })).toThrow('Invalid dashboard layout');
   });
 
   it('Scenario: accepts full width and automatic rows with optional bounds', () => {

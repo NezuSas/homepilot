@@ -13,7 +13,7 @@ import {
   useDroppable,
 } from '@dnd-kit/core';
 import type { CollisionDetection, DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
-import { SectionCardDragContext, moveSectionCard, sectionCardDragId, DASHBOARD_DRAG_TRANSITION } from './sectionCardDrag';
+import { SectionCardDragContext, moveSectionCard, placeSectionCard, sectionCardDragId, DASHBOARD_DRAG_TRANSITION, type SectionCardPlacement } from './sectionCardDrag';
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useState, useMemo, useRef, useEffect, useLayoutEffect, isValidElement } from 'react';
@@ -457,6 +457,42 @@ export function DashboardCanvas({
       if (session) setCardDragIdentities(session.identities);
       return;
     }
+    if (active.data.current?.kind === 'section-card' && (over.data.current?.kind === 'section' || over.data.current?.kind === 'section-card')) {
+      const sourceId = session?.sourceSectionId ?? active.data.current.sectionId;
+      const targetId = over.data.current.sectionId;
+      const cardId = active.data.current.cardId;
+      const dragged = active.rect.current.translated;
+      const placements: Record<string, SectionCardPlacement[]> = {};
+      let destination: { column: number; row: number } | undefined;
+      containerRef.current?.querySelectorAll<HTMLElement>('[data-dashboard-section-id]').forEach(section => {
+        const id = section.dataset.dashboardSectionId;
+        const grid = section.querySelector<HTMLElement>('[data-section-card-grid]');
+        if (!id || !grid) return;
+        const bounds = grid.getBoundingClientRect();
+        const step = (bounds.width + 8) / 12;
+        const tracks = getComputedStyle(grid).gridTemplateRows.split(' ').map(Number.parseFloat).filter(Number.isFinite);
+        const rowAt = (y: number) => {
+          let offset = 0;
+          for (let index = 0; index < tracks.length; index++) {
+            if (y < offset + tracks[index] + 4) return index + 1;
+            offset += tracks[index] + 8;
+          }
+          return tracks.length + Math.max(1, Math.floor((y - offset) / 28) + 1);
+        };
+        placements[id] = Array.from(grid.querySelectorAll<HTMLElement>('[data-dashboard-card-id]')).map(node => {
+          const rect = node.getBoundingClientRect();
+          const row = rowAt(rect.top - bounds.top);
+          return { id: node.dataset.dashboardCardId!, column: Math.max(1, Math.round((rect.left - bounds.left) / step) + 1), row,
+            columns: Math.max(1, Math.min(12, Math.round((rect.width + 8) / step))), rows: Math.max(1, rowAt(rect.bottom - bounds.top - 1) - row + 1) };
+        });
+        if (id === targetId && dragged) destination = { column: Math.round((dragged.left - bounds.left) / step) + 1, row: rowAt(dragged.top - bounds.top) };
+      });
+      if (typeof sourceId === 'string' && typeof targetId === 'string' && typeof cardId === 'string' && destination) {
+        const placed = placeSectionCard(session?.widgets ?? widgets, sourceId, cardId, targetId, destination.column, destination.row, placements);
+        onLayoutChange(placed, session?.layout ?? sectionLayout);
+        return;
+      }
+    }
     // A cross-section/slot preview is already at its destination. Do not swap
     // it back when the pointer ends over the relocated ghost itself.
     if (session?.lastTarget) {
@@ -526,7 +562,7 @@ export function DashboardCanvas({
     }
     const hits = pointerWithin({ ...args, droppableContainers });
     const cardHits = hits.filter((hit) => droppableContainers.find((container) => container.id === hit.id)?.data.current?.kind === 'section-card');
-    return cardHits.length ? cardHits : hits.length ? hits : closestCenter({ ...args, droppableContainers });
+    return cardHits.length ? cardHits : hits.length ? hits : args.pointerCoordinates ? [] : closestCenter({ ...args, droppableContainers });
   };
 
 

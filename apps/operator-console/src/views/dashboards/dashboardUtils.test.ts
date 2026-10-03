@@ -2,6 +2,7 @@ import type { DashboardWidget } from './types';
 import type { SnapshotDevice } from '../../stores/useDeviceSnapshotStore';
 import {
   clampSectionSpan,
+  getAvailableSectionWidths,
   getAssignableDevicesForSectionCard,
   getDashboardSectionColumns,
   getDashboardSectionColumnsForViewport,
@@ -57,6 +58,13 @@ function createDevice(
 }
 
 describe('dashboard canvas columns', () => {
+  it('offers only widths that the current canvas can render', () => {
+    expect(getAvailableSectionWidths(1)).toEqual([1]);
+    expect(getAvailableSectionWidths(2)).toEqual([1, 2]);
+    expect(getAvailableSectionWidths(4)).toEqual([1, 2, 3, 4]);
+    expect(getAvailableSectionWidths(100)).toEqual([1, 2, 3, 4]);
+    expect(getAvailableSectionWidths(Number.NaN)).toEqual([1]);
+  });
   it('derives the column count from the exact 350px/20px basis DashboardCanvas\'s own grid uses, instead of a capped 1/2/3 breakpoint table', () => {
     // This must stay in lockstep with DashboardCanvas's
     // repeat(auto-fit, minmax(350px, 1fr)) + 20px gap: a mismatch here

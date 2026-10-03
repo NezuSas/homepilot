@@ -17,7 +17,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { SearchableSelectField } from '../../components/ui/SearchableSelectField';
 import { Modal } from '../../components/ui/Modal';
-import { getSectionSpan } from './dashboardUtils';
+import { getAvailableSectionWidths, getSectionSpan } from './dashboardUtils';
 import { fitCardsToSectionWidth } from './widgets/cardGridResize';
 import { IconPicker, getDashboardIconComponent } from './components/IconPicker';
 
@@ -123,6 +123,7 @@ export function DashboardWidgetNode({
   onDuplicate,
   dragHandleAttributes,
   dragHandleListeners,
+  columns = 4,
   titleBadgeTabs,
   currentTabId,
   onSelectTab,
@@ -225,8 +226,8 @@ export function DashboardWidgetNode({
                 onClick={() => {
                   onConfigChange?.(widget.id, {
                     appearance: { ...widget.config.appearance, title: sectionDraftTitle.trim(), icon: sectionDraftIcon.trim() || undefined },
-                    layout: { ...widget.config.layout, span: sectionDraftSpan },
-                    extra: { ...widget.config.extra, sectionGridVersion: 2, ...(widget.config.extra?.cards ? { cards: fitCardsToSectionWidth(widget.config.extra.cards, getSectionSpan(widget), sectionDraftSpan) } : {}) },
+                    layout: { ...widget.config.layout, span: Math.min(sectionDraftSpan, columns) },
+                    extra: { ...widget.config.extra, sectionGridVersion: 2, ...(widget.config.extra?.cards ? { cards: fitCardsToSectionWidth(widget.config.extra.cards, getSectionSpan(widget), Math.min(sectionDraftSpan, columns)) } : {}) },
                   });
                   setIsSectionEditorOpen(false);
                 }}
@@ -237,7 +238,7 @@ export function DashboardWidgetNode({
           )}
         >
           <div className="space-y-5">
-            <SearchableSelectField label={t('dashboards.edit_session.section_width')} value={String(sectionDraftSpan)} options={[1, 2, 3, 4].map(value => ({ value: String(value), label: String(value) }))} onChange={value => setSectionDraftSpan(Number(value))} />
+            <SearchableSelectField label={t('dashboards.edit_session.section_width')} value={String(Math.min(sectionDraftSpan, columns))} options={getAvailableSectionWidths(columns).map(value => ({ value: String(value), label: String(value) }))} onChange={value => setSectionDraftSpan(Number(value))} />
             <Input
               autoFocus
               label={t('dashboard.editor.sections.section_title')}
@@ -377,7 +378,7 @@ export function DashboardWidgetNode({
                 />
               )}
               {!isTitleWidget && !isSection && canDrag && (canConfigureWidget || Boolean(onDelete)) && <div className="mx-0.5 h-4 w-px bg-border/40" />}
-              {canConfigureWidget && (
+              {canConfigureWidget && !isSection && (
                 <IconButton
                   icon={Pencil}
                   label={isSection ? t('dashboard.editor.sections.edit_section_title') : t('common.configure')}
@@ -397,8 +398,8 @@ export function DashboardWidgetNode({
                   className="hover:bg-primary/10 hover:text-primary"
                 />
               )}
-              {canConfigureWidget && !isTitleWidget && onDelete && <div className="mx-0.5 h-4 w-px bg-border/40" />}
-              {!isTitleWidget && onDelete && (
+              {canConfigureWidget && !isTitleWidget && !isSection && onDelete && <div className="mx-0.5 h-4 w-px bg-border/40" />}
+              {!isTitleWidget && !isSection && onDelete && (
                 <IconButton
                   icon={Trash2}
                   label={t('common.delete')}
