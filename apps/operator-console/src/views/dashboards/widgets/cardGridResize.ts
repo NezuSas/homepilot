@@ -8,12 +8,15 @@ export const CARD_EDITOR_MAX_ROWS = 8;
 export function pickCardGridSize(initial: CardGridOptions, x: number, y: number, width: number, height: number): CardGridOptions {
   if (width <= 0 || height <= 0) return initial;
   const rowLimit = Math.min(initial.maxRows ?? CARD_EDITOR_MAX_ROWS, CARD_EDITOR_MAX_ROWS);
-  const columns = Math.min(initial.maxColumns ?? 12, Math.max(initial.minColumns ?? 1, Math.ceil(x / width * 12))) as CardColumns;
+  const minimumColumns = Math.max(2, initial.minColumns ?? 2);
+  const minimumRows = Math.max(2, initial.minRows ?? 2);
+  if ((initial.maxColumns ?? 12) < minimumColumns || rowLimit < minimumRows) return initial;
+  const columns = Math.min(initial.maxColumns ?? 12, Math.max(minimumColumns, Math.ceil(x / width * 12))) as CardColumns;
   return {
     ...initial,
     columns,
     ...(initial.columnStart === undefined ? {} : { columnStart: Math.min(initial.columnStart, 13 - columns) }),
-    rows: Math.min(rowLimit, Math.max(initial.minRows ?? 1, Math.ceil(y / height * CARD_EDITOR_MAX_ROWS))),
+    rows: Math.min(rowLimit, Math.max(minimumRows, Math.ceil(y / height * CARD_EDITOR_MAX_ROWS))),
   };
 }
 

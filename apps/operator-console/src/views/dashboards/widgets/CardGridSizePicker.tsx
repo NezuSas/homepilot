@@ -42,8 +42,12 @@ export function CardGridSizePicker({ value, onChange }: { value: CardGridOptions
       {Array.from({ length: rowLimit }, (_, row) => <div role="row" key={row} className="grid grid-cols-12 gap-px">
         {Array.from({ length: 12 }, (_, column) => <span role="gridcell" key={column} id={`${id}-${row + 1}-${column + 1}`}
           aria-selected={row + 1 === rows && column + 1 === columns}
+          aria-disabled={column + 1 < Math.max(2, value.minColumns ?? 2) || row + 1 < Math.max(2, value.minRows ?? 2) || column + 1 > (value.maxColumns ?? 12) || row + 1 > (value.maxRows ?? rowLimit)}
+          onClick={event => {
+            if (event.currentTarget.getAttribute('aria-disabled') === 'true') event.stopPropagation();
+          }}
           aria-label={`${t('dashboards.edit_session.columns')}: ${column + 1}, ${t('dashboards.edit_session.rows')}: ${row + 1}`}
-          className={column < columns && row < rows ? 'cursor-pointer bg-primary/35' : 'cursor-pointer bg-card'} />)}
+          className={column < columns && row < rows ? 'cursor-pointer bg-primary/35 aria-disabled:cursor-default aria-disabled:bg-muted' : 'cursor-pointer bg-card aria-disabled:cursor-default aria-disabled:bg-muted'} />)}
       </div>)}
     </div>
     <div className="flex flex-wrap gap-2">

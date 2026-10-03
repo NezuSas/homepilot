@@ -5,6 +5,8 @@
 
 ## Implementado
 
+- [x] ActionMenu compartido tablero/Section: portal, viewport visible, cierre exterior y teclado; test propio. CardPreviewFrame estable y selección de tamaños mínima 2 × 2 con compatibilidad histórica.
+
 - [x] Catálogo de primitivos, navegación, feedback, contenedores y dispositivos comunes.
 - [x] Integración de tipografía de marca local: Rubik para interfaz y Disket Mono para metadatos técnicos, centralizadas en tokens CSS y Tailwind.
 - [x] Cobertura responsive automatizada con Playwright para la pantalla de acceso en móvil, tablet y escritorio, integrada al pipeline de CI.

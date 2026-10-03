@@ -13,6 +13,7 @@ import type { SnapshotDevice, SnapshotRoom } from '../../../stores/useDeviceSnap
 import { getAssignableDevicesForSectionCard } from '../dashboardUtils';
 import { Modal } from '../../../components/ui/Modal';
 import { CardGridSizePicker } from './CardGridSizePicker';
+import { CardPreviewFrame } from './CardPreviewFrame';
 import {
   cardKinds, getDefaultIcon, getDefaultSpan,
   isBindableKind, isClockKind,
@@ -68,7 +69,7 @@ export function SectionCardEditorModal({
         <Button type="button" onClick={onSave} disabled={invalidScale}>{t('dashboard.editor.sections.save')}</Button>
       </>}>
           <div className="min-w-0 space-y-4">
-            <div role="region" aria-label={t('dashboards.edit_session.preview')} className="min-w-0 max-w-full overflow-auto">
+            <CardPreviewFrame label={t('dashboards.edit_session.preview')}>
             {renderCatalogPreview(
               cardDraft.kind,
               cardDraft.title || catalogLabel(cardDraft.kind),
@@ -82,7 +83,7 @@ export function SectionCardEditorModal({
               cardDraft.visualStyle,
               gridOptions,
             )}
-            </div>
+            </CardPreviewFrame>
             <SegmentedControl value={panel} onChange={setPanel} label={t('dashboards.edit_session.label')} options={(['configuration', 'design', 'visibility'] as const).map(value => ({ value, label: t(`dashboards.edit_session.${value}`) }))} />
             {panel === 'design' && <CardGridSizePicker value={gridOptions} onChange={next => setCardDraft(draft => ({ ...draft, gridOptions: next }))} />}
             {panel === 'visibility' && <ToggleSwitch label={t('dashboards.edit_session.visible')} checked={!cardDraft.hidden} onCheckedChange={visible => setCardDraft(draft => ({ ...draft, hidden: !visible }))} />}

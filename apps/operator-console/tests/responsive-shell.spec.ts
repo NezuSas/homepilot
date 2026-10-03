@@ -26,7 +26,7 @@ test('Feature: Sections editor — Scenario: Editor sizing writes once, serializ
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
   const header = page.locator('.homepilot-dashboard-titlebar');
   await header.getByLabel(/^(More|Más)$/i).click();
-  await header.getByRole('menuitem', { name: /^(Edit|Editar)$/i }).click();
+  await page.getByRole('menu', { name: /^(More|Más)$/i }).getByRole('menuitem', { name: /^(Edit|Editar)$/i }).click();
   const card = (id: string) => page.locator(`[data-dashboard-card-id="${id}"]`);
   const editor = page.getByRole('dialog', { name: /^(Edit|Editar)$/i });
   const editSize = async (id: string, columns: number, rows?: number) => {
@@ -128,7 +128,7 @@ test('Feature: Sections editor — Scenario: Section duplication and maximum col
   const original = responsiveDashboard.tabs[0].widgets[1];
   const source = page.locator(`[data-dashboard-section-id="${original.id}"]`);
   await source.getByLabel(/^(Section actions|Acciones de sección)$/i).click();
-  await source.getByRole('menuitem', { name: /^(Duplicate|Duplicar)$/i }).click();
+  await page.getByRole('menu', { name: /^(Section actions|Acciones de sección)$/i }).getByRole('menuitem', { name: /^(Duplicate|Duplicar)$/i }).click();
   await expect(page.locator('[data-dashboard-section-id]')).toHaveCount(2);
   await expect.poll(() => saved.tabs[0].widgets.filter(widget => widget.type === 'section').length).toBe(2);
   const copied = saved.tabs[0].widgets.find(widget => widget.type === 'section' && widget.id !== original.id)!;
@@ -583,7 +583,7 @@ async function enterDashboardEdit(page: import('@playwright/test').Page, touch =
   const header = page.locator('.homepilot-dashboard-titlebar');
   const more = header.getByLabel(/^(More|Más)$/i);
   if (touch) await more.tap(); else await more.click();
-  const edit = header.getByRole('menuitem', { name: /^(Edit|Editar)$/i });
+  const edit = page.getByRole('menu', { name: /^(More|Más)$/i }).getByRole('menuitem', { name: /^(Edit|Editar)$/i });
   if (touch) await edit.tap(); else await edit.click();
 }
 
@@ -732,12 +732,12 @@ test('Feature: Dashboard tab transfer — Scenario: The active tab exports and i
   const header = page.locator('.homepilot-dashboard-titlebar');
   await header.getByLabel(/^(More|Más)$/i).click();
   const download = page.waitForEvent('download');
-  await header.getByRole('menuitem', { name: /^(Export tab|Exportar pestaña)$/i }).click();
+  await page.getByRole('menu', { name: /^(More|Más)$/i }).getByRole('menuitem', { name: /^(Export tab|Exportar pestaña)$/i }).click();
   expect((await download).suggestedFilename()).toBe('principal.homepilot-dashboard-tab.json');
   expect(exportedTab).toBe('responsive-tab');
   await header.getByLabel(/^(More|Más)$/i).click();
   const chooser = page.waitForEvent('filechooser');
-  await header.getByRole('menuitem', { name: /^(Import tab|Importar pestaña)$/i }).click();
+  await page.getByRole('menu', { name: /^(More|Más)$/i }).getByRole('menuitem', { name: /^(Import tab|Importar pestaña)$/i }).click();
   await (await chooser).setFiles({ name: 'patio.homepilot-dashboard-tab.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(exported)) });
   await expect.poll(() => received).toEqual(exported);
   await expect(page).toHaveURL(/\/new-tab$/);
@@ -3741,7 +3741,13 @@ for (const viewport of [viewports[2], viewports[1], viewports[0], { name: 'portr
 
     await expect(page.getByRole('button', { name: /^(Add title|Añadir título)$/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /^(Add section|Añadir sección)$/i })).toBeVisible();
-    await expect(canvas.getByRole('button', { name: /^(Add title|Añadir título|Add section|Añadir sección)$/i })).toHaveCount(0);
+    const addTitle = canvas.getByRole('button', { name: /^(Add title|Añadir título)$/i });
+    await expect(addTitle).toHaveCount(1);
+    const titleBeforeSections = await addTitle.evaluate(element => {
+      const section = document.querySelector('.homepilot-dashboard-content .homepilot-dashboard-widget');
+      return section !== null && Boolean(element.compareDocumentPosition(section) & Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+    expect(titleBeforeSections).toBe(true);
 
     const expectSameWidth = (before: number, after: number, label: string) => {
       expect(Math.abs(after - before), `${viewport.name}: ${label}`).toBeLessThanOrEqual(2);
@@ -4358,14 +4364,14 @@ for (const viewport of [...viewports, { name: 'portrait kiosk', ...portraitKiosk
     await page.goto('/dashboards/responsive-dashboard/responsive-tab');
 
     const titlebar = page.locator('.homepilot-dashboard-titlebar');
-    const more = titlebar.locator('details > summary');
+    const more = titlebar.getByRole('button', { name: /^(More|Más)$/i });
     await expect(titlebar.getByRole('button', { name: /new panel|nuevo panel|delete panel|eliminar panel/i })).toHaveCount(0);
     await expect(more).toBeVisible();
     await more.click();
-    await expect(titlebar.getByRole('menuitem', { name: /dashboard history|historial del tablero/i })).toBeVisible();
-    await expect(titlebar.getByRole('menuitem', { name: /export tab|exportar pestaña/i })).toBeVisible();
-    await expect(titlebar.getByRole('menuitem', { name: /import tab|importar pestaña/i })).toBeVisible();
-    await expect(titlebar.getByRole('menuitem', { name: /^(Edit|Editar)$/i })).toHaveCount(1);
+    await expect(page.getByRole('menu', { name: /^(More|Más)$/i }).getByRole('menuitem', { name: /dashboard history|historial del tablero/i })).toBeVisible();
+    await expect(page.getByRole('menu', { name: /^(More|Más)$/i }).getByRole('menuitem', { name: /export tab|exportar pestaña/i })).toBeVisible();
+    await expect(page.getByRole('menu', { name: /^(More|Más)$/i }).getByRole('menuitem', { name: /import tab|importar pestaña/i })).toBeVisible();
+    await expect(page.getByRole('menu', { name: /^(More|Más)$/i }).getByRole('menuitem', { name: /^(Edit|Editar)$/i })).toHaveCount(1);
     await expect(titlebar.getByRole('button', { name: /^(Edit|Editar|Rename|Renombrar)$/i })).toHaveCount(0);
     await more.click();
     await expect(page.locator('.sensor-metric-card').first()).not.toContainText('LISTO');
@@ -4835,7 +4841,7 @@ for (const viewport of viewports) {
     await page.goto('/dashboards/responsive-dashboard/responsive-tab');
     const titlebar = page.locator('.homepilot-dashboard-titlebar');
     await titlebar.getByLabel(/^(More|Más)$/i).click();
-    await titlebar.getByRole('menuitem', { name: /dashboard history|historial del tablero/i }).click();
+    await page.getByRole('menu', { name: /^(More|Más)$/i }).getByRole('menuitem', { name: /dashboard history|historial del tablero/i }).click();
 
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();

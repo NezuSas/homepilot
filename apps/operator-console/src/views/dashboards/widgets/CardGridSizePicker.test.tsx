@@ -5,6 +5,15 @@ import { CardGridSizePicker } from './CardGridSizePicker';
 jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
 describe('Feature: Interactive card sizing (AC48)', () => {
+  it('Scenario: Cells below the two-by-two minimum are unavailable without changing historical sizes', () => {
+    const html = renderToStaticMarkup(React.createElement(CardGridSizePicker, { value: { columns: 1, rows: 1 }, onChange: () => {} }));
+    const cells = html.match(/<span role="gridcell"[^>]*>/g) ?? [];
+    expect(cells).toHaveLength(96);
+    expect(cells[0]).toContain('aria-selected="true"');
+    expect(cells[0]).toContain('aria-disabled="true"');
+    expect(cells[12]).toContain('aria-disabled="true"');
+    expect(cells[13]).toContain('aria-disabled="false"');
+  });
   it('Scenario: Design exposes a keyboard-focusable two-dimensional grid without size inputs', () => {
     const html = renderToStaticMarkup(React.createElement(CardGridSizePicker, { value: { columns: 6, rows: 8 }, onChange: () => {} }));
     expect(html).toContain('role="grid"');

@@ -1,6 +1,13 @@
 import { fitCardsToSectionWidth, getCardFrameClass, getCardGridHeight, getCardGridRowSpan, getCardGridWidth, getCardPresentationStyle, pickCardGridSize, resizeCardGrid } from './cardGridResize';
 
 describe('Feature: Twelve-column card resizing (AC48)', () => {
+  it('Scenario: New selections cannot create a one-by-one card, but historical sizes are not rewritten', () => {
+    expect(pickCardGridSize({ columns: 6, rows: 'auto' }, 0, 0, 12, 8)).toMatchObject({ columns: 2, rows: 2 });
+    expect(pickCardGridSize({ columns: 6, rows: 'auto', minColumns: 4, minRows: 3 }, 0, 0, 12, 8)).toMatchObject({ columns: 4, rows: 3 });
+    const historical = { columns: 1 as const, rows: 1, maxColumns: 1 as const };
+    expect(pickCardGridSize(historical, 12, 8, 12, 8)).toBe(historical);
+    expect(getCardGridHeight(1)).toBe(20);
+  });
   it('Scenario: Quantized width and height honor limits without changing their source', () => {
     const initial = { columns: 6 as const, rows: 'auto' as const, minColumns: 3 as const, maxColumns: 9 as const, minRows: 2, maxRows: 10 };
     expect(resizeCardGrid(initial, 2, 0, 5)).toMatchObject({ columns: 8, rows: 'auto' });

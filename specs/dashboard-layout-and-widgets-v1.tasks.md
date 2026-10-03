@@ -2,6 +2,15 @@
 
 ## Editor Sections V2 — workspace vigente
 
+### Mínimos, preview estable y menú compartido
+
+- [x] Selección nueva mínima 2 × 2, respetando límites propios y datos históricos.
+- [x] CardPreviewFrame reserva ocho filas y alinea arriba el presenter real.
+- [x] ActionMenu compartido para tablero y Section: portal, cierre exterior y teclado.
+- [x] Añadir título antes del placeholder de Section en pestañas vacías.
+- [x] Tests focalizados de límites, preview y menú; locators responsive semánticos adaptados al portal, sin ejecutar responsive.
+- Validación: 48/48 tests en siete suites PASS; typecheck, lint, build raíz, build consola y checks de spec/BDD/módulos PASS. Responsive no ejecutado por restricción; tablet física no certificada. Avisos de build: Browserslist antiguo y chunk MDI grande, sin errores.
+
 ### Colocación libre y acciones de Section — 2026-10-03
 
 - [x] Manual/Auto comparten gráfico Sensor; filas manuales solo modifican el mínimo exterior, sin estrechar el instrumento.

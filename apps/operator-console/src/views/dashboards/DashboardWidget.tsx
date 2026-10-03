@@ -17,6 +17,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { SearchableSelectField } from '../../components/ui/SearchableSelectField';
 import { Modal } from '../../components/ui/Modal';
+import { ActionMenu } from '../../components/ui/ActionMenu';
 import { getAvailableSectionWidths, getSectionSpan } from './dashboardUtils';
 import { fitCardsToSectionWidth } from './widgets/cardGridResize';
 import { IconPicker, getDashboardIconComponent } from './components/IconPicker';
@@ -353,18 +354,14 @@ export function DashboardWidgetNode({
           {/* A selected section exposes only its direct manipulation tools. */}
           <div className={cn("pointer-events-auto absolute z-30 flex items-center", isSection ? "-top-5 right-3" : "right-2 top-2")}>
             <div className="flex items-center gap-1 rounded-xl border border-border/50 bg-background/95 p-1 shadow-lg backdrop-blur-md">
-              {isSection && <details className="relative" onKeyDown={event => { if (event.key === 'Escape') { event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus(); } }}>
-                <summary aria-label={t('dashboards.edit_session.section_actions')} className="grid h-11 w-11 cursor-pointer place-items-center rounded-control text-muted-foreground hover:bg-muted focus-visible:outline focus-visible:outline-primary [&::-webkit-details-marker]:hidden"><MoreVertical className="h-4 w-4" /></summary>
-                <div role="menu" className="absolute right-0 top-full z-40 min-w-44 rounded-panel border border-border bg-card p-1.5 shadow-depth-3">
-                  <Button role="menuitem" variant="ghost" className="w-full justify-start" onClick={event => {
-                    const menu = event.currentTarget.closest('details'); if (menu) menu.open = false;
+              {isSection && <ActionMenu label={t('dashboards.edit_session.section_actions')} items={[
+                { label: t('common.edit'), icon: Pencil, onSelect: () => {
                     setSectionDraftTitle(widget.config.appearance?.title ?? ''); setSectionDraftIcon(widget.config.appearance?.icon ?? '');
                     setSectionDraftSpan(widget.config.extra?.sectionGridVersion === 2 ? widget.config.layout.span ?? 1 : 1); setIsSectionEditorOpen(true);
-                  }}><Pencil className="h-4 w-4" />{t('common.edit')}</Button>
-                  <Button role="menuitem" variant="ghost" className="w-full justify-start" onClick={event => { const menu = event.currentTarget.closest('details'); if (menu) menu.open = false; onDuplicate?.(widget.id); }}><Copy className="h-4 w-4" />{t('dashboards.edit_session.duplicate')}</Button>
-                  <Button role="menuitem" variant="ghost" className="w-full justify-start text-danger" onClick={event => { const menu = event.currentTarget.closest('details'); if (menu) menu.open = false; onDelete?.(widget.id); }}><Trash2 className="h-4 w-4" />{t('common.delete')}</Button>
-                </div>
-              </details>}
+                } },
+                { label: t('dashboards.edit_session.duplicate'), icon: Copy, onSelect: () => onDuplicate?.(widget.id), disabled: !onDuplicate },
+                { label: t('common.delete'), icon: Trash2, onSelect: () => onDelete?.(widget.id), disabled: !onDelete, danger: true },
+              ]} />}
               {/* The grip reorders the section without capturing its card controls. */}
               {!isTitleWidget && !isSection && canDrag && (
                 <IconButton

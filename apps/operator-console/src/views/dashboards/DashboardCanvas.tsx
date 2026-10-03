@@ -633,7 +633,9 @@ export function DashboardCanvas({
               onSelectTab={onSelectTab}
             />
           </CanvasFlowItem>
-        ) : null}
+        ) : canEditLayout ? <CanvasFlowItem span={columns} gap={gap}>
+          <Button type="button" variant="outline" size="md" onClick={onAddTitleClick}>{t('dashboard.editor.sections.add_title')}</Button>
+        </CanvasFlowItem> : null}
 
         {useSectionSlots && <CanvasFlowItem span={columns} gap={gap}>
           <SortableContext items={sectionSlots.filter((id): id is string => id !== null)} strategy={rectSortingStrategy}>
@@ -721,7 +723,6 @@ export function DashboardCanvas({
           ) : null}
         </DragOverlay>, document.body)}
       </div>
-      {canEditLayout && !titleWidget && <Button type="button" variant="outline" size="md" onClick={onAddTitleClick}>{t('dashboard.editor.sections.add_title')}</Button>}
       </SectionCardDragContext.Provider>
     </DndContext>
   );
