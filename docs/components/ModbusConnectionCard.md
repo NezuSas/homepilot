@@ -1,18 +1,18 @@
 # ModbusConnectionCard
 
-AC17 refinement: configuration numbers use NumberInput with editable empty drafts and native required constraints. Unit uses MeasurementUnitSelect, including unknown historical values. Defaults, conversion, saved JSON and backend validation remain unchanged. Form dismissal is explicit through Cancel/close.
+Refinamiento AC17: números de configuración con NumberInput, borradores vacíos editables y restricciones nativas. MeasurementUnitSelect conserva unidades históricas desconocidas. El cierre es explícito mediante Cancelar/cerrar.
 
 Referencia local de la configuración Modbus TCP de Sistema. Implementación: `apps/operator-console/src/components/ModbusConnectionCard.tsx`; composición y formularios: `apps/operator-console/src/views/ModbusView.tsx`. Contrato aprobado: [Integración Modbus TCP local V1](../../specs/modbus-tcp-local-integration-v1.md), especialmente AC1, AC2, AC7 y AC11–AC15.
 
 ## Propósito y límites
 
-Modo **Operate**: mostrar conexiones y mapas explícitos de variables para que Admin configure la integración local. La tarjeta resume configuración; el estado habilitado indica polling configurado, no conectividad ni disponibilidad actual del PLC. No muestra valores en vivo ni ejecuta órdenes físicas. Inventario, asignación a estancia y selección de widgets siguen los flujos existentes.
+Modo **Operate**: mostrar conexiones, valores observados, roles PLC y bindings explícitos para que Admin configure y diagnostique la integración local. Habilitar indica polling configurado; Online, No disponible y Esperando lectura proceden del diagnóstico. Probar comando abre confirmación para variables PLC escribibles mediante la ruta común Device. Inventario, asignación a estancia y widgets conservan sus flujos existentes.
 
 Esta extensión conserva los tokens y controles de HomePilot. `index.css` y los componentes compartidos son la autoridad visual existente; este documento no establece un sistema global ni crea `PRODUCT.md`, `DESIGN.md` o sidecars de Impeccable.
 
 ## Contrato del componente
 
-`ModbusConnectionSummary` combina `ModbusConnection` con `variables: ModbusVariable[]`.
+`ModbusConnectionSummary` combina conexión y variables con diagnóstico opcional. La tarjeta lee el estado de Devices del store existente, priorizando el diagnóstico recibido sobre el snapshot.
 
 | Prop | Tipo | Responsabilidad |
 | --- | --- | --- |
@@ -20,12 +20,15 @@ Esta extensión conserva los tokens y controles de HomePilot. `index.css` y los 
 | `onEdit` | `() => void` | Solicitar que la vista abra el editor de conexión. |
 | `onAdd` | `() => void` | Solicitar que la vista abra una variable nueva para esta conexión. |
 | `onVariable` | `(variable: ModbusVariable) => void` | Solicitar el editor de la variable seleccionada. |
+| `onCommand` | `(variable: ModbusVariable) => void`, opcional | Abrir [PlcCommandDialog](PlcCommandDialog.md). |
 
 La tarjeta no consulta API, no mantiene formularios y no controla autorización. `ModbusView` conserva conexiones, carga, errores, editor y formularios en estado local; reutiliza `useDeviceSnapshotStore` para obtener el primer hogar y refrescar el inventario, sin crear otro store global. Los cambios se guardan mediante `apiFetch`; después se recargan conexiones y snapshot.
 
 ## Composición y apariencia
 
-Cada sección tiene nombre accesible igual al nombre de conexión, título de nivel 2, icono Cable decorativo, dirección `host:port`, Unit ID y texto de habilitación. El botón secundario Configurar abre la conexión. Las variables forman una lista dividida por bordes: nombre, símbolo cuando existe, área, dirección PDU, tipo y permiso de escritura; cada fila tiene Configurar con nombre accesible específico. La acción Añadir variable permanece al final. Una conexión sin variables muestra una explicación breve.
+Cada sección tiene nombre accesible igual al de conexión, título de nivel 2, icono Cable decorativo, host/puerto, Unit ID y estado textual. PLC I/O agrupa variables por rol y conserva el grupo histórico sin binding. Filas muestran nombre, símbolo, permiso y relaciones explícitas de comando, salida física, lógica y feedback. Con `commandedState`, **Estado solicitado** y **Estado real** aparecen separados: ON solicitado con feedback OFF conserva la divergencia y confirmación pendiente/no confirmada. Sin lectura válida aparece Esperando lectura o No disponible según habilitación, diagnóstico y Device.
+
+PDU, tipo, word order, RAW, latencia, última lectura y error quedan en el desplegable técnico. Configurar y Probar comando tienen nombres accesibles por variable. Probar comando requiere writable, binding PLC y callback; se deshabilita con conexión deshabilitada. Añadir variable permanece al final; el vacío tiene ayuda breve. El skeleton propio replica los grupos/filas PLC y solo sustituye la carga inicial. La vista refresca resúmenes cada cinco segundos sin añadir polling de dispositivos.
 
 Se reutilizan superficie de tarjeta, borde semántico, radio de sección y padding (16 px). Texto principal y modal fijan explícitamente `text-card-foreground` para conservar legibilidad en claro/oscuro; metadatos utilizan el token de texto atenuado y el icono utiliza el primario. La tarjeta no añade sombra propia. Nombres y direcciones pueden partirse y los contenedores permiten encogerse.
 
@@ -55,7 +58,7 @@ Una conexión puede guardar `profileId` y `moduleCapacities` para CPU o expansio
 
 Una variable nueva toma el perfil de la conexión y propone D0. El selector del editor permite también configurar genérico o perfil por variable. Seleccionar perfil propone holding register/PDU 0, D0 y `uint16`, y desactiva escritura. Los símbolos usan índices decimales salvo X/Y octales estrictos. Cambiar símbolo válido recalcula área/PDU, adapta el tipo bit/registro y desactiva escritura; el preview inválido muestra aviso sin reutilizar una resolución anterior. Al guardar se vuelve a resolver con las capacidades de la conexión. El backend valida la concordancia de perfil/símbolo con área/PDU y la segunda palabra de los tipos de 32 bits dentro del mismo segmento. Reducir capacidad de conexión se rechaza si invalidaría variables existentes.
 
-En perfil, el opt-in se ofrece únicamente para M, Y y HM. Los demás segmentos, incluidas X y áreas de sistema, permanecen protegidos y el backend rechaza `writable=true` tanto al guardar como al ejecutar comandos. Cambiar a genérico elimina metadatos de variable al guardar y conserva la política histórica de coils; no activa escritura automáticamente.
+El perfil v1 permanece inmutable y conserva opt-in M/Y/HM. El perfil separado `xinje-xl5e-16t-v2` permite además D/HD únicamente como setpoints explícitos y limitados. X y áreas protegidas siguen bloqueadas. La UI exige rol setpoint para escritura de holding registers y solo ofrece opt-in PLC para output, output_command y setpoint; backend valida perfil, segmento, tipo y límites. Seleccionar perfil, símbolo o rol reinicia escritura a false. Las variables genéricas conservan la política histórica de coils; bindings PLC escribibles requieren perfil. [PlcBindingEditor](PlcBindingEditor.md) documenta las relaciones.
 
 Crear desde probe conserva perfil/símbolo/resolución/conversión y abre el editor normal con `writable=false`. Si reutiliza conexión por host/Unit ID, sus capacidades guardadas y habilitación se conservan. Los metadatos opcionales se guardan en JSON existente sin SQL nuevo; las configuraciones genéricas históricas siguen funcionando. Realizar backup antes de instalar o revertir: un editor anterior puede perder metadatos al guardar aunque preserve área/PDU. Las variables con tipos nuevos también requieren la preparación de downgrade descrita en [ModbusReadProbe](ModbusReadProbe.md).
 
@@ -67,20 +70,38 @@ Los iconos de tarjeta y botones se ocultan del árbol accesible. La sección nom
 
 `LoadingState` anuncia carga con `role="status"`, `aria-live="polite"`, `aria-busy` y etiqueta traducida; sus barras se ocultan a tecnología asistiva. La animación de pulso solo se aplica cuando el usuario permite movimiento. El skeleton de tarjeta aislado es visual: el anuncio accesible lo proporciona su contenedor.
 
-La superficie obtiene copy de `modbus.*` y `common.loading` mediante `react-i18next`. Nombres configurados, host, direcciones y códigos técnicos de tipo son datos, no copy traducido. Las áreas y permisos sí usan traducciones; `modbus.edit_variable` interpola el nombre de variable.
+La superficie obtiene copy de `modbus.*`, `plc.*` y `common.loading` mediante `react-i18next`. Nombres configurados, host, direcciones y códigos técnicos de tipo son datos, no copy traducido. Las áreas y permisos sí usan traducciones; las acciones por variable interpolan su nombre.
 
 ## Frontera de seguridad
 
 La ruta `/system/modbus` y navegación son exclusivas de Admin; esta restricción pertenece a la composición de aplicación, no a la tarjeta. El servidor debe verificar rol y pertenencia al hogar en cada operación. La UI no reemplaza RBAC ni la validación de IP privada RFC1918, puerto, cantidades, tipos o límites de dirección.
 
-Guardar configuración no es una prueba de conexión ni una escritura física; habilitar la conexión inicia polling. Solo una coil genérica o M/Y/HM del perfil con permiso explícito puede recibir comandos existentes desde los flujos de dispositivos. Registros y segmentos protegidos permanecen de lectura. El editor de conexiones/variables existentes ofrece Eliminar con confirmación modular; una conexión con variables o una variable con referencias persistentes devuelve conflicto sin borrar datos. No hay botón de orden física ni descubrimiento automático en esta superficie. Backup antes de instalar/revertir: el downgrade no recupera eliminaciones confirmadas.
+Guardar configuración no prueba conexión ni escribe físicamente; habilitar inicia polling existente. Coils autorizadas y setpoints D/HD de v2 explícitos usan comandos comunes de Device. Probar comando exige confirmación separada y nunca usa Read Probe, exclusivamente de lectura. Segmentos protegidos siguen bloqueados. Eliminar usa confirmación modular y devuelve conflicto ante referencias persistentes. No hay descubrimiento automático. Backup antes de instalar/revertir: downgrade no recupera eliminaciones ni garantiza conservar bindings nuevos.
+
+Configuración y diagnóstico requieren autenticación, acceso al hogar y Admin reales en backend. Las relaciones PLC se persisten como metadatos JSON opcionales sin SQL nuevo; no se deduce Ladder ni correspondencia M/X/Y. Último diagnóstico/comando/confirmación son efímeros en memoria, sin historian. Seguridad física, cableado, interlocks y watchdog pertenecen a la operación del PLC. El comando no certifica actuación física.
 
 Las direcciones se introducen como PDU explícita en genérico o se resuelven mediante el perfil seleccionado. No se infiere notación 40001 ni firmware. La verificación posterior del mapa contra el equipo real es un requisito operativo pendiente. Permisos de HomePilot no proporcionan autenticación/cifrado a Modbus TCP ni reemplazan segmentación LAN y seguridades del PLC.
 
 ## Evidencia de validación y alcance
 
-La ejecución principal final reportó 238 pruebas Jest aprobadas en ocho suites (203 Modbus y 35 de regresión), 14 escenarios responsive focales y cuatro recapturas finales aprobados. Typecheck, build raíz, build de consola, lint, spec coverage, BDD, cobertura por módulo, límites de arquitectura, ausencia de `any` de producción e i18n aprobados. Revisión fresca SHIP sobre 16 capturas finales en `.impeccable/review/plc-profiles`, formulario/resultados en los cuatro tamaños y ambos temas. Esta documentación recoge esa evidencia; el handoff documental no volvió a ejecutar pruebas funcionales.
+Evidencia histórica de perfiles: 238 pruebas Jest en ocho suites, 14 escenarios responsive focales y cuatro recapturas aprobadas; revisión sobre 16 capturas en `.impeccable/review/plc-profiles`. Es anterior al cierre PLC I/O.
+
+Para el cierre PLC I/O, el coordinador reportó 30 suites Jest y 556/556 pruebas; responsive Modbus 22/22 y final PLC 4/4; typecheck, lint, builds y controles de specs, BDD, módulo, i18n (1981 claves), arquitectura, any, Tuya y perfiles Docker estáticos aprobados. Detector ejecutado una vez sin hallazgos. Revisión fresca pass/SHIP limitada al fix P2 de Estado solicitado/Estado real, con 16 capturas en `.impeccable/review/plc-io` y ocho del listado actualizado ON solicitado/OFF real. Esta documentación atribuye esa evidencia al coordinador sin repetir pruebas. Informe completo: [Cierre PLC I/O](../modbus-plc-io-closeout.md).
 
 `apps/operator-console/tests/responsive-shell.spec.ts` cubre configuración genérica y de perfil en móvil (390×844), tablet vertical (768×1024), tablet horizontal (1024×768) y desktop (1440×900): creación deshabilitada, dirección manual/simbólica, variable de lectura, opt-in permitido, persistencia tras recarga, modal dentro del viewport, acción Guardar visible y ausencia de overflow global en claro/oscuro. El escenario de no Admin verifica que navegación directa no solicita configuración ni ofrece la ruta/acción. Las pruebas de API y servicio cubren permisos, resolución, capacidad y protección de escritura; el componente no los demuestra por sí solo.
 
 No se ejecutaron suites completas, matriz responsive completa ni pruebas con PLC físico, firmware o base real; tampoco despliegue. La evidencia focal no constituye autorización de publicación, validación del mapa físico ni certificación completa de accesibilidad táctil.
+
+## Extensión UI de instalador — AC28–AC32
+
+La habilitación aparece separada de la conectividad: habilitada no confirma comunicación. `plcConnectionKey` muestra conectada con diagnóstico `online`, desconectada con `unavailable`, reconectando únicamente si ese diagnóstico incluye `retryAt`, error con `error`/`variable_error` y esperando conexión en los demás casos. Perfil/modelo/versión permanecen junto al nombre; el disclosure de diagnóstico, cerrado inicialmente, reúne última comunicación válida, latencia, conteos de variables online sin error y variables con error, próxima lectura existente y último error. Las fechas válidas usan el idioma activo; datos ausentes usan «—». No se crea historian ni otro motor de reconexión.
+
+`plcConnectionAvailable` es la regla compartida entre listado y preview del editor: exige conexión habilitada y excluye diagnóstico de conexión `error` o `unavailable`. El diagnóstico de variable precede al snapshot para decidir si existe una lectura online; cuando no hay diagnóstico, el listado conserva las comprobaciones de `available`/`stale`. Una conexión con error no presenta como actual un valor anterior del snapshot. `plcSensorDevice` adapta la medición al Sensor existente y conserva ausencia neutral; no inventa telemetría. La medición de la fila reutiliza `SensorMetricCard` con `title`, `sensorDecimals`, `visualStyle` y `device`, dentro de un contenedor de ancho máximo (20rem).
+
+Las relaciones comando/físico/lógico/feedback continúan explícitas; feedback ausente dice «No configurado». Solicitado, real y confirmación permanecen separados. Pulse muestra duración y acción Activar; setpoint muestra límites/unidad y Editar setpoint. Esas acciones abren confirmación y conservan el requisito `writable` + binding + callback; su disponibilidad inicial depende de la habilitación, mientras la autorización definitiva sigue en el servidor. El disclosure técnico de cada variable comienza cerrado y contiene área/PDU, Function Code, tipo/word order, escala/offset y RAW/latencia/última lectura.
+
+`ModbusView` serializa las peticiones de resumen, conserva conexiones durante refresh y fuerza el snapshot tras guardar/asignar/comandar para evitar una estancia antigua al reabrir. Los errores conocidos se traducen con `plcErrorKey`/`plcResponseError`; códigos desconocidos o respuestas no JSON reciben un mensaje seguro, sin stack ni texto privado de transporte. Los AlertBanner de esta vista fijan localmente texto foreground y párrafos con opacidad completa; no se modifica el componente global.
+
+La preferencia `visualStyle?` admite `auto | gauge | thermometer | level | battery` en el JSON existente y se valida en backend; booleanos la rechazan y `null` permite limpiar el campo. Las variables nuevas empiezan en `auto`; las históricas sin campo conservan su presentación. No hay SQL nuevo ni reescritura histórica. [SensorMetricCard](SensorMetricCard.md) describe herencia y override. Automatizaciones conservan sus acciones existentes sin setpoint parametrizado nuevo; Scenes conservan acciones sin añadir precondiciones.
+
+Evidencia final de esta fase atribuida al coordinador: 611/611 Jest en 30 suites focalizadas tras las correcciones, salida 0; 80/80 en tres suites UI por separado, incluidas tres regresiones nuevas; responsive focalizado 18/18 y confirmación final 4/4, salida 0. Typecheck, lint y ambos builds aprobaron después de las correcciones; la revisión fresca reportó SHIP y ambos hallazgos materiales resueltos. El estado final y controles se centralizan en [Cierre UI PLC / Modbus](../modbus-plc-ui-closeout.md). Este documento no ejecutó pruebas ni acredita PLC físico, hardware táctil, suites completas, release o deploy.

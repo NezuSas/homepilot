@@ -14,7 +14,10 @@ export interface ResolvedModbusAddress {
   area: ModbusArea; address: number; symbolicAddress: string; segment: ModbusAddressSegment;
   physicalCapacityKnown: boolean;
 }
-export const modbusAddressProfiles: readonly ModbusAddressProfile[] = [xinjeXL5E];
+// V1 remains immutable. V2 changes only the explicitly configurable D/HD write policy.
+const xinjeXL5EV2: ModbusAddressProfile = { ...xinjeXL5E, id: 'xinje-xl5e-16t-v2', version: 2,
+  segments: xinjeXL5E.segments.map(segment => ({ ...segment, writable: segment.writable || ['D', 'HD'].includes(segment.prefix) })) };
+export const modbusAddressProfiles: readonly ModbusAddressProfile[] = [xinjeXL5E, xinjeXL5EV2];
 export function addressProfile(id: string): ModbusAddressProfile {
   const profile = modbusAddressProfiles.find(item => item.id === id);
   if (!profile) throw new Error('Unknown address profile');

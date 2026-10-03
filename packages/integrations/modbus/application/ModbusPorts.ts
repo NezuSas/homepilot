@@ -15,5 +15,7 @@ export interface ModbusRepository {
 export interface ModbusTransport {
   readRange(connection: ModbusConnection, area: ModbusArea, start: number, count: number, signal?: AbortSignal): Promise<Array<number | boolean>>;
   read(connection: ModbusConnection, variable: ModbusVariable): Promise<number | boolean>;
+  readSample?(connection: ModbusConnection, variable: ModbusVariable): Promise<{ raw: Array<number | boolean>; value: number | boolean }>;
   writeCoil(connection: ModbusConnection, address: number, value: boolean): Promise<void>;
+  writeHoldingRegisters(connection: ModbusConnection, address: number, words: readonly number[]): Promise<void>;
 }

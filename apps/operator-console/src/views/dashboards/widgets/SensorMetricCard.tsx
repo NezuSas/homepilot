@@ -290,7 +290,8 @@ export function SensorMetricCard({ device, title, isPreview = false, icon, roomN
       attributes.min_value ?? attributes.min ?? state.min_value ?? state.min,
       attributes.max_value ?? attributes.max ?? state.max_value ?? state.max, reading.unit);
   const analog = number !== null || reading.value === null;
-  const resolvedStyle = resolveSensorVisualStyle(normalizeSensorVisualStyle(visualStyle), reading.deviceClass, reading.unit);
+  const inheritedStyle = device?.integrationSource === 'modbus-tcp' ? state.plcVisualStyle : undefined;
+  const resolvedStyle = resolveSensorVisualStyle(normalizeSensorVisualStyle(visualStyle ?? inheritedStyle), reading.deviceClass, reading.unit);
   const Visualizer = resolvedStyle === 'thermometer' ? SensorThermometer : resolvedStyle === 'level' ? SensorLevelGauge : resolvedStyle === 'battery' ? SensorBatteryGauge : SensorAnalogGauge;
   const categoryLabel = getCategoryLabel(reading.category, t);
   const displayTitle = title.trim() || device?.name?.trim() || categoryLabel;

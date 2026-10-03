@@ -115,6 +115,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
             deviceId: triggerConfig.deviceId || '',
             stateKey: triggerConfig.stateKey || 'state',
             expectedValue: triggerConfig.expectedValue || 'on',
+            ...(triggerConfig.comparison ? { comparison: triggerConfig.comparison } : {}),
           },
       action: actionType === 'execute_scene'
         ? { type: 'execute_scene' as const, sceneId: actionConfig.sceneId || '' }
@@ -149,6 +150,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
   const isSubmitDisabled = isSubmitting
     || !name
     || (triggerType === 'device_state_changed' && !triggerConfig.deviceId)
+    || (triggerType === 'device_state_changed' && triggerConfig.comparison && triggerConfig.comparison !== 'eq' && (!triggerConfig.expectedValue?.trim() || !Number.isFinite(Number(triggerConfig.expectedValue))))
     || (actionType === 'device_command' && !(
       (existingAutomation?.action.type === 'device_command'
         && existingAutomation.action.targetDeviceId === actionConfig.targetDeviceId
@@ -172,6 +174,7 @@ const AutomationBuilderModal: React.FC<AutomationBuilderModalProps> = ({
       deviceId: triggerConfig.deviceId || '',
       stateKey: triggerConfig.stateKey || 'state',
       expectedValue: triggerConfig.expectedValue || 'on',
+      comparison: triggerConfig.comparison,
     });
   };
 

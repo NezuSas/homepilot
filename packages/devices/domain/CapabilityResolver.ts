@@ -1,5 +1,5 @@
 import { Device } from './types';
-import { DeviceCapability, CapabilityType } from './capabilities';
+import { DeviceCapability, CapabilityType, CAPABILITY_DEFINITIONS, type CapabilityCommand } from './capabilities';
 import { getDeviceProfileCapabilities, getDeviceProfileForDevice } from './deviceProfiles';
 
 /**
@@ -36,6 +36,16 @@ export function resolveCapabilitiesForDevice(device: Device): DeviceCapability[]
 
   // Si no se puede inferir nada, se retorna array vacío (el validador decidirá si bloquea o permite)
   return [];
+}
+
+/** Integration-specific commands are projected from state metadata, not added to every switch. */
+export function capabilityCommandsForDevice(device: Device, type: CapabilityType): CapabilityCommand[] {
+  if (device.integrationSource === 'modbus-tcp') {
+    const state = device.lastKnownState;
+    if (state?.plcRole === 'setpoint') return state.writable === true ? [{ name: 'set_value', params: [{ name: 'value', type: 'number', required: true }] }] : [];
+    if (state?.plcMode === 'pulse') return state.writable === true ? [{ name: 'press' }, { name: 'pulse' }] : [];
+  }
+  return CAPABILITY_DEFINITIONS[type] ?? [];
 }
 
 /**

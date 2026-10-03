@@ -3,10 +3,12 @@ import type { DeviceRepository } from '../../../devices/domain/repositories/Devi
 import type { HomeRepository } from '../../../topology/domain/repositories/HomeRepository';
 import type { DeviceDriver, DeviceDriverCommand, DeviceDriverResult } from '../../../devices/domain/drivers/DeviceDriver';
 import type { Device } from '../../../devices/domain/types';
-import { ModbusError, validateConnection, validateVariable, type ModbusConnection, type ModbusVariable, type ModbusProbeResult } from '../domain/Modbus';
+import { ModbusError, validateConnection, validateVariable, type ModbusConnection, type ModbusVariable, type ModbusProbeResult, type ModbusDiagnostic } from '../domain/Modbus';
 import { resolveModbusRange, validateProfileMapping } from '../domain/ModbusAddressProfile';
 import { modbusWordCount } from '../domain/Modbus';
 import type { ModbusRepository, ModbusTransport } from './ModbusPorts';
+import { plcReadVariable, validatePlcBinding } from '../domain/PlcBinding';
+import { encodeModbusValue } from '../domain/ModbusEncoder';
 
 export class ModbusService implements DeviceDriver {
   private readonly queues = new Map<string, Promise<unknown>>();
@@ -16,6 +18,8 @@ export class ModbusService implements DeviceDriver {
   private running = false;
   private cycle?: Promise<void>;
   private readonly probes = new Set<string>();
+  private readonly diagnostics = new Map<string, ModbusDiagnostic>();
+  private readonly commands = new Map<string, { commandedState: boolean | number; confirmation: string }>();
   constructor(private readonly repository: ModbusRepository, private readonly transport: ModbusTransport,
     private readonly devices: DeviceRepository, private readonly homes: HomeRepository,
     private readonly publishState: (deviceId: string, state: Record<string, unknown>) => Promise<void>) {}
@@ -43,7 +47,7 @@ export class ModbusService implements DeviceDriver {
   }
   async list(userId: string, homeId: string) {
     await this.authorize(userId, homeId);
-    return this.repository.connections(homeId).map(connection => ({ ...connection, variables: this.repository.variables(connection.id) }));
+    return this.repository.connections(homeId).map(connection => ({ ...connection, diagnostic: this.diagnostics.has(connection.id) ? { ...this.diagnostics.get(connection.id), ...(this.schedule.get(connection.id)?.failures ? { retryAt: new Date(this.schedule.get(connection.id)!.due).toISOString() } : {}) } : undefined, variables: this.repository.variables(connection.id).map(variable => ({ ...variable, diagnostic: { ...this.diagnostics.get(variable.deviceId), ...this.commands.get(variable.deviceId) } })) }));
   }
   async probe(userId: string, homeId: string, input: Record<string, unknown>, signal?: AbortSignal): Promise<ModbusProbeResult> {
     await this.authorize(userId, homeId);
@@ -90,7 +94,7 @@ export class ModbusService implements DeviceDriver {
     return this.serialize(connection.id, async () => {
       if (existing) this.requireConnection(connection.id);
       if (existing) {
-        try { for (const variable of this.repository.variables(existing.id)) validateProfileMapping(variable, modbusWordCount(variable.dataType), connection.moduleCapacities); }
+        try { for (const variable of this.repository.variables(existing.id)) { validateProfileMapping(variable, modbusWordCount(variable.dataType), connection.moduleCapacities); validatePlcBinding(variable.plc, variable, connection.moduleCapacities); } }
         catch { throw new ModbusError('INVALID_CONFIG', 'Capacity would invalidate an existing variable'); }
       }
       if (!existing && this.repository.connections(homeId).length >= 16) throw new ModbusError('LIMIT', 'Too many Modbus connections');
@@ -108,19 +112,20 @@ export class ModbusService implements DeviceDriver {
       if (deviceId && (!existing || existing.connectionId !== connectionId)) throw new ModbusError('NOT_FOUND', 'Modbus variable not found');
       if (!existing && this.repository.variables(connectionId).length >= 128) throw new ModbusError('LIMIT', 'Too many Modbus variables');
       const variable: ModbusVariable = { ...validateVariable({ ...existing, ...input }), deviceId: deviceId ?? randomUUID(), connectionId };
-      try { validateProfileMapping(variable, modbusWordCount(variable.dataType), this.requireConnection(connectionId).moduleCapacities); } catch { throw new ModbusError('INVALID_CONFIG', 'Invalid profile mapping'); }
+      try { validateProfileMapping(variable, modbusWordCount(variable.dataType), this.requireConnection(connectionId).moduleCapacities); validatePlcBinding(variable.plc, variable, this.requireConnection(connectionId).moduleCapacities); } catch { throw new ModbusError('INVALID_CONFIG', 'Invalid profile mapping'); }
       const previous = existing ? await this.devices.findDeviceById(variable.deviceId) : null;
       if (existing && (!previous || previous.homeId !== connection.homeId || previous.integrationSource !== 'modbus-tcp')) throw new ModbusError('FORBIDDEN', 'Invalid Modbus binding');
-      const now = new Date().toISOString(), type = variable.writable ? 'switch' : variable.dataType === 'boolean' ? 'binary_sensor' : 'sensor';
+      const now = new Date().toISOString(), type = variable.dataType !== 'boolean' ? 'sensor' : variable.writable ? 'switch' : 'binary_sensor';
       const device: Device = { id: variable.deviceId, homeId: connection.homeId, roomId: null,
         externalId: `modbus:${variable.deviceId}`, vendor: 'Modbus TCP', status: 'PENDING', integrationSource: 'modbus-tcp',
         invertState: false, lastKnownState: { state: 'unavailable', stale: true }, createdAt: now,
-        ...previous, name: variable.name, type, semanticType: variable.writable ? 'switch' : 'sensor',
+        ...previous, name: variable.name, type, semanticType: type === 'switch' ? 'switch' : 'sensor',
         updatedAt: now, entityVersion: (previous?.entityVersion ?? 0) + 1 };
       this.repository.saveVariable(variable, device);
+      this.commands.delete(variable.deviceId); this.diagnostics.delete(variable.deviceId);
       this.schedule.delete(connectionId);
       // Rebinding invalidates any reading taken from the previous address/unit.
-      if (existing) await this.publishState(variable.deviceId, { state: 'unavailable', stale: true });
+      if (existing || variable.plc) await this.publishState(variable.deviceId, { state: 'unavailable', available: false, stale: true, plcRole: variable.plc?.role, plcMode: variable.plc?.mode, writable: variable.writable, plcVisualStyle: variable.visualStyle });
       return variable;
     });
   }
@@ -130,6 +135,7 @@ export class ModbusService implements DeviceDriver {
     await this.serialize(id, async () => {
       this.requireConnection(id);
       this.repository.deleteConnection(id);
+      this.diagnostics.delete(id);
       this.schedule.delete(id);
     });
   }
@@ -143,12 +149,28 @@ export class ModbusService implements DeviceDriver {
       const device = await this.devices.findDeviceById(deviceId);
       if (!device || device.homeId !== connection.homeId || !this.supports(device)) throw new ModbusError('FORBIDDEN', 'Invalid Modbus binding');
       this.repository.deleteVariable(deviceId);
+      this.commands.delete(deviceId); this.diagnostics.delete(deviceId);
       this.schedule.delete(connectionId);
     });
   }
   private state(variable: ModbusVariable, value: number | boolean): Record<string, unknown> {
     return { state: typeof value === 'boolean' ? value ? 'on' : 'off' : String(value), value,
-      unit_of_measurement: variable.unit, available: true, stale: false };
+      unit_of_measurement: variable.unit, available: true, stale: false, plcRole: variable.plc?.role, plcMode: variable.plc?.mode, writable: variable.writable, plcVisualStyle: variable.visualStyle };
+  }
+  private async readState(connection: ModbusConnection, variable: ModbusVariable): Promise<Record<string, unknown>> {
+    try { validateProfileMapping(variable, modbusWordCount(variable.dataType), connection.moduleCapacities); validatePlcBinding(variable.plc, variable, connection.moduleCapacities); } catch { throw new ModbusError('INVALID_CONFIG', 'Invalid PLC mapping'); }
+    const started = Date.now(), plc = variable.plc;
+    const primary = plc?.role === 'input' && plc.logical ? plcReadVariable(variable, plc.logical) : variable;
+    const sample = this.transport.readSample ? await this.transport.readSample(connection, primary) : { value: await this.transport.read(connection, primary), raw: undefined };
+    const value = sample.value;
+    const physicalState = plc?.physical ? await this.transport.read(connection, plcReadVariable(variable, plc.physical)) : undefined;
+    const feedbackState = plc?.feedback ? await this.transport.read(connection, plcReadVariable(variable, plc.feedback)) : undefined;
+    const actual = feedbackState ?? value;
+    const command = this.commands.get(variable.deviceId);
+    const confirmation = command ? (command.confirmation === 'reset_failed' ? 'reset_failed' : actual === command.commandedState ? 'confirmed' : command.confirmation === 'pending' ? 'pending' : 'unconfirmed') : undefined;
+    if (command && confirmation) this.commands.set(variable.deviceId, { ...command, confirmation });
+    this.diagnostics.set(variable.deviceId, { status: 'online', lastReadAt: new Date().toISOString(), latencyMs: Date.now() - started, raw: sample.raw, value: actual });
+    return { ...this.state(variable, actual), ...(plc ? { actualState: actual, ...(['output', 'output_command'].includes(plc.role) ? { commandState: value } : ['measurement', 'setpoint'].includes(plc.role) ? { measurementState: value } : plc.role === 'input' && plc.logical ? { logicalState: value } : {}), physicalState, feedbackState, ...(command ? { commandedState: command.commandedState, confirmation } : {}) } : {}) };
   }
   async executeCommand(device: Device, command: DeviceDriverCommand): Promise<DeviceDriverResult> {
     try {
@@ -157,25 +179,77 @@ export class ModbusService implements DeviceDriver {
       return await this.serialize(variable.connectionId, async () => {
         const current = this.repository.variable(device.id), connection = this.requireConnection(variable.connectionId);
         if (!this.supports(device) || connection.homeId !== device.homeId) throw new ModbusError('FORBIDDEN', 'Invalid Modbus binding');
-        if (!current?.writable || current.area !== 'coil') throw new ModbusError('READ_ONLY', 'Modbus variable is read-only');
-        try { validateProfileMapping(current, modbusWordCount(current.dataType), connection.moduleCapacities); } catch { throw new ModbusError('READ_ONLY', 'Protected profile address'); }
+        if (!current?.writable) throw new ModbusError('READ_ONLY', 'Modbus variable is read-only');
+        try { validateProfileMapping(current, modbusWordCount(current.dataType), connection.moduleCapacities); validatePlcBinding(current.plc, current, connection.moduleCapacities); } catch { throw new ModbusError('READ_ONLY', 'Protected profile address'); }
         if (!connection.enabled) throw new ModbusError('DISABLED', 'Modbus connection is disabled');
-        if (!['turn_on', 'turn_off', 'toggle'].includes(command.name) || Object.keys(command.params ?? {}).length) throw new ModbusError('READ_ONLY', 'Unsupported Modbus command');
-        const value = command.name === 'toggle' ? !(await this.transport.read(connection, current)) : command.name === 'turn_on';
-        await this.transport.writeCoil(connection, current.address, value);
-        // Echo acknowledges a write, not the actual physical state. Polling confirms it.
-        const actual = await this.transport.read(connection, current);
-        return { success: true, newState: this.state(current, actual) };
+        const plc = current.plc;
+        if (command.name === 'set_value') {
+          const value = command.params?.value;
+          if (plc?.role !== 'setpoint' || Object.keys(command.params ?? {}).length !== 1 || typeof value !== 'number' || value < (plc.min ?? Infinity) || value > (plc.max ?? -Infinity)) throw new ModbusError('READ_ONLY', 'Invalid setpoint command');
+          const words = encodeModbusValue(value, current);
+          this.commands.set(current.deviceId, { commandedState: value, confirmation: 'pending' });
+          const previous = await this.devices.findDeviceById(current.deviceId);
+          await this.publishState(current.deviceId, { ...previous?.lastKnownState, commandedState: value, confirmation: 'pending' });
+          await this.transport.writeHoldingRegisters(connection, current.address, words);
+          return { success: true, newState: await this.readState(connection, current) };
+        }
+        const pulse = command.name === 'pulse' || command.name === 'press';
+        if (current.area !== 'coil' || Object.keys(command.params ?? {}).length || (pulse ? plc?.mode !== 'pulse' : !['turn_on', 'turn_off', 'toggle'].includes(command.name) || plc?.mode === 'pulse')) throw new ModbusError('READ_ONLY', 'Unsupported Modbus command');
+        const value = pulse ? true : command.name === 'toggle' ? !(await this.transport.read(connection, plc?.feedback ? plcReadVariable(current, plc.feedback) : current)) : command.name === 'turn_on';
+        this.commands.set(current.deviceId, { commandedState: value, confirmation: 'pending' });
+        const previous = await this.devices.findDeviceById(current.deviceId);
+        await this.publishState(current.deviceId, { ...previous?.lastKnownState, commandedState: value, confirmation: 'pending' });
+        if (pulse) {
+          // OFF is a cleanup attempt, NOT a retry. A PLC watchdog is still required.
+          let onError: unknown;
+          try { await this.transport.writeCoil(connection, current.address, true); await new Promise(resolve => setTimeout(resolve, plc!.pulseDurationMs)); } catch (error: unknown) { onError = error; }
+          try { await this.transport.writeCoil(connection, current.address, false); }
+          catch { this.commands.set(current.deviceId, { commandedState: value, confirmation: 'reset_failed' }); throw new ModbusError('RESET_FAILED', 'PLC pulse reset failed'); }
+          if (onError) throw onError;
+        } else await this.transport.writeCoil(connection, current.address, value);
+        if (plc?.feedbackPolicy === 'required') {
+          const deadline = Date.now() + plc.feedbackTimeoutMs;
+          do {
+            const feedback = await this.transport.read({ ...connection, timeoutMs: Math.max(1, Math.min(connection.timeoutMs, deadline - Date.now())) }, plcReadVariable(current, plc.feedback!));
+            const state = { ...this.state(current, feedback), actualState: feedback, feedbackState: feedback, commandedState: value, confirmation: feedback === value ? 'confirmed' : 'pending' };
+            await this.publishState(current.deviceId, state);
+            if (state.actualState === value) { this.commands.set(current.deviceId, { commandedState: value, confirmation: 'confirmed' }); return { success: true, newState: state }; }
+            const remaining = deadline - Date.now();
+            if (remaining <= 0) break;
+            await new Promise(resolve => setTimeout(resolve, Math.min(100, remaining)));
+          } while (Date.now() < deadline);
+          this.commands.set(current.deviceId, { commandedState: value, confirmation: 'unconfirmed' });
+          const actual = await this.devices.findDeviceById(current.deviceId);
+          await this.publishState(current.deviceId, { ...actual?.lastKnownState, commandedState: value, confirmation: 'unconfirmed', error: 'FEEDBACK_TIMEOUT' });
+          throw new ModbusError('FEEDBACK_TIMEOUT', 'Independent feedback did not confirm');
+        }
+        if (plc?.feedbackPolicy === 'optional') this.commands.set(current.deviceId, { commandedState: value, confirmation: 'unconfirmed' });
+        const state = await this.readState(connection, current);
+        if (pulse && !plc?.feedback) { this.commands.delete(current.deviceId); delete state.commandedState; state.confirmation = 'pulse_completed'; }
+        return { success: true, newState: state };
       });
     } catch (error: unknown) {
-      if (!(error instanceof ModbusError) || ['CONNECTION', 'TIMEOUT', 'PROTOCOL'].includes(error.code)) {
+      this.diagnostics.set(device.id, { status: 'error', error: error instanceof ModbusError ? error.code : 'CONNECTION' });
+      const pendingCommand = this.commands.get(device.id);
+      if (pendingCommand?.confirmation === 'pending') {
+        this.commands.set(device.id, { ...pendingCommand, confirmation: 'unconfirmed' });
+        const previous = await this.devices.findDeviceById(device.id);
+        await this.publishState(device.id, { ...previous?.lastKnownState, commandedState: pendingCommand.commandedState, confirmation: 'unconfirmed', error: error instanceof ModbusError ? error.code : 'CONNECTION' });
+      }
+      if (error instanceof ModbusError && error.code === 'RESET_FAILED') {
+        const previous = await this.devices.findDeviceById(device.id);
+        await this.publishState(device.id, { ...previous?.lastKnownState, confirmation: 'reset_failed', error: error.code });
+      }
+      if (!(error instanceof ModbusError) || ['CONNECTION', 'TIMEOUT'].includes(error.code) || (error.code === 'PROTOCOL' && error.exceptionCode === undefined)) {
         try { const variable = this.repository.variable(device.id); if (variable && this.requireConnection(variable.connectionId).homeId === device.homeId) await this.markUnavailable(variable.connectionId); } catch { /* Binding may have disappeared. */ }
       }
       return { success: false, error: error instanceof ModbusError ? error.code : 'CONNECTION' };
     }
   }
-  private async markUnavailable(connectionId: string): Promise<void> {
+  private async markUnavailable(connectionId: string, error = 'connection_error'): Promise<void> {
+    this.diagnostics.set(connectionId, { ...this.diagnostics.get(connectionId), status: 'unavailable', error });
     for (const variable of this.repository.variables(connectionId)) {
+      this.diagnostics.set(variable.deviceId, { ...this.diagnostics.get(variable.deviceId), status: 'unavailable', error: 'connection_error' });
       const device = await this.devices.findDeviceById(variable.deviceId);
       if (device && device.homeId === this.requireConnection(connectionId).homeId && this.supports(device)) {
         await this.publishState(device.id, { ...device.lastKnownState, state: 'unavailable', available: false, stale: true });
@@ -189,19 +263,26 @@ export class ModbusService implements DeviceDriver {
       await this.serialize(connection.id, async () => {
         const current = this.requireConnection(connection.id);
         if (!current.enabled) return;
+        const started = Date.now();
         try {
           for (const variable of this.repository.variables(current.id)) {
             if (!shouldContinue()) return;
             const device = await this.devices.findDeviceById(variable.deviceId);
             if (!device || device.homeId !== current.homeId || !this.supports(device)) continue;
-            const value = await this.transport.read(current, variable);
-            await this.publishState(device.id, this.state(variable, value));
+            try {
+              await this.publishState(device.id, await this.readState(current, variable));
+            } catch (error: unknown) {
+              if (!(error instanceof ModbusError) || ['CONNECTION', 'TIMEOUT'].includes(error.code) || (error.code === 'PROTOCOL' && error.exceptionCode === undefined)) throw error;
+              this.diagnostics.set(variable.deviceId, { ...this.diagnostics.get(variable.deviceId), status: 'variable_error', error: error.code });
+              await this.publishState(device.id, { ...device.lastKnownState, state: 'unavailable', available: false, stale: true, error: error.code });
+            }
           }
           this.schedule.set(current.id, { due: now + current.pollIntervalMs, failures: 0 });
-        } catch {
+          this.diagnostics.set(current.id, { status: 'online', lastReadAt: new Date().toISOString(), latencyMs: Date.now() - started });
+        } catch (error: unknown) {
           const failures = Math.min(6, (this.schedule.get(current.id)?.failures ?? 0) + 1);
           this.schedule.set(current.id, { due: now + Math.min(60000, current.pollIntervalMs * 2 ** failures), failures });
-          await this.markUnavailable(current.id);
+          await this.markUnavailable(current.id, error instanceof ModbusError ? error.code : 'CONNECTION');
         }
       });
     }

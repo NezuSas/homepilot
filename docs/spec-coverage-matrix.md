@@ -92,7 +92,7 @@ The command fails if a file cannot be mapped to an existing spec.
 - AC48 colocación y controles (2026-10-03): coordenadas opcionales en JSON compatible, conservación de huecos, colisiones, crecimiento intrínseco y transferencia; anchos según canvas y acciones de Section unificadas. Tests focalizados 222/222 PASS en 10 suites; sin ejecución responsive ni certificación táctil.
 - AC48 mínimos/preview/menús: ActionMenu y CardPreviewFrame con pruebas propias; tamaño nuevo mínimo 2 × 2 sin reescribir histórico, preview estable y título primero. 48/48 Jest PASS, typecheck/lint/builds y checks de spec/BDD/módulos PASS; responsive no ejecutado.
 - AC48 transferencia/etiquetas: tamaño proporcional entre Sections, preview uniforme y Etiqueta independiente; 153/153 tests focalizados PASS, tipos/lint/builds/spec/BDD/módulos/i18n/arquitectura PASS. Sin responsive ni comprobación visual en tablet.
-- The **955** audited TypeScript/TSX files have a mapping rule to an existing
+- The **965** audited TypeScript/TSX files have a mapping rule to an existing
   spec.
 - All bounded contexts under `packages/` and all API route families are
   covered.
@@ -101,6 +101,8 @@ The command fails if a file cannot be mapped to an existing spec.
   acceptance criteria, and required component documentation.
 
 ## Review Gate
+
+Cierre PLC I/O local: `modbus-tcp-local-integration-v1` AC19–AC27 y `automation-rules-engine-v1` AC27 cubren roles/bindings opcionales JSON, perfil Xinje v2 limitado D/HD, encoder y FC06/FC16, pulsos acotados, feedback independiente, AuthGuard Admin real, diagnóstico y errores por variable; comparaciones numéricas sobre estados reales no obsoletos. Evidencia final: 556/556 Jest (30 suites), 22/22 responsive focalizados y confirmación final PLC I/O 4/4 PASS; typecheck, lint, builds y controles de trazabilidad/arquitectura/i18n PASS. UI conserva componentes/paleta; requested/actual diferenciados durante pending/unconfirmed. Sin SQL nuevo, suites completas, PLC físico, Docker, Git o deploy; verificación Ladder/watchdog y downgrade/backup siguen siendo operativos separados.
 
 Escala Sensor configurable y refinamiento Modbus: Dashboard AC42 conserva `sensorScale` opcional en JSON, preview/recarga/import-export y lectura real fuera de límites. Modbus AC16/AC17 cubre tabla fija/filtros locales tras conversión y selector de unidades compatible. Modular AC79/AC80 cubre NumberInput borrable, altura 44px y cierre explícito de Modal/Drawer; el popup de opciones mantiene dismissal propio. Sin migración SQL nueva ni alteración del motor Modbus.
 
@@ -115,6 +117,8 @@ Puesta en marcha Modbus local: `modbus-tcp-local-integration-v1` AC8–AC10 cubr
 Refinamiento local rutinas/observabilidad/tema automático: `scene-lifecycle-v1` AC6 y `automation-rules-engine-v1` AC6 cubren concesiones explícitas read/run/favorite y administración exclusiva del creador. Migración 034 aditiva requiere backup antes de MiniPC. `assistant-v1` cubre zona horaria del sistema y evidencia de cuatro días locales para hábitos; `operator-console-v1` y `observability-diagnostics-v1` cubren densidad, skeletons propios y filtros recientes por nombre. Componentes reutilizables documentados en `docs/components/RoutineSharingField.md` y `EventFilters.md`. Pruebas: SceneRoutes.sharing, SQLiteAutomationRuleRepository.sharing, BehaviorAnalysisService, AutomationEngine, eventFiltering, automaticTheme y escenarios responsive focalizados de filtros/editores.
 
 Refinamiento local Sensor/Espacios: `dashboard-layout-and-widgets-v1` AC40 cubre tamaño medio fijo, ausencia de selector/resize, estancia no repetida y carcasa/skeleton compactos. `home-room-management` AC16 cubre grupos por tipo efectivo y orden alfabético interno. Evidencia: `sectionCardCatalog.test.ts`, `topologyDeviceControl.test.ts`, `TopologyDeviceTile.test.tsx` y escenarios responsive `Sensor width`, `Sensor clarity`, `Room devices` y geometría inicial del skeleton. Validación focalizada: 79/79 Jest y 17/17 responsive PASS.
+
+UI final PLC/Modbus: `modbus-tcp-local-integration-v1` AC28–AC32 cubre diagnóstico real, errores sanitizados EN/ES, editores semánticos con detalles técnicos, `visualStyle` JSON opcional, SensorMetricCard compartido, setpoints explícitamente autorizados y disponibilidad coherente. 611/611 Jest en 30 suites focalizadas; 18/18 responsive focalizados y confirmación final PLC I/O 4/4 PASS, cuatro tamaños y ambos temas. Typecheck, lint, builds y controles de trazabilidad/arquitectura/i18n PASS. Revisión independiente final ship tras corregir disponibilidad ante error y contraste PLC; docs modulares actualizados. Sin SQL nuevo, suites completas, PLC físico, Git, Docker ni deploy. No se añaden precondiciones a Scenes ni parámetros de setpoint al editor de Automatizaciones. Informe: `docs/modbus-plc-ui-closeout.md`.
 
 A change must stop for specification work when the relevant spec cannot answer:
 who can execute it, which data it changes, how it fails safely, and how it is

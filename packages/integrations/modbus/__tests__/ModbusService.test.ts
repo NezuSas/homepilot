@@ -9,7 +9,179 @@ import { ModbusService } from '../application/ModbusService';
 import type { ModbusTransport } from '../application/ModbusPorts';
 import { validateConnection, validateVariable, type ModbusConnection, type ModbusVariable } from '../domain/Modbus';
 import { validateDeviceCommand } from '../../../devices/domain/CommandCapabilityValidator';
-import { convertModbusValue } from '../domain/Modbus';
+import { convertModbusValue, ModbusError } from '../domain/Modbus';
+import { createServer, type Socket } from 'node:net';
+import type { AddressInfo } from 'node:net';
+import { ModbusTcpClient } from '../infrastructure/ModbusTcpClient';
+import { syncDeviceStateUseCase, type SyncDeviceStateDependencies } from '../../../devices/application/syncDeviceStateUseCase';
+import { DeviceCommandService } from '../../../devices/application/DeviceCommandService';
+
+describe('Feature: PLC I/O controller (AC20/AC21/AC22/AC23/AC25)', () => {
+  let f: ReturnType<typeof modbusFixture>;
+  const profileId = 'xinje-xl5e-16t-v2';
+  beforeEach(() => { f = modbusFixture(); });
+  afterEach(async () => { await f.service.stop(); f.cleanup(); });
+  it.each(['auto', 'gauge', 'thermometer', 'level', 'battery'])('Scenario: %s visualization persists and reaches state sync without changing the device family (AC30)', async visualStyle => {
+    const c = await f.service.saveConnection('admin', 'h', { name: 'PLC', enabled: true, host: '192.168.1.5' });
+    const v = await f.service.saveVariable('admin', c.id, { name: 'Reading', area: 'holding_register', address: 100, dataType: 'uint16', visualStyle });
+    expect(new SQLiteModbusRepository(f.dbPath).variable(v.deviceId)?.visualStyle).toBe(visualStyle);
+    f.transport.read.mockResolvedValue(25); await f.service.pollOnce();
+    expect((await f.devices.findDeviceById(v.deviceId))?.lastKnownState).toMatchObject({ state: '25', plcVisualStyle: visualStyle });
+    expect((await f.devices.findDeviceById(v.deviceId))?.type).toBe('sensor');
+  });
+  it('Scenario: Historical visualization is absent and invalid/bit preferences are rejected (AC30)', () => {
+    const numeric = { name: 'Reading', area: 'holding_register', address: 100, dataType: 'uint16' };
+    expect(validateVariable(numeric)).not.toHaveProperty('visualStyle');
+    expect(() => validateVariable({ ...numeric, visualStyle: 'scada' })).toThrow();
+    expect(() => validateVariable({ ...numeric, area: 'coil', dataType: 'boolean', visualStyle: 'gauge' })).toThrow();
+  });
+  it('Scenario: Explicitly clearing visualization allows a numeric variable to become a read-only bit (AC30)', async () => {
+    const connection = await f.service.saveConnection('admin', 'h', { name: 'PLC', host: '192.168.1.5' });
+    const variable = await f.service.saveVariable('admin', connection.id, { name: 'Reading', area: 'holding_register', address: 100, dataType: 'uint16', visualStyle: 'level' });
+    const bit = await f.service.saveVariable('admin', connection.id, { name: 'Input', area: 'discrete_input', address: 0, dataType: 'boolean', visualStyle: null, scale: 1, offset: 0, writable: false }, variable.deviceId);
+    expect(bit).not.toHaveProperty('visualStyle');
+    expect(new SQLiteModbusRepository(f.dbPath).variable(variable.deviceId)).not.toHaveProperty('visualStyle');
+  });
+  it('Scenario: Connection loss retains last communication and exposes existing backoff only (AC28)', async () => {
+    const c = await f.service.saveConnection('admin', 'h', { name: 'PLC', enabled: true, host: '192.168.1.5' });
+    await f.service.saveVariable('admin', c.id, { name: 'Reading', area: 'holding_register', address: 100, dataType: 'uint16' });
+    f.transport.read.mockResolvedValue(25); await f.service.pollOnce(1000);
+    const before = (await f.service.list('admin', 'h'))[0].diagnostic?.lastReadAt;
+    f.transport.read.mockRejectedValue(new ModbusError('TIMEOUT', 'private stack'));
+    await f.service.pollOnce(10000);
+    expect((await f.service.list('admin', 'h'))[0].diagnostic).toMatchObject({ status: 'unavailable', error: 'TIMEOUT', lastReadAt: before, retryAt: expect.any(String) });
+  });
+  async function output(extra: Record<string, unknown> = {}) {
+    const c = await f.service.saveConnection('admin', 'h', { name: 'PLC', host: '192.168.1.5', profileId, enabled: true });
+    const v = await f.service.saveVariable('admin', c.id, { name: 'Garden light', profileId, symbolicAddress: 'M100', area: 'coil', address: 100, dataType: 'boolean', writable: true,
+      plc: { role: 'output', command: { profileId, symbolicAddress: 'M100' }, physical: { profileId, symbolicAddress: 'Y0' }, feedback: { profileId, symbolicAddress: 'M200' }, feedbackPolicy: 'required', feedbackTimeoutMs: 250, ...extra } });
+    return { c, v, device: (await f.devices.findDeviceById(v.deviceId))! };
+  }
+  it('Scenario: ON is written once to M100 and confirmed only through M200', async () => {
+    const { c, v, device } = await output();
+    f.transport.read.mockImplementation(async (_c, variable) => variable.address === 200);
+    const result = await f.service.executeCommand(device, { name: 'turn_on' });
+    expect(result).toMatchObject({ success: true, newState: { state: 'on', actualState: true, commandedState: true, confirmation: 'confirmed' } });
+    expect(f.transport.writeCoil).toHaveBeenCalledTimes(1);
+    expect(f.transport.writeCoil).toHaveBeenCalledWith(c, 100, true);
+    expect(f.transport.read.mock.calls.every(call => call[1].address === 200)).toBe(true);
+    expect(f.repository.variable(v.deviceId)?.plc?.feedback?.symbolicAddress).toBe('M200');
+    const reloaded = new SQLiteModbusRepository(f.dbPath);
+    expect(reloaded.variable(v.deviceId)?.plc).toEqual(v.plc);
+  });
+  it('Scenario: Independent feedback OFF stays OFF and timeout does not repeat ON', async () => {
+    const { device } = await output(); f.transport.read.mockResolvedValue(false);
+    const result = await f.service.executeCommand(device, { name: 'turn_on' });
+    expect(result).toMatchObject({ success: false, error: 'FEEDBACK_TIMEOUT' });
+    expect(f.transport.writeCoil).toHaveBeenCalledTimes(1);
+    expect((await f.devices.findDeviceById(device.id))?.lastKnownState).toMatchObject({ state: 'off', commandedState: true, actualState: false, confirmation: 'unconfirmed' });
+    f.transport.read.mockResolvedValue(true); await f.service.pollOnce();
+    expect((await f.devices.findDeviceById(device.id))?.lastKnownState).toMatchObject({ state: 'on', confirmation: 'confirmed' });
+  });
+  it('Scenario: Optional feedback mismatch is unconfirmed rather than optimistic ON', async () => {
+    const { device } = await output({ feedbackPolicy: 'optional' });
+    f.transport.read.mockImplementation(async (_c, variable) => variable.address === 100);
+    expect(await f.service.executeCommand(device, { name: 'turn_on' })).toMatchObject({ success: true, newState: { state: 'off', actualState: false, commandState: true, confirmation: 'unconfirmed' } });
+    expect(f.transport.writeCoil).toHaveBeenCalledTimes(1);
+  });
+  it('Scenario: Pulse performs bounded ON/OFF and exposes failed reset', async () => {
+    const { device } = await output({ mode: 'pulse', pulseDurationMs: 100, feedbackPolicy: 'none', feedback: null });
+    f.transport.read.mockResolvedValue(false);
+    expect(await f.service.executeCommand(device, { name: 'press' })).toMatchObject({ success: true });
+    expect(f.transport.writeCoil.mock.calls.map(call => call[2])).toEqual([true, false]);
+    f.transport.writeCoil.mockReset(); f.transport.writeCoil.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('offline'));
+    expect(await f.service.executeCommand(device, { name: 'pulse' })).toMatchObject({ success: false, error: 'RESET_FAILED' });
+    expect((await f.devices.findDeviceById(device.id))?.lastKnownState?.confirmation).toBe('reset_failed');
+  });
+  it('Scenario: Ambiguous pulse ON still attempts OFF once', async () => {
+    const { device } = await output({ mode: 'pulse', pulseDurationMs: 100, feedbackPolicy: 'none', feedback: null });
+    f.transport.writeCoil.mockRejectedValueOnce(new Error('timeout')).mockResolvedValueOnce(undefined);
+    expect(await f.service.executeCommand(device, { name: 'pulse' })).toMatchObject({ success: false });
+    expect(f.transport.writeCoil.mock.calls.map(call => call[2])).toEqual([true, false]);
+  });
+  it('Scenario: Connection loss during feedback marks actual unavailable and command unconfirmed', async () => {
+    const { device } = await output();
+    f.transport.read.mockRejectedValue(new ModbusError('TIMEOUT', 'PLC unreachable'));
+    expect(await f.service.executeCommand(device, { name: 'turn_on' })).toMatchObject({ success: false, error: 'TIMEOUT' });
+    expect(f.transport.writeCoil).toHaveBeenCalledTimes(1);
+    expect((await f.devices.findDeviceById(device.id))?.lastKnownState).toMatchObject({ available: false, stale: true, confirmation: 'unconfirmed', commandedState: true });
+  });
+  it('Scenario: Setpoint limits block network and valid value uses inverse codec', async () => {
+    const c = await f.service.saveConnection('admin', 'h', { name: 'PLC', host: '192.168.1.5', enabled: true, profileId });
+    const v = await f.service.saveVariable('admin', c.id, { name: 'Temperature target', area: 'holding_register', address: 100, profileId, symbolicAddress: 'D100', dataType: 'uint16', scale: 0.1, writable: true, plc: { role: 'setpoint', min: 5, max: 40 } });
+    const device = (await f.devices.findDeviceById(v.deviceId))!;
+    for (const value of [4, 41, NaN, Infinity]) expect(await f.service.executeCommand(device, { name: 'set_value', params: { value } })).toMatchObject({ success: false });
+    expect(f.transport.writeHoldingRegisters).not.toHaveBeenCalled();
+    f.transport.read.mockResolvedValue(22);
+    expect(await f.service.executeCommand(device, { name: 'set_value', params: { value: 22 } })).toMatchObject({ success: true, newState: { value: 22 } });
+    expect(f.transport.writeHoldingRegisters).toHaveBeenCalledWith(c, 100, [220]);
+    for (const value of [5, 40]) expect(await f.service.executeCommand(device, { name: 'set_value', params: { value } })).toMatchObject({ success: true });
+    expect(f.transport.writeHoldingRegisters.mock.calls.map(call => call[2])).toEqual([[220], [50], [400]]);
+    expect(validateDeviceCommand(device, { name: 'set_value', params: { value: 22 } }).valid).toBe(true);
+  });
+  it('Scenario: Input changes through polling and one variable exception leaves others online', async () => {
+    const c = await f.service.saveConnection('admin', 'h', { name: 'PLC', host: '192.168.1.5', enabled: true });
+    const input = await f.service.saveVariable('admin', c.id, { name: 'Door', area: 'coil', address: 20480, dataType: 'boolean', profileId, symbolicAddress: 'X0', plc: { role: 'input', physical: { profileId, symbolicAddress: 'X0' } } });
+    const broken = await f.service.saveVariable('admin', c.id, { name: 'Broken', area: 'holding_register', address: 100, dataType: 'uint16' });
+    f.transport.read.mockImplementation(async (_c, variable) => { if (variable.deviceId === broken.deviceId) throw new ModbusError('PROTOCOL', 'exception', 2); return false; });
+    await f.service.pollOnce(1000);
+    expect((await f.devices.findDeviceById(input.deviceId))?.lastKnownState?.state).toBe('off');
+    f.transport.read.mockImplementation(async (_c, variable) => { if (variable.deviceId === broken.deviceId) throw new ModbusError('PROTOCOL', 'exception', 2); return true; });
+    await f.service.pollOnce(7000);
+    expect((await f.devices.findDeviceById(input.deviceId))?.lastKnownState?.state).toBe('on');
+    f.transport.read.mockImplementation(async (_c, variable) => { if (variable.deviceId === broken.deviceId) throw new ModbusError('PROTOCOL', 'exception', 2); return false; });
+    await f.service.pollOnce(13000);
+    expect((await f.devices.findDeviceById(input.deviceId))?.lastKnownState?.state).toBe('off');
+    expect((await f.devices.findDeviceById(broken.deviceId))?.lastKnownState?.state).toBe('unavailable');
+    expect((await f.service.list('admin', 'h'))[0].diagnostic?.status).toBe('online');
+  });
+  it('Scenario: A conversion failure is isolated while another input remains online', async () => {
+    const { c, v } = await output({ feedbackPolicy: 'none', feedback: null });
+    const broken = await f.service.saveVariable('admin', c.id, { name: 'Invalid float', area: 'holding_register', address: 100, dataType: 'float32' });
+    f.transport.read.mockImplementation(async (_connection, variable) => { if (variable.deviceId === broken.deviceId) throw new ModbusError('CONVERSION', 'Non-finite reading'); return false; });
+    await f.service.pollOnce();
+    expect((await f.devices.findDeviceById(v.deviceId))?.lastKnownState?.available).toBe(true);
+    expect((await f.service.list('admin', 'h'))[0]).toMatchObject({ diagnostic: { status: 'online' }, variables: expect.arrayContaining([expect.objectContaining({ deviceId: broken.deviceId, diagnostic: expect.objectContaining({ status: 'variable_error', error: 'CONVERSION' }) })]) });
+  });
+  it('Scenario: Simulated PLC independent feedback reaches real dispatcher state sync and events (AC27)', async () => {
+    const { c, v } = await output();
+    let commanded = false, feedback = false;
+    const requests: number[] = [], sockets = new Set<Socket>();
+    const server = createServer(socket => {
+      sockets.add(socket); socket.on('close', () => sockets.delete(socket));
+      let bytes = Buffer.alloc(0);
+      socket.on('data', chunk => {
+        bytes = Buffer.concat([bytes, chunk]); if (bytes.length < 12) return;
+        const fn = bytes[7], address = bytes.readUInt16BE(8); requests.push(address);
+        let pdu: Buffer;
+        if (fn === 5) { commanded = bytes.readUInt16BE(10) === 0xff00; pdu = bytes.subarray(7, 12); }
+        else pdu = Buffer.from([1, 1, (address === 100 ? commanded : feedback) ? 1 : 0]);
+        const response = Buffer.alloc(7 + pdu.length); bytes.copy(response, 0, 0, 7); response.writeUInt16BE(pdu.length + 1, 4); pdu.copy(response, 7); socket.end(response);
+      });
+    });
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    const events = jest.fn().mockResolvedValue(undefined), logs = jest.fn().mockResolvedValue(undefined);
+    const deps: SyncDeviceStateDependencies = { deviceRepository: f.devices, eventPublisher: { publish: events }, activityLogRepository: { saveActivity: logs, findAllRecent: async () => [], findAllByTypes: async () => [], findRecentByDeviceId: async () => [] }, idGenerator: { generate: () => 'event-id' }, clock: { now: () => new Date().toISOString() } };
+    // Test-only loopback transport; production configuration validation remains private-IP/502.
+    const tcp = new ModbusTcpClient();
+    const endpoint = (connection: ModbusConnection): ModbusConnection => ({ ...connection, host: '127.0.0.1', port: (server.address() as AddressInfo).port });
+    const transport: ModbusTransport = { read: (connection, variable) => tcp.read(endpoint(connection), variable), readSample: (connection, variable) => tcp.readSample(endpoint(connection), variable), readRange: (connection, area, start, count, signal) => tcp.readRange(endpoint(connection), area, start, count, signal), writeCoil: (connection, address, value) => tcp.writeCoil(endpoint(connection), address, value), writeHoldingRegisters: (connection, address, words) => tcp.writeHoldingRegisters(endpoint(connection), address, words) };
+    const service = new ModbusService(f.repository, transport, f.devices, new SQLiteHomeRepository(f.dbPath), (id, state) => syncDeviceStateUseCase(id, state, 'plc-e2e', deps));
+    const dispatcher = new DeviceCommandService(f.devices, { register: () => undefined, resolve: () => service }, deps);
+    try {
+      await service.pollOnce();
+      expect((await f.devices.findDeviceById(v.deviceId))?.lastKnownState?.state).toBe('off');
+      await expect(dispatcher.dispatch(v.deviceId, 'turn_on')).rejects.toThrow('FEEDBACK_TIMEOUT');
+      expect(commanded).toBe(true);
+      expect((await f.devices.findDeviceById(v.deviceId))?.lastKnownState).toMatchObject({ state: 'off', actualState: false, commandedState: true });
+      feedback = true; await service.pollOnce(Date.now() + 6000);
+      expect((await f.devices.findDeviceById(v.deviceId))?.lastKnownState).toMatchObject({ state: 'on', actualState: true, confirmation: 'confirmed' });
+      expect(events.mock.calls.some(([event]) => event.eventType === 'DeviceStateUpdatedEvent')).toBe(true);
+      expect(logs).toHaveBeenCalled(); expect(requests).toContain(200); expect(requests).toContain(24576);
+      expect((await service.list('admin', 'h'))[0].variables[0].diagnostic?.raw).toBeDefined();
+    } finally { await service.stop(); for (const socket of sockets) socket.destroy(); await new Promise<void>(resolve => server.close(() => resolve())); }
+  });
+});
 
 export function modbusFixture() {
   const directory = mkdtempSync(join(tmpdir(), 'homepilot-modbus-'));
@@ -18,7 +190,7 @@ export function modbusFixture() {
   for (const file of ['001_initial_schema.sql', '006_add_invert_state_to_devices.sql', '015_add_device_integration_source.sql', '022_add_semantic_type_to_devices.sql', '035_modbus_tcp.sql']) db.exec(readFileSync(join(process.cwd(), 'migrations', file), 'utf8'));
   db.prepare('INSERT INTO homes(id,owner_id,name) VALUES (?,?,?)').run('h', 'admin', 'Home');
   const repository = new SQLiteModbusRepository(dbPath), devices = new SQLiteDeviceRepository(dbPath), homes = new SQLiteHomeRepository(dbPath);
-  const transport: jest.Mocked<ModbusTransport> = { readRange: jest.fn().mockResolvedValue([42]), read: jest.fn().mockResolvedValue(42), writeCoil: jest.fn().mockResolvedValue(undefined) };
+  const transport: jest.Mocked<ModbusTransport> = { readRange: jest.fn().mockResolvedValue([42]), read: jest.fn().mockResolvedValue(42), writeCoil: jest.fn().mockResolvedValue(undefined), writeHoldingRegisters: jest.fn().mockResolvedValue(undefined) };
   const publish = jest.fn(async (id: string, state: Record<string, unknown>) => { const device = await devices.findDeviceById(id); if (device) await devices.saveDevice({ ...device, lastKnownState: state }); });
   const service = new ModbusService(repository, transport, devices, homes, publish);
   const cleanup = () => { SqliteDatabaseManager.close(dbPath); for (const name of readdirSync(directory)) unlinkSync(join(directory, name)); rmdirSync(directory); };

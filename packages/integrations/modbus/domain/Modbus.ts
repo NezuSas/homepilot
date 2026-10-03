@@ -1,4 +1,5 @@
 import { addressProfile, validateModuleCapacities, validateProfileMapping, type ModbusModuleCapacities } from './ModbusAddressProfile';
+import { validatePlcBinding, type PlcBinding } from './PlcBinding';
 
 export type ModbusArea = 'coil' | 'discrete_input' | 'holding_register' | 'input_register';
 export type ModbusDataType = 'boolean' | 'uint16' | 'int16' | 'uint32' | 'int32' | 'float32';
@@ -6,6 +7,9 @@ export const modbusRegisterTypes = ['uint16', 'int16', 'uint32', 'int32', 'float
 export function modbusWordCount(type: ModbusDataType): number { return type === 'uint32' || type === 'int32' || type === 'float32' ? 2 : 1; }
 export interface ModbusProbeRow { address: number; raw: number | boolean | null; status: 'ok' | 'error'; elapsedMs: number | null; error?: string; exceptionCode?: number; symbolicAddress?: string; area?: ModbusArea; }
 export interface ModbusProbeResult { rows: ModbusProbeRow[]; sampledAt: string; }
+export interface ModbusDiagnostic { status: 'online' | 'unavailable' | 'variable_error' | 'pending' | 'unconfirmed' | 'error'; lastReadAt?: string; retryAt?: string; latencyMs?: number; raw?: Array<number | boolean>; value?: number | boolean; error?: string; commandedState?: boolean | number; confirmation?: string }
+export const modbusVisualStyles = ['auto', 'gauge', 'thermometer', 'level', 'battery'] as const;
+export type ModbusVisualStyle = typeof modbusVisualStyles[number];
 /** One decoder for driver reads and installer previews. RAW words are unsigned and unscaled. */
 export function convertModbusValue(words: readonly (number | boolean)[], config: Pick<ModbusVariable, 'dataType' | 'wordOrder' | 'scale' | 'offset'>): number | boolean {
   if (config.dataType === 'boolean') { if (typeof words[0] !== 'boolean') throw new ModbusError('PROTOCOL', 'Missing bit'); return words[0]; }
@@ -17,7 +21,7 @@ export function convertModbusValue(words: readonly (number | boolean)[], config:
   if (count === 2) { bytes.setUint16(0, config.wordOrder === 'low_first' ? second : first); bytes.setUint16(2, config.wordOrder === 'low_first' ? first : second); value = config.dataType === 'float32' ? bytes.getFloat32(0) : config.dataType === 'int32' ? bytes.getInt32(0) : bytes.getUint32(0); }
   else if (config.dataType === 'int16' && first >= 32768) value = first - 65536;
   value = value * config.scale + config.offset;
-  if (!Number.isFinite(value)) throw new ModbusError('PROTOCOL', 'Non-finite reading');
+  if (!Number.isFinite(value)) throw new ModbusError('CONVERSION', 'Non-finite reading');
   return value;
 }
 export interface ModbusConnection {
@@ -30,10 +34,12 @@ export interface ModbusVariable {
   dataType: ModbusDataType; wordOrder: 'high_first' | 'low_first'; scale: number; offset: number;
   unit: string; writable: boolean;
   profileId?: string; symbolicAddress?: string;
+  plc?: PlcBinding;
+  visualStyle?: ModbusVisualStyle;
 }
 export class ModbusError extends Error {
   readonly exceptionCode?: number;
-  readonly code: 'INVALID_CONFIG' | 'FORBIDDEN' | 'NOT_FOUND' | 'IN_USE' | 'READ_ONLY' | 'DISABLED' | 'LIMIT' | 'PROTOCOL' | 'TIMEOUT' | 'CONNECTION' | 'CANCELLED';
+  readonly code: 'INVALID_CONFIG' | 'FORBIDDEN' | 'NOT_FOUND' | 'IN_USE' | 'READ_ONLY' | 'DISABLED' | 'LIMIT' | 'PROTOCOL' | 'TIMEOUT' | 'CONNECTION' | 'CANCELLED' | 'FEEDBACK_TIMEOUT' | 'RESET_FAILED' | 'CONVERSION';
   constructor(code: ModbusError['code'], message: string, exceptionCode?: number) { super(message); this.code = code; this.exceptionCode = exceptionCode; }
 }
 const invalid = (): never => { throw new ModbusError('INVALID_CONFIG', 'Invalid Modbus configuration'); };
@@ -67,7 +73,7 @@ export function validateVariable(input: Record<string, unknown>): Omit<ModbusVar
   if (dataType !== 'boolean' && dataType !== 'uint16' && dataType !== 'int16' && dataType !== 'uint32' && dataType !== 'int32' && dataType !== 'float32') return invalid();
   if ((area === 'coil' || area === 'discrete_input') !== (dataType === 'boolean')) return invalid();
   const writable = flag(input.writable);
-  if (writable && area !== 'coil') return invalid();
+  if (writable && area !== 'coil' && area !== 'holding_register') return invalid();
   const address = integer(input.address, -1, 0, 65536 - modbusWordCount(dataType)), wordOrder = input.wordOrder ?? 'high_first';
   if (wordOrder !== 'high_first' && wordOrder !== 'low_first') return invalid();
   const scale = input.scale ?? 1, offset = input.offset ?? 0;
@@ -78,5 +84,9 @@ export function validateVariable(input: Record<string, unknown>): Omit<ModbusVar
   const profileId = input.profileId == null || input.profileId === '' ? undefined : text(input.profileId, 80);
   const symbolicAddress = input.symbolicAddress == null || input.symbolicAddress === '' ? undefined : text(input.symbolicAddress, 32).toUpperCase();
   try { validateProfileMapping({ profileId, symbolicAddress, area, address, writable }, modbusWordCount(dataType)); } catch { return invalid(); }
-  return { ...(profileId ? { profileId, symbolicAddress } : {}), name: text(input.name, 80), area, address, dataType, wordOrder, scale, offset, unit: unit.trim(), writable };
+  const plc = validatePlcBinding(input.plc, { area, address, dataType, profileId, symbolicAddress, writable });
+  const visualStyle = input.visualStyle == null ? undefined : modbusVisualStyles.find(style => style === input.visualStyle);
+  if (input.visualStyle != null && (!visualStyle || dataType === 'boolean')) return invalid();
+  if (writable && area === 'holding_register' && (!plc || plc.role !== 'setpoint')) return invalid();
+  return { ...(profileId ? { profileId, symbolicAddress } : {}), ...(plc ? { plc } : {}), ...(visualStyle ? { visualStyle } : {}), name: text(input.name, 80), area, address, dataType, wordOrder, scale, offset, unit: unit.trim(), writable };
 }

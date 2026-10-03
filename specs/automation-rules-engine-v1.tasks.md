@@ -106,3 +106,5 @@ Este documento detalla el desglose de tareas para implementar la funcionalidad d
 - [x] **AC4**: Intentar gestionar o ejecutar reglas de hogares ajenos resulta en `403 Forbidden`.
 - [x] **AC5**: No se permiten reglas donde el trigger y el target sean el mismo dispositivo y propiedad.
 - [x] **AC6**: Filtrar listados, favoritos, asistente y operaciones manuales por `userId` persistido, sin cambiar la ejecución automática; cubrir dos usuarios del mismo hogar y acceso directo a reglas ajenas.
+
+- [x] Ampliación Modbus AC27: comparador opcional numérico en trigger/JSON/constructor/motor, igualdad histórica por defecto, rechazo de lecturas inválidas y pruebas focalizadas dominio/engine/puente.

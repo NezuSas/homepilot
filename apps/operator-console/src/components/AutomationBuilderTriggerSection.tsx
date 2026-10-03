@@ -61,26 +61,28 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
               onChange={(value: string) => onTriggerConfigChange({ ...triggerConfig, deviceId: value })}
             />
           </div>
-          <div className="grid grid-cols-5 gap-3">
-            <div className="space-y-2 col-span-3">
-              <label className="hp-type-label ml-1">{t('automations.form.state_key')}</label>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="min-w-0">
               <SearchableSelectField
+                label={t('automations.form.state_key')}
                 value={triggerConfig.stateKey || 'state'}
                 onChange={(value: string) => onTriggerConfigChange({ ...triggerConfig, stateKey: value })}
                 options={[
                   { value: 'state', label: t('automations.builder.properties.state') },
                   { value: 'brightness', label: t('automations.builder.properties.lux') },
-                  { value: 'temperature', label: t('automations.builder.properties.temp') }
+                  { value: 'temperature', label: t('automations.builder.properties.temp') },
+                  { value: 'value', label: t('plc.measurement_value') }
                 ]}
               />
             </div>
-            <div className="space-y-2 col-span-2">
-              <label className="hp-type-label ml-1">{t('automations.form.expected_value')}</label>
+            <SearchableSelectField label={t('plc.comparison')} value={triggerConfig.comparison ?? 'eq'} options={(['eq', 'gt', 'gte', 'lt', 'lte'] as const).map(value => ({ value, label: t(`plc.comparisons.${value}`) }))} onChange={value => onTriggerConfigChange({ ...triggerConfig, comparison: value as AutomationTriggerConfig['comparison'] })} />
+            <div className="min-w-0">
               <Input
+                label={t('automations.form.expected_value')}
                 value={triggerConfig.expectedValue || ''}
                 onChange={(event) => onTriggerConfigChange({ ...triggerConfig, expectedValue: event.target.value })}
                 placeholder={t('automations.builder.placeholders.expected_value')}
-                className="hp-type-field h-11 translate-y-[1px] rounded-xl border-border/55 bg-background/80 px-4 focus-visible:border-primary/55 focus-visible:bg-card focus-visible:shadow-primary-focus"
+                className="hp-type-field rounded-xl border-border/55 bg-background/80 px-4 focus-visible:border-primary/55 focus-visible:bg-card focus-visible:shadow-primary-focus"
               />
             </div>
           </div>

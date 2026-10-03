@@ -24,7 +24,9 @@ export type DeviceCommandV1 =
   | 'set_hvac_mode'
   | 'set_fan_mode'
   | 'press'
-  | 'activate';
+  | 'activate'
+  | 'pulse'
+  | 'set_value';
 
 /**
  * DeviceCommandRequest
@@ -69,6 +71,8 @@ export function isValidCommand(cmd: string): cmd is DeviceCommandV1 {
     'set_fan_mode',
     'press',
     'activate',
+    'pulse',
+    'set_value',
   ];
   return validCommands.includes(cmd as DeviceCommandV1);
 }

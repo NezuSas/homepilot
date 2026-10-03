@@ -11,6 +11,7 @@ export class ModbusRoutes extends ApiRoutes {
     if (!pathname.startsWith('/api/v1/modbus/')) return false;
     if (!(await container.guards.authGuard.protect(req, res, true))) return true;
     if (!req.user) { this.sendError(res, 401, 'UNAUTHORIZED', 'Authentication required'); return true; }
+    if (req.user.role !== 'admin') { this.sendError(res, 403, 'FORBIDDEN', 'Admin required'); return true; }
     try {
       const root = pathname === '/api/v1/modbus/connections';
       const connection = pathname.match(/^\/api\/v1\/modbus\/connections\/([^/]+)$/);

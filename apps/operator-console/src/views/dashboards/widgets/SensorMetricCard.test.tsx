@@ -3,6 +3,12 @@ import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
 import { formatSensorValue, getSensorReading, getSensorSeverity, SensorMetricCard } from './SensorMetricCard';
 
 describe('Fixed measurement scale (AC42)', () => {
+  it('inherits PLC visualization only for Modbus and gives the card override priority (Modbus AC30)', () => {
+    const device = { ...sensor('Reading', { state: '25', unit: '°C', plcVisualStyle: 'level' }), integrationSource: 'modbus-tcp' };
+    expect(renderToStaticMarkup(<SensorMetricCard title="Reading" device={device} />)).toContain('data-sensor-visualizer="level"');
+    expect(renderToStaticMarkup(<SensorMetricCard title="Reading" device={device} visualStyle="battery" />)).toContain('data-sensor-visualizer="battery"');
+    expect(renderToStaticMarkup(<SensorMetricCard title="Reading" device={{ ...device, integrationSource: 'ha' }} />)).not.toContain('data-sensor-visualizer="level"');
+  });
   it.each([[22.4567, false, '22'], [22.7567, false, '23'], [-12.756, false, '-13'], [22.4567, true, '22.46'], [0, true, '0']])('formats %s with decimals %s without changing the source', (value, decimals, expected) => {
     expect(formatSensorValue(value as number, decimals as boolean)).toBe(expected);
     const html = renderToStaticMarkup(<SensorMetricCard title="Reading" sensorDecimals={decimals as boolean} device={sensor('Reading', { state: String(value), unit: 'bar' })} />);

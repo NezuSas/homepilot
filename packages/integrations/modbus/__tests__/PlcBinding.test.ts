@@ -1,0 +1,46 @@
+import { validateVariable, convertModbusValue, type ModbusDataType } from '../domain/Modbus';
+import { encodeModbusValue } from '../domain/ModbusEncoder';
+import { resolveModbusAddress } from '../domain/ModbusAddressProfile';
+
+const profileId = 'xinje-xl5e-16t-v2';
+const base = { name: 'Setpoint', profileId, symbolicAddress: 'D100', area: 'holding_register', address: 100, dataType: 'uint16', wordOrder: 'high_first', scale: 1, offset: 0, writable: true, plc: { role: 'setpoint', min: -100000, max: 100000 } };
+describe('Feature: PLC bindings and inverse codec (AC20/AC23/AC24)', () => {
+  it.each(['uint16', 'int16', 'uint32', 'int32', 'float32'] as ModbusDataType[])('Scenario: %s roundtrips scale offset and word order', dataType => {
+    for (const wordOrder of ['high_first', 'low_first']) {
+      const variable = validateVariable({ ...base, dataType, wordOrder, scale: 0.1, offset: 2 });
+      const value = dataType === 'float32' ? 4.25 : 12;
+      expect(convertModbusValue(encodeModbusValue(value, variable), variable)).toBeCloseTo(value, 5);
+    }
+  });
+  it.each(['uint16', 'int16', 'uint32', 'int32', 'float32'] as ModbusDataType[])('Scenario: %s rejects overflow and nonfinite values', dataType => {
+    const variable = validateVariable({ ...base, dataType });
+    for (const value of [Infinity, NaN, 1e50]) expect(() => encodeModbusValue(value, variable)).toThrow();
+    if (dataType !== 'float32') expect(() => encodeModbusValue(1.5, variable)).toThrow();
+  });
+  it('Scenario: Zero scale and invalid setpoint bounds are rejected', () => {
+    expect(() => validateVariable({ ...base, scale: 0 })).toThrow();
+    expect(() => validateVariable({ ...base, plc: { role: 'setpoint', min: 40, max: 5 } })).toThrow();
+  });
+  it.each(['SD100', 'TD100', 'CD100', 'HTD100', 'HCD100', 'X0', 'SM0'])('Scenario: Protected %s cannot enable writes', symbol => {
+    const resolved = resolveModbusAddress(profileId, symbol);
+    expect(() => validateVariable({ ...base, ...resolved, profileId, symbolicAddress: symbol, dataType: resolved.area === 'coil' ? 'boolean' : 'uint16' })).toThrow();
+  });
+  it.each(['D100', 'HD100'])('Scenario: V1 %s remains readonly while V2 requires explicit limited setpoint', symbol => {
+    const resolved = resolveModbusAddress(profileId, symbol);
+    expect(validateVariable({ ...base, ...resolved, profileId, symbolicAddress: symbol }).plc?.role).toBe('setpoint');
+    expect(() => validateVariable({ ...base, ...resolved, profileId: 'xinje-xl5e-16t-v1', symbolicAddress: symbol })).toThrow();
+    expect(() => validateVariable({ ...base, ...resolved, profileId, symbolicAddress: symbol, plc: undefined })).toThrow();
+  });
+  it('Scenario: Generic register writes and identical command feedback cannot bypass policy', () => {
+    expect(() => validateVariable({ ...base, profileId: undefined, symbolicAddress: undefined })).toThrow();
+    const resolved = resolveModbusAddress(profileId, 'M100');
+    expect(() => validateVariable({ ...base, ...resolved, dataType: 'boolean', profileId, symbolicAddress: 'M100', plc: { role: 'output_command', command: { profileId, symbolicAddress: 'M100' }, feedback: { profileId, symbolicAddress: 'M100' }, feedbackPolicy: 'required' } })).toThrow();
+  });
+  it('Scenario: Pulse and feedback limits reject unsafe duration and physical Y pulse', () => {
+    const output = { ...base, area: 'coil', address: 100, dataType: 'boolean', symbolicAddress: 'M100', plc: { role: 'output_command', command: { profileId, symbolicAddress: 'M100' }, mode: 'pulse', pulseDurationMs: 500 } };
+    for (const pulseDurationMs of [0, 99, 5001, Infinity]) expect(() => validateVariable({ ...output, plc: { ...output.plc, pulseDurationMs } })).toThrow();
+    for (const feedbackTimeoutMs of [249, 10001]) expect(() => validateVariable({ ...output, plc: { ...output.plc, feedbackTimeoutMs } })).toThrow();
+    const y = resolveModbusAddress(profileId, 'Y0');
+    expect(() => validateVariable({ ...output, address: y.address, symbolicAddress: 'Y0', plc: { ...output.plc, command: { profileId, symbolicAddress: 'Y0' } } })).toThrow();
+  });
+});

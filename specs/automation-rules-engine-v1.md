@@ -115,7 +115,11 @@ Automatizaciones privadas por defecto, con columna JSON aditiva `shared_user_ids
 ## 10. Notas Técnicas y Arquitectura
 *   **Suscriptor de Eventos**: El componente `AutomationEngine` escucha `DeviceStateUpdatedEvent`.
 *   **Contexto de Seguridad**: La ejecución de la regla debe recuperar el `userId` guardado en la regla para invocar el caso de uso de ejecución de comandos.
-*   **Inmutabilidad**: Las condiciones de disparador en V1 son estrictamente de igualdad (`==`).
+*   **Compatibilidad**: Sin `comparison`, las condiciones de disparador mantienen la igualdad histórica (`==`).
+
+### Ampliación aprobada para mediciones PLC (Modbus AC27)
+
+El trigger `device_state_changed` admite `comparison?: eq | gt | gte | lt | lte` en el JSON existente. Una medición `value > 30` reutiliza el mismo motor y bus de eventos; no hay nueva API ni migración SQL. Crear/editar valida operador y umbral numérico finito. Lecturas vacías, no finitas, stale/unavailable no disparan comparaciones numéricas; las reglas históricas conservan igualdad por defecto. El constructor visual ofrece propiedad «Valor medido» y comparador modular, conservando permisos y prevención de bucles. Validación: `stateComparison.test.ts`, `AutomationEngine.test.ts` y el puente de `buildAutomationModule.test.ts`.
 
 ## 11. Preguntas Abiertas / TODOs
 *   ¿Cómo manejamos la invalidez de reglas cuando un dispositivo es eliminado del hogar?

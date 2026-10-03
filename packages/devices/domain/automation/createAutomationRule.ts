@@ -3,6 +3,7 @@ import { InvalidAutomationRuleError, AutomationLoopError } from '../errors';
 import { IdGenerator } from '../../../shared/domain/types';
 import { TimeUtils } from '../../../shared/domain/utils/TimeUtils';
 import { isValidCommand } from '../commands';
+import { validateStateComparison } from './stateComparison';
 
 export interface CreateAutomationRulePayload {
   homeId: string;
@@ -72,6 +73,7 @@ export function createAutomationRule(
     }
   }
 
+  validateStateComparison(payload.trigger);
   // Validar Action
   if (payload.action.type === 'device_command') {
     if (!payload.action.targetDeviceId) throw new InvalidAutomationRuleError('action.targetDeviceId');

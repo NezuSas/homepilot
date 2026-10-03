@@ -13,9 +13,10 @@ export function ModbusProfileSelect({ value, onChange, disabled }: { value?: str
     options={[{ value: 'generic', label: t('modbus.generic') }, ...modbusAddressProfiles.map(profile => ({ value: profile.id, label: `${profile.manufacturer} ${profile.family} · ${profile.model} v${profile.version}` }))]}
     onChange={value => onChange(value === 'generic' ? '' : value)} />;
 }
-export function ModbusAddressFields({ profileId, symbol, end, capacities, disabled, onSymbol, onEnd }: {
+export function ModbusAddressFields({ profileId, symbol, end, capacities, disabled, onSymbol, onEnd, technicalDisclosure = false }: {
   profileId: string; symbol: string; end?: string; capacities?: ModbusModuleCapacities; disabled?: boolean;
   onSymbol: (value: string) => void; onEnd?: (value: string) => void;
+  technicalDisclosure?: boolean;
 }) {
   const { t } = useTranslation();
   let resolution: ReturnType<typeof resolveModbusRange> | undefined;
@@ -26,7 +27,7 @@ export function ModbusAddressFields({ profileId, symbol, end, capacities, disabl
       {end !== undefined && onEnd && <Input label={t('modbus.symbol_end')} value={end} placeholder="D120" maxLength={32} disabled={disabled} required onChange={e => onEnd(e.target.value.toUpperCase())} />}
     </div>
     {resolution ? <>
-      <p role="status" className="text-body-compact font-medium">{resolution[0].symbolicAddress}{resolution.length > 1 ? ` – ${resolution[resolution.length - 1].symbolicAddress}` : ''} · {t(`modbus.${resolution[0].area}`)} · PDU {resolution[0].address}{resolution.length > 1 ? ` – ${resolution[resolution.length - 1].address}` : ''}</p>
+      {technicalDisclosure ? <details className="text-caption text-muted-foreground"><summary className="cursor-pointer py-1">{t('plc.technical_address')}</summary><p role="status">{resolution[0].symbolicAddress} · {t(`modbus.${resolution[0].area}`)} · PDU {resolution[0].address}</p></details> : <p role="status" className="text-body-compact font-medium">{resolution[0].symbolicAddress}{resolution.length > 1 ? ` – ${resolution[resolution.length - 1].symbolicAddress}` : ''} · {t(`modbus.${resolution[0].area}`)} · PDU {resolution[0].address}{resolution.length > 1 ? ` – ${resolution[resolution.length - 1].address}` : ''}</p>}
       {resolution.some(item => !item.physicalCapacityKnown) && <p className="text-caption text-muted-foreground">{t('modbus.reserved_capacity')}</p>}
     </> : <p role="alert" className="text-caption text-destructive">{t('modbus.invalid_symbol')}</p>}
   </div>;

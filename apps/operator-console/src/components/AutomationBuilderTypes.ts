@@ -17,6 +17,7 @@ export interface AutomationTriggerConfig {
   deviceId?: string;
   stateKey?: string;
   expectedValue?: string;
+  comparison?: 'eq' | 'gt' | 'gte' | 'lt' | 'lte';
   time?: string;
   timeLocal?: string;
   days?: number[];

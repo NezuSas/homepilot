@@ -23,6 +23,17 @@ describe('Feature: validación de capacidades de dispositivos', () => {
     const result = validateDeviceCommand(baseDevice, { name: 'turn_on' });
     expect(result.valid).toBe(true);
   });
+  it('Scenario: Given PLC metadata When requesting pulse or setpoint Then only configured commands are accepted (AC27)', () => {
+    const pulse: Device = { ...baseDevice, type: 'switch', integrationSource: 'modbus-tcp', lastKnownState: { plcMode: 'pulse', writable: true } };
+    expect(validateDeviceCommand(pulse, { name: 'press' }).valid).toBe(true);
+    expect(validateDeviceCommand(pulse, { name: 'turn_on' }).valid).toBe(false);
+    expect(validateDeviceCommand(pulse, { name: 'pulse', params: { duration: 100000 } }).valid).toBe(false);
+    const setpoint: Device = { ...baseDevice, type: 'sensor', integrationSource: 'modbus-tcp', lastKnownState: { plcRole: 'setpoint', writable: true } };
+    expect(validateDeviceCommand(setpoint, { name: 'set_value', params: { value: 22 } }).valid).toBe(true);
+    expect(validateDeviceCommand(setpoint, { name: 'set_value', params: { value: Infinity } }).valid).toBe(false);
+    expect(validateDeviceCommand(setpoint, { name: 'turn_on' }).valid).toBe(false);
+    expect(validateDeviceCommand(baseDevice, { name: 'set_value', params: { value: 22 } }).valid).toBe(false);
+  });
 
   it('Scenario: Given una luz When solicita un comando no soportado Then la validación lo rechaza', () => {
     const result = validateDeviceCommand(baseDevice, { name: 'set_position', params: { position: 50 } });

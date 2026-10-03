@@ -8,6 +8,7 @@ export interface DeviceStateTrigger {
   deviceId: string;
   stateKey: string;
   expectedValue: string | number | boolean;
+  comparison?: 'eq' | 'gt' | 'gte' | 'lt' | 'lte';
 }
 
 /**

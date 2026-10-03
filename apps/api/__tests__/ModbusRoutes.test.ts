@@ -5,6 +5,24 @@ import type { ModbusService } from '../../../packages/integrations/modbus/applic
 import { ModbusError } from '../../../packages/integrations/modbus/domain/Modbus';
 import { ModbusRoutes } from '../routes/ModbusRoutes';
 import { EventEmitter } from 'node:events';
+import { AuthGuard } from '../../../packages/auth/infrastructure/AuthGuard';
+import type { AuthService } from '../../../packages/auth/application/AuthService';
+
+describe('Feature: Real Modbus Admin authorization (AC19)', () => {
+  it.each(['anonymous', 'guest', 'child', 'parent', 'operator', 'admin'])('Scenario: Real guard verifies %s before administrative access', async role => {
+    const verifyToken = jest.fn().mockResolvedValue({ isValid: true, user: { id: 'u', username: 'u', role, displayName: 'U', avatarDataUri: null } });
+    const guard = new AuthGuard({ verifyToken } as unknown as AuthService);
+    const service = { list: jest.fn().mockResolvedValue([]) };
+    const routes = new ModbusRoutes(service as unknown as ModbusService);
+    const request = Object.assign(new EventEmitter(), { url: '/api/v1/modbus/connections?homeId=h', headers: role === 'anonymous' ? {} : { authorization: 'Bearer simulated-session' } }) as HomePilotRequest;
+    const res = Object.assign(new EventEmitter(), { writeHead: jest.fn(), end: jest.fn() });
+    res.writeHead.mockReturnValue(res);
+    await routes.handle(request, res as unknown as ServerResponse, '/api/v1/modbus/connections', 'GET', { guards: { authGuard: guard } } as unknown as BootstrapContainer);
+    if (role === 'admin') expect(service.list).toHaveBeenCalledWith('u', 'h');
+    else { expect(service.list).not.toHaveBeenCalled(); expect(res.writeHead.mock.calls[0][0]).toBe(role === 'anonymous' ? 401 : 403); }
+    if (role !== 'anonymous') expect(verifyToken).toHaveBeenCalledWith('simulated-session');
+  });
+});
 
 describe('Feature: Admin-only native Modbus routes (AC2)', () => {
   const service = { list: jest.fn(), saveConnection: jest.fn(), saveVariable: jest.fn(), probe: jest.fn(), deleteConnection: jest.fn(), deleteVariable: jest.fn() };

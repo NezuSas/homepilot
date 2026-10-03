@@ -4,6 +4,20 @@ import type { EventBusEvent, EventBusHandler } from '../packages/shared/domain/e
 import type { SystemStateChangeEvent } from '../packages/integrations/home-assistant/application/HomeAssistantRealtimeSyncManager';
 
 describe('buildAutomationModule', () => {
+  it('Scenario: Given independent PLC feedback When state sync emits it Then the existing engine executes only the actual ON (AC27)', async () => {
+    const handlers = new Map<string, EventBusHandler>();
+    const rule = { id: 'rule-plc', homeId: 'h', userId: 'admin', name: 'PLC input', enabled: true, trigger: { type: 'device_state_changed', deviceId: 'plc-output', stateKey: 'state', expectedValue: 'on' }, action: { type: 'execute_scene', sceneId: 'scene-plc' } };
+    const commandDispatcher = { dispatch: jest.fn().mockResolvedValue(undefined) };
+    buildAutomationModule({
+      automationRuleRepository: { findAll: async () => [rule], findById: async () => rule }, deviceRepository: {},
+      sceneRepository: { findSceneById: async () => ({ id: 'scene-plc', homeId: 'h', userId: 'admin', roomId: null, name: 'PLC action', actions: [{ deviceId: 'target', command: 'press' }], createdAt: '', updatedAt: '' }) },
+      activityLogRepository: { saveActivity: jest.fn().mockResolvedValue(undefined) }, executionRecordRepository: { save: jest.fn().mockResolvedValue(undefined) }, commandDispatcher, systemVariableService: {}, syncManager: new EventEmitter(),
+      eventBus: { publish: jest.fn(), subscribe: (type: string, handler: EventBusHandler) => { handlers.set(type, handler); return () => {}; } },
+    } as never);
+    const publish = async (state: string, commandedState: boolean) => handlers.get('DeviceStateUpdatedEvent')!({ eventId: `plc-${state}`, eventType: 'DeviceStateUpdatedEvent', schemaVersion: '1', source: 'modbus', timestamp: '2026-10-03T12:00:00Z', correlationId: 'plc-feedback', payload: { deviceId: 'plc-output', homeId: 'h', newState: { state, actualState: state === 'on', commandedState, available: true, stale: false } } } as EventBusEvent);
+    await publish('off', true); expect(commandDispatcher.dispatch).not.toHaveBeenCalled();
+    await publish('on', true); expect(commandDispatcher.dispatch).toHaveBeenCalledWith('target', expect.objectContaining({ name: 'press' }));
+  });
   it('assembles engine services and wires local events to the automation engine', async () => {
     const syncManager = new EventEmitter() as EventEmitter & { removeAllListeners: jest.Mock };
     syncManager.removeAllListeners = jest.fn();

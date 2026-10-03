@@ -41,7 +41,11 @@ export class ModbusTcpClient implements ModbusTransport {
     });
   }
   async read(connection: ModbusConnection, variable: ModbusVariable): Promise<number | boolean> {
-    return convertModbusValue(await this.readRange(connection, variable.area, variable.address, modbusWordCount(variable.dataType)), variable);
+    return (await this.readSample(connection, variable)).value;
+  }
+  async readSample(connection: ModbusConnection, variable: ModbusVariable): Promise<{ raw: Array<number | boolean>; value: number | boolean }> {
+    const raw = await this.readRange(connection, variable.area, variable.address, modbusWordCount(variable.dataType));
+    return { raw, value: convertModbusValue(raw, variable) };
   }
   async readRange(connection: ModbusConnection, area: ModbusArea, start: number, count: number, signal?: AbortSignal): Promise<Array<number | boolean>> {
     if (!Number.isInteger(start) || !Number.isInteger(count) || count < 1 || count > 64 || start < 0 || start + count > 65536) throw new ModbusError('INVALID_CONFIG', 'Invalid read range');
@@ -53,8 +57,19 @@ export class ModbusTcpClient implements ModbusTransport {
     return Array.from({ length: count }, (_, i) => bit ? Boolean(response[2 + Math.floor(i / 8)] & (1 << (i % 8))) : response.readUInt16BE(2 + i * 2));
   }
   async writeCoil(connection: ModbusConnection, address: number, value: boolean): Promise<void> {
+    if (!Number.isInteger(address) || address < 0 || address > 65535 || typeof value !== 'boolean') throw new ModbusError('INVALID_CONFIG', 'Invalid coil write');
     const pdu = Buffer.alloc(5); pdu[0] = 5; pdu.writeUInt16BE(address, 1); pdu.writeUInt16BE(value ? 0xff00 : 0, 3);
     const response = await this.request(connection, pdu);
     if (!response.equals(pdu)) throw new ModbusError('PROTOCOL', 'Invalid Modbus write echo');
+  }
+  async writeHoldingRegisters(connection: ModbusConnection, address: number, words: readonly number[]): Promise<void> {
+    if (!Number.isInteger(address) || address < 0 || ![1, 2].includes(words.length) || address + words.length > 65536 || words.some(word => !Number.isInteger(word) || word < 0 || word > 65535)) throw new ModbusError('INVALID_CONFIG', 'Invalid register write');
+    const pdu = Buffer.alloc(words.length === 1 ? 5 : 6 + words.length * 2);
+    pdu[0] = words.length === 1 ? 6 : 16; pdu.writeUInt16BE(address, 1);
+    if (words.length === 1) pdu.writeUInt16BE(words[0], 3);
+    else { pdu.writeUInt16BE(words.length, 3); pdu[5] = words.length * 2; words.forEach((word, index) => pdu.writeUInt16BE(word, 6 + index * 2)); }
+    const response = await this.request(connection, pdu);
+    const expected = words.length === 1 ? pdu : pdu.subarray(0, 5);
+    if (!response.equals(expected)) throw new ModbusError('PROTOCOL', 'Invalid register write echo');
   }
 }

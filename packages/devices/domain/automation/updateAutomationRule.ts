@@ -2,6 +2,7 @@ import { AutomationRule, AutomationTrigger, AutomationAction, TimeTrigger } from
 import { InvalidAutomationRuleError, AutomationLoopError } from '../errors';
 import { TimeUtils } from '../../../shared/domain/utils/TimeUtils';
 import { isValidCommand } from '../commands';
+import { validateStateComparison } from './stateComparison';
 
 /**
  * Subset de campos que el dueño de la regla puede modificar.
@@ -75,6 +76,7 @@ export function updateAutomationRule(
     }
   }
 
+  validateStateComparison(resolvedTrigger);
   // Validate delay action if provided in patch
   if (patch.action !== undefined && patch.action.type === 'delay') {
     if (typeof patch.action.delaySeconds !== 'number' || patch.action.delaySeconds <= 0) {

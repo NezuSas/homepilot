@@ -168,6 +168,8 @@ describe('Feature: Device command route contract', () => {
   const commandDevice: Device = {
     ...device,
     id: 'light-1',
+    externalId: 'ha:light.test',
+    integrationSource: 'ha',
     type: 'light',
     status: 'ASSIGNED',
     capabilities: [],
@@ -228,6 +230,13 @@ describe('Feature: Device command route contract', () => {
     );
     expect(container.services.homeAssistantSettingsService.updateStatusFromOperation).toHaveBeenCalledWith('reachable');
     expect(res.writeHead).toHaveBeenCalledWith(200, expect.any(Object));
+  });
+  it('Scenario: Given a PLC command When dispatched Then HA bridge health is not changed (AC27)', async () => {
+    const container = commandContainer();
+    container.repositories.deviceRepository.findDeviceById = jest.fn().mockResolvedValue({ ...commandDevice, externalId: 'modbus:light-1', integrationSource: 'modbus-tcp' });
+    await routes.handle(commandRequest({ command: 'turn_on' }), response(), '/api/v1/devices/light-1/command', 'POST', container);
+    expect(container.adapters.commandDispatcher.dispatch).toHaveBeenCalled();
+    expect(container.services.homeAssistantSettingsService.updateStatusFromOperation).not.toHaveBeenCalled();
   });
 
   it('rejects a command on a device owned by another home without dispatching it', async () => {

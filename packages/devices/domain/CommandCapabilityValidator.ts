@@ -1,7 +1,7 @@
 import { Device } from './types';
 import { DeviceCommandRequest } from './commands';
-import { CAPABILITY_DEFINITIONS, CapabilityCommand } from './capabilities';
-import { resolveCapabilitiesForDevice } from './CapabilityResolver';
+import { CapabilityCommand } from './capabilities';
+import { resolveCapabilitiesForDevice, capabilityCommandsForDevice } from './CapabilityResolver';
 
 /**
  * ValidationResult
@@ -19,6 +19,11 @@ export interface ValidationResult {
  * Implementa un enfoque conservador para no romper dispositivos existentes no identificados.
  */
 export function validateDeviceCommand(device: Device, command: DeviceCommandRequest): ValidationResult {
+  if (device.integrationSource === 'modbus-tcp') {
+    const state = device.lastKnownState;
+    if (command.name === 'set_value') return state?.plcRole === 'setpoint' && state.writable === true && typeof command.params?.value === 'number' && Number.isFinite(command.params.value) && Object.keys(command.params).length === 1 ? { valid: true } : { valid: false, error: 'Invalid PLC setpoint command.' };
+    if (command.name === 'pulse' || command.name === 'press') return state?.plcMode === 'pulse' && state.writable === true && !Object.keys(command.params ?? {}).length ? { valid: true } : { valid: false, error: 'PLC pulse is not configured.' };
+  } else if (command.name === 'pulse' || command.name === 'set_value') return { valid: false, error: 'PLC command not supported by this integration.' };
   const capabilities = resolveCapabilitiesForDevice(device);
 
   if (device.integrationSource === 'android-display') {
@@ -59,7 +64,7 @@ export function validateDeviceCommand(device: Device, command: DeviceCommandRequ
   let anyCapabilityHasCommands = false;
 
   for (const cap of capabilities) {
-    const definition = CAPABILITY_DEFINITIONS[cap.type];
+    const definition = capabilityCommandsForDevice(device, cap.type);
     if (definition && definition.length > 0) {
       anyCapabilityHasCommands = true;
       const found = definition.find(cmd => cmd.name === command.name);

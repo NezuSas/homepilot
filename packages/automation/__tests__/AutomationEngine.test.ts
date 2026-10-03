@@ -85,6 +85,19 @@ function createHarness(rules: ReadonlyArray<AutomationRule>, targetDevice: Devic
 }
 
 describe('Feature: automation rule execution', () => {
+  it('Scenario: PLC measurement > 30 uses the existing engine and ignores stale readings (AC27)', async () => {
+    const harness = createHarness([createRule({ trigger: { type: 'device_state_changed', deviceId: 'source-device', stateKey: 'value', expectedValue: 30, comparison: 'gt' } })]);
+    const event = (value: number, stale = false): SystemStateChangeEvent => ({ ...matchingEvent(), source: 'local_sensor', newState: { state: String(value), attributes: { value, stale } } });
+    await harness.engine.handleSystemEvent(event(29));
+    expect(harness.dispatcher.dispatchCommand).not.toHaveBeenCalled();
+    await harness.engine.handleSystemEvent(event(31));
+    expect(harness.dispatcher.dispatchCommand).toHaveBeenCalledTimes(1);
+    for (const newState of [{ state: 'unavailable', attributes: { value: 31 } }, { state: '31', attributes: { value: 31, stale: true } }]) {
+      const offline = createHarness([createRule({ trigger: { type: 'device_state_changed', deviceId: 'source-device', stateKey: 'value', expectedValue: 30, comparison: 'gt' } })]);
+      await offline.engine.handleSystemEvent({ ...matchingEvent(), newState });
+      expect(offline.dispatcher.dispatchCommand).not.toHaveBeenCalled();
+    }
+  });
   it('dispatches a matching device-state rule and records a successful execution', async () => {
     const harness = createHarness([createRule()]);
 

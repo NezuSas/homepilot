@@ -1,4 +1,5 @@
 import { DateTime } from 'luxon';
+import { matchesStateComparison } from '../../devices/domain/automation/stateComparison';
 import { canAccessRoutine } from '../../devices/domain/routineAccess';
 import { AutomationRuleRepository } from '../../devices/domain/repositories/AutomationRuleRepository';
 import type { AutomationTrigger } from '../../devices/domain/automation/types';
@@ -178,12 +179,14 @@ export class AutomationEngine {
     event: SystemStateChangeEvent
   ): boolean {
     if (trigger.deviceId !== event.deviceId) return false;
+    const state = event.newState as Record<string, unknown>;
+    if (state.available === false || state.stale === true || state.state === 'unavailable' || this.resolveStateValue(state, 'available') === false || this.resolveStateValue(state, 'stale') === true) return false;
 
     const currentValue = this.resolveStateValue(
       event.newState as Record<string, unknown>,
       trigger.stateKey
     );
-    return String(currentValue) === String(trigger.expectedValue);
+    return matchesStateComparison(trigger, currentValue);
   }
 
   private matchTimeTrigger(

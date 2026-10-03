@@ -23,6 +23,19 @@ describe('Feature: Native Modbus TCP protocol (AC3/AC4)', () => {
     output.writeUInt16BE(pdu.length + 1, 4); Buffer.from(pdu).copy(output, 7); return output;
   }
   afterEach(async () => { for (const socket of sockets) socket.destroy(); if (server) await new Promise<void>(resolve => server.close(() => resolve())); });
+  it.each([{ words: [123] }, { words: [0x1234, 0x5678] }])('Scenario: Safe register write validates FC06/FC16 echo (AC23)', async ({ words }) => {
+    const connection = await plc((request, socket) => {
+      expect(request[7]).toBe(words.length === 1 ? 6 : 16);
+      socket.end(frame(request, request.subarray(7, 12)));
+    });
+    await client.writeHoldingRegisters(connection, 100, words);
+  });
+  it('Scenario: Register write malformed echo is rejected without retry (AC23)', async () => {
+    let writes = 0;
+    const connection = await plc((request, socket) => { writes++; socket.end(frame(request, [16, 0, 100, 0, 1])); });
+    await expect(client.writeHoldingRegisters(connection, 100, [1, 2])).rejects.toMatchObject({ code: 'PROTOCOL' });
+    expect(writes).toBe(1);
+  });
   it.each([['coil', 1], ['discrete_input', 2], ['holding_register', 3], ['input_register', 4]] as const)
     ('Scenario: Given %s When a read is sent Then its function and zero-based address are honored', async (area, code) => {
       const connection = await plc((request, socket) => {
@@ -66,7 +79,7 @@ describe('Feature: Native Modbus TCP protocol (AC3/AC4)', () => {
         if (fault === 'nan') { const value = Buffer.alloc(4); value.writeFloatBE(NaN); response = frame(request, Buffer.concat([Buffer.from([3, 4]), value])); }
         socket.end(response);
       });
-      await expect(client.read(connection, { ...variable, dataType: fault === 'nan' ? 'float32' : 'uint16' })).rejects.toMatchObject({ code: 'PROTOCOL' });
+      await expect(client.read(connection, { ...variable, dataType: fault === 'nan' ? 'float32' : 'uint16' })).rejects.toMatchObject({ code: fault === 'nan' ? 'CONVERSION' : 'PROTOCOL' });
     });
   it('Scenario: Given an unanswered request When deadline expires Then timeout closes the socket', async () => {
     const connection = await plc(() => undefined);
