@@ -23,6 +23,8 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 import { moveSectionSlot, resolveSectionSlots, sectionLayoutKey, type SectionLayout } from './sectionSlots';
 import { Button } from '../../components/ui/Button';
+import { generateId } from '../../utils/generateId';
+import { readCanvasSections, projectCanvasSections } from './dashboardSectionsAdapter';
 import ConfirmModal from '../../components/ConfirmModal';
 import type { DashboardWidget, DashboardWidgetConfig } from './types';
 import { DashboardWidgetNode, WidgetContent } from './DashboardWidget';
@@ -35,6 +37,7 @@ import {
 } from './dashboardUtils';
 
 interface DashboardCanvasProps {
+  maxColumns?: number;
   widgets: DashboardWidget[];
   isEditing: boolean;
   onWidgetClick: (id: string) => void;
@@ -118,6 +121,7 @@ function SortableCanvasWidget({
   onClick,
   onConfigChange,
   onDelete,
+  onDuplicate,
   slotMode = false,
 }: {
   widget: DashboardWidget;
@@ -129,6 +133,7 @@ function SortableCanvasWidget({
   onClick: (id: string) => void;
   onConfigChange?: (id: string, config: Partial<DashboardWidgetConfig>) => void;
   onDelete?: (id: string) => void;
+  onDuplicate?: (id: string) => void;
   slotMode?: boolean;
 }) {
   const { nodeRef, rowSpan } = useMeasuredRowSpan(gap);
@@ -143,7 +148,7 @@ function SortableCanvasWidget({
   const sectionDrag = canDrag && widget.type === 'section';
   const dragSurface = (target: EventTarget | null, surface: HTMLElement) => {
     if (!(target instanceof Element)) return false;
-    const control = target.closest('[data-dashboard-card-id], button, input, select, textarea, a, [role="button"], [role="slider"]');
+    const control = target.closest('[data-dashboard-card-id], button, summary, input, select, textarea, a, [role="button"], [role="slider"]');
     return !control || control === surface;
   };
 
@@ -178,6 +183,7 @@ function SortableCanvasWidget({
         onClick={() => { if (isEditing) onClick(widget.id); }}
         onConfigChange={onConfigChange}
         onDelete={onDelete}
+        onDuplicate={onDuplicate}
         dragHandleAttributes={attributes}
         dragHandleListeners={listeners}
         columns={columns}
@@ -198,6 +204,7 @@ function SectionDropSlot({ index, columns, gap, editing, children }: { index: nu
 }
 
 export function DashboardCanvas({
+  maxColumns = 4,
   widgets,
   isEditing,
   onWidgetClick,
@@ -237,8 +244,8 @@ export function DashboardCanvas({
     height: window.innerHeight,
   }));
   const columns = useMemo(
-    () => getDashboardSectionColumnsForViewport(containerWidth, viewportSize.width, viewportSize.height),
-    [containerWidth, viewportSize.height, viewportSize.width],
+    () => Math.min(maxColumns, getDashboardSectionColumnsForViewport(containerWidth, viewportSize.width, viewportSize.height)),
+    [maxColumns, containerWidth, viewportSize.height, viewportSize.width],
   );
   const isPortraitKiosk = isPortraitKioskViewport(viewportSize.width, viewportSize.height);
   const gap = getCanvasGap(columns);
@@ -291,11 +298,12 @@ export function DashboardCanvas({
   }, [dragLayout?.widgets, widgets, t]);
 
   const titleWidget = sanitizedWidgets.find((widget) => widget.type === 'dashboard_title') ?? null;
+  const sectionModel = useMemo(() => readCanvasSections(sanitizedWidgets, currentTabId ?? 'preview'), [sanitizedWidgets, currentTabId]);
   // Everything that isn't the pinned title flows and reorders together,
   // Home Assistant "Sections" style: order in this array is visual order.
   const flowWidgets = useMemo(
-    () => sanitizedWidgets.filter((widget) => widget.type !== 'dashboard_title'),
-    [sanitizedWidgets],
+    () => projectCanvasSections(sanitizedWidgets, sectionModel).filter((widget) => widget.type !== 'dashboard_title'),
+    [sanitizedWidgets, sectionModel],
   );
   const flowWidgetIds = useMemo(() => flowWidgets.map((widget) => widget.id), [flowWidgets]);
   const sectionWidgets = useMemo(() => flowWidgets.filter((widget) => widget.type === 'section'), [flowWidgets]);
@@ -309,6 +317,17 @@ export function DashboardCanvas({
     ? Math.ceil(sectionSlots.length / columns) * columns + (isEditing ? columns : 0)
     : 0;
   const sectionById = useMemo(() => new Map(sectionWidgets.map((widget) => [widget.id, widget])), [sectionWidgets]);
+  const duplicateSection = (id: string) => {
+    const source = widgets.find(widget => widget.id === id && widget.type === 'section');
+    if (!source) return;
+    const duplicate = structuredClone(source);
+    duplicate.id = generateId();
+    if (duplicate.config.binding.entityType === 'system' && duplicate.config.binding.entityId === source.id) duplicate.config.binding.entityId = duplicate.id;
+    const cards = duplicate.config.extra?.cards;
+    if (Array.isArray(cards)) duplicate.config.extra = { ...duplicate.config.extra, cards: cards.map((card: unknown) => card && typeof card === 'object' ? { ...card, id: generateId() } : card) };
+    const index = widgets.findIndex(widget => widget.id === id);
+    onLayoutChange([...widgets.slice(0, index + 1), duplicate, ...widgets.slice(index + 1)]);
+  };
 
   const sensorOptions = useMemo(() => ({
     activationConstraint: {
@@ -351,8 +370,20 @@ export function DashboardCanvas({
       // padding/controls. Canvas instruments must keep their painted pixels.
       const canvases = clone.querySelectorAll('canvas');
       original.querySelectorAll('canvas').forEach((canvas, index) => canvases[index]?.getContext('2d')?.drawImage(canvas, 0, 0));
+      const ids = new Map<string, string>();
+      clone.querySelectorAll('[id]').forEach((node, index) => {
+        const id = node.getAttribute('id');
+        if (id) ids.set(id, `dashboard-drag-preview-${index}`);
+      });
       for (const node of [clone, ...clone.querySelectorAll('*')]) {
-        for (const name of ['id', 'aria-describedby', 'data-dashboard-card-id', 'data-dashboard-section-id', 'data-dashboard-drag-origin', 'data-dashboard-drop-target']) node.removeAttribute(name);
+        for (const attribute of [...node.attributes]) {
+          let value = attribute.value;
+          for (const [originalId, previewId] of ids) value = value.replaceAll(`url(#${originalId})`, `url(#${previewId})`);
+          if (attribute.name === 'id') value = ids.get(value) ?? value;
+          if ((attribute.name === 'href' || attribute.name === 'xlink:href') && ids.has(value.slice(1))) value = `#${ids.get(value.slice(1))}`;
+          if (value !== attribute.value) node.setAttribute(attribute.name, value);
+        }
+        for (const name of ['aria-describedby', 'data-dashboard-card-id', 'data-dashboard-section-id', 'data-dashboard-drag-origin', 'data-dashboard-drop-target']) node.removeAttribute(name);
       }
       Object.assign(clone.style, { width: '100%', height: '100%', gridRow: 'auto', gridColumn: 'auto', transform: 'none', transition: 'none', opacity: '1' });
     }
@@ -387,6 +418,15 @@ export function DashboardCanvas({
       const moved = moveSectionSlot(slots, String(active.id), targetIndex);
       if (moved === slots) return;
       session.layout = { ...session.layout, [sectionLayoutKey(columns)]: moved };
+    } else if (source?.kind === 'section' && over.data.current?.kind === 'section') {
+      const from = widgets.findIndex(widget => widget.id === active.id);
+      const to = widgets.findIndex(widget => widget.id === over.id);
+      if (from < 0 || to < 0 || from === to) return;
+      session.widgets = arrayMove(widgets, from, to);
+      const reordered = session.widgets.filter(widget => widget.type === 'section').map(widget => widget.id);
+      let index = 0;
+      const oldSlots = resolveSectionSlots(widgets, sectionLayout, columns);
+      session.layout = { ...session.layout, [sectionLayoutKey(columns)]: oldSlots.map(id => id === null ? null : reordered[index++] ?? null) };
     } else return;
     session.lastTarget = String(over.id);
     previousSectionRects.current = new Map();
@@ -526,19 +566,10 @@ export function DashboardCanvas({
             : "bg-transparent"
         )}
         style={{
-          // auto-fit + minmax(min(100%, 350px), 1fr): a section uses its 350px
-          // readable basis where space permits, but never exceeds the mobile
-          // canvas width after padding is included. Critically, the track has
-          // NO max-width on the track itself, so with few sections on a
-          // wide monitor the 1fr share stretches each one edge to edge
-          // instead of leaving blank margins on the sides. Wraps to a new
-          // row instead of squeezing when a section doesn't fit. This
-          // 350px basis (+ the canvas gap) MUST match
-          // getDashboardSectionColumns' own basis in dashboardUtils.ts —
-          // that JS-computed count decides grid-column: span N for the
-          // actual title widget, and a mismatched count forces CSS to
-          // add an extra implicit column instead of wrapping.
-          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))',
+          // The measured, maxColumns-clamped count is shared by both modes
+          // and the slot profiles. Explicit tracks preserve empty columns;
+          // minmax(0, 1fr) prevents content from widening the mobile canvas.
+          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
           gridAutoRows: `${CANVAS_ROW_UNIT}px`,
           gridAutoFlow: 'row',
           alignItems: 'start',
@@ -575,6 +606,7 @@ export function DashboardCanvas({
                     isSelected={selectedWidgetId === widget.id}
                     onClick={onWidgetClick} onConfigChange={onWidgetConfigChange}
                     onDelete={setPendingDeleteWidgetId}
+                    onDuplicate={duplicateSection}
                   />}
                 </SectionDropSlot>;
               })}
@@ -594,6 +626,7 @@ export function DashboardCanvas({
               onClick={onWidgetClick}
               onConfigChange={onWidgetConfigChange}
               onDelete={setPendingDeleteWidgetId}
+              onDuplicate={duplicateSection}
             />
           ))}
         </SortableContext>

@@ -1,18 +1,59 @@
 import { useRef } from 'react';
 import { Maximize2 } from 'lucide-react';
-import type { SectionCardSpan } from './sectionCardCatalog';
-
-const CARD_RESIZE_STEP_PX = 64;
+import type { CardGridOptions } from '../types';
+import { resizeCardGrid } from './cardGridResize';
+import { MASONRY_ROW_GAP_PX, MASONRY_ROW_UNIT_PX } from './useMasonryRowSpans';
 
 interface CardResizeHandleProps {
-  span: SectionCardSpan;
-  spanOrder: SectionCardSpan[];
+  gridOptions: CardGridOptions;
+  measuredRows: number;
   label: string;
-  onResize: (nextSpan: SectionCardSpan) => void;
+  onPreview: (size: CardGridOptions | null) => void;
+  onResize: (size: CardGridOptions) => void;
 }
 
-export function CardResizeHandle({ span, spanOrder, label, onResize }: CardResizeHandleProps) {
-  const dragStartRef = useRef<{ x: number; index: number } | null>(null);
-
-  return <span role="slider" aria-label={label} aria-valuemin={0} aria-valuemax={spanOrder.length - 1} aria-valuenow={spanOrder.indexOf(span)} aria-valuetext={span} tabIndex={0} title={label} onClick={(event) => event.stopPropagation()} onKeyDown={(event) => { const currentIndex = spanOrder.indexOf(span); if (event.key === 'ArrowRight' && currentIndex < spanOrder.length - 1) { event.preventDefault(); onResize(spanOrder[currentIndex + 1]); } else if (event.key === 'ArrowLeft' && currentIndex > 0) { event.preventDefault(); onResize(spanOrder[currentIndex - 1]); } }} onPointerDown={(event) => { event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); dragStartRef.current = { x: event.clientX, index: spanOrder.indexOf(span) }; }} onPointerMove={(event) => { const start = dragStartRef.current; if (!start) return; const deltaSteps = Math.round((event.clientX - start.x) / CARD_RESIZE_STEP_PX); const nextIndex = Math.min(spanOrder.length - 1, Math.max(0, start.index + deltaSteps)); const nextSpan = spanOrder[nextIndex]; if (nextSpan !== span) onResize(nextSpan); }} onPointerUp={(event) => { event.currentTarget.releasePointerCapture(event.pointerId); dragStartRef.current = null; }} className="absolute bottom-1 right-1 z-20 grid h-6 w-6 cursor-nwse-resize touch-none place-items-center rounded-md bg-background/95 text-muted-foreground opacity-0 shadow-md backdrop-blur-md transition-opacity group-hover/card:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 [@media(hover:none)]:opacity-100"><Maximize2 className="h-3 w-3 rotate-90" /></span>;
+export function CardResizeHandle({ gridOptions, measuredRows, label, onPreview, onResize }: CardResizeHandleProps) {
+  const drag = useRef<{ x: number; y: number; step: number; next: CardGridOptions } | null>(null);
+  const cancel = () => { drag.current = null; onPreview(null); };
+  return <span
+    role="slider" aria-label={label} aria-valuemin={gridOptions.minColumns ?? 1} aria-valuemax={gridOptions.maxColumns ?? 12}
+    aria-valuenow={gridOptions.columns === 'full' ? 12 : gridOptions.columns} tabIndex={0} title={label}
+    onClick={event => event.stopPropagation()}
+    onMouseDown={event => event.stopPropagation()}
+    onTouchStart={event => event.stopPropagation()}
+    onKeyDown={event => {
+      event.stopPropagation();
+      if (event.key === 'Escape') { event.preventDefault(); cancel(); return; }
+      const x = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+      const y = event.key === 'ArrowDown' ? 1 : event.key === 'ArrowUp' ? -1 : 0;
+      if (!x && !y) return;
+      event.preventDefault();
+      const next = resizeCardGrid(gridOptions, x, y, measuredRows);
+      if (next.columns !== gridOptions.columns || next.rows !== gridOptions.rows) onResize(next);
+    }}
+    onPointerDown={event => {
+      if (event.button !== 0) return;
+      event.stopPropagation();
+      event.currentTarget.focus();
+      event.currentTarget.setPointerCapture(event.pointerId);
+      const grid = event.currentTarget.parentElement?.parentElement;
+      drag.current = { x: event.clientX, y: event.clientY, step: Math.max(1, ((grid?.getBoundingClientRect().width ?? 1) + MASONRY_ROW_GAP_PX) / 12), next: gridOptions };
+    }}
+    onPointerMove={event => {
+      const start = drag.current;
+      if (!start) return;
+      start.next = resizeCardGrid(gridOptions, Math.round((event.clientX - start.x) / start.step), Math.round((event.clientY - start.y) / (MASONRY_ROW_UNIT_PX + MASONRY_ROW_GAP_PX)), measuredRows);
+      onPreview(start.next);
+    }}
+    onPointerUp={event => {
+      const next = drag.current?.next;
+      drag.current = null;
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+      onPreview(null);
+      if (next && (next.columns !== gridOptions.columns || next.rows !== gridOptions.rows)) onResize(next);
+    }}
+    onPointerCancel={cancel}
+    onLostPointerCapture={cancel}
+    className="absolute bottom-1 right-1 z-20 grid h-6 w-6 cursor-nwse-resize touch-none place-items-center rounded-md bg-background/95 text-muted-foreground opacity-0 shadow-md backdrop-blur-md transition-opacity group-hover/card:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 [@media(hover:none)]:opacity-100"
+  ><Maximize2 className="h-3 w-3 rotate-90" /></span>;
 }

@@ -1659,6 +1659,25 @@
     "no_data": "Sin datos de energía disponibles en Home Assistant"
   },
   "dashboards": {
+    "edit_session": {
+      "section_actions": "Acciones de sección",
+      "duplicate": "Duplicar",
+      "configuration": "Configuración",
+      "design": "Diseño",
+      "visibility": "Visibilidad",
+      "columns": "Columnas (de 12)",
+      "rows": "Filas",
+      "auto": "Automático",
+      "visible": "Mostrar tarjeta",
+      "preview": "Vista previa",
+      "max_columns": "Máximo de columnas",
+      "section_width": "Ancho de sección",
+      "label": "Edición del tablero",
+      "undo": "Deshacer",
+      "redo": "Rehacer",
+      "saving": "Guardando cambios…",
+      "saved": "Cambios guardados"
+    },
     "title": "Tableros",
     "category": "Control Personal",
     "intro_subtitle": "Superficies de control personalizadas por usuario.",

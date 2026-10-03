@@ -48,6 +48,16 @@ function createMediaService(): MediaService {
 }
 
 describe('Feature: dashboard route contract', () => {
+  it.each(['import', 'restore'])('Scenario: Invalid grid geometry in %s returns a client error', async (operation) => {
+    const container = createContainer();
+    container.services.dashboardService.importDashboard = jest.fn().mockRejectedValue(new Error('DASHBOARD_LAYOUT_INVALID'));
+    container.services.dashboardService.restoreDashboardRevision = jest.fn().mockRejectedValue(new Error('DASHBOARD_LAYOUT_INVALID'));
+    const response = new MockResponse();
+    await new DashboardRoutes(createMediaService()).handle(createRequest({}), response as unknown as http.ServerResponse,
+      operation === 'import' ? '/api/v1/dashboards/import' : '/api/v1/dashboards/dashboard-1/history/revision-1/restore', 'POST', container);
+    expect(response.writeHead).toHaveBeenCalledWith(400, expect.any(Object));
+    expect(response.end).toHaveBeenCalledWith(expect.stringContaining('DASHBOARD_LAYOUT_INVALID'));
+  });
   it('Scenario: Tab export and import use the authenticated owner, active tab and requested language', async () => {
     const routes = new DashboardRoutes(createMediaService());
     const container = createContainer();
@@ -64,7 +74,7 @@ describe('Feature: dashboard route contract', () => {
     expect(imported.writeHead).toHaveBeenCalledWith(201, expect.any(Object));
   });
 
-  it.each(['FORBIDDEN', 'DASHBOARD_IMPORT_INVALID', 'DASHBOARD_OWNER_CONFLICT'])('Scenario: Tab import preserves the %s error without mutating through another endpoint', async (message) => {
+  it.each(['FORBIDDEN', 'DASHBOARD_IMPORT_INVALID', 'DASHBOARD_LAYOUT_INVALID', 'DASHBOARD_OWNER_CONFLICT'])('Scenario: Tab import preserves the %s error without mutating through another endpoint', async (message) => {
     const container = createContainer();
     container.services.dashboardService.importTab = jest.fn().mockRejectedValue(new Error(message));
     const response = new MockResponse();

@@ -26,7 +26,7 @@ describe('Feature: catálogo de tarjetas de sección', () => {
   it('Scenario: Given tarjetas configurables When se calcula su layout Then conserva tamaños y bindings compatibles', () => {
     expect(getDefaultSpan('light')).toBe('small');
     expect(getDefaultSpan('camera')).toBe('full');
-    expect(getSpanClass('medium')).toBe('col-span-1 sm:col-span-2');
+    expect(getSpanClass('medium')).toBe('col-span-6');
     expect(isBindableKind('clock_digital')).toBe(false);
     expect(getWidgetType('action')).toBe('action_button');
     expect(isBindableKind('action')).toBe(true);
@@ -67,9 +67,10 @@ describe('Feature: catálogo de tarjetas de sección', () => {
     });
 
     expect(cards).toHaveLength(3);
-    expect(cards[0]).toMatchObject({ id: 'light-1', kind: 'light', span: 'medium', icon: 'Lightbulb', order: 4 });
+    expect(cards[0]).toMatchObject({ id: 'light-1', kind: 'light', span: 'medium', icon: 'Lightbulb' });
+    expect(cards[0]).not.toHaveProperty('order');
     expect(cards[1]).toMatchObject({ id: 'clock-1', kind: 'clock_digital', span: 'full', widgetType: 'clock_display', icon: getDefaultIcon('clock') });
-    expect(cards[2]).toMatchObject({ id: 'sensor-1', kind: 'sensor', span: 'full', widgetType: 'device_control', icon: getDefaultIcon('sensor') });
+    expect(cards[2]).toMatchObject({ id: 'sensor-1', kind: 'sensor', span: 'medium', widgetType: 'device_control', icon: getDefaultIcon('sensor') });
   });
 
   it('Scenario: Given obsolete room and scene cards When normalizing Then they are removed from the dashboard', () => {
@@ -97,7 +98,7 @@ describe('Feature: catálogo de tarjetas de sección', () => {
       { id: 'full', kind: 'camera', title: 'Full', span: 'full' },
     ])).toBe(6);
     expect(getSpanClass('full')).toBe('col-span-full');
-    expect(getSpanClass('small')).toBe('col-span-1');
+    expect(getSpanClass('small')).toBe('col-span-6 sm:col-span-3');
   });
   it('Scenario: Given the full catalog When resolving metadata Then all clock variants and defaults remain explicit', () => {
     expect(cardKinds).toEqual(expect.arrayContaining(['light', 'cover', 'camera', 'sensor', 'media', 'clock_premium']));
@@ -141,9 +142,8 @@ describe('Feature: catálogo de tarjetas de sección', () => {
         entityName: undefined,
         span: 'medium',
         icon: getDefaultIcon('device'),
-        order: 0,
       });
-      expect(cards[1]).toMatchObject({ kind: 'assistant', span: 'medium', widgetType: 'assistant_insight', order: 1 });
+      expect(cards[1]).toMatchObject({ kind: 'assistant', span: 'medium', widgetType: 'assistant_insight' });
       expect(normalizeCards({ cards: 'not-an-array' as never })).toEqual([]);
     } finally {
       jest.restoreAllMocks();

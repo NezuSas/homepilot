@@ -1,6 +1,13 @@
+/** Canonical widget vocabulary, including persisted V1 aliases. */
+export type DashboardWidgetType =
+  | 'device_control' | 'action_button' | 'room_overview' | 'room_summary'
+  | 'scene_shortcut' | 'activity_feed' | 'assistant_insight' | 'system_status'
+  | 'energy_snapshot' | 'clock_display' | 'dashboard_title' | 'section'
+  | 'selected_device' | 'scenes_shortcut' | 'assistant_insights' | 'energy_insight';
+
 export interface DashboardWidget {
   id: string;
-  type: 'room_summary' | 'selected_device' | 'scenes_shortcut' | 'assistant_insights' | 'energy_insight' | 'section';
+  type: DashboardWidgetType;
   config: Record<string, unknown>;
 }
 
@@ -8,6 +15,7 @@ export interface DashboardTab {
   id: string;
   title: string;
   widgets: DashboardWidget[];
+  maxColumns?: 1 | 2 | 3 | 4;
   /** Sparse section IDs for each effective responsive column count. */
   sectionLayout?: Partial<Record<'columns1' | 'columns2' | 'columns3' | 'columns4', Array<string | null>>>;
   icon?: string;
@@ -111,7 +119,8 @@ export interface DashboardRevision {
 }
 
 export interface DashboardRepository {
-  saveDashboard(dashboard: Dashboard): Promise<void>;
+  /** When supplied, revision and dashboard must commit in a single transaction. */
+  saveDashboard(dashboard: Dashboard, revision?: DashboardRevision): Promise<void>;
   findDashboardById(id: string): Promise<Dashboard | null>;
   findAllVisibleTo(userId: string, userRole: string, homeIds: string[]): Promise<Dashboard[]>;
   deleteDashboard(id: string): Promise<void>;

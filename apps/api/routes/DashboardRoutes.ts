@@ -4,6 +4,7 @@ import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { DashboardTab, DashboardVisibility } from '../../../packages/topology/domain/Dashboard';
 import type { MediaService } from '../../../packages/shared/infrastructure/MediaService';
+import { validateDashboardGridOptions } from '../../../packages/topology/application/validateDashboardGridOptions';
 
 /**
  * Dashboard routes: /api/v1/dashboards/*
@@ -79,7 +80,7 @@ export class DashboardRoutes extends ApiRoutes {
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'DASHBOARD_ERROR';
         const status = message === 'FORBIDDEN' ? 403 : message.endsWith('_NOT_FOUND') ? 404
-          : message === 'DASHBOARD_IMPORT_INVALID' || message === 'DASHBOARD_IMPORT_UNSUPPORTED_VERSION' ? 400
+          : message === 'DASHBOARD_IMPORT_INVALID' || message === 'DASHBOARD_IMPORT_UNSUPPORTED_VERSION' || message === 'DASHBOARD_LAYOUT_INVALID' ? 400
             : message === 'DASHBOARD_OWNER_CONFLICT' ? 409 : 500;
         this.sendError(res, status, message, message);
       }
@@ -111,7 +112,7 @@ export class DashboardRoutes extends ApiRoutes {
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Failed to import dashboard';
         const status = message === 'DASHBOARD_IMPORT_INVALID' || message === 'DASHBOARD_IMPORT_UNSUPPORTED_VERSION'
-          || message === 'DASHBOARD_MULTIPLE_DEFAULT_TABS' ? 400 : message === 'DASHBOARD_OWNER_CONFLICT' ? 409 : 500;
+          || message === 'DASHBOARD_MULTIPLE_DEFAULT_TABS' || message === 'DASHBOARD_LAYOUT_INVALID' ? 400 : message === 'DASHBOARD_OWNER_CONFLICT' ? 409 : 500;
         this.sendError(res, status, message, message);
       }
       return true;
@@ -147,7 +148,7 @@ export class DashboardRoutes extends ApiRoutes {
           ? 403
           : message === 'DASHBOARD_NOT_FOUND' || message === 'DASHBOARD_REVISION_NOT_FOUND'
             ? 404
-            : 500;
+            : message === 'DASHBOARD_LAYOUT_INVALID' || message === 'DASHBOARD_MULTIPLE_DEFAULT_TABS' ? 400 : 500;
         this.sendError(res, status, message, message);
       }
       return true;
@@ -182,6 +183,7 @@ export class DashboardRoutes extends ApiRoutes {
           return this.sendError(res, 400, 'DASHBOARD_MULTIPLE_DEFAULT_TABS', 'DASHBOARD_MULTIPLE_DEFAULT_TABS'), true;
         }
         if (body.tabs) {
+          validateDashboardGridOptions(body.tabs);
           const dashboardId = patchMatch[1];
 
           // Clean up background files for deleted tabs
@@ -221,7 +223,7 @@ export class DashboardRoutes extends ApiRoutes {
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Failed to update dashboard';
         const status = message === 'FORBIDDEN' ? 403 : message === 'DASHBOARD_NOT_FOUND' ? 404
-          : message === 'DASHBOARD_MULTIPLE_DEFAULT_TABS' ? 400 : 500;
+          : message === 'DASHBOARD_MULTIPLE_DEFAULT_TABS' || message === 'DASHBOARD_LAYOUT_INVALID' ? 400 : 500;
         this.sendError(res, status, message, message);
       }
       return true;

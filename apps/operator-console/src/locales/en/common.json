@@ -1659,6 +1659,25 @@
     "no_data": "No energy data available from Home Assistant"
   },
   "dashboards": {
+    "edit_session": {
+      "section_actions": "Section actions",
+      "duplicate": "Duplicate",
+      "configuration": "Configuration",
+      "design": "Design",
+      "visibility": "Visibility",
+      "columns": "Columns (of 12)",
+      "rows": "Rows",
+      "auto": "Automatic",
+      "visible": "Show card",
+      "preview": "Preview",
+      "max_columns": "Maximum columns",
+      "section_width": "Section width",
+      "label": "Dashboard editing",
+      "undo": "Undo",
+      "redo": "Redo",
+      "saving": "Saving changes…",
+      "saved": "Changes saved"
+    },
     "title": "Dashboards",
     "category": "Personal Dashboards",
     "intro_subtitle": "Personalized control surfaces for every context.",

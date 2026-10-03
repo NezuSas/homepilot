@@ -11,6 +11,7 @@ import { SegmentedControl } from './ui/SegmentedControl';
 import { ToggleSwitch } from './ui/ToggleSwitch';
 import { RangeInput } from './ui/RangeInput';
 import { Modal } from './ui/Modal';
+import { SearchableSelectField } from './ui/SearchableSelectField';
 
 
 const MAX_BG_PX = 1920;
@@ -23,6 +24,7 @@ interface DashboardViewConfigModalProps {
   isOpen: boolean;
   defaultTabOwnerTitle?: string;
   tab: {
+    maxColumns?: 1 | 2 | 3 | 4;
     title: string;
     icon?: string;
     background?: string;
@@ -32,6 +34,7 @@ interface DashboardViewConfigModalProps {
   };
   onClose: () => void;
   onSave: (fields: {
+    maxColumns?: 1 | 2 | 3 | 4;
     title: string;
     icon?: string;
     background?: string | null;
@@ -53,6 +56,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<ConfigTab>('settings');
   const [draftTitle, setDraftTitle] = useState(tab.title);
+  const [maxColumns, setMaxColumns] = useState<1 | 2 | 3 | 4>(tab.maxColumns ?? 4);
   const [backgroundOpacity, setBackgroundOpacity] = useState(tab.backgroundOpacity ?? 50);
   const [backgroundImg, setBackgroundImg] = useState<string | null>(tab.background || null);
   const [amberResidenceAvailable, setAmberResidenceAvailable] = useState(false);
@@ -79,6 +83,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
   useEffect(() => {
     if (!isOpen) return;
     setDraftTitle(tab.title);
+    setMaxColumns(tab.maxColumns ?? 4);
     setBackgroundOpacity(tab.backgroundOpacity ?? 50);
     setBackgroundImg(tab.background || null);
     setAllowedUsers(tab.visibility?.users || []);
@@ -156,6 +161,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
     if (trimmedTitle.length === 0) return;
 
     onSave({
+      maxColumns,
       title: trimmedTitle,
       icon: iconQuery.trim() || undefined,
       background: backgroundImg,
@@ -208,6 +214,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
         <div className="min-w-0 p-3 sm:p-6">
           {activeTab === 'settings' && (
             <div className="space-y-5">
+              <SearchableSelectField label={t('dashboards.edit_session.max_columns')} value={String(maxColumns)} options={[1, 2, 3, 4].map(value => ({ value: String(value), label: String(value) }))} onChange={value => setMaxColumns(Number(value) as 1 | 2 | 3 | 4)} />
               <Input
                 label={t('dashboards.view_config.view_title')}
                 value={draftTitle}

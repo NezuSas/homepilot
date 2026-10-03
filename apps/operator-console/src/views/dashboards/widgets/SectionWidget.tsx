@@ -257,6 +257,8 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       sensorMax: card.sensorScale?.max,
       sensorDecimals: card.sensorDecimals === true,
       visualStyle: card.visualStyle ?? 'gauge',
+      gridOptions: card.gridOptions,
+      hidden: card.hidden,
     });
   };
 
@@ -277,6 +279,8 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         entityName: selectedDisplayAction?.deviceName || selectedScene?.name || selectedAutomation?.name || selectedRoom?.name || selectedDevice?.name,
         span: isClockKind(cardDraft.kind) ? 'full' : getEffectiveCardSpan(cardDraft.kind, cardDraft.span),
         icon: cardDraft.icon,
+        gridOptions: cardDraft.gridOptions,
+        hidden: cardDraft.hidden,
       };
       if (cardDraft.kind === 'media') updatedCard.mediaVariant = cardDraft.mediaVariant;
       else delete updatedCard.mediaVariant;
@@ -307,9 +311,9 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     updateCards(arrayMove(cards, sourceIndex, targetIndex));
   };
 
-  const resizeCard = (cardId: string, nextSpan: SectionCardSpan) => {
+  const resizeCard = (cardId: string, gridOptions: import('../types').CardGridOptions) => {
     updateCards(cards.map((card) => (
-      card.id === cardId ? { ...card, span: getEffectiveCardSpan(card.kind, nextSpan) } : card
+      card.id === cardId ? { ...card, gridOptions } : card
     )));
   };
 
@@ -413,7 +417,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
 
   const sortableCards = (
     <SortableContext items={cards.map((card) => sharedDrag ? sectionCardDragId(sectionId!, card.id, dragIdentities) : card.id)} strategy={rectSortingStrategy}>
-      {cards.map((card) => (
+      {cards.filter(card => isEditing || !card.hidden).map((card) => (
         <SectionCardItem
           key={card.id}
           sectionId={sharedDrag ? sectionId : undefined}
@@ -442,7 +446,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
   const sectionGrid = (
     <div
       onClick={(event) => event.stopPropagation()}
-      className="grid min-h-0 min-w-0 flex-1 grid-cols-2 content-start items-start gap-2 overflow-visible pr-1 sm:grid-cols-4 auto-rows-[minmax(20px,auto)] grid-flow-row-dense"
+      className="grid min-h-0 min-w-0 flex-1 grid-cols-12 content-start items-start gap-2 overflow-visible pr-1 auto-rows-[minmax(20px,auto)] grid-flow-row-dense"
     >
       {sharedDrag ? sortableCards : <DndContext sensors={cardDragSensors} onDragEnd={handleCardDragEnd}>{sortableCards}</DndContext>}
     </div>

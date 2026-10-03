@@ -5,6 +5,8 @@ import { Button } from '../../components/ui/Button';
 import { DashboardCanvas } from './DashboardCanvas';
 import type { Dashboard, DashboardTab, DashboardWidget, DashboardWidgetConfig, WidgetType } from './types';
 import type { SectionLayout } from './sectionSlots';
+import { Undo2, Redo2 } from 'lucide-react';
+import { IconButton } from '../../components/ui/IconButton';
 
 interface DashboardActiveWorkspaceProps {
   active: Dashboard;
@@ -16,6 +18,9 @@ interface DashboardActiveWorkspaceProps {
   isAddingTab: boolean;
   selectedWidgetId: string | null;
   isTransferring: boolean;
+  editStatus?: { pending: boolean; canUndo: boolean; canRedo: boolean };
+  onUndo?: () => void;
+  onRedo?: () => void;
   t: TFunction;
   onOpenMobileMenu?: () => void;
   onDraftTitleChange: (title: string) => void;
@@ -47,6 +52,9 @@ export function DashboardActiveWorkspace({
   isAddingTab,
   selectedWidgetId,
   isTransferring,
+  editStatus,
+  onUndo,
+  onRedo,
   t,
   onOpenMobileMenu,
   onDraftTitleChange,
@@ -87,6 +95,11 @@ export function DashboardActiveWorkspace({
           historyLabel={t('dashboards.history.action')}
           onOpenHistory={onOpenHistory}
           isTransferring={isTransferring}
+          editActions={editStatus && <>
+            <span className="sr-only" role="status">{t(editStatus.pending ? 'dashboards.edit_session.saving' : 'dashboards.edit_session.saved')}</span>
+            <IconButton icon={Undo2} label={t('dashboards.edit_session.undo')} disabled={!editStatus.canUndo} onClick={onUndo} />
+            <IconButton icon={Redo2} label={t('dashboards.edit_session.redo')} disabled={!editStatus.canRedo} onClick={onRedo} />
+          </>}
         />
       )}
       <DashboardTabsNav
@@ -116,6 +129,7 @@ export function DashboardActiveWorkspace({
           </div>
         ) : (
           <DashboardCanvas
+            maxColumns={activeTab.maxColumns}
             widgets={activeTab.widgets}
             sectionLayout={activeTab.sectionLayout}
             isEditing={isEditing && isOwner}

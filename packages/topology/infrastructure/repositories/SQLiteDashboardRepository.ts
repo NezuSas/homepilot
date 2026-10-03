@@ -37,7 +37,15 @@ export class SQLiteDashboardRepository implements DashboardRepository {
     };
   }
 
-  public async saveDashboard(dashboard: Dashboard): Promise<void> {
+  public async saveDashboard(dashboard: Dashboard, revision?: DashboardRevision): Promise<void> {
+    if (revision && revision.dashboardId !== dashboard.id) throw new Error('DASHBOARD_REVISION_MISMATCH');
+    this.getDb().transaction(() => {
+      if (revision) this.writeRevision(revision);
+      this.writeDashboard(dashboard);
+    })();
+  }
+
+  private writeDashboard(dashboard: Dashboard): void {
     const db = this.getDb();
     db.prepare(`
       INSERT INTO dashboards (id, owner_id, title, visibility, tabs, created_at, updated_at)
@@ -83,6 +91,10 @@ export class SQLiteDashboardRepository implements DashboardRepository {
   }
 
   public async saveRevision(revision: DashboardRevision): Promise<void> {
+    this.writeRevision(revision);
+  }
+
+  private writeRevision(revision: DashboardRevision): void {
     const db = this.getDb();
     db.prepare(`
       INSERT INTO dashboard_revisions (id, dashboard_id, snapshot, created_at)

@@ -18,6 +18,7 @@ import { generateId } from '../utils/generateId';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { Button } from '../components/ui/Button';
+import { DashboardEditSession } from './dashboards/DashboardEditSession';
 
 // Main dashboard view
 
@@ -72,6 +73,12 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
   const [tabConfigIdx, setTabConfigIdx] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const editSession = useRef<DashboardEditSession<Dashboard> | null>(null);
+  const activeRef = useRef(active);
+  activeRef.current = active;
+  const [editStatus, setEditStatus] = useState({ pending: false, canUndo: false, canRedo: false });
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useEffect(() => { if (active && !isEditing) setDraftTitle(active.title); }, [active, isEditing]);
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
   const {
@@ -93,6 +100,14 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
   }, []);
 
   const isOwner = Boolean(active && currentUser && active.ownerId === currentUser.id);
+
+  useEffect(() => {
+    const session = editSession.current;
+    if (session && !session.pending && session.value !== active) {
+      editSession.current = null;
+      setEditStatus({ pending: false, canUndo: false, canRedo: false });
+    }
+  }, [active]);
 
   const visibleTabs = useMemo(() => {
     if (!active) return [];
@@ -184,18 +199,40 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
     }
   }, [active, activeTabIdx, initialDashboardId, initialTabId, location.pathname, navigate]);
 
-  const patch = async (id: string, body: Partial<Dashboard>) => {
-    try {
-      const updated = await saveDashboard(id, body, t('dashboards.error_save'));
-      publishDashboards((current) => current.map((dashboard) => dashboard.id === updated.id ? updated : dashboard));
-      setActive(updated);
-      setError('');
-      return true;
-    } catch (error_: unknown) {
-      setError(error_ instanceof Error ? error_.message : t('dashboards.error_save'));
-      return false;
+  const patch = (id: string, update: Partial<Dashboard> | ((current: Dashboard) => Partial<Dashboard>)) => {
+    const current = activeRef.current;
+    if (!current || current.id !== id || isTransferring || isRestoringRevision) return Promise.resolve(false);
+    if (!editSession.current || editSession.current.value !== current) {
+      editSession.current = new DashboardEditSession(current,
+        value => saveDashboard(id, { title: value.title, tabs: value.tabs }, t('dashboards.error_save')),
+        (value, session) => {
+          if (!mounted.current) return;
+          publishDashboards(catalog => catalog.map(dashboard => dashboard.id === id ? value : dashboard));
+          if (activeRef.current?.id === id) {
+            activeRef.current = value;
+            setActive(value);
+            setEditStatus({ pending: session.pending, canUndo: session.canUndo, canRedo: session.canRedo });
+          }
+        },
+        error_ => { if (mounted.current) setError(error_ instanceof Error ? error_.message : t('dashboards.error_save')); });
     }
+    setError('');
+    return editSession.current.edit(value => ({ ...value, ...(typeof update === 'function' ? update(value) : update) }));
   };
+
+  useEffect(() => {
+    if (!isEditing || !isOwner) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || !(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'z') return;
+      if (event.target instanceof Element && event.target.closest('input, textarea, select, [contenteditable="true"], [role="textbox"]')) return;
+      const session = editSession.current;
+      if (!session || session.value !== activeRef.current) return;
+      event.preventDefault();
+      void (event.shiftKey ? session.redo() : session.undo());
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isEditing, isOwner]);
 
   const handleRenameConfirm = async () => {
     if (!active || !draftTitle.trim()) return;
@@ -206,7 +243,7 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
     if (!active || !title.trim()) return;
     setAddingTab(false);
     const newTabId = generateId();
-    const saved = await patch(active.id, { tabs: [...active.tabs, { id: newTabId, title: title.trim(), widgets: [] }] });
+    const saved = await patch(active.id, current => ({ tabs: [...current.tabs, { id: newTabId, title: title.trim(), widgets: [] }] }));
     if (saved) {
       setActiveTabIdx(active.tabs.length);
       setIsEditing(true);
@@ -216,14 +253,15 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
 
   const handleSaveTabConfig = async (tabIdx: number, fields: TabConfigFields) => {
     if (!active) return;
-    await patch(active.id, { tabs: configureTab(active.tabs, tabIdx, fields) });
+    const tabId = active.tabs[tabIdx]?.id;
+    await patch(active.id, current => ({ tabs: configureTab(current.tabs, current.tabs.findIndex(tab => tab.id === tabId), fields) }));
   };
 
   const handleDeleteTab = async (tabIdx: number) => {
     if (!active) return;
-    const updatedTabs = active.tabs.filter((_, idx) => idx !== tabIdx);
+    const tabId = active.tabs[tabIdx]?.id;
     setIsDeleting(true);
-    const saved = await patch(active.id, { tabs: updatedTabs });
+    const saved = await patch(active.id, current => ({ tabs: current.tabs.filter(tab => tab.id !== tabId) }));
     if (saved) setActiveTabIdx(Math.max(0, activeTabIdx - 1));
     setTabPendingDelete(null);
     setIsDeleting(false);
@@ -252,7 +290,7 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
 
     const widgetId = generateId();
 
-    const saved = await patch(active.id, { tabs: insertWidget(active.tabs, activeTabIdx, { id: widgetId, type, config: defaultConfig }) });
+    const saved = await patch(active.id, current => ({ tabs: insertWidget(current.tabs, current.tabs.findIndex(tab => tab.id === currentTab.id), { id: widgetId, type, config: defaultConfig }) }));
 
     if (saved && !isSection) {
       setSelectedWidgetId(widgetId);
@@ -261,15 +299,16 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
 
   const handleLayoutChange = async (updatedWidgets: DashboardWidget[], sectionLayout?: NonNullable<DashboardTab['sectionLayout']>) => {
     if (!active) return;
-    const updatedTabs = active.tabs.map((tab, idx) =>
-      idx !== activeTabIdx ? tab : { ...tab, widgets: updatedWidgets, sectionLayout: sectionLayout ?? tab.sectionLayout }
-    );
-    await patch(active.id, { tabs: updatedTabs });
+    const tabId = active.tabs[activeTabIdx]?.id;
+    await patch(active.id, current => ({ tabs: current.tabs.map(tab =>
+      tab.id !== tabId ? tab : { ...tab, widgets: updatedWidgets, sectionLayout: sectionLayout ?? tab.sectionLayout }
+    ) }));
   };
 
   const handleUpdateWidgetConfig = async (widgetId: string, newConfig: Partial<DashboardWidgetConfig>) => {
     if (!active) return;
-    await patch(active.id, { tabs: updateWidgetConfig(active.tabs, activeTabIdx, widgetId, newConfig) });
+    const tabId = active.tabs[activeTabIdx]?.id;
+    await patch(active.id, current => ({ tabs: updateWidgetConfig(current.tabs, current.tabs.findIndex(tab => tab.id === tabId), widgetId, newConfig) }));
   };
 
   const activeTab = active?.tabs[activeTabIdx];
@@ -370,7 +409,10 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
               draftTitle={draftTitle}
               isAddingTab={addingTab}
               selectedWidgetId={selectedWidgetId}
-              isTransferring={isTransferring}
+              isTransferring={isTransferring || editStatus.pending}
+              editStatus={editStatus}
+              onUndo={() => { void editSession.current?.undo(); }}
+              onRedo={() => { void editSession.current?.redo(); }}
               t={t}
               onOpenMobileMenu={onOpenMobileMenu}
               onDraftTitleChange={setDraftTitle}
@@ -384,6 +426,7 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
                 void (async () => {
                   if (!draftTitle.trim()) return;
                   if (draftTitle.trim() !== active.title && !await patch(active.id, { title: draftTitle.trim() })) return;
+                  await editSession.current?.whenIdle();
                   setIsEditing(false);
                   setSelectedWidgetId(null);
                   setTabConfigIdx(null);

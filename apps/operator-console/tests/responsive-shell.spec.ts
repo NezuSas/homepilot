@@ -1,6 +1,148 @@
 import { expect, test } from '@playwright/test';
 import { mdiAutoFix, mdiHome, mdiRobot, mdiWeatherWindy } from '@mdi/js';
 
+test('Feature: Sections editor — Scenario: Resize writes once, serializes edits, supports undo/redo and rolls back errors (AC48–AC49)', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const template = responsiveDashboard.tabs[0].widgets[1];
+  const initial = { ...responsiveDashboard, tabs: [{ ...responsiveDashboard.tabs[0], widgets: [{ ...template, config: { ...template.config, extra: { cards: [
+    { id: 'resize-a', kind: 'light', title: 'A', span: 'small' },
+    { id: 'resize-b', kind: 'light', title: 'B', span: 'small' },
+  ] } } }] }] };
+  await prepareAuthenticatedDashboard(page, initial);
+  let saved = initial;
+  let writes = 0;
+  let failNext = false;
+  let release: () => void = () => {};
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  await page.route('**/api/v1/dashboards', route => route.fulfill({ json: [saved] }));
+  await page.route('**/api/v1/dashboards/responsive-dashboard', async route => {
+    if (route.request().method() !== 'PATCH') return route.fulfill({ json: saved });
+    writes += 1;
+    if (writes === 1) await gate;
+    if (failNext) { failNext = false; return route.fulfill({ status: 500, json: { error: 'Test save rejected' } }); }
+    saved = { ...saved, ...route.request().postDataJSON() };
+    return route.fulfill({ json: saved });
+  });
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  const header = page.locator('.homepilot-dashboard-titlebar');
+  await header.getByLabel(/^(More|Más)$/i).click();
+  await header.getByRole('menuitem', { name: /^(Edit|Editar)$/i }).click();
+  const card = (id: string) => page.locator(`[data-dashboard-card-id="${id}"]`);
+  const handle = (id: string) => card(id).getByRole('slider', { name: /resize (?:the )?card|redimensionar/i });
+  await card('resize-a').hover();
+  const handleBounds = await handle('resize-a').boundingBox();
+  const gridBounds = await card('resize-a').locator('..').boundingBox();
+  if (!handleBounds || !gridBounds) throw new Error('Resize surface missing');
+  await page.mouse.move(handleBounds.x + handleBounds.width / 2, handleBounds.y + handleBounds.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(handleBounds.x + handleBounds.width / 2 + (gridBounds.width + 8) / 6, handleBounds.y + handleBounds.height / 2, { steps: 8 });
+  await expect(card('resize-a')).toHaveCSS('grid-column-start', 'span 5');
+  expect(writes).toBe(0);
+  await page.mouse.up();
+  await expect.poll(() => writes).toBe(1);
+  await handle('resize-b').focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(card('resize-b')).toHaveCSS('grid-column-start', 'span 4');
+  expect(writes).toBe(1);
+  release();
+  await expect.poll(() => writes).toBe(2);
+  await expect(header.getByRole('status')).toHaveText(/Cambios guardados|Changes saved/);
+  await header.getByRole('button', { name: /^(Undo|Deshacer)$/i }).click();
+  await expect.poll(() => writes).toBe(3);
+  await expect(card('resize-b')).toHaveCSS('grid-column-start', 'span 3');
+  await page.keyboard.press('Control+Shift+z');
+  await expect.poll(() => writes).toBe(4);
+  await expect(card('resize-b')).toHaveCSS('grid-column-start', 'span 4');
+  await expect(header.getByRole('status')).toHaveText(/Cambios guardados|Changes saved/);
+  failNext = true;
+  await handle('resize-b').focus();
+  await page.keyboard.press('ArrowRight');
+  await expect.poll(() => writes).toBe(5);
+  await expect(page.getByRole('alert').filter({ hasText: /Test save rejected|guardar|save/i })).toBeVisible();
+  await expect(card('resize-b')).toHaveCSS('grid-column-start', 'span 4');
+  await page.reload();
+  await expect(card('resize-a')).toHaveCSS('grid-column-start', 'span 5');
+  await expect(card('resize-b')).toHaveCSS('grid-column-start', 'span 4');
+  await enterDashboardEdit(page);
+  await handle('resize-b').focus();
+  await page.keyboard.press('ArrowDown');
+  await expect(card('resize-b')).toHaveCSS('grid-row-start', 'span 5');
+  await expect(card('resize-b')).toHaveCSS('height', '132px');
+  await expect(header.getByRole('status')).toHaveText(/Cambios guardados|Changes saved/);
+  await page.reload();
+  await expect(card('resize-b')).toHaveCSS('height', '132px');
+});
+
+test('Feature: Sections editor — Scenario: Design and visibility previews are drafts until saved (AC48–AC49)', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await prepareAuthenticatedDashboard(page);
+  let saved = responsiveDashboard;
+  await page.route('**/api/v1/dashboards', route => route.fulfill({ json: [saved] }));
+  await page.route('**/api/v1/dashboards/responsive-dashboard', route => {
+    if (route.request().method() === 'PATCH') saved = { ...saved, ...route.request().postDataJSON() };
+    return route.fulfill({ json: saved });
+  });
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  await enterDashboardEdit(page);
+  const card = page.locator('[data-dashboard-card-id="responsive-sensor"]');
+  await card.hover(); await card.getByRole('button', { name: /^(Edit|Editar)$/i }).click();
+  const editor = page.getByRole('dialog', { name: /^(Edit|Editar)$/i });
+  const preview = editor.getByRole('region', { name: /^(Preview|Vista previa)$/i });
+  await editor.getByRole('radio', { name: /^(Design|Diseño)$/i }).click();
+  await editor.getByRole('button', { name: /^(Columns|Columnas) \(/i }).click();
+  await page.getByRole('option', { name: '8', exact: true }).click();
+  await editor.getByLabel(/^(Rows|Filas)$/i).fill('6');
+  await expect(preview).toHaveCSS('height', '160px');
+  await page.screenshot({ path: testInfo.outputPath('card-design-tablet.png') });
+  await expect(card).not.toHaveCSS('grid-column-start', 'span 8');
+  await editor.getByRole('button', { name: /^(Cancel|Cancelar)$/i }).click();
+  await expect(card).not.toHaveCSS('grid-column-start', 'span 8');
+  await card.hover(); await card.getByRole('button', { name: /^(Edit|Editar)$/i }).click();
+  await editor.getByRole('radio', { name: /^(Visibility|Visibilidad)$/i }).click();
+  await editor.getByRole('switch').click();
+  await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
+  await expect(card).toBeVisible();
+  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Done|Finalizar)$/i }).click();
+  await expect(card).toHaveCount(0);
+  await page.reload();
+  await expect(card).toHaveCount(0);
+  await enterDashboardEdit(page);
+  await expect(card).toBeVisible();
+});
+
+test('Feature: Sections editor — Scenario: Section duplication and maximum columns persist (AC46–AC49)', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await prepareAuthenticatedDashboard(page);
+  let saved = responsiveDashboard;
+  await page.route('**/api/v1/dashboards', route => route.fulfill({ json: [saved] }));
+  await page.route('**/api/v1/dashboards/responsive-dashboard', route => {
+    if (route.request().method() === 'PATCH') saved = { ...saved, ...route.request().postDataJSON() };
+    return route.fulfill({ json: saved });
+  });
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  await enterDashboardEdit(page);
+  const original = responsiveDashboard.tabs[0].widgets[1];
+  const source = page.locator(`[data-dashboard-section-id="${original.id}"]`);
+  await source.getByLabel(/^(Section actions|Acciones de sección)$/i).click();
+  await source.getByRole('menuitem', { name: /^(Duplicate|Duplicar)$/i }).click();
+  await expect(page.locator('[data-dashboard-section-id]')).toHaveCount(2);
+  await expect.poll(() => saved.tabs[0].widgets.filter(widget => widget.type === 'section').length).toBe(2);
+  const copied = saved.tabs[0].widgets.find(widget => widget.type === 'section' && widget.id !== original.id)!;
+  expect(copied.config.extra.cards.map(card => card.id)).not.toEqual(original.config.extra.cards.map(card => card.id));
+  expect(copied.config.extra.cards.map(card => card.entityId)).toEqual(original.config.extra.cards.map(card => card.entityId));
+  await page.getByRole('button', { name: /Configure view:|Configurar vista:/i }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('button', { name: /^(Maximum columns|Máximo de columnas)$/i }).click();
+  await page.getByRole('option', { name: '1', exact: true }).click();
+  await dialog.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
+  await expect(page.locator('.homepilot-dashboard-titlebar').getByRole('status')).toHaveText(/Cambios guardados|Changes saved/);
+  await page.reload();
+  const first = (await source.boundingBox())!;
+  const second = (await page.locator(`[data-dashboard-section-id="${copied.id}"]`).boundingBox())!;
+  expect(second.x).toBeCloseTo(first.x, 0);
+  expect(second.y).toBeGreaterThanOrEqual(first.y + first.height);
+});
+
 for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'tablet portrait', width: 768, height: 1024 }, { name: 'desktop', width: 1440, height: 900 }]) {
   test(`Feature: Modbus table refinement — Scenario: Fixed headers filters and safe drafts fit ${viewport.name} (AC16/AC17/AC79/AC80)`, async ({ page }, testInfo) => {
     await page.setViewportSize(viewport); await prepareAuthenticatedDashboard(page);
@@ -441,7 +583,7 @@ async function enterDashboardEdit(page: import('@playwright/test').Page, touch =
   if (touch) await edit.tap(); else await edit.click();
 }
 
-for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'tablet', width: 1024, height: 768 }, { name: 'desktop', width: 1440, height: 900 }]) {
+for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'tablet', width: 768, height: 1024 }, { name: 'desktop', width: 1280, height: 900 }]) {
   test(`Feature: Dashboard unified editing — Scenario: Stable sections and cross-section movement on ${viewport.name}`, async ({ page }, testInfo) => {
     await page.setViewportSize(viewport);
     const template = responsiveDashboard.tabs[0].widgets[1];
@@ -630,7 +772,7 @@ test('Feature: Dashboard unified editing — Scenario: Keyboard transfers a card
     // the activated frame settle before the user's next key.
     await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
   await page.keyboard.press('ArrowRight');
-  await expect(page.getByRole('status')).toContainText('Patio');
+  await expect(page.locator('.homepilot-dashboard-content').getByRole('status')).toContainText('Patio');
   await expect(page.getByRole('region', { name: 'Patio', exact: true }).locator('[data-dashboard-card-id="keyboard-card"]')).toBeVisible();
   expect(writes).toBe(0);
   await page.keyboard.press('Space');
@@ -2077,7 +2219,7 @@ test('Feature: Sensor width — Scenario: A sensor stays medium without a width 
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
   await enterDashboardEdit(page);
   const sensor = page.locator('[data-dashboard-card-id="responsive-sensor"]');
-  await expect(sensor.getByRole('slider', { name: /resize card|redimensionar tarjeta/i })).toHaveCount(0);
+  await expect(sensor.getByRole('slider', { name: /resize (?:the )?card|redimensionar/i })).toHaveCount(1);
   await sensor.hover();
   await sensor.getByRole('button', { name: /^(Edit|Editar)$/i }).click();
   const heading = page.getByRole('heading', { name: /^(Edit|Editar)$/i });
@@ -2243,7 +2385,7 @@ for (const input of ['mouse', 'touch'] as const) {
   });
 }
 
-test('Feature: Section slots — a historical wide Section edits and saves as one slot without a width picker', async ({ page }) => {
+test('Feature: Section slots — a historical wide Section stays one slot until an explicit new width is saved', async ({ page }) => {
   const baseSection = responsiveDashboard.tabs[0]!.widgets[1]!;
   let dashboard = {
     ...responsiveDashboard,
@@ -2271,6 +2413,13 @@ test('Feature: Section slots — a historical wide Section edits and saves as on
   await expect.poll(() => dashboard.tabs[0].widgets[0].config.layout.span).toBe(1);
   expect(dashboard.tabs[0].widgets[0].config.extra.cards.map((card) => card.id)).toEqual(['legacy-card']);
   expect(dashboard.tabs[0].sectionLayout.columns4).toEqual(['legacy-wide-section', null]);
+  await page.getByRole('button', { name: /Editar sección|Edit section/i }).click();
+  await editor.getByRole('button', { name: /Section width|Ancho de sección/i }).click();
+  await page.getByRole('option', { name: '2', exact: true }).click();
+  await editor.getByRole('button', { name: /^(Guardar|Save)$/i }).click();
+  await expect.poll(() => dashboard.tabs[0].widgets[0].config.layout.span).toBe(2);
+  await page.reload();
+  await expect(page.locator('[data-dashboard-section-id="legacy-wide-section"]')).toHaveCSS('grid-column-start', 'span 2');
 });
 
 test('Feature: Sidebar navigation — a main view resets shell scroll but an internal tab does not', async ({ page }) => {
@@ -3483,10 +3632,8 @@ for (const viewport of [viewports[2], viewports[1], viewports[0], { name: 'portr
       ...responsiveDashboard,
       tabs: [{
         ...responsiveDashboard.tabs[0],
-        // No title widget: the edit-only add-title and add-section controls
-        // must not create extra auto-fit tracks or squeeze these sections.
-        // Fill the desktop profile's four slots so auto-fit view mode and
-        // explicit-slot edit mode share the same section track width.
+        // No title widget: edit controls must not add tracks or change the
+        // height of existing sections. Both modes use the same slot profile.
         widgets: ['Tech', 'Patio', 'Sala', 'Cocina'].map((title, index) => ({
           id: `layout-section-${index}`,
           type: 'section',
@@ -3548,6 +3695,7 @@ for (const viewport of [viewports[2], viewports[1], viewports[0], { name: 'portr
         contentWidth: content.getBoundingClientRect().width,
         cardGridWidth: gridRect.width,
         cardGridHeight: gridRect.height,
+        cardGridTop: gridRect.top,
         titleTop: (heading?.getBoundingClientRect().top ?? sectionRect.top) - sectionRect.top,
         titleToCards: cardRects[0] ? cardRects[0].top - (heading?.getBoundingClientRect().bottom ?? 0) : 0,
         sectionBackground: getComputedStyle(element).backgroundColor,
@@ -3565,6 +3713,8 @@ for (const viewport of [viewports[2], viewports[1], viewports[0], { name: 'portr
         addCardLeft: addCardRect?.left ?? null,
         addCardRight: addCardRect?.right ?? null,
         addCardTop: addCardRect?.top ?? null,
+        addCardBottom: addCardRect?.bottom ?? null,
+        toolbarTop: toolbarRect?.top ?? null,
         toolbarLeft: toolbarRect?.left ?? null,
         sectionLeft: sectionRect.left,
         sectionRight: sectionRect.right,
@@ -3581,7 +3731,7 @@ for (const viewport of [viewports[2], viewports[1], viewports[0], { name: 'portr
     const view = await Promise.all(['Tech', 'Patio'].map(geometry));
 
     await enterDashboardEdit(page);
-    await expect(section('Tech').getByRole('button', { name: /Drag to reorder|Arrastrar para reordenar/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^(Drag to reorder|Arrastrar para reordenar): Tech$/i })).toBeVisible();
     await settleLayout();
     const edit = await Promise.all(['Tech', 'Patio'].map(geometry));
 
@@ -3599,9 +3749,10 @@ for (const viewport of [viewports[2], viewports[1], viewports[0], { name: 'portr
       expect(after.sectionHeight).toBeGreaterThan(0);
       expect(before.sectionHeight).toBeGreaterThanOrEqual(before.cardGridHeight);
       expect(after.sectionHeight).toBeGreaterThanOrEqual(after.cardGridHeight);
-      // The edit-only placeholder follows the real card grid, so the section
-      // may grow, but existing cards retain their view-mode geometry.
-      expect(after.sectionHeight).toBeGreaterThan(before.sectionHeight);
+      // Floating edit controls reserve no extra row: the entire shell and
+      // card grid retain their view-mode geometry, not just the card widths.
+      expect(Math.abs(after.sectionHeight - before.sectionHeight)).toBeLessThanOrEqual(2);
+      expect(Math.abs(after.cardGridHeight - before.cardGridHeight)).toBeLessThanOrEqual(2);
       expect(Math.abs(after.titleTop - before.titleTop)).toBeLessThanOrEqual(2);
       expect(Math.abs(after.titleToCards - before.titleToCards)).toBeLessThanOrEqual(2);
       expect(before.titleTop).toBeGreaterThanOrEqual(8);
@@ -3639,12 +3790,13 @@ for (const viewport of [viewports[2], viewports[1], viewports[0], { name: 'portr
       expect(after.sectionRight).toBeLessThanOrEqual(after.canvasRight + 1);
       expect(after.toolbarPosition).toBe('absolute');
       expect(after.addCardInsideGrid).toBe(false);
-      if (after.addCardLeft === null || after.addCardRight === null || after.addCardTop === null || after.toolbarLeft === null) {
+      if (after.addCardLeft === null || after.addCardRight === null || after.addCardTop === null || after.addCardBottom === null || after.toolbarTop === null || after.toolbarLeft === null) {
         throw new Error(`${viewport.name}: edit controls are missing`);
       }
       expect(after.addCardLeft).toBeGreaterThanOrEqual(after.sectionLeft);
       expect(after.addCardRight).toBeLessThanOrEqual(after.sectionRight);
-      expect(after.addCardTop).toBeGreaterThanOrEqual(after.gridBottom);
+      expect(Math.abs(after.addCardTop - after.toolbarTop)).toBeLessThanOrEqual(2);
+      expect(after.addCardBottom).toBeLessThanOrEqual(after.cardGridTop);
     }
   });
 }
@@ -3967,8 +4119,8 @@ test('Feature: Media card width — Scenario: A player occupies the full section
 
   const editorHeading = page.getByRole('heading', { name: /^(Edit|Editar)$/i });
   await expect(editorHeading).toBeVisible();
-  const editor = editorHeading.locator('..').locator('..').locator('..');
-  const editorPreview = editor.locator('.custom-scrollbar > .grid');
+  const editor = page.getByRole('dialog', { name: /^(Edit|Editar)$/i });
+  const editorPreview = editor.getByRole('region', { name: /^(Preview|Vista previa)$/i });
   await expect(editor.getByRole('button', { name: /^(Premium)$/i })).toHaveAttribute('aria-pressed', 'true');
   await expect(editorPreview.locator('[data-media-player="homepilot-premium"]')).toBeVisible();
   await expect(editor.getByText(/^(Card width|Ancho de tarjeta)$/i)).toHaveCount(0);
@@ -3977,7 +4129,7 @@ test('Feature: Media card width — Scenario: A player occupies the full section
   const mediaCard = page.locator('[class*="group/card"]').filter({ hasText: /Reproductor|Media player/i });
   await expect(mediaCard.locator('[data-media-player="homepilot-premium"]')).toBeVisible();
   await expect(mediaCard).toHaveClass(/col-span-full/);
-  await expect(mediaCard.getByRole('slider', { name: /resize card|redimensionar tarjeta/i })).toHaveCount(0);
+  await expect(mediaCard.getByRole('slider', { name: /resize (?:the )?card|redimensionar/i })).toHaveCount(1);
   await expect.poll(() => {
     const section = savedDashboard.tabs[0]?.widgets.find((widget) => widget.id === 'responsive-section');
     if (!section || !('extra' in section.config)) return undefined;
@@ -4159,7 +4311,7 @@ test('Feature: Button card default — Scenario: A new button persists the first
 
   await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
   const buttonCard = page.locator('[data-card-id]').filter({ hasText: /^(Button|Botón)$/i }).last();
-  await expect(buttonCard).toHaveClass(/col-span-1/);
+  await expect(buttonCard).toHaveClass(/sm:col-span-3/);
   await expect.poll(() => JSON.stringify(savedDashboard)).toMatch(/"kind":"light"[^}]*"span":"small"/);
 });
 
@@ -4294,6 +4446,9 @@ test('Feature: Button card — Scenario: A scene briefly lights its icon without
 
 test('Feature: Unified control tile — Scenario: Selecting a light still sends an on/off command', async ({ page }) => {
   await prepareAuthenticatedDashboard(page);
+  // A device is assignable only when its room exists in the loaded topology.
+  await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: 'responsive-home', ownerId: dashboardUser.id, name: 'Casa' }] }));
+  await page.route('**/api/v1/rooms', route => route.fulfill({ json: [{ id: 'responsive-room', homeId: 'responsive-home', name: 'Sala' }] }));
   const light = { id: 'living-light', homeId: 'responsive-home', roomId: 'responsive-room', name: 'Luz de sala', type: 'light', semanticType: 'light', status: 'ASSIGNED', lastKnownState: { state: 'off' } };
   let savedDashboard = responsiveDashboard;
   let issuedCommand = '';

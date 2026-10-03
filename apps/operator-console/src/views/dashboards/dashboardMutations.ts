@@ -8,6 +8,7 @@ interface WidgetLabels {
 }
 
 export interface TabConfigFields {
+  maxColumns?: 1 | 2 | 3 | 4;
   title: string;
   icon?: string;
   background?: string | null;
@@ -58,6 +59,7 @@ export function configureTab(tabs: DashboardTab[], tabIndex: number, fields: Tab
   return tabs.map((tab, index) => index === tabIndex ? {
     ...tab,
     title: fields.title.trim(),
+    maxColumns: fields.maxColumns ?? tab.maxColumns,
     icon: fields.icon,
     background: fields.background === null ? undefined : fields.background,
     backgroundOpacity: fields.backgroundOpacity,
@@ -77,7 +79,7 @@ export function updateWidgetConfig(tabs: DashboardTab[], tabIndex: number, widge
         appearance: { ...widget.config.appearance, ...(newConfig.appearance || {}) },
         visibility: { ...widget.config.visibility, ...(newConfig.visibility || {}) },
         binding: { ...widget.config.binding, ...(newConfig.binding || {}) },
-        layout: { ...widget.config.layout, ...(newConfig.layout || {}), ...(widget.type === 'section' ? { span: 1 } : {}) },
+        layout: { ...widget.config.layout, ...(newConfig.layout || {}), ...(widget.type === 'section' && (newConfig.extra?.sectionGridVersion ?? widget.config.extra?.sectionGridVersion) !== 2 ? { span: 1 } : {}) },
         extra: { ...widget.config.extra, ...(newConfig.extra || {}) },
       },
     }),

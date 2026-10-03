@@ -1,17 +1,18 @@
 import { useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
-import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { IconPicker } from '../components/IconPicker';
 import { SearchableSelectField } from '../../../components/ui/SearchableSelectField';
 import { Button } from '../../../components/ui/Button';
-import { IconButton } from '../../../components/ui/IconButton';
 import { Input } from '../../../components/ui/Input';
 import { NumberInput } from '../../../components/ui/NumberInput';
 import { ToggleSwitch } from '../../../components/ui/ToggleSwitch';
+import { SegmentedControl } from '../../../components/ui/SegmentedControl';
+import type { CardColumns } from '../types';
 import { normalizeSensorScale, normalizeSensorVisualStyle, sensorVisualStyles, type SensorVisualStyle, type SensorScale } from './sectionCardCatalog';
 import type { SnapshotDevice, SnapshotRoom } from '../../../stores/useDeviceSnapshotStore';
 import { getAssignableDevicesForSectionCard } from '../dashboardUtils';
-import { ModalPortal } from './ModalPortal';
+import { Modal } from '../../../components/ui/Modal';
+import { MASONRY_ROW_GAP_PX, MASONRY_ROW_UNIT_PX } from './useMasonryRowSpans';
 import {
   canUseCompactSpan, cardKinds, getDefaultIcon, getDefaultSpan,
   getEffectiveCardSpan, isBindableKind, isClockKind,
@@ -55,36 +56,24 @@ export function SectionCardEditorModal({
   const { t } = useTranslation();
   const [validMinimum, setValidMinimum] = useState(true);
   const [validMaximum, setValidMaximum] = useState(true);
+  const [validRows, setValidRows] = useState(true);
+  const [panel, setPanel] = useState<'configuration' | 'design' | 'visibility'>('configuration');
+  const defaultColumns = cardDraft.span === 'full' ? 12 : cardDraft.span === 'small' ? 3 : 6;
+  const gridOptions = cardDraft.gridOptions ?? { columns: defaultColumns as CardColumns, rows: 'auto' as const };
   const sensorScale = normalizeSensorScale({ min: cardDraft.sensorMin, max: cardDraft.sensorMax });
   const invalidScale = cardDraft.kind === 'sensor' && (!validMinimum || !validMaximum || ((cardDraft.sensorMin !== undefined || cardDraft.sensorMax !== undefined) && !sensorScale));
   return (
-    <ModalPortal>
-      <div
-        className="fixed inset-0 z-[99999] grid place-items-center overflow-y-auto bg-black/55 px-3 py-4 backdrop-blur-sm sm:px-4 sm:py-6"
-      >
-        <div
-          className="flex max-h-[calc(100dvh-2rem)] w-full max-w-xl flex-col overflow-hidden rounded-panel border border-border/60 bg-card shadow-2xl sm:max-h-[calc(100dvh-3rem)]"
-        >
-          <div className="flex shrink-0 items-center justify-between border-b border-border/50 px-5 py-4">
-            <div>
-              <p className="text-caption font-black uppercase tracking-label text-muted-foreground">
-                {t('dashboard.editor.sections.edit')}
-              </p>
-              <h3 className="text-panel-title font-black text-foreground">
-                {t('common.edit')}
-              </h3>
-            </div>
-
-            <IconButton
-              icon={X}
-              label={t('common.close')}
-              onClick={() => onClose()}
-              variant="ghost"
-              size="md"
-            />
-          </div>
-
-          <div className="custom-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
+    <Modal isOpen onClose={onClose} title={t('common.edit')} headerAlign="start" className="max-w-xl"
+      footerClassName="justify-end gap-2 px-5 py-4 sm:px-8"
+      footer={<>
+        <Button type="button" onClick={onClose} variant="secondary">{t('dashboard.editor.sections.cancel')}</Button>
+        <Button type="button" onClick={onSave} disabled={invalidScale || !validRows}>{t('dashboard.editor.sections.save')}</Button>
+      </>}>
+          <div className="min-w-0 space-y-4">
+            <div role="region" aria-label={t('dashboards.edit_session.preview')} className="min-w-0 overflow-auto" style={{
+              width: `${((gridOptions.columns === 'full' ? 12 : gridOptions.columns) / 12) * 100}%`,
+              height: typeof gridOptions.rows === 'number' ? gridOptions.rows * (MASONRY_ROW_UNIT_PX + MASONRY_ROW_GAP_PX) - MASONRY_ROW_GAP_PX : undefined,
+            }}>
             {renderCatalogPreview(
               cardDraft.kind,
               cardDraft.title || catalogLabel(cardDraft.kind),
@@ -97,6 +86,20 @@ export function SectionCardEditorModal({
               cardDraft.sensorDecimals,
               cardDraft.visualStyle,
             )}
+            </div>
+            <SegmentedControl value={panel} onChange={setPanel} label={t('dashboards.edit_session.label')} options={(['configuration', 'design', 'visibility'] as const).map(value => ({ value, label: t(`dashboards.edit_session.${value}`) }))} />
+            {panel === 'design' && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <SearchableSelectField label={t('dashboards.edit_session.columns')} value={String(gridOptions.columns)}
+                options={[...Array.from({ length: 12 }, (_, index) => index + 1).filter(value => value >= (gridOptions.minColumns ?? 1) && value <= (gridOptions.maxColumns ?? 12)).map(value => ({ value: String(value), label: String(value) })), ...((gridOptions.maxColumns ?? 12) === 12 ? [{ value: 'full', label: t('dashboard.editor.sections.card_size_full') }] : [])]}
+                onChange={value => setCardDraft(draft => ({ ...draft, gridOptions: { ...gridOptions, columns: value === 'full' ? 'full' : Number(value) as CardColumns } }))} />
+              <NumberInput label={t('dashboards.edit_session.rows')} value={gridOptions.rows === 'auto' ? undefined : gridOptions.rows} min={gridOptions.minRows ?? 1} max={gridOptions.maxRows} step={1} required={false}
+                onValidityChange={setValidRows}
+                placeholder={t('dashboards.edit_session.auto')}
+                onEmpty={() => setCardDraft(draft => ({ ...draft, gridOptions: { ...gridOptions, rows: 'auto' } }))}
+                onValueChange={rows => setCardDraft(draft => ({ ...draft, gridOptions: { ...gridOptions, rows } }))} />
+            </div>}
+            {panel === 'visibility' && <ToggleSwitch label={t('dashboards.edit_session.visible')} checked={!cardDraft.hidden} onCheckedChange={visible => setCardDraft(draft => ({ ...draft, hidden: !visible }))} />}
+            <div hidden={panel !== 'configuration'} className="space-y-4">
 
             {normalizeKind(cardDraft.kind) === 'media' && (
               <fieldset className="space-y-2">
@@ -184,6 +187,7 @@ export function SectionCardEditorModal({
                 onChange={(value) => setCardDraft((draft) => ({
                   ...draft,
                   span: getEffectiveCardSpan(draft.kind, value as SectionCardSpan),
+                  gridOptions: undefined,
                 }))}
               />
             )}
@@ -324,19 +328,9 @@ export function SectionCardEditorModal({
                 </p>
               </div>
             ) : null}
+            </div>
           </div>
 
-          <div className="flex shrink-0 justify-end gap-3 border-t border-border/50 px-5 py-4">
-            <Button type="button" onClick={() => onClose()} variant="secondary" size="md">
-              {t('dashboard.editor.sections.cancel')}
-            </Button>
-
-            <Button type="button" onClick={onSave} disabled={invalidScale} variant="primary" size="md">
-              {t('dashboard.editor.sections.save')}
-            </Button>
-          </div>
-        </div>
-      </div>
-    </ModalPortal>
+    </Modal>
   );
 }

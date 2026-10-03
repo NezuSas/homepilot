@@ -88,7 +88,7 @@ export function clampSectionSpan(span: number, columns: number): number {
  * or derive it from legacy absolute-layout width.
  */
 export function getSectionSpan(widget: DashboardWidget): number {
-  if (widget.type === 'section') return 1;
+  if (widget.type === 'section' && widget.config.extra?.sectionGridVersion !== 2) return 1;
   const explicitSpan = widget.config.layout.span;
   if (typeof explicitSpan === 'number' && Number.isFinite(explicitSpan)) {
     return Math.max(1, Math.min(Math.round(explicitSpan), DASHBOARD_MAX_SECTION_SPAN));

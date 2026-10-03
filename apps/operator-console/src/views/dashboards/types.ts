@@ -1,17 +1,8 @@
-// type-only import removed since unused
+import type { DashboardWidgetType } from '../../../../../packages/topology/domain/Dashboard';
+export type { CardGridOptions, CardColumns, SectionColumns } from '../../../../../packages/topology/domain/DashboardSections';
 
-export type WidgetType = 
-  | 'device_control' 
-  | 'action_button'
-  | 'room_overview' 
-  | 'room_summary'   // legacy alias; maps to RoomWidget
-  | 'scene_shortcut' 
-  | 'activity_feed' 
-  | 'assistant_insight' 
-  | 'system_status' 
-  | 'energy_snapshot'
-  | 'clock_display'
-  | 'dashboard_title' | 'section';
+export type WidgetType = Exclude<DashboardWidgetType,
+  'selected_device' | 'scenes_shortcut' | 'assistant_insights' | 'energy_insight'>;
 
 export interface WidgetLayout {
   x: number;
@@ -65,6 +56,7 @@ export interface DashboardTab {
   id: string;
   title: string;
   widgets: DashboardWidget[];
+  maxColumns?: 1 | 2 | 3 | 4;
   /** Sparse section IDs for each effective responsive column count. */
   sectionLayout?: Partial<Record<'columns1' | 'columns2' | 'columns3' | 'columns4', Array<string | null>>>;
   icon?: string;

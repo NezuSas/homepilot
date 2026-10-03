@@ -1,5 +1,7 @@
 # Spec-Driven Coverage Matrix
 
+Editor Sections AC46–AC49, cierre local 2026-10-03: 135/135 Jest focalizados y ocho escenarios responsive de confirmación PASS; typecheck/lint/builds y controles de trazabilidad PASS. Una pasada completa Jest (3445 PASS / 4 FAIL) y una responsive (211 PASS / 68 FAIL); correcciones focalizadas y fallos generales pendientes detallados en `specs/dashboard-layout-and-widgets-v1.tasks.md`, sección «Cierre técnico local». No equivale a aprobación de release ni a paridad literal con todo Home Assistant.
+
 Dashboard AC45: visualizadores Sensor modulares con escala y dato único, selección/preview/persistencia/transferencia, reduced-motion y carcasa estable. Cobertura: SensorVisualizers.test.tsx, SensorMetricCard.test.tsx, SensorAnalogGauge.test.tsx, sectionCardCatalog.test.ts, DashboardService.test.ts y responsive «Sensor visualizers». Estabilidad Clásico e importación: MediaPlayerPremium.test.tsx, responsive «Media player idle», «Dashboard tab transfer» y «Dashboard import».
 
 - Modbus TCP nativo: `specs/modbus-tcp-local-integration-v1.md` AC1–AC7; protocolo TCP simulado, configuración/inventario SQLite, driver, lifecycle y rutas Admin en `ModbusTcpClient.test.ts`, `ModbusService.test.ts`, `ModbusRoutes.test.ts`. Jest focalizado 102/102 PASS en 6 suites (67 Modbus y 35 regresión); responsive `Native Modbus configuration` 5/5 PASS: móvil, tablet portrait/landscape, desktop, claro/oscuro y no-Admin. Typecheck/lint/builds y controles de trazabilidad/arquitectura/i18n PASS. Evidencia `.impeccable/review/modbus-v1/`. Sin suites completas, Docker ni certificación del PLC físico/mapa Xinje.
@@ -50,6 +52,7 @@ The command fails if a file cannot be mapped to an existing spec.
 | Home topology | `packages/topology`, `TopologyRoutes`, topology views | Home and room management |
 | Espacios operativos compactos | TopologyRoomDetailPanel, TopologyDeviceTile, topologyDeviceControl, RoomDisplayControls, CameraDeviceTile, presentaciones compartidas del Dashboard | `specs/home-room-management.md` AC16, AC24–AC26; `specs/smart-display-control-catalog-v1.md` |
 | Dashboards and widgets | Dashboard routes, dashboard views, widgets | Dashboard layout and user navigation |
+| Sections editor (modelo en memoria, persistencia compatible) | `DashboardSections`, `readDashboardSections`, `dashboardSectionsAdapter`, canvas/resize/editor, `DashboardEditSession`, repositorio transaccional; pruebas de conversión, cola, API, import/export y responsive focalizado | `dashboard-layout-and-widgets-v1.md` AC46–AC49 |
 | Devices and commands | `packages/devices`, device routes, inbox, controls | Device command, capability, and state specs |
 | Discovery and import | device routes, inbox, Home Assistant integration | Device discovery inbox |
 | Scenes | scene routes, builder, and scene views | Scene lifecycle |
@@ -83,7 +86,7 @@ The command fails if a file cannot be mapped to an existing spec.
 
 ## Audited Coverage
 
-- The **933** audited TypeScript/TSX files have a mapping rule to an existing
+- The **946** audited TypeScript/TSX files have a mapping rule to an existing
   spec.
 - All bounded contexts under `packages/` and all API route families are
   covered.

@@ -21,6 +21,7 @@ interface DashboardTitleBarProps {
   historyLabel: string;
   onOpenHistory: () => void;
   isTransferring?: boolean;
+  editActions?: React.ReactNode;
 }
 
 export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
@@ -41,6 +42,7 @@ export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
   historyLabel,
   onOpenHistory,
   isTransferring = false,
+  editActions,
 }) => {
   const importInputRef = useRef<HTMLInputElement>(null);
   const overflowDetailsRef = useRef<HTMLDetailsElement>(null);
@@ -67,6 +69,7 @@ export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
       </div>
     )}
     <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+      {isEditingDashboard && editActions}
       <input
         ref={importInputRef}
         type="file"

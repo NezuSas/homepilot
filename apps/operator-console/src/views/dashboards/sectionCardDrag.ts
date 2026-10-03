@@ -26,12 +26,12 @@ export function moveSectionCard(widgets: DashboardWidget[], sourceId: string, ca
   const targetCards = sourceId === targetId ? sourceCards : storedCards(target);
   const targetIndex = targetCardId ? targetCards.findIndex((card) => card.id === targetCardId) : targetCards.length;
   if (targetIndex < 0 || (sourceId !== targetId && targetCards.some((card) => card.id === cardId))) return widgets;
-  if (sourceId === targetId && (sourceIndex === targetIndex || targetIndex === sourceCards.length)) return widgets;
-  const nextSource = sourceId === targetId ? arrayMove(sourceCards, sourceIndex, targetIndex) : sourceCards.filter((card) => card.id !== cardId);
+  if (sourceId === targetId && sourceIndex === Math.min(targetIndex, sourceCards.length - 1)) return widgets;
+  const nextSource = sourceId === targetId ? arrayMove(sourceCards, sourceIndex, Math.min(targetIndex, sourceCards.length - 1)) : sourceCards.filter((card) => card.id !== cardId);
   const nextTarget = sourceId === targetId ? nextSource : [...targetCards.slice(0, targetIndex), sourceCards[sourceIndex], ...targetCards.slice(targetIndex)];
   return widgets.map((widget) => {
     const cards = widget.id === sourceId ? nextSource : widget.id === targetId ? nextTarget : null;
-    return cards ? { ...widget, config: { ...widget.config, extra: { ...widget.config.extra, cards: cards.map((card, order) => ({ ...card, order })) } } } : widget;
+    return cards ? { ...widget, config: { ...widget.config, extra: { ...widget.config.extra, cards: cards.map(card => { const next = { ...card }; delete next.order; return next; }) } } } : widget;
   });
 }
 export const DASHBOARD_DRAG_TRANSITION = { duration: 150, easing: 'ease' };

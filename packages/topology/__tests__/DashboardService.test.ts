@@ -10,6 +10,24 @@ import {
 import { HomeRepository } from '../domain/repositories/HomeRepository';
 
 describe('DashboardService', () => {
+  it('Feature: Sections sizing — Scenario: Save reload export and import preserve new geometry in the compatible envelope (AC48–AC49)', async () => {
+    let stored = createDashboard('sizing', 'Casa');
+    const repository = { ...createDashboardRepository(stored),
+      findDashboardById: async () => stored,
+      findAllVisibleTo: async () => [stored],
+      saveDashboard: async (dashboard: Dashboard) => { stored = dashboard; },
+    };
+    const service = new DashboardService(repository, createHomeRepository());
+    const gridOptions = { columns: 5, rows: 8, minColumns: 3, maxColumns: 10 };
+    await service.updateDashboard('user-1', 'admin', stored.id, { tabs: [{ ...stored.tabs[0], maxColumns: 2, widgets: [{
+      id: 'section', type: 'section', config: { layout: { span: 2 }, extra: { sectionGridVersion: 2, cards: [{ id: 'card', kind: 'sensor', gridOptions, hidden: true }] } },
+    }] }] });
+    expect((await service.getOwnedDashboard('user-1', stored.id)).tabs[0].maxColumns).toBe(2);
+    const transfer = await service.exportTab('user-1', stored.id, stored.tabs[0].id);
+    const imported = await service.importTab('user-1', stored.id, transfer);
+    expect(imported.tabs[1].maxColumns).toBe(2);
+    expect(imported.tabs[1].widgets[0].config).toMatchObject({ layout: { span: 2 }, extra: { cards: [{ gridOptions, hidden: true }] } });
+  });
   it('transfers only one tab, privately appends with fresh IDs, preserves slots and default, and saves a revision', async () => {
     const owned = createDashboard('owned', 'Casa');
     owned.tabs[0].isDefault = true;
@@ -31,7 +49,8 @@ describe('DashboardService', () => {
     expect(imported.tabs[2].visibility).toBeUndefined();
     expect(imported.tabs[2].isDefault).toBe(false);
     expect(imported.importReport?.nonPortableBackgrounds).toBe(1);
-    expect(saveRevision).toHaveBeenCalledTimes(1);
+    expect(saveRevision).not.toHaveBeenCalled();
+    expect(saveDashboard).toHaveBeenCalledWith(expect.objectContaining({ id: owned.id }), expect.objectContaining({ dashboardId: owned.id }));
     expect(saveDashboard).toHaveBeenCalledTimes(1);
   });
 
@@ -163,8 +182,8 @@ describe('DashboardService', () => {
     expect(imported.tabs).toHaveLength(2);
     expect(imported.tabs[0]).toMatchObject({ id: 'tab-1', isDefault: false });
     expect(imported.tabs[1]).toMatchObject({ title: 'Nueva', isDefault: true });
-    expect(saveDashboard).toHaveBeenCalledWith(expect.objectContaining({ id: 'owned', tabs: imported.tabs }));
-    expect(saveRevision).toHaveBeenCalledWith(expect.objectContaining({ dashboardId: 'owned', snapshot: expect.objectContaining({ title: 'Mi hogar' }) }));
+    expect(saveDashboard).toHaveBeenCalledWith(expect.objectContaining({ id: 'owned', tabs: imported.tabs }), expect.objectContaining({ dashboardId: 'owned', snapshot: expect.objectContaining({ title: 'Mi hogar' }) }));
+    expect(saveRevision).not.toHaveBeenCalled();
   });
 
   it('exports owned dashboard layout without local backgrounds or visibility', async () => {
@@ -311,7 +330,7 @@ describe('DashboardService', () => {
     source.tabs[0].sectionLayout = { columns4: ['a', null, 'b'], columns3: ['b', 'a'] };
     const saveRevision = jest.fn();
     const service = new DashboardService({
-      ...createDashboardRepository(source), findAllVisibleTo: async () => [source], saveRevision,
+      ...createDashboardRepository(source), findAllVisibleTo: async () => [source], saveDashboard: async (_dashboard, revision) => { if (revision) saveRevision(revision); },
     }, createHomeRepository());
     const transfer = await service.exportDashboard('user-1', source.id);
     expect(transfer.dashboard.tabs[0].sectionLayout).toEqual(source.tabs[0].sectionLayout);
@@ -622,8 +641,7 @@ describe('DashboardService', () => {
     const revisions: DashboardRevision[] = [];
     const dashboardRepository: DashboardRepository = {
       ...createDashboardRepository(stored),
-      saveDashboard: async () => undefined,
-      saveRevision: async (revision) => { revisions.push(revision); },
+      saveDashboard: async (_dashboard, revision) => { if (revision) revisions.push(revision); },
       findRevisionsByDashboardId: async () => revisions,
     };
     const service = new DashboardService(dashboardRepository, createHomeRepository());
@@ -700,8 +718,7 @@ describe('DashboardService', () => {
     }];
     const dashboardRepository: DashboardRepository = {
       ...createDashboardRepository(stored),
-      saveDashboard: async () => undefined,
-      saveRevision: async (revision) => { revisions.unshift(revision); },
+      saveDashboard: async (_dashboard, revision) => { if (revision) revisions.unshift(revision); },
       findRevisionsByDashboardId: async () => revisions,
     };
     const service = new DashboardService(dashboardRepository, createHomeRepository());

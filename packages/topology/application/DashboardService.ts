@@ -23,6 +23,7 @@ import {
 import { randomUUID } from 'crypto';
 import { normalizeImportedWidgets } from './DashboardImportNormalizer';
 import { normalizeDashboardSections, normalizeSectionTabs } from '../domain/DashboardSectionLayout';
+import { validateDashboardGridOptions } from './validateDashboardGridOptions';
 
 export class DashboardService {
   constructor(
@@ -84,6 +85,7 @@ export class DashboardService {
             title: tab.title,
             widgets: tab.widgets,
             sectionLayout: tab.sectionLayout,
+            maxColumns: tab.maxColumns,
             icon: tab.icon,
             isDefault: tab.isDefault === true,
             ...(presetId ? { backgroundPresetId: presetId, backgroundOpacity: tab.backgroundOpacity } : {}),
@@ -212,16 +214,13 @@ export class DashboardService {
     };
     if (owned) {
       dashboard.visibility = createVisibilityForTabs(userId, dashboard.tabs, owned.visibility);
-      await this.dashboardRepository.saveRevision({
-        id: randomUUID(),
-        dashboardId: owned.id,
-        createdAt: now,
-        snapshot: createRevisionSnapshot(owned),
-      });
     }
 
+    validateDashboardGridOptions(dashboard.tabs);
     const normalizedDashboard = normalizeDashboardSections(dashboard);
-    await this.dashboardRepository.saveDashboard(normalizedDashboard);
+    await this.dashboardRepository.saveDashboard(normalizedDashboard, owned ? {
+      id: randomUUID(), dashboardId: owned.id, createdAt: now, snapshot: createRevisionSnapshot(owned),
+    } : undefined);
     return { ...normalizedDashboard, importReport: report };
   }
 
@@ -242,12 +241,13 @@ export class DashboardService {
     }
 
     const now = new Date().toISOString();
-    await this.dashboardRepository.saveRevision({
+    const revision: DashboardRevision = {
       id: randomUUID(),
       dashboardId: dashboard.id,
       createdAt: now,
       snapshot: createRevisionSnapshot(dashboard),
-    });
+    };
+    if (updates.tabs) validateDashboardGridOptions(updates.tabs);
 
     const updated: Dashboard = {
       ...dashboard,
@@ -259,7 +259,7 @@ export class DashboardService {
       updatedAt: now,
     };
 
-    await this.dashboardRepository.saveDashboard(updated);
+    await this.dashboardRepository.saveDashboard(updated, revision);
     return updated;
   }
 
@@ -291,14 +291,14 @@ export class DashboardService {
     if (restored.tabs.filter((tab) => tab.isDefault).length > 1) {
       throw new Error('DASHBOARD_MULTIPLE_DEFAULT_TABS');
     }
+    validateDashboardGridOptions(restored.tabs);
 
-    await this.dashboardRepository.saveRevision({
+    await this.dashboardRepository.saveDashboard(restored, {
       id: randomUUID(),
       dashboardId: dashboard.id,
       createdAt: now,
       snapshot: createRevisionSnapshot(dashboard),
     });
-    await this.dashboardRepository.saveDashboard(restored);
     return restored;
   }
 

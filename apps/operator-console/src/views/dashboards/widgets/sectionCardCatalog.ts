@@ -1,4 +1,5 @@
-import type { DashboardWidgetConfig, WidgetType } from '../types';
+import type { CardGridOptions, DashboardWidgetConfig, WidgetType } from '../types';
+import { readCardGridOptions } from '../../../../../../packages/topology/application/readDashboardSections';
 import type { ClockStyle } from './ClockWidget';
 import { DASHBOARD_ICON_DEFAULTS } from '../components/dashboardIconRegistry';
 
@@ -56,6 +57,8 @@ export interface SectionCardItem {
   sensorScale?: SensorScale;
   visualStyle?: SensorVisualStyle;
   sensorDecimals?: boolean;
+  gridOptions?: CardGridOptions;
+  hidden?: boolean;
 }
 
 export interface NormalizedSectionCardItem extends Omit<SectionCardItem, 'kind'> {
@@ -73,6 +76,8 @@ export interface CardDraft {
   visualStyle?: SensorVisualStyle;
   sensorMax?: number;
   sensorDecimals?: boolean;
+  gridOptions?: CardGridOptions;
+  hidden?: boolean;
 }
 
 export interface AssignableScene {
@@ -321,7 +326,7 @@ export function getDefaultIcon(kind: SectionCardKind): SectionCardIcon {
 export function normalizeCards(extra?: DashboardWidgetConfig['extra']): NormalizedSectionCardItem[] {
   const rawCards = Array.isArray(extra?.cards) ? extra.cards : [];
 
-  return rawCards.flatMap((rawCard, index) => {
+  return rawCards.flatMap((rawCard) => {
     const card = rawCard as Partial<NormalizedSectionCardItem> & Record<string, unknown>;
     const legacyKind = (card.kind as LegacySectionCardKind) || 'device';
     // Room summaries and standalone scene shortcuts were superseded by
@@ -330,7 +335,11 @@ export function normalizeCards(extra?: DashboardWidgetConfig['extra']): Normaliz
     if (legacyKind === 'system' || legacyKind === 'room' || legacyKind === 'scene') return [];
     const kind = normalizeKind(legacyKind);
 
+    const metadata = { ...card };
+    delete metadata.order;
+    delete metadata.rowSpan;
     return [{
+      ...metadata,
       id: typeof card.id === 'string' && card.id.trim() ? card.id : createId(),
       kind,
       title: typeof card.title === 'string' && card.title.trim()
@@ -355,7 +364,8 @@ export function normalizeCards(extra?: DashboardWidgetConfig['extra']): Normaliz
       ...(kind === 'sensor' && normalizeSensorScale(card.sensorScale) ? { sensorScale: normalizeSensorScale(card.sensorScale) } : {}),
       ...(kind === 'sensor' && card.sensorDecimals === true ? { sensorDecimals: true } : {}),
       ...(kind === 'sensor' && card.visualStyle !== undefined ? { visualStyle: normalizeSensorVisualStyle(card.visualStyle) } : {}),
-      order: typeof card.order === 'number' ? card.order : index,
+      ...(card.gridOptions ? { gridOptions: readCardGridOptions(card.gridOptions) } : {}),
+      hidden: card.hidden === true,
     }];
   });
 }
@@ -367,10 +377,10 @@ export function getSpanClass(span: SectionCardSpan) {
     case 'full':
       return 'col-span-full';
     case 'medium':
-      return 'col-span-1 sm:col-span-2';
+      return 'col-span-6';
     case 'small':
     default:
-      return 'col-span-1';
+      return 'col-span-6 sm:col-span-3';
   }
 }
 

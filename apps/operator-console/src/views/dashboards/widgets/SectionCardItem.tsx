@@ -15,18 +15,17 @@ import { CardResizeHandle } from './CardResizeHandle';
 import { MASONRY_ROW_GAP_PX, MASONRY_ROW_UNIT_PX } from './useMasonryRowSpans';
 import { ModalPortal } from './ModalPortal';
 import { SectionCardContent } from './SectionCardContent';
+import type { CardGridOptions } from '../types';
 import { DashboardCardSkeleton, type DashboardCardSkeletonVariant } from '../../../components/ui/DashboardCardSkeleton';
 import { needsInitialDashboardSkeleton, useDelayedSkeleton } from '../../../components/ui/useDashboardDelayedSkeleton';
 import {
-  canUseCompactSpan, getDefaultSpan, getEffectiveCardSpan, getSpanClass,
+  getDefaultSpan, getEffectiveCardSpan, getSpanClass,
   isClockKind, normalizeKind, type NormalizedSectionCardItem,
-  type SectionCardKind, type SectionCardSpan,
+  type SectionCardKind,
 } from './sectionCardCatalog';
 
 // Compact tiles share a minimum masonry row span despite title wrapping.
 const COMPACT_TILE_ROW_SPAN = Math.ceil((96 + MASONRY_ROW_GAP_PX) / (MASONRY_ROW_UNIT_PX + MASONRY_ROW_GAP_PX));
-const COMPACT_CARD_SPAN_ORDER: SectionCardSpan[] = ['small', 'medium', 'full'];
-const STANDARD_CARD_SPAN_ORDER: SectionCardSpan[] = ['medium', 'full'];
 
 export function SectionCardItem({
   card,
@@ -65,7 +64,7 @@ export function SectionCardItem({
   upsertDevice: (device: SnapshotDevice) => void;
   openCardEditor: (card: NormalizedSectionCardItem) => void;
   removeCard: (id: string) => void;
-  resizeCard: (cardId: string, nextSpan: SectionCardSpan) => void;
+  resizeCard: (cardId: string, size: CardGridOptions) => void;
   registerRowSpanRef: (cardId: string, element: HTMLElement | null) => void;
   rowSpan: number;
 }) {
@@ -74,11 +73,17 @@ export function SectionCardItem({
   const [isCardMenuOpen, setIsCardMenuOpen] = useState(false);
   const [cardMenuPosition, setCardMenuPosition] = useState<{ top: number; right: number } | null>(null);
   const previewNode = useRef<HTMLDivElement | null>(null);
+  const [resizePreview, setResizePreview] = useState<CardGridOptions | null>(null);
 
   // getEffectiveCardSpan guards against a stale/manually-dragged 'small'
   // span on a kind that can't render as a quarter-width tile; media is
   // always full width, including when a legacy configuration stores less.
-  const span = getEffectiveCardSpan(card.kind, card.span ?? getDefaultSpan(card.kind));
+  const savedSpan = getEffectiveCardSpan(card.kind, card.span ?? getDefaultSpan(card.kind));
+  const gridOptions = resizePreview ?? card.gridOptions;
+  const explicitHeight = typeof gridOptions?.rows === 'number'
+    ? gridOptions.rows * (MASONRY_ROW_UNIT_PX + MASONRY_ROW_GAP_PX) - MASONRY_ROW_GAP_PX
+    : undefined;
+  const span = gridOptions ? gridOptions.columns === 'full' || gridOptions.columns > 6 ? 'full' : gridOptions.columns <= 3 ? 'small' : 'medium' : savedSpan;
   const subtitle = card.entityName || card.description;
   const isCamera = normalizeKind(card.kind) === 'camera';
   const isClock = isClockKind(card.kind);
@@ -91,8 +96,7 @@ export function SectionCardItem({
   const isCover = normalizedKind === 'cover';
   const isTileKind = normalizedKind === 'device' || normalizedKind === 'light' || normalizedKind === 'action';
   const isCompactDeviceCard = isTileKind && span === 'small';
-  const canResize = isEditing && !isClock && !['media', 'sensor'].includes(normalizedKind);
-  const spanOrder = canUseCompactSpan(card.kind) ? COMPACT_CARD_SPAN_ORDER : STANDARD_CARD_SPAN_ORDER;
+  const canResize = isEditing;
   const roomDevices = normalizedKind === 'room' && card.entityId
     ? devices.filter((device) => device.roomId === card.entityId)
     : [];
@@ -178,6 +182,9 @@ export function SectionCardItem({
       }}
       style={{
         containerType: 'inline-size',
+        height: explicitHeight,
+        minHeight: explicitHeight === undefined ? undefined : 0,
+        gridColumn: gridOptions ? gridOptions.columns === 'full' ? '1 / -1' : `span ${gridOptions.columns}` : undefined,
         // Tile-kind cards get a fixed uniform height so identical tiles
         // don't jitter a few pixels apart from a 1- vs 2-line title. But
         // it's a floor, never a hard cap: Math.max against the actually
@@ -186,7 +193,7 @@ export function SectionCardItem({
         // clipped by the card's own overflow-hidden background.
         // Keep the same measured rows in view and edit so changing modes
         // cannot compress the section's vertical rhythm.
-        gridRow: `span ${isTileKind ? Math.max(rowSpan, COMPACT_TILE_ROW_SPAN) : rowSpan}`,
+        gridRow: `span ${typeof gridOptions?.rows === 'number' ? gridOptions.rows : isTileKind ? Math.max(rowSpan, COMPACT_TILE_ROW_SPAN) : rowSpan}`,
         transform: CSS.Translate.toString(transform),
         transition: transition ?? undefined,
       }}
@@ -234,7 +241,9 @@ export function SectionCardItem({
           {isCover && <div className="invisible min-h-0" aria-hidden="true"><CurtainDeviceTileLoadingGeometry /></div>}
           {skeletonVariant && <DashboardCardSkeleton variant={skeletonVariant} visible={showSkeleton} className={overlaySkeleton ? 'absolute inset-0' : undefined} />}
         </div>
-      ) : cardContent}
+      ) : explicitHeight === undefined ? cardContent : (
+        <div className="grid h-full min-h-0 min-w-0 overflow-auto">{cardContent}</div>
+      )}
 
       {isEditing ? (
         <div
@@ -340,9 +349,10 @@ export function SectionCardItem({
 
       {canResize ? (
         <CardResizeHandle
-          span={span}
-          spanOrder={spanOrder}
+          gridOptions={card.gridOptions ?? { columns: savedSpan === 'full' ? 12 : savedSpan === 'small' ? 3 : 6, rows: 'auto' }}
+          measuredRows={rowSpan}
           label={t('dashboard.editor.sections.resize_card')}
+          onPreview={setResizePreview}
           onResize={(nextSpan) => resizeCard(card.id, nextSpan)}
         />
       ) : null}

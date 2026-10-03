@@ -8,6 +8,7 @@ import {
   Maximize2,
   Pencil,
   MoreVertical,
+  Copy,
   GripVertical,
   Trash2
 } from 'lucide-react';
@@ -15,6 +16,7 @@ import { useDeviceSnapshotStore } from '../../stores/useDeviceSnapshotStore';
 import { IconButton } from '../../components/ui/IconButton';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { SearchableSelectField } from '../../components/ui/SearchableSelectField';
 import { Modal } from '../../components/ui/Modal';
 import { clampSectionSpan, getSectionSpan } from './dashboardUtils';
 import { IconPicker, getDashboardIconComponent } from './components/IconPicker';
@@ -40,6 +42,7 @@ interface DashboardWidgetNodeProps {
   onClick: () => void;
   onConfigChange?: (id: string, config: Partial<DashboardWidgetConfig>) => void;
   onDelete?: (id: string) => void;
+  onDuplicate?: (id: string) => void;
   /** Sortable drag handle from the parent's useSortable(); spread onto the grip button. */
   dragHandleAttributes?: DraggableAttributes;
   dragHandleListeners?: DraggableSyntheticListeners;
@@ -175,6 +178,7 @@ export function DashboardWidgetNode({
   onClick,
   onConfigChange,
   onDelete,
+  onDuplicate,
   dragHandleAttributes,
   dragHandleListeners,
   columns = 3,
@@ -186,6 +190,7 @@ export function DashboardWidgetNode({
   const [isSectionEditorOpen, setIsSectionEditorOpen] = useState(false);
   const [sectionDraftTitle, setSectionDraftTitle] = useState('');
   const [sectionDraftIcon, setSectionDraftIcon] = useState('');
+  const [sectionDraftSpan, setSectionDraftSpan] = useState(1);
   const [titleEditorRequest, setTitleEditorRequest] = useState(0);
   const [isTitleEditorOpen, setIsTitleEditorOpen] = useState(false);
   const [isTitleMenuOpen, setIsTitleMenuOpen] = useState(false);
@@ -279,7 +284,8 @@ export function DashboardWidgetNode({
                 onClick={() => {
                   onConfigChange?.(widget.id, {
                     appearance: { ...widget.config.appearance, title: sectionDraftTitle.trim(), icon: sectionDraftIcon.trim() || undefined },
-                    layout: { ...widget.config.layout, span: 1 },
+                    layout: { ...widget.config.layout, span: sectionDraftSpan },
+                    extra: { ...widget.config.extra, sectionGridVersion: 2 },
                   });
                   setIsSectionEditorOpen(false);
                 }}
@@ -290,6 +296,7 @@ export function DashboardWidgetNode({
           )}
         >
           <div className="space-y-5">
+            <SearchableSelectField label={t('dashboards.edit_session.section_width')} value={String(sectionDraftSpan)} options={[1, 2, 3, 4].map(value => ({ value: String(value), label: String(value) }))} onChange={value => setSectionDraftSpan(Number(value))} />
             <Input
               autoFocus
               label={t('dashboard.editor.sections.section_title')}
@@ -404,6 +411,18 @@ export function DashboardWidgetNode({
           {/* A selected section exposes only its direct manipulation tools. */}
           <div className={cn("pointer-events-auto absolute z-30 flex items-center", isSection ? "-top-5 right-3" : "right-2 top-2")}>
             <div className="flex items-center gap-1 rounded-xl border border-border/50 bg-background/95 p-1 shadow-lg backdrop-blur-md">
+              {isSection && <details className="relative" onKeyDown={event => { if (event.key === 'Escape') { event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus(); } }}>
+                <summary aria-label={t('dashboards.edit_session.section_actions')} className="grid h-11 w-11 cursor-pointer place-items-center rounded-control text-muted-foreground hover:bg-muted focus-visible:outline focus-visible:outline-primary [&::-webkit-details-marker]:hidden"><MoreVertical className="h-4 w-4" /></summary>
+                <div role="menu" className="absolute right-0 top-full z-40 min-w-44 rounded-panel border border-border bg-card p-1.5 shadow-depth-3">
+                  <Button role="menuitem" variant="ghost" className="w-full justify-start" onClick={event => {
+                    const menu = event.currentTarget.closest('details'); if (menu) menu.open = false;
+                    setSectionDraftTitle(widget.config.appearance?.title ?? ''); setSectionDraftIcon(widget.config.appearance?.icon ?? '');
+                    setSectionDraftSpan(widget.config.extra?.sectionGridVersion === 2 ? widget.config.layout.span ?? 1 : 1); setIsSectionEditorOpen(true);
+                  }}><Pencil className="h-4 w-4" />{t('common.edit')}</Button>
+                  <Button role="menuitem" variant="ghost" className="w-full justify-start" onClick={event => { const menu = event.currentTarget.closest('details'); if (menu) menu.open = false; onDuplicate?.(widget.id); }}><Copy className="h-4 w-4" />{t('dashboards.edit_session.duplicate')}</Button>
+                  <Button role="menuitem" variant="ghost" className="w-full justify-start text-danger" onClick={event => { const menu = event.currentTarget.closest('details'); if (menu) menu.open = false; onDelete?.(widget.id); }}><Trash2 className="h-4 w-4" />{t('common.delete')}</Button>
+                </div>
+              </details>}
               {/* The grip reorders the section without capturing its card controls. */}
               {!isTitleWidget && !isSection && canDrag && (
                 <IconButton
@@ -428,6 +447,7 @@ export function DashboardWidgetNode({
                     if (isSection) {
                       setSectionDraftTitle(widget.config.appearance?.title ?? '');
                       setSectionDraftIcon(widget.config.appearance?.icon ?? '');
+                      setSectionDraftSpan(widget.config.extra?.sectionGridVersion === 2 ? widget.config.layout.span ?? 1 : 1);
                       setIsSectionEditorOpen(true);
                     } else {
                       onClick();
