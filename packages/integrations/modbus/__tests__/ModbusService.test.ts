@@ -242,6 +242,22 @@ describe('Feature: Profile resolution and persistence (AC12/AC13/AC14)', () => {
   const profileId = 'xinje-xl5e-16t-v1';
   beforeEach(() => { f = modbusFixture(); });
   afterEach(async () => { await f.service.stop(); f.cleanup(); });
+  it.each(['generic', 'xinje-xl5e-16t-v1', 'xinje-xl5e-16t-v2'])('Scenario: Historical %s JSON loads without rewriting or changing permissions (AC33)', async revision => {
+    const profileId = revision === 'generic' ? undefined : revision;
+    const c = await f.service.saveConnection('admin', 'h', { name: 'Historical PLC', host: '192.168.1.5', profileId });
+    const v = await f.service.saveVariable('admin', c.id, { name: 'Historical reading', area: 'holding_register', address: 100, dataType: 'uint16', ...(profileId ? { profileId, symbolicAddress: 'D100' } : {}) });
+    const connectionJson = JSON.stringify({ name: c.name, host: c.host, port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: false, ...(profileId ? { profileId, moduleCapacities: { CPU: { inputs: 8, outputs: 8 } } } : {}) });
+    const variableJson = JSON.stringify({ name: v.name, area: 'holding_register', address: 100, dataType: 'uint16', wordOrder: 'high_first', scale: 1, offset: 0, unit: '', writable: revision.endsWith('-v2'), ...(profileId ? { profileId, symbolicAddress: 'D100' } : {}),
+      ...(revision.endsWith('-v2') ? { plc: { role: 'setpoint', min: 0, max: 100, feedbackPolicy: 'none', feedbackTimeoutMs: 2000, mode: 'sustained', pulseDurationMs: 500 } } : {}) });
+    f.db.prepare('UPDATE modbus_connections SET config=? WHERE id=?').run(connectionJson, c.id);
+    f.db.prepare('UPDATE modbus_variables SET config=? WHERE device_id=?').run(variableJson, v.deviceId);
+    const repository = new SQLiteModbusRepository(f.dbPath);
+    expect(repository.connection(c.id)).toMatchObject(JSON.parse(connectionJson));
+    expect(repository.variable(v.deviceId)).toMatchObject(JSON.parse(variableJson));
+    expect(f.db.prepare('SELECT config FROM modbus_connections WHERE id=?').get(c.id)).toEqual({ config: connectionJson });
+    expect(f.db.prepare('SELECT config FROM modbus_variables WHERE device_id=?').get(v.deviceId)).toEqual({ config: variableJson });
+    expect(f.transport.read).not.toHaveBeenCalled(); expect(f.transport.writeCoil).not.toHaveBeenCalled(); expect(f.transport.writeHoldingRegisters).not.toHaveBeenCalled();
+  });
   it('Scenario: Symbol to probe RAW to shared decoder to persistence preserves generic effective address', async () => {
     f.transport.readRange.mockResolvedValue([0x41b4, 0]);
     const result = await f.service.probe('admin', 'h', { host: '192.168.1.5', profileId, symbolicStart: 'D100', symbolicEnd: 'D101' });

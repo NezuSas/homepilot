@@ -5,6 +5,15 @@ import { resolveModbusAddress } from '../domain/ModbusAddressProfile';
 const profileId = 'xinje-xl5e-16t-v2';
 const base = { name: 'Setpoint', profileId, symbolicAddress: 'D100', area: 'holding_register', address: 100, dataType: 'uint16', wordOrder: 'high_first', scale: 1, offset: 0, writable: true, plc: { role: 'setpoint', min: -100000, max: 100000 } };
 describe('Feature: PLC bindings and inverse codec (AC20/AC23/AC24)', () => {
+  it.each(['xinje-xl5e-16t-v1', 'xinje-xl5e-16t-v2'])('Scenario: %s rejects pulses on CPU and all Y expansions (AC33)', id => {
+    for (const symbol of ['Y0', ...Array.from({ length: 16 }, (_, index) => `Y${(4096 + index * 64).toString(8)}`)]) {
+      const resolved = resolveModbusAddress(id, symbol);
+      const output = { name: symbol, profileId: id, symbolicAddress: symbol, area: resolved.area, address: resolved.address, dataType: 'boolean', writable: true,
+        plc: { role: 'output_command', command: { profileId: id, symbolicAddress: symbol }, mode: 'sustained' } };
+      expect(validateVariable(output).plc?.mode).toBe('sustained');
+      expect(() => validateVariable({ ...output, plc: { ...output.plc, mode: 'pulse' } })).toThrow();
+    }
+  });
   it.each(['uint16', 'int16', 'uint32', 'int32', 'float32'] as ModbusDataType[])('Scenario: %s roundtrips scale offset and word order', dataType => {
     for (const wordOrder of ['high_first', 'low_first']) {
       const variable = validateVariable({ ...base, dataType, wordOrder, scale: 0.1, offset: 2 });

@@ -1,5 +1,7 @@
 # Spec-Driven Coverage Matrix
 
+Modbus AC33 — Fase 1: perfil Xinje encapsula resolución/formato, capacidades y permisos; validadores comunes delegan, sin modificar TCP, JSON, actualState ni confirmación. ModbusAddressProfile.test.ts, PlcBinding.test.ts y ModbusService.test.ts cubren delegación, mapa/expansiones, V1/V2, pulsos Y rechazados y JSON histórico sin reescritura. Regresión focalizada API, state sync, assembly y UI: 352/352 PASS en 10 suites. Sin hardware físico ni certificación de PLC; Fase 2 pendiente de autorización.
+
 Editor Sections AC46–AC49, cierre local 2026-10-03: 135/135 Jest focalizados y ocho escenarios responsive de confirmación PASS; typecheck/lint/builds y controles de trazabilidad PASS. Una pasada completa Jest (3445 PASS / 4 FAIL) y una responsive (211 PASS / 68 FAIL); correcciones focalizadas y fallos generales pendientes detallados en `specs/dashboard-layout-and-widgets-v1.tasks.md`, sección «Cierre técnico local». No equivale a aprobación de release ni a paridad literal con todo Home Assistant.
 
 Dashboard AC45: visualizadores Sensor modulares con escala y dato único, selección/preview/persistencia/transferencia, reduced-motion y carcasa estable. Cobertura: SensorVisualizers.test.tsx, SensorMetricCard.test.tsx, SensorAnalogGauge.test.tsx, sectionCardCatalog.test.ts, DashboardService.test.ts y responsive «Sensor visualizers». Estabilidad Clásico e importación: MediaPlayerPremium.test.tsx, responsive «Media player idle», «Dashboard tab transfer» y «Dashboard import».
@@ -92,7 +94,7 @@ The command fails if a file cannot be mapped to an existing spec.
 - AC48 colocación y controles (2026-10-03): coordenadas opcionales en JSON compatible, conservación de huecos, colisiones, crecimiento intrínseco y transferencia; anchos según canvas y acciones de Section unificadas. Tests focalizados 222/222 PASS en 10 suites; sin ejecución responsive ni certificación táctil.
 - AC48 mínimos/preview/menús: ActionMenu y CardPreviewFrame con pruebas propias; tamaño nuevo mínimo 2 × 2 sin reescribir histórico, preview estable y título primero. 48/48 Jest PASS, typecheck/lint/builds y checks de spec/BDD/módulos PASS; responsive no ejecutado.
 - AC48 transferencia/etiquetas: tamaño proporcional entre Sections, preview uniforme y Etiqueta independiente; 153/153 tests focalizados PASS, tipos/lint/builds/spec/BDD/módulos/i18n/arquitectura PASS. Sin responsive ni comprobación visual en tablet.
-- The **965** audited TypeScript/TSX files have a mapping rule to an existing
+- The **966** audited TypeScript/TSX files have a mapping rule to an existing
   spec.
 - All bounded contexts under `packages/` and all API route families are
   covered.

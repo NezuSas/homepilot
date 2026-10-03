@@ -1,4 +1,4 @@
-import { resolveModbusAddress, validateProfileMapping, type ModbusModuleCapacities } from './ModbusAddressProfile';
+import { addressProfile, resolveModbusAddress, validateProfileMapping, type ModbusModuleCapacities } from './ModbusAddressProfile';
 import { ModbusError, modbusWordCount, type ModbusArea, type ModbusVariable } from './Modbus';
 
 export const plcRoles = ['input', 'output', 'output_command', 'output_feedback', 'measurement', 'setpoint', 'diagnostic'] as const;
@@ -40,7 +40,7 @@ export function validatePlcBinding(value: unknown, variable: Pick<ModbusVariable
     try {
       const resolved = resolveModbusAddress(item.profileId, item.symbolicAddress, capacities);
       if ((item.area !== undefined && item.area !== resolved.area) || (item.address !== undefined && item.address !== resolved.address) || (writable && !resolved.segment.writable)) return invalid();
-      if (resolved.area !== 'coil') return invalid();
+      if (!addressProfile(item.profileId).booleanBindingAreas.includes(resolved.area)) return invalid();
       return { profileId: item.profileId, symbolicAddress: resolved.symbolicAddress, area: resolved.area, address: resolved.address };
     } catch { return invalid(); }
   };
@@ -61,10 +61,15 @@ export function validatePlcBinding(value: unknown, variable: Pick<ModbusVariable
   if (variable.writable && ['output', 'output_command'].includes(role) && !command) return invalid();
   if (command && (command.profileId !== variable.profileId || command.area !== variable.area || command.address !== variable.address)) return invalid();
   if (role === 'setpoint') {
-    if (variable.area !== 'holding_register' || variable.profileId !== 'xinje-xl5e-16t-v2' || !variable.symbolicAddress || !/^(D|HD)\d+$/.test(variable.symbolicAddress)) return invalid();
+    if (variable.area !== 'holding_register' || !variable.profileId || !variable.symbolicAddress) return invalid();
+    try { if (!resolveModbusAddress(variable.profileId, variable.symbolicAddress, capacities).segment.supportsSetpoint) return invalid(); } catch { return invalid(); }
     if (typeof input.min !== 'number' || typeof input.max !== 'number' || !Number.isFinite(input.min) || !Number.isFinite(input.max) || input.min >= input.max) return invalid();
   } else if (input.min !== undefined || input.max !== undefined) return invalid();
-  if (mode === 'pulse' && (!command || command.symbolicAddress.startsWith('Y'))) return invalid();
+  if (mode === 'pulse') {
+    if (!command) return invalid();
+    // Operation permission is supplied by the resolved profile segment.
+    try { if (!resolveModbusAddress(command.profileId, command.symbolicAddress, capacities).segment.supportsPulse) return invalid(); } catch { return invalid(); }
+  }
   try { validateProfileMapping(variable, modbusWordCount(variable.dataType), capacities); } catch { return invalid(); }
   return { role, ...(command ? { command } : {}), ...(physical ? { physical } : {}), ...(feedback ? { feedback } : {}), ...(logical ? { logical } : {}), feedbackPolicy: feedbackPolicy as PlcBinding['feedbackPolicy'], feedbackTimeoutMs: bounded(input.feedbackTimeoutMs, 2000, 250, 10000), mode: mode as PlcBinding['mode'], pulseDurationMs: bounded(input.pulseDurationMs, 500, 100, 5000), ...(role === 'setpoint' ? { min: input.min as number, max: input.max as number } : {}) };
 }

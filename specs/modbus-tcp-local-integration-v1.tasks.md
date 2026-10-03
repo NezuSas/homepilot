@@ -1,5 +1,16 @@
 # Tareas — Modbus TCP local V1
 
+## Frontera arquitectónica — Fase 1 (AC33)
+
+- [x] Definición interna pequeña; catálogo estático y políticas/resolución/capacidades encapsuladas en Xinje.
+- [x] Validadores consultan perfil/segmento sin prefijos, IDs o límites modulares del fabricante.
+- [x] Conservar mapas, V1/V2, escrituras, bindings coil y JSON; sin tocar transporte, actualState ni confirmación.
+- [x] Pruebas focalizadas: 352/352 PASS en 10 suites, incluidos JSON históricos sin reescritura, 16 expansiones Y y regresión de UI/state sync/assembly.
+- [x] Typecheck raíz/consola y checks de spec, BDD, cobertura de módulo, arquitectura y no-production-any PASS.
+- [ ] Fase 2: UI metadata-driven y revisiones internas sin versiones comerciales; requiere autorización posterior.
+
+No migración, nuevos fabricantes, plugins, Git/GitHub, Docker, deploy ni PLC físico. Pruebas TCP solo loopback y bases SQLite temporales. Reversión al binario previo compatible con V1/V2 sin transformar JSON. La firma interna validateModuleCapacities recibe profileId; ningún contrato API cambia.
+
 ## Cierre PLC I/O aprobado — 2026-10-03
 
 ## UI final de instalador aprobada — AC28–AC32

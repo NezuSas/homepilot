@@ -3,6 +3,38 @@ import { convertModbusValue, validateVariable } from '../domain/Modbus';
 
 const profileId = 'xinje-xl5e-16t-v1';
 describe('Feature: PLC address profiles — Xinje explicit map (AC11/AC12/AC13)', () => {
+  it('Scenario: Profile owns resolution formatting and capacity validation (AC33)', () => {
+    const profile = addressProfile(profileId);
+    const resolve = jest.spyOn(profile, 'resolve');
+    const format = jest.spyOn(profile, 'format');
+    const capacities = jest.spyOn(profile, 'validateCapacities');
+    try {
+      resolveModbusRange(profileId, 'X7', 'X10');
+      expect(resolve).toHaveBeenCalledWith('X7', undefined);
+      expect(format).toHaveBeenCalledWith(expect.objectContaining({ prefix: 'X' }), 8);
+      expect(validateModuleCapacities({ CPU: { inputs: 8, outputs: 4 } }, profileId)).toEqual({ CPU: { inputs: 8, outputs: 4 } });
+      expect(capacities).toHaveBeenCalledWith({ CPU: { inputs: 8, outputs: 4 } });
+    } finally { resolve.mockRestore(); format.mockRestore(); capacities.mockRestore(); }
+  });
+  it('Scenario: Common capacity validation delegates without imposing Xinje module names (AC33)', () => {
+    // Override only the policy in this isolated test; no extra profile is registered.
+    const validateCapacities = jest.spyOn(addressProfile(profileId), 'validateCapacities').mockReturnValue({ rack: { inputs: 128, outputs: 2 } });
+    try {
+      expect(validateModuleCapacities({ rack: { inputs: 128, outputs: 2 } }, profileId)).toEqual({ rack: { inputs: 128, outputs: 2 } });
+      expect(validateCapacities).toHaveBeenCalledWith({ rack: { inputs: 128, outputs: 2 } });
+    } finally { validateCapacities.mockRestore(); }
+    expect(() => validateModuleCapacities({ CPU: { inputs: 8, outputs: 8 } })).toThrow();
+  });
+  it.each(['xinje-xl5e-16t-v1', 'xinje-xl5e-16t-v2'])('Scenario: %s preserves every map and auxiliary area policy (AC33)', id => {
+    expect(addressProfile(id).booleanBindingAreas).toEqual(['coil']);
+    for (const segment of addressProfile(id).segments) {
+      const symbol = addressProfile(id).format(segment, segment.first);
+      const resolved = resolveModbusAddress(id, symbol);
+      expect([resolved.area, resolved.address]).toEqual([segment.area, segment.base]);
+      expect(resolved.segment.supportsPulse).toBe(['M', 'HM'].includes(segment.prefix));
+      expect(resolved.segment.supportsSetpoint).toBe(id.endsWith('-v2') && ['D', 'HD'].includes(segment.prefix));
+    }
+  });
   it.each([
     ['M100', 'coil', 100], ['M199', 'coil', 199], ['X0', 'coil', 20480], ['X7', 'coil', 20487],
     ['Y0', 'coil', 24576], ['Y7', 'coil', 24583], ['D100', 'holding_register', 100],
@@ -38,7 +70,7 @@ describe('Feature: PLC address profiles — Xinje explicit map (AC11/AC12/AC13)'
     expect(() => resolveModbusRange(profileId, 'X10000', 'X10010', capacities)).toThrow();
   });
   it.each([{ '17': { inputs: 8, outputs: 8 } }, { CPU: { inputs: -1, outputs: 8 } }, { CPU: { inputs: 65, outputs: 8 } }, { CPU: { inputs: 1.5, outputs: 8 } }, { CPU: { inputs: 8 } }])
-    ('Scenario: Invalid capacities %j are rejected', value => expect(() => validateModuleCapacities(value)).toThrow());
+    ('Scenario: Invalid capacities %j are rejected', value => expect(() => validateModuleCapacities(value, profileId)).toThrow());
   it('Scenario: Profile metadata must agree with effective address and system areas cannot write', () => {
     expect(() => validateVariable({ name: 'SM5', profileId, symbolicAddress: 'SM5', area: 'coil', address: 36869, dataType: 'boolean', writable: true })).toThrow();
     expect(() => validateVariable({ name: 'D100', profileId, symbolicAddress: 'D100', area: 'holding_register', address: 101, dataType: 'uint16' })).toThrow();

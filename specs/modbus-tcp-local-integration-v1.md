@@ -84,6 +84,12 @@ Contrato de tramas y funciones: [Modbus Organization — especificaciones oficia
 
 ## Ampliación UI de instalador aprobada — 2026-10-03
 
+### Frontera de perfiles — Fase 1 aprobada
+
+- AC33: encapsular en el perfil Xinje resolución/formato simbólico, expansiones/capacidades y políticas de pulse/setpoint/áreas auxiliares. Core consulta el perfil sin IDs/prefijos/reglas modulares Xinje; catálogo estático, sin plugins ni otro fabricante. Conservar todos los mapas, IDs V1/V2, permisos, límites, Modbus TCP y JSON existentes. No modificar actualState, feedback, confirmación, consumidores ni transporte. Pruebas de delegación, pulsos rechazados en CPU/todas las expansiones Y, capacidades, resoluciones y carga de JSON histórico sin reescritura. Sin migración SQL, PLC físico, Git ni deploy.
+
+Compatibilidad/reversión de AC33: metadatos y funciones del perfil solo en runtime, no se serializan. Conexiones/variables conservan su contrato y se pueden leer con el binario previo compatible con V1/V2. La validación interna de capacidades recibe ahora el profileId; API/JSON no cambian. La UI metadata-driven y la eliminación de revisiones visibles quedan para Fase 2, evitando opciones de modelo indistinguibles con permisos diferentes.
+
 - AC28: distinguir habilitación de conectividad real con las semánticas existentes. Mostrar perfil/modelo, última comunicación/latencia y conteo de variables OK/error; indicar reconexión solo cuando el backoff existente aporte próxima lectura. Diagnóstico/error traducido, sin stack ni detalles de transporte privados; desconocidos usan mensaje seguro. Conservar datos durante refresh y evitar consultas UI solapadas.
 - AC29: editores por rol conservan símbolos como lenguaje principal, con PDU/área/Function Code/wordOrder en sección técnica avanzada. Inputs nunca ofrecen escritura; outputs muestran comando/físico/feedback (incluido no configurado), estado solicitado/real y modo/duración; pulse mantiene confirmación y límites existentes. Guardar no escribe al PLC.
 - AC30: mediciones reutilizan SensorMetricCard y los estilos auto/gauge/thermometer/level/battery. `visualStyle?` opcional validado en JSON existente, sin SQL ni conversión histórica. State sync comunica la preferencia como `plcVisualStyle`; el widget Sensor la usa solo para Devices Modbus y solo si la tarjeta no tiene override propio. Histórico sin campo conserva presentación previa. Selector/preview de instalador y listado respetan unavailable sin valores ficticios. Unidad, tipo, escala/offset permanecen consultables.

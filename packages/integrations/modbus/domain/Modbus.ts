@@ -62,7 +62,7 @@ export function validateConnection(input: Record<string, unknown>): Omit<ModbusC
   const [a, b, , d] = parts.map(Number);
   if (!(a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)) || d === 0 || d === 255) return invalid();
   let profileId: string | undefined, moduleCapacities: ModbusModuleCapacities | undefined;
-  try { if (input.profileId != null && input.profileId !== '') { profileId = text(input.profileId, 80); addressProfile(profileId); } moduleCapacities = validateModuleCapacities(input.moduleCapacities); if (moduleCapacities && !profileId) return invalid(); } catch { return invalid(); }
+  try { if (input.profileId != null && input.profileId !== '') { profileId = text(input.profileId, 80); addressProfile(profileId); } moduleCapacities = validateModuleCapacities(input.moduleCapacities, profileId); if (moduleCapacities && !profileId) return invalid(); } catch { return invalid(); }
   return { ...(profileId ? { profileId } : {}), ...(moduleCapacities ? { moduleCapacities } : {}), name: text(input.name, 80), host, port: integer(input.port, 502, 502, 502),
     unitId: integer(input.unitId, 1, 1, 247), timeoutMs: integer(input.timeoutMs, 2000, 250, 10000),
     pollIntervalMs: integer(input.pollIntervalMs, 5000, 1000, 60000), enabled: flag(input.enabled) };
