@@ -88,7 +88,8 @@ The command fails if a file cannot be mapped to an existing spec.
 
 - Refinamiento AC48 (2026-10-03): tamaño desde editor sin manijas; preview/superficie y gaps compartidos (`cardGridResize`, `SectionCardItem`, `SectionWidget`, `SectionCardEditorModal`); hover dentro/entre secciones y drop único (`DashboardCanvas`, `sectionCardDrag`); huecos sin decoración, cierre exterior del menú y eliminación del velo claro. Jest focalizado 15/15 PASS y build consola PASS; responsive no ejecutado por restricción expresa para esta corrección.
 - AC48, cuadrícula directa y expansión (2026-10-03): `CardGridSizePicker` con test propio; `cardGridResize` cubre selección bidimensional, expansión de filas y adaptación de columnas al cambiar Section; `sectionSlots` cubre hueco inicial tras mover/recargar. Jest focalizado 21/21 PASS; no se ejecutó responsive para este refinamiento.
-- The **948** audited TypeScript/TSX files have a mapping rule to an existing
+- AC48 y toggle (2026-10-03): cuadrícula 12 × 8 solo clic/toque/teclado; presupuesto visual compartido y tipografía proporcional; toggle apagado contrastado en Light. 137/137 pruebas focalizadas PASS en 8 suites, incluyendo `ToggleSwitch.test.tsx`. Typecheck, lint y ambos builds PASS; sin ejecutar responsive ni certificar tablet física.
+- The **949** audited TypeScript/TSX files have a mapping rule to an existing
   spec.
 - All bounded contexts under `packages/` and all API route families are
   covered.

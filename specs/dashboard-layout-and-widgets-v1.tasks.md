@@ -2,6 +2,14 @@
 
 ## Editor Sections V2 — workspace vigente
 
+### Refinamiento de dimensiones y contraste — 2026-10-03
+
+- [x] Cuadrícula 12 × 8 por clic/toque/flechas, sin arrastre ni captura; actualización del escenario responsive existente sin ejecutarlo.
+- [x] Presupuesto visual compartido por tarjeta real y preview; instrumento y lectura Sensor proporcionales, con prioridad a la visualización y sin alterar valores, escalas, animación ni accesibilidad.
+- [x] Tipografía/iconos de superficies modulares adaptados al ancho de tarjeta; no escalar controles táctiles ni introducir scroll o altura fija.
+- [x] Toggle apagado contrastado en Light mediante tokens de paleta existentes; semántica y comportamiento intactos.
+- Validación: **137/137 PASS, 8 suites** focalizadas de sensores, instrumentos, sizing (incluido clic único y ausencia de handlers de arrastre), toggle, Clock y Media Player. Typecheck, lint, build raíz, build Operator Console y cobertura spec/BDD/modular PASS. Spec coverage: 949 fuentes. Build mantiene avisos previos de Browserslist/chunks. No responsive ni certificación visual/táctil por restricción expresa. Sin Git, Docker o deploy.
+
 ### Cuadrícula directa y expansión de Section — 2026-10-03
 
 - [x] `CardGridSizePicker` modular: pointer/mouse/touch, captura, cancelación y teclado; retirar inputs/selectores de tamaño del editor.

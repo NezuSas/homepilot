@@ -1,4 +1,4 @@
-import { fitCardsToSectionWidth, getCardFrameClass, getCardGridHeight, getCardGridRowSpan, getCardGridWidth, pickCardGridSize, resizeCardGrid } from './cardGridResize';
+import { fitCardsToSectionWidth, getCardFrameClass, getCardGridHeight, getCardGridRowSpan, getCardGridWidth, getCardPresentationStyle, pickCardGridSize, resizeCardGrid } from './cardGridResize';
 
 describe('Feature: Twelve-column card resizing (AC48)', () => {
   it('Scenario: Quantized width and height honor limits without changing their source', () => {
@@ -19,7 +19,7 @@ describe('Feature: Twelve-column card resizing (AC48)', () => {
     expect(getCardGridHeight('auto')).toBeUndefined();
   });
   it('Scenario: Manual growth is bounded without changing historical values on load', () => {
-    expect(resizeCardGrid({ columns: 6, rows: 5 }, 0, 100, 5).rows).toBe(12);
+    expect(resizeCardGrid({ columns: 6, rows: 5 }, 0, 100, 5).rows).toBe(8);
     expect(getCardGridHeight(20)).toBe(552);
     expect(resizeCardGrid({ columns: 6, rows: 5, maxRows: 8 }, 0, 100, 5).rows).toBe(8);
   });
@@ -33,9 +33,9 @@ describe('Feature: Twelve-column card resizing (AC48)', () => {
     expect(getCardFrameClass('sensor', 'medium')).toContain('rounded-2xl');
   });
   it('Scenario: Mouse and touch coordinates select columns and rows directly with bounded growth', () => {
-    expect(pickCardGridSize({ columns: 6, rows: 'auto' }, 100, 160, 240, 240)).toEqual({ columns: 5, rows: 8 });
+    expect(pickCardGridSize({ columns: 6, rows: 'auto' }, 100, 160, 240, 240)).toEqual({ columns: 5, rows: 6 });
     expect(pickCardGridSize({ columns: 6, rows: 'auto', minColumns: 3, maxColumns: 9, minRows: 2, maxRows: 8 }, -100, 1000, 240, 240)).toMatchObject({ columns: 3, rows: 8 });
-    expect(pickCardGridSize({ columns: 6, rows: 4 }, 7, 5, 12, 12)).toMatchObject({ columns: 7, rows: 5 });
+    expect(pickCardGridSize({ columns: 6, rows: 4 }, 7, 5, 12, 8)).toMatchObject({ columns: 7, rows: 5 });
     const initial = { columns: 6 as const, rows: 'auto' as const };
     expect(pickCardGridSize(initial, 1, 1, 0, 0)).toBe(initial);
     expect(initial.rows).toBe('auto');
@@ -54,5 +54,12 @@ describe('Feature: Twelve-column card resizing (AC48)', () => {
     expect(getCardGridRowSpan(8, 6)).toBe(8);
     expect(getCardGridRowSpan('auto', 2, 4)).toBe(4);
     expect(getCardGridRowSpan('auto', 8, 4)).toBe(8);
+  });
+  it('Scenario: Live and preview share a visual budget without fixing height or shrinking control targets', () => {
+    expect(getCardPresentationStyle(4)).toEqual({ containerType: 'inline-size', '--dashboard-card-height': '104px' });
+    expect(getCardPresentationStyle(8)).toEqual({ containerType: 'inline-size', '--dashboard-card-height': '216px' });
+    expect(getCardPresentationStyle('auto')).toEqual({ containerType: 'inline-size' });
+    expect(pickCardGridSize({ columns: 6, rows: 20, maxRows: 20 }, 12, 20, 12, 8).rows).toBe(8);
+    expect(getCardGridHeight(20)).toBe(552);
   });
 });

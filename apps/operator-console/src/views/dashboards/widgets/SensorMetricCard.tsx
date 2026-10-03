@@ -250,7 +250,7 @@ function SensorPresentationHero({ reading, t, decimals = false }: {
     : number !== null ? formatSensorValue(number, decimals) : displayValue(reading.value, t);
   const unit = isPercentage ? '%' : reading.unit;
   const readingWidth = value.length * 0.62;
-  const readingScale = value.length > 6 ? Math.min(17, 80 / readingWidth) : 17;
+  const readingScale = value.length > 6 ? Math.min(12, 70 / readingWidth) : 12;
   const isState = available && (reading.presentation === 'binary' || reading.presentation === 'categorical');
 
   return (

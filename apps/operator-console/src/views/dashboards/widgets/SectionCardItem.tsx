@@ -14,7 +14,7 @@ import type { MediaPlayerCommand } from './MediaPlayerCard';
 import { MASONRY_ROW_GAP_PX, MASONRY_ROW_UNIT_PX } from './useMasonryRowSpans';
 import { ModalPortal } from './ModalPortal';
 import { SectionCardContent } from './SectionCardContent';
-import { getCardFrameClass, getCardGridHeight, getCardGridRowSpan } from './cardGridResize';
+import { getCardFrameClass, getCardGridHeight, getCardGridRowSpan, getCardPresentationStyle } from './cardGridResize';
 import { DashboardCardSkeleton, type DashboardCardSkeletonVariant } from '../../../components/ui/DashboardCardSkeleton';
 import { needsInitialDashboardSkeleton, useDelayedSkeleton } from '../../../components/ui/useDashboardDelayedSkeleton';
 import {
@@ -174,7 +174,7 @@ export function SectionCardItem({
         registerRowSpanRef(card.id, element);
       }}
       style={{
-        containerType: 'inline-size',
+        ...getCardPresentationStyle(gridOptions?.rows),
         minHeight: explicitHeight,
         gridColumn: gridOptions ? gridOptions.columns === 'full' ? '1 / -1' : `span ${gridOptions.columns}` : undefined,
         // Tile-kind cards get a fixed uniform height so identical tiles
@@ -208,7 +208,7 @@ export function SectionCardItem({
         // was determined. Without this, the card's colored background
         // (painted by CardPreview) could end up shorter than this outer
         // box, leaving a transparent gap at the bottom.
-        "group/card relative grid min-w-0 overflow-hidden shadow-sm",
+        "homepilot-sized-card group/card relative grid min-w-0 overflow-hidden shadow-sm",
         isEditing && "touch-pan-y",
         getCardFrameClass(normalizedKind, span, tileIsActive),
         isActionable && !initialPending && "cursor-pointer hover:-translate-y-0.5 hover:shadow-depth-2 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",

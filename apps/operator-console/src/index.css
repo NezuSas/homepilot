@@ -1003,7 +1003,7 @@
     min-width: 0;
     max-width: 100%;
     flex-shrink: 0;
-    font-size: clamp(2rem, var(--sensor-reading-scale, 30cqi), 4rem);
+    font-size: clamp(0.875rem, var(--sensor-reading-scale, 12cqi), 2.25rem);
     font-weight: 450;
     line-height: 1;
   }
@@ -1085,7 +1085,7 @@
   .sensor-analog-layout { padding-block: 0.25rem; }
   [data-dashboard-drag-origin="true"] { outline: 2px solid hsl(var(--primary)); outline-offset: -2px; background: hsl(var(--primary) / 0.1); }
   [data-dashboard-drop-target="true"] { outline: 2px solid hsl(var(--primary)); outline-offset: -2px; }
-  .sensor-analog-instrument { position: relative; width: 100%; max-width: 22rem; flex-shrink: 0; }
+  .sensor-analog-instrument { position: relative; container-type: inline-size; width: 100%; max-width: min(22rem, max(3rem, calc((var(--dashboard-card-height, 1000px) - 6rem) * 320 / 265))); flex-shrink: 0; }
   .sensor-analog-canvas { display: block; width: 100%; height: auto; aspect-ratio: 320 / 265; }
   .sensor-vessel { fill: hsl(var(--popover)); stroke: hsl(var(--border)); stroke-width: 2; }
   .sensor-liquid { fill: hsl(var(--primary)); transform-origin: center bottom; transition: transform 400ms ease-out; }
@@ -1097,8 +1097,21 @@
   @media (prefers-reduced-motion: reduce) { .sensor-liquid, .sensor-liquid-surface { transition: none; transition-duration: 0s !important; } }
   .sensor-analog-readout { position: relative; margin: -8% 0 0; display: grid; justify-items: center; gap: 0.25rem; }
   .sensor-analog-readout .sensor-reading-value { flex-direction: row; flex-wrap: nowrap; align-items: baseline; gap: 0.25rem; }
-  .sensor-analog-readout .sensor-reading-number { font-size: clamp(2rem, var(--sensor-reading-scale, 17cqi), 2.75rem); font-weight: 550; }
-  .sensor-analog-readout .sensor-reading-plain { font-size: clamp(1rem, var(--sensor-reading-scale, 17cqi), 2.75rem); }
+  .sensor-analog-readout .sensor-reading-number { font-size: clamp(0.75rem, var(--sensor-reading-scale, 12cqi), 2.25rem); font-weight: 550; }
+  .sensor-analog-readout .sensor-reading-plain { font-size: clamp(0.625rem, var(--sensor-reading-scale, 12cqi), 2.25rem); }
+  .sensor-analog-readout .sensor-reading-unit { font-size: clamp(0.625rem, 8cqi, 1rem); }
+
+  /* Adapt presentation to the actual card, not the page breakpoint. Controls
+     retain their hit targets; only content typography/icons are scaled. */
+  .homepilot-sized-card .homepilot-dashboard-large-card { padding: clamp(0.5rem, 4cqi, 1rem); gap: clamp(0.25rem, 2cqi, 0.75rem); }
+  .homepilot-sized-card .homepilot-dashboard-large-card :is(.text-card-title, .text-body) { font-size: clamp(0.75rem, 6cqi, 1.125rem); overflow-wrap: anywhere; }
+  .homepilot-sized-card .homepilot-dashboard-large-card .text-hero-title { font-size: clamp(1rem, 14cqi, 2.5rem); }
+  .homepilot-sized-card .homepilot-dashboard-large-card > span:has(> svg) { width: clamp(2rem, 25cqi, 6rem); height: clamp(2rem, 25cqi, 6rem); }
+  .homepilot-sized-card .homepilot-dashboard-large-card > span > svg { width: 80%; height: 80%; }
+  .homepilot-sized-card :is(.homepilot-section-tile-inactive, .homepilot-section-light-tile-surface, .homepilot-section-device-tile-active) > svg { width: clamp(1rem, 24cqi, 2.25rem); height: clamp(1rem, 24cqi, 2.25rem); }
+
+  .light .homepilot-toggle-switch[data-state="unchecked"] { background-color: hsl(var(--muted-foreground)); border-color: hsl(var(--muted-foreground)); }
+  .light .homepilot-toggle-switch[data-state="unchecked"] .homepilot-toggle-thumb { background-color: hsl(var(--background)); }
   .sensor-status-badge { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.7rem; border-radius: 999px; background: hsl(var(--muted) / 0.65); font-size: clamp(0.75rem, 4.5cqi, 0.9375rem); line-height: 1.25; }
   .sensor-status-dot { width: 0.6rem; height: 0.6rem; flex-shrink: 0; border-radius: 50%; }
   .sensor-analog-skeleton { width: 100%; aspect-ratio: 320 / 265; border: clamp(0.4rem, 4cqi, 0.75rem) solid hsl(var(--muted)); border-radius: 50%; border-bottom-color: transparent; background: hsl(var(--muted) / 0.25); }

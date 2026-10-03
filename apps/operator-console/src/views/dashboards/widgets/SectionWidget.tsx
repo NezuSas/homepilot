@@ -24,7 +24,7 @@ import { useSectionCardActions } from './useSectionCardActions';
 import { getDashboardIconComponent } from '../components/dashboardIconRegistry';
 import { isDeviceOperational } from '../../../lib/deviceOperationalEligibility';
 import type { CardGridOptions } from '../types';
-import { getCardFrameClass, getCardGridHeight, getCardGridWidth } from './cardGridResize';
+import { getCardFrameClass, getCardGridHeight, getCardGridWidth, getCardPresentationStyle } from './cardGridResize';
 
 interface SectionWidgetProps {
   sectionId?: string;
@@ -368,10 +368,10 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
 
     return (
       <div style={isEditorPreview ? {
-        containerType: 'inline-size',
+        ...getCardPresentationStyle(gridOptionsOverride?.rows),
         width: sectionGridWidth > 0 ? getCardGridWidth(sectionGridWidth, gridOptionsOverride?.columns ?? (span === 'small' ? 3 : span === 'medium' ? 6 : 12)) : undefined,
         minHeight: getCardGridHeight(gridOptionsOverride?.rows),
-      } : undefined} className={isEditorPreview ? cn('relative grid shrink-0 min-w-0 overflow-hidden shadow-sm', getCardFrameClass(normalizedPreviewKind, span, previewDevice ? isDeviceActive(previewDevice) : false)) : cn(
+      } : undefined} className={isEditorPreview ? cn('homepilot-sized-card relative grid shrink-0 min-w-0 overflow-hidden shadow-sm', getCardFrameClass(normalizedPreviewKind, span, previewDevice ? isDeviceActive(previewDevice) : false)) : cn(
         "grid overflow-hidden rounded-section transition-[height,width,max-width] duration-200",
         !isClockPreview && "bg-background/40",
         isClockPreview && (isEditorPreview ? 'homepilot-clock-preview-host homepilot-clock-preview-host--editor' : 'homepilot-clock-preview-host homepilot-clock-preview-host--catalog'),

@@ -205,7 +205,8 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 
 ## 8. Notas Técnicas y Arquitectura
 
-- `CardGridSizePicker` (`views/dashboards/widgets/CardGridSizePicker.tsx`): selector bidimensional de dimensiones de tarjeta del Dashboard, basado en tokens existentes; no inputs numéricos ni selectores de tamaño. Captura de puntero para mouse/touch, cancelación reversible y navegación por flechas, grid accesible con celda activa. Recibe `CardGridOptions`, emite borradores acotados, sin stores ni persistencia propia. Test SSR propio y cálculo de coordenadas/límites en `cardGridResize.test.ts`.
+- `CardGridSizePicker` (`views/dashboards/widgets/CardGridSizePicker.tsx`): cuadrícula de 12 columnas × 8 filas, basada en tokens existentes; selección por clic/toque o flechas, sin arrastre, captura de puntero ni inputs numéricos. Grid accesible con celda activa. Recibe `CardGridOptions`, emite borradores acotados, sin stores ni persistencia propia. Tests SSR y cálculo de coordenadas/límites en `cardGridResize.test.ts`.
+- `ToggleSwitch`: apagado en tema claro utiliza pista neutra de `muted-foreground` y pulgar de `background`, sin cambiar medidas ni semántica; apagado y deshabilitado son independientes. Tests SSR de estados; no certifican contraste renderizado en tablet.
 
 - Los valores de color viven en `index.css`; `design-system/tokens.ts` y Tailwind los referencian. Las demás escalas compartidas conservan sus contratos existentes.
 - Vistas orquestan datos y dominio; los componentes modulares renderizan props tipadas y emiten callbacks.

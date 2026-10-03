@@ -36,10 +36,7 @@ test('Feature: Sections editor — Scenario: Editor sizing writes once, serializ
     const sizingGrid = editor.getByRole('grid', { name: /^(Design|Diseño)$/i });
     const bounds = await sizingGrid.boundingBox();
     if (!bounds) throw new Error('Interactive sizing grid missing');
-    await page.mouse.move(bounds.x + 1, bounds.y + 1);
-    await page.mouse.down();
-    await page.mouse.move(bounds.x + bounds.width * (columns - 0.5) / 12, bounds.y + bounds.height * ((rows ?? 4) - 0.5) / 12, { steps: 6 });
-    await page.mouse.up();
+    await page.mouse.click(bounds.x + bounds.width * (columns - 0.5) / 12, bounds.y + bounds.height * ((rows ?? 4) - 0.5) / 8);
   };
   await expect(card('resize-a').getByRole('slider')).toHaveCount(0);
   await editSize('resize-a', 5);

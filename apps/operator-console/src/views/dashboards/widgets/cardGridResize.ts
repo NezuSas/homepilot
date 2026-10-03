@@ -1,16 +1,17 @@
 import type { CardColumns, CardGridOptions } from '../types';
+import type { CSSProperties } from 'react';
 import { MASONRY_ROW_GAP_PX, MASONRY_ROW_UNIT_PX } from './useMasonryRowSpans';
 
-export const CARD_EDITOR_MAX_ROWS = 12;
+export const CARD_EDITOR_MAX_ROWS = 8;
 
 /** Pointer position maps to bounded cells; the same calculation serves touch. */
 export function pickCardGridSize(initial: CardGridOptions, x: number, y: number, width: number, height: number): CardGridOptions {
   if (width <= 0 || height <= 0) return initial;
-  const rowLimit = initial.maxRows ?? Math.max(CARD_EDITOR_MAX_ROWS, initial.minRows ?? 1);
+  const rowLimit = Math.min(initial.maxRows ?? CARD_EDITOR_MAX_ROWS, CARD_EDITOR_MAX_ROWS);
   return {
     ...initial,
     columns: Math.min(initial.maxColumns ?? 12, Math.max(initial.minColumns ?? 1, Math.ceil(x / width * 12))) as CardColumns,
-    rows: Math.min(rowLimit, Math.max(initial.minRows ?? 1, Math.ceil(y / height * rowLimit))),
+    rows: Math.min(rowLimit, Math.max(initial.minRows ?? 1, Math.ceil(y / height * CARD_EDITOR_MAX_ROWS))),
   };
 }
 
@@ -34,6 +35,16 @@ export function fitCardsToSectionWidth(cards: unknown, previousSpan: number, nex
 
 export function getCardGridHeight(rows: CardGridOptions['rows'] | undefined): number | undefined {
   return typeof rows === 'number' ? rows * (MASONRY_ROW_UNIT_PX + MASONRY_ROW_GAP_PX) - MASONRY_ROW_GAP_PX : undefined;
+}
+
+/** Shared visual budget for the live card and its editor preview; auto has no cap.
+ * Only decorative instruments use this budget, never interactive hit targets. */
+export function getCardPresentationStyle(rows: CardGridOptions['rows'] | undefined): CSSProperties {
+  const height = getCardGridHeight(rows);
+  return {
+    containerType: 'inline-size',
+    ...(height === undefined ? {} : { '--dashboard-card-height': `${height}px` }),
+  } as CSSProperties;
 }
 
 export function getCardGridRowSpan(rows: CardGridOptions['rows'] | undefined, measuredRows: number, minimumRows = 1): number {

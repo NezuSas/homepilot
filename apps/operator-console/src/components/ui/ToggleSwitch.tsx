@@ -43,7 +43,7 @@ export const ToggleSwitch = React.forwardRef<HTMLButtonElement, ToggleSwitchProp
         }
       }}
       className={cn(
-        'relative shrink-0 touch-manipulation rounded-full border control-transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
+        'homepilot-toggle-switch relative shrink-0 touch-manipulation rounded-full border control-transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
         checked ? 'border-primary/40 bg-primary/25' : 'border-border bg-muted/60',
         'disabled:pointer-events-none disabled:opacity-45',
         sizeStyles[size],
@@ -52,7 +52,7 @@ export const ToggleSwitch = React.forwardRef<HTMLButtonElement, ToggleSwitchProp
     >
       <span
         className={cn(
-          'absolute grid place-items-center rounded-full bg-background shadow-sm surface-transition',
+          'homepilot-toggle-thumb absolute grid place-items-center rounded-full bg-background shadow-sm surface-transition',
           thumbStyles[size],
           checked ? 'right-1 bg-primary' : 'left-1',
         )}
