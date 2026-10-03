@@ -12,11 +12,11 @@ import {
   defaultDropAnimationSideEffects,
   useDroppable,
 } from '@dnd-kit/core';
-import type { CollisionDetection, DragEndEvent, DragStartEvent } from '@dnd-kit/core';
+import type { CollisionDetection, DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
 import { SectionCardDragContext, moveSectionCard, sectionCardDragId, DASHBOARD_DRAG_TRANSITION } from './sectionCardDrag';
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useState, useMemo, useRef, useEffect, isValidElement } from 'react';
+import { useState, useMemo, useRef, useEffect, useLayoutEffect, isValidElement } from 'react';
 import { createPortal } from 'react-dom';
 import type { CSSProperties, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -134,7 +134,7 @@ function SortableCanvasWidget({
   const { nodeRef, rowSpan } = useMeasuredRowSpan(gap);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } = useSortable({
     id: widget.id,
-    data: { kind: widget.type === 'section' ? 'section' : 'widget', sectionId: widget.id, cardCount: Array.isArray(widget.config.extra?.cards) ? widget.config.extra.cards.length : 0, getPreviewRect: () => nodeRef.current?.getBoundingClientRect() },
+    data: { kind: widget.type === 'section' ? 'section' : 'widget', sectionId: widget.id, cardCount: Array.isArray(widget.config.extra?.cards) ? widget.config.extra.cards.length : 0, getPreviewRect: () => nodeRef.current?.getBoundingClientRect(), getPreviewNode: () => nodeRef.current },
     disabled: !canDrag,
     transition: DASHBOARD_DRAG_TRANSITION,
   });
@@ -151,6 +151,7 @@ function SortableCanvasWidget({
     <div
       ref={(node) => { setNodeRef(node); nodeRef.current = node; }}
       data-dashboard-drag-origin={isDragging ? 'true' : undefined}
+      data-dashboard-section-id={widget.type === 'section' ? widget.id : undefined}
       data-dashboard-drop-target={canDrag && isOver && !isDragging ? 'true' : undefined}
       {...(sectionDrag ? { ...attributes, 'aria-label': `${t('common.reorder')}: ${widget.config.appearance?.title || t('dashboard.editor.sections.untitled_section')}` } : {})}
       onMouseDown={sectionDrag ? event => { if (dragSurface(event.target, event.currentTarget)) listeners?.onMouseDown?.(event); } : undefined}
@@ -206,7 +207,28 @@ export function DashboardCanvas({
   const { t } = useTranslation();
   const [activeWidget, setActiveWidget] = useState<DashboardWidget | null>(null);
   const [cardDragIdentities, setCardDragIdentities] = useState<Record<string, string>>({});
-  const [dragPreview, setDragPreview] = useState<{ content?: ReactNode; width: number; height: number } | null>(null);
+  // Temporary layout follows the pointer; persistence happens only on drop.
+  const [dragLayout, setDragLayout] = useState<{ widgets: DashboardWidget[]; layout?: SectionLayout } | null>(null);
+  const dragSession = useRef<{ widgets: DashboardWidget[]; layout?: SectionLayout; sourceSectionId?: string; lastTarget?: string; identities: Record<string, string> } | null>(null);
+  const previousSectionRects = useRef(new Map<string, DOMRect>());
+  const sectionAnimations = useRef<Animation[]>([]);
+  useLayoutEffect(() => {
+    const previous = previousSectionRects.current;
+    previousSectionRects.current = new Map();
+    if (!previous.size || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const animations: Animation[] = [];
+    containerRef.current?.querySelectorAll<HTMLElement>('[data-dashboard-section-id]').forEach(node => {
+      const before = previous.get(node.dataset.dashboardSectionId!);
+      if (!before || node.dataset.dashboardDragOrigin === 'true') return;
+      const after = node.getBoundingClientRect();
+      const x = before.left - after.left;
+      const y = before.top - after.top;
+      if (x || y) animations.push(node.animate([{ transform: `translate(${x}px, ${y}px)` }, { transform: 'translate(0, 0)' }], DASHBOARD_DRAG_TRANSITION));
+    });
+    sectionAnimations.current = animations;
+    return () => animations.forEach(animation => animation.cancel());
+  }, [dragLayout]);
+  const [dragPreview, setDragPreview] = useState<{ content?: ReactNode; node?: HTMLElement; radius?: string; width: number; height: number } | null>(null);
   const [pendingDeleteWidgetId, setPendingDeleteWidgetId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -246,7 +268,7 @@ export function DashboardCanvas({
   }, []);
 
   const sanitizedWidgets = useMemo(() => {
-    const baseWidgets = widgets.map(sanitizeWidget);
+    const baseWidgets = (dragLayout?.widgets ?? widgets).map(sanitizeWidget);
 
     const isBrokenSectionTitle = (value: unknown) =>
       typeof value === 'string' && /[ÃÂâÆ€]/.test(value);
@@ -266,7 +288,7 @@ export function DashboardCanvas({
         },
       };
     });
-  }, [widgets, t]);
+  }, [dragLayout?.widgets, widgets, t]);
 
   const titleWidget = sanitizedWidgets.find((widget) => widget.type === 'dashboard_title') ?? null;
   // Everything that isn't the pinned title flows and reorders together,
@@ -277,7 +299,8 @@ export function DashboardCanvas({
   );
   const flowWidgetIds = useMemo(() => flowWidgets.map((widget) => widget.id), [flowWidgets]);
   const sectionWidgets = useMemo(() => flowWidgets.filter((widget) => widget.type === 'section'), [flowWidgets]);
-  const sectionSlots = useMemo(() => resolveSectionSlots(flowWidgets, sectionLayout, columns), [flowWidgets, sectionLayout, columns]);
+  const visibleSectionLayout = dragLayout?.layout ?? sectionLayout;
+  const sectionSlots = useMemo(() => resolveSectionSlots(flowWidgets, visibleSectionLayout, columns), [flowWidgets, visibleSectionLayout, columns]);
   // All Sections render in one slot, including historical multitrack data.
   // Keep the sparse slot map authoritative wherever a profile was saved.
   const useSectionSlots = sectionWidgets.length > 0
@@ -315,21 +338,92 @@ export function DashboardCanvas({
 
   const handleDragStart = (event: DragStartEvent) => {
     if (!canEditLayout) return;
+    dragSession.current = { widgets, layout: sectionLayout, sourceSectionId: event.active.data.current?.sectionId, identities: cardDragIdentities };
     const widget = flowWidgets.find((w) => w.id === event.active.id);
     if (widget) setActiveWidget(widget);
     const getPreviewRect = event.active.data.current?.getPreviewRect;
     const rect = event.active.rect.current.initial ?? (typeof getPreviewRect === 'function' ? getPreviewRect() : null);
+    const getPreviewNode = event.active.data.current?.getPreviewNode;
+    const original = typeof getPreviewNode === 'function' ? getPreviewNode() : null;
+    const clone = original instanceof HTMLElement ? original.cloneNode(true) as HTMLElement : undefined;
+    if (clone && original instanceof HTMLElement) {
+      // Snapshot the actual surface, not a second presenter with view-mode
+      // padding/controls. Canvas instruments must keep their painted pixels.
+      const canvases = clone.querySelectorAll('canvas');
+      original.querySelectorAll('canvas').forEach((canvas, index) => canvases[index]?.getContext('2d')?.drawImage(canvas, 0, 0));
+      for (const node of [clone, ...clone.querySelectorAll('*')]) {
+        for (const name of ['id', 'aria-describedby', 'data-dashboard-card-id', 'data-dashboard-section-id', 'data-dashboard-drag-origin', 'data-dashboard-drop-target']) node.removeAttribute(name);
+      }
+      Object.assign(clone.style, { width: '100%', height: '100%', gridRow: 'auto', gridColumn: 'auto', transform: 'none', transition: 'none', opacity: '1' });
+    }
     if (rect) setDragPreview({ width: rect.width, height: rect.height,
+      node: clone, radius: original instanceof HTMLElement ? getComputedStyle(original).borderRadius : undefined,
       content: isValidElement(event.active.data.current?.preview) ? event.active.data.current.preview : undefined });
+  };
+
+  const handleDragOver = ({ active, over }: DragOverEvent) => {
+    const session = dragSession.current;
+    if (!session || !over || active.id === over.id || session.lastTarget === String(over.id)) return;
+    const source = active.data.current;
+    const destination = over.data.current;
+    if (source?.kind === 'section-card' && typeof source.cardId === 'string' && session.sourceSectionId
+      && typeof destination?.sectionId === 'string' && destination.sectionId !== session.sourceSectionId) {
+      const moved = moveSectionCard(session.widgets, session.sourceSectionId, source.cardId, destination.sectionId, destination.kind === 'section-card' ? destination.cardId : undefined);
+      if (moved === session.widgets) return;
+      const sourceKey = sectionCardDragId(session.sourceSectionId, source.cardId);
+      const targetKey = sectionCardDragId(destination.sectionId, source.cardId);
+      setCardDragIdentities(current => {
+        const next = { ...current, [targetKey]: current[sourceKey] ?? String(active.id) };
+        delete next[sourceKey];
+        return next;
+      });
+      session.widgets = moved;
+      session.sourceSectionId = destination.sectionId;
+    } else if (source?.kind === 'section' && useSectionSlots) {
+      // Each preview starts from the saved slot map, not previous hover swaps.
+      const slots = resolveSectionSlots(widgets, sectionLayout, columns);
+      const target = String(over.id);
+      const targetIndex = target.startsWith('section-slot-') ? Number(target.slice('section-slot-'.length)) : slots.indexOf(target);
+      const moved = moveSectionSlot(slots, String(active.id), targetIndex);
+      if (moved === slots) return;
+      session.layout = { ...session.layout, [sectionLayoutKey(columns)]: moved };
+    } else return;
+    session.lastTarget = String(over.id);
+    previousSectionRects.current = new Map();
+    containerRef.current?.querySelectorAll<HTMLElement>('[data-dashboard-section-id]').forEach(node => {
+      previousSectionRects.current.set(node.dataset.dashboardSectionId!, node.getBoundingClientRect());
+    });
+    sectionAnimations.current.forEach(animation => animation.cancel());
+    setDragLayout({ widgets: session.widgets, layout: session.layout });
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveWidget(null);
     setDragPreview(null);
+    const session = dragSession.current;
+    dragSession.current = null;
+    setDragLayout(null);
     if (!canEditLayout) return;
 
     const { active, over } = event;
-    if (!over || active.id === over.id) return;
+    if (!over) {
+      if (session) setCardDragIdentities(session.identities);
+      return;
+    }
+    // A cross-section/slot preview is already at its destination. Do not swap
+    // it back when the pointer ends over the relocated ghost itself.
+    if (session?.lastTarget) {
+      let next = session.widgets;
+      const target = over.data.current;
+      const cardId = active.data.current?.cardId;
+      if (active.data.current?.kind === 'section-card' && session.sourceSectionId && typeof cardId === 'string'
+        && target?.kind === 'section-card' && target.sectionId === session.sourceSectionId && target.cardId !== cardId) {
+        next = moveSectionCard(next, session.sourceSectionId, cardId, target.sectionId, target.cardId);
+      }
+      onLayoutChange(next, session.layout);
+      return;
+    }
+    if (active.id === over.id) return;
     const source = active.data.current;
     const destination = over.data.current;
     if (source?.kind === 'section-card') {
@@ -375,6 +469,9 @@ export function DashboardCanvas({
   const handleDragCancel = () => {
     setActiveWidget(null);
     setDragPreview(null);
+    if (dragSession.current) setCardDragIdentities(dragSession.current.identities);
+    dragSession.current = null;
+    setDragLayout(null);
   };
 
   const collisionDetection: CollisionDetection = (args) => {
@@ -382,7 +479,11 @@ export function DashboardCanvas({
     const droppableContainers = args.droppableContainers.filter((container) => isCard
       ? container.data.current?.kind === 'section-card' || container.data.current?.kind === 'section'
       : container.data.current?.kind !== 'section-card');
-    if (!isCard) return rectIntersection({ ...args, droppableContainers });
+    if (!isCard) {
+      const hits = pointerWithin({ ...args, droppableContainers });
+      const slot = hits.find(hit => String(hit.id).startsWith('section-slot-'));
+      return slot ? [slot] : hits.length ? hits : rectIntersection({ ...args, droppableContainers });
+    }
     const hits = pointerWithin({ ...args, droppableContainers });
     const cardHits = hits.filter((hit) => droppableContainers.find((container) => container.id === hit.id)?.data.current?.kind === 'section-card');
     return cardHits.length ? cardHits : hits.length ? hits : closestCenter({ ...args, droppableContainers });
@@ -395,10 +496,23 @@ export function DashboardCanvas({
 
   return (
     <DndContext
+      accessibility={{ announcements: {
+        onDragStart: () => t('common.reorder'),
+        onDragEnd: () => t('common.done'),
+        onDragCancel: () => t('common.cancel'),
+        onDragOver: ({ active, over }) => {
+          if (!over) return;
+          const sectionId = active.data.current?.kind === 'section-card'
+            ? dragSession.current?.sourceSectionId : over.data.current?.sectionId;
+          const section = widgets.find(widget => widget.id === sectionId);
+          return `${t('common.reorder')}: ${section?.config.appearance?.title || String(over.id)}`;
+        },
+      } }}
       sensors={sensors}
       collisionDetection={collisionDetection}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      onDragOver={handleDragOver}
       onDragCancel={handleDragCancel}
     >
       <SectionCardDragContext.Provider value={cardDragIdentities}>
@@ -449,12 +563,13 @@ export function DashboardCanvas({
         ) : null}
 
         {useSectionSlots && <CanvasFlowItem span={columns} gap={gap}>
-          <SortableContext items={sectionWidgets.map((widget) => widget.id)} strategy={rectSortingStrategy}>
+          <SortableContext items={sectionSlots.filter((id): id is string => id !== null)} strategy={rectSortingStrategy}>
             <div className="grid min-w-0 items-start" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gridAutoRows: `${CANVAS_ROW_UNIT}px`, gridAutoFlow: 'row dense', gap: `${gap}px` }}>
               {Array.from({ length: slotCount }, (_, index) => {
                 const widget = sectionById.get(sectionSlots[index] ?? '');
                 return <SectionDropSlot key={index} index={index} columns={columns} gap={gap} editing={isEditing}>
                   {widget && <SortableCanvasWidget
+                    key={widget.id}
                     widget={widget} columns={columns} gap={gap} slotMode
                     isEditing={isEditing} canDrag={canEditLayout}
                     isSelected={selectedWidgetId === widget.id}
@@ -514,12 +629,12 @@ export function DashboardCanvas({
               aria-hidden="true"
               inert
               data-dashboard-drag-preview="true"
-              className="pointer-events-none grid cursor-grabbing rounded-panel shadow-depth-3 bg-card"
+              className="pointer-events-none grid cursor-grabbing shadow-depth-3"
               style={{
-                width: dragPreview.width, height: dragPreview.height, containerType: 'inline-size',
+                width: dragPreview.width, height: dragPreview.height, borderRadius: dragPreview.radius, containerType: 'inline-size',
               }}
             >
-              {dragPreview.content ?? (activeWidget && <SectionCardDragContext.Provider value={false}><WidgetContent
+              {dragPreview.node ? <div className="h-full min-h-0" ref={node => { if (node && dragPreview.node) node.replaceChildren(dragPreview.node); }} /> : dragPreview.content ?? (activeWidget && <SectionCardDragContext.Provider value={false}><WidgetContent
                 widget={activeWidget}
                 isEditing={false}
                 onClick={() => {}}

@@ -488,6 +488,8 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     await expect(source).toHaveAttribute('aria-pressed', 'true');
     await expect(source).toHaveAttribute('data-dashboard-drag-origin', 'true');
     const dragBounds = (await page.locator('[data-dashboard-drag-preview="true"]').boundingBox())!;
+    await expect(regions[1].locator('[data-dashboard-card-id="movable"]')).toBeVisible();
+    expect(saved.tabs[0].widgets.find(widget => widget.id === 'tech')?.config.extra.cards.map(card => card.id)).toEqual(['movable']);
     expect(dragBounds.width).toBeCloseTo(sourceBounds.width, 1);
     expect(dragBounds.height).toBeCloseTo(sourceBounds.height, 1);
     await expect(page.locator('[data-dashboard-drop-target="true"]').filter({ visible: true })).not.toHaveCount(0);
@@ -626,7 +628,9 @@ test('Feature: Dashboard unified editing — Scenario: Keyboard transfers a card
     // the activated frame settle before the user's next key.
     await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
   await page.keyboard.press('ArrowRight');
-  await expect(page.getByRole('status')).toContainText('target-card');
+  await expect(page.getByRole('status')).toContainText('Patio');
+  await expect(page.getByRole('region', { name: 'Patio', exact: true }).locator('[data-dashboard-card-id="keyboard-card"]')).toBeVisible();
+  expect(writes).toBe(0);
   await page.keyboard.press('Space');
   await expect.poll(() => saved.tabs[0].widgets.find(widget => widget.id === 'patio')?.config.extra.cards.map(card => card.id)).toEqual(['keyboard-card', 'target-card']);
   await expect(page.locator('[data-dashboard-drag-preview="true"]')).toHaveCount(0);
@@ -638,9 +642,11 @@ test('Feature: Dashboard unified editing — Scenario: Keyboard transfers a card
     await expect(card).toHaveAttribute('aria-pressed', 'true');
     await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
   await page.keyboard.press('ArrowLeft');
+  await expect(page.getByRole('region', { name: 'Tech', exact: true }).locator('[data-dashboard-card-id="keyboard-card"]')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(card).not.toHaveAttribute('aria-pressed', 'true');
   expect(writes).toBe(1);
+  await expect(page.getByRole('region', { name: 'Patio', exact: true }).locator('[data-dashboard-card-id="keyboard-card"]')).toBeVisible();
 });
 
 test('Feature: Routine sharing — Scenario: A recipient can execute and favorite but never manage shared routines', async ({ page }) => {
@@ -2006,8 +2012,8 @@ for (const viewport of [
         const density = await card.evaluate(element => {
           const style = getComputedStyle(element);
           const value = element.querySelector('.sensor-reading-value')!.getBoundingClientRect();
-          const footer = element.querySelector('.sensor-reading-footer')!.getBoundingClientRect();
-          return { top: parseFloat(style.paddingTop), bottom: parseFloat(style.paddingBottom), readingToFooter: footer.top - value.bottom };
+          const footer = element.querySelector('.sensor-reading-footer')?.getBoundingClientRect();
+          return { top: parseFloat(style.paddingTop), bottom: parseFloat(style.paddingBottom), readingToFooter: footer ? footer.top - value.bottom : 0 };
         });
         expect(density.top).toBeLessThanOrEqual(8);
         expect(density.bottom).toBeLessThanOrEqual(8);
@@ -2015,6 +2021,7 @@ for (const viewport of [
         await expect(card.getByText('Oficina', { exact: true })).toHaveCount(0);
         await expect(card).not.toContainText(`Technical ${reading.id}`);
         await expect(card.getByRole('button')).toHaveCount(0);
+        if (!['clarity-battery', 'clarity-memory'].includes(reading.id)) await expect(card.locator('.sensor-reading-footer')).toHaveCount(0);
         if (Number.isFinite(Number(reading.state))) {
           await expect(card.getByText(reading.state, { exact: true })).toBeVisible();
           await expect(card.getByRole('meter', { name: reading.title })).toHaveAttribute('aria-valuenow', reading.state);
@@ -2207,6 +2214,8 @@ for (const input of ['mouse', 'touch'] as const) {
         await expect(source).toHaveAttribute('aria-pressed', 'true');
         await expect(page.locator('[data-dashboard-drag-preview]')).toContainText('D');
         await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [end] });
+        await expect(destination.locator('[data-dashboard-section-id="d"]')).toBeVisible();
+        expect(saved.tabs[0].sectionLayout.columns3).toEqual(['a', 'b', 'c', 'd']);
         await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
       } else {
         await page.mouse.move(start.x, start.y);
@@ -2214,6 +2223,8 @@ for (const input of ['mouse', 'touch'] as const) {
         await page.mouse.move(end.x, end.y, { steps: 12 });
         const preview = page.locator('[data-dashboard-drag-preview]');
         await expect(preview).toContainText('D');
+        await expect(destination.locator('[data-dashboard-section-id="d"]')).toBeVisible();
+        expect(saved.tabs[0].sectionLayout.columns3).toEqual(['a', 'b', 'c', 'd']);
         await page.screenshot({ path: testInfo.outputPath('section-elevated.png') });
         await page.mouse.up();
       }

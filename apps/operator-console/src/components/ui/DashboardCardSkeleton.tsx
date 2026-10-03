@@ -40,7 +40,6 @@ export function DashboardCardSkeleton({ variant, className, mediaOnly = false, v
         <>
           <div className="sensor-premium-header"><DashboardSkeletonBar className="sensor-category-icon shrink-0" /><div className="w-full min-w-0"><DashboardSkeletonBar className="h-3 w-3/4" /></div></div>
           <div className="sensor-reading-layout sensor-analog-layout"><div className="sensor-analog-instrument"><div className="sensor-analog-skeleton" /><div className="sensor-analog-readout"><div className="flex items-baseline justify-center gap-1"><DashboardSkeletonBar className="h-8 w-16" /><DashboardSkeletonBar className="h-3 w-6" /></div></div></div></div>
-          <div className="sensor-reading-footer" />
         </>
       ) : variant === 'media' ? (
         <>

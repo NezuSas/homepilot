@@ -1,6 +1,6 @@
 # SensorMetricCard — instrumento analógico local
 
-Refinamiento vigente: se omiten «Normal», punto verde y leyenda textual de escala. Límites/graduaciones/configuración y precisión no cambian; se mantienen ausencia y avisos de riesgo. Footer/skeleton mantienen reserva exterior estable, sin simular etiquetas eliminadas.
+Refinamiento vigente: se omiten «Normal», punto verde, leyenda textual de escala y su reserva vacía. Footer solo existe para advertencias reales, sin filas mínimas; «Sin lectura» acompaña a «—» sin unidad. Skeleton sin pie vacío. Límites/graduaciones/configuración y precisión no cambian. La medición exterior inicial se mantiene coherente con el contenido más compacto.
 
 AC45: una única carcasa/modelo selecciona SensorAnalogGauge, SensorThermometer, SensorLevelGauge o SensorBatteryGauge. Los presenters verticales reutilizan el sistema de líquido de SensorLevelGauge; todos usan sensorNeedleFraction. `visualStyle` opcional viaja en extra.cards, sin SQL; ausente gauge histórico, nuevo auto por metadatos (nunca nombre como única fuente). Valor/unidad/estado accesible se presentan una sola vez por SensorMetricCard. Canvas interpola aguja 400 ms con RAF cancelable; líquido usa transform/transition 400 ms. Reduced-motion es inmediato. Sin lectura no hay relleno/aguja/meter ficticio. El viewport y la proporción 320/265 son iguales entre renderers; skeleton existente conserva la reserva exterior.
 

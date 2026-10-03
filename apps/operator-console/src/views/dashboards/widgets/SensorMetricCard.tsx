@@ -261,6 +261,7 @@ function SensorPresentationHero({ reading, t, decimals = false }: {
           {value}
         </span>
         {available && unit ? <span className="sensor-reading-unit font-medium text-muted-foreground">{unit}</span> : null}
+        {!available && <span className="text-xs text-muted-foreground">{t('dashboard.editor.sections.sensor_unavailable')}</span>}
       </span>
     </>
   );
@@ -294,7 +295,7 @@ export function SensorMetricCard({ device, title, isPreview = false, icon, roomN
   const categoryLabel = getCategoryLabel(reading.category, t);
   const displayTitle = title.trim() || device?.name?.trim() || categoryLabel;
   const ConfiguredIcon = icon && icon !== getDefaultIcon('sensor') ? getDashboardIconComponent(icon) : null;
-  const hasStatus = severity !== 'informational' && severity !== 'normal' && reading.presentation !== 'binary';
+  const hasStatus = (severity === 'low' || severity === 'critical') && reading.presentation !== 'binary';
   const statusLabel = !hasStatus ? null : reading.category === 'memory' && (severity === 'low' || severity === 'critical')
     ? t(`dashboard.editor.sections.sensor_memory_${severity}`)
     : t(`dashboard.editor.sections.sensor_${severity}`);
@@ -328,16 +329,16 @@ export function SensorMetricCard({ device, title, isPreview = false, icon, roomN
           <div className="sensor-analog-readout"><SensorPresentationHero reading={reading} t={t} decimals={sensorDecimals} /></div>
         </div> : <SensorPresentationHero reading={reading} t={t} decimals={sensorDecimals} />}
       </div>
-      <div className="sensor-reading-footer">
+      {hasStatus && <div className="sensor-reading-footer">
         <div className="sensor-reading-status text-muted-foreground">
           {hasStatus ? (
           <span className="sensor-status-badge">
-            {severity !== 'unavailable' && <span className={cn('sensor-status-dot', severity === 'critical' ? 'bg-danger' : 'bg-warning')} aria-hidden="true" />}
+            <span className={cn('sensor-status-dot', severity === 'critical' ? 'bg-danger' : 'bg-warning')} aria-hidden="true" />
             <span className="min-w-0">{statusLabel}</span>
           </span>
           ) : null}
         </div>
-      </div>
+      </div>}
     </div>
   );
 }

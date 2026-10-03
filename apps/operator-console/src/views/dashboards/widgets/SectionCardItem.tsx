@@ -157,7 +157,7 @@ export function SectionCardItem({
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } = useSortable({
     id: sectionId ? sectionCardDragId(sectionId, card.id, dragIdentities) : card.id,
-    data: { kind: 'section-card', sectionId, cardId: card.id, preview: cardContent, getPreviewRect: () => previewNode.current?.getBoundingClientRect() },
+    data: { kind: 'section-card', sectionId, cardId: card.id, preview: cardContent, getPreviewRect: () => previewNode.current?.getBoundingClientRect(), getPreviewNode: () => previewNode.current },
     disabled: !isEditing,
     transition: DASHBOARD_DRAG_TRANSITION,
   });

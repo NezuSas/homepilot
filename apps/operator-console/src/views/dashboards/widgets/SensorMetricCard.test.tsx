@@ -64,8 +64,10 @@ describe('Sensor Metric Card status presentation', () => {
     if (status === 'Normal') {
       expect(html).not.toContain('Normal');
       expect(html).not.toContain('bg-success');
+      expect(html).not.toContain('sensor-reading-footer');
     } else expect(html).toContain(status);
     expect(html).not.toContain('sensor-scale-caption');
+    if (value === '—') expect(html).not.toContain('sensor-reading-footer');
     expect(html).toContain(name);
     expect(html).not.toContain('LISTO');
     expect(html).not.toContain('<button');
