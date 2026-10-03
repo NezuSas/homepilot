@@ -2,6 +2,15 @@
 
 ## Editor Sections V2 — workspace vigente
 
+### Cuadrícula directa y expansión de Section — 2026-10-03
+
+- [x] `CardGridSizePicker` modular: pointer/mouse/touch, captura, cancelación y teclado; retirar inputs/selectores de tamaño del editor.
+- [x] Filas como mínimo, nunca contenedor de scroll impuesto; Section y preview crecen con el contenido y filas medidas.
+- [x] Adaptación proporcional de columnas al guardar cambio de ancho de Section; preservar filas, binding, metadata y orden, sin migración ni escritura al cargar.
+- [x] Añadir Section en primer hueco del perfil, estable tras mover/recargar; creación ocupa ese hueco sin compactar los demás. Flujo denso para vistas multicolumna.
+- Jest focalizado: **21/21 PASS, 5 suites**, incluyendo el componente, coordenadas mouse/touch/teclado, límites, adaptación 2→1→2 y slots tras recarga. Los escenarios responsive existentes se adaptaron a la cuadrícula, pero no se ejecutaron por restricción expresa. Estos tests unitarios no constituyen certificación visual ni de tablet física.
+- Validación final: typecheck, lint, build raíz y build Operator Console PASS; spec coverage (948 fuentes), BDD y cobertura modular PASS. Confirmación del componente tras ajustar su test a JSX automático: 2/2 PASS. Escaneo mecánico de layout sin hallazgos; no sustituye inspección visual/táctil. Build conserva advertencias de Browserslist y tamaño de chunks, sin desactivar controles. Sin Git, responsive, Docker ni deploy.
+
 ### Refinamiento autorizado — edición y fondo (2026-10-03)
 
 - [x] Retirar manijas sobre tarjetas y widgets; tamaño únicamente desde el editor.

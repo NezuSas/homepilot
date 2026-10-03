@@ -1,4 +1,4 @@
-import { moveSectionSlot, resolveSectionSlots, sectionLayoutKey } from './sectionSlots';
+import { availableSectionSlot, moveSectionSlot, resolveSectionSlots, sectionLayoutKey } from './sectionSlots';
 import type { DashboardWidget } from './types';
 
 const widgets = ['a', 'b', 'c'].map((id) => ({ id, type: 'section', config: {} })) as DashboardWidget[];
@@ -19,10 +19,17 @@ describe('Feature: independent responsive Section slots', () => {
     expect(resolveSectionSlots(widgets, layout, 3)).toEqual(['a', 'c', 'b']);
     expect(resolveSectionSlots(widgets, layout, 2)).toEqual(['a', 'b', 'c']);
     expect(sectionLayoutKey(1)).toBe('columns1');
-    expect(resolveSectionSlots([...widgets, { ...widgets[0], id: 'd' }], layout, 4)).toEqual(['a', null, 'b', 'c', 'd']);
+    expect(resolveSectionSlots([...widgets, { ...widgets[0], id: 'd' }], layout, 4)).toEqual(['a', 'd', 'b', 'c']);
   });
 
   it('ignores deleted or duplicated IDs without losing valid gaps', () => {
-    expect(resolveSectionSlots(widgets, { columns3: ['a', 'missing', 'a', null, 'c'] }, 3)).toEqual(['a', null, null, null, 'c', 'b']);
+    expect(resolveSectionSlots(widgets, { columns3: ['a', 'missing', 'a', null, 'c'] }, 3)).toEqual(['a', 'b', null, null, 'c']);
+  });
+  it('places Add Section in the first available slot after moving and reloading without compacting existing sections', () => {
+    const moved = moveSectionSlot(['a', 'b', 'c'], 'a', 5);
+    const reloaded = resolveSectionSlots(widgets, { columns3: moved }, 3);
+    expect(availableSectionSlot(reloaded)).toBe(0);
+    expect(reloaded).toEqual([null, 'b', 'c', null, null, 'a']);
+    expect(availableSectionSlot(['a', 'b', 'c'])).toBe(3);
   });
 });

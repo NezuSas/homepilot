@@ -370,8 +370,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       <div style={isEditorPreview ? {
         containerType: 'inline-size',
         width: sectionGridWidth > 0 ? getCardGridWidth(sectionGridWidth, gridOptionsOverride?.columns ?? (span === 'small' ? 3 : span === 'medium' ? 6 : 12)) : undefined,
-        height: getCardGridHeight(gridOptionsOverride?.rows),
-        minHeight: typeof gridOptionsOverride?.rows === 'number' ? 0 : undefined,
+        minHeight: getCardGridHeight(gridOptionsOverride?.rows),
       } : undefined} className={isEditorPreview ? cn('relative grid shrink-0 min-w-0 overflow-hidden shadow-sm', getCardFrameClass(normalizedPreviewKind, span, previewDevice ? isDeviceActive(previewDevice) : false)) : cn(
         "grid overflow-hidden rounded-section transition-[height,width,max-width] duration-200",
         !isClockPreview && "bg-background/40",
@@ -382,7 +381,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         span === 'full' && "w-full",
         isCameraPreview ? 'min-h-60' : isClockPreview ? '' : isRoomPreview ? 'h-52' : isScenePreview ? 'h-44' : isCoverPreview && span === 'full' ? 'h-curtain-card-lg' : normalizedPreviewKind === 'media' ? 'h-media-card-preview' : span === 'full' ? 'h-40' : ''
       )}>
-        <div className={isEditorPreview ? cn('grid h-full min-h-0 min-w-0', typeof gridOptionsOverride?.rows === 'number' && 'overflow-auto') : 'contents'}><SectionCardContent
+        <div className={isEditorPreview ? 'grid min-w-0' : 'contents'}><SectionCardContent
           kind={kind}
           title={title}
           subtitle={isEditorPreview ? isCameraPreview ? previewRoomName : editingCard?.entityName || editingCard?.description : normalizedPreviewKind === 'cover' ? previewRoomName || catalogDescription(kind) : catalogDescription(kind)}
@@ -476,7 +475,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       aria-label={title || t('dashboard.editor.sections.untitled_section')}
       onClick={(event) => event.stopPropagation()}
       className={cn(
-        "relative flex h-full w-full min-w-0 flex-col gap-3 overflow-visible px-5 pb-2 pt-3",
+        "relative flex w-full min-w-0 flex-col gap-3 overflow-visible px-5 pb-2 pt-3",
         isEditing && "group/section relative text-left",
       )}
     >

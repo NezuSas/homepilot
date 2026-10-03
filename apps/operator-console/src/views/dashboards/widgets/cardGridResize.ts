@@ -3,8 +3,41 @@ import { MASONRY_ROW_GAP_PX, MASONRY_ROW_UNIT_PX } from './useMasonryRowSpans';
 
 export const CARD_EDITOR_MAX_ROWS = 12;
 
+/** Pointer position maps to bounded cells; the same calculation serves touch. */
+export function pickCardGridSize(initial: CardGridOptions, x: number, y: number, width: number, height: number): CardGridOptions {
+  if (width <= 0 || height <= 0) return initial;
+  const rowLimit = initial.maxRows ?? Math.max(CARD_EDITOR_MAX_ROWS, initial.minRows ?? 1);
+  return {
+    ...initial,
+    columns: Math.min(initial.maxColumns ?? 12, Math.max(initial.minColumns ?? 1, Math.ceil(x / width * 12))) as CardColumns,
+    rows: Math.min(rowLimit, Math.max(initial.minRows ?? 1, Math.ceil(y / height * rowLimit))),
+  };
+}
+
+/** Preserve approximate absolute card width on an explicit Section resize.
+ * Full-width cards intentionally continue to follow the whole Section. */
+export function fitCardsToSectionWidth(cards: unknown, previousSpan: number, nextSpan: number): unknown {
+  if (!Array.isArray(cards) || previousSpan === nextSpan || previousSpan < 1 || nextSpan < 1) return cards;
+  return cards.map((value: unknown) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+    const card = value as Record<string, unknown>;
+    const options = card.gridOptions && typeof card.gridOptions === 'object' && !Array.isArray(card.gridOptions)
+      ? card.gridOptions as Record<string, unknown> : undefined;
+    if (options?.columns === 'full' || (!options && card.span === 'full')) return card;
+    const columns = typeof options?.columns === 'number' ? options.columns : card.span === 'small' ? 3 : 6;
+    const minimum = typeof options?.minColumns === 'number' ? options.minColumns : 1;
+    const maximum = typeof options?.maxColumns === 'number' ? options.maxColumns : 12;
+    const fitted = Math.min(maximum, Math.max(minimum, Math.round(columns * previousSpan / nextSpan)));
+    return { ...card, gridOptions: { ...options, columns: fitted, rows: options?.rows ?? 'auto' } };
+  });
+}
+
 export function getCardGridHeight(rows: CardGridOptions['rows'] | undefined): number | undefined {
   return typeof rows === 'number' ? rows * (MASONRY_ROW_UNIT_PX + MASONRY_ROW_GAP_PX) - MASONRY_ROW_GAP_PX : undefined;
+}
+
+export function getCardGridRowSpan(rows: CardGridOptions['rows'] | undefined, measuredRows: number, minimumRows = 1): number {
+  return Math.max(measuredRows, typeof rows === 'number' ? rows : minimumRows);
 }
 
 export function getCardGridWidth(sectionWidth: number, columns: CardGridOptions['columns']): number {

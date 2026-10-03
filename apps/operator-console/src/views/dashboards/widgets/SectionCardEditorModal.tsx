@@ -12,16 +12,14 @@ import { normalizeSensorScale, normalizeSensorVisualStyle, sensorVisualStyles, t
 import type { SnapshotDevice, SnapshotRoom } from '../../../stores/useDeviceSnapshotStore';
 import { getAssignableDevicesForSectionCard } from '../dashboardUtils';
 import { Modal } from '../../../components/ui/Modal';
-import { CARD_EDITOR_MAX_ROWS } from './cardGridResize';
+import { CardGridSizePicker } from './CardGridSizePicker';
 import {
-  canUseCompactSpan, cardKinds, getDefaultIcon, getDefaultSpan,
-  getEffectiveCardSpan, isBindableKind, isClockKind,
+  cardKinds, getDefaultIcon, getDefaultSpan,
+  isBindableKind, isClockKind,
   normalizeKind, type AssignableAutomation, type AssignableDisplayAction, type AssignableScene, type CardDraft,
   type MediaVariant, type NormalizedSectionCardKind, type SectionCardIcon, type SectionCardKind, type SectionCardSpan,
 } from './sectionCardCatalog';
 import { isAutomationEntityId, stripAutomationEntityPrefix, toAutomationEntityId, toDeviceActionEntityId } from './sectionCardAssignments';
-
-const DESKTOP_SECTION_COLUMNS = 4;
 
 interface SectionCardEditorModalProps {
   cardDraft: CardDraft;
@@ -57,7 +55,6 @@ export function SectionCardEditorModal({
   const { t } = useTranslation();
   const [validMinimum, setValidMinimum] = useState(true);
   const [validMaximum, setValidMaximum] = useState(true);
-  const [validRows, setValidRows] = useState(true);
   const [panel, setPanel] = useState<'configuration' | 'design' | 'visibility'>('configuration');
   const defaultColumns = cardDraft.span === 'full' ? 12 : cardDraft.span === 'small' ? 3 : 6;
   const gridOptions = cardDraft.gridOptions ?? { columns: defaultColumns as CardColumns, rows: 'auto' as const };
@@ -68,7 +65,7 @@ export function SectionCardEditorModal({
       footerClassName="justify-end gap-2 px-5 py-4 sm:px-8"
       footer={<>
         <Button type="button" onClick={onClose} variant="secondary">{t('dashboard.editor.sections.cancel')}</Button>
-        <Button type="button" onClick={onSave} disabled={invalidScale || !validRows}>{t('dashboard.editor.sections.save')}</Button>
+        <Button type="button" onClick={onSave} disabled={invalidScale}>{t('dashboard.editor.sections.save')}</Button>
       </>}>
           <div className="min-w-0 space-y-4">
             <div role="region" aria-label={t('dashboards.edit_session.preview')} className="min-w-0 max-w-full overflow-auto">
@@ -87,21 +84,7 @@ export function SectionCardEditorModal({
             )}
             </div>
             <SegmentedControl value={panel} onChange={setPanel} label={t('dashboards.edit_session.label')} options={(['configuration', 'design', 'visibility'] as const).map(value => ({ value, label: t(`dashboards.edit_session.${value}`) }))} />
-            {panel === 'design' && <div className="space-y-3">
-              <div aria-hidden="true" className="grid aspect-square w-48 max-w-full grid-cols-12 gap-px rounded-control border border-border bg-border/50 p-px">
-                {Array.from({ length: 144 }, (_, index) => <span key={index} className={index % 12 < (gridOptions.columns === 'full' ? 12 : gridOptions.columns) && Math.floor(index / 12) < (gridOptions.rows === 'auto' ? 4 : gridOptions.rows) ? 'bg-primary/35' : 'bg-card'} />)}
-              </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <SearchableSelectField label={t('dashboards.edit_session.columns')} value={String(gridOptions.columns)}
-                options={[...Array.from({ length: 12 }, (_, index) => index + 1).filter(value => value >= (gridOptions.minColumns ?? 1) && value <= (gridOptions.maxColumns ?? 12)).map(value => ({ value: String(value), label: String(value) })), ...((gridOptions.maxColumns ?? 12) === 12 ? [{ value: 'full', label: t('dashboard.editor.sections.card_size_full') }] : [])]}
-                onChange={value => setCardDraft(draft => ({ ...draft, gridOptions: { ...gridOptions, columns: value === 'full' ? 'full' : Number(value) as CardColumns } }))} />
-              <NumberInput label={t('dashboards.edit_session.rows')} value={gridOptions.rows === 'auto' ? undefined : gridOptions.rows} min={gridOptions.minRows ?? 1} max={gridOptions.maxRows ?? CARD_EDITOR_MAX_ROWS} step={1} required={false}
-                onValidityChange={setValidRows}
-                placeholder={t('dashboards.edit_session.auto')}
-                onEmpty={() => setCardDraft(draft => ({ ...draft, gridOptions: { ...gridOptions, rows: 'auto' } }))}
-                onValueChange={rows => setCardDraft(draft => ({ ...draft, gridOptions: { ...gridOptions, rows } }))} />
-              </div>
-            </div>}
+            {panel === 'design' && <CardGridSizePicker value={gridOptions} onChange={next => setCardDraft(draft => ({ ...draft, gridOptions: next }))} />}
             {panel === 'visibility' && <ToggleSwitch label={t('dashboards.edit_session.visible')} checked={!cardDraft.hidden} onCheckedChange={visible => setCardDraft(draft => ({ ...draft, hidden: !visible }))} />}
             <div hidden={panel !== 'configuration'} className="space-y-4">
 
@@ -175,27 +158,6 @@ export function SectionCardEditorModal({
                 }}
               />
             )}
-
-            {!isClockKind(cardDraft.kind) && !['media', 'sensor'].includes(normalizeKind(cardDraft.kind)) && (
-              <SearchableSelectField
-                label={t('dashboard.editor.sections.card_size')}
-                value={cardDraft.span}
-                placement="down"
-                options={[
-                  ...(canUseCompactSpan(cardDraft.kind)
-                    ? [{ value: 'small', label: t('dashboard.editor.sections.card_size_small', { count: DESKTOP_SECTION_COLUMNS }) }]
-                    : []),
-                  { value: 'medium', label: t('dashboard.editor.sections.card_size_medium', { count: Math.max(1, Math.floor(DESKTOP_SECTION_COLUMNS / 2)) }) },
-                  { value: 'full', label: t('dashboard.editor.sections.card_size_full') },
-                ]}
-                onChange={(value) => setCardDraft((draft) => ({
-                  ...draft,
-                  span: getEffectiveCardSpan(draft.kind, value as SectionCardSpan),
-                  gridOptions: undefined,
-                }))}
-              />
-            )}
-
 
             {(cardDraft.kind === 'light' || cardDraft.kind === 'action' || cardDraft.kind === 'device' || cardDraft.kind === 'cover') ? (
               <IconPicker

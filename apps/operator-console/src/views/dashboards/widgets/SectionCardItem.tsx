@@ -14,7 +14,7 @@ import type { MediaPlayerCommand } from './MediaPlayerCard';
 import { MASONRY_ROW_GAP_PX, MASONRY_ROW_UNIT_PX } from './useMasonryRowSpans';
 import { ModalPortal } from './ModalPortal';
 import { SectionCardContent } from './SectionCardContent';
-import { getCardFrameClass, getCardGridHeight } from './cardGridResize';
+import { getCardFrameClass, getCardGridHeight, getCardGridRowSpan } from './cardGridResize';
 import { DashboardCardSkeleton, type DashboardCardSkeletonVariant } from '../../../components/ui/DashboardCardSkeleton';
 import { needsInitialDashboardSkeleton, useDelayedSkeleton } from '../../../components/ui/useDashboardDelayedSkeleton';
 import {
@@ -175,8 +175,7 @@ export function SectionCardItem({
       }}
       style={{
         containerType: 'inline-size',
-        height: explicitHeight,
-        minHeight: explicitHeight === undefined ? undefined : 0,
+        minHeight: explicitHeight,
         gridColumn: gridOptions ? gridOptions.columns === 'full' ? '1 / -1' : `span ${gridOptions.columns}` : undefined,
         // Tile-kind cards get a fixed uniform height so identical tiles
         // don't jitter a few pixels apart from a 1- vs 2-line title. But
@@ -186,7 +185,7 @@ export function SectionCardItem({
         // clipped by the card's own overflow-hidden background.
         // Keep the same measured rows in view and edit so changing modes
         // cannot compress the section's vertical rhythm.
-        gridRow: `span ${typeof gridOptions?.rows === 'number' ? gridOptions.rows : isTileKind ? Math.max(rowSpan, COMPACT_TILE_ROW_SPAN) : rowSpan}`,
+        gridRow: `span ${getCardGridRowSpan(gridOptions?.rows, rowSpan, isTileKind ? COMPACT_TILE_ROW_SPAN : 1)}`,
         transform: CSS.Translate.toString(transform),
         transition: transition ?? undefined,
       }}
@@ -223,9 +222,7 @@ export function SectionCardItem({
           {isCover && <div className="invisible min-h-0" aria-hidden="true"><CurtainDeviceTileLoadingGeometry /></div>}
           {skeletonVariant && <DashboardCardSkeleton variant={skeletonVariant} visible={showSkeleton} className={overlaySkeleton ? 'absolute inset-0' : undefined} />}
         </div>
-      ) : explicitHeight === undefined ? cardContent : (
-        <div className="grid h-full min-h-0 min-w-0 overflow-auto">{cardContent}</div>
-      )}
+      ) : cardContent}
 
       {isEditing ? (
         <div

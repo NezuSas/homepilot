@@ -3,6 +3,11 @@ import type { DashboardTab, DashboardWidget } from './types';
 export type SectionLayout = NonNullable<DashboardTab['sectionLayout']>;
 export type SectionLayoutKey = keyof SectionLayout;
 
+export function availableSectionSlot(slots: Array<string | null>): number {
+  const empty = slots.indexOf(null);
+  return empty < 0 ? slots.length : empty;
+}
+
 export function sectionLayoutKey(columns: number): SectionLayoutKey {
   return `columns${Math.min(4, Math.max(1, columns))}` as SectionLayoutKey;
 }
@@ -19,7 +24,7 @@ export function resolveSectionSlots(widgets: DashboardWidget[], layout: SectionL
     seen.add(id);
     return id;
   });
-  for (const id of sections) if (!seen.has(id)) slots.push(id);
+  for (const id of sections) if (!seen.has(id)) slots[availableSectionSlot(slots)] = id;
   return slots;
 }
 

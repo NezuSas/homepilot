@@ -1,4 +1,4 @@
-import { getCardFrameClass, getCardGridHeight, getCardGridWidth, resizeCardGrid } from './cardGridResize';
+import { fitCardsToSectionWidth, getCardFrameClass, getCardGridHeight, getCardGridRowSpan, getCardGridWidth, pickCardGridSize, resizeCardGrid } from './cardGridResize';
 
 describe('Feature: Twelve-column card resizing (AC48)', () => {
   it('Scenario: Quantized width and height honor limits without changing their source', () => {
@@ -31,5 +31,28 @@ describe('Feature: Twelve-column card resizing (AC48)', () => {
       expect(surface).toContain('min-h-device-card-compact');
     }
     expect(getCardFrameClass('sensor', 'medium')).toContain('rounded-2xl');
+  });
+  it('Scenario: Mouse and touch coordinates select columns and rows directly with bounded growth', () => {
+    expect(pickCardGridSize({ columns: 6, rows: 'auto' }, 100, 160, 240, 240)).toEqual({ columns: 5, rows: 8 });
+    expect(pickCardGridSize({ columns: 6, rows: 'auto', minColumns: 3, maxColumns: 9, minRows: 2, maxRows: 8 }, -100, 1000, 240, 240)).toMatchObject({ columns: 3, rows: 8 });
+    expect(pickCardGridSize({ columns: 6, rows: 4 }, 7, 5, 12, 12)).toMatchObject({ columns: 7, rows: 5 });
+    const initial = { columns: 6 as const, rows: 'auto' as const };
+    expect(pickCardGridSize(initial, 1, 1, 0, 0)).toBe(initial);
+    expect(initial.rows).toBe('auto');
+  });
+  it('Scenario: Reducing and restoring section width preserves rows, binding, order and bounded card widths', () => {
+    const cards = [{ id: 'a', entityId: 'lamp', gridOptions: { columns: 6, rows: 8 }, hidden: true }, { id: 'b', gridOptions: { columns: 'full', rows: 5 } }];
+    const reduced = fitCardsToSectionWidth(cards, 2, 1);
+    expect(reduced).toEqual([{ ...cards[0], gridOptions: { columns: 12, rows: 8 } }, cards[1]]);
+    expect(fitCardsToSectionWidth(reduced, 1, 2)).toEqual(cards);
+    expect(cards[0].gridOptions.columns).toBe(6);
+    expect(fitCardsToSectionWidth(cards, 1, 1)).toBe(cards);
+    expect(fitCardsToSectionWidth([{ id: 'legacy', span: 'small' }], 2, 1)).toEqual([{ id: 'legacy', span: 'small', gridOptions: { columns: 6, rows: 'auto' } }]);
+  });
+  it('Scenario: Content expands its section rows instead of being trapped in a fixed-height scroller', () => {
+    expect(getCardGridRowSpan(6, 8)).toBe(8);
+    expect(getCardGridRowSpan(8, 6)).toBe(8);
+    expect(getCardGridRowSpan('auto', 2, 4)).toBe(4);
+    expect(getCardGridRowSpan('auto', 8, 4)).toBe(8);
   });
 });

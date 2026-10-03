@@ -21,7 +21,7 @@ import { createPortal } from 'react-dom';
 import type { CSSProperties, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
-import { moveSectionSlot, resolveSectionSlots, sectionLayoutKey, type SectionLayout } from './sectionSlots';
+import { availableSectionSlot, moveSectionSlot, resolveSectionSlots, sectionLayoutKey, type SectionLayout } from './sectionSlots';
 import { Button } from '../../components/ui/Button';
 import { generateId } from '../../utils/generateId';
 import { readCanvasSections, projectCanvasSections } from './dashboardSectionsAdapter';
@@ -318,7 +318,7 @@ export function DashboardCanvas({
   const useSectionSlots = sectionWidgets.length > 0
     && sectionWidgets.every((widget) => getSectionSpan(widget) === 1);
   const slotCount = useSectionSlots
-    ? Math.ceil(sectionSlots.length / columns) * columns + (activeWidget?.type === 'section' ? columns : 0)
+    ? Math.ceil(Math.max(sectionSlots.length, isEditing ? availableSectionSlot(sectionSlots) + 1 : 0) / columns) * columns + (activeWidget?.type === 'section' ? columns : 0)
     : 0;
   const sectionById = useMemo(() => new Map(sectionWidgets.map((widget) => [widget.id, widget])), [sectionWidgets]);
   const duplicateSection = (id: string) => {
@@ -534,6 +534,12 @@ export function DashboardCanvas({
     ? widgets.find((widget) => widget.id === pendingDeleteWidgetId) ?? null
     : null;
 
+  const addSectionControl = canEditLayout ? <Button
+    type="button" variant="ghost" size="md" onClick={onAddSectionClick}
+    aria-label={t('dashboard.editor.sections.add_section')}
+    className="min-h-36 w-full rounded-field border-2 border-dashed border-border/70 bg-background/10 text-primary hover:border-primary/70 hover:bg-primary/5"
+  ><span aria-hidden="true" className="text-panel-title font-light">+</span></Button> : null;
+
   return (
     <DndContext
       accessibility={{ announcements: {
@@ -571,7 +577,7 @@ export function DashboardCanvas({
           // minmax(0, 1fr) prevents content from widening the mobile canvas.
           gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
           gridAutoRows: `${CANVAS_ROW_UNIT}px`,
-          gridAutoFlow: 'row',
+            gridAutoFlow: 'row dense',
           alignItems: 'start',
           gap: `${gap}px`,
         }}
@@ -599,6 +605,7 @@ export function DashboardCanvas({
               {Array.from({ length: slotCount }, (_, index) => {
                 const widget = sectionById.get(sectionSlots[index] ?? '');
                 return <SectionDropSlot key={index} index={index} columns={columns} gap={gap} editing={isEditing}>
+                  {!widget && index === availableSectionSlot(sectionSlots) && addSectionControl}
                   {widget && <SortableCanvasWidget
                     key={widget.id}
                     widget={widget} columns={columns} gap={gap} slotMode
@@ -630,6 +637,8 @@ export function DashboardCanvas({
             />
           ))}
         </SortableContext>
+
+        {!useSectionSlots && addSectionControl && <CanvasFlowItem span={1} gap={gap}>{addSectionControl}</CanvasFlowItem>}
 
         <ConfirmModal
           isOpen={pendingDeleteWidgetId !== null}
@@ -677,20 +686,6 @@ export function DashboardCanvas({
         </DragOverlay>, document.body)}
       </div>
       {canEditLayout && !titleWidget && <Button type="button" variant="outline" size="md" onClick={onAddTitleClick}>{t('dashboard.editor.sections.add_title')}</Button>}
-      {canEditLayout && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="md"
-          onClick={onAddSectionClick}
-          aria-label={t('dashboard.editor.sections.add_section')}
-          className="w-full max-w-sm rounded-field border-2 border-dashed border-border/70 bg-background/10 text-primary hover:border-primary/70 hover:bg-primary/5"
-        >
-          <span className="inline-flex h-10 min-w-16 items-center justify-center rounded-xl border-2 border-dashed border-primary/75 bg-background/35 px-4 text-panel-title font-light leading-none text-primary">
-            +
-          </span>
-        </Button>
-      )}
       </SectionCardDragContext.Provider>
     </DndContext>
   );

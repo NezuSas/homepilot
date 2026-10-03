@@ -17,6 +17,8 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { SearchableSelectField } from '../../components/ui/SearchableSelectField';
 import { Modal } from '../../components/ui/Modal';
+import { getSectionSpan } from './dashboardUtils';
+import { fitCardsToSectionWidth } from './widgets/cardGridResize';
 import { IconPicker, getDashboardIconComponent } from './components/IconPicker';
 
 // Sub-widgets
@@ -224,7 +226,7 @@ export function DashboardWidgetNode({
                   onConfigChange?.(widget.id, {
                     appearance: { ...widget.config.appearance, title: sectionDraftTitle.trim(), icon: sectionDraftIcon.trim() || undefined },
                     layout: { ...widget.config.layout, span: sectionDraftSpan },
-                    extra: { ...widget.config.extra, sectionGridVersion: 2 },
+                    extra: { ...widget.config.extra, sectionGridVersion: 2, ...(widget.config.extra?.cards ? { cards: fitCardsToSectionWidth(widget.config.extra.cards, getSectionSpan(widget), sectionDraftSpan) } : {}) },
                   });
                   setIsSectionEditorOpen(false);
                 }}
