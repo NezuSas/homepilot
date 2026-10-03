@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { mdiAutoFix, mdiHome, mdiRobot, mdiWeatherWindy } from '@mdi/js';
 
-test('Feature: Sections editor — Scenario: Resize writes once, serializes edits, supports undo/redo and rolls back errors (AC48–AC49)', async ({ page }) => {
+test('Feature: Sections editor — Scenario: Editor sizing writes once, serializes edits, supports undo/redo and rolls back errors (AC48–AC49)', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   const template = responsiveDashboard.tabs[0].widgets[1];
   const initial = { ...responsiveDashboard, tabs: [{ ...responsiveDashboard.tabs[0], widgets: [{ ...template, config: { ...template.config, extra: { cards: [
@@ -28,20 +28,23 @@ test('Feature: Sections editor — Scenario: Resize writes once, serializes edit
   await header.getByLabel(/^(More|Más)$/i).click();
   await header.getByRole('menuitem', { name: /^(Edit|Editar)$/i }).click();
   const card = (id: string) => page.locator(`[data-dashboard-card-id="${id}"]`);
-  const handle = (id: string) => card(id).getByRole('slider', { name: /resize (?:the )?card|redimensionar/i });
-  await card('resize-a').hover();
-  const handleBounds = await handle('resize-a').boundingBox();
-  const gridBounds = await card('resize-a').locator('..').boundingBox();
-  if (!handleBounds || !gridBounds) throw new Error('Resize surface missing');
-  await page.mouse.move(handleBounds.x + handleBounds.width / 2, handleBounds.y + handleBounds.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(handleBounds.x + handleBounds.width / 2 + (gridBounds.width + 8) / 6, handleBounds.y + handleBounds.height / 2, { steps: 8 });
-  await expect(card('resize-a')).toHaveCSS('grid-column-start', 'span 5');
+  const editor = page.getByRole('dialog', { name: /^(Edit|Editar)$/i });
+  const editSize = async (id: string, columns: number, rows?: number) => {
+    await card(id).hover();
+    await card(id).getByRole('button', { name: /^(Edit|Editar)$/i }).click();
+    await editor.getByRole('radio', { name: /^(Design|Diseño)$/i }).click();
+    await editor.getByRole('button', { name: /^(Columns|Columnas) \(/i }).click();
+    await page.getByRole('option', { name: String(columns), exact: true }).click();
+    if (rows !== undefined) await editor.getByLabel(/^(Rows|Filas)$/i).fill(String(rows));
+  };
+  await expect(card('resize-a').getByRole('slider')).toHaveCount(0);
+  await editSize('resize-a', 5);
+  await expect(card('resize-a')).not.toHaveCSS('grid-column-start', 'span 5');
   expect(writes).toBe(0);
-  await page.mouse.up();
+  await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
   await expect.poll(() => writes).toBe(1);
-  await handle('resize-b').focus();
-  await page.keyboard.press('ArrowRight');
+  await editSize('resize-b', 4);
+  await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
   await expect(card('resize-b')).toHaveCSS('grid-column-start', 'span 4');
   expect(writes).toBe(1);
   release();
@@ -55,8 +58,8 @@ test('Feature: Sections editor — Scenario: Resize writes once, serializes edit
   await expect(card('resize-b')).toHaveCSS('grid-column-start', 'span 4');
   await expect(header.getByRole('status')).toHaveText(/Cambios guardados|Changes saved/);
   failNext = true;
-  await handle('resize-b').focus();
-  await page.keyboard.press('ArrowRight');
+  await editSize('resize-b', 5);
+  await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
   await expect.poll(() => writes).toBe(5);
   await expect(page.getByRole('alert').filter({ hasText: /Test save rejected|guardar|save/i })).toBeVisible();
   await expect(card('resize-b')).toHaveCSS('grid-column-start', 'span 4');
@@ -64,8 +67,8 @@ test('Feature: Sections editor — Scenario: Resize writes once, serializes edit
   await expect(card('resize-a')).toHaveCSS('grid-column-start', 'span 5');
   await expect(card('resize-b')).toHaveCSS('grid-column-start', 'span 4');
   await enterDashboardEdit(page);
-  await handle('resize-b').focus();
-  await page.keyboard.press('ArrowDown');
+  await editSize('resize-b', 4, 5);
+  await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
   await expect(card('resize-b')).toHaveCSS('grid-row-start', 'span 5');
   await expect(card('resize-b')).toHaveCSS('height', '132px');
   await expect(header.getByRole('status')).toHaveText(/Cambios guardados|Changes saved/);
@@ -92,7 +95,7 @@ test('Feature: Sections editor — Scenario: Design and visibility previews are 
   await editor.getByRole('button', { name: /^(Columns|Columnas) \(/i }).click();
   await page.getByRole('option', { name: '8', exact: true }).click();
   await editor.getByLabel(/^(Rows|Filas)$/i).fill('6');
-  await expect(preview).toHaveCSS('height', '160px');
+  await expect(preview.locator(':scope > div')).toHaveCSS('height', '160px');
   await page.screenshot({ path: testInfo.outputPath('card-design-tablet.png') });
   await expect(card).not.toHaveCSS('grid-column-start', 'span 8');
   await editor.getByRole('button', { name: /^(Cancel|Cancelar)$/i }).click();
@@ -2219,7 +2222,7 @@ test('Feature: Sensor width — Scenario: A sensor stays medium without a width 
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
   await enterDashboardEdit(page);
   const sensor = page.locator('[data-dashboard-card-id="responsive-sensor"]');
-  await expect(sensor.getByRole('slider', { name: /resize (?:the )?card|redimensionar/i })).toHaveCount(1);
+  await expect(sensor.getByRole('slider', { name: /resize (?:the )?card|redimensionar/i })).toHaveCount(0);
   await sensor.hover();
   await sensor.getByRole('button', { name: /^(Edit|Editar)$/i }).click();
   const heading = page.getByRole('heading', { name: /^(Edit|Editar)$/i });
@@ -4129,7 +4132,7 @@ test('Feature: Media card width — Scenario: A player occupies the full section
   const mediaCard = page.locator('[class*="group/card"]').filter({ hasText: /Reproductor|Media player/i });
   await expect(mediaCard.locator('[data-media-player="homepilot-premium"]')).toBeVisible();
   await expect(mediaCard).toHaveClass(/col-span-full/);
-  await expect(mediaCard.getByRole('slider', { name: /resize (?:the )?card|redimensionar/i })).toHaveCount(1);
+  await expect(mediaCard.getByRole('slider', { name: /resize (?:the )?card|redimensionar/i })).toHaveCount(0);
   await expect.poll(() => {
     const section = savedDashboard.tabs[0]?.widgets.find((widget) => widget.id === 'responsive-section');
     if (!section || !('extra' in section.config)) return undefined;

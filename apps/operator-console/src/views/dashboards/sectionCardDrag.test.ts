@@ -32,4 +32,12 @@ describe('moving cards within one tab', () => {
     expect(moveSectionCard(widgets, 'tech', 'missing', 'duplicate')).toBe(widgets);
     expect(moveSectionCard(widgets, 'tech', 'media', 'absent')).toBe(widgets);
   });
+  it('previews repeated same-section movement before an atomic cross-section drop', () => {
+    const widgets = [section('tech', [card, { id: 'second' }, { id: 'third' }]), section('patio', [])];
+    const preview = moveSectionCard(widgets, 'tech', 'media', 'tech', 'third');
+    expect(preview[0].config.extra?.cards).toEqual([{ id: 'second' }, { id: 'third' }, card]);
+    const destination = moveSectionCard(preview, 'tech', 'media', 'patio');
+    expect(destination[1].config.extra?.cards).toEqual([card]);
+    expect(widgets[0].config.extra?.cards).toEqual([card, { id: 'second' }, { id: 'third' }]);
+  });
 });

@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { DndContext, KeyboardSensor, MouseSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SectionCardDragContext, sectionCardDragId } from '../sectionCardDrag';
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
@@ -23,6 +23,8 @@ import { SectionCardEditorModal } from './SectionCardEditorModal';
 import { useSectionCardActions } from './useSectionCardActions';
 import { getDashboardIconComponent } from '../components/dashboardIconRegistry';
 import { isDeviceOperational } from '../../../lib/deviceOperationalEligibility';
+import type { CardGridOptions } from '../types';
+import { getCardFrameClass, getCardGridHeight, getCardGridWidth } from './cardGridResize';
 
 interface SectionWidgetProps {
   sectionId?: string;
@@ -42,6 +44,20 @@ function getBoundRoutineIcon(entityId: string | undefined, scenes: AssignableSce
 }
 
 export function SectionWidget({ config, isEditing, onUpdate, sectionId }: SectionWidgetProps) {
+  const sectionGridRef = useRef<HTMLDivElement>(null);
+  const [sectionGridWidth, setSectionGridWidth] = useState(0);
+  useEffect(() => {
+    const grid = sectionGridRef.current;
+    if (!grid) return;
+    const style = getComputedStyle(grid);
+    setSectionGridWidth(grid.getBoundingClientRect().width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight));
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) setSectionGridWidth(entry.contentRect.width);
+    });
+    observer.observe(grid);
+    return () => observer.disconnect();
+  }, []);
   const { t } = useTranslation();
   const dragIdentities = useContext(SectionCardDragContext);
   const sharedDrag = Boolean(dragIdentities) && Boolean(sectionId);
@@ -311,12 +327,6 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     updateCards(arrayMove(cards, sourceIndex, targetIndex));
   };
 
-  const resizeCard = (cardId: string, gridOptions: import('../types').CardGridOptions) => {
-    updateCards(cards.map((card) => (
-      card.id === cardId ? { ...card, gridOptions } : card
-    )));
-  };
-
   const handleCardDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -334,9 +344,12 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     sensorScaleOverride?: SensorScale,
     sensorDecimalsOverride?: boolean,
     visualStyleOverride?: import('./sectionCardCatalog').SensorVisualStyle,
+    gridOptionsOverride?: CardGridOptions,
   ) => {
     const title = titleOverride || catalogLabel(kind);
-    const span = getEffectiveCardSpan(kind, spanOverride ?? getDefaultSpan(kind));
+    const span = gridOptionsOverride
+      ? gridOptionsOverride.columns === 'full' || gridOptionsOverride.columns > 6 ? 'full' : gridOptionsOverride.columns <= 3 ? 'small' : 'medium'
+      : getEffectiveCardSpan(kind, spanOverride ?? getDefaultSpan(kind));
     const normalizedPreviewKind = normalizeKind(kind);
     const isCameraPreview = normalizedPreviewKind === 'camera';
     const isClockPreview = isClockKind(normalizedPreviewKind);
@@ -354,7 +367,12 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       : undefined;
 
     return (
-      <div className={cn(
+      <div style={isEditorPreview ? {
+        containerType: 'inline-size',
+        width: sectionGridWidth > 0 ? getCardGridWidth(sectionGridWidth, gridOptionsOverride?.columns ?? (span === 'small' ? 3 : span === 'medium' ? 6 : 12)) : undefined,
+        height: getCardGridHeight(gridOptionsOverride?.rows),
+        minHeight: typeof gridOptionsOverride?.rows === 'number' ? 0 : undefined,
+      } : undefined} className={isEditorPreview ? cn('relative grid shrink-0 min-w-0 overflow-hidden shadow-sm', getCardFrameClass(normalizedPreviewKind, span, previewDevice ? isDeviceActive(previewDevice) : false)) : cn(
         "grid overflow-hidden rounded-section transition-[height,width,max-width] duration-200",
         !isClockPreview && "bg-background/40",
         isClockPreview && (isEditorPreview ? 'homepilot-clock-preview-host homepilot-clock-preview-host--editor' : 'homepilot-clock-preview-host homepilot-clock-preview-host--catalog'),
@@ -364,10 +382,10 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         span === 'full' && "w-full",
         isCameraPreview ? 'min-h-60' : isClockPreview ? '' : isRoomPreview ? 'h-52' : isScenePreview ? 'h-44' : isCoverPreview && span === 'full' ? 'h-curtain-card-lg' : normalizedPreviewKind === 'media' ? 'h-media-card-preview' : span === 'full' ? 'h-40' : ''
       )}>
-        <SectionCardContent
+        <div className={isEditorPreview ? cn('grid h-full min-h-0 min-w-0', typeof gridOptionsOverride?.rows === 'number' && 'overflow-auto') : 'contents'}><SectionCardContent
           kind={kind}
           title={title}
-          subtitle={normalizedPreviewKind === 'cover' ? previewRoomName || catalogDescription(kind) : catalogDescription(kind)}
+          subtitle={isEditorPreview ? isCameraPreview ? previewRoomName : editingCard?.entityName || editingCard?.description : normalizedPreviewKind === 'cover' ? previewRoomName || catalogDescription(kind) : catalogDescription(kind)}
           span={span}
           icon={(normalizedPreviewKind === 'action' ? getBoundRoutineIcon(deviceIdOverride, scenes, automations) : undefined) ?? iconOverride ?? getDefaultIcon(kind)}
           isAssigned={Boolean(deviceIdOverride)}
@@ -377,10 +395,11 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           sensorScale={sensorScaleOverride}
           sensorDecimals={sensorDecimalsOverride}
           visualStyle={visualStyleOverride}
-          isPreview={normalizedPreviewKind === 'sensor' ? !deviceIdOverride : true}
+          isPreview={isEditorPreview ? false : normalizedPreviewKind === 'sensor' ? !deviceIdOverride : true}
+          isEditorPreview={isEditorPreview}
           roomDeviceCount={roomDevices.length}
           roomActiveCount={roomDevices.filter(isDeviceActive).length}
-        />
+        /></div>
       </div>
     );
   };
@@ -416,7 +435,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
   ) : null;
 
   const sortableCards = (
-    <SortableContext items={cards.map((card) => sharedDrag ? sectionCardDragId(sectionId!, card.id, dragIdentities) : card.id)} strategy={rectSortingStrategy}>
+    <SortableContext items={cards.map((card) => sharedDrag ? sectionCardDragId(sectionId!, card.id, dragIdentities) : card.id)} strategy={sharedDrag ? () => null : rectSortingStrategy}>
       {cards.filter(card => isEditing || !card.hidden).map((card) => (
         <SectionCardItem
           key={card.id}
@@ -436,7 +455,6 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           upsertDevice={upsertDevice}
           openCardEditor={openCardEditor}
           removeCard={removeCard}
-          resizeCard={resizeCard}
           registerRowSpanRef={registerCard}
           rowSpan={rowSpans[card.id] ?? 1}
         />
@@ -445,6 +463,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
   );
   const sectionGrid = (
     <div
+      ref={sectionGridRef}
       onClick={(event) => event.stopPropagation()}
       className="grid min-h-0 min-w-0 flex-1 grid-cols-12 content-start items-start gap-2 overflow-visible pr-1 auto-rows-[minmax(20px,auto)] grid-flow-row-dense"
     >

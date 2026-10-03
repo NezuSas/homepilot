@@ -86,6 +86,7 @@ The command fails if a file cannot be mapped to an existing spec.
 
 ## Audited Coverage
 
+- Refinamiento AC48 (2026-10-03): tamaño desde editor sin manijas; preview/superficie y gaps compartidos (`cardGridResize`, `SectionCardItem`, `SectionWidget`, `SectionCardEditorModal`); hover dentro/entre secciones y drop único (`DashboardCanvas`, `sectionCardDrag`); huecos sin decoración, cierre exterior del menú y eliminación del velo claro. Jest focalizado 15/15 PASS y build consola PASS; responsive no ejecutado por restricción expresa para esta corrección.
 - The **946** audited TypeScript/TSX files have a mapping rule to an existing
   spec.
 - All bounded contexts under `packages/` and all API route families are

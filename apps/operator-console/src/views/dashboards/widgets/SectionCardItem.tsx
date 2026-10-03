@@ -11,11 +11,10 @@ import { Button } from '../../../components/ui/Button';
 import { IconButton } from '../../../components/ui/IconButton';
 import { CurtainDeviceTileLoadingGeometry } from '../../../components/CurtainDeviceTile';
 import type { MediaPlayerCommand } from './MediaPlayerCard';
-import { CardResizeHandle } from './CardResizeHandle';
 import { MASONRY_ROW_GAP_PX, MASONRY_ROW_UNIT_PX } from './useMasonryRowSpans';
 import { ModalPortal } from './ModalPortal';
 import { SectionCardContent } from './SectionCardContent';
-import type { CardGridOptions } from '../types';
+import { getCardFrameClass, getCardGridHeight } from './cardGridResize';
 import { DashboardCardSkeleton, type DashboardCardSkeletonVariant } from '../../../components/ui/DashboardCardSkeleton';
 import { needsInitialDashboardSkeleton, useDelayedSkeleton } from '../../../components/ui/useDashboardDelayedSkeleton';
 import {
@@ -44,7 +43,6 @@ export function SectionCardItem({
   upsertDevice,
   openCardEditor,
   removeCard,
-  resizeCard,
   registerRowSpanRef,
   rowSpan,
 }: {
@@ -64,7 +62,6 @@ export function SectionCardItem({
   upsertDevice: (device: SnapshotDevice) => void;
   openCardEditor: (card: NormalizedSectionCardItem) => void;
   removeCard: (id: string) => void;
-  resizeCard: (cardId: string, size: CardGridOptions) => void;
   registerRowSpanRef: (cardId: string, element: HTMLElement | null) => void;
   rowSpan: number;
 }) {
@@ -73,16 +70,13 @@ export function SectionCardItem({
   const [isCardMenuOpen, setIsCardMenuOpen] = useState(false);
   const [cardMenuPosition, setCardMenuPosition] = useState<{ top: number; right: number } | null>(null);
   const previewNode = useRef<HTMLDivElement | null>(null);
-  const [resizePreview, setResizePreview] = useState<CardGridOptions | null>(null);
 
   // getEffectiveCardSpan guards against a stale/manually-dragged 'small'
   // span on a kind that can't render as a quarter-width tile; media is
   // always full width, including when a legacy configuration stores less.
   const savedSpan = getEffectiveCardSpan(card.kind, card.span ?? getDefaultSpan(card.kind));
-  const gridOptions = resizePreview ?? card.gridOptions;
-  const explicitHeight = typeof gridOptions?.rows === 'number'
-    ? gridOptions.rows * (MASONRY_ROW_UNIT_PX + MASONRY_ROW_GAP_PX) - MASONRY_ROW_GAP_PX
-    : undefined;
+  const gridOptions = card.gridOptions;
+  const explicitHeight = getCardGridHeight(gridOptions?.rows);
   const span = gridOptions ? gridOptions.columns === 'full' || gridOptions.columns > 6 ? 'full' : gridOptions.columns <= 3 ? 'small' : 'medium' : savedSpan;
   const subtitle = card.entityName || card.description;
   const isCamera = normalizeKind(card.kind) === 'camera';
@@ -96,7 +90,6 @@ export function SectionCardItem({
   const isCover = normalizedKind === 'cover';
   const isTileKind = normalizedKind === 'device' || normalizedKind === 'light' || normalizedKind === 'action';
   const isCompactDeviceCard = isTileKind && span === 'small';
-  const canResize = isEditing;
   const roomDevices = normalizedKind === 'room' && card.entityId
     ? devices.filter((device) => device.roomId === card.entityId)
     : [];
@@ -218,19 +211,8 @@ export function SectionCardItem({
         // box, leaving a transparent gap at the bottom.
         "group/card relative grid min-w-0 overflow-hidden shadow-sm",
         isEditing && "touch-pan-y",
-        normalizedKind === 'sensor' ? 'rounded-2xl' : 'rounded-section',
-        isTileKind
-          ? "min-h-device-card-compact"
-          : span === 'small' && "min-h-section-card-sm",
-        !isTileKind && span === 'medium' && "min-h-section-card-md",
-        !isTileKind && span === 'full' && "min-h-section-card-lg",
-        isCamera && "min-h-curtain-card",
-        isClock && "min-h-clock-card",
-        // Match the live CurtainDeviceTile's dashboard min-height at sm+.
-        isCover && "w-full max-w-curtain-dashboard justify-self-start sm:min-h-curtain-card",
+        getCardFrameClass(normalizedKind, span, tileIsActive),
         isActionable && !initialPending && "cursor-pointer hover:-translate-y-0.5 hover:shadow-depth-2 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-        (normalizedKind === 'light' || normalizedKind === 'action') && !tileIsActive && "border border-transparent",
-        (normalizedKind === 'light' || normalizedKind === 'action') && tileIsActive && "homepilot-section-light-tile-active",
         isDragging && "z-30 opacity-40",
         getSpanClass(span)
       )}
@@ -347,15 +329,6 @@ export function SectionCardItem({
         </ModalPortal>
       ) : null}
 
-      {canResize ? (
-        <CardResizeHandle
-          gridOptions={card.gridOptions ?? { columns: savedSpan === 'full' ? 12 : savedSpan === 'small' ? 3 : 6, rows: 'auto' }}
-          measuredRows={rowSpan}
-          label={t('dashboard.editor.sections.resize_card')}
-          onPreview={setResizePreview}
-          onResize={(nextSpan) => resizeCard(card.id, nextSpan)}
-        />
-      ) : null}
     </div>
   );
 }

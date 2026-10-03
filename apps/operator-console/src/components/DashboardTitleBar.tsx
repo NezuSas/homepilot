@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Download, History, MoreVertical, PenLine, Upload } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -47,6 +47,18 @@ export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
   const importInputRef = useRef<HTMLInputElement>(null);
   const overflowDetailsRef = useRef<HTMLDetailsElement>(null);
   const closeOverflow = () => { if (overflowDetailsRef.current) overflowDetailsRef.current.open = false; };
+  useEffect(() => {
+    const dismissOutside = (event: Event) => {
+      const menu = overflowDetailsRef.current;
+      if (menu?.open && event.target instanceof Node && !menu.contains(event.target)) menu.open = false;
+    };
+    document.addEventListener('pointerdown', dismissOutside, true);
+    document.addEventListener('focusin', dismissOutside);
+    return () => {
+      document.removeEventListener('pointerdown', dismissOutside, true);
+      document.removeEventListener('focusin', dismissOutside);
+    };
+  }, []);
 
   return (
   <div className="homepilot-dashboard-titlebar flex min-h-16 items-center justify-between gap-4 px-4 py-2 sm:px-6">

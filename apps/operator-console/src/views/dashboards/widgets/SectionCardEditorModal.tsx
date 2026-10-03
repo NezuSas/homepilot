@@ -7,12 +7,12 @@ import { Input } from '../../../components/ui/Input';
 import { NumberInput } from '../../../components/ui/NumberInput';
 import { ToggleSwitch } from '../../../components/ui/ToggleSwitch';
 import { SegmentedControl } from '../../../components/ui/SegmentedControl';
-import type { CardColumns } from '../types';
+import type { CardColumns, CardGridOptions } from '../types';
 import { normalizeSensorScale, normalizeSensorVisualStyle, sensorVisualStyles, type SensorVisualStyle, type SensorScale } from './sectionCardCatalog';
 import type { SnapshotDevice, SnapshotRoom } from '../../../stores/useDeviceSnapshotStore';
 import { getAssignableDevicesForSectionCard } from '../dashboardUtils';
 import { Modal } from '../../../components/ui/Modal';
-import { MASONRY_ROW_GAP_PX, MASONRY_ROW_UNIT_PX } from './useMasonryRowSpans';
+import { CARD_EDITOR_MAX_ROWS } from './cardGridResize';
 import {
   canUseCompactSpan, cardKinds, getDefaultIcon, getDefaultSpan,
   getEffectiveCardSpan, isBindableKind, isClockKind,
@@ -44,6 +44,7 @@ interface SectionCardEditorModalProps {
     sensorScaleOverride?: SensorScale,
     sensorDecimalsOverride?: boolean,
     visualStyleOverride?: SensorVisualStyle,
+    gridOptionsOverride?: CardGridOptions,
   ) => ReactNode;
   onClose: () => void;
   onSave: () => void;
@@ -70,33 +71,36 @@ export function SectionCardEditorModal({
         <Button type="button" onClick={onSave} disabled={invalidScale || !validRows}>{t('dashboard.editor.sections.save')}</Button>
       </>}>
           <div className="min-w-0 space-y-4">
-            <div role="region" aria-label={t('dashboards.edit_session.preview')} className="min-w-0 overflow-auto" style={{
-              width: `${((gridOptions.columns === 'full' ? 12 : gridOptions.columns) / 12) * 100}%`,
-              height: typeof gridOptions.rows === 'number' ? gridOptions.rows * (MASONRY_ROW_UNIT_PX + MASONRY_ROW_GAP_PX) - MASONRY_ROW_GAP_PX : undefined,
-            }}>
+            <div role="region" aria-label={t('dashboards.edit_session.preview')} className="min-w-0 max-w-full overflow-auto">
             {renderCatalogPreview(
               cardDraft.kind,
               cardDraft.title || catalogLabel(cardDraft.kind),
               cardDraft.span,
               cardDraft.icon,
-              normalizeKind(cardDraft.kind) === 'camera' || normalizeKind(cardDraft.kind) === 'cover' || normalizeKind(cardDraft.kind) === 'room' || normalizeKind(cardDraft.kind) === 'sensor' || normalizeKind(cardDraft.kind) === 'media' || normalizeKind(cardDraft.kind) === 'action' ? cardDraft.entityId : undefined,
+              cardDraft.entityId,
               true,
               cardDraft.mediaVariant,
               sensorScale,
               cardDraft.sensorDecimals,
               cardDraft.visualStyle,
+              gridOptions,
             )}
             </div>
             <SegmentedControl value={panel} onChange={setPanel} label={t('dashboards.edit_session.label')} options={(['configuration', 'design', 'visibility'] as const).map(value => ({ value, label: t(`dashboards.edit_session.${value}`) }))} />
-            {panel === 'design' && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {panel === 'design' && <div className="space-y-3">
+              <div aria-hidden="true" className="grid aspect-square w-48 max-w-full grid-cols-12 gap-px rounded-control border border-border bg-border/50 p-px">
+                {Array.from({ length: 144 }, (_, index) => <span key={index} className={index % 12 < (gridOptions.columns === 'full' ? 12 : gridOptions.columns) && Math.floor(index / 12) < (gridOptions.rows === 'auto' ? 4 : gridOptions.rows) ? 'bg-primary/35' : 'bg-card'} />)}
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <SearchableSelectField label={t('dashboards.edit_session.columns')} value={String(gridOptions.columns)}
                 options={[...Array.from({ length: 12 }, (_, index) => index + 1).filter(value => value >= (gridOptions.minColumns ?? 1) && value <= (gridOptions.maxColumns ?? 12)).map(value => ({ value: String(value), label: String(value) })), ...((gridOptions.maxColumns ?? 12) === 12 ? [{ value: 'full', label: t('dashboard.editor.sections.card_size_full') }] : [])]}
                 onChange={value => setCardDraft(draft => ({ ...draft, gridOptions: { ...gridOptions, columns: value === 'full' ? 'full' : Number(value) as CardColumns } }))} />
-              <NumberInput label={t('dashboards.edit_session.rows')} value={gridOptions.rows === 'auto' ? undefined : gridOptions.rows} min={gridOptions.minRows ?? 1} max={gridOptions.maxRows} step={1} required={false}
+              <NumberInput label={t('dashboards.edit_session.rows')} value={gridOptions.rows === 'auto' ? undefined : gridOptions.rows} min={gridOptions.minRows ?? 1} max={gridOptions.maxRows ?? CARD_EDITOR_MAX_ROWS} step={1} required={false}
                 onValidityChange={setValidRows}
                 placeholder={t('dashboards.edit_session.auto')}
                 onEmpty={() => setCardDraft(draft => ({ ...draft, gridOptions: { ...gridOptions, rows: 'auto' } }))}
                 onValueChange={rows => setCardDraft(draft => ({ ...draft, gridOptions: { ...gridOptions, rows } }))} />
+              </div>
             </div>}
             {panel === 'visibility' && <ToggleSwitch label={t('dashboards.edit_session.visible')} checked={!cardDraft.hidden} onCheckedChange={visible => setCardDraft(draft => ({ ...draft, hidden: !visible }))} />}
             <div hidden={panel !== 'configuration'} className="space-y-4">

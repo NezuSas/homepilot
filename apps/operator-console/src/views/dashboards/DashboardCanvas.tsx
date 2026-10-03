@@ -199,7 +199,7 @@ function SectionDropSlot({ index, columns, gap, editing, children }: { index: nu
     ref={(node) => { setNodeRef(node); nodeRef.current = node; }}
     style={{ gridColumn: (index % columns) + 1, gridRow: `span ${rowSpan}` }}
     data-section-slot={index}
-    className={cn('min-w-0', !children && 'min-h-36', editing && !children && 'rounded-panel border border-dashed border-primary/25 bg-primary/[0.025]', isOver && editing && 'border-primary/75 bg-primary/10')}
+      className={cn('min-w-0', !children && 'min-h-36', isOver && editing && 'rounded-panel outline outline-2 outline-primary/75 bg-primary/10')}
   >{children}</div>;
 }
 
@@ -224,12 +224,16 @@ export function DashboardCanvas({
     previousSectionRects.current = new Map();
     if (!previous.size || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const animations: Animation[] = [];
-    containerRef.current?.querySelectorAll<HTMLElement>('[data-dashboard-section-id]').forEach(node => {
-      const before = previous.get(node.dataset.dashboardSectionId!);
+    containerRef.current?.querySelectorAll<HTMLElement>('[data-dashboard-section-id], [data-dashboard-card-id]').forEach(node => {
+      const section = node.closest<HTMLElement>('[data-dashboard-section-id]');
+      const key = node.dataset.dashboardCardId ? sectionCardDragId(section?.dataset.dashboardSectionId ?? '', node.dataset.dashboardCardId) : node.dataset.dashboardSectionId!;
+      const before = previous.get(key);
       if (!before || node.dataset.dashboardDragOrigin === 'true') return;
       const after = node.getBoundingClientRect();
-      const x = before.left - after.left;
-      const y = before.top - after.top;
+      const parentBefore = node.dataset.dashboardCardId && section?.dataset.dashboardDragOrigin !== 'true' ? previous.get(section?.dataset.dashboardSectionId ?? '') : undefined;
+      const parentAfter = parentBefore ? section?.getBoundingClientRect() : undefined;
+      const x = before.left - after.left - (parentBefore && parentAfter ? parentBefore.left - parentAfter.left : 0);
+      const y = before.top - after.top - (parentBefore && parentAfter ? parentBefore.top - parentAfter.top : 0);
       if (x || y) animations.push(node.animate([{ transform: `translate(${x}px, ${y}px)` }, { transform: 'translate(0, 0)' }], DASHBOARD_DRAG_TRANSITION));
     });
     sectionAnimations.current = animations;
@@ -314,7 +318,7 @@ export function DashboardCanvas({
   const useSectionSlots = sectionWidgets.length > 0
     && sectionWidgets.every((widget) => getSectionSpan(widget) === 1);
   const slotCount = useSectionSlots
-    ? Math.ceil(sectionSlots.length / columns) * columns + (isEditing ? columns : 0)
+    ? Math.ceil(sectionSlots.length / columns) * columns + (activeWidget?.type === 'section' ? columns : 0)
     : 0;
   const sectionById = useMemo(() => new Map(sectionWidgets.map((widget) => [widget.id, widget])), [sectionWidgets]);
   const duplicateSection = (id: string) => {
@@ -398,12 +402,13 @@ export function DashboardCanvas({
     const source = active.data.current;
     const destination = over.data.current;
     if (source?.kind === 'section-card' && typeof source.cardId === 'string' && session.sourceSectionId
-      && typeof destination?.sectionId === 'string' && destination.sectionId !== session.sourceSectionId) {
+      && typeof destination?.sectionId === 'string'
+      && (destination.sectionId !== session.sourceSectionId || destination.kind === 'section-card')) {
       const moved = moveSectionCard(session.widgets, session.sourceSectionId, source.cardId, destination.sectionId, destination.kind === 'section-card' ? destination.cardId : undefined);
       if (moved === session.widgets) return;
       const sourceKey = sectionCardDragId(session.sourceSectionId, source.cardId);
       const targetKey = sectionCardDragId(destination.sectionId, source.cardId);
-      setCardDragIdentities(current => {
+      if (destination.sectionId !== session.sourceSectionId) setCardDragIdentities(current => {
         const next = { ...current, [targetKey]: current[sourceKey] ?? String(active.id) };
         delete next[sourceKey];
         return next;
@@ -430,8 +435,10 @@ export function DashboardCanvas({
     } else return;
     session.lastTarget = String(over.id);
     previousSectionRects.current = new Map();
-    containerRef.current?.querySelectorAll<HTMLElement>('[data-dashboard-section-id]').forEach(node => {
-      previousSectionRects.current.set(node.dataset.dashboardSectionId!, node.getBoundingClientRect());
+    containerRef.current?.querySelectorAll<HTMLElement>('[data-dashboard-section-id], [data-dashboard-card-id]').forEach(node => {
+      const sectionId = node.closest<HTMLElement>('[data-dashboard-section-id]')?.dataset.dashboardSectionId ?? '';
+      const key = node.dataset.dashboardCardId ? sectionCardDragId(sectionId, node.dataset.dashboardCardId) : node.dataset.dashboardSectionId!;
+      previousSectionRects.current.set(key, node.getBoundingClientRect());
     });
     sectionAnimations.current.forEach(animation => animation.cancel());
     setDragLayout({ widgets: session.widgets, layout: session.layout });
@@ -453,14 +460,7 @@ export function DashboardCanvas({
     // A cross-section/slot preview is already at its destination. Do not swap
     // it back when the pointer ends over the relocated ghost itself.
     if (session?.lastTarget) {
-      let next = session.widgets;
-      const target = over.data.current;
-      const cardId = active.data.current?.cardId;
-      if (active.data.current?.kind === 'section-card' && session.sourceSectionId && typeof cardId === 'string'
-        && target?.kind === 'section-card' && target.sectionId === session.sourceSectionId && target.cardId !== cardId) {
-        next = moveSectionCard(next, session.sourceSectionId, cardId, target.sectionId, target.cardId);
-      }
-      onLayoutChange(next, session.layout);
+      onLayoutChange(session.widgets, session.layout);
       return;
     }
     if (active.id === over.id) return;
@@ -562,7 +562,7 @@ export function DashboardCanvas({
           "relative w-full grid min-w-0 overflow-x-hidden",
           isPortraitKiosk && "homepilot-portrait-kiosk-canvas",
           isEditing
-            ? "outline outline-2 outline-dashed outline-offset-[-2px] outline-primary/10 bg-card/20 bg-dashboard-grid bg-dashboard shadow-2xl shadow-primary/5"
+            ? "bg-transparent"
             : "bg-transparent"
         )}
         style={{

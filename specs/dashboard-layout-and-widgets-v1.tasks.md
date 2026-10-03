@@ -2,6 +2,16 @@
 
 ## Editor Sections V2 — workspace vigente
 
+### Refinamiento autorizado — edición y fondo (2026-10-03)
+
+- [x] Retirar manijas sobre tarjetas y widgets; tamaño únicamente desde el editor.
+- [x] Eliminar el velo claro de la imagen, conservando la opacidad elegida y la paleta.
+- [x] Reordenar en memoria durante hover dentro y entre secciones; confirmar una sola vez al soltar, sin intercambio adicional. Animación FLIP de tarjetas y secciones, respetando movimiento reducido.
+- [x] Retirar fondo cuadriculado y recuadros de huecos en edición, conservando slots vacíos; fila adicional únicamente durante drag de sección.
+- [x] Preview con superficie/presenter/binding de tarjeta real y cálculo compartido de tamaño, usando el ancho medido de su sección; área ocupada y filas manuales acotadas a 12 por defecto.
+- [x] Cerrar menú del encabezado por pointer/foco fuera, sin alterar Escape.
+- Evidencia de esta corrección: Jest focalizado **15/15 PASS, 4 suites**; typecheck, lint y build Operator Console (incluye `tsc -b`) PASS; controles de spec, BDD y cobertura modular PASS. Se actualizaron los escenarios existentes de tamaño para usar el editor en lugar de manijas y medir el frame real del preview, sin ejecutarlos. No se ha ejecutado responsive por prohibición expresa del usuario; los resultados responsive anteriores no validan esta corrección. No afirmar paridad completa con Home Assistant ni certificación visual/táctil física.
+
 - [x] AC46–AC47: Trasladar contrato compartido y conversión pura desde la fase iniciada en otra copia; adaptar defaults, Sensor medio, Section de un slot y perfiles con huecos. Validado aquí con fixtures sintéticos, sin reutilizar resultados de `homepilot`.
 - [x] AC48: Modelo en memoria/adaptador, cuadrícula interna de 12 columnas, ancho nuevo de sección y máximo de columnas, duplicación, paneles de edición con preview, filas explícitas y scroll, visibilidad local; conservar presenters, drag compartido, cancelación y geometría histórica.
 - [x] AC49: Cola, rollback, undo/redo y transacción SQLite de revisión/actualización; validación de geometría, import/export y recarga conservando el sobre histórico (no persistir V2).
