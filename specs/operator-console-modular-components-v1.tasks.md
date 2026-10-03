@@ -5,6 +5,8 @@
 
 ## Implementado
 
+- [x] InformationCard con tres fuentes de solo lectura, skeleton propio y test; CardPreviewFrame a escala uniforme del presenter real sin cambiar datos.
+
 - [x] ActionMenu compartido tablero/Section: portal, viewport visible, cierre exterior y teclado; test propio. CardPreviewFrame estable y selección de tamaños mínima 2 × 2 con compatibilidad histórica.
 
 - [x] Catálogo de primitivos, navegación, feedback, contenedores y dispositivos comunes.

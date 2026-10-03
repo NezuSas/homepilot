@@ -6,6 +6,18 @@ const section = (id: string, cards: Array<Record<string, unknown>>): DashboardWi
 });
 
 describe('moving cards within one tab', () => {
+  it('preserves approximate width across Sections, auto rows, metadata and reverse previews', () => {
+    const card = { id: 's', kind: 'sensor', entityId: 'sensor', gridOptions: { columns: 3, rows: 'auto' }, custom: true };
+    const wide = section('wide', [card]);
+    wide.config.layout.span = 2;
+    wide.config.extra = { ...wide.config.extra, sectionGridVersion: 2 };
+    const small = section('small', []);
+    const moved = moveSectionCard([wide, small], 'wide', 's', 'small');
+    expect(moved[1].config.extra?.cards).toEqual([{ ...card, gridOptions: { columns: 6, rows: 'auto' } }]);
+    expect(moveSectionCard(moved, 'small', 's', 'wide')[0].config.extra?.cards).toEqual([card]);
+    const placed = placeSectionCard([wide, small], 'wide', 's', 'small', 11, 1, { wide: [{ id: 's', column: 1, row: 1, columns: 3, rows: 4 }] });
+    expect(placed[1].config.extra?.cards).toEqual([{ ...card, gridOptions: { columns: 6, rows: 'auto', columnStart: 7, rowStart: 1 } }]);
+  });
   it('keeps positioned cards clear when an earlier instrument grows intrinsically', () => {
     const positions = [{ id: 'a', column: 1, row: 1, columns: 6, rows: 8 }, { id: 'b', column: 1, row: 5, columns: 6, rows: 4 }, { id: 'c', column: 7, row: 5, columns: 6, rows: 4 }];
     expect(resolvePlacedCardRows(positions)).toEqual({ a: 1, b: 9, c: 5 });

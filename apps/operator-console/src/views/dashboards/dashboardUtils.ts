@@ -169,7 +169,7 @@ export function getAssignableDevicesForSectionCard(kind: string, devices: Snapsh
   const matchingDevices = kind === 'camera' ? devices.filter(isCameraDevice)
     : kind === 'cover' ? devices.filter(isCoverDevice)
       : kind === 'light' ? devices.filter(isLightDevice)
-        : kind === 'sensor' ? devices.filter(isSensorDevice)
+        : kind === 'sensor' || kind === 'info_sensor' ? devices.filter(isSensorDevice)
           : kind === 'media' ? devices.filter(isMediaPlayerDevice)
             : kind === 'action' ? devices.filter((device) => canExecuteCommand(device, 'press') || canExecuteCommand(device, 'activate'))
             : kind === 'device'

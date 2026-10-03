@@ -13,7 +13,7 @@ import type { DashboardTitleTabRef, TitleAlign, TitleBadge } from './dashboardTi
 const badgePillClass = 'flex shrink-0 items-center gap-1.5 rounded-full border border-border/55 bg-background/40 px-3 py-1 text-clock-label-fluid font-black uppercase tracking-micro text-foreground shadow-inner transition hover:border-primary/50 hover:bg-primary/10';
 
 /** Brief weather + temperature badge, Home Assistant dashboard-badge style. */
-function WeatherBadgeContent() {
+export function WeatherBadgeContent() {
   const { weather, status } = useCuencaWeather(getClockLocale());
   const isReady = Boolean(weather) && status === 'ready';
 
@@ -30,7 +30,7 @@ function WeatherBadgeContent() {
 }
 
 /** Live HH:MM badge; updates every 30s, which is plenty for a minute-resolution clock. */
-function TimeBadgeContent() {
+export function TimeBadgeContent() {
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {

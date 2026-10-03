@@ -10,6 +10,7 @@ import { SectionEnergyCard } from './SectionEnergyCard';
 import { SectionRoomCard } from './SectionRoomCard';
 import { SectionSceneCard } from './SectionSceneCard';
 import { SensorMetricCard } from './SensorMetricCard';
+import { InformationCard } from './InformationCard';
 import { isClockKind, normalizeKind, type SensorScale, type MediaVariant, type SectionCardIcon, type SectionCardKind, type SectionCardSpan } from './sectionCardCatalog';
 
 interface SectionCardContentProps {
@@ -63,6 +64,7 @@ export function SectionCardContent({
 }: SectionCardContentProps) {
   const normalized = normalizeKind(kind);
   const isSmall = span === 'small';
+  if (normalized === 'info_time' || normalized === 'info_weather' || normalized === 'info_sensor') return <InformationCard source={normalized} device={device} title={title} icon={icon} />;
 
   if (isClockKind(normalized)) return <SectionClockPreview kind={normalized} title={title} />;
   if (normalized === 'camera') return <SectionCameraPreview device={device} title={title} subtitle={subtitle} />;

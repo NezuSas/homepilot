@@ -59,6 +59,7 @@ export function getCardGridWidth(sectionWidth: number, columns: CardGridOptions[
 
 /** Live cards and editor previews share the same exterior surface. */
 export function getCardFrameClass(kind: string, span: string, active = false): string {
+  if (kind.startsWith('info_')) return 'min-h-11 rounded-control border border-border/55 bg-card';
   const tile = ['device', 'light', 'action'].includes(kind);
   return [
     kind === 'sensor' ? 'rounded-2xl' : 'rounded-section',

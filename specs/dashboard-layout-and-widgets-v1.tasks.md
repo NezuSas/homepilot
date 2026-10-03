@@ -2,6 +2,14 @@
 
 ## Editor Sections V2 — workspace vigente
 
+### Transferencia adaptable y etiquetas — alcance autorizado
+
+- [x] Adaptar columnas al transferir entre anchos distintos, también en preview y colocación; preservar filas, metadata y binding.
+- [x] Preview a escala uniforme con reserva completa y origen arriba/izquierda; tarjeta nueva inicia 2 × 2 excepto anchos predeterminados de Media/Clock/Camera.
+- [x] Etiqueta independiente en catálogo: hora/clima/sensor, source en kind, JSON compatible sin migración; títulos históricos intactos.
+- [x] Skeleton propio, fallbacks y tests focalizados; no ejecutar responsive.
+- Validación: 153/153 tests focalizados en ocho suites PASS; typecheck, lint, builds raíz/consola, spec coverage (955 fuentes), BDD, módulos, i18n, no-production-any y arquitectura PASS. Responsive y tablet física no certificados. Build conserva avisos de Browserslist antiguo y chunk MDI grande.
+
 ### Mínimos, preview estable y menú compartido
 
 - [x] Selección nueva mínima 2 × 2, respetando límites propios y datos históricos.

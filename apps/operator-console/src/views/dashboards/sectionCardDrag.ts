@@ -1,6 +1,8 @@
 import { createContext } from 'react';
 import { arrayMove } from '@dnd-kit/sortable';
 import type { DashboardWidget } from './types';
+import { getSectionSpan } from './dashboardUtils';
+import { fitCardsToSectionWidth } from './widgets/cardGridResize';
 
 /** Only the active tab's canvas owns this context; standalone previews stay local. */
 export const SectionCardDragContext = createContext<false | Readonly<Record<string, string>>>(false);
@@ -10,6 +12,10 @@ export const sectionCardDragId = (sectionId: string, cardId: string, identities:
 };
 
 type StoredCard = Record<string, unknown> & { id: string };
+function fitTransferredCard(card: StoredCard, source: DashboardWidget, target: DashboardWidget): StoredCard {
+  const fitted = fitCardsToSectionWidth([card], getSectionSpan(source), getSectionSpan(target));
+  return Array.isArray(fitted) ? fitted[0] : card;
+}
 function storedCards(widget: DashboardWidget): StoredCard[] {
   const cards = widget.config.extra?.cards;
   return Array.isArray(cards) ? cards.filter((card): card is StoredCard => Boolean(card && typeof card === 'object' && typeof card.id === 'string')) : [];
@@ -28,7 +34,7 @@ export function moveSectionCard(widgets: DashboardWidget[], sourceId: string, ca
   if (targetIndex < 0 || (sourceId !== targetId && targetCards.some((card) => card.id === cardId))) return widgets;
   if (sourceId === targetId && sourceIndex === Math.min(targetIndex, sourceCards.length - 1)) return widgets;
   const nextSource = sourceId === targetId ? arrayMove(sourceCards, sourceIndex, Math.min(targetIndex, sourceCards.length - 1)) : sourceCards.filter((card) => card.id !== cardId);
-  const nextTarget = sourceId === targetId ? nextSource : [...targetCards.slice(0, targetIndex), sourceCards[sourceIndex], ...targetCards.slice(targetIndex)];
+  const nextTarget = sourceId === targetId ? nextSource : [...targetCards.slice(0, targetIndex), fitTransferredCard(sourceCards[sourceIndex], source, target), ...targetCards.slice(targetIndex)];
   return widgets.map((widget) => {
     const cards = widget.id === sourceId ? nextSource : widget.id === targetId ? nextTarget : null;
     return cards ? { ...widget, config: { ...widget.config, extra: { ...widget.config.extra, cards: cards.map(card => { const next = { ...card }; delete next.order; return next; }) } } } : widget;
@@ -67,10 +73,13 @@ export function placeSectionCard(widgets: DashboardWidget[], sourceId: string, c
   const card = storedCards(source).find(value => value.id === cardId);
   const measured = placements[sourceId]?.find(value => value.id === cardId);
   if (!card || !measured || (sourceId !== targetId && storedCards(target).some(value => value.id === cardId))) return widgets;
-  const startColumn = Math.max(1, Math.min(13 - measured.columns, Math.round(column)));
+  const transferred = sourceId === targetId ? card : fitTransferredCard(card, source, target);
+  const options = transferred.gridOptions as Record<string, unknown> | undefined;
+  const targetColumns = options?.columns === 'full' ? 12 : typeof options?.columns === 'number' ? options.columns : measured.columns;
+  const startColumn = Math.max(1, Math.min(13 - targetColumns, Math.round(column)));
   let startRow = Math.max(1, Math.min(10000, Math.round(row)));
   const occupied = (placements[targetId] ?? []).filter(value => value.id !== cardId);
-  while (occupied.some(value => startColumn < value.column + value.columns && startColumn + measured.columns > value.column
+  while (occupied.some(value => startColumn < value.column + value.columns && startColumn + targetColumns > value.column
     && startRow < value.row + value.rows && startRow + measured.rows > value.row)) {
     if (++startRow > 10000) return widgets;
   }
@@ -80,7 +89,7 @@ export function placeSectionCard(widgets: DashboardWidget[], sourceId: string, c
       ? value.gridOptions as Record<string, unknown> : { columns: placement.columns, rows: 'auto' };
     return { ...value, gridOptions: { ...options, columnStart: placement.column, rowStart: placement.row } };
   };
-  const moved = freeze(card, { ...measured, column: startColumn, row: startRow });
+  const moved = freeze(transferred, { ...measured, columns: targetColumns, column: startColumn, row: startRow });
   return widgets.map(widget => {
     if (widget.id !== sourceId && widget.id !== targetId) return widget;
     const cards = storedCards(widget).filter(value => value.id !== cardId)

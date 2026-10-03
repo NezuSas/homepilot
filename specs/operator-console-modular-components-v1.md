@@ -1,5 +1,8 @@
 # SPEC: Operator Console Modular Components V1
 
+- InformationCard: etiqueta modular de solo lectura para hora, clima o sensor; usa reloj local, servicio climático y modelo Sensor existentes. Skeleton propio para carga inicial y fallback sin lectura. Misma paleta y editor/drag de Section, sin acciones decorativas ni estado ON/OFF.
+- CardPreviewFrame: escala uniforme del presenter real dentro de la región reservada de doce columnas y ocho filas; top/left; la escala no cambia el tamaño ni los datos de la tarjeta guardada.
+
 ## Refinamiento autorizado de edición segura
 
 - AC79: Inputs estándar y selector normal comparten altura 44px. `NumberInput` permite borrado y reemplazo temporal sin forzar cero; valida mediante constraints y solo comunica números finitos. Campos opcionales notifican borrado explícito. No altera el contrato de Input existente.

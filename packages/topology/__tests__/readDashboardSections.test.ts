@@ -8,6 +8,22 @@ function freezeDeep(value: unknown): void {
   Object.freeze(value);
 }
 
+describe('Feature: Independent information cards (AC48)', () => {
+  it('Scenario: JSON export/load preserves information source, dimensions, binding and legacy title badges', () => {
+    const input = legacyDashboard();
+    const section = input.tabs[0].widgets.find(widget => widget.type === 'section')!;
+    section.config.extra = { cards: ['info_time', 'info_weather', 'info_sensor'].map(kind => ({
+      id: kind, kind, entityId: kind === 'info_sensor' ? 'example-sensor' : undefined, gridOptions: { columns: 2, rows: 2 },
+    })) };
+    const header = input.tabs[0].widgets.find(widget => widget.type === 'dashboard_title')!;
+    header.config.extra = { badges: [{ id: 'historical-time', kind: 'time' }] };
+    const result = readDashboardSections(JSON.parse(JSON.stringify(input)));
+    expect(result.tabs[0].sections[0].cards.map(card => card.kind)).toEqual(['info_time', 'info_weather', 'info_sensor']);
+    expect(result.tabs[0].sections[0].cards[2]).toMatchObject({ entityId: 'example-sensor', gridOptions: { columns: 2, rows: 2 } });
+    expect(result.tabs[0].widgets.find(widget => widget.type === 'dashboard_title')?.config.extra).toEqual({ badges: [{ id: 'historical-time', kind: 'time' }] });
+  });
+});
+
 describe('Feature: Sections editor model (AC46–AC47)', () => {
   it('Scenario: migrates small/medium/full to 3/6/12 and uses array order only', () => {
     const result = readDashboardSections(legacyDashboard());

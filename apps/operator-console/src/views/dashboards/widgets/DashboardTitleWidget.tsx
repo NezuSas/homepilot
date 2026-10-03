@@ -198,7 +198,7 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, ed
               {t('dashboard.editor.sections.title_badges')}
             </span>
             <div className="flex flex-wrap items-center gap-1.5">
-              <Button
+              {hasWeatherBadge && <Button
                 type="button"
                 onClick={toggleWeatherBadge}
                 variant={hasWeatherBadge ? 'primary' : 'outline'}
@@ -209,8 +209,8 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, ed
                 )}
               >
                 {t('dashboard.editor.sections.badge_weather')}
-              </Button>
-              <Button
+              </Button>}
+              {hasTimeBadge && <Button
                 type="button"
                 onClick={toggleTimeBadge}
                 variant={hasTimeBadge ? 'primary' : 'outline'}
@@ -221,7 +221,7 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, ed
                 )}
               >
                 {t('dashboard.editor.sections.badge_time')}
-              </Button>
+              </Button>}
 
               {badges.filter((badge) => badge.kind === 'tab').map((badge) => {
                 const linkedTab = linkableTabs.find((candidate) => candidate.id === badge.tabId);

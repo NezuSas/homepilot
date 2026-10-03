@@ -42,6 +42,16 @@ import { executeDeviceActionTarget, getDeviceActionExecuteUrl, isDeviceActionEnt
 jest.mock('../../../config', () => ({ API_BASE_URL: '' }));
 
 describe('section card catalog contracts', () => {
+  it('offers one independent information card with three persistent read-only presentations', () => {
+    expect(cardKinds.filter(kind => kind.startsWith('info_'))).toEqual(['info_time']);
+    for (const kind of ['info_time', 'info_weather', 'info_sensor'] as const) {
+      expect(getCatalogCategory(kind)).toBe('info');
+      const [card] = normalizeCards({ cards: [{ id: 'label', kind, entityId: kind === 'info_sensor' ? 'sensor' : undefined, gridOptions: { columns: 2, rows: 2 } }] });
+      expect(normalizeCards(JSON.parse(JSON.stringify({ cards: [card] })))[0]).toEqual(card);
+    }
+    expect(isBindableKind('info_sensor')).toBe(true);
+    expect(isBindableKind('info_time')).toBe(false);
+  });
   it('persists and parses a validated device-action target without ambiguous splits', () => {
     const target = toDeviceActionEntityId('device-123', 'hp_navigate_home');
     expect(target).toBe('device-action:device-123:hp_navigate_home');

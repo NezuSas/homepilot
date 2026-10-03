@@ -9,6 +9,9 @@ export type SectionCardKind =
   | 'cover'
   | 'camera'
   | 'sensor'
+  | 'info_time'
+  | 'info_weather'
+  | 'info_sensor'
   | 'media'
   | 'action'
   | 'room'
@@ -107,6 +110,7 @@ export const cardKinds: NormalizedSectionCardKind[] = [
   'cover',
   'camera',
   'sensor',
+  'info_time',
   'media',
   'clock_premium',
 ];
@@ -161,6 +165,9 @@ export function getCatalogCategory(kind: SectionCardKind): SectionCardCategory {
 
   switch (normalized) {
     case 'sensor':
+    case 'info_time':
+    case 'info_weather':
+    case 'info_sensor':
       return 'info';
     case 'light':
     case 'cover':
@@ -185,6 +192,10 @@ export const clockCardOptions: { kind: NormalizedSectionCardKind; style: ClockSt
 
 export function getCatalogLabelKey(kind: SectionCardKind) {
   switch (normalizeKind(kind)) {
+    case 'info_time':
+    case 'info_weather':
+    case 'info_sensor':
+      return 'dashboard.editor.sections.section_card_information';
     case 'light':
       return 'dashboard.editor.sections.section_card_light';
     case 'cover':
@@ -218,6 +229,10 @@ export function getCatalogLabelKey(kind: SectionCardKind) {
 
 export function getCatalogDescriptionKey(kind: SectionCardKind) {
   switch (normalizeKind(kind)) {
+    case 'info_time':
+    case 'info_weather':
+    case 'info_sensor':
+      return 'dashboard.editor.sections.section_card_information_desc';
     case 'light':
       return 'dashboard.editor.sections.section_card_light_desc';
     case 'cover':
@@ -284,6 +299,7 @@ export function isBindableKind(kind: SectionCardKind) {
     || normalized === 'cover'
     || normalized === 'camera'
     || normalized === 'sensor'
+    || normalized === 'info_sensor'
     || normalized === 'media'
     || normalized === 'action'
     || normalized === 'room'
@@ -292,6 +308,11 @@ export function isBindableKind(kind: SectionCardKind) {
 
 export function getDefaultIcon(kind: SectionCardKind): SectionCardIcon {
   switch (normalizeKind(kind)) {
+    case 'info_time':
+      return DASHBOARD_ICON_DEFAULTS.clock;
+    case 'info_weather':
+    case 'info_sensor':
+      return DASHBOARD_ICON_DEFAULTS.sensor;
     case 'light':
       return DASHBOARD_ICON_DEFAULTS.light;
     case 'cover':

@@ -23,6 +23,7 @@ import {
 import { isAutomationEntityId, stripAutomationEntityPrefix, toAutomationEntityId, toDeviceActionEntityId } from './sectionCardAssignments';
 
 interface SectionCardEditorModalProps {
+  sectionWidth?: number;
   cardDraft: CardDraft;
   setCardDraft: Dispatch<SetStateAction<CardDraft>>;
   catalogLabel: (kind: SectionCardKind) => string;
@@ -51,7 +52,7 @@ interface SectionCardEditorModalProps {
 
 export function SectionCardEditorModal({
   cardDraft, setCardDraft, catalogLabel, assignableDevices, assignableRooms,
-  scenes, automations, displayActions, devices, renderCatalogPreview, onClose, onSave,
+  scenes, automations, displayActions, devices, renderCatalogPreview, onClose, onSave, sectionWidth,
 }: SectionCardEditorModalProps) {
   const { t } = useTranslation();
   const [validMinimum, setValidMinimum] = useState(true);
@@ -69,7 +70,7 @@ export function SectionCardEditorModal({
         <Button type="button" onClick={onSave} disabled={invalidScale}>{t('dashboard.editor.sections.save')}</Button>
       </>}>
           <div className="min-w-0 space-y-4">
-            <CardPreviewFrame label={t('dashboards.edit_session.preview')}>
+            <CardPreviewFrame label={t('dashboards.edit_session.preview')} sectionWidth={sectionWidth}>
             {renderCatalogPreview(
               cardDraft.kind,
               cardDraft.title || catalogLabel(cardDraft.kind),
@@ -88,6 +89,13 @@ export function SectionCardEditorModal({
             {panel === 'design' && <CardGridSizePicker value={gridOptions} onChange={next => setCardDraft(draft => ({ ...draft, gridOptions: next }))} />}
             {panel === 'visibility' && <ToggleSwitch label={t('dashboards.edit_session.visible')} checked={!cardDraft.hidden} onCheckedChange={visible => setCardDraft(draft => ({ ...draft, hidden: !visible }))} />}
             <div hidden={panel !== 'configuration'} className="space-y-4">
+            {cardDraft.kind.startsWith('info_') && <SearchableSelectField
+              label={t('dashboard.editor.sections.information_source')} value={cardDraft.kind}
+              options={(['info_time', 'info_weather', 'info_sensor'] as const).map(value => ({ value, label: t(`dashboard.editor.sections.${value}`) }))}
+              onChange={value => {
+                if (value !== 'info_time' && value !== 'info_weather' && value !== 'info_sensor') return;
+                setCardDraft(draft => ({ ...draft, kind: value, entityId: '', icon: getDefaultIcon(value) }));
+              }} />}
 
             {normalizeKind(cardDraft.kind) === 'media' && (
               <fieldset className="space-y-2">

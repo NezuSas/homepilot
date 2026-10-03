@@ -232,6 +232,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       widgetType: item.widgetType,
       span: item.span,
       icon: item.icon,
+      ...(!isClockKind(item.kind) && item.kind !== 'media' && item.kind !== 'camera' ? { gridOptions: { columns: 2 as const, rows: 2 } } : {}),
       ...(item.kind === 'media' ? { mediaVariant: 'premium' as const } : {}),
       ...(item.kind === 'sensor' ? { visualStyle: 'auto' as const } : {}),
     };
@@ -252,6 +253,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         icon: nextIcon,
         mediaVariant: normalizeMediaVariant(nextCard.mediaVariant),
         visualStyle: nextCard.visualStyle,
+        gridOptions: nextCard.gridOptions,
       });
     } else {
       setEditingCardId(null);
@@ -371,7 +373,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         ...getCardPresentationStyle(gridOptionsOverride?.rows),
         width: sectionGridWidth > 0 ? getCardGridWidth(sectionGridWidth, gridOptionsOverride?.columns ?? (span === 'small' ? 3 : span === 'medium' ? 6 : 12)) : undefined,
         minHeight: getCardGridHeight(gridOptionsOverride?.rows),
-      } : undefined} className={isEditorPreview ? cn('homepilot-sized-card relative grid shrink-0 min-w-0 overflow-hidden shadow-sm', getCardFrameClass(normalizedPreviewKind, span, previewDevice ? isDeviceActive(previewDevice) : false)) : cn(
+      } : undefined} className={isEditorPreview || normalizedPreviewKind.startsWith('info_') ? cn('homepilot-sized-card relative grid shrink-0 min-w-0 overflow-hidden shadow-sm', getCardFrameClass(normalizedPreviewKind, span, previewDevice ? isDeviceActive(previewDevice) : false)) : cn(
         "grid overflow-hidden rounded-section transition-[height,width,max-width] duration-200",
         !isClockPreview && "bg-background/40",
         isClockPreview && (isEditorPreview ? 'homepilot-clock-preview-host homepilot-clock-preview-host--editor' : 'homepilot-clock-preview-host homepilot-clock-preview-host--catalog'),
@@ -427,6 +429,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       automations={automations}
       displayActions={displayActions.filter(action => devices.some(device => device.id === action.deviceId && isDeviceOperational(device, Object.values(roomsByHome).flat())))}
       devices={devices}
+      sectionWidth={sectionGridWidth}
       renderCatalogPreview={renderCatalogPreview}
       onClose={() => setEditingCardId(null)}
       onSave={saveCardEditor}

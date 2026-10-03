@@ -14,6 +14,7 @@ import type { MediaPlayerCommand } from './MediaPlayerCard';
 import { MASONRY_ROW_GAP_PX, MASONRY_ROW_UNIT_PX } from './useMasonryRowSpans';
 import { ModalPortal } from './ModalPortal';
 import { SectionCardContent } from './SectionCardContent';
+import { InformationCardSkeleton } from './InformationCard';
 import { getCardFrameClass, getCardGridHeight, getCardGridRowSpan, getCardPresentationStyle } from './cardGridResize';
 import { DashboardCardSkeleton, type DashboardCardSkeletonVariant } from '../../../components/ui/DashboardCardSkeleton';
 import { needsInitialDashboardSkeleton, useDelayedSkeleton } from '../../../components/ui/useDashboardDelayedSkeleton';
@@ -100,7 +101,7 @@ export function SectionCardItem({
     : undefined;
   // Buttons and clocks can render their configured content immediately. A
   // missing device after the first snapshot is unavailable, not still loading.
-  const initialPending = Boolean(card.entityId && skeletonVariant && needsInitialDashboardSkeleton(snapshotPending, Boolean(assignedDevice)));
+  const initialPending = Boolean(card.entityId && (skeletonVariant || normalizedKind === 'info_sensor') && needsInitialDashboardSkeleton(snapshotPending, Boolean(assignedDevice)));
   const showSkeleton = useDelayedSkeleton(initialPending);
   const assignedRoomName = assignedDevice?.roomId
     ? (roomsByHome[assignedDevice.homeId] ?? []).find((room) => room.id === assignedDevice.roomId)?.name
@@ -223,6 +224,7 @@ export function SectionCardItem({
           {reserveContentGeometry && <div className="invisible min-h-0" aria-hidden="true">{cardContent}</div>}
           {isCover && <div className="invisible min-h-0" aria-hidden="true"><CurtainDeviceTileLoadingGeometry /></div>}
           {skeletonVariant && <DashboardCardSkeleton variant={skeletonVariant} visible={showSkeleton} className={overlaySkeleton ? 'absolute inset-0' : undefined} />}
+          {normalizedKind === 'info_sensor' && showSkeleton && <InformationCardSkeleton />}
         </div>
       ) : cardContent}
 

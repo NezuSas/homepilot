@@ -1,5 +1,11 @@
 # SPEC: Dashboard Layout and Widgets V1
 
+## Adaptación de tarjetas y etiquetas independientes — alcance autorizado
+
+- Transferir tarjetas entre Sections adapta las columnas numéricas proporcionalmente al ancho de origen/destino usando los mismos límites del resize; filas y binding intactos. Full sigue el destino. No escribir al cargar.
+- Preview de editor a escala uniforme del ancho real de Section, con reserva de doce columnas × ocho filas, alineado arriba/izquierda; dimensiones nuevas mínimas 2 × 2. Histórico conserva su tamaño. Sin responsive ejecutado por restricción.
+- Una tarjeta modular Etiqueta, independiente del título, permite elegir hora, clima o un sensor asignado a estancia. Solo lectura, mismo flujo de edición/movimiento/guardar de Section. Nuevos tipos info_time/info_weather/info_sensor en JSON extra.cards, sin tabla ni migración SQLite; parser conserva campos. Títulos históricos mantienen sus badges; no conversión automática. No se añaden nuevos badges de hora/clima al título. Reversión: conservar JSON original/export; versión anterior no conoce las nuevas presentaciones. Tests de catálogo, presenter, traslado, preview y round-trip.
+
 ## Visualizadores Sensor y estabilidad — alcance autorizado
 
 Refinamiento autorizado: no mostrar estado «Normal», punto verde ni leyenda textual de escala en Sensor, ni conservar su espacio vacío. Eliminar el pie sin avisos y sus filas mínimas; ausencia se muestra junto a la lectura y el skeleton no añade un pie vacío. Mantener límites, precisión, graduaciones y avisos reales. Durante el arrastre se previsualiza el traslado entre Sections y la colocación en slots, reacomodando el destino antes de soltar; persistir solo al soltar y restaurar al cancelar. Copia de tamaño real, origen tenue y transiciones de 150 ms; reduced-motion elimina movimiento de llegada/reacomodo. Mantener gestos, teclado, huecos persistidos y contratos sin cambiar algoritmo global ni biblioteca DnD.
