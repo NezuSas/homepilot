@@ -75,3 +75,8 @@ describe('Feature: Twelve-column card resizing (AC48)', () => {
     expect(pickCardGridSize({ columns: 3, rows: 4, columnStart: 10, rowStart: 5 }, 12, 4, 12, 8)).toMatchObject({ columns: 12, columnStart: 1, rowStart: 5 });
   });
 });
+describe('Clock design minimum (AC53)', () => {
+  it('clamps mouse and touch picks to six columns and rows', () => {
+    expect(pickCardGridSize({ columns: 12, rows: 'auto', minColumns: 6, minRows: 6 }, 1, 1, 120, 80)).toMatchObject({ columns: 6, rows: 6 });
+  });
+});

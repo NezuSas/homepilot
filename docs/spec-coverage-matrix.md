@@ -1,5 +1,10 @@
 # Spec-Driven Coverage Matrix
 
+Modbus AC35 / Dashboard AC53 / Media AC9 — mejoras locales de presentación: formato compartido sin pérdida de precisión de dominio, editor PLC compacto con feedback explícito, resumen/detalle de conexiones, sensor binario de solo lectura, reloj con límites y volumen modular. Cobertura: formatMeasurement, PlcBindingEditor, plcUi, SensorMetricCard, SensorVisualizers, MediaPlayerPremium, cardGridResize, sectionCardCatalog y suites de integración Modbus (13 suites, 429/429 Jest PASS); PLC I/O commissioning, Modbus commissioning, Native Modbus configuration, Safe Modbus deletion, PLC address profiles, Media player idle y Clock editing (22 escenarios responsive únicos PASS). Sin suites completas, migración SQL ni conexión/escritura a hardware físico. No modifica actualState, confirmación ni arquitectura de perfiles.
+
+Validación final del alcance AC35/AC53/AC9: typecheck raíz/consola, lint de consola, build raíz y build de consola PASS. Controles spec/BDD/module-test-coverage/i18n/no-production-any/architecture-boundaries PASS. Reloj confirmado tras ajuste CSS y limpieza del editor. Advertencias no bloqueantes: Browserslist desactualizado, chunks grandes y WebSocket de fixtures sin servidor real. No Git/GitHub, Docker ni deploy; no se declara candidato a release a partir de validaciones focalizadas.
+
+
 Modbus AC34 — UX localizada de Salidas: salida física primero y un único campo Comando PLC reutilizando el editor principal; Entrada física dinámica. `PlcBindingEditor.test.tsx` cubre presentación única, roles y V1/V2 sin mutación del binding; responsive `Feature: PLC I/O commissioning` comprueba derivación de command, edición aislada de physical, none/sustained y JSON tras recarga en cuatro tamaños y ambos temas. Jest focalizado 282/282 PASS en 7 suites; responsive 4/4 PASS; typecheck/lint/i18n/spec/BDD/módulos PASS. Sin cambios backend/persistencia/state sync, suites completas ni PLC físico; no constituye la Fase 2.
 
 Modbus AC33 — Fase 1: perfil Xinje encapsula resolución/formato, capacidades y permisos; validadores comunes delegan, sin modificar TCP, JSON, actualState ni confirmación. ModbusAddressProfile.test.ts, PlcBinding.test.ts y ModbusService.test.ts cubren delegación, mapa/expansiones, V1/V2, pulsos Y rechazados y JSON histórico sin reescritura. Regresión focalizada API, state sync, assembly y UI: 352/352 PASS en 10 suites. Sin hardware físico ni certificación de PLC; Fase 2 pendiente de autorización.
@@ -96,7 +101,7 @@ The command fails if a file cannot be mapped to an existing spec.
 - AC48 colocación y controles (2026-10-03): coordenadas opcionales en JSON compatible, conservación de huecos, colisiones, crecimiento intrínseco y transferencia; anchos según canvas y acciones de Section unificadas. Tests focalizados 222/222 PASS en 10 suites; sin ejecución responsive ni certificación táctil.
 - AC48 mínimos/preview/menús: ActionMenu y CardPreviewFrame con pruebas propias; tamaño nuevo mínimo 2 × 2 sin reescribir histórico, preview estable y título primero. 48/48 Jest PASS, typecheck/lint/builds y checks de spec/BDD/módulos PASS; responsive no ejecutado.
 - AC48 transferencia/etiquetas: tamaño proporcional entre Sections, preview uniforme y Etiqueta independiente; 153/153 tests focalizados PASS, tipos/lint/builds/spec/BDD/módulos/i18n/arquitectura PASS. Sin responsive ni comprobación visual en tablet.
-- The **966** audited TypeScript/TSX files have a mapping rule to an existing
+- The **969** audited TypeScript/TSX files have a mapping rule to an existing
   spec.
 - All bounded contexts under `packages/` and all API route families are
   covered.

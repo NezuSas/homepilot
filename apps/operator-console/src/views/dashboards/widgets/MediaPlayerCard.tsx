@@ -5,6 +5,7 @@ import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
 import { IconButton } from '../../../components/ui/IconButton';
 import { LegacyMediaPlayerCard } from './LegacyMediaPlayerCard';
 import { MediaArtworkSquare } from './MediaArtworkSquare';
+import { MediaVolumeSlider } from './MediaVolumeSlider';
 import { formatMediaTime } from './mediaPlayback';
 import type { MediaVariant } from './sectionCardCatalog';
 import { MEDIA_VOLUME_STEP, useMediaPlayerModel, type MediaPlayerCommand, type MediaPlayerModel } from './useMediaPlayerModel';
@@ -133,9 +134,7 @@ function PremiumMediaPlayerCard({ title, compact, model }: { title: string; comp
             size="sm"
             className="h-8 w-8 rounded-lg text-foreground/80 hover:text-primary"
           />
-          <div className="homepilot-media-volume-track h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-foreground/15" aria-hidden="true">
-            <span className="block h-full rounded-full bg-primary/85 transition-[width] duration-300" style={{ width: `${currentVolume ?? 0}%` }} />
-          </div>
+          <MediaVolumeSlider value={currentVolume} disabled={!canActVolume} onCommit={model.setVolume} />
           <IconButton
             icon={PlusCircle}
             label={t('dashboard.editor.sections.media_volume_up')}

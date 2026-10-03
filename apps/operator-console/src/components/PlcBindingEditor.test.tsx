@@ -7,6 +7,11 @@ jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) =>
 jest.mock('../stores/useDeviceSnapshotStore', () => ({ useDeviceSnapshotStore: (selector: (state: { devices: [] }) => unknown) => selector({ devices: [] }) }));
 const base: Omit<ModbusVariable, 'deviceId' | 'connectionId'> = { name: 'PLC', profileId: 'xinje-xl5e-16t-v2', symbolicAddress: 'D100', area: 'holding_register', address: 100, dataType: 'uint16', scale: 1, offset: 0, wordOrder: 'high_first', unit: '', writable: false };
 describe('Feature: PLC binding editor (AC26)', () => {
+  it('Scenario: The connection summary hides variables and command actions until opened (AC35)', () => {
+    const html = renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: false, variables: [{ ...base, deviceId: 'v', connectionId: 'c', name: 'Hidden measurement' }] }} onOpen={() => {}} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
+    expect(html).toContain('plc.open_connection'); expect(html).toContain('plc.variable_count');
+    expect(html).not.toContain('Hidden measurement'); expect(html).not.toContain('modbus.add_variable'); expect(html).not.toContain('plc.test_command');
+  });
   it.each(['xinje-xl5e-16t-v1', 'xinje-xl5e-16t-v2'])('Scenario: %s output presents physical first and exactly one command control (AC34)', profileId => {
     const variable = { ...base, profileId, symbolicAddress: 'M200', area: 'coil' as const, address: 200, dataType: 'boolean' as const,
       plc: { role: 'output' as const, command: { profileId, symbolicAddress: 'M200', area: 'coil' as const, address: 200 }, physical: { profileId, symbolicAddress: 'Y0', area: 'coil' as const, address: 24576 }, mode: 'sustained' as const, feedbackPolicy: 'none' as const, feedbackTimeoutMs: 2000, pulseDurationMs: 500 } };

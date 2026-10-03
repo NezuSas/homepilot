@@ -1,6 +1,13 @@
 import type { ModbusConnection, ModbusDiagnostic, ModbusVariable } from '../../../../packages/integrations/modbus/domain/Modbus';
 import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 
+export const plcFeedbackPolicies = ['none', 'optional', 'required'] as const;
+export const plcCommandModes = ['sustained', 'pulse'] as const;
+export const modbusAreas = ['coil', 'discrete_input', 'holding_register', 'input_register'] as const;
+export const modbusWordOrders = ['high_first', 'low_first'] as const;
+export const modbusRefreshIntervals = [1000, 5000, 10000, 30000, 60000] as const;
+export const plcSwitchCommands = ['turn_on', 'turn_off'] as const;
+
 /** UI wording only; the service/dispatcher remain authoritative. Unknown errors never expose transport text. */
 export function plcErrorKey(code: unknown): string {
   const keys: Record<string, string> = { TIMEOUT: 'timeout', CONNECTION: 'connection', connection_error: 'connection', INVALID_CONFIG: 'mapping', CONVERSION: 'conversion', READ_ONLY: 'write_rejected', FORBIDDEN: 'permission', FEEDBACK_TIMEOUT: 'feedback', RESET_FAILED: 'reset', DISABLED: 'disabled', PROTOCOL: 'protocol', NOT_FOUND: 'missing', LIMIT: 'busy', IN_USE: 'in_use' };

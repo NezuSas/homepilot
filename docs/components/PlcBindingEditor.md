@@ -1,5 +1,7 @@
 # PlcBindingEditor
 
+AC35: physical and command fields use equal columns when space permits, stacked on mobile. Physical channel and feedback address include concise explanations; none never creates feedback. Feedback policy and mode choices come from shared typed constants in plcUi; existing backend validation is authoritative. No implicit physical-to-feedback mapping.
+
 Editor modular PLC I/O del formulario de variable de ModbusView. Implementación: `apps/operator-console/src/components/PlcBindingEditor.tsx`; validación autoritativa: `packages/integrations/modbus/domain/PlcBinding.ts`.
 
 ## Propósito y contrato

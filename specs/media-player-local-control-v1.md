@@ -1,6 +1,8 @@
 - [x] AC8: Consultas naturales de parlantes, sonido y reproducción resuelven solo reproductores `media_player` autorizados de HomePilot; por estancia, listan únicamente los asignados y comunican claramente cuando no hay ninguno importado. Evidencia: `assistant_media_player_control.test.ts`.
 # SPEC: Media Player Local Control V1
 
+- AC9: barra de volumen accesible compartida por Clásico y Premium, ajustable con puntero/táctil/teclado; preview local durante arrastre y un comando volume_set al finalizar, sin inundar el dispatcher. Conservar botones +/- y permisos/disponibilidad, escala 0–100 y modelo existente.
+
 **Estado:** Implementado  
 **Autor:** HomePilot Engineering  
 **Fecha:** 2026-07-17  

@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { modbusAreas, modbusWordOrders, modbusRefreshIntervals } from '../lib/plcUi';
+import { formatMeasurement } from '../lib/formatMeasurement';
 import { modbusRegisterTypes, modbusWordCount, type ModbusArea, type ModbusConnection, type ModbusProbeResult, type ModbusVariable } from '../../../../packages/integrations/modbus/domain/Modbus';
 import { presentProbeRows } from '../lib/modbusProbePresentation';
 import { apiFetch } from '../lib/apiClient';
@@ -84,14 +86,14 @@ export function ModbusReadProbe({ homeId, initial, onClose, onCreate }: {
         <div className="sm:col-span-2 lg:col-span-full"><ModbusProfileSelect value={profileId} disabled={running || creating} onChange={value => { setProfileId(value); reset(); setDataType('uint16'); }} /></div>
         <Input label={t('modbus.host')} value={host} required placeholder="192.168.1.5" onChange={e => { setHost(e.target.value); reset(); }} />
         <NumberInput label={t('modbus.unitId')} min={1} max={247} value={unitId} onValueChange={value => { setUnitId(value); reset(); }} onEmpty={() => { setUnitId(NaN); reset(); }} />
-        {!profileId && <SearchableSelectField label={t('modbus.area')} disabled={running || creating} value={area} options={(['coil', 'discrete_input', 'holding_register', 'input_register'] as const).map(value => ({ value, label: t(`modbus.${value}`) }))} onChange={value => { setArea(value as ModbusArea); reset(); }} />}
+        {!profileId && <SearchableSelectField label={t('modbus.area')} disabled={running || creating} value={area} options={modbusAreas.map(value => ({ value, label: t(`modbus.${value}`) }))} onChange={value => { setArea(value as ModbusArea); reset(); }} />}
         <NumberInput label={t('modbus.timeoutMs')} min={250} max={5000} value={timeoutMs} onValueChange={value => { setTimeoutMs(value); reset(); }} onEmpty={() => { setTimeoutMs(NaN); reset(); }} />
         {profileId ? <ModbusAddressFields profileId={profileId} symbol={symbol} end={symbolEnd} capacities={capacities} disabled={running || creating} onSymbol={value => { setSymbol(value); reset(); }} onEnd={value => { setSymbolEnd(value); reset(); }} /> : <>
           <NumberInput label={t('modbus.range_start')} min={0} max={65535} value={start} onValueChange={value => { setStart(value); reset(); }} onEmpty={() => { setStart(NaN); reset(); }} />
           <NumberInput label={t('modbus.range_end')} min={Number.isFinite(start) ? start : 0} max={Number.isFinite(start) ? Math.min(65535, start + 63) : 65535} value={end} onValueChange={value => { setEnd(value); reset(); }} onEmpty={() => { setEnd(NaN); reset(); }} />
         </>}
         {profileId && /^[XY]/i.test(symbol) && <ModbusModuleCapacityFields capacities={capacities} disabled={running || creating} onChange={value => { setCapacities(value); reset(); }} />}
-        <SearchableSelectField label={t('modbus.refresh')} disabled={running || creating} value={String(refreshMs)} options={[{ value: '0', label: t('modbus.manual') }, ...[1000, 5000, 10000, 30000, 60000].map(value => ({ value: String(value), label: `${value / 1000} s` }))]} onChange={value => setRefreshMs(Number(value))} />
+        <SearchableSelectField label={t('modbus.refresh')} disabled={running || creating} value={String(refreshMs)} options={[{ value: '0', label: t('modbus.manual') }, ...modbusRefreshIntervals.map(value => ({ value: String(value), label: `${value / 1000} s` }))]} onChange={value => setRefreshMs(Number(value))} />
       </fieldset>
       <p className="text-caption text-muted-foreground">{t('modbus.range_hint')}</p>
       <div className="flex flex-wrap items-center gap-2">
@@ -108,7 +110,7 @@ export function ModbusReadProbe({ homeId, initial, onClose, onCreate }: {
         <NumberInput label={t('modbus.scale')} step="any" value={scale} onValueChange={setScale} onEmpty={() => setScale(NaN)} />
         <NumberInput label={t('modbus.offset')} step="any" value={offset} onValueChange={setOffset} onEmpty={() => setOffset(NaN)} />
         <MeasurementUnitSelect label={t('modbus.unit')} value={unit} onChange={setUnit} />
-        {modbusWordCount(dataType) === 2 && <SearchableSelectField label={t('modbus.wordOrder')} value={wordOrder} options={(['high_first', 'low_first'] as const).map(value => ({ value, label: t(`modbus.${value}`) }))} onChange={value => setWordOrder(value as ModbusVariable['wordOrder'])} />}
+        {modbusWordCount(dataType) === 2 && <SearchableSelectField label={t('modbus.wordOrder')} value={wordOrder} options={modbusWordOrders.map(value => ({ value, label: t(`modbus.${value}`) }))} onChange={value => setWordOrder(value as ModbusVariable['wordOrder'])} />}
       </>}
     </div>
     {busy && !result && <LoadingState label={t('modbus.reading')}><ModbusProbeTableSkeleton /></LoadingState>}
@@ -127,7 +129,7 @@ export function ModbusReadProbe({ homeId, initial, onClose, onCreate }: {
             return <tr key={row.address} className="border-t border-border">
               {profileId && <><td className="whitespace-nowrap p-3">{addresses?.find(item => item.address === row.address)?.symbolicAddress ?? '—'}</td><td className="whitespace-nowrap p-3">{t(`modbus.${effectiveArea}`)}</td></>}
               <th scope="row" className="p-3">{row.address}</th><td className="whitespace-nowrap p-3">{row.raw === null ? '—' : String(row.raw)}{row.status === 'error' && row.raw !== null && <span className="ml-2 text-muted-foreground">{t('modbus.previous')}</span>}</td>
-              <td className="p-3">{conversion.dataType}</td><td className="whitespace-nowrap p-3">{value === null ? '—' : typeof value === 'boolean' ? t(value ? 'modbus.input_active' : 'modbus.input_inactive') : new Intl.NumberFormat(undefined, { maximumFractionDigits: 6 }).format(value)} {value !== null && !bit && !profileId ? unit : ''}</td>
+              <td className="p-3">{conversion.dataType}</td><td className="whitespace-nowrap p-3">{value === null ? '—' : typeof value === 'boolean' ? t(value ? 'modbus.input_active' : 'modbus.input_inactive') : formatMeasurement(value)} {value !== null && !bit && !profileId ? unit : ''}</td>
               {profileId && <td className="p-3">{!bit && unit ? unit : '—'}</td>}
               <td className="whitespace-nowrap p-3">{t(row.status === 'ok' ? 'modbus.read_ok' : 'modbus.read_failed')}</td><td className="whitespace-nowrap p-3">{row.elapsedMs === null ? '—' : `${row.elapsedMs} ms`}</td>
               <td className="min-w-40 p-3">{row.exceptionCode !== undefined ? t('modbus.exception', { code: row.exceptionCode }) : row.error ? t(`modbus.errors.${row.error}`, { defaultValue: t('modbus.probe_failed') }) : value === null ? t('modbus.conversion_error') : '—'}</td>

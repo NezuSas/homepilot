@@ -21,7 +21,7 @@ import { apiFetch } from '../lib/apiClient';
 import { API_BASE_URL } from '../config';
 import { PlcBindingEditor } from '../components/PlcBindingEditor';
 import { PlcCommandDialog } from '../components/PlcCommandDialog';
-import { plcConnectionAvailable, plcSensorDevice, plcResponseError } from '../lib/plcUi';
+import { plcConnectionAvailable, plcSensorDevice, plcResponseError, modbusAreas, modbusWordOrders } from '../lib/plcUi';
 import { SensorMetricCard } from './dashboards/widgets/SensorMetricCard';
 
 const connectionDefaults: Omit<ModbusConnection, 'id' | 'homeId'> = { name: '', host: '', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: false };
@@ -36,6 +36,8 @@ export function ModbusView() {
   const roomsByHome = useDeviceSnapshotStore(s => s.roomsByHome);
   const [roomId, setRoomId] = useState('');
   const [connections, setConnections] = useState<ModbusConnectionSummary[]>([]);
+  const [connectionId, setConnectionId] = useState<string | null>(null);
+  const activeConnection = connections.find(connection => connection.id === connectionId);
   const [loading, setLoading] = useState(true), [busy, setBusy] = useState(false);
   const [error, setError] = useState(''), [formError, setFormError] = useState('');
   const [editor, setEditor] = useState<Editor | null>(null);
@@ -48,7 +50,7 @@ export function ModbusView() {
   const previewConnection = editor?.kind === 'variable' ? connections.find(connection => connection.id === editor.connectionId) : undefined;
   const savedPreview = previewConnection?.variables.find(variable => editor?.kind === 'variable' && variable.deviceId === editor.deviceId && variable.address === variableForm.address && variable.area === variableForm.area && variable.dataType === variableForm.dataType && variable.scale === variableForm.scale && variable.offset === variableForm.offset);
   const outputBinding = variableForm.plc?.role === 'output';
-  const symbolicAddressField = variableForm.profileId ? <ModbusAddressFields technicalDisclosure symbolLabel={outputBinding ? t('plc.command_address') : undefined} profileId={variableForm.profileId} symbol={variableForm.symbolicAddress ?? ''} capacities={previewConnection?.moduleCapacities} onSymbol={symbolicAddress => {
+  const symbolicAddressField = variableForm.profileId ? <ModbusAddressFields compact={outputBinding} technicalDisclosure symbolLabel={outputBinding ? t('plc.command_address') : undefined} profileId={variableForm.profileId} symbol={variableForm.symbolicAddress ?? ''} capacities={previewConnection?.moduleCapacities} onSymbol={symbolicAddress => {
     try { const resolved = resolveModbusAddress(variableForm.profileId!, symbolicAddress); const bit = resolved.area === 'coil' || resolved.area === 'discrete_input'; setVariableForm({ ...variableForm, symbolicAddress, area: resolved.area, address: resolved.address, dataType: bit ? 'boolean' : variableForm.dataType === 'boolean' ? 'uint16' : variableForm.dataType, scale: bit ? 1 : variableForm.scale, offset: bit ? 0 : variableForm.offset, ...(bit ? { visualStyle: undefined } : {}), writable: false }); }
     catch { setVariableForm({ ...variableForm, symbolicAddress, writable: false }); }
   }} /> : null;
@@ -141,7 +143,7 @@ export function ModbusView() {
       action={<div className="flex flex-wrap gap-2"><Button variant="outline" size="lg" disabled={!homeId} onClick={() => setProbe(true)}>{t('modbus.probe_title')}</Button><Button size="lg" disabled={!homeId} onClick={() => openConnection()}><Plus aria-hidden="true" className="size-4" />{t('modbus.add_connection')}</Button></div>} />
     {error && <AlertBanner variant="danger" className="text-foreground [&_p]:opacity-100" message={error} action={<Button variant="outline" onClick={() => void load()}>{t('modbus.retry')}</Button>} />}
     {!error && !connections.length && <EmptyState icon={Cable} title={t('modbus.empty')} description={t('modbus.empty_hint')} />}
-    <div className="grid items-start gap-4 lg:grid-cols-2">{connections.map(connection => <ModbusConnectionCard key={connection.id} connection={connection} onEdit={() => openConnection(connection)} onAdd={() => openVariable(connection.id)} onVariable={variable => openVariable(connection.id, variable)} onCommand={setCommandVariable} />)}</div>
+    {activeConnection ? <div className="space-y-3"><Button variant="ghost" onClick={() => setConnectionId(null)}>{t('plc.back_connections')}</Button><ModbusConnectionCard connection={activeConnection} onEdit={() => openConnection(activeConnection)} onAdd={() => openVariable(activeConnection.id)} onVariable={variable => openVariable(activeConnection.id, variable)} onCommand={setCommandVariable} /></div> : <div className="grid items-start gap-4 lg:grid-cols-2">{connections.map(connection => <ModbusConnectionCard key={connection.id} connection={connection} onOpen={() => setConnectionId(connection.id)} onEdit={() => openConnection(connection)} onAdd={() => openVariable(connection.id)} onVariable={variable => openVariable(connection.id, variable)} />)}</div>}
     {commandVariable && <PlcCommandDialog variable={commandVariable} onClose={() => setCommandVariable(null)} onExecuted={async () => { await load(true); await refresh({ force: true }); }} />}
     {probe && <ModbusReadProbe homeId={homeId} onClose={() => setProbe(false)} onCreate={createFromProbe} />}
     <Modal isOpen={editor !== null && !confirmDelete} onClose={close} title={t(editor?.kind === 'variable' ? 'modbus.variable_title' : 'modbus.connection_title')} description={t('modbus.safe_hint')} className="max-w-xl text-card-foreground" headerAlign="start">
@@ -162,7 +164,7 @@ export function ModbusView() {
           <ModbusProfileSelect value={variableForm.profileId} onChange={profileId => setVariableForm({ ...variableForm, profileId: profileId || undefined, symbolicAddress: profileId ? 'D0' : undefined, area: profileId ? 'holding_register' : variableForm.area, address: profileId ? 0 : variableForm.address, dataType: profileId ? 'uint16' : variableForm.dataType, writable: false })} />
           {variableForm.profileId ? (!outputBinding && symbolicAddressField) : <>
             <NumberInput label={t('modbus.address')} helperText={t('modbus.address_hint')} min={0} max={65536 - modbusWordCount(variableForm.dataType)} value={variableForm.address} onValueChange={address => setVariableForm({ ...variableForm, address })} onEmpty={() => setVariableForm({ ...variableForm, address: NaN })} />
-            <SearchableSelectField label={t('modbus.area')} value={variableForm.area} options={(['coil', 'discrete_input', 'holding_register', 'input_register'] as const).map(value => ({ value, label: t(`modbus.${value}`) }))} onChange={value => { const area = value as ModbusVariable['area']; setVariableForm({ ...variableForm, area, dataType: area === 'coil' || area === 'discrete_input' ? 'boolean' : 'uint16', visualStyle: undefined, writable: false, scale: 1, offset: 0 }); }} />
+            <SearchableSelectField label={t('modbus.area')} value={variableForm.area} options={modbusAreas.map(value => ({ value, label: t(`modbus.${value}`) }))} onChange={value => { const area = value as ModbusVariable['area']; setVariableForm({ ...variableForm, area, dataType: area === 'coil' || area === 'discrete_input' ? 'boolean' : 'uint16', visualStyle: undefined, writable: false, scale: 1, offset: 0 }); }} />
           </>}
           <details className="min-w-0 sm:col-span-2"><summary className="cursor-pointer py-2 text-body-compact font-medium">{t('plc.technical_conversion')}</summary><div className="grid gap-3 py-2 sm:grid-cols-2">
           <SearchableSelectField label={t('modbus.dataType')} value={variableForm.dataType} options={(variableForm.area === 'coil' || variableForm.area === 'discrete_input' ? ['boolean'] : modbusRegisterTypes).map(value => ({ value, label: value }))} onChange={value => setVariableForm({ ...variableForm, dataType: value as ModbusVariable['dataType'] })} />
@@ -170,7 +172,7 @@ export function ModbusView() {
             <NumberInput label={t('modbus.scale')} step="any" value={variableForm.scale} onValueChange={scale => setVariableForm({ ...variableForm, scale })} onEmpty={() => setVariableForm({ ...variableForm, scale: NaN })} />
             <NumberInput label={t('modbus.offset')} step="any" value={variableForm.offset} onValueChange={offset => setVariableForm({ ...variableForm, offset })} onEmpty={() => setVariableForm({ ...variableForm, offset: NaN })} />
           </>}
-          {modbusWordCount(variableForm.dataType) === 2 && <SearchableSelectField label={t('modbus.wordOrder')} value={variableForm.wordOrder} options={(['high_first', 'low_first'] as const).map(value => ({ value, label: t(`modbus.${value}`) }))} onChange={value => setVariableForm({ ...variableForm, wordOrder: value as ModbusVariable['wordOrder'] })} />}
+          {modbusWordCount(variableForm.dataType) === 2 && <SearchableSelectField label={t('modbus.wordOrder')} value={variableForm.wordOrder} options={modbusWordOrders.map(value => ({ value, label: t(`modbus.${value}`) }))} onChange={value => setVariableForm({ ...variableForm, wordOrder: value as ModbusVariable['wordOrder'] })} />}
           {modbusWordCount(variableForm.dataType) === 2 && <p className="text-caption text-muted-foreground sm:col-span-2">{t('modbus.two_words')}</p>}
           </div></details>
           {variableForm.dataType !== 'boolean' && <MeasurementUnitSelect label={t('modbus.unit')} value={variableForm.unit} onChange={unit => setVariableForm({ ...variableForm, unit })} />}

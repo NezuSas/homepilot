@@ -1,5 +1,15 @@
 # Tareas: Dashboard Layout and Widgets V1
 
+## Sensor binario y reloj redimensionable — AC53 (2026-10-03)
+
+- [x] Visualización de interruptor exclusivamente de lectura: ON/OFF con tokens success/danger y ausencia de lectura neutral; sin enviar comandos.
+- [x] Mostrar mediciones PLC con el formateador común y conservar precisión interna; configuración de enteros/decimales de otros sensores intacta.
+- [x] Habilitar Diseño del reloj con mínimo 6 columnas/6 filas, guardar límites opcionales en el JSON existente y preservar relojes históricos automáticos.
+- [x] Adaptar reloj a su altura disponible; modo compacto sin cita decorativa, sin recortar hora ni temperatura. Probar mínimo, guardado, movimiento, eliminación y cuatro tamaños de pantalla.
+- [x] Jest conjunto: 429/429 PASS en 13 suites. Responsive conjunto: 22/22 escenarios focalizados únicos PASS; el reloj se repitió después de corregir la especificidad CSS y comprobar anchura real del texto. Captura desktop confirmada; la captura móvil inicial incluía la transición del sidebar, por lo que la captura final deshabilita transiciones.
+- [x] Sin cambios SQL, migración de tarjetas ni hardware físico. No se afirma paridad completa con Home Assistant ni validación de tablet física.
+
+
 ## Editor Sections V2 — workspace vigente
 
 ### Transferencia adaptable y etiquetas — alcance autorizado

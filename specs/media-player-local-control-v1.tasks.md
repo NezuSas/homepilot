@@ -1,5 +1,13 @@
 # Tareas: Media Player Local Control V1
 
+## Control modular de volumen — AC9 (2026-10-03)
+
+- [x] Reutilizar MediaVolumeSlider en Clásico y Premium, manteniendo botones de volumen y permisos existentes.
+- [x] Rango accesible 0–100 con valor local durante movimiento y envío único al confirmar; cancelación no envía comando y volumen desconocido permanece deshabilitado.
+- [x] Cubrir ambos reproductores con Jest focalizado y dos escenarios responsive de transición idle y volumen por puntero/teclado. Validación conjunta: 429/429 Jest y 22/22 escenarios responsive únicos PASS.
+- [x] Sin cambio de API multimedia, comandos soportados, progreso de reproducción ni permisos; no se conectó un reproductor real.
+
+
 ## Implementado
 
 - [x] Modelo importado de media player y controles por capacidad.

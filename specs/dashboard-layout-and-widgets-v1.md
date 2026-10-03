@@ -1,5 +1,9 @@
 # SPEC: Dashboard Layout and Widgets V1
 
+## Refinamiento autorizado de instrumentos y reloj — AC53
+
+Sensor binario ofrece instrumento interruptor no interactivo ON/OFF con tokens éxito/peligro y ausencia neutra; no emite comandos. Formato numérico compartido limita a dos decimales sin alterar datos reales ni opción histórica de enteros. Reloj admite edición de dimensiones mediante matriz existente, mínimo 6 columnas y 6 filas, filas automáticas históricas conservadas; composición proporcional sin perder hora, fecha o clima. Sin migración SQL ni cambios de ejecución.
+
 ## Adaptación de tarjetas y etiquetas independientes — alcance autorizado
 
 - Transferir tarjetas entre Sections adapta las columnas numéricas proporcionalmente al ancho de origen/destino usando los mismos límites del resize; filas y binding intactos. Full sigue el destino. No escribir al cargar.

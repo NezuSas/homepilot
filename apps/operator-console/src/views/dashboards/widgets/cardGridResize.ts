@@ -63,9 +63,8 @@ export function getCardFrameClass(kind: string, span: string, active = false): s
   const tile = ['device', 'light', 'action'].includes(kind);
   return [
     kind === 'sensor' ? 'rounded-2xl' : 'rounded-section',
-    tile ? 'min-h-device-card-compact' : span === 'small' ? 'min-h-section-card-sm' : span === 'medium' ? 'min-h-section-card-md' : 'min-h-section-card-lg',
+    kind.startsWith('clock') ? 'min-h-40' : tile ? 'min-h-device-card-compact' : span === 'small' ? 'min-h-section-card-sm' : span === 'medium' ? 'min-h-section-card-md' : 'min-h-section-card-lg',
     kind === 'camera' && 'min-h-curtain-card',
-    kind.startsWith('clock') && 'min-h-clock-card',
     kind === 'cover' && 'w-full max-w-curtain-dashboard justify-self-start sm:min-h-curtain-card',
     ['light', 'action'].includes(kind) && (active ? 'homepilot-section-light-tile-active' : 'border border-transparent'),
   ].filter(Boolean).join(' ');

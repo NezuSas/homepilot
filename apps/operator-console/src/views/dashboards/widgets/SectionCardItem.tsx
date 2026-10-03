@@ -20,7 +20,7 @@ import { DashboardCardSkeleton, type DashboardCardSkeletonVariant } from '../../
 import { needsInitialDashboardSkeleton, useDelayedSkeleton } from '../../../components/ui/useDashboardDelayedSkeleton';
 import {
   getDefaultSpan, getEffectiveCardSpan, getSpanClass,
-  isClockKind, normalizeKind, type NormalizedSectionCardItem,
+  normalizeKind, type NormalizedSectionCardItem,
   type SectionCardKind,
 } from './sectionCardCatalog';
 
@@ -83,7 +83,6 @@ export function SectionCardItem({
   const span = gridOptions ? gridOptions.columns === 'full' || gridOptions.columns > 6 ? 'full' : gridOptions.columns <= 3 ? 'small' : 'medium' : savedSpan;
   const subtitle = card.entityName || card.description;
   const isCamera = normalizeKind(card.kind) === 'camera';
-  const isClock = isClockKind(card.kind);
   const normalizedKind = normalizeKind(card.kind);
   const skeletonVariant: DashboardCardSkeletonVariant | null = normalizedKind === 'sensor' ? 'sensor'
     : normalizedKind === 'camera' ? 'camera'
@@ -243,7 +242,7 @@ export function SectionCardItem({
 
       {isEditing ? (
         <>
-          {!isClock && (
+          {(
             <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center opacity-0 transition-opacity duration-150 group-hover/card:opacity-100 group-focus-within/card:opacity-100 [@media(hover:none)]:hidden">
               <IconButton
                 icon={Pencil}
@@ -295,7 +294,7 @@ export function SectionCardItem({
             onPointerDown={(event) => event.stopPropagation()}
             className="fixed z-50 min-w-36 rounded-panel border border-border/70 bg-card p-1.5 shadow-depth-3"
           >
-            {!isClock && (
+            {(
               <>
                 <Button
                   role="menuitem"

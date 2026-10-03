@@ -1,5 +1,7 @@
 # ModbusConnectionCard
 
+AC35: optional `onOpen` renders the compact connection summary (variable/OK/error counts), without variable rows or commands. ModbusView opens the selected connection locally and provides a back action, keeping polling and refresh unchanged. Summary skeleton mirrors that composition. Numeric values share formatMeasurement (maximum two displayed decimals); underlying diagnostics/RAW are unchanged.
+
 Refinamiento AC17: números de configuración con NumberInput, borradores vacíos editables y restricciones nativas. MeasurementUnitSelect conserva unidades históricas desconocidas. El cierre es explícito mediante Cancelar/cerrar.
 
 Referencia local de la configuración Modbus TCP de Sistema. Implementación: `apps/operator-console/src/components/ModbusConnectionCard.tsx`; composición y formularios: `apps/operator-console/src/views/ModbusView.tsx`. Contrato aprobado: [Integración Modbus TCP local V1](../../specs/modbus-tcp-local-integration-v1.md), especialmente AC1, AC2, AC7 y AC11–AC15.

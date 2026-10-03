@@ -1266,7 +1266,7 @@
     --hp-clock-dial-end: rgb(15 14 13 / 0.99);
     --hp-clock-quote-start: rgb(33 27 23 / 0.75);
     --hp-clock-quote-end: rgb(26 23 20 / 0.88);
-    min-height: clamp(17.5rem, 92cqi, 34rem);
+    min-height: 0;
     border-color: var(--hp-clock-edge);
     background: radial-gradient(circle at 34% 43%, var(--hp-clock-glow), transparent 46%), linear-gradient(145deg, var(--hp-clock-surface-start), var(--hp-clock-surface-end));
     box-shadow: 0 16px 32px -25px rgb(9 8 7 / 0.7), inset 0 1px 0 rgb(247 243 239 / 0.035);
@@ -1290,9 +1290,9 @@
 
   .homepilot-dashboard-screen .homepilot-clock-reference-layout {
     display: grid;
-    grid-template-rows: auto auto auto;
+    grid-template-rows: auto minmax(0, 1fr) auto;
     align-content: space-between;
-    min-height: clamp(17.5rem, 92cqi, 34rem);
+    min-height: 0;
     height: 100%;
     padding: clamp(0.85rem, 4cqi, 1.4rem) clamp(0.9rem, 5cqi, 1.4rem) clamp(1rem, 7.7cqi, 2.1rem);
     color: var(--hp-clock-ink);
@@ -1309,6 +1309,22 @@
     display: flex;
     align-items: center;
   }
+
+  .homepilot-dashboard-screen.homepilot-clock-compact .homepilot-clock-reference-layout {
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 0.35rem;
+    padding: 0.5rem;
+  }
+  .homepilot-dashboard-screen.homepilot-clock-compact .homepilot-clock-reference-quote { display: none; }
+  .homepilot-dashboard-screen.homepilot-clock-compact .homepilot-clock-reference-main { gap: 0.5rem; }
+  .homepilot-dashboard-screen.homepilot-clock-compact .homepilot-clock-reference-dial-frame { width: min(100%, 110px); justify-self: center; }
+  .homepilot-dashboard-screen.homepilot-clock-compact .homepilot-clock-reference-divider { margin: 0.25rem 0; }
+  .homepilot-dashboard-screen.homepilot-clock-compact .homepilot-clock-reference-time { font-size: clamp(1rem, 5cqi, 1.5rem); }
+  .homepilot-dashboard-screen.homepilot-clock-compact .homepilot-clock-reference-weekday,
+  .homepilot-dashboard-screen.homepilot-clock-compact .homepilot-clock-reference-date,
+  .homepilot-dashboard-screen.homepilot-clock-compact .homepilot-clock-reference-condition { font-size: 0.625rem; }
+  .homepilot-dashboard-screen.homepilot-clock-compact .homepilot-clock-reference-temperature { font-size: 0.875rem; }
+  .homepilot-dashboard-screen.homepilot-clock-compact .homepilot-clock-reference-weather { grid-template-columns: 1rem minmax(0, 1fr); column-gap: 0.25rem; }
 
   .homepilot-dashboard-screen .homepilot-clock-reference-header {
     justify-content: space-between;
@@ -1334,12 +1350,14 @@
     align-items: center;
     gap: clamp(0.7rem, 5cqi, 1.5rem);
     min-width: 0;
+    min-height: 0;
   }
 
   .homepilot-dashboard-screen .homepilot-clock-reference-dial-frame {
     position: relative;
     width: 100%;
     max-width: 18rem;
+    max-height: 100%;
     aspect-ratio: 1;
     border: 1px solid var(--hp-clock-accent);
     border-radius: 50%;

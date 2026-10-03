@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import { Activity, BatteryFull, BatteryLow, BatteryMedium, Droplets, Gauge, MemoryStick, Sun, Thermometer, UserRound, Wifi, Wind, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
+import { formatMeasurement } from '../../../lib/formatMeasurement';
 import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
 import { getDashboardIconComponent } from '../components/dashboardIconRegistry';
 import { getDefaultIcon, normalizeSensorScale, type SensorScale, type SectionCardIcon } from './sectionCardCatalog';
@@ -234,7 +235,7 @@ function getCategoryLabel(category: SensorCategory, t: (key: string) => string):
 }
 
 export function formatSensorValue(value: number, decimals = false): string {
-  return new Intl.NumberFormat(undefined, { useGrouping: false, maximumFractionDigits: decimals ? 2 : 0 }).format(value);
+  return formatMeasurement(value, decimals ? 2 : 0);
 }
 
 function SensorPresentationHero({ reading, t, decimals = false }: {
@@ -289,7 +290,8 @@ export function SensorMetricCard({ device, title, isPreview = false, icon, roomN
     : number === null ? null : getSensorGaugeScale(number, isPercentage,
       attributes.min_value ?? attributes.min ?? state.min_value ?? state.min,
       attributes.max_value ?? attributes.max ?? state.max_value ?? state.max, reading.unit);
-  const analog = number !== null || reading.value === null;
+  const binarySensor = reading.presentation === 'binary' || device?.type === 'binary_sensor' || device?.type === 'switch' || ['input', 'output', 'output_command', 'output_feedback'].includes(String(state.plcRole ?? ''));
+  const analog = !binarySensor && (number !== null || reading.value === null);
   const inheritedStyle = device?.integrationSource === 'modbus-tcp' ? state.plcVisualStyle : undefined;
   const resolvedStyle = resolveSensorVisualStyle(normalizeSensorVisualStyle(visualStyle ?? inheritedStyle), reading.deviceClass, reading.unit);
   const Visualizer = resolvedStyle === 'thermometer' ? SensorThermometer : resolvedStyle === 'level' ? SensorLevelGauge : resolvedStyle === 'battery' ? SensorBatteryGauge : SensorAnalogGauge;
@@ -319,7 +321,13 @@ export function SensorMetricCard({ device, title, isPreview = false, icon, roomN
         </div>
       </div>
       <div className={cn('sensor-reading-layout', analog && 'sensor-analog-layout')}>
-        {analog ? <div className="sensor-analog-instrument"
+        {binarySensor ? <div data-sensor-visualizer="switch" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 py-2">
+          <div role="img" aria-label={reading.binaryState ? t(`dashboard.editor.sections.sensor_${reading.binaryState}`) : t('dashboard.editor.sections.sensor_unavailable')}
+            className={cn('flex h-12 w-24 items-center rounded-full border p-1', reading.binaryState === 'on' ? 'justify-end border-success/60 bg-success/15 text-success' : reading.binaryState === 'off' ? 'justify-start border-danger/60 bg-danger/15 text-danger' : 'justify-center border-border bg-muted text-muted-foreground')}>
+            <span className="grid size-9 place-items-center rounded-full bg-current"><span className="text-xs font-bold text-background">{reading.binaryState === 'on' ? 'ON' : reading.binaryState === 'off' ? 'OFF' : '—'}</span></span>
+          </div>
+          <span className="text-caption font-semibold">{reading.binaryState ? t(`dashboard.editor.sections.sensor_${reading.binaryState}`) : t('dashboard.editor.sections.sensor_unavailable')}</span>
+        </div> : analog ? <div className="sensor-analog-instrument"
           role={scale && number !== null ? 'meter' : undefined}
           aria-label={scale ? displayTitle : undefined}
           aria-valuemin={number !== null ? scale?.min : undefined} aria-valuemax={number !== null ? scale?.max : undefined}
@@ -327,8 +335,8 @@ export function SensorMetricCard({ device, title, isPreview = false, icon, roomN
           aria-valuetext={scale && number !== null ? `${reading.value}${isPercentage ? '%' : reading.unit ? ` ${reading.unit}` : ''}` : undefined}
         >
           <Visualizer value={number} scale={scale} charging={attributes.is_charging === true || attributes.charging === true || state.charging === true} />
-          <div className="sensor-analog-readout"><SensorPresentationHero reading={reading} t={t} decimals={sensorDecimals} /></div>
-        </div> : <SensorPresentationHero reading={reading} t={t} decimals={sensorDecimals} />}
+          <div className="sensor-analog-readout"><SensorPresentationHero reading={reading} t={t} decimals={sensorDecimals || device?.integrationSource === 'modbus-tcp'} /></div>
+        </div> : <SensorPresentationHero reading={reading} t={t} decimals={sensorDecimals || device?.integrationSource === 'modbus-tcp'} />}
       </div>
       {hasStatus && <div className="sensor-reading-footer">
         <div className="sensor-reading-status text-muted-foreground">

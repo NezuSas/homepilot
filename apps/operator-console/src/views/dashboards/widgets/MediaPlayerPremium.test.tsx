@@ -12,6 +12,12 @@ jest.mock('react-i18next', () => ({
 }));
 
 describe('Media Player presentations', () => {
+  it.each(['classic', 'premium'] as const)('exposes the same accessible volume slider in %s', mediaVariant => {
+    const device: SnapshotDevice = { id: 'p', homeId: 'h', roomId: null, name: 'Player', type: 'media_player', status: 'ASSIGNED', capabilities: [{ type: 'command', name: 'volume', commands: [{ name: 'volume_set' }] }], lastKnownState: { state: 'playing', attributes: { volume_level: 0.4 } } };
+    const html = renderToStaticMarkup(<MediaPlayerCard device={device} title="Player" mediaVariant={mediaVariant} onCommand={() => {}} />);
+    expect(html).toContain('type="range"'); expect(html).toContain('value="40"'); expect(html).toContain('min="0"'); expect(html).toContain('max="100"');
+    expect(html).toContain('aria-valuetext="40%"');
+  });
   it.each(['idle', 'playing'])('classic reserves progress space in %s without inventing idle progress', state => {
     const device: SnapshotDevice = { id: 'p', homeId: 'h', roomId: null, name: 'Player', type: 'media_player', status: 'ASSIGNED',
       lastKnownState: { state, attributes: { media_duration: 120, media_position: 20, media_title: 'Track' } } };

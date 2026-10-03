@@ -242,26 +242,22 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     setQuery('');
     setCatalogCategoryFilter(null);
 
-    if (!isClockKind(nextCard.kind)) {
-      setEditingCardId(nextCard.id);
-      const nextIcon = nextCard.icon ?? getDefaultIcon(nextCard.kind);
-      setCardDraft({
-        title: nextCard.title,
-        kind: nextCard.kind,
-        entityId: '',
-        span: nextCard.span ?? getDefaultSpan(nextCard.kind),
-        icon: nextIcon,
-        mediaVariant: normalizeMediaVariant(nextCard.mediaVariant),
-        visualStyle: nextCard.visualStyle,
-        gridOptions: nextCard.gridOptions,
-      });
-    } else {
-      setEditingCardId(null);
-    }
+    setEditingCardId(nextCard.id);
+    const nextIcon = nextCard.icon ?? getDefaultIcon(nextCard.kind);
+    setCardDraft({
+      title: nextCard.title,
+      kind: nextCard.kind,
+      entityId: '',
+      span: nextCard.span ?? getDefaultSpan(nextCard.kind),
+      icon: nextIcon,
+      mediaVariant: normalizeMediaVariant(nextCard.mediaVariant),
+      visualStyle: nextCard.visualStyle,
+      gridOptions: nextCard.gridOptions,
+    });
   };
 
   const openCardEditor = (card: NormalizedSectionCardItem) => {
-    if (isClockKind(card.kind)) return;
+
     setEditingCardId(card.id);
     const nextIcon = card.icon ?? getDefaultIcon(card.kind);
     setCardDraft({
@@ -297,7 +293,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         entityName: selectedDisplayAction?.deviceName || selectedScene?.name || selectedAutomation?.name || selectedRoom?.name || selectedDevice?.name,
         span: isClockKind(cardDraft.kind) ? 'full' : getEffectiveCardSpan(cardDraft.kind, cardDraft.span),
         icon: cardDraft.icon,
-        gridOptions: cardDraft.gridOptions,
+        gridOptions: isClockKind(cardDraft.kind) && cardDraft.gridOptions ? { ...cardDraft.gridOptions, columns: typeof cardDraft.gridOptions.columns === 'number' ? Math.max(6, cardDraft.gridOptions.columns) as CardGridOptions['columns'] : 'full', rows: typeof cardDraft.gridOptions.rows === 'number' ? Math.max(6, cardDraft.gridOptions.rows) : 'auto', minColumns: 6, minRows: 6 } : cardDraft.gridOptions,
         hidden: cardDraft.hidden,
       };
       if (cardDraft.kind === 'media') updatedCard.mediaVariant = cardDraft.mediaVariant;
@@ -418,7 +414,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     />
   ) : null;
 
-  const editorModal = editingCard && !isClockKind(editingCard.kind) ? (
+  const editorModal = editingCard ? (
     <SectionCardEditorModal
       cardDraft={cardDraft}
       setCardDraft={setCardDraft}

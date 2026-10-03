@@ -239,6 +239,7 @@ test('Feature: Safe Modbus deletion — Scenario: Confirm cancel conflict and de
   });
   await page.goto('/system/modbus');
   const card = page.getByRole('region', { name: 'PLC', exact: true });
+  await card.getByRole('button', { name: /^(View variables|Ver variables)$/i }).click();
   await card.getByRole('button', { name: /^(Configure|Configurar)$/i, exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: /^(Delete|Eliminar)$/i }).click();
   let confirmation = page.getByRole('dialog', { name: /^(Delete connection|Eliminar conexión)$/i });
@@ -436,7 +437,7 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
     expect(saved).toMatchObject({ profileId: 'xinje-xl5e-16t-v1', symbolicAddress: 'D100', area: 'holding_register', address: 100, dataType: 'float32', wordOrder: 'high_first', scale: 0.1, offset: 2, unit: '°C', writable: false });
     expect(connections[0]).toMatchObject({ profileId: 'xinje-xl5e-16t-v1', enabled: false });
-    await page.reload(); const card = page.getByRole('region', { name: 'PLC 192.168.1.5' }); await expect(card).toContainText('D100');
+    await page.reload(); await page.getByRole('button', { name: /^(View variables|Ver variables)$/i }).click(); const card = page.getByRole('region', { name: 'PLC 192.168.1.5' }); await expect(card).toContainText('D100');
     await card.getByRole('button', { name: /Configure D100|Configurar D100/i }).click();
     await expect(page.getByRole('dialog').getByLabel(/^(PLC element|Elemento PLC)$/i, { exact: true })).toHaveValue('D100');
   });
@@ -488,7 +489,7 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     await expect(variableEditor.getByRole('button', { name: /^(Data type|Tipo de dato)$/i })).toContainText('uint32');
     await variableEditor.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
     expect(savedVariable).toMatchObject({ address: 100, dataType: 'uint32', scale: 0.1, offset: 2, unit: '°C', writable: false });
-    await page.reload(); await expect(page.getByRole('region', { name: 'PLC 192.168.1.5' })).toContainText('uint32');
+    await page.reload(); await page.getByRole('button', { name: /^(View variables|Ver variables)$/i }).click(); await expect(page.getByRole('region', { name: 'PLC 192.168.1.5' })).toContainText('uint32');
   });
 }
 test('Feature: Modbus commissioning — Scenario: Periodic read failure keeps RAW marked previous and Stop prevents further reads (AC9)', async ({ page }) => {
@@ -537,6 +538,9 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     await page.route('**/api/v1/devices/*/command', route => { commands.push(route.request().postDataJSON()); return route.fulfill(commands.length === 1 ? { status: 504, json: { error: 'TIMEOUT' } } : { json: {} }); });
     await page.goto('/system/modbus');
     if (viewport.name.includes('tablet')) { await page.evaluate(() => localStorage.setItem('i18nextLng', 'es')); await page.reload(); }
+    const openDetail = async () => { await page.getByRole('button', { name: /^(View variables|Ver variables)$/i }).click(); };
+    await expect(page.getByRole('button', { name: /^(Add variable|Añadir variable)$/i })).toHaveCount(0);
+    await openDetail();
     const card = page.getByRole('region', { name: 'PLC simulado', exact: true });
     const editor = page.getByRole('dialog', { name: /^(Configure variable|Configurar variable)$/i });
     const captureDialog = async (dialog: typeof editor, subject: string) => {
@@ -573,7 +577,7 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     }
     await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click(); await expect(editor).not.toBeVisible();
     expect(variables[0]).toMatchObject({ writable: true, plc: { role: 'output', command: { symbolicAddress: 'M100', address: 100 }, physical: { symbolicAddress: 'Y0', address: 24576 }, feedback: { symbolicAddress: 'M200', address: 200 }, feedbackPolicy: 'required' } });
-    await page.reload(); await expect(card).toContainText('M200');
+    await page.reload(); await openDetail(); await expect(card).toContainText('M200');
     await expect(card).toContainText(/Requested state: Active|Estado solicitado: Activo/);
     await expect(card).toContainText(/Actual state: Inactive|Estado real: Inactivo/);
     // AC34: explicit no-feedback output, command derived on save, physical edits isolated.
@@ -589,19 +593,21 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     expect(variables[0]).toMatchObject({ symbolicAddress: 'M200', address: 200, plc: { role: 'output', command: { symbolicAddress: 'M200', address: 200 }, physical: { symbolicAddress: 'Y0', address: 24576 }, feedbackPolicy: 'none', mode: 'sustained' } });
     expect((variables[0].plc as Record<string, unknown>).feedback).toBeUndefined();
     const originalBinding = JSON.parse(JSON.stringify(variables[0].plc));
-    await page.reload();
+    await page.reload(); await openDetail();
     await card.getByRole('button', { name: /^(Configure Luz exterior|Configurar Luz exterior)$/i }).click();
     await expect(editor.getByLabel(/^(PLC command|Comando PLC)$/i, { exact: true })).toHaveValue('M200');
     await editor.getByLabel(/^(Physical output|Salida física)$/i).fill('Y1');
     await expect(editor.getByLabel(/^(PLC command|Comando PLC)$/i, { exact: true })).toHaveValue('M200');
     const physicalBounds = (await editor.getByLabel(/^(Physical output|Salida física)$/i).boundingBox())!;
     const commandBounds = (await editor.getByLabel(/^(PLC command|Comando PLC)$/i, { exact: true }).boundingBox())!;
-    expect(physicalBounds.y).toBeLessThan(commandBounds.y);
+    // Compact layouts place physical and command side by side; mobile stacks them.
+    if (viewport.width < 640) expect(physicalBounds.y).toBeLessThan(commandBounds.y);
+    else { expect(physicalBounds.x).toBeLessThan(commandBounds.x); expect(Math.abs(physicalBounds.y - commandBounds.y)).toBeLessThan(4); }
     await captureDialog(editor, 'output-no-feedback');
     await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click(); await expect(editor).not.toBeVisible();
     expect(variables[0].plc).toEqual({ ...originalBinding, physical: { profileId: connection.profileId, symbolicAddress: 'Y1', area: 'coil', address: 24577 } });
     expect(variables[0]).toMatchObject({ symbolicAddress: 'M200', address: 200, writable: true });
-    await page.reload();
+    await page.reload(); await openDetail();
     await card.getByRole('button', { name: /^(Add variable|Añadir variable)$/i }).click();
     await editor.getByLabel(/^(Name|Nombre)$/i).fill('Temperatura objetivo');
     await editor.getByLabel(/^(PLC element|Elemento PLC)$/i, { exact: true }).fill('D100');
@@ -633,12 +639,12 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     await editor.locator('.sensor-metric-card').scrollIntoViewIfNeeded(); await captureDialog(editor, 'measurement-preview');
     await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click(); await expect(editor).not.toBeVisible();
     expect(variables[2]).toMatchObject({ visualStyle: 'level', writable: false, plc: { role: 'measurement' } });
-    await page.reload(); await expect(card.locator('[data-sensor-visualizer="level"]')).toBeVisible();
+    await page.reload(); await openDetail(); await expect(card.locator('[data-sensor-visualizer="level"]')).toBeVisible();
     await card.getByRole('button', { name: /^(Configure Nivel depósito|Configurar Nivel depósito)$/i }).click();
     await editor.getByRole('button', { name: /^(Visualization|Visualización)$/i }).click(); await page.getByRole('option', { name: /^(Thermometer|Termómetro)$/i, exact: true }).click();
     await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click(); await expect(editor).not.toBeVisible();
     expect(variables[2]).toMatchObject({ visualStyle: 'thermometer' });
-    await page.reload(); await expect(card.locator('[data-sensor-visualizer="thermometer"]')).toBeVisible();
+    await page.reload(); await openDetail(); await expect(card.locator('[data-sensor-visualizer="thermometer"]')).toBeVisible();
     await card.getByRole('button', { name: /^(Add variable|Añadir variable)$/i }).click();
     await editor.getByLabel(/^(Name|Nombre)$/i).fill('Entrada puerta');
     await editor.getByLabel(/^(PLC element|Elemento PLC)$/i, { exact: true }).fill('X0');
@@ -695,6 +701,7 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     await dialog.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
     await expect(dialog).not.toBeVisible();
     expect(connections[0]).toMatchObject({ enabled: false, host: '192.168.1.5', port: 502 });
+    await page.getByRole('button', { name: /^(View variables|Ver variables)$/i }).click();
     const card = page.getByRole('region', { name: 'PLC simulado', exact: true });
     await expect(card).toBeVisible();
     await card.getByRole('button', { name: /^(Add variable|Añadir variable)$/i }).click();
@@ -719,7 +726,7 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     await variableDialog.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
     await expect(variableDialog).not.toBeVisible();
     expect(variables[1]).toMatchObject({ area: 'coil', dataType: 'boolean', writable: true });
-    await page.reload(); await expect(page.getByRole('region', { name: 'PLC simulado' })).toContainText('Temperatura ambiente');
+    await page.reload(); await page.getByRole('button', { name: /^(View variables|Ver variables)$/i }).click(); await expect(page.getByRole('region', { name: 'PLC simulado' })).toContainText('Temperatura ambiente');
     for (const theme of ['dark', 'light']) {
       await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
@@ -4158,7 +4165,7 @@ test('Feature: Button cards — Scenario: Light and scene-action buttons share a
   expect(await inactiveSurface('scene-action-card')).toEqual(await inactiveSurface('light-off-card'));
 });
 
-test('Feature: Clock editing — Scenario: A fixed section clock can be moved, removed and added without an editor', async ({ page }) => {
+test('Feature: Clock editing — Scenario: A section clock can be resized with bounded design and moved or removed', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const section = responsiveDashboard.tabs[0]!.widgets[1]!;
   if (!('extra' in section.config)) throw new Error('Responsive fixture has no section cards');
@@ -4193,18 +4200,43 @@ test('Feature: Clock editing — Scenario: A fixed section clock can be moved, r
   const sensor = page.locator('[data-dashboard-card-id="responsive-sensor"]');
   const cardActions = /^(Card actions|Acciones de tarjeta)$/i;
   const edit = /^(Edit|Editar)$/i;
-  await expect(clock.getByRole('button', { name: edit })).toHaveCount(0);
+  await expect(clock.getByRole('button', { name: edit })).toHaveCount(1);
   await clock.hover();
   const clockActionsButton = clock.getByRole('button', { name: cardActions });
   await clockActionsButton.click();
   const clockMenu = page.getByRole('menu', { name: cardActions });
-  await expect(clockMenu.getByRole('menuitem', { name: edit })).toHaveCount(0);
+  await expect(clockMenu.getByRole('menuitem', { name: edit })).toBeVisible();
   await expect(clockMenu.getByRole('menuitem', { name: /^(Delete|Eliminar)$/i })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(clockMenu).not.toBeVisible();
   await expect(clockActionsButton).toHaveAttribute('aria-expanded', 'false');
   await expect(page.getByRole('heading', { name: edit })).toHaveCount(0);
 
+  await clockActionsButton.click();
+  await page.getByRole('menu', { name: cardActions }).getByRole('menuitem', { name: edit }).click();
+  const clockEditor = page.getByRole('dialog', { name: edit });
+  await clockEditor.getByRole('radio', { name: /^(Design|Diseño)$/i }).click();
+  const grid = clockEditor.getByRole('grid');
+  await expect(grid.getByRole('gridcell', { name: /: 2, .*: 2$/i })).toHaveAttribute('aria-disabled', 'true');
+  await grid.getByRole('gridcell', { name: /: 6, .*: 6$/i }).click();
+  await clockEditor.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
+  await expect(clockEditor).not.toBeVisible();
+  await expect.poll(() => JSON.stringify(savedDashboard)).toContain('"minColumns":6');
+  for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 1024 }, { width: 1024, height: 768 }, { width: 1440, height: 900 }]) {
+    await page.setViewportSize(viewport);
+    const sidebarBackdrop = page.getByTestId('mobile-sidebar-backdrop');
+    if (await sidebarBackdrop.isVisible()) await sidebarBackdrop.click({ position: { x: viewport.width - 16, y: 96 } });
+    await expect(clock.locator('[data-homepilot-clock]')).toBeVisible();
+    const exterior = (await clock.boundingBox())!;
+    const details = (await clock.locator('.homepilot-clock-reference-details').boundingBox())!;
+    expect(details.y + details.height).toBeLessThanOrEqual(exterior.y + exterior.height + 1);
+    for (const selector of ['.homepilot-clock-reference-time', '.homepilot-clock-reference-temperature']) {
+      const reading = clock.locator(selector);
+      await expect.poll(() => reading.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width + 1);
+    if (viewport.width === 390 || viewport.width === 1440) await page.screenshot({ path: testInfo.outputPath(`clock-resized-${viewport.width}.png`), animations: 'disabled' });
+  }
   await expect(sensor.getByRole('button', { name: edit })).toHaveCount(1);
   await sensor.hover();
   await sensor.getByRole('button', { name: cardActions }).click();
@@ -4232,8 +4264,8 @@ test('Feature: Clock editing — Scenario: A fixed section clock can be moved, r
     .and(cardCatalog.locator('.max-h-section-editor > div > div > button[type="button"]'))
     .click();
   await expect(page.getByRole('heading', { name: /^(Add card to section|Añadir tarjeta a la sección)$/i })).toHaveCount(0);
-  await expect(page.getByRole('heading', { name: edit })).toHaveCount(0);
-  await expect(page.getByRole('textbox', { name: /^(Name|Nombre)$/i })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: edit })).toBeVisible();
+  await page.getByRole('button', { name: /^(Close|Cerrar)$/i }).click();
   await expect(page.locator('[data-homepilot-clock]')).toHaveCount(1);
 });
 
@@ -4403,6 +4435,8 @@ test(`Feature: Media player idle — Scenario: ${mediaVariant} reports no playba
     }]) });
   });
 
+  const volumeCommands: unknown[] = [];
+  await page.route('**/api/v1/devices/player-1/command', route => { volumeCommands.push(route.request().postDataJSON()); return route.fulfill({ json: {} }); });
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
   const card = page.locator('[data-dashboard-card-id="media-idle"]');
   await expect(card).toBeVisible();
@@ -4413,6 +4447,15 @@ test(`Feature: Media player idle — Scenario: ${mediaVariant} reports no playba
   await expect(card.locator('img')).toHaveCount(0);
   await expect(card.getByRole('button', { name: /^(Reproducir|Play)$/i })).toBeVisible();
   await expect(card.getByRole('button', { name: /^(Reproducir|Play)$/i })).toBeEnabled();
+  const volumeSlider = card.getByRole('slider');
+  await expect(volumeSlider).toBeEnabled();
+  await volumeSlider.fill('65');
+  expect(volumeCommands).toHaveLength(0);
+  await volumeSlider.dispatchEvent('pointerup');
+  await expect.poll(() => JSON.stringify(volumeCommands)).toContain('65');
+  await volumeSlider.fill('70');
+  await volumeSlider.dispatchEvent('keyup', { key: 'ArrowRight' });
+  await expect.poll(() => JSON.stringify(volumeCommands)).toContain('70');
   const idleHeight = await card.evaluate((element) => element.getBoundingClientRect().height);
   const idlePlay = (await card.getByRole('button', { name: /^(Play|Reproducir)$/i }).boundingBox())!;
   const idleControls = await card.locator('button').count();

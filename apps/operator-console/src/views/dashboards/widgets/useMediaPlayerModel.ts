@@ -115,13 +115,14 @@ export function useMediaPlayerModel({ device, title, isPreview = false, isProces
     if (!command || !canAct) return;
     onCommand?.(command);
   };
-  const changeVolume = (delta: number) => {
-    if (!canActVolume || currentVolume === null) return;
-    const nextVolume = Math.max(0, Math.min(100, currentVolume + delta));
+  const setVolume = (value: number) => {
+    if (!canActVolume || currentVolume === null || !Number.isFinite(value)) return;
+    const nextVolume = Math.max(0, Math.min(100, Math.round(value)));
     if (nextVolume === currentVolume) return;
     setOptimisticVolume(nextVolume);
     onCommand?.('volume_set', { volume: nextVolume });
   };
+  const changeVolume = (delta: number) => { if (currentVolume !== null) setVolume(currentVolume + delta); };
   const VolumeIcon = currentVolume === null || currentVolume === 0
     ? VolumeX
     : currentVolume < 50 ? Volume1 : Volume2;
@@ -199,7 +200,7 @@ export function useMediaPlayerModel({ device, title, isPreview = false, isProces
   return {
     presentation, isPlaying, isOff, isIdle, canAct, displayTitle, powerCommand,
     playPauseCommand, hasPrevious, hasNext, hasVolumeControl, currentVolume,
-    playback, canActVolume, invoke, changeVolume, VolumeIcon, artworkUrl, reportArtworkFailure,
+    playback, canActVolume, invoke, changeVolume, setVolume, VolumeIcon, artworkUrl, reportArtworkFailure,
   };
 }
 

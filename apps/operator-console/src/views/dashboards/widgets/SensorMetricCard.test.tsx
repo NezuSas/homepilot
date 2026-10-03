@@ -3,6 +3,18 @@ import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
 import { formatSensorValue, getSensorReading, getSensorSeverity, SensorMetricCard } from './SensorMetricCard';
 
 describe('Fixed measurement scale (AC42)', () => {
+  it.each(['on', 'off', 'unavailable'])('shows a non-interactive binary instrument for %s (AC53)', state => {
+    const device = { ...sensor('Input', { state }), type: 'binary_sensor' };
+    const html = renderToStaticMarkup(<SensorMetricCard title="Input" device={device} />);
+    expect(html).toContain('data-sensor-visualizer="switch"'); expect(html).not.toContain('<button'); expect(html).not.toContain('role="meter"');
+    expect(html).toContain(state === 'on' ? 'ON' : state === 'off' ? 'OFF' : 'Sin lectura');
+    expect(html).toContain(state === 'on' ? 'bg-success/15' : state === 'off' ? 'bg-danger/15' : 'bg-muted');
+  });
+  it('keeps the precise PLC value accessible while rounding the shared display (AC35)', () => {
+    const device = { ...sensor('Reading', { state: '22.4567', unit: 'bar' }), integrationSource: 'modbus-tcp' };
+    const html = renderToStaticMarkup(<SensorMetricCard title="Reading" device={device} />);
+    expect(html).toContain('22.46'); expect(html).toContain('aria-valuetext="22.4567 bar"');
+  });
   it('inherits PLC visualization only for Modbus and gives the card override priority (Modbus AC30)', () => {
     const device = { ...sensor('Reading', { state: '25', unit: '°C', plcVisualStyle: 'level' }), integrationSource: 'modbus-tcp' };
     expect(renderToStaticMarkup(<SensorMetricCard title="Reading" device={device} />)).toContain('data-sensor-visualizer="level"');

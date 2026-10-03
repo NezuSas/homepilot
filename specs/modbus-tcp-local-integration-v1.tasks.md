@@ -1,5 +1,15 @@
 # Tareas — Modbus TCP local V1
 
+## Presentación y navegación — AC35 (2026-10-03)
+
+- [x] Centralizar formato visual con máximo dos decimales; conservar RAW y precisión de dominio para reglas y comandos.
+- [x] Compactar campos físicos/comando, reutilizar catálogos tipados y explicar salida física y feedback independiente.
+- [x] Mostrar conexiones resumidas con número de variables y navegación a detalle; skeleton específico de resumen.
+- [x] Conservar API, JSON, perfiles y políticas de escritura/confirmación; ninguna conexión al PLC físico.
+- [x] Validación conjunta: 429/429 Jest en 13 suites; 22/22 escenarios responsive focalizados únicos (PLC, regresión Modbus, volumen y reloj). No suites completas.
+- [x] Revisar captura de formulario tablet claro. La salida física identifica el canal: solo el feedback explícito indica dónde sondear la confirmación; no se infiere del comando.
+
+
 ## UX localizada de Salidas — AC34 (2026-10-03)
 
 - [x] Salida física editable y destacada antes de un único Comando PLC; etiqueta Entrada física para el rol de entradas.

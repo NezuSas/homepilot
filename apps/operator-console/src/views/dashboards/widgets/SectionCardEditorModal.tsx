@@ -59,7 +59,8 @@ export function SectionCardEditorModal({
   const [validMaximum, setValidMaximum] = useState(true);
   const [panel, setPanel] = useState<'configuration' | 'design' | 'visibility'>('configuration');
   const defaultColumns = cardDraft.span === 'full' ? 12 : cardDraft.span === 'small' ? 3 : 6;
-  const gridOptions = cardDraft.gridOptions ?? { columns: defaultColumns as CardColumns, rows: 'auto' as const };
+  const clock = isClockKind(cardDraft.kind);
+  const gridOptions: CardGridOptions = clock ? { ...cardDraft.gridOptions, columns: Math.max(6, typeof cardDraft.gridOptions?.columns === 'number' ? cardDraft.gridOptions.columns : 12) as CardColumns, rows: typeof cardDraft.gridOptions?.rows === 'number' ? Math.max(6, cardDraft.gridOptions.rows) : 'auto', minColumns: 6, minRows: 6 } : cardDraft.gridOptions ?? { columns: defaultColumns as CardColumns, rows: 'auto' };
   const sensorScale = normalizeSensorScale({ min: cardDraft.sensorMin, max: cardDraft.sensorMax });
   const invalidScale = cardDraft.kind === 'sensor' && (!validMinimum || !validMaximum || ((cardDraft.sensorMin !== undefined || cardDraft.sensorMax !== undefined) && !sensorScale));
   return (

@@ -2115,6 +2115,12 @@
     "no_content_yet": "No content available yet"
   },
   "plc": {
+    "physical_hint": "Physical channel controlled by the Ladder; it does not confirm state by itself.",
+    "feedback_hint": "Address read to confirm actual state. Must differ from the command; configure it according to the Ladder.",
+    "variable_count": "{{count}} variables",
+    "open_connection": "View variables",
+    "back_connections": "Back to connections",
+    "volume": "Volume",
     "command_address": "PLC command", "physical_output": "Physical output", "physical_input": "Physical input",
     "enabled": "Enabled", "connected": "Connected", "disconnected": "Disconnected", "reconnecting": "Reconnecting", "error": "Error", "awaiting_connection": "Waiting for communication",
     "connection_diagnostics": "Connection diagnostics", "last_communication": "Last communication", "latency": "Latency", "variables_ok": "Variables OK", "variables_error": "Variables with errors", "last_error": "Last error", "retry_at": "Next read attempt",

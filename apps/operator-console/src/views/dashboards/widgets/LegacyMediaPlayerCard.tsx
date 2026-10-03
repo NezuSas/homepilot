@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
 import { IconButton } from '../../../components/ui/IconButton';
 import { formatMediaTime } from './mediaPlayback';
+import { MediaVolumeSlider } from './MediaVolumeSlider';
 import { MEDIA_VOLUME_STEP, type MediaPlayerModel } from './useMediaPlayerModel';
 
 /** Historical visual presentation; playback state and commands come from the shared model. */
@@ -161,9 +162,7 @@ export function LegacyMediaPlayerCard({ title, compact = false, model }: { title
             size="md"
             className={cn('rounded-lg text-foreground/85 hover:bg-foreground/10 hover:text-primary', compact ? 'h-8 w-8' : 'h-9 w-9')}
           />
-          <div className="h-1 flex-1 overflow-hidden rounded-full bg-foreground/20">
-            <span className="block h-full rounded-full bg-primary/85 transition-[width] duration-300" style={{ width: `${currentVolume ?? 0}%` }} />
-          </div>
+          <MediaVolumeSlider value={currentVolume} disabled={!canActVolume} onCommit={model.setVolume} />
           <IconButton
             icon={PlusCircle}
             label={t('dashboard.editor.sections.media_volume_up')}
