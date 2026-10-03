@@ -1,5 +1,9 @@
 # SensorMetricCard — instrumento analógico local
 
+AC45: una única carcasa/modelo selecciona SensorAnalogGauge, SensorThermometer, SensorLevelGauge o SensorBatteryGauge. Los presenters verticales reutilizan el sistema de líquido de SensorLevelGauge; todos usan sensorNeedleFraction. `visualStyle` opcional viaja en extra.cards, sin SQL; ausente gauge histórico, nuevo auto por metadatos (nunca nombre como única fuente). Valor/unidad/estado accesible se presentan una sola vez por SensorMetricCard. Canvas interpola aguja 400 ms con RAF cancelable; líquido usa transform/transition 400 ms. Reduced-motion es inmediato. Sin lectura no hay relleno/aguja/meter ficticio. El viewport y la proporción 320/265 son iguales entre renderers; skeleton existente conserva la reserva exterior.
+
+Validación: 181/181 Jest, 13/13 responsive focalizados, typecheck/lint/builds y trazabilidad PASS. Sin servicios físicos ni suites completas. La carga de batería solo se indica con metadatos booleanos reales charging/is_charging; nunca se infiere del porcentaje.
+
 AC42: optional `sensorScale: { min, max }` comes from each Dashboard card. Finite min < max overrides device/automatic scale for live and preview. Real readings and out-of-range accessible text remain unchanged; needle is clamped only visually. Missing readings still have no fabricated meter. Editor clears both bounds to restore historical behavior. JSON extra.cards persists/imports it without SQL migration; earlier editors may discard it on downgrade.
 
 ## Overview

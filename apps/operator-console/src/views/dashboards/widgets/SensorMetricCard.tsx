@@ -6,6 +6,10 @@ import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
 import { getDashboardIconComponent } from '../components/dashboardIconRegistry';
 import { getDefaultIcon, normalizeSensorScale, type SensorScale, type SectionCardIcon } from './sectionCardCatalog';
 import { getSensorGaugeScale, SensorAnalogGauge } from './SensorAnalogGauge';
+import { SensorThermometer } from './SensorThermometer';
+import { SensorLevelGauge } from './SensorLevelGauge';
+import { SensorBatteryGauge } from './SensorBatteryGauge';
+import { normalizeSensorVisualStyle, type SensorVisualStyle } from './sectionCardCatalog';
 
 export type SensorCategory = 'battery' | 'temperature' | 'humidity' | 'pressure' | 'memory' | 'load' | 'power' | 'energy' | 'signal' | 'illuminance' | 'air_quality' | 'presence' | 'measurement' | 'status';
 export type SensorPresentation = 'percentage' | 'temperature' | 'binary' | 'categorical' | 'numeric';
@@ -28,6 +32,7 @@ interface SensorMetricCardProps {
   roomName?: string;
   sensorScale?: SensorScale;
   sensorDecimals?: boolean;
+  visualStyle?: SensorVisualStyle;
 }
 
 const unavailableStates = new Set(['', 'none', 'null', 'unknown', 'unavailable', 'offline']);
@@ -261,7 +266,16 @@ function SensorPresentationHero({ reading, t, decimals = false }: {
   );
 }
 
-export function SensorMetricCard({ device, title, isPreview = false, icon, roomName, sensorScale, sensorDecimals = false }: SensorMetricCardProps) {
+export function resolveSensorVisualStyle(style: SensorVisualStyle, deviceClass: string, unit: string | null): Exclude<SensorVisualStyle, 'auto'> {
+  if (style !== 'auto') return style;
+  if (deviceClass === 'temperature' || temperatureUnits.has(unit?.toLowerCase() ?? '')) return 'thermometer';
+  if (deviceClass === 'battery') return 'battery';
+  if (['humidity', 'pressure', 'power', 'voltage', 'current'].includes(deviceClass)) return 'gauge';
+  if (['water_level', 'tank_level', 'fuel_level'].includes(deviceClass) || unit === '%') return 'level';
+  return 'gauge';
+}
+
+export function SensorMetricCard({ device, title, isPreview = false, icon, roomName, sensorScale, sensorDecimals = false, visualStyle }: SensorMetricCardProps) {
   const { t } = useTranslation();
   const reading = getSensorReading(device, isPreview);
   const severity = getSensorSeverity(reading);
@@ -275,6 +289,8 @@ export function SensorMetricCard({ device, title, isPreview = false, icon, roomN
       attributes.min_value ?? attributes.min ?? state.min_value ?? state.min,
       attributes.max_value ?? attributes.max ?? state.max_value ?? state.max, reading.unit);
   const analog = number !== null || reading.value === null;
+  const resolvedStyle = resolveSensorVisualStyle(normalizeSensorVisualStyle(visualStyle), reading.deviceClass, reading.unit);
+  const Visualizer = resolvedStyle === 'thermometer' ? SensorThermometer : resolvedStyle === 'level' ? SensorLevelGauge : resolvedStyle === 'battery' ? SensorBatteryGauge : SensorAnalogGauge;
   const categoryLabel = getCategoryLabel(reading.category, t);
   const displayTitle = title.trim() || device?.name?.trim() || categoryLabel;
   const ConfiguredIcon = icon && icon !== getDefaultIcon('sensor') ? getDashboardIconComponent(icon) : null;
@@ -308,7 +324,7 @@ export function SensorMetricCard({ device, title, isPreview = false, icon, roomN
           aria-valuenow={scale && number !== null ? Math.max(scale.min, Math.min(scale.max, number)) : undefined}
           aria-valuetext={scale && number !== null ? `${reading.value}${isPercentage ? '%' : reading.unit ? ` ${reading.unit}` : ''}` : undefined}
         >
-          <SensorAnalogGauge value={number} scale={scale} />
+          <Visualizer value={number} scale={scale} charging={attributes.is_charging === true || attributes.charging === true || state.charging === true} />
           <div className="sensor-analog-readout"><SensorPresentationHero reading={reading} t={t} decimals={sensorDecimals} /></div>
         </div> : <SensorPresentationHero reading={reading} t={t} decimals={sensorDecimals} />}
       </div>

@@ -1089,6 +1089,12 @@
   .sensor-analog-layout { padding-block: 0.25rem; }
   .sensor-analog-instrument { position: relative; width: 100%; max-width: 22rem; flex-shrink: 0; }
   .sensor-analog-canvas { display: block; width: 100%; height: auto; aspect-ratio: 320 / 265; }
+  .sensor-vessel { fill: hsl(var(--popover)); stroke: hsl(var(--border)); stroke-width: 2; }
+  .sensor-liquid { fill: hsl(var(--primary)); transform-origin: center bottom; transition: transform 400ms ease-out; }
+  .sensor-liquid-bulb { fill: hsl(var(--primary)); stroke: hsl(var(--border)); stroke-width: 2; }
+  .sensor-liquid-tick { fill: hsl(var(--muted-foreground)); font: 14px Rubik, sans-serif; }
+  .sensor-liquid-tick path { stroke: hsl(var(--border)); }
+  @media (prefers-reduced-motion: reduce) { .sensor-liquid { transition: none; transition-duration: 0s !important; } }
   .sensor-analog-readout { position: relative; margin: -8% 0 0; display: grid; justify-items: center; gap: 0.25rem; }
   .sensor-analog-readout .sensor-reading-value { flex-direction: row; flex-wrap: nowrap; align-items: baseline; gap: 0.25rem; }
   .sensor-analog-readout .sensor-reading-number { font-size: clamp(2rem, var(--sensor-reading-scale, 17cqi), 2.75rem); font-weight: 550; }

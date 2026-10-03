@@ -37,12 +37,19 @@ export function formatSensorGaugeTick(value: number): string {
  * accessible reading; Canvas keeps dial ticks sharp at every card width/DPR. */
 export function SensorAnalogGauge({ value, scale }: { value: number | null; scale: SensorGaugeScale | null }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const displayedFraction = useRef<number | null>(null);
   const min = scale?.min;
   const max = scale?.max;
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     let disposed = false;
+    let frame = 0;
+    const target = value !== null && min !== undefined && max !== undefined ? sensorNeedleFraction(value, { min, max, source: 'metadata' }) : null;
+    const start = displayedFraction.current ?? target;
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const started = performance.now();
+    if (target === null || motion.matches) displayedFraction.current = target;
     const draw = () => {
       if (disposed) return;
       const width = canvas.getBoundingClientRect().width;
@@ -79,7 +86,7 @@ export function SensorAnalogGauge({ value, scale }: { value: number | null; scal
       arc(132, 7, 0, 1, edge);
       const known = value !== null && min !== undefined && max !== undefined;
       if (known) {
-        const fraction = sensorNeedleFraction(value, { min, max, source: 'metadata' });
+        const fraction = displayedFraction.current ?? target ?? 0;
         const light = ctx.createLinearGradient(20, 220, 260, 40);
         light.addColorStop(0, accent); light.addColorStop(1, color('--light-active'));
         if (fraction > 0) arc(132, 7, 0, fraction, light);
@@ -106,7 +113,7 @@ export function SensorAnalogGauge({ value, scale }: { value: number | null; scal
       }
       if (known) {
         // Pivot to tip: needle is positioned by the actual value, never by type.
-        const fraction = sensorNeedleFraction(value, { min, max, source: 'metadata' });
+        const fraction = displayedFraction.current ?? target ?? 0;
         const tip = point(fraction, 111);
         const a = angle(fraction);
         const needle = ctx.createLinearGradient(160, 151, tip.x, tip.y);
@@ -126,8 +133,16 @@ export function SensorAnalogGauge({ value, scale }: { value: number | null; scal
     const theme = new MutationObserver(draw);
     theme.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     void document.fonts.ready.then(draw);
-    draw();
-    return () => { disposed = true; resize.disconnect(); theme.disconnect(); };
+    const animate = () => {
+      const elapsed = Math.min(1, (performance.now() - started) / 400);
+      displayedFraction.current = target === null ? null : motion.matches || start === null ? target : start + (target - start) * (1 - (1 - elapsed) ** 3);
+      draw();
+      if (!motion.matches && target !== null && elapsed < 1) frame = requestAnimationFrame(animate);
+    };
+    const reduceMotion = () => { cancelAnimationFrame(frame); displayedFraction.current = target; draw(); };
+    motion.addEventListener('change', reduceMotion);
+    animate();
+    return () => { disposed = true; cancelAnimationFrame(frame); motion.removeEventListener('change', reduceMotion); resize.disconnect(); theme.disconnect(); };
   }, [value, min, max]);
   return <canvas ref={canvasRef} className="sensor-analog-canvas" aria-hidden="true" />;
 }

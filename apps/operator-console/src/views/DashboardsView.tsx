@@ -159,30 +159,30 @@ export function DashboardsView({ initialDashboardId = null, initialTabId = null,
     setSelectedWidgetId(null);
   }, [dashboards, initialDashboardId, initialTabId]);
 
-  // Browser back/forward (or a link straight to a specific tab) changes
-  // `initialTabId` without changing the dashboard: follow it.
-  useEffect(() => {
-    if (!active || !initialTabId) return;
-    const idx = active.tabs.findIndex(tab => tab.id === initialTabId);
-    if (idx >= 0 && idx !== activeTabIdx) setActiveTabIdx(idx);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only react to the URL's tab id changing, not every activeTabIdx change (that would fight the effect below)
-  }, [initialTabId, active]);
-
-  // Keep the URL in sync with whatever tab is actually showing (user clicked
-  // a tab, a badge jumped to another tab, a tab was added/removed, etc.) so
-  // reloading — or sharing the link — lands back on this exact tab.
+  // Incoming route changes own selection; local changes own the route.
+  // Replacing the dashboard object (e.g. import/save) is not incoming navigation.
+  const resolvedTabPath = useRef(location.pathname);
   useEffect(() => {
     if (!active) return;
     // On an incoming dashboard navigation, `active` still refers to the old
     // dashboard for one render. Do not replace the new route with the old ID.
     if (initialDashboardId && active.id !== initialDashboardId) return;
+    if (resolvedTabPath.current !== location.pathname) {
+      resolvedTabPath.current = location.pathname;
+      const incomingIndex = active.tabs.findIndex(candidate => candidate.id === initialTabId);
+      if (incomingIndex >= 0 && incomingIndex !== activeTabIdx) {
+        setActiveTabIdx(incomingIndex);
+        return;
+      }
+    }
     const tab = active.tabs[activeTabIdx];
     if (!tab) return;
     const targetPath = `/dashboards/${active.id}/${tab.id}`;
     if (location.pathname !== targetPath) {
+      resolvedTabPath.current = targetPath;
       navigate(targetPath, { replace: true });
     }
-  }, [active, activeTabIdx, initialDashboardId, location.pathname, navigate]);
+  }, [active, activeTabIdx, initialDashboardId, initialTabId, location.pathname, navigate]);
 
   const patch = async (id: string, body: Partial<Dashboard>) => {
     try {

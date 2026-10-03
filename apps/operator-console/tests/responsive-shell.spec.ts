@@ -112,6 +112,54 @@ test('Feature: Safe Modbus deletion — Scenario: Confirm cancel conflict and de
   await page.reload(); await expect(page.getByRole('region', { name: 'PLC', exact: true })).not.toBeVisible();
 });
 
+for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'tablet portrait', width: 768, height: 1024 }, { name: 'tablet landscape', width: 1024, height: 768 }, { name: 'desktop', width: 1440, height: 900 }]) {
+  test(`Feature: Sensor visualizers — Scenario: Shared shell preview and persistence fit ${viewport.name} (AC45)`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport);
+    const section = responsiveDashboard.tabs[0]!.widgets[1]!;
+    let dashboard = { ...responsiveDashboard, tabs: [{ ...responsiveDashboard.tabs[0]!, widgets: [section] }] };
+    await prepareAuthenticatedDashboard(page, dashboard);
+    await page.route('**/api/v1/devices', route => route.fulfill({ json: responsiveDevices.map(device => device.id === 'sensor-climate'
+      ? { ...device, lastKnownState: { state: '22.4567', unit_of_measurement: '°C', attributes: { device_class: 'temperature', min: -20, max: 60 } } } : device) }));
+    await page.route('**/api/v1/dashboards', route => route.fulfill({ json: [dashboard] }));
+    let savedStyle: unknown;
+    await page.route('**/api/v1/dashboards/responsive-dashboard', route => {
+      if (route.request().method() === 'PATCH') {
+        dashboard = { ...dashboard, ...route.request().postDataJSON() };
+        savedStyle = (dashboard.tabs[0]!.widgets[0]!.config.extra.cards[0] as { visualStyle?: string }).visualStyle;
+      }
+      return route.fulfill({ json: dashboard });
+    });
+    await page.goto('/dashboards/responsive-dashboard/responsive-tab'); await enterDashboardEdit(page);
+    const card = page.locator('[data-dashboard-card-id="responsive-sensor"]');
+    await card.hover(); await card.getByRole('button', { name: /^(Edit|Editar)$/i }).click();
+    const editor = page.getByRole('heading', { name: /^(Edit|Editar)$/i }).locator('..').locator('..').locator('..');
+    const selector = editor.getByRole('button', { name: /^(Visualization|Visualización)$/i });
+    const preview = editor.locator('.sensor-metric-card');
+    await expect(preview).toBeVisible();
+    await expect(preview.getByRole('meter')).toHaveAttribute('aria-valuetext', '22.4567 °C');
+    const original = (await preview.boundingBox())!;
+    for (const [label, style] of [[/^(Thermometer|Termómetro)$/, 'thermometer'], [/^(Level|Nivel)$/, 'level'], [/^(Battery|Batería)$/, 'battery'], [/^(Circular)$/, 'gauge']] as const) {
+      await selector.click(); await page.getByRole('option', { name: label }).click();
+      if (style === 'gauge') await expect(preview.locator('canvas')).toBeVisible();
+      else await expect(preview.locator(`[data-sensor-visualizer="${style}"]`)).toBeVisible();
+      await expect(preview.getByRole('meter')).toHaveAttribute('aria-valuetext', '22.4567 °C');
+      const bounds = (await preview.boundingBox())!;
+      expect(bounds.width).toBeCloseTo(original.width, 1); expect(bounds.height).toBeCloseTo(original.height, 1);
+      expect(await preview.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+    }
+    await selector.click(); await page.getByRole('option', { name: /^(Level|Nivel)$/ }).click();
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    expect(await preview.locator('.sensor-liquid').evaluate(el => getComputedStyle(el).transitionDuration)).toBe('0s');
+    for (const theme of ['dark', 'light']) {
+      await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
+      await preview.scrollIntoViewIfNeeded(); await page.screenshot({ path: testInfo.outputPath(`sensor-visualizers-${theme}.png`), animations: 'disabled' });
+    }
+    await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
+    await expect.poll(() => savedStyle).toBe('level'); await page.reload();
+    await expect(card.locator('[data-sensor-visualizer="level"]')).toBeVisible();
+  });
+}
+
 test('Feature: Sensor fixed scale — Scenario: Editor preview and reload keep optional bounds (AC42)', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 768, height: 1024 });
   const section = responsiveDashboard.tabs[0]!.widgets[1]!;
@@ -504,6 +552,12 @@ test('Feature: Dashboard unified editing — Scenario: Touch hold moves a card i
 });
 
 test('Feature: Dashboard tab transfer — Scenario: The active tab exports and imports as a new tab without replacing defaults', async ({ page }) => {
+  await page.addInitScript(() => {
+    const paths: string[] = [];
+    Object.assign(window, { dashboardRouteWrites: paths });
+    const replace = history.replaceState.bind(history);
+    history.replaceState = (data, unused, url) => { if (url) paths.push(String(url)); replace(data, unused, url); };
+  });
   await prepareAuthenticatedDashboard(page);
   const exported = { format: 'homepilot-dashboard-tab', version: 1, tab: { id: 'portable-tab', title: 'Patio', widgets: [] } };
   let exportedTab = '';
@@ -529,6 +583,12 @@ test('Feature: Dashboard tab transfer — Scenario: The active tab exports and i
   await (await chooser).setFiles({ name: 'patio.homepilot-dashboard-tab.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(exported)) });
   await expect.poll(() => received).toEqual(exported);
   await expect(page).toHaveURL(/\/new-tab$/);
+  await page.getByRole('button', { name: 'Principal', exact: true }).click();
+  await expect(page).toHaveURL(/\/responsive-tab$/);
+  await page.getByRole('button', { name: 'Patio', exact: true }).click();
+  await expect(page).toHaveURL(/\/new-tab$/);
+  const writes = await page.evaluate(() => (window as unknown as { dashboardRouteWrites: string[] }).dashboardRouteWrites.filter(path => path.includes('/dashboards/')));
+  expect(writes).toEqual(['/dashboards/responsive-dashboard/new-tab', '/dashboards/responsive-dashboard/responsive-tab', '/dashboards/responsive-dashboard/new-tab']);
   expect(saved.tabs).toHaveLength(2);
   expect(saved.tabs[0].isDefault).toBe(true);
   expect(saved.tabs[1].isDefault).toBe(false);
@@ -3967,7 +4027,8 @@ test('Feature: Media Player design — Scenario: Classic preview and persisted d
   expect(commands[1]).toEqual(commands[0]);
 });
 
-test('Feature: Media player idle — Scenario: A player reports no playback without stale metadata or changing its controls', async ({ page }) => {
+for (const mediaVariant of ['premium', 'classic'] as const) {
+test(`Feature: Media player idle — Scenario: ${mediaVariant} reports no playback without stale metadata or changing its controls`, async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const section = responsiveDashboard.tabs[0]!.widgets[1]!;
   const mediaDashboard = {
@@ -3978,7 +4039,7 @@ test('Feature: Media player idle — Scenario: A player reports no playback with
         ...section,
         config: {
           ...section.config,
-          extra: { cards: [{ id: 'media-idle', kind: 'media', title: 'Sala', entityId: 'player-1', span: 'full' }] },
+          extra: { cards: [{ id: 'media-idle', kind: 'media', mediaVariant, title: 'Sala', entityId: 'player-1', span: 'full' }] },
         },
       }],
     }],
@@ -3992,7 +4053,7 @@ test('Feature: Media player idle — Scenario: A player reports no playback with
       profile: { supportedCommands: ['media_play', 'media_pause', 'volume_set'] },
       lastKnownState: mediaState === 'idle'
         ? { state: 'idle', attributes: { media_title: 'Previous session', media_artist: 'Previous artist', entity_picture: '/old-cover.png', volume_level: 0.4 } }
-        : { state: 'playing', attributes: { media_title: 'Canción actual', media_artist: 'Artista actual', volume_level: 0.4 } },
+        : { state: 'playing', attributes: { media_title: 'Canción actual', media_artist: 'Artista actual', volume_level: 0.4, ...(mediaVariant === 'classic' ? { media_duration: 180, media_position: 42 } : {}) } },
     }]) });
   });
 
@@ -4007,6 +4068,7 @@ test('Feature: Media player idle — Scenario: A player reports no playback with
   await expect(card.getByRole('button', { name: /^(Reproducir|Play)$/i })).toBeVisible();
   await expect(card.getByRole('button', { name: /^(Reproducir|Play)$/i })).toBeEnabled();
   const idleHeight = await card.evaluate((element) => element.getBoundingClientRect().height);
+  const idlePlay = (await card.getByRole('button', { name: /^(Play|Reproducir)$/i }).boundingBox())!;
   const idleControls = await card.locator('button').count();
 
   mediaState = 'playing';
@@ -4016,6 +4078,11 @@ test('Feature: Media player idle — Scenario: A player reports no playback with
   await expect(card.getByText(/^(Sin reproducción|Nothing playing)$/)).toHaveCount(0);
   expect(await card.locator('button').count()).toBe(idleControls);
   expect(Math.abs((await card.evaluate((element) => element.getBoundingClientRect().height)) - idleHeight)).toBeLessThanOrEqual(2);
+  if (mediaVariant === 'classic') {
+    const playingPause = (await card.getByRole('button', { name: /^(Pause|Pausar)$/i }).boundingBox())!;
+    expect(playingPause.y).toBeCloseTo(idlePlay.y, 1);
+    await expect(card.locator('[data-media-progress-slot]')).toBeVisible();
+  }
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(1441);
 
   await enterDashboardEdit(page);
@@ -4025,6 +4092,7 @@ test('Feature: Media player idle — Scenario: A player reports no playback with
   await cardActions.click();
   await expect(page.getByRole('menu', { name: /^(Card actions|Acciones de tarjeta)$/i })).toBeVisible();
 });
+}
 
 test('Feature: Button card default — Scenario: A new button persists the first width and previews an inactive compact tile', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });

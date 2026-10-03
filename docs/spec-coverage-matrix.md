@@ -1,5 +1,7 @@
 # Spec-Driven Coverage Matrix
 
+Dashboard AC45: visualizadores Sensor modulares con escala y dato único, selección/preview/persistencia/transferencia, reduced-motion y carcasa estable. Cobertura: SensorVisualizers.test.tsx, SensorMetricCard.test.tsx, SensorAnalogGauge.test.tsx, sectionCardCatalog.test.ts, DashboardService.test.ts y responsive «Sensor visualizers». Estabilidad Clásico e importación: MediaPlayerPremium.test.tsx, responsive «Media player idle», «Dashboard tab transfer» y «Dashboard import».
+
 - Modbus TCP nativo: `specs/modbus-tcp-local-integration-v1.md` AC1–AC7; protocolo TCP simulado, configuración/inventario SQLite, driver, lifecycle y rutas Admin en `ModbusTcpClient.test.ts`, `ModbusService.test.ts`, `ModbusRoutes.test.ts`. Jest focalizado 102/102 PASS en 6 suites (67 Modbus y 35 regresión); responsive `Native Modbus configuration` 5/5 PASS: móvil, tablet portrait/landscape, desktop, claro/oscuro y no-Admin. Typecheck/lint/builds y controles de trazabilidad/arquitectura/i18n PASS. Evidencia `.impeccable/review/modbus-v1/`. Sin suites completas, Docker ni certificación del PLC físico/mapa Xinje.
 
 - Densidad Sensor / llegada entre Sections: 73/73 Jest focalizados; 10/10 responsive en `.impeccable/review/sensor-density-cross-drop/`, confirmación de arrastre 7/7 en `.impeccable/review/sensor-density-drag-confirm/` (16 escenarios únicos). Padding vertical computado ≤8px y separación lectura/pie ≤8px en todas las presentaciones; misma geometría skeleton/contenido; overlay sobre otra Section y animación Web Animations real después de soltar, con persistencia y sin comandos físicos. Typecheck/lint/builds raíz/consola y controles spec/BDD/module/i18n/arquitectura/no-any PASS. Ajuste local sin schema ni IDs persistidos.
@@ -81,7 +83,7 @@ The command fails if a file cannot be mapped to an existing spec.
 
 ## Audited Coverage
 
-- The **929** audited TypeScript/TSX files have a mapping rule to an existing
+- The **933** audited TypeScript/TSX files have a mapping rule to an existing
   spec.
 - All bounded contexts under `packages/` and all API route families are
   covered.

@@ -12,6 +12,15 @@ jest.mock('react-i18next', () => ({
 }));
 
 describe('Media Player presentations', () => {
+  it.each(['idle', 'playing'])('classic reserves progress space in %s without inventing idle progress', state => {
+    const device: SnapshotDevice = { id: 'p', homeId: 'h', roomId: null, name: 'Player', type: 'media_player', status: 'ASSIGNED',
+      lastKnownState: { state, attributes: { media_duration: 120, media_position: 20, media_title: 'Track' } } };
+    const markup = renderToStaticMarkup(<MediaPlayerCard title="Player" mediaVariant="classic" device={device} />);
+    expect(markup).toContain('data-media-progress-slot');
+    expect(markup).toContain('min-height:2.5em');
+    if (state === 'idle') expect(markup).not.toContain('role="progressbar"');
+    else expect(markup).toContain('role="progressbar"');
+  });
   it('keeps one Media Player catalog type for both designs', () => {
     expect(cardKinds.filter((kind) => kind === 'media')).toHaveLength(1);
   });

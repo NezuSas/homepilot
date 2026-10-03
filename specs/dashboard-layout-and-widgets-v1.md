@@ -1,5 +1,12 @@
 # SPEC: Dashboard Layout and Widgets V1
 
+## Visualizadores Sensor y estabilidad — alcance autorizado
+
+- AC45: `visualStyle?: 'auto' | 'gauge' | 'thermometer' | 'level' | 'battery'` en la tarjeta, con selector modular y preview inmediato. Ausente conserva gauge histórico; nuevas tarjetas usan auto y metadatos semánticos antes que nombres. Temperatura → termómetro; batería → batería; nivel/porcentaje → nivel; humedad/presión/potencia y desconocidos → gauge. Persistencia y transferencias conservan el campo; sin migración ni cambios backend.
+- Carcasa, escala configurada, precisión real, decimales opcionales, estados, paleta y skeleton no cambian. Renderers comparten normalización limitada 0–1, no fabrican valores ni estado de carga. Sin datos no hay relleno ni aguja. Cambios reales se interpolan con cancelación y reduced-motion inmediato. Pruebas de límites, negativos, ausencia, selección, recarga y geometría focalizada claro/oscuro.
+- Clásico conserva espacio de metadatos y progreso tanto activo como inactivo; controles dependen de capacidades reales, nunca datos ficticios. Importar una pestaña selecciona su ID sin alternancia entre ruta anterior y nueva; navegación atrás/adelante sigue funcionando.
+- Reversión: retirar selección/renderer y volver al gauge; el campo opcional puede ignorarse sin transformar datos. No SQL ni uso de base real, Git o deploy.
+
 ## Escala Sensor configurable — alcance autorizado
 
 - AC42: El editor Sensor admite mínimo/máximo opcionales por tarjeta en `sensorScale: { min, max }` dentro de `config.extra.cards`. Ambos finitos y min < max; sin ambos se conserva la escala histórica. La escala configurada tiene prioridad sobre metadatos/automática, permanece fija al cambiar la lectura y no expresa umbrales de salud. Aguja limitada a extremos; número real y accesibilidad preservados. Preview, guardado/recarga e import/export conservan el rango. Sin migración SQL ni cambios de geometría. Para revertir, el editor anterior puede descartar el campo; hacer backup antes de downgrade.

@@ -68,33 +68,31 @@ export function LegacyMediaPlayerCard({ title, compact = false, model }: { title
       </div>
 
       <div className={cn('relative min-w-0', compact ? 'mt-2 px-3' : 'mt-3 px-4')}>
-        <span className={cn('block font-bold leading-tight text-foreground', compact ? 'line-clamp-2 text-body-compact' : 'line-clamp-2 text-card-title')}>{displayTitle}</span>
+        <span style={{ minHeight: '2.5em' }} className={cn('block font-bold leading-tight text-foreground', compact ? 'line-clamp-2 text-body-compact' : 'line-clamp-2 text-card-title')}>{displayTitle}</span>
         <span className={cn('block truncate font-semibold text-muted-foreground', compact ? 'mt-0.5 text-micro' : 'mt-1 text-caption')}>
           {isIdle ? t('dashboard.editor.sections.media_idle') : presentation.mediaArtist || t('dashboard.editor.sections.media_player_label')}
         </span>
       </div>
 
-      {playback && (
-        <div className={cn('relative min-w-0', compact ? 'mt-2 px-3' : 'mt-3 px-4')}>
+        <div data-media-progress-slot className={cn('relative min-w-0 shrink-0', compact ? 'mt-2 px-3' : 'mt-3 px-4')}>
           <div className="mb-1 flex items-center justify-between gap-3 font-medium tabular-nums text-muted-foreground">
-            <span className={compact ? 'text-micro' : 'text-caption'}>{formatMediaTime(playback.position)}</span>
-            <span className={compact ? 'text-micro' : 'text-caption'}>{formatMediaTime(playback.duration)}</span>
+            <span className={compact ? 'text-micro' : 'text-caption'}>{playback ? formatMediaTime(playback.position) : '—'}</span>
+            <span className={compact ? 'text-micro' : 'text-caption'}>{playback ? formatMediaTime(playback.duration) : '—'}</span>
           </div>
           <div
             className="h-1 overflow-hidden rounded-full bg-foreground/20"
-            role="progressbar"
-            aria-label={t('dashboard.editor.sections.media_progress', {
+            role={playback ? 'progressbar' : undefined}
+            aria-label={playback ? t('dashboard.editor.sections.media_progress', {
               current: formatMediaTime(playback.position),
               duration: formatMediaTime(playback.duration),
-            })}
-            aria-valuemin={0}
-            aria-valuemax={Math.round(playback.duration)}
-            aria-valuenow={Math.round(playback.position)}
+            }) : undefined}
+            aria-valuemin={playback ? 0 : undefined}
+            aria-valuemax={playback ? Math.round(playback.duration) : undefined}
+            aria-valuenow={playback ? Math.round(playback.position) : undefined}
           >
-            <span className="block h-full rounded-full bg-foreground/75 transition-[width] duration-1000" style={{ width: `${playback.progress}%` }} />
+            <span className="block h-full rounded-full bg-foreground/75 transition-[width] duration-1000" style={{ width: `${playback?.progress ?? 0}%` }} />
           </div>
         </div>
-      )}
 
       <div className={cn(
         'relative mt-auto min-w-0',

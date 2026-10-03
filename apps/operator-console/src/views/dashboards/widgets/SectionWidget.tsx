@@ -217,6 +217,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       span: item.span,
       icon: item.icon,
       ...(item.kind === 'media' ? { mediaVariant: 'premium' as const } : {}),
+      ...(item.kind === 'sensor' ? { visualStyle: 'auto' as const } : {}),
     };
 
     updateCards([...cards, nextCard]);
@@ -234,6 +235,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         span: nextCard.span ?? getDefaultSpan(nextCard.kind),
         icon: nextIcon,
         mediaVariant: normalizeMediaVariant(nextCard.mediaVariant),
+        visualStyle: nextCard.visualStyle,
       });
     } else {
       setEditingCardId(null);
@@ -254,6 +256,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       sensorMin: card.sensorScale?.min,
       sensorMax: card.sensorScale?.max,
       sensorDecimals: card.sensorDecimals === true,
+      visualStyle: card.visualStyle ?? 'gauge',
     });
   };
 
@@ -281,6 +284,8 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       else delete updatedCard.sensorScale;
       if (cardDraft.kind === 'sensor' && cardDraft.sensorDecimals) updatedCard.sensorDecimals = true;
       else delete updatedCard.sensorDecimals;
+      if (cardDraft.kind === 'sensor') updatedCard.visualStyle = cardDraft.visualStyle ?? 'gauge';
+      else delete updatedCard.visualStyle;
       return updatedCard;
     });
 
@@ -324,6 +329,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     mediaVariantOverride?: MediaVariant,
     sensorScaleOverride?: SensorScale,
     sensorDecimalsOverride?: boolean,
+    visualStyleOverride?: import('./sectionCardCatalog').SensorVisualStyle,
   ) => {
     const title = titleOverride || catalogLabel(kind);
     const span = getEffectiveCardSpan(kind, spanOverride ?? getDefaultSpan(kind));
@@ -366,6 +372,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           mediaVariant={mediaVariantOverride}
           sensorScale={sensorScaleOverride}
           sensorDecimals={sensorDecimalsOverride}
+          visualStyle={visualStyleOverride}
           isPreview={normalizedPreviewKind === 'sensor' ? !deviceIdOverride : true}
           roomDeviceCount={roomDevices.length}
           roomActiveCount={roomDevices.filter(isDeviceActive).length}

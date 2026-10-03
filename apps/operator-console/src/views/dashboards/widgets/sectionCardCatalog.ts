@@ -25,6 +25,11 @@ export type LegacySectionCardKind = SectionCardKind | 'system';
 export type SectionCardSpan = 'small' | 'medium' | 'full';
 export type SectionCardIcon = string;
 export type MediaVariant = 'premium' | 'classic';
+export type SensorVisualStyle = 'auto' | 'gauge' | 'thermometer' | 'level' | 'battery';
+export const sensorVisualStyles: SensorVisualStyle[] = ['auto', 'gauge', 'thermometer', 'level', 'battery'];
+export function normalizeSensorVisualStyle(value: unknown): SensorVisualStyle {
+  return sensorVisualStyles.find(style => style === value) ?? 'gauge';
+}
 export interface SensorScale { min: number; max: number }
 export function normalizeSensorScale(value: unknown): SensorScale | undefined {
   if (!value || typeof value !== 'object') return undefined;
@@ -49,6 +54,7 @@ export interface SectionCardItem {
   icon?: SectionCardIcon;
   mediaVariant?: MediaVariant;
   sensorScale?: SensorScale;
+  visualStyle?: SensorVisualStyle;
   sensorDecimals?: boolean;
 }
 
@@ -64,6 +70,7 @@ export interface CardDraft {
   icon: SectionCardIcon;
   mediaVariant: MediaVariant;
   sensorMin?: number;
+  visualStyle?: SensorVisualStyle;
   sensorMax?: number;
   sensorDecimals?: boolean;
 }
@@ -347,6 +354,7 @@ export function normalizeCards(extra?: DashboardWidgetConfig['extra']): Normaliz
         : {}),
       ...(kind === 'sensor' && normalizeSensorScale(card.sensorScale) ? { sensorScale: normalizeSensorScale(card.sensorScale) } : {}),
       ...(kind === 'sensor' && card.sensorDecimals === true ? { sensorDecimals: true } : {}),
+      ...(kind === 'sensor' && card.visualStyle !== undefined ? { visualStyle: normalizeSensorVisualStyle(card.visualStyle) } : {}),
       order: typeof card.order === 'number' ? card.order : index,
     }];
   });
