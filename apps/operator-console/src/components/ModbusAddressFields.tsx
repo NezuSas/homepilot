@@ -13,17 +13,18 @@ export function ModbusProfileSelect({ value, onChange, disabled }: { value?: str
     options={[{ value: 'generic', label: t('modbus.generic') }, ...modbusAddressProfiles.map(profile => ({ value: profile.id, label: `${profile.manufacturer} ${profile.family} · ${profile.model} v${profile.version}` }))]}
     onChange={value => onChange(value === 'generic' ? '' : value)} />;
 }
-export function ModbusAddressFields({ profileId, symbol, end, capacities, disabled, onSymbol, onEnd, technicalDisclosure = false }: {
+export function ModbusAddressFields({ profileId, symbol, end, capacities, disabled, onSymbol, onEnd, technicalDisclosure = false, symbolLabel }: {
   profileId: string; symbol: string; end?: string; capacities?: ModbusModuleCapacities; disabled?: boolean;
   onSymbol: (value: string) => void; onEnd?: (value: string) => void;
   technicalDisclosure?: boolean;
+  symbolLabel?: string;
 }) {
   const { t } = useTranslation();
   let resolution: ReturnType<typeof resolveModbusRange> | undefined;
   try { resolution = end === undefined ? [resolveModbusAddress(profileId, symbol, capacities)] : resolveModbusRange(profileId, symbol, end, capacities); } catch { /* Invalid symbols are never sent to the PLC. */ }
   return <div className="min-w-0 space-y-2 sm:col-span-2 lg:col-span-full">
     <div className="grid gap-3 sm:grid-cols-2">
-      <Input label={t('modbus.symbol')} value={symbol} placeholder="D100" maxLength={32} disabled={disabled} required onChange={e => onSymbol(e.target.value.toUpperCase())} />
+      <Input label={symbolLabel ?? t('modbus.symbol')} value={symbol} placeholder="D100" maxLength={32} disabled={disabled} required onChange={e => onSymbol(e.target.value.toUpperCase())} />
       {end !== undefined && onEnd && <Input label={t('modbus.symbol_end')} value={end} placeholder="D120" maxLength={32} disabled={disabled} required onChange={e => onEnd(e.target.value.toUpperCase())} />}
     </div>
     {resolution ? <>

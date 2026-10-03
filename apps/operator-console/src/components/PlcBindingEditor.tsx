@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ModbusVariable } from '../../../../packages/integrations/modbus/domain/Modbus';
 import { plcRoles, type PlcAddress, type PlcBinding } from '../../../../packages/integrations/modbus/domain/PlcBinding';
@@ -9,7 +10,7 @@ import { AlertBanner } from './ui/AlertBanner';
 
 type Draft = Omit<ModbusVariable, 'deviceId' | 'connectionId'>;
 /** Local extension: inherited palette; explicit relationships, no inferred Ladder. */
-export function PlcBindingEditor({ variable, onChange }: { variable: Draft; onChange: (value: Draft) => void }) {
+export function PlcBindingEditor({ variable, onChange, commandField }: { variable: Draft; onChange: (value: Draft) => void; commandField?: ReactNode }) {
   const { t } = useTranslation();
   const plc = variable.plc;
   const update = (fields: Partial<PlcBinding>) => { if (plc) onChange({ ...variable, plc: { ...plc, ...fields } }); };
@@ -27,8 +28,9 @@ export function PlcBindingEditor({ variable, onChange }: { variable: Draft; onCh
     {plc && <>
       {!variable.profileId && <AlertBanner variant="warning" message={t('plc.profile_required')} />}
       <div className="grid gap-3 sm:grid-cols-2">
-        {['output', 'output_command'].includes(plc.role) && <Input label={t('plc.command')} value={variable.symbolicAddress ?? ''} readOnly helperText={t('plc.command_hint')} />}
-        {['input', 'output'].includes(plc.role) && <Input label={t('plc.physical')} value={plc.physical?.symbolicAddress ?? ''} maxLength={32} onChange={event => update({ physical: event.target.value ? resolve(event.target.value) : undefined })} />}
+        {plc.role === 'output_command' && <Input label={t('plc.command')} value={variable.symbolicAddress ?? ''} readOnly helperText={t('plc.command_hint')} />}
+        {['input', 'output'].includes(plc.role) && <Input label={t(plc.role === 'output' ? 'plc.physical_output' : 'plc.physical_input')} value={plc.physical?.symbolicAddress ?? ''} maxLength={32} containerClassName={plc.role === 'output' ? 'sm:col-span-2' : undefined} className={plc.role === 'output' ? 'font-semibold' : undefined} onChange={event => update({ physical: event.target.value ? resolve(event.target.value) : undefined })} />}
+        {plc.role === 'output' && commandField}
         {plc.role === 'input' && <Input label={t('plc.logical')} value={plc.logical?.symbolicAddress ?? ''} maxLength={32} onChange={event => update({ logical: event.target.value ? resolve(event.target.value) : undefined })} />}
         {['output', 'output_command'].includes(plc.role) && <>
           <SearchableSelectField label={t('plc.feedback_policy')} value={plc.feedbackPolicy} options={['none', 'optional', 'required'].map(value => ({ value, label: t(`plc.policies.${value}`) }))} onChange={value => update({ feedbackPolicy: value as PlcBinding['feedbackPolicy'], ...(value === 'none' ? { feedback: undefined } : {}) })} />

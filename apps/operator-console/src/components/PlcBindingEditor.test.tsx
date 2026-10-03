@@ -1,11 +1,30 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { PlcBindingEditor } from './PlcBindingEditor';
+import { ModbusAddressFields } from './ModbusAddressFields';
 import { ModbusConnectionCard, ModbusConnectionCardSkeleton } from './ModbusConnectionCard';
 import type { ModbusVariable } from '../../../../packages/integrations/modbus/domain/Modbus';
 jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 jest.mock('../stores/useDeviceSnapshotStore', () => ({ useDeviceSnapshotStore: (selector: (state: { devices: [] }) => unknown) => selector({ devices: [] }) }));
 const base: Omit<ModbusVariable, 'deviceId' | 'connectionId'> = { name: 'PLC', profileId: 'xinje-xl5e-16t-v2', symbolicAddress: 'D100', area: 'holding_register', address: 100, dataType: 'uint16', scale: 1, offset: 0, wordOrder: 'high_first', unit: '', writable: false };
 describe('Feature: PLC binding editor (AC26)', () => {
+  it.each(['xinje-xl5e-16t-v1', 'xinje-xl5e-16t-v2'])('Scenario: %s output presents physical first and exactly one command control (AC34)', profileId => {
+    const variable = { ...base, profileId, symbolicAddress: 'M200', area: 'coil' as const, address: 200, dataType: 'boolean' as const,
+      plc: { role: 'output' as const, command: { profileId, symbolicAddress: 'M200', area: 'coil' as const, address: 200 }, physical: { profileId, symbolicAddress: 'Y0', area: 'coil' as const, address: 24576 }, mode: 'sustained' as const, feedbackPolicy: 'none' as const, feedbackTimeoutMs: 2000, pulseDurationMs: 500 } };
+    const previous = JSON.stringify(variable);
+    const html = renderToStaticMarkup(<PlcBindingEditor variable={variable} onChange={() => { throw new Error('Rendering must not alter a binding'); }} commandField={<ModbusAddressFields technicalDisclosure symbolLabel="plc.command_address" profileId={profileId} symbol="M200" onSymbol={() => {}} />} />);
+    expect(html.match(/value="M200"/g)).toHaveLength(1);
+    expect(html).toContain('plc.physical_output'); expect(html).toContain('value="Y0"');
+    expect(html.indexOf('plc.physical_output')).toBeLessThan(html.indexOf('plc.command_address'));
+    expect(html).not.toContain('plc.command_hint'); expect(html).not.toContain('plc.feedback_timeout');
+    expect(JSON.stringify(variable)).toBe(previous);
+  });
+  it('Scenario: Inputs retain physical and logical controls; command-only role retains its command (AC34)', () => {
+    const plc = { mode: 'sustained' as const, feedbackPolicy: 'none' as const, feedbackTimeoutMs: 2000, pulseDurationMs: 500 };
+    const input = renderToStaticMarkup(<PlcBindingEditor variable={{ ...base, plc: { ...plc, role: 'input' } }} onChange={() => {}} />);
+    expect(input).toContain('plc.physical_input'); expect(input).toContain('plc.logical'); expect(input).not.toContain('plc.physical_output');
+    const command = renderToStaticMarkup(<PlcBindingEditor variable={{ ...base, plc: { ...plc, role: 'output_command' } }} onChange={() => {}} />);
+    expect(command).toContain('plc.command_hint');
+  });
   it('Scenario: Historical variable shows no inferred PLC relationships', () => {
     const html = renderToStaticMarkup(<PlcBindingEditor variable={base} onChange={() => {}} />);
     expect(html).toContain('plc.legacy'); expect(html).not.toContain('plc.feedback_timeout');

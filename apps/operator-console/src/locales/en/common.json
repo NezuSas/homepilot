@@ -2115,6 +2115,7 @@
     "no_content_yet": "No content available yet"
   },
   "plc": {
+    "command_address": "PLC command", "physical_output": "Physical output", "physical_input": "Physical input",
     "enabled": "Enabled", "connected": "Connected", "disconnected": "Disconnected", "reconnecting": "Reconnecting", "error": "Error", "awaiting_connection": "Waiting for communication",
     "connection_diagnostics": "Connection diagnostics", "last_communication": "Last communication", "latency": "Latency", "variables_ok": "Variables OK", "variables_error": "Variables with errors", "last_error": "Last error", "retry_at": "Next read attempt",
     "not_configured": "Not configured", "limits": "Limits", "activate": "Activate", "edit_setpoint": "Set value", "technical_address": "Technical address", "technical_conversion": "Technical conversion", "visualization": "Visualization", "measurement_preview": "Measurement preview", "preview_hint": "Shows the last reading of the saved mapping. New or modified mappings have no reading until saved and polled.", "write_target": "Write {{value}} {{unit}} to {{name}}.",

@@ -10,8 +10,9 @@ Modo Operate: relaciones explícitas sin inferir Ladder ni correspondencia X/M/Y
 | --- | --- | --- |
 | variable | ModbusVariable sin deviceId/connectionId | Borrador completo y binding opcional. |
 | onChange | Callback del borrador | Actualizar estado local del formulario padre. |
+| commandField | ReactNode opcional | Campo simbólico principal del padre, renderizado una sola vez después de Salida física para output. |
 
-No consulta API ni guarda solo. Nombre, perfil/símbolo, conversión, unidad, writable y habitación pertenecen a ModbusView. Comando refleja el símbolo principal como readOnly; guardar reconstruye su dirección resuelta. Bindings opcionales se persisten en JSON existente sin SQL nuevo y variables históricas sin binding conservan compatibilidad.
+No consulta API ni guarda solo. Nombre, perfil/símbolo, conversión, unidad, writable y habitación pertenecen a ModbusView. Para output, ModbusView entrega el mismo campo simbólico principal como Comando PLC: se muestra una sola vez dentro del editor, después de Salida física (ancho completo y valor destacado). Para output_command se conserva el resumen readOnly. Guardar reconstruye command desde la dirección principal resuelta como antes; editar física cambia únicamente physical. Entradas usa Entrada física y conserva lógica opcional. Bindings opcionales se persisten en JSON existente sin SQL nuevo y variables históricas sin binding conservan compatibilidad. AC34 no modifica feedback, actualState, confirmación, permisos, ejecución ni backend; no se infiere ninguna relación Ladder.
 
 ## Roles y edición
 

@@ -2115,6 +2115,7 @@
     "no_content_yet": "No hay contenido disponible todavía"
   },
   "plc": {
+    "command_address": "Comando PLC", "physical_output": "Salida física", "physical_input": "Entrada física",
     "enabled": "Habilitada", "connected": "Conectada", "disconnected": "Desconectada", "reconnecting": "Reconectando", "error": "Error", "awaiting_connection": "Esperando comunicación",
     "connection_diagnostics": "Diagnóstico de conexión", "last_communication": "Última comunicación", "latency": "Latencia", "variables_ok": "Variables OK", "variables_error": "Variables con error", "last_error": "Último error", "retry_at": "Próximo intento de lectura",
     "not_configured": "No configurado", "limits": "Límites", "activate": "Activar", "edit_setpoint": "Establecer valor", "technical_address": "Dirección técnica", "technical_conversion": "Conversión técnica", "visualization": "Visualización", "measurement_preview": "Vista previa de medición", "preview_hint": "Muestra la última lectura del mapping guardado. Los mappings nuevos o modificados no tienen lectura hasta guardarse y leerse.", "write_target": "Escribir {{value}} {{unit}} en {{name}}.",

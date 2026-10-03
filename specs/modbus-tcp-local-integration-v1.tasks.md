@@ -1,5 +1,16 @@
 # Tareas — Modbus TCP local V1
 
+## UX localizada de Salidas — AC34 (2026-10-03)
+
+- [x] Salida física editable y destacada antes de un único Comando PLC; etiqueta Entrada física para el rol de entradas.
+- [x] Reutilizar el campo principal y su resolución existente: command se deriva al guardar; editar physical no modifica command ni crea feedback.
+- [x] Conservar roles, permisos, estancia, none/sustained, perfiles V1/V2 y estructura JSON histórica; sin cambios de backend, transporte, persistencia o state sync.
+- [x] Jest focalizado: 7 suites, 282/282 PASS; editor, contratos PLC, perfiles/bindings/conversión y servicio/cliente TCP simulado.
+- [x] Responsive focalizado `Feature: PLC I/O commissioning`: 4/4 PASS, móvil, tablet portrait/landscape y desktop, ambos temas; edición/recarga, cambio de command, cambio aislado de physical y ausencia de feedback inferido.
+- [x] Typecheck, lint Operator Console, i18n y controles spec/BDD/cobertura de módulos PASS. Detector UI sin hallazgos y revisión de capturas móvil oscuro/escritorio claro.
+
+Primer arranque responsive bloqueado por EPERM al escribir el temporal de Vite; reintento autorizado con permisos de ejecución correcto, sin cambiar configuración. Sin responsive completo, Git, deploy ni conexión al PLC físico. Evidencia visual en los artefactos `plc-output-no-feedback-*.png` de `apps/operator-console/test-results/`. Esta mejora no implementa la Fase 2.
+
 ## Frontera arquitectónica — Fase 1 (AC33)
 
 - [x] Definición interna pequeña; catálogo estático y políticas/resolución/capacidades encapsuladas en Xinje.
