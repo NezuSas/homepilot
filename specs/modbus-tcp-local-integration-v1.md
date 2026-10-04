@@ -1,5 +1,7 @@
 # Integración Modbus TCP local V1
 
+Refinamiento visual AC35: detalle de conexión separa Entradas, Salidas y Variables con iconos, conteos y jerarquía de la paleta vigente; orden estable independiente del orden recibido. Salidas agrupa comando/físico/feedback conservando el rol de cada elemento; Variables conserva mediciones/setpoints/diagnóstico e históricos. No modifica bindings, lectura, escritura, transporte ni actualState.
+
 ## Refresco prioritario Dashboard — AC36 (2026-10-04)
 
 - Variables declaradas en los JSON de tableros existentes se leen con objetivo de 1000 ms, antes de las demás; las demás conservan el intervalo configurado. La prioridad se obtiene mediante un puerto de repositorio, sin dependencia SQLite en aplicación ni endpoint de sondeo desde el navegador.

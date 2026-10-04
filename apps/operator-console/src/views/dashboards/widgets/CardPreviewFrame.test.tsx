@@ -3,6 +3,12 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { CardPreviewFrame, getPreviewScale } from './CardPreviewFrame';
 
 describe('Feature: Stable full-grid card preview (AC48)', () => {
+  it('Scenario: Inline label previews retain their intrinsic height without grid sizing (AC55)', () => {
+    const html = renderToStaticMarkup(React.createElement(CardPreviewFrame, { label: 'Preview', fitContent: true, children: React.createElement('span', null, 'Time') }));
+    expect(html).toContain('Time');
+    expect(html).not.toContain('height:216px');
+    expect(html).not.toContain('transform:');
+  });
   it('fits the preview uniformly when the visible editor height shrinks (AC54)', () => {
     expect(getPreviewScale(400, 400, 216, 108)).toBe(0.5);
     expect(getPreviewScale(400, 800, 216, 54)).toBe(0.25);

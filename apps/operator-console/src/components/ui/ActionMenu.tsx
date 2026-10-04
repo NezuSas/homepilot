@@ -87,8 +87,8 @@ export function ActionMenu({ label, items, compact = false }: { label: string; i
         if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); event.stopPropagation(); initialFocus.current = event.key === 'ArrowUp' ? 'last' : 'first'; setIsOpen(true); }
         if (event.key === 'Escape') { event.stopPropagation(); close(true); }
       }} />
-    {isOpen && createPortal(<div id={id} ref={popup} role="menu" aria-label={label} style={position}
-      className="fixed z-[100] overflow-y-auto rounded-panel border border-border/70 bg-card p-1.5 text-foreground shadow-depth-3"
+    {isOpen && createPortal(<div id={id} ref={popup} role="menu" aria-label={label} style={{ ...position, ...(compact ? { width: 'max-content', maxWidth: position.width } : {}) }}
+      className={`fixed z-[100] overflow-y-auto rounded-panel border border-border/70 bg-card p-1.5 text-foreground shadow-depth-3${compact ? ' grid grid-cols-1' : ''}`}
       onPointerDown={event => event.stopPropagation()} onClick={event => event.stopPropagation()}
       onKeyDown={event => {
         event.stopPropagation();
@@ -101,7 +101,7 @@ export function ActionMenu({ label, items, compact = false }: { label: string; i
         if (next !== undefined && controls[next]) { event.preventDefault(); controls[next].focus(); }
       }}>
       {items.map((item, index) => <Button key={index} role="menuitem" variant="ghost" size="md" disabled={item.disabled}
-        className={`min-h-11 w-full whitespace-nowrap justify-start${item.danger ? ' text-danger' : ''}`}
+        className={`min-h-11 whitespace-nowrap justify-start ${compact ? 'w-max max-w-none !px-2' : 'w-full'}${item.danger ? ' text-danger' : ''}`}
         onClick={() => { close(true); item.onSelect(); }}>
         <item.icon className="h-4 w-4" aria-hidden="true" />{item.label}
       </Button>)}

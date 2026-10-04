@@ -1,12 +1,26 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { PlcBindingEditor } from './PlcBindingEditor';
 import { ModbusAddressFields } from './ModbusAddressFields';
-import { ModbusConnectionCard, ModbusConnectionCardSkeleton } from './ModbusConnectionCard';
+import { getModbusVariableGroup, ModbusConnectionCard, ModbusConnectionCardSkeleton } from './ModbusConnectionCard';
 import type { ModbusVariable } from '../../../../packages/integrations/modbus/domain/Modbus';
 jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 jest.mock('../stores/useDeviceSnapshotStore', () => ({ useDeviceSnapshotStore: (selector: (state: { devices: [] }) => unknown) => selector({ devices: [] }) }));
 const base: Omit<ModbusVariable, 'deviceId' | 'connectionId'> = { name: 'PLC', profileId: 'xinje-xl5e-16t-v2', symbolicAddress: 'D100', area: 'holding_register', address: 100, dataType: 'uint16', scale: 1, offset: 0, wordOrder: 'high_first', unit: '', writable: false };
 describe('Feature: PLC binding editor (AC26)', () => {
+  it('Scenario: Commissioning groups inputs outputs and variables without changing bindings (AC35)', () => {
+    const policy = { mode: 'sustained' as const, feedbackPolicy: 'none' as const, feedbackTimeoutMs: 2000, pulseDurationMs: 500 };
+    for (const role of ['input', 'output', 'output_command', 'output_feedback', 'measurement', 'setpoint', 'diagnostic'] as const) {
+      const variable: ModbusVariable = { ...base, deviceId: role, connectionId: 'c', plc: { ...policy, role } };
+      const original = JSON.stringify(variable);
+      expect(getModbusVariableGroup(variable)).toBe(role === 'input' ? 'input' : role.startsWith('output') ? 'output' : 'variable');
+      expect(JSON.stringify(variable)).toBe(original);
+    }
+    expect(getModbusVariableGroup({ ...base, deviceId: 'legacy', connectionId: 'c' })).toBe('variable');
+    const html = renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: false, variables: [{ ...base, deviceId: 'legacy', connectionId: 'c' }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
+    expect(html.indexOf('data-modbus-variable-group="input"')).toBeLessThan(html.indexOf('data-modbus-variable-group="output"'));
+    expect(html.indexOf('data-modbus-variable-group="output"')).toBeLessThan(html.indexOf('data-modbus-variable-group="variable"'));
+    expect(html).toContain('plc.legacy');
+  });
   it('Scenario: The connection summary hides variables and command actions until opened (AC35)', () => {
     const html = renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: false, variables: [{ ...base, deviceId: 'v', connectionId: 'c', name: 'Hidden measurement' }] }} onOpen={() => {}} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
     expect(html).toContain('plc.open_connection'); expect(html).toContain('plc.variable_count');

@@ -18,6 +18,7 @@ import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordi
 import { CSS } from '@dnd-kit/utilities';
 import { useState, useMemo, useRef, useEffect, useLayoutEffect, isValidElement } from 'react';
 import { createPortal } from 'react-dom';
+import { Plus } from 'lucide-react';
 import type { CSSProperties, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
@@ -645,7 +646,7 @@ export function DashboardCanvas({
         </CanvasFlowItem> : null}
 
         {badgeWidget ? <CanvasFlowItem span={columns} gap={gap}><SectionWidget sectionId={badgeWidget.id} config={badgeWidget.config} isEditing={isEditing} onUpdate={config => onWidgetConfigChange?.(badgeWidget.id, config)} /></CanvasFlowItem>
-          : canEditLayout ? <CanvasFlowItem span={columns} gap={gap}><Button variant="outline" onClick={createBadgeRow}>{t('dashboard.editor.sections.create_labels')}</Button></CanvasFlowItem> : null}
+          : canEditLayout ? <CanvasFlowItem span={columns} gap={gap}><Button variant="ghost" className="min-h-11 border border-dashed border-border text-muted-foreground" onClick={createBadgeRow}><Plus className="size-4" aria-hidden="true" />{t('dashboard.editor.sections.add_labels')}</Button></CanvasFlowItem> : null}
 
         {useSectionSlots && <CanvasFlowItem span={columns} gap={gap}>
           <SortableContext items={sectionSlots.filter((id): id is string => id !== null)} strategy={rectSortingStrategy}>

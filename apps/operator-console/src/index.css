@@ -1390,6 +1390,7 @@
   }
 
   .homepilot-dashboard-screen .homepilot-clock-reference-dial-frame {
+    container-type: inline-size;
     position: relative;
     width: 100%;
     max-width: 18rem;
@@ -1450,9 +1451,9 @@
     right: 0;
     left: 0;
     text-align: center;
-    font-size: clamp(0.45rem, 2.1cqi, 0.7rem);
+    font-size: clamp(0.3rem, 5cqi, 0.7rem);
     font-weight: 700;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.12em;
     color: var(--hp-clock-muted);
     pointer-events: none;
   }
@@ -2416,6 +2417,9 @@
 /* AC55: same context primitive as Inicio, with normal theme tokens. */
 .dashboard-context-chip { flex: 0 1 auto; border-radius: var(--radius-pill); max-width: 100%; }
 .dashboard-context-chip .homepilot-clock-badge { border: 0; padding: 0; }
+@container clock-card (min-height: 211px) {
+  .homepilot-dashboard-screen .homepilot-clock-reference-dial-frame { width: min(100%, 18rem, calc(100cqh - 5rem)); }
+}
 .homepilot-home-hero { padding-bottom: 3.5rem; }
 @container clock-card (max-height: 210px) {
   .homepilot-dashboard-screen .homepilot-clock-reference-details,

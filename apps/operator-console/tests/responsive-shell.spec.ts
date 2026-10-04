@@ -24,16 +24,31 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 1024 
     expect(remove.x).toBeLessThan(save.x);
     await page.screenshot({ path: testInfo.outputPath('card-editor.png'), animations: 'disabled' });
     await editor.getByRole('button', { name: /^(Cancel|Cancelar)$/i }).click();
-    await page.getByRole('button', { name: /^(Create labels|Crear etiquetas)$/i }).click();
+    await page.getByRole('button', { name: /^(Add label|Añadir etiqueta)$/i }).click();
     const row = page.locator('[data-dashboard-badge-row]');
     await row.getByRole('button', { name: /^(Add label|Añadir etiqueta)$/i }).click();
     const catalog = page.locator('.max-h-section-modal');
     await catalog.getByRole('button', { name: /^(Time|Hora)$/i }).click();
     await page.getByRole('dialog', { name: /^(Edit|Editar)$/i }).getByRole('button', { name: /^(Save|Guardar)$/i }).click();
     await expect(row.locator('.dashboard-context-chip')).toHaveCount(1);
+    await row.locator('.group\\/badge').dispatchEvent('pointerup', { pointerType: 'touch' });
+    const pencil = row.getByRole('button', { name: /^(Edit|Editar)$/i });
+    await expect(pencil).toBeVisible();
+    await expect(pencil).toHaveText('');
+    await pencil.click();
+    const labelEditor = page.getByRole('dialog', { name: /^(Edit|Editar)$/i });
+    await expect(labelEditor.locator('[data-card-editor-preview] .dashboard-context-chip')).toHaveCount(1);
+    await labelEditor.getByRole('button', { name: /^(Icon|Icono)$/i }).click();
+    await page.getByRole('searchbox', { name: /Search by name|Buscar por nombre/i }).fill('battery');
+    await page.getByRole('option', { name: 'battery', exact: true }).click();
+    const iconPath = await labelEditor.locator('[data-card-editor-preview] .dashboard-context-chip svg path').first().getAttribute('d');
+    expect(iconPath).toBeTruthy();
+    await labelEditor.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
+    await expect(row.locator('.dashboard-context-chip svg path').first()).toHaveAttribute('d', iconPath!);
     await expect(page.locator('.homepilot-dashboard-titlebar').getByRole('status')).toHaveText(/Cambios guardados|Changes saved/);
     await page.reload();
     await expect(row.locator('.dashboard-context-chip')).toHaveCount(1);
+    await expect(row.locator('.dashboard-context-chip svg path').first()).toHaveAttribute('d', iconPath!);
     await expect(row.getByRole('button')).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
     await page.screenshot({ path: testInfo.outputPath('label-row.png'), animations: 'disabled' });
@@ -261,6 +276,10 @@ test('Feature: Sections editor — Scenario: Section duplication and maximum col
   const original = responsiveDashboard.tabs[0].widgets[1];
   const source = page.locator(`[data-dashboard-section-id="${original.id}"]`);
   await source.getByLabel(/^(Section actions|Acciones de sección)$/i).click();
+  const sectionMenu = page.getByRole('menu', { name: /^(Section actions|Acciones de sección)$/i });
+  const intrinsic = await sectionMenu.evaluate(element => ({ width: element.getBoundingClientRect().width, items: Array.from(element.querySelectorAll('[role="menuitem"]')).map(item => item.getBoundingClientRect().width), padding: parseFloat(getComputedStyle(element).paddingLeft) + parseFloat(getComputedStyle(element).paddingRight) + 2 }));
+  expect(intrinsic.width).toBeLessThanOrEqual(Math.max(...intrinsic.items) + intrinsic.padding + 1);
+  expect(intrinsic.width).toBeLessThan(180);
   await page.getByRole('menu', { name: /^(Section actions|Acciones de sección)$/i }).getByRole('menuitem', { name: /^(Duplicate|Duplicar)$/i }).click();
   await expect(page.locator('[data-dashboard-section-id]')).toHaveCount(2);
   await expect.poll(() => saved.tabs[0].widgets.filter(widget => widget.type === 'section').length).toBe(2);
@@ -797,6 +816,10 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     }
     await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click(); await expect(editor).not.toBeVisible();
     expect(variables[3]).toMatchObject({ writable: false, visualStyle: null, plc: { role: 'input', physical: { symbolicAddress: 'X0' }, logical: { symbolicAddress: 'M0' } } });
+    await expect(card.locator('[data-modbus-variable-group="input"]')).toContainText('Entrada puerta');
+    await expect(card.locator('[data-modbus-variable-group="output"]')).toContainText('Luz exterior');
+    await expect(card.locator('[data-modbus-variable-group="variable"]')).not.toContainText('Entrada puerta');
+    await expect(card.locator('[data-modbus-variable-group="variable"]')).not.toContainText('Luz exterior');
     expect(assignments.get('v-3')).toBe('access');
     await card.getByRole('button', { name: /^(Configure Entrada puerta|Configurar Entrada puerta)$/i }).click();
     await expect(editor.getByRole('button', { name: /^(Room|Estancia)$/i, exact: true })).toContainText('Acceso');
@@ -4350,6 +4373,23 @@ test('Feature: Clock editing — Scenario: A section clock can be resized with b
   await clockEditor.getByRole('radio', { name: /^(Design|Diseño)$/i }).click();
   const grid = clockEditor.getByRole('grid');
   await expect(grid.getByRole('gridcell', { name: /: 2, .*: 2$/i })).toHaveAttribute('aria-disabled', 'true');
+  await grid.getByRole('gridcell', { name: /: 6, .*: 6$/i }).click();
+  for (const width of [390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    const preview = clockEditor.locator('[data-card-editor-preview]');
+    for (const size of [{ columns: 6, rows: 6 }, { columns: 12, rows: 8 }]) {
+    await grid.getByRole('gridcell', { name: new RegExp(`: ${size.columns}, .*: ${size.rows}$`, 'i') }).click();
+    // Measure the same frame: resize observers and layout transitions settle asynchronously.
+    await expect.poll(() => preview.evaluate(element => {
+      const face = element.querySelector('.homepilot-clock-reference-dial-frame')!.getBoundingClientRect();
+      const card = element.querySelector('.homepilot-sized-card')!.getBoundingClientRect();
+      const brandElement = element.querySelector('.homepilot-clock-reference-brand')!;
+      const brand = brandElement.getBoundingClientRect();
+      return { left: face.left >= card.left, top: face.top >= card.top, right: face.right <= card.right + 1, bottom: face.bottom <= card.bottom + 1, brandFits: brand.width <= face.width + 1 && brandElement.scrollWidth <= brandElement.clientWidth };
+    })).toEqual({ left: true, top: true, right: true, bottom: true, brandFits: true });
+    }
+    if (width === 390 || width === 1024) await page.screenshot({ path: testInfo.outputPath(`clock-editor-${width}.png`), animations: 'disabled' });
+  }
   await grid.getByRole('gridcell', { name: /: 6, .*: 6$/i }).click();
   await clockEditor.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
   await expect(clockEditor).not.toBeVisible();

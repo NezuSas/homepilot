@@ -23,6 +23,7 @@ import {
 import { isAutomationEntityId, stripAutomationEntityPrefix, toAutomationEntityId, toDeviceActionEntityId } from './sectionCardAssignments';
 
 interface SectionCardEditorModalProps {
+  isBadgeRow?: boolean;
   sectionWidth?: number;
   cardDraft: CardDraft;
   setCardDraft: Dispatch<SetStateAction<CardDraft>>;
@@ -53,7 +54,7 @@ interface SectionCardEditorModalProps {
 
 export function SectionCardEditorModal({
   cardDraft, setCardDraft, catalogLabel, assignableDevices, assignableRooms,
-  scenes, automations, displayActions, devices, renderCatalogPreview, onClose, onSave, onDelete, sectionWidth,
+  scenes, automations, displayActions, devices, renderCatalogPreview, onClose, onSave, onDelete, sectionWidth, isBadgeRow = false,
 }: SectionCardEditorModalProps) {
   const { t } = useTranslation();
   const [validMinimum, setValidMinimum] = useState(true);
@@ -78,7 +79,7 @@ export function SectionCardEditorModal({
           <div className="section-card-editor-layout">
             <div className="section-card-editor-preview" data-card-editor-preview>
             <h3 className="mb-3 text-body-compact font-semibold">{t('dashboards.edit_session.preview')}</h3>
-            <CardPreviewFrame fitCard label={t('dashboards.edit_session.preview')} sectionWidth={sectionWidth}>
+            <CardPreviewFrame fitCard fitContent={isBadgeRow} label={t('dashboards.edit_session.preview')} sectionWidth={sectionWidth}>
             {renderCatalogPreview(
               cardDraft.kind,
               cardDraft.title || catalogLabel(cardDraft.kind),
@@ -95,7 +96,7 @@ export function SectionCardEditorModal({
             </CardPreviewFrame>
             </div>
             <div className="section-card-editor-controls space-y-4" data-card-editor-controls>
-            <SegmentedControl layout="scroll" className="card-editor-tabs" optionClassName="min-h-11 normal-case tracking-normal" value={panel} onChange={setPanel} label={t('dashboards.edit_session.label')} options={(['configuration', 'design', 'visibility'] as const).map(value => ({ value, label: t(`dashboards.edit_session.${value}`) }))} />
+            <SegmentedControl layout="scroll" className="card-editor-tabs" optionClassName="min-h-11 normal-case tracking-normal" value={panel} onChange={setPanel} label={t('dashboards.edit_session.label')} options={(isBadgeRow ? ['configuration', 'visibility'] as const : ['configuration', 'design', 'visibility'] as const).map(value => ({ value, label: t(`dashboards.edit_session.${value}`) }))} />
             {panel === 'design' && <CardGridSizePicker value={gridOptions} onChange={next => setCardDraft(draft => ({ ...draft, gridOptions: next }))} />}
             {panel === 'visibility' && <ToggleSwitch label={t('dashboards.edit_session.visible')} checked={!cardDraft.hidden} onCheckedChange={visible => setCardDraft(draft => ({ ...draft, hidden: !visible }))} />}
             <div hidden={panel !== 'configuration'} className="space-y-4">
@@ -178,7 +179,7 @@ export function SectionCardEditorModal({
               />
             )}
 
-            {(cardDraft.kind === 'light' || cardDraft.kind === 'action' || cardDraft.kind === 'device' || cardDraft.kind === 'cover') ? (
+            {(cardDraft.kind.startsWith('info_') || cardDraft.kind === 'light' || cardDraft.kind === 'action' || cardDraft.kind === 'device' || cardDraft.kind === 'cover') ? (
               <IconPicker
                 value={cardDraft.icon}
                 onChange={(icon) => setCardDraft((draft) => ({ ...draft, icon }))}

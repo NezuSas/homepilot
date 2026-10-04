@@ -1,5 +1,7 @@
 # Modal
 
+Refinamiento AC55: etiquetas independientes reutilizan el mismo editor y selector de iconos, pero su preview muestra la píldora real a altura intrínseca y no ofrece Diseño de cuadrícula (no pertenece a Section). Configuración/Visibilidad mantienen el flujo y la eliminación confirmada. El preview de reloj usa tracks minmax(0,1fr) para evitar recortes y marca proporcional a su esfera.
+
 AC55: el editor de tarjeta usa composición local, superior anclada y altura según panel, con máximo visualViewport y footer accesible. Eliminar se sitúa a la izquierda y requiere ConfirmModal; navegación simple, preview visible con renderer real. No modifica dimensiones ni comportamiento de otros modales.
 
 AC80 refinement: `dismissible` defaults false. Backdrop and Escape do not close a form; explicit close/Cancel still call onClose, preserving Tab trap and restored focus. Informational overlays may opt into `dismissible=true`. Controlled popup/listbox dismissal remains independent.

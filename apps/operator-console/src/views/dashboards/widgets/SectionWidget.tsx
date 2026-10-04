@@ -2,7 +2,7 @@ import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { DndContext, KeyboardSensor, MouseSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SectionCardDragContext, sectionCardDragId, resolvePlacedCardRows } from '../sectionCardDrag';
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { InformationCard } from './InformationCard';
+import { EditableInformationCard, InformationCard } from './InformationCard';
 import ConfirmModal from '../../../components/ConfirmModal';
 import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -371,6 +371,10 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       ? assignableRooms.find((room) => room.id === previewDevice.roomId)?.name
       : undefined;
 
+    if (badgeRow && (normalizedPreviewKind === 'info_time' || normalizedPreviewKind === 'info_weather' || normalizedPreviewKind === 'info_sensor')) {
+      return <div className="w-max max-w-full"><InformationCard pill source={normalizedPreviewKind} title={title} icon={iconOverride ?? getDefaultIcon(kind)} device={previewDevice} /></div>;
+    }
+
     return (
       <div style={isEditorPreview ? {
         ...getCardPresentationStyle(gridOptionsOverride?.rows),
@@ -388,7 +392,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         span === 'full' && "w-full",
         isCameraPreview ? 'min-h-60' : isClockPreview ? '' : isRoomPreview ? 'h-52' : isScenePreview ? 'h-44' : isCoverPreview && span === 'full' ? 'h-curtain-card-lg' : normalizedPreviewKind === 'media' ? 'h-media-card-preview' : span === 'full' ? 'h-40' : ''
       )}>
-        <div className={isEditorPreview ? 'grid min-w-0' : 'contents'}><SectionCardContent
+        <div className={isEditorPreview ? 'grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)]' : 'contents'}><SectionCardContent
           kind={kind}
           title={title}
           subtitle={isEditorPreview ? isCameraPreview ? previewRoomName : editingCard?.entityName || editingCard?.description : normalizedPreviewKind === 'cover' ? previewRoomName || catalogDescription(kind) : catalogDescription(kind)}
@@ -425,6 +429,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
 
   const editorModal = editingCard ? (
     <SectionCardEditorModal
+      isBadgeRow={badgeRow}
       cardDraft={cardDraft}
       setCardDraft={setCardDraft}
       catalogLabel={catalogLabel}
@@ -486,11 +491,10 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
   );
 
   if (badgeRow) return <div data-dashboard-badge-row className="flex min-w-0 flex-wrap items-center gap-2">
-    {cards.filter(card => isEditing || !card.hidden).map(card => <div key={card.id} className="relative group/badge">
+    {cards.filter(card => isEditing || !card.hidden).map(card => <EditableInformationCard key={card.id} isEditing={isEditing} onEdit={() => openCardEditor(card)}>
       <InformationCard pill source={card.kind === 'info_time' ? 'info_time' : card.kind === 'info_weather' ? 'info_weather' : 'info_sensor'} title={card.title} icon={card.icon} device={devices.find(device => device.id === card.entityId && device.roomId !== null)} />
-      {isEditing && <Button variant="ghost" size="sm" aria-label={t('common.edit')} onClick={() => openCardEditor(card)}>{t('common.edit')}</Button>}
-    </div>)}
-    {isEditing && <Button variant="outline" onClick={() => setIsCatalogOpen(true)}>{t('dashboard.editor.sections.add_labels')}</Button>}
+    </EditableInformationCard>)}
+    {isEditing && <Button variant="ghost" className="min-h-11 gap-2 border border-dashed border-border text-muted-foreground" onClick={() => setIsCatalogOpen(true)}><Plus className="size-4" aria-hidden="true" />{t('dashboard.editor.sections.add_labels')}</Button>}
     {catalogModal}{editorModal}
     <ConfirmModal isOpen={pendingDeleteId !== null} title={t('common.delete')} description={t('common.delete')} onClose={() => setPendingDeleteId(null)} onConfirm={() => { if (pendingDeleteId) removeCard(pendingDeleteId); setPendingDeleteId(null); setEditingCardId(null); }} />
   </div>;

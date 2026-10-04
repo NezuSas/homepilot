@@ -1,5 +1,6 @@
 {
   "modbus": {
+    "variables": "Variables",
     "delete": "Eliminar", "delete_connection": "Eliminar conexión", "delete_variable": "Eliminar variable", "delete_confirmation": "Se eliminará la configuración guardada. No se escribe al PLC. Esta acción no se puede deshacer.", "delete_error": "No se pudo eliminar. Comprueba tu acceso y reintenta.", "connection_in_use": "Elimina primero las variables de esta conexión.", "variable_in_use": "Esta variable se usa en una escena, automatización o tablero. Quita esas referencias antes de eliminarla.",
     "no_unit": "Sin unidad", "result_filter": "Lecturas", "filter_all": "Todas", "filter_valid": "Lecturas válidas", "filter_active": "Con actividad / RAW distinto de cero", "filtered_count": "{{count}} de {{total}} lecturas",
     "addressing": "Direccionamiento", "generic": "Modbus genérico", "symbol": "Elemento PLC", "symbol_end": "Elemento PLC final",

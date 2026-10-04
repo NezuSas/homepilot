@@ -1,5 +1,10 @@
 # Tareas — Modbus TCP local V1
 
+## Refinamiento de jerarquía AC35
+
+- [x] Separar Entradas/Salidas/Variables con iconos/conteos de paleta vigente y roles explícitos, sin modificar datos ni ejecución.
+- [x] Agrupación pura/inmutabilidad cubierta en PlcBindingEditor.test.tsx; cuatro escenarios PLC I/O commissioning PASS (móvil, tablet portrait/landscape, desktop), con mocks locales y sin PLC físico.
+
 ## Polling prioritario por tablero — AC36 (2026-10-04)
 
 - [x] Obtener IDs declarados mediante puerto de repositorio y JSON existente; sin acceso SQLite desde aplicación ni nuevo endpoint navegador.

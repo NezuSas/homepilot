@@ -1,5 +1,7 @@
 # ModbusConnectionCard
 
+Refinamiento AC35: el detalle presenta tres grupos en orden estable, Entradas/Salidas/Variables, con iconos y conteos. Comandos/físico/feedback de salida permanecen juntos con su rol visible; históricos y mediciones conservan contratos y precisión. La clasificación solo afecta presentación, no permisos ni ejecución.
+
 AC35: optional `onOpen` renders the compact connection summary (variable/OK/error counts), without variable rows or commands. ModbusView opens the selected connection locally and provides a back action, keeping polling and refresh unchanged. Summary skeleton mirrors that composition. Numeric values share formatMeasurement (maximum two displayed decimals); underlying diagnostics/RAW are unchanged.
 
 Refinamiento AC17: números de configuración con NumberInput, borradores vacíos editables y restricciones nativas. MeasurementUnitSelect conserva unidades históricas desconocidas. El cierre es explícito mediante Cancelar/cerrar.

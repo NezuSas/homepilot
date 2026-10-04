@@ -2,6 +2,10 @@
 
 ## Refinamiento AC55
 
+- [x] Refinamiento adicional: ancho intrínseco real del menú, marca proporcional/preview reloj completo, etiquetas con lápiz/placeholder/icono y preview de píldora; validar focalizadamente.
+
+Refinamiento AC55/AC35: 5 suites Jest, 33/33 PASS y 9 escenarios responsive únicos PASS (tres etiquetas, menú Section, reloj y cuatro PLC I/O). El reloj se comprobó en 6×6 y 12×8 en cuatro anchos, con esfera/marca dentro del preview; las medidas se toman atómicamente tras estabilizar ResizeObserver. Icono de etiqueta comprobado en preview, guardado y recarga. Se corrigió el selector del test para usar searchbox y el nombre accesible real del icono; no se relajaron límites visuales. Inspección visual de móvil/tablet y ambos temas Modbus en una ronda acotada. Sin responsive completo, Git/deploy ni PLC físico.
+
 - [x] Lápiz centrado y eliminación confirmada en footer.
 - [x] Menú compacto, reloj adaptativo, watermark fijo.
 - [x] Preview visible, tabs simples, altura según panel.
