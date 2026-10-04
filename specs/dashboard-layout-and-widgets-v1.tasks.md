@@ -1,5 +1,17 @@
 # Tareas: Dashboard Layout and Widgets V1
 
+## Adaptación Sensor y editor — AC54 (2026-10-04)
+
+- [x] Dimensiones Sensor manuales con mínimo 4×4; limitar altura real a las filas reservadas y adaptar instrumento por ancho/alto. Conservar modo automático histórico.
+- [x] Preferir nombre/lectura/unidad/ausencia sobre gráficos en modo compacto, sin scroll de tarjeta ni solapamientos. Skeleton propio adapta la misma reserva.
+- [x] Añadir switch al catálogo de tarjeta y persistir en JSON existente; mostrar las seis opciones y respetar selección explícita antes que detección automática.
+- [x] Editor estable entre tres paneles, controles a la izquierda/preview a la derecha en horizontal amplio, preview arriba en vertical, escala uniforme, footer accesible y límite por visualViewport.
+- [x] Tests focalizados de escala, catálogo/round-trip, bits válidos/inválidos, prioridad explícita y responsive en móvil/tablet portrait/landscape/desktop en ambos temas; regresión de reloj y skeleton inicial.
+- [x] Compatibilidad: no transformar tarjetas históricas al cargar, no migración SQL. Downgrade pierde representación switch; guardar export/backup antes de revertir. Sin Git/GitHub, Docker ni deploy.
+
+Validación focalizada AC54/AC36: 427/427 Jest PASS en 12 suites y 16 escenarios responsive únicos PASS. Editor estable en móvil, tablet portrait/landscape y desktop, ambos temas, visualViewport reducido y sensor sin lectura; geometría histórica skeleton y reloj preservadas. Inspección visual acotada: una ronda y una confirmación tras corrección de separación header/interruptor. No suites completas ni certificación de hardware.
+
+
 ## Sensor binario y reloj redimensionable — AC53 (2026-10-03)
 
 - [x] Visualización de interruptor exclusivamente de lectura: ON/OFF con tokens success/danger y ausencia de lectura neutral; sin enviar comandos.

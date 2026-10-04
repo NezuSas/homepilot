@@ -1,6 +1,99 @@
 import { expect, test } from '@playwright/test';
 import { mdiAutoFix, mdiHome, mdiRobot, mdiWeatherWindy } from '@mdi/js';
 
+test('Feature: PLC dashboard realtime — Scenario: Received readings update without snapshot debounce (AC36)', async ({ page }) => {
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await prepareAuthenticatedDashboard(page);
+  let sendReading: (value: number) => void = () => { throw new Error('Authenticated realtime socket not ready'); };
+  let connected = false;
+  await page.routeWebSocket(/\/ws(?:\?|$)/, socket => {
+    connected = true;
+    let sequence = 0;
+    sendReading = value => socket.send(JSON.stringify({
+      type: 'DeviceStateUpdatedEvent', timestamp: new Date(Date.now() + ++sequence).toISOString(),
+      payload: { deviceId: 'sensor-climate', homeId: responsiveDevices.find(device => device.id === 'sensor-climate')!.homeId, newState: { state: String(value), unit_of_measurement: '°C' } },
+    }));
+  });
+  let snapshots = 0;
+  await page.route('**/api/v1/devices', route => {
+    snapshots += 1;
+    return route.fulfill({ json: responsiveDevices.map(device => device.id === 'sensor-climate' ? { ...device, integrationSource: 'modbus-tcp', lastKnownState: { state: '20', unit_of_measurement: '°C' }, updatedAt: '2026-01-01T00:00:00.000Z' } : device) });
+  });
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  const reading = page.locator('[data-dashboard-card-id="responsive-sensor"] .sensor-reading-number');
+  await expect(reading).toHaveText('20');
+  await expect.poll(() => connected).toBe(true);
+  const before = snapshots;
+  sendReading(21);
+  await expect(reading).toHaveText('21');
+  sendReading(22);
+  await expect(reading).toHaveText('22');
+  // Longer than the general debounce: PLC updates must not trigger whole-device reconciliation.
+  await page.waitForTimeout(1600);
+  expect(snapshots).toBe(before);
+});
+
+for (const viewport of [{ name: 'mobile portrait', width: 390, height: 844 }, { name: 'tablet portrait', width: 768, height: 1024 }, { name: 'tablet landscape', width: 1024, height: 768 }, { name: 'desktop', width: 1440, height: 900 }]) {
+  test(`Feature: Adaptive sensor editor — Scenario: Stable panels, bounded readings and explicit switch fit ${viewport.name} (AC54)`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport);
+    const section = responsiveDashboard.tabs[0]!.widgets[1]!;
+    let dashboard = { ...responsiveDashboard, tabs: [{ ...responsiveDashboard.tabs[0]!, widgets: [{ ...section, config: { ...section.config, extra: { cards: [{ ...section.config.extra.cards[0]!, gridOptions: { columns: 4, rows: 4 }, visualStyle: 'gauge' }] } } }] }] };
+    await prepareAuthenticatedDashboard(page, dashboard);
+    await page.route('**/api/v1/devices', route => route.fulfill({ json: responsiveDevices.map(device => device.id === 'sensor-climate' ? { ...device, lastKnownState: { state: '1', unit_of_measurement: '°C' } } : device) }));
+    await page.route('**/api/v1/dashboards', route => route.fulfill({ json: [dashboard] }));
+    await page.route('**/api/v1/dashboards/responsive-dashboard', route => {
+      if (route.request().method() === 'PATCH') dashboard = { ...dashboard, ...route.request().postDataJSON() };
+      return route.fulfill({ json: dashboard });
+    });
+    await page.goto('/dashboards/responsive-dashboard/responsive-tab'); await enterDashboardEdit(page);
+    const card = page.locator('[data-dashboard-card-id="responsive-sensor"]');
+    await expect(card.locator('.sensor-reading-number')).toHaveText('1');
+    await expect.poll(() => card.evaluate(el => el.scrollHeight <= el.clientHeight + 1 && el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+    expect((await card.boundingBox())!.height).toBeCloseTo(104, 0);
+    await card.hover(); await card.getByRole('button', { name: /^(Edit|Editar)$/i }).click();
+    const editor = page.getByRole('dialog', { name: /^(Edit|Editar)$/i });
+    await expect(editor).toHaveCSS('transform', 'none');
+    const initial = (await editor.boundingBox())!;
+    for (const panel of [/^(Design|Diseño)$/i, /^(Visibility|Visibilidad)$/i, /^(Configuration|Configuración)$/i]) {
+      await editor.getByRole('radio', { name: panel }).click();
+      const bounds = (await editor.boundingBox())!;
+      expect(bounds.height).toBeCloseTo(initial.height, 0); expect(bounds.width).toBeCloseTo(initial.width, 0);
+    }
+    const controls = (await editor.locator('[data-card-editor-controls]').boundingBox())!;
+    const preview = (await editor.locator('[data-card-editor-preview]').boundingBox())!;
+    if (viewport.width >= 900) expect(preview.x).toBeGreaterThan(controls.x + controls.width);
+    else expect(controls.y).toBeGreaterThanOrEqual(preview.y + preview.height);
+    await editor.getByRole('button', { name: /^(Visualization|Visualización)$/i }).click();
+    await expect(page.getByRole('option')).toHaveCount(6);
+    await page.getByRole('option', { name: /^(Switch|Interruptor) \(ON\/OFF\)$/i }).click();
+    await expect(editor.locator('[data-sensor-visualizer="switch"]')).toContainText('ON');
+    const checkBinaryFit = async (root: import('@playwright/test').Locator) => {
+      const header = (await root.locator('.sensor-premium-header').boundingBox())!;
+      const track = (await root.locator('.sensor-binary-track').boundingBox())!;
+      const shell = (await root.locator('.sensor-metric-card').boundingBox())!;
+      expect(track.y).toBeGreaterThanOrEqual(header.y + header.height - 1);
+      expect(track.y + track.height).toBeLessThanOrEqual(shell.y + shell.height + 1);
+    };
+    await checkBinaryFit(editor);
+    for (const theme of ['dark', 'light']) {
+      await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
+      await page.screenshot({ path: testInfo.outputPath(`adaptive-editor-${theme}.png`), animations: 'disabled' });
+    }
+    await page.evaluate(() => { Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: 420 }); window.visualViewport?.dispatchEvent(new Event('resize')); });
+    await expect.poll(async () => { const box = (await editor.boundingBox())!; return box.y + box.height <= 421; }).toBe(true);
+    await expect(editor.getByRole('button', { name: /^(Save|Guardar)$/i })).toBeInViewport();
+    await page.evaluate(height => { Object.defineProperty(window.visualViewport, 'height', { configurable: true, value: height }); window.visualViewport?.dispatchEvent(new Event('resize')); }, viewport.height);
+    await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click(); await expect(editor).not.toBeVisible();
+    await expect(card.locator('[data-sensor-visualizer="switch"]')).toContainText('ON');
+    await page.reload(); await expect(card.locator('[data-sensor-visualizer="switch"]')).toContainText('ON');
+    await checkBinaryFit(card);
+    await expect.poll(() => card.evaluate(el => el.scrollHeight <= el.clientHeight + 1)).toBe(true);
+    await page.route('**/api/v1/devices', route => route.fulfill({ json: responsiveDevices }));
+    await page.reload(); await expect(card.getByText(/^(No reading|Sin lectura)$/i)).toBeVisible();
+    await checkBinaryFit(card);
+  });
+}
+
 test('Feature: Sections editor — Scenario: Editor sizing writes once, serializes edits, supports undo/redo and rolls back errors (AC48–AC49)', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   const template = responsiveDashboard.tabs[0].widgets[1];

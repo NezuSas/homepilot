@@ -3,6 +3,15 @@ import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
 import { formatSensorValue, getSensorReading, getSensorSeverity, SensorMetricCard } from './SensorMetricCard';
 
 describe('Fixed measurement scale (AC42)', () => {
+  it.each(['gauge', 'battery', 'level', 'thermometer'] as const)('explicit %s beats binary detection and represents ON as a real bit (AC54)', visualStyle => {
+    const device = { ...sensor('Bit', { state: 'on' }), type: 'binary_sensor' };
+    const html = renderToStaticMarkup(<SensorMetricCard title="Bit" visualStyle={visualStyle} device={device} />);
+    expect(html).not.toContain('data-sensor-visualizer="switch"'); expect(html).toContain('aria-valuetext="1"');
+  });
+  it.each([['1', 'ON'], ['0', 'OFF'], ['2', 'Sin lectura'], ['unavailable', 'Sin lectura']])('explicit switch handles %s without invented state (AC54)', (state, label) => {
+    const html = renderToStaticMarkup(<SensorMetricCard title="Bit" visualStyle="switch" device={sensor('Bit', { state })} />);
+    expect(html).toContain('data-sensor-visualizer="switch"'); expect(html).toContain(label); expect(html).not.toContain('<button');
+  });
   it.each(['on', 'off', 'unavailable'])('shows a non-interactive binary instrument for %s (AC53)', state => {
     const device = { ...sensor('Input', { state }), type: 'binary_sensor' };
     const html = renderToStaticMarkup(<SensorMetricCard title="Input" device={device} />);

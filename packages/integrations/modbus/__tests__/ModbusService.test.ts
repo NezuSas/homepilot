@@ -196,6 +196,56 @@ export function modbusFixture() {
   const cleanup = () => { SqliteDatabaseManager.close(dbPath); for (const name of readdirSync(directory)) unlinkSync(join(directory, name)); rmdirSync(directory); };
   return { db, dbPath, repository, devices, transport, publish, service, cleanup };
 }
+
+describe('Feature: Dashboard priority polling (AC36)', () => {
+  let f: ReturnType<typeof modbusFixture>;
+  beforeEach(() => { f = modbusFixture(); f.db.exec('CREATE TABLE dashboards(id TEXT PRIMARY KEY,tabs TEXT)'); });
+  afterEach(async () => { await f.service.stop(); f.cleanup(); });
+  async function mapped() {
+    const c = await f.service.saveConnection('admin', 'h', { name: 'PLC', host: '192.168.1.5', enabled: true, pollIntervalMs: 5000 });
+    const ordinary = await f.service.saveVariable('admin', c.id, { name: 'Ordinary', area: 'holding_register', address: 110, dataType: 'uint16' });
+    const priority = await f.service.saveVariable('admin', c.id, { name: 'Dashboard', area: 'holding_register', address: 100, dataType: 'uint16' });
+    f.db.prepare('INSERT INTO dashboards VALUES (?,?)').run('d', JSON.stringify([{ widgets: [{ config: { extra: { cards: [{ entityId: priority.deviceId }] } } }] }]));
+    return { c, priority, ordinary };
+  }
+  it('reads dashboard variables first every second, others at configured cadence, without writes', async () => {
+    const { priority, ordinary } = await mapped();
+    await f.service.pollOnce(0);
+    expect(f.transport.read.mock.calls.map(call => call[1].deviceId)).toEqual([priority.deviceId, ordinary.deviceId]);
+    f.transport.read.mockClear();
+    await f.service.pollOnce(500); expect(f.transport.read).not.toHaveBeenCalled();
+    await f.service.pollOnce(1000); expect(f.transport.read.mock.calls.map(call => call[1].deviceId)).toEqual([priority.deviceId]);
+    f.transport.read.mockClear(); await f.service.pollOnce(5000);
+    expect(f.transport.read.mock.calls.map(call => call[1].deviceId)).toEqual([priority.deviceId, ordinary.deviceId]);
+    expect(f.transport.writeCoil).not.toHaveBeenCalled(); expect(f.transport.writeHoldingRegisters).not.toHaveBeenCalled();
+  });
+  it('releases priority when the binding is removed, without rewriting historical configuration', async () => {
+    const { c } = await mapped(); const before = f.repository.connection(c.id);
+    await f.service.pollOnce(0); f.transport.read.mockClear(); f.db.prepare('DELETE FROM dashboards').run();
+    await f.service.pollOnce(1000); expect(f.transport.read).not.toHaveBeenCalled();
+    expect(f.repository.connection(c.id)).toEqual(before);
+  });
+  it('does not bypass backoff or disabled connections', async () => {
+    const { c } = await mapped(); await f.service.pollOnce(0);
+    f.transport.read.mockRejectedValue(new ModbusError('TIMEOUT', 'fixture')); await f.service.pollOnce(1000);
+    f.transport.read.mockClear(); await f.service.pollOnce(2000); expect(f.transport.read).not.toHaveBeenCalled();
+    await f.service.saveConnection('admin', 'h', { ...c, enabled: false }, c.id);
+    await f.service.pollOnce(30000); expect(f.transport.read).not.toHaveBeenCalled();
+  });
+  it('collects exact nested bindings, ignores names and supports historical prefixed IDs', async () => {
+    const { priority, ordinary } = await mapped();
+    f.db.prepare('UPDATE dashboards SET tabs=?').run(JSON.stringify([{ widgets: [{ config: { binding: { entityId: `modbus:${priority.deviceId}` }, extra: { cards: [{ title: ordinary.deviceId }] } } }] }]));
+    expect([...f.repository.dashboardDeviceIds()]).toEqual([priority.deviceId]);
+  });
+  it('shares the connection queue and does not overlap slow reads', async () => {
+    await mapped(); let release!: (value: number) => void;
+    f.transport.read.mockImplementationOnce(() => new Promise(resolve => { release = resolve; }));
+    const pending = f.service.pollOnce(0);
+    while (!release) await Promise.resolve();
+    await f.service.pollOnce(1000); expect(f.transport.read).toHaveBeenCalledTimes(1);
+    release(42); await pending;
+  });
+});
 describe('Feature: Safe Modbus deletion (AC18)', () => {
   let f: ReturnType<typeof modbusFixture>;
   beforeEach(() => { f = modbusFixture(); });

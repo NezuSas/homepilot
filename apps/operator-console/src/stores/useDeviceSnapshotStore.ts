@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
+import type { RealtimeEventMessage } from './useAppShellStore';
 
 const API_URL = `${API_BASE_URL}/api/v1`;
 const SNAPSHOT_FRESHNESS_MS = 15_000;
@@ -192,7 +193,13 @@ export const useDeviceSnapshotStore = create<DeviceSnapshotState>((set, get) => 
         if (requestGeneration !== snapshotGeneration) return;
 
         set({
-          devices,
+          devices: devices.map((device) => {
+            const current = get().devices.find((candidate) => candidate.id === device.id && candidate.homeId === device.homeId);
+            return device.integrationSource === 'modbus-tcp' && current?.integrationSource === 'modbus-tcp'
+              && Date.parse(current.updatedAt ?? '') > Date.parse(device.updatedAt ?? '')
+              ? { ...device, lastKnownState: current.lastKnownState, updatedAt: current.updatedAt }
+              : device;
+          }),
           homes,
           roomsByHome,
           lastUpdatedAt: Date.now(),
@@ -231,3 +238,21 @@ export const useDeviceSnapshotStore = create<DeviceSnapshotState>((set, get) => 
     set({ ...initialState });
   },
 }));
+
+/** Only authenticated events for an already loaded PLC device may bypass snapshot reconciliation. */
+export function isKnownModbusStateEvent(event: RealtimeEventMessage): boolean {
+  const { deviceId, homeId, newState } = event.payload;
+  return event.type === 'DeviceStateUpdatedEvent' && Number.isFinite(Date.parse(event.timestamp))
+    && typeof deviceId === 'string' && typeof homeId === 'string'
+    && !!newState && typeof newState === 'object' && !Array.isArray(newState)
+    && useDeviceSnapshotStore.getState().devices.some((device) => device.id === deviceId
+      && device.homeId === homeId && device.integrationSource === 'modbus-tcp');
+}
+
+export function applyModbusRealtimeState(event: RealtimeEventMessage): void {
+  if (!isKnownModbusStateEvent(event)) return;
+  const store = useDeviceSnapshotStore.getState();
+  const device = store.devices.find((candidate) => candidate.id === event.payload.deviceId && candidate.homeId === event.payload.homeId);
+  if (!device || Date.parse(device.updatedAt ?? '') >= Date.parse(event.timestamp)) return;
+  store.upsertDevice({ ...device, lastKnownState: event.payload.newState as Record<string, unknown>, updatedAt: event.timestamp });
+}

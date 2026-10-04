@@ -279,21 +279,28 @@ export function resolveSensorVisualStyle(style: SensorVisualStyle, deviceClass: 
 
 export function SensorMetricCard({ device, title, isPreview = false, icon, roomName, sensorScale, sensorDecimals = false, visualStyle }: SensorMetricCardProps) {
   const { t } = useTranslation();
-  const reading = getSensorReading(device, isPreview);
+  const initialReading = getSensorReading(device, isPreview);
+  const state = asRecord(device?.lastKnownState);
+  const inheritedStyle = device?.integrationSource === 'modbus-tcp' ? state.plcVisualStyle : undefined;
+  const selectedStyle = normalizeSensorVisualStyle(visualStyle ?? inheritedStyle);
+  const inferredBinary = initialReading.presentation === 'binary' || device?.type === 'binary_sensor' || device?.type === 'switch' || ['input', 'output', 'output_command', 'output_feedback'].includes(String(state.plcRole ?? ''));
+  const binarySensor = selectedStyle === 'switch' || ((visualStyle === undefined || selectedStyle === 'auto') && inferredBinary);
+  const bit = initialReading.binaryState ?? (initialReading.value === '1' ? 'on' : initialReading.value === '0' ? 'off' : null);
+  const reading = binarySensor ? { ...initialReading, presentation: 'binary' as const, binaryState: bit, value: bit ? initialReading.value : null }
+    : inferredBinary && visualStyle !== undefined && selectedStyle !== 'auto'
+      ? { ...initialReading, presentation: 'numeric' as const, binaryState: null, value: bit === 'on' ? '1' : bit === 'off' ? '0' : null, unit: null }
+      : initialReading;
   const severity = getSensorSeverity(reading);
   const isPercentage = reading.value !== null && reading.presentation === 'percentage';
   const number = numericValue(reading.value);
-  const state = asRecord(device?.lastKnownState);
   const attributes = asRecord(state.attributes);
   const configuredScale = normalizeSensorScale(sensorScale);
   const scale = configuredScale ? { ...configuredScale, source: 'metadata' as const }
     : number === null ? null : getSensorGaugeScale(number, isPercentage,
       attributes.min_value ?? attributes.min ?? state.min_value ?? state.min,
       attributes.max_value ?? attributes.max ?? state.max_value ?? state.max, reading.unit);
-  const binarySensor = reading.presentation === 'binary' || device?.type === 'binary_sensor' || device?.type === 'switch' || ['input', 'output', 'output_command', 'output_feedback'].includes(String(state.plcRole ?? ''));
   const analog = !binarySensor && (number !== null || reading.value === null);
-  const inheritedStyle = device?.integrationSource === 'modbus-tcp' ? state.plcVisualStyle : undefined;
-  const resolvedStyle = resolveSensorVisualStyle(normalizeSensorVisualStyle(visualStyle ?? inheritedStyle), reading.deviceClass, reading.unit);
+  const resolvedStyle = resolveSensorVisualStyle(selectedStyle, reading.deviceClass, reading.unit);
   const Visualizer = resolvedStyle === 'thermometer' ? SensorThermometer : resolvedStyle === 'level' ? SensorLevelGauge : resolvedStyle === 'battery' ? SensorBatteryGauge : SensorAnalogGauge;
   const categoryLabel = getCategoryLabel(reading.category, t);
   const displayTitle = title.trim() || device?.name?.trim() || categoryLabel;
@@ -306,7 +313,7 @@ export function SensorMetricCard({ device, title, isPreview = false, icon, roomN
   return (
     <div
       className="sensor-metric-card homepilot-sensor-reading relative flex h-full min-w-0 flex-col border border-border/55 bg-card/95 text-foreground shadow-surface-card"
-      style={{ containerType: 'inline-size', containerName: 'sensor-card' }}
+      style={{ containerName: 'sensor-card', '--sensor-reserved-height': hasStatus ? '6.5rem' : '5rem' } as CSSProperties}
     >
       <div className="sensor-premium-header">
         <span
@@ -316,17 +323,17 @@ export function SensorMetricCard({ device, title, isPreview = false, icon, roomN
         >
           {ConfiguredIcon ? <ConfiguredIcon className="h-full w-full" /> : <CategoryIcon category={reading.category} percentage={reading.percentage} />}
         </span>
-        <div className="min-w-0"><span className="sensor-reading-title block text-foreground">{displayTitle}</span>
+        <div className="min-w-0"><span title={displayTitle} className="sensor-reading-title block text-foreground">{displayTitle}</span>
           {roomName ? <span className="sensor-reading-room block text-muted-foreground">{roomName}</span> : null}
         </div>
       </div>
       <div className={cn('sensor-reading-layout', analog && 'sensor-analog-layout')}>
-        {binarySensor ? <div data-sensor-visualizer="switch" className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 py-2">
+        {binarySensor ? <div data-sensor-visualizer="switch" className="sensor-binary-instrument flex min-h-0 flex-1 flex-col items-center justify-center gap-2 py-2">
           <div role="img" aria-label={reading.binaryState ? t(`dashboard.editor.sections.sensor_${reading.binaryState}`) : t('dashboard.editor.sections.sensor_unavailable')}
-            className={cn('flex h-12 w-24 items-center rounded-full border p-1', reading.binaryState === 'on' ? 'justify-end border-success/60 bg-success/15 text-success' : reading.binaryState === 'off' ? 'justify-start border-danger/60 bg-danger/15 text-danger' : 'justify-center border-border bg-muted text-muted-foreground')}>
-            <span className="grid size-9 place-items-center rounded-full bg-current"><span className="text-xs font-bold text-background">{reading.binaryState === 'on' ? 'ON' : reading.binaryState === 'off' ? 'OFF' : '—'}</span></span>
+            className={cn('sensor-binary-track flex h-12 w-24 max-w-full items-center rounded-full border p-1', reading.binaryState === 'on' ? 'justify-end border-success/60 bg-success/15 text-success' : reading.binaryState === 'off' ? 'justify-start border-danger/60 bg-danger/15 text-danger' : 'justify-center border-border bg-muted text-muted-foreground')}>
+            <span className="sensor-binary-thumb grid size-9 place-items-center rounded-full bg-current"><span className="text-xs font-bold text-background">{reading.binaryState === 'on' ? 'ON' : reading.binaryState === 'off' ? 'OFF' : '—'}</span></span>
           </div>
-          <span className="text-caption font-semibold">{reading.binaryState ? t(`dashboard.editor.sections.sensor_${reading.binaryState}`) : t('dashboard.editor.sections.sensor_unavailable')}</span>
+          <span className={cn('sensor-binary-caption text-caption font-semibold', !reading.binaryState && 'sensor-binary-caption-unavailable')}>{reading.binaryState ? t(`dashboard.editor.sections.sensor_${reading.binaryState}`) : t('dashboard.editor.sections.sensor_unavailable')}</span>
         </div> : analog ? <div className="sensor-analog-instrument"
           role={scale && number !== null ? 'meter' : undefined}
           aria-label={scale ? displayTitle : undefined}

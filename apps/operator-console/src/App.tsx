@@ -27,7 +27,7 @@ import { DASHBOARDS_ONE_PATTERN, DASHBOARDS_TAB_PATTERN, dashboardTabPath, isSys
 import { useRealtimeEvents } from './lib/useRealtimeEvents';
 import { useAppShellStore } from './stores/useAppShellStore';
 import { useAssistantStore } from './stores/useAssistantStore';
-import { useDeviceSnapshotStore } from './stores/useDeviceSnapshotStore';
+import { isKnownModbusStateEvent, useDeviceSnapshotStore } from './stores/useDeviceSnapshotStore';
 import { useDemoGuideStore } from './stores/useDemoGuideStore';
 import { APP_DEMO_STEPS } from './config/appDemoSteps';
 import type { GlobalWakeNoticeModel, GlobalWakeStatus } from './components/GlobalWakeNotice';
@@ -377,6 +377,9 @@ function App() {
     if (!REFRESH_TRIGGER_EVENTS.includes(lastRealtimeEvent.type)) {
       return;
     }
+
+    // PLC state was applied synchronously by the websocket listener; no full snapshot is needed.
+    if (isKnownModbusStateEvent(lastRealtimeEvent)) return;
 
     // A single user action (e.g. toggling a light) emits a burst of distinct
     // realtime events (dispatch + state-updated) in quick succession. Debounce

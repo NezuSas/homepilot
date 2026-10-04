@@ -19,7 +19,7 @@ export function DashboardCardSkeleton({ variant, className, mediaOnly = false, v
     <div
       data-dashboard-skeleton={visible ? variant : undefined}
       aria-hidden="true"
-      style={variant === 'sensor' ? { containerType: 'inline-size', containerName: 'sensor-card' } : undefined}
+      style={variant === 'sensor' ? { containerName: 'sensor-card' } : undefined}
       className={cn(
         'homepilot-dashboard-card-skeleton pointer-events-none flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden bg-card/95 shadow-surface-card',
         variant !== 'sensor' && 'rounded-section p-4',

@@ -1,5 +1,13 @@
 # SPEC: Dashboard Layout and Widgets V1
 
+## Sensor adaptable y editor estable — AC54 (2026-10-04)
+
+- Sensor permite dimensiones manuales con mínimo 4 columnas/4 filas para título y lectura legibles. La altura manual reserva exactamente sus filas; presentar valor/unidad o ausencia y nombre antes que instrumentos decorativos, sin scroll ni recortes. Instrumentos se ajustan al alto/ancho y se omiten en tamaños compactos; conservar lectura accesible, límites reales y advertencias. Tarjetas automáticas históricas mantienen su geometría.
+- Añadir `switch` al catálogo de visualStyle de tarjeta únicamente, sin cambiar el enum de variables PLC. Todas las opciones aparecen en el selector. Selección explícita tiene prioridad sobre detección automática; switch interpreta únicamente booleanos, ON/OFF y 0/1, otros valores muestran ausencia, nunca inventar un estado ni permitir comandos.
+- Editor Configuración/Diseño/Visibilidad conserva dimensiones exteriores entre paneles, limitado por visualViewport. Con espacio horizontal: controles a la izquierda y preview a la derecha; vertical: preview arriba y controles debajo. Scroll interno y footer accesible, sin modificar otros modales. Preview usa el renderer real a escala uniforme.
+- JSON previo conserva significado; switch es aditivo sin migración SQLite. Downgrade no conoce la presentación switch y recurre a gauge; guardar/exportar copia antes de downgrade. No modificar ownership, automatizaciones, ejecución ni paleta.
+
+
 ## Refinamiento autorizado de instrumentos y reloj — AC53
 
 Sensor binario ofrece instrumento interruptor no interactivo ON/OFF con tokens éxito/peligro y ausencia neutra; no emite comandos. Formato numérico compartido limita a dos decimales sin alterar datos reales ni opción histórica de enteros. Reloj admite edición de dimensiones mediante matriz existente, mínimo 6 columnas y 6 filas, filas automáticas históricas conservadas; composición proporcional sin perder hora, fecha o clima. Sin migración SQL ni cambios de ejecución.

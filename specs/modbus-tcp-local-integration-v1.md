@@ -1,5 +1,13 @@
 # Integración Modbus TCP local V1
 
+## Refresco prioritario Dashboard — AC36 (2026-10-04)
+
+- Variables declaradas en los JSON de tableros existentes se leen con objetivo de 1000 ms, antes de las demás; las demás conservan el intervalo configurado. La prioridad se obtiene mediante un puerto de repositorio, sin dependencia SQLite en aplicación ni endpoint de sondeo desde el navegador.
+- Es polling ágil, no tiempo real duro: latencia/colas/timeout pueden aumentar el intervalo. Conexiones deshabilitadas, serialización con comandos/probe, pertenencia al hogar, stale y backoff siguen intactos. Nunca hacer escrituras para refrescar ni inferir feedback.
+- Cada evento autenticado de estado PLC actualiza inmediatamente el dispositivo ya cargado, sin debounce ni refetch global por lectura. Validar identidad/hogar/fuente/payload y timestamp; ignorar eventos antiguos, desconocidos o de otra sesión. Un snapshot anterior no sobrescribe estado PLC más reciente, pero conserva metadatos y eliminación del snapshot. No inventar versiones de entidad ni crear dispositivos a partir del evento.
+- Sin SQL/migración ni cambio de configuración persistida. Downgrade restaura la cadencia anterior; backup operativo antes de actualizar MiniPC. Fixtures locales exclusivamente; no conexión a PLC físico.
+
+
 ## Refinamiento de formularios y tabla — alcance autorizado
 
 - AC16: Tabla de probe con scroll contenido, encabezado opaco fijo y acción Crear variable en una línea. Filtros locales Todos / Lecturas válidas / Con actividad (RAW no cero/true), sin borrar muestras ni ocultar errores en Todos. Conversión de 32 bits utiliza la secuencia original completa antes de filtrar.

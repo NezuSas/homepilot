@@ -14,6 +14,7 @@ export class ModbusService implements DeviceDriver {
   private readonly queues = new Map<string, Promise<unknown>>();
   private readonly pending = new Map<string, number>();
   private readonly schedule = new Map<string, { due: number; failures: number }>();
+  private readonly dashboardDue = new Map<string, number>();
   private timer?: ReturnType<typeof setTimeout>;
   private running = false;
   private cycle?: Promise<void>;
@@ -137,6 +138,7 @@ export class ModbusService implements DeviceDriver {
       this.repository.deleteConnection(id);
       this.diagnostics.delete(id);
       this.schedule.delete(id);
+      this.dashboardDue.delete(id);
     });
   }
   async deleteVariable(userId: string, connectionId: string, deviceId: string): Promise<void> {
@@ -257,15 +259,24 @@ export class ModbusService implements DeviceDriver {
     }
   }
   async pollOnce(now = Date.now(), shouldContinue: () => boolean = () => true): Promise<void> {
+    let dashboardIds: ReadonlySet<string> = new Set();
+    try { dashboardIds = this.repository.dashboardDeviceIds?.() ?? dashboardIds; } catch { /* Missing historical dashboard table must not stop normal polling. */ }
     for (const connection of this.repository.connections()) {
       if (!shouldContinue()) return;
-      if (!connection.enabled || (this.schedule.get(connection.id)?.due ?? 0) > now || this.queues.has(connection.id)) continue;
+      const scheduled = this.schedule.get(connection.id);
+      const fullCycle = (scheduled?.due ?? 0) <= now;
+      if (!connection.enabled || (!fullCycle && scheduled?.failures) || this.queues.has(connection.id)) continue;
+      const priorityDue = (this.dashboardDue.get(connection.id) ?? 0) <= now;
+      const variables = this.repository.variables(connection.id)
+        .filter(variable => fullCycle || (priorityDue && dashboardIds.has(variable.deviceId)))
+        .sort((a, b) => Number(dashboardIds.has(b.deviceId)) - Number(dashboardIds.has(a.deviceId)));
+      if (!variables.length) continue;
       await this.serialize(connection.id, async () => {
         const current = this.requireConnection(connection.id);
         if (!current.enabled) return;
         const started = Date.now();
         try {
-          for (const variable of this.repository.variables(current.id)) {
+          for (const variable of variables) {
             if (!shouldContinue()) return;
             const device = await this.devices.findDeviceById(variable.deviceId);
             if (!device || device.homeId !== current.homeId || !this.supports(device)) continue;
@@ -277,7 +288,8 @@ export class ModbusService implements DeviceDriver {
               await this.publishState(device.id, { ...device.lastKnownState, state: 'unavailable', available: false, stale: true, error: error.code });
             }
           }
-          this.schedule.set(current.id, { due: now + current.pollIntervalMs, failures: 0 });
+          if (fullCycle) this.schedule.set(current.id, { due: now + current.pollIntervalMs, failures: 0 });
+          this.dashboardDue.set(current.id, now + 1000);
           this.diagnostics.set(current.id, { status: 'online', lastReadAt: new Date().toISOString(), latencyMs: Date.now() - started });
         } catch (error: unknown) {
           const failures = Math.min(6, (this.schedule.get(current.id)?.failures ?? 0) + 1);

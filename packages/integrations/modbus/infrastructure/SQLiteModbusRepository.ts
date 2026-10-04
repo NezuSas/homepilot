@@ -5,6 +5,15 @@ import { ModbusError, validateConnection, validateVariable, type ModbusConnectio
 export class SQLiteModbusRepository implements ModbusRepository {
   constructor(private readonly dbPath: string) {}
   private get db() { return SqliteDatabaseManager.getInstance(this.dbPath); }
+  dashboardDeviceIds(): ReadonlySet<string> {
+    if (!this.db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='dashboards'").get()) return new Set();
+    const rows = this.db.prepare(`SELECT DISTINCT mapping.device_id FROM dashboards,
+      json_tree(dashboards.tabs) AS binding, modbus_variables AS mapping
+      WHERE binding.key IN ('entityId', 'deviceId')
+      AND binding.atom IN (mapping.device_id, 'modbus:' || mapping.device_id)`)
+      .all() as Array<{ device_id: string }>;
+    return new Set(rows.map(row => row.device_id));
+  }
   connections(homeId?: string): ModbusConnection[] {
     const rows = (homeId === undefined ? this.db.prepare('SELECT * FROM modbus_connections ORDER BY id').all() : this.db.prepare('SELECT * FROM modbus_connections WHERE home_id=? ORDER BY id').all(homeId)) as { id: string; home_id: string; config: string }[];
     return rows.map(row => ({ ...validateConnection(JSON.parse(row.config)), id: row.id, homeId: row.home_id }));

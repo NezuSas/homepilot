@@ -3,6 +3,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { CardPreviewFrame, getPreviewScale } from './CardPreviewFrame';
 
 describe('Feature: Stable full-grid card preview (AC48)', () => {
+  it('fits the preview uniformly when the visible editor height shrinks (AC54)', () => {
+    expect(getPreviewScale(400, 400, 216, 108)).toBe(0.5);
+    expect(getPreviewScale(400, 800, 216, 54)).toBe(0.25);
+  });
   it('Scenario: Wide and intrinsically tall previews fit uniformly without changing card dimensions', () => {
     expect(getPreviewScale(400, 800, 216)).toBe(0.5);
     expect(getPreviewScale(400, 300, 432)).toBe(0.5);

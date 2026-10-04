@@ -1,5 +1,10 @@
 # SensorMetricCard — instrumento analógico local
 
+AC54: dimensiones manuales reservan exactamente su altura; CSS container queries utiliza ancho y alto de la propia carcasa, no un breakpoint de tablet. Debajo de 150 px de alto o 120 px de ancho se omite el gráfico decorativo y se conservan nombre, lectura/unidad, ausencia y advertencias. La presentación binaria se compacta sin solapar el nombre y sigue siendo de solo lectura. `switch` es una preferencia opcional de tarjeta (no del mapping PLC); las seis opciones son visibles. Selección explícita prima sobre auto: estados booleanos pueden visualizarse como 0/1; switch solo reconoce booleanos/ON/OFF/0/1 y no inventa un bit para otras mediciones.
+
+El editor de tarjetas conserva tamaño entre Configuración/Diseño/Visibilidad: controles/preview en dos columnas en horizontal amplio; preview superior en vertical, controles con scroll y footer fijo. La altura exterior está limitada por el hook visualViewport existente; el preview se escala uniformemente al espacio disponible. No altera otros modales ni el JSON histórico; min 4×4 para nuevas dimensiones Sensor.
+
+
 Nivel y batería se distinguen por su silueta: nivel es un depósito cilíndrico ancho con superficie de líquido; batería conserva su cuerpo estrecho y terminal. Ambos comparten límites/normalización y proporción 320/265, sin alterar el dato ni la carcasa. Clips SVG únicos evitan interferencias entre instancias.
 
 Refinamiento vigente: se omiten «Normal», punto verde, leyenda textual de escala y su reserva vacía. Footer solo existe para advertencias reales, sin filas mínimas; «Sin lectura» acompaña a «—» sin unidad. Skeleton sin pie vacío. Límites/graduaciones/configuración y precisión no cambian. La medición exterior inicial se mantiene coherente con el contenido más compacto.

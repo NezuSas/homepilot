@@ -280,6 +280,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     if (!editingCard) return;
     const sensorScale = normalizeSensorScale({ min: cardDraft.sensorMin, max: cardDraft.sensorMax });
     if (cardDraft.kind === 'sensor' && (cardDraft.sensorMin !== undefined || cardDraft.sensorMax !== undefined) && !sensorScale) return;
+    const sizeMinimum = isClockKind(cardDraft.kind) ? 6 : 4;
     const nextCards = cards.map((card) => {
       if (card.id !== editingCard.id) return card;
 
@@ -293,7 +294,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         entityName: selectedDisplayAction?.deviceName || selectedScene?.name || selectedAutomation?.name || selectedRoom?.name || selectedDevice?.name,
         span: isClockKind(cardDraft.kind) ? 'full' : getEffectiveCardSpan(cardDraft.kind, cardDraft.span),
         icon: cardDraft.icon,
-        gridOptions: isClockKind(cardDraft.kind) && cardDraft.gridOptions ? { ...cardDraft.gridOptions, columns: typeof cardDraft.gridOptions.columns === 'number' ? Math.max(6, cardDraft.gridOptions.columns) as CardGridOptions['columns'] : 'full', rows: typeof cardDraft.gridOptions.rows === 'number' ? Math.max(6, cardDraft.gridOptions.rows) : 'auto', minColumns: 6, minRows: 6 } : cardDraft.gridOptions,
+        gridOptions: (isClockKind(cardDraft.kind) || cardDraft.kind === 'sensor') && cardDraft.gridOptions ? { ...cardDraft.gridOptions, columns: typeof cardDraft.gridOptions.columns === 'number' ? Math.max(sizeMinimum, cardDraft.gridOptions.columns) as CardGridOptions['columns'] : 'full', rows: typeof cardDraft.gridOptions.rows === 'number' ? Math.max(sizeMinimum, cardDraft.gridOptions.rows) : 'auto', minColumns: sizeMinimum as 4 | 6, minRows: sizeMinimum } : cardDraft.gridOptions,
         hidden: cardDraft.hidden,
       };
       if (cardDraft.kind === 'media') updatedCard.mediaVariant = cardDraft.mediaVariant;
@@ -369,7 +370,8 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         ...getCardPresentationStyle(gridOptionsOverride?.rows),
         width: sectionGridWidth > 0 ? getCardGridWidth(sectionGridWidth, gridOptionsOverride?.columns ?? (span === 'small' ? 3 : span === 'medium' ? 6 : 12)) : undefined,
         minHeight: getCardGridHeight(gridOptionsOverride?.rows),
-      } : undefined} className={isEditorPreview || normalizedPreviewKind.startsWith('info_') ? cn('homepilot-sized-card relative grid shrink-0 min-w-0 overflow-hidden shadow-sm', getCardFrameClass(normalizedPreviewKind, span, previewDevice ? isDeviceActive(previewDevice) : false)) : cn(
+        ...(normalizedPreviewKind === 'sensor' && typeof gridOptionsOverride?.rows === 'number' ? { height: getCardGridHeight(gridOptionsOverride.rows), minHeight: 0 } : {}),
+      } : undefined} className={isEditorPreview || normalizedPreviewKind.startsWith('info_') ? cn('homepilot-sized-card relative grid shrink-0 min-w-0 overflow-hidden shadow-sm', normalizedPreviewKind === 'sensor' && typeof gridOptionsOverride?.rows === 'number' && 'homepilot-bounded-sensor', getCardFrameClass(normalizedPreviewKind, span, previewDevice ? isDeviceActive(previewDevice) : false)) : cn(
         "grid overflow-hidden rounded-section transition-[height,width,max-width] duration-200",
         !isClockPreview && "bg-background/40",
         isClockPreview && (isEditorPreview ? 'homepilot-clock-preview-host homepilot-clock-preview-host--editor' : 'homepilot-clock-preview-host homepilot-clock-preview-host--catalog'),

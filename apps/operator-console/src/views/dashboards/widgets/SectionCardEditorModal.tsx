@@ -60,18 +60,22 @@ export function SectionCardEditorModal({
   const [panel, setPanel] = useState<'configuration' | 'design' | 'visibility'>('configuration');
   const defaultColumns = cardDraft.span === 'full' ? 12 : cardDraft.span === 'small' ? 3 : 6;
   const clock = isClockKind(cardDraft.kind);
-  const gridOptions: CardGridOptions = clock ? { ...cardDraft.gridOptions, columns: Math.max(6, typeof cardDraft.gridOptions?.columns === 'number' ? cardDraft.gridOptions.columns : 12) as CardColumns, rows: typeof cardDraft.gridOptions?.rows === 'number' ? Math.max(6, cardDraft.gridOptions.rows) : 'auto', minColumns: 6, minRows: 6 } : cardDraft.gridOptions ?? { columns: defaultColumns as CardColumns, rows: 'auto' };
+  const sensor = cardDraft.kind === 'sensor';
+  const minimum = clock ? 6 : sensor ? 4 : 2;
+  const gridOptions: CardGridOptions = clock || sensor ? { ...cardDraft.gridOptions, columns: Math.max(minimum, typeof cardDraft.gridOptions?.columns === 'number' ? cardDraft.gridOptions.columns : defaultColumns) as CardColumns, rows: typeof cardDraft.gridOptions?.rows === 'number' ? Math.max(minimum, cardDraft.gridOptions.rows) : 'auto', minColumns: minimum as CardColumns, minRows: minimum } : cardDraft.gridOptions ?? { columns: defaultColumns as CardColumns, rows: 'auto' };
   const sensorScale = normalizeSensorScale({ min: cardDraft.sensorMin, max: cardDraft.sensorMax });
   const invalidScale = cardDraft.kind === 'sensor' && (!validMinimum || !validMaximum || ((cardDraft.sensorMin !== undefined || cardDraft.sensorMax !== undefined) && !sensorScale));
   return (
-    <Modal isOpen onClose={onClose} title={t('common.edit')} headerAlign="start" className="max-w-xl"
+    <Modal isOpen onClose={onClose} title={t('common.edit')} headerAlign="start" className="section-card-editor max-w-5xl"
+      bodyClassName="flex flex-1 flex-col overflow-hidden" headerClassName="shrink-0" contentClassName="min-h-0 flex-1"
       footerClassName="justify-end gap-2 px-5 py-4 sm:px-8"
       footer={<>
         <Button type="button" onClick={onClose} variant="secondary">{t('dashboard.editor.sections.cancel')}</Button>
         <Button type="button" onClick={onSave} disabled={invalidScale}>{t('dashboard.editor.sections.save')}</Button>
       </>}>
-          <div className="min-w-0 space-y-4">
-            <CardPreviewFrame label={t('dashboards.edit_session.preview')} sectionWidth={sectionWidth}>
+          <div className="section-card-editor-layout">
+            <div className="section-card-editor-preview" data-card-editor-preview>
+            <CardPreviewFrame fitHeight label={t('dashboards.edit_session.preview')} sectionWidth={sectionWidth}>
             {renderCatalogPreview(
               cardDraft.kind,
               cardDraft.title || catalogLabel(cardDraft.kind),
@@ -86,7 +90,9 @@ export function SectionCardEditorModal({
               gridOptions,
             )}
             </CardPreviewFrame>
-            <SegmentedControl value={panel} onChange={setPanel} label={t('dashboards.edit_session.label')} options={(['configuration', 'design', 'visibility'] as const).map(value => ({ value, label: t(`dashboards.edit_session.${value}`) }))} />
+            </div>
+            <div className="section-card-editor-controls space-y-4" data-card-editor-controls>
+            <SegmentedControl layout="scroll" optionClassName="min-h-11 normal-case tracking-normal" value={panel} onChange={setPanel} label={t('dashboards.edit_session.label')} options={(['configuration', 'design', 'visibility'] as const).map(value => ({ value, label: t(`dashboards.edit_session.${value}`) }))} />
             {panel === 'design' && <CardGridSizePicker value={gridOptions} onChange={next => setCardDraft(draft => ({ ...draft, gridOptions: next }))} />}
             {panel === 'visibility' && <ToggleSwitch label={t('dashboards.edit_session.visible')} checked={!cardDraft.hidden} onCheckedChange={visible => setCardDraft(draft => ({ ...draft, hidden: !visible }))} />}
             <div hidden={panel !== 'configuration'} className="space-y-4">
@@ -304,6 +310,7 @@ export function SectionCardEditorModal({
                 </p>
               </div>
             ) : null}
+            </div>
             </div>
           </div>
 

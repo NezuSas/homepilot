@@ -1,5 +1,17 @@
 # Tareas — Modbus TCP local V1
 
+## Polling prioritario por tablero — AC36 (2026-10-04)
+
+- [x] Obtener IDs declarados mediante puerto de repositorio y JSON existente; sin acceso SQLite desde aplicación ni nuevo endpoint navegador.
+- [x] Ordenar variables del tablero primero y permitir ciclos de 1000 ms sin adelantar lecturas ordinarias; objetivo sujeto a latencia/colas, no tiempo real duro.
+- [x] Conservar serialización, backoff, conexión deshabilitada y validación de hogar, sin modificar escritura/feedback/actualState.
+- [x] Tests: prioridad/orden/cadencia, retirada de binding, bindings anidados exactos y prefijados, backoff, deshabilitado y ausencia de solapamientos; regresión protocolos/perfiles/rutas con simuladores locales.
+- [x] Sin migración SQL ni configuración reescrita. Al instalar/revertir: backup de SQLite y reconstrucción API + UI; no deploy ni PLC físico en esta tarea.
+- [x] Aplicar cada evento PLC válido en el store existente antes del batching React, sin refetch global; proteger hogar, timestamps, sesión y carrera con snapshots. Jest del store y escenario navegador PLC dashboard realtime PASS.
+
+Validación focalizada AC36/AC54: 12 suites Jest, 427/427 PASS; 16 escenarios responsive únicos PASS (editor en cuatro tamaños, visualizadores, escala, ancho, geometría skeleton inicial, reloj y realtime PLC). Sin suites completas ni hardware físico. Un intento responsive bloqueado por permisos de artefactos Vite se reejecutó autorizado y pasó.
+
+
 ## Presentación y navegación — AC35 (2026-10-03)
 
 - [x] Centralizar formato visual con máximo dos decimales; conservar RAW y precisión de dominio para reglas y comandos.

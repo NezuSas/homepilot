@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { API_BASE_URL } from '../config';
 import { useAppShellStore } from '../stores/useAppShellStore';
 import type { RealtimeEventMessage } from '../stores/useAppShellStore';
+import { applyModbusRealtimeState } from '../stores/useDeviceSnapshotStore';
 
 interface UseRealtimeEventsResult {
   isConnected: boolean;
@@ -85,6 +86,7 @@ export function useRealtimeEvents(enabled: boolean): UseRealtimeEventsResult {
             return;
           }
 
+          applyModbusRealtimeState(parsed);
           ingestRealtimeEvent(parsed);
         } catch (error) {
           console.warn('[Realtime] Failed to parse event message:', error);

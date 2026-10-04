@@ -941,6 +941,7 @@
   }
 
   .homepilot-sensor-reading {
+    container-type: inline-size;
     min-height: 0;
     padding: 0.5rem clamp(0.75rem, 4cqi, 1rem);
     border-radius: 1rem;
@@ -1083,6 +1084,38 @@
   }
 
   .sensor-analog-layout { padding-block: 0.25rem; }
+  .homepilot-bounded-sensor .homepilot-sensor-reading { container-type: size; }
+  .homepilot-bounded-sensor .sensor-premium-header { gap: 0.5rem; }
+  .homepilot-bounded-sensor .sensor-reading-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+  .homepilot-bounded-sensor .sensor-reading-layout { flex: 1 1 0; }
+  .homepilot-bounded-sensor .sensor-analog-instrument { width: min(100%, calc((100cqh - var(--sensor-reserved-height)) * 320 / 265)); }
+  @container sensor-card (max-height: 150px) {
+    .sensor-analog-instrument :is(.sensor-analog-canvas, .sensor-analog-skeleton) { display: none; }
+    .sensor-reading-layout .sensor-analog-instrument { width: 100%; }
+    .sensor-analog-instrument .sensor-analog-readout { margin: 0; }
+    .sensor-reading-layout .sensor-state-symbol { display: none; }
+    .sensor-reading-layout .sensor-binary-instrument { padding-block: 0; gap: 0; }
+    .sensor-binary-instrument .sensor-binary-track { height: 2rem; width: 4.5rem; }
+    .sensor-binary-track .sensor-binary-thumb { width: 1.5rem; height: 1.5rem; }
+    .sensor-binary-thumb > span { font-size: 0.625rem; }
+    .sensor-binary-instrument .sensor-binary-caption:not(.sensor-binary-caption-unavailable) { display: none; }
+  }
+  @container sensor-card (max-width: 120px) {
+    .sensor-premium-header .sensor-category-icon { display: none; }
+    .sensor-analog-instrument :is(.sensor-analog-canvas, .sensor-analog-skeleton) { display: none; }
+    .sensor-reading-layout .sensor-analog-instrument { width: 100%; }
+    .sensor-analog-instrument .sensor-analog-readout { margin: 0; }
+    .sensor-reading-layout .sensor-state-symbol { display: none; }
+  }
+  .section-card-editor { max-width: 64rem; height: min(48rem, 100%); }
+  .section-card-editor-layout { display: grid; height: 100%; min-height: 0; min-width: 0; gap: 1rem; grid-template-rows: minmax(0, 35%) minmax(0, 1fr); }
+  .section-card-editor-preview { min-height: 0; min-width: 0; }
+  .section-card-editor-controls { min-height: 0; min-width: 0; overflow-y: auto; }
+  @media (min-width: 900px) and (orientation: landscape) {
+    .section-card-editor-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 1.5rem; }
+    .section-card-editor-preview { grid-column: 2; grid-row: 1; }
+    .section-card-editor-controls { grid-column: 1; grid-row: 1; }
+  }
   [data-dashboard-drag-origin="true"] { outline: 2px solid hsl(var(--primary)); outline-offset: -2px; background: hsl(var(--primary) / 0.1); }
   [data-dashboard-drop-target="true"] { outline: 2px solid hsl(var(--primary)); outline-offset: -2px; }
   .sensor-analog-instrument { position: relative; container-type: inline-size; width: 100%; max-width: 22rem; flex-shrink: 0; }

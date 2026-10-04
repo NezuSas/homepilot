@@ -534,6 +534,7 @@
         "sensor_visual_thermometer": "Thermometer",
         "sensor_visual_level": "Level",
         "sensor_visual_battery": "Battery",
+        "sensor_visual_switch": "Switch (ON/OFF)",
         "sensor_scale_settings": "Fixed measurement scale", "sensor_min": "Minimum", "sensor_max": "Maximum", "sensor_scale_hint": "Optional. Set both bounds to keep the scale fixed, or clear both to use the device/default scale.", "sensor_scale_invalid": "Set both finite bounds; maximum must be greater than minimum.",
         "sensor_scale_automatic": "Automatic scale",
         "sensor_low": "Low",

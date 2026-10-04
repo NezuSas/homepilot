@@ -29,8 +29,8 @@ export type LegacySectionCardKind = SectionCardKind | 'system';
 export type SectionCardSpan = 'small' | 'medium' | 'full';
 export type SectionCardIcon = string;
 export type MediaVariant = 'premium' | 'classic';
-export type SensorVisualStyle = 'auto' | 'gauge' | 'thermometer' | 'level' | 'battery';
-export const sensorVisualStyles: SensorVisualStyle[] = ['auto', 'gauge', 'thermometer', 'level', 'battery'];
+export type SensorVisualStyle = 'auto' | 'gauge' | 'thermometer' | 'level' | 'battery' | 'switch';
+export const sensorVisualStyles: SensorVisualStyle[] = ['auto', 'gauge', 'thermometer', 'level', 'battery', 'switch'];
 export function normalizeSensorVisualStyle(value: unknown): SensorVisualStyle {
   return sensorVisualStyles.find(style => style === value) ?? 'gauge';
 }

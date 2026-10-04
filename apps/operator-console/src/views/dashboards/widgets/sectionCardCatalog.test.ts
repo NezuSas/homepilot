@@ -19,9 +19,16 @@ import {
   normalizeCards,
   normalizeKind,
   normalizeSensorScale,
+  normalizeSensorVisualStyle, sensorVisualStyles,
 } from './sectionCardCatalog';
 
 describe('Sensor fixed scale (AC42)', () => {
+  it('lists and preserves the explicit switch visual style (AC54)', () => {
+    expect(sensorVisualStyles).toEqual(['auto', 'gauge', 'thermometer', 'level', 'battery', 'switch']);
+    expect(normalizeSensorVisualStyle('switch')).toBe('switch');
+    const [card] = normalizeCards({ cards: [{ id: 'bit', kind: 'sensor', visualStyle: 'switch' }] });
+    expect(normalizeCards({ cards: [card] })[0].visualStyle).toBe('switch');
+  });
   it.each([undefined, false, true])('preserves decimal opt-in %s, defaults to integers', sensorDecimals => {
     const [card] = normalizeCards({ cards: [{ id: 's', kind: 'sensor', sensorDecimals }] });
     expect(card.sensorDecimals === true).toBe(sensorDecimals === true);

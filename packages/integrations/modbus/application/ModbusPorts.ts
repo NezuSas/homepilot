@@ -1,6 +1,8 @@
 import type { Device } from '../../../devices/domain/types';
 import type { ModbusArea, ModbusConnection, ModbusVariable } from '../domain/Modbus';
 export interface ModbusRepository {
+  /** Persisted dashboard bindings only; absence retains historical polling. */
+  dashboardDeviceIds?(): ReadonlySet<string>;
   connections(homeId?: string): ModbusConnection[];
   connection(id: string): ModbusConnection | null;
   variables(connectionId: string): ModbusVariable[];

@@ -178,6 +178,7 @@ export function SectionCardItem({
       style={{
         ...getCardPresentationStyle(gridOptions?.rows),
         minHeight: explicitHeight,
+        ...(normalizedKind === 'sensor' && explicitHeight !== undefined ? { height: explicitHeight, minHeight: 0 } : {}),
         gridColumn: gridOptions?.columnStart ? `${gridOptions.columnStart} / span ${gridOptions.columns === 'full' ? 12 : gridOptions.columns}` : gridOptions ? gridOptions.columns === 'full' ? '1 / -1' : `span ${gridOptions.columns}` : undefined,
         // Tile-kind cards get a fixed uniform height so identical tiles
         // don't jitter a few pixels apart from a 1- vs 2-line title. But
@@ -211,6 +212,7 @@ export function SectionCardItem({
         // (painted by CardPreview) could end up shorter than this outer
         // box, leaving a transparent gap at the bottom.
         "homepilot-sized-card group/card relative grid min-w-0 overflow-hidden shadow-sm",
+        normalizedKind === 'sensor' && explicitHeight !== undefined && 'homepilot-bounded-sensor',
         isEditing && "touch-pan-y",
         getCardFrameClass(normalizedKind, span, tileIsActive),
         isActionable && !initialPending && "cursor-pointer hover:-translate-y-0.5 hover:shadow-depth-2 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
