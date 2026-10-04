@@ -2,6 +2,42 @@ import { expect, test } from '@playwright/test';
 import { mdiAutoFix, mdiHome, mdiRobot, mdiWeatherWindy } from '@mdi/js';
 
 for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 1024 }, { width: 1024, height: 768 }]) {
+  test(`Feature: Weather label single line — Scenario: One icon and inline reading at ${viewport.width} (AC55)`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport);
+    await prepareAuthenticatedDashboard(page);
+    await page.route('**/api.open-meteo.com/**', route => route.fulfill({ json: { current: { temperature_2m: 19, weather_code: 0, wind_speed_10m: 1 } } }));
+    const section = responsiveDashboard.tabs[0].widgets[1];
+    const fixture = { ...responsiveDashboard, tabs: [{ ...responsiveDashboard.tabs[0], widgets: [responsiveDashboard.tabs[0].widgets[0], {
+      ...section, config: { ...section.config, extra: { badgeRow: true, cards: [
+        { id: 'weather-label', kind: 'info_weather', title: 'Clima' },
+      ] } },
+    }] }] };
+    await page.route('**/api/v1/dashboards', route => route.fulfill({ json: [fixture] }));
+    await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+    const chip = page.locator('[data-dashboard-badge-row] .dashboard-context-chip');
+    await expect(chip).toContainText('19°C');
+    await expect(chip.locator('svg')).toHaveCount(1);
+    for (const theme of ['light', 'dark']) {
+      await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
+      const geometry = await chip.evaluate(element => {
+        const icon = element.querySelector('svg')!.getBoundingClientRect();
+        const text = element.querySelector('span.truncate')!;
+        const bounds = text.getBoundingClientRect();
+        const range = document.createRange(); range.selectNodeContents(text);
+        return { iconCenter: icon.y + icon.height / 2, textCenter: bounds.y + bounds.height / 2,
+          lines: new Set(Array.from(range.getClientRects(), rect => Math.round(rect.top))).size, whiteSpace: getComputedStyle(text).whiteSpace,
+          right: element.getBoundingClientRect().right, viewport: document.documentElement.clientWidth };
+      });
+      expect(Math.abs(geometry.iconCenter - geometry.textCenter)).toBeLessThan(2);
+      expect(geometry.lines).toBe(1);
+      expect(geometry.whiteSpace).toBe('nowrap');
+      expect(geometry.right).toBeLessThanOrEqual(geometry.viewport);
+      await page.screenshot({ path: testInfo.outputPath(`weather-label-${theme}.png`), animations: 'disabled' });
+    }
+  });
+}
+
+for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 1024 }, { width: 1024, height: 768 }]) {
   test(`Feature: Dashboard label row — Scenario: Separate labels persist and edit controls remain explicit at ${viewport.width} (AC55)`, async ({ page }, testInfo) => {
     await page.setViewportSize(viewport);
     await prepareAuthenticatedDashboard(page);
@@ -412,6 +448,54 @@ test('Feature: Safe Modbus deletion — Scenario: Confirm cancel conflict and de
 });
 
 for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'tablet portrait', width: 768, height: 1024 }, { name: 'tablet landscape', width: 1024, height: 768 }, { name: 'desktop', width: 1440, height: 900 }]) {
+  test(`Feature: PLC declarative outputs — Scenario: Search select remove and persist fit ${viewport.name} (AC37)`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport); await prepareAuthenticatedDashboard(page);
+    await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: 'h', name: 'Home' }] }));
+    const variables: Array<Record<string, unknown>> = [];
+    const connection = { id: 'plc', homeId: 'h', name: 'PLC simulado', host: '192.168.1.5', port: 502, unitId: 1, enabled: false, timeoutMs: 2000, pollIntervalMs: 5000, profileId: 'xinje-xl5e-16t-v1', moduleCapacities: { CPU: { inputs: 8, outputs: 8 } }, variables };
+    let commandRequests = 0;
+    await page.route('**/api/v1/devices/*/command', route => { commandRequests++; return route.fulfill({ json: {} }); });
+    await page.route('**/api/v1/modbus/**', route => {
+      if (route.request().method() === 'GET') return route.fulfill({ json: { connections: [connection] } });
+      const saved = { ...route.request().postDataJSON(), deviceId: 'v', connectionId: 'plc' };
+      variables.push(saved); return route.fulfill({ json: { variable: saved } });
+    });
+    await page.goto('/system/modbus');
+    await page.evaluate(language => localStorage.setItem('i18nextLng', language), viewport.name.includes('tablet') ? 'es' : 'en'); await page.reload();
+    await page.getByRole('button', { name: /^(View variables|Ver variables)$/i }).click();
+    await page.getByRole('button', { name: /^(Add variable|Añadir variable)$/i }).click();
+    const editor = page.getByRole('dialog', { name: /^(Configure variable|Configurar variable)$/i });
+    await editor.getByLabel(/^(Name|Nombre)$/i).fill('CMDPLC 1');
+    await editor.getByLabel(/^(PLC element|Elemento PLC)$/i, { exact: true }).fill('M100');
+    await editor.getByRole('button', { name: /^(PLC role|Rol PLC)$/i }).click();
+    await page.getByRole('option', { name: /^(PLC commands|Comandos PLC)$/i, exact: true }).click();
+    for (const symbol of ['Y0', 'Y1']) {
+      await editor.getByRole('button', { name: /^(Related outputs|Salidas relacionadas)$/i }).click();
+      await page.getByRole('searchbox').fill(symbol);
+      await page.getByRole('option', { name: symbol, exact: true }).click();
+    }
+    await editor.getByRole('button', { name: /^(Remove Y1|Quitar Y1)$/i }).click();
+    await expect(editor.getByRole('button', { name: /^(Remove Y1|Quitar Y1)$/i })).toHaveCount(0);
+    await editor.getByRole('button', { name: /^(Related outputs|Salidas relacionadas)$/i }).click();
+    await page.getByRole('searchbox').fill('Y1');
+    await page.getByRole('option', { name: 'Y1', exact: true }).click();
+    for (const theme of ['dark', 'light']) {
+      await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
+      await editor.getByRole('button', { name: /^(Related outputs|Salidas relacionadas)$/i }).scrollIntoViewIfNeeded();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+      const bounds = (await editor.boundingBox())!;
+      expect(bounds.width).toBeLessThanOrEqual(viewport.width);
+      expect(bounds.y + bounds.height).toBeLessThanOrEqual(viewport.height + 1);
+      await page.screenshot({ path: testInfo.outputPath(`related-outputs-${theme}.png`), animations: 'disabled' });
+    }
+    await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
+    await expect(editor).not.toBeVisible();
+    expect(variables[0]).toMatchObject({ plc: { role: 'output_command', command: { symbolicAddress: 'M100' }, relatedPhysicalOutputs: [{ symbolicAddress: 'Y0' }, { symbolicAddress: 'Y1' }], feedbackPolicy: 'none' } });
+    expect((variables[0].plc as Record<string, unknown>).physical).toBeUndefined();
+    await expect(page.getByText(/Salidas relacionadas: Y0 · Y1|Related outputs: Y0 · Y1/)).toBeVisible();
+    await expect(page.getByText(/Estado leído del comando:|Command read state:/)).toBeVisible();
+    expect(commandRequests).toBe(0);
+  });
   test(`Feature: Sensor visualizers — Scenario: Shared shell preview and persistence fit ${viewport.name} (AC45)`, async ({ page }, testInfo) => {
     await page.setViewportSize(viewport);
     const section = responsiveDashboard.tabs[0]!.widgets[1]!;
@@ -611,6 +695,8 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     await page.goto('/system/modbus');
     await page.getByRole('button', { name: /^(Test reading|Probar lectura)$/i }).click();
     const dialog = page.getByRole('dialog', { name: /^(Test reading|Probar lectura)$/i });
+    await expect(dialog.getByRole('status')).toHaveText(/No test executed|Sin prueba ejecutada/i);
+    expect(probeBody).toBeUndefined();
     await dialog.getByLabel(/^(PLC private IP|IP privada del PLC)$/i).fill('192.168.1.5');
     await dialog.getByLabel(/^(End PDU|PDU final)$/i).fill('102');
     await dialog.getByRole('button', { name: /^(Read range|Leer rango)$/i }).click();
@@ -712,7 +798,7 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     await editor.getByLabel(/^(Physical output|Salida física)$/i).fill('Y0');
     await expect(editor.getByLabel(/^(PLC command|Comando PLC)$/i, { exact: true })).toHaveValue('M100');
     expect(await editor.locator('input').evaluateAll(inputs => inputs.filter(input => (input as HTMLInputElement).value === 'M100').length)).toBe(1);
-    await editor.getByRole('button', { name: /^(Confirmation|Confirmación)$/i }).click();
+    await editor.getByRole('button', { name: /^(Feedback policy|Política de feedback)$/i }).click();
     await page.getByRole('option', { name: /^(Required|Obligatorio)$/i, exact: true }).click();
     await editor.getByLabel(/^(Independent feedback|Feedback independiente)$/i).fill('M200');
     const write = editor.getByRole('switch');
@@ -731,12 +817,12 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     expect(variables[0]).toMatchObject({ writable: true, plc: { role: 'output', command: { symbolicAddress: 'M100', address: 100 }, physical: { symbolicAddress: 'Y0', address: 24576 }, feedback: { symbolicAddress: 'M200', address: 200 }, feedbackPolicy: 'required' } });
     await page.reload(); await openDetail(); await expect(card).toContainText('M200');
     await expect(card).toContainText(/Requested state: Active|Estado solicitado: Activo/);
-    await expect(card).toContainText(/Actual state: Inactive|Estado real: Inactivo/);
+      await expect(card).toContainText(/Read state: Inactive|Estado leído: Inactivo/);
     // AC34: explicit no-feedback output, command derived on save, physical edits isolated.
     await card.getByRole('button', { name: /^(Configure Luz exterior|Configurar Luz exterior)$/i }).click();
     await editor.getByLabel(/^(PLC command|Comando PLC)$/i, { exact: true }).fill('M200');
     await expect(editor.getByLabel(/^(Physical output|Salida física)$/i)).toHaveValue('Y0');
-    await editor.getByRole('button', { name: /^(Confirmation|Confirmación)$/i }).click();
+    await editor.getByRole('button', { name: /^(Feedback policy|Política de feedback)$/i }).click();
     await page.getByRole('option', { name: /^(No feedback|Sin feedback)$/i, exact: true }).click();
     await expect(editor.getByLabel(/^(Independent feedback|Feedback independiente)$/i)).toHaveCount(0);
     await expect(editor.getByRole('button', { name: /^(Command mode|Modo de comando)$/i })).toContainText(/Sustained|Sostenido/);

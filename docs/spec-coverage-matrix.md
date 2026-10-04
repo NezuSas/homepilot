@@ -109,7 +109,7 @@ The command fails if a file cannot be mapped to an existing spec.
 - AC48 colocación y controles (2026-10-03): coordenadas opcionales en JSON compatible, conservación de huecos, colisiones, crecimiento intrínseco y transferencia; anchos según canvas y acciones de Section unificadas. Tests focalizados 222/222 PASS en 10 suites; sin ejecución responsive ni certificación táctil.
 - AC48 mínimos/preview/menús: ActionMenu y CardPreviewFrame con pruebas propias; tamaño nuevo mínimo 2 × 2 sin reescribir histórico, preview estable y título primero. 48/48 Jest PASS, typecheck/lint/builds y checks de spec/BDD/módulos PASS; responsive no ejecutado.
 - AC48 transferencia/etiquetas: tamaño proporcional entre Sections, preview uniforme y Etiqueta independiente; 153/153 tests focalizados PASS, tipos/lint/builds/spec/BDD/módulos/i18n/arquitectura PASS. Sin responsive ni comprobación visual en tablet.
-- The **969** audited TypeScript/TSX files have a mapping rule to an existing
+- The **970** audited TypeScript/TSX files have a mapping rule to an existing
   spec.
 - All bounded contexts under `packages/` and all API route families are
   covered.

@@ -1,5 +1,6 @@
 {
   "modbus": {
+    "not_started": "Sin prueba ejecutada",
     "variables": "Variables",
     "delete": "Eliminar", "delete_connection": "Eliminar conexión", "delete_variable": "Eliminar variable", "delete_confirmation": "Se eliminará la configuración guardada. No se escribe al PLC. Esta acción no se puede deshacer.", "delete_error": "No se pudo eliminar. Comprueba tu acceso y reintenta.", "connection_in_use": "Elimina primero las variables de esta conexión.", "variable_in_use": "Esta variable se usa en una escena, automatización o tablero. Quita esas referencias antes de eliminarla.",
     "no_unit": "Sin unidad", "result_filter": "Lecturas", "filter_all": "Todas", "filter_valid": "Lecturas válidas", "filter_active": "Con actividad / RAW distinto de cero", "filtered_count": "{{count}} de {{total}} lecturas",
@@ -2119,7 +2120,19 @@
     "no_content_yet": "No hay contenido disponible todavía"
   },
   "plc": {
+    "read_state": "Estado leído",
+    "command_read_matches": "Coincide con la lectura del comando",
+    "command_read_pending": "Lectura del comando pendiente",
+    "command_read_unverified": "Coincidencia con el comando no verificada",
+    "command_read_unavailable": "Sin lectura actual del comando",
+    "no_independent_feedback": "Sin feedback independiente: la lectura del comando no confirma la actuación física.",
     "physical_hint": "Canal físico controlado por el Ladder; no confirma por sí solo el estado.",
+    "related_logical_point": "Punto lógico relacionado",
+    "related_outputs": "Salidas relacionadas",
+    "command_read_state": "Estado leído del comando",
+    "add_related_output": "Añadir salida",
+    "remove_related_output": "Quitar {{symbol}}",
+    "related_outputs_hint": "Relación declarada con el Ladder. No configura su lógica ni confirma actuación física.",
     "feedback_hint": "Dirección que se lee para confirmar el estado real. Debe ser distinta del comando; configúrala según el Ladder.",
     "variable_count": "{{count}} variables",
     "open_connection": "Ver variables",
@@ -2134,8 +2147,8 @@
     "allow_setpoint_write": "Permitir escritura del setpoint", "assignment_hint": "Asigna una estancia para usar esta variable en tableros y rutinas. Guardar no envía un comando físico.",
     "measurement_value": "Valor medido", "comparison": "Comparación", "comparisons": { "eq": "Igual a", "gt": "Mayor que", "gte": "Mayor o igual que", "lt": "Menor que", "lte": "Menor o igual que" },
     "authorize_command": "Autorizar comando PLC", "write_warning": "Este comando puede accionar equipos conectados. Revisa el binding y confirma que es seguro antes de continuar.", "setpoint_value": "Valor objetivo", "confirm_write": "Confirmar y ejecutar", "command_failed": "El comando no se confirmó. Revisa el estado real y el diagnóstico antes de decidir si envías otro comando.", "test_command": "Probar comando", "test_command_named": "Probar comando de {{name}}",
-    "title": "PLC I/O", "role": "Rol PLC", "legacy": "Variables", "command": "Comando", "command_hint": "Usa el elemento PLC configurado arriba.", "physical": "Entrada/salida física", "feedback": "Feedback independiente", "logical": "Entrada lógica (opcional)", "feedback_policy": "Confirmación", "feedback_timeout": "Espera de feedback (ms)", "mode": "Modo de comando", "pulse_duration": "Duración del pulso (ms)", "minimum": "Mínimo", "maximum": "Máximo", "room": "Estancia", "unassigned": "Sin asignar", "profile_required": "Selecciona un perfil PLC para configurar direcciones simbólicas.", "watchdog_warning": "El reset requiere un watchdog en el PLC: una caída de red o alimentación puede impedir el OFF.", "setpoint_hint": "Setpoints D/HD requieren perfil Xinje v2, límites y escritura autorizada explícitamente.", "assignment_failed": "La variable se guardó, pero no se pudo asignar la estancia. Revisa la selección y vuelve a guardar.", "online": "En línea", "unavailable": "No disponible", "awaiting": "Sin lectura", "on": "Activo", "off": "Inactivo", "technical": "Diagnóstico técnico",
-    "roles": { "input": "Entradas", "output": "Salidas", "output_command": "Comandos de salida", "output_feedback": "Feedback de salida", "measurement": "Mediciones", "setpoint": "Setpoints", "diagnostic": "Diagnóstico" },
+    "title": "PLC I/O", "role": "Rol PLC", "legacy": "Variables", "command": "Comando", "command_hint": "Usa el elemento PLC configurado arriba.", "physical": "Entrada/salida física", "feedback": "Feedback independiente", "logical": "Entrada lógica (opcional)", "feedback_policy": "Política de feedback", "feedback_timeout": "Espera de feedback (ms)", "mode": "Modo de comando", "pulse_duration": "Duración del pulso (ms)", "minimum": "Mínimo", "maximum": "Máximo", "room": "Estancia", "unassigned": "Sin asignar", "profile_required": "Selecciona un perfil PLC para configurar direcciones simbólicas.", "watchdog_warning": "El reset requiere un watchdog en el PLC: una caída de red o alimentación puede impedir el OFF.", "setpoint_hint": "Setpoints D/HD requieren perfil Xinje v2, límites y escritura autorizada explícitamente.", "assignment_failed": "La variable se guardó, pero no se pudo asignar la estancia. Revisa la selección y vuelve a guardar.", "online": "En línea", "unavailable": "No disponible", "awaiting": "Sin lectura", "on": "Activo", "off": "Inactivo", "technical": "Diagnóstico técnico",
+    "roles": { "input": "Entradas", "output": "Salidas", "output_command": "Comandos PLC", "output_feedback": "Feedback independiente", "measurement": "Mediciones", "setpoint": "Setpoints", "diagnostic": "Diagnóstico" },
     "policies": { "none": "Sin feedback", "optional": "Opcional", "required": "Obligatorio" }, "modes": { "sustained": "Sostenido", "pulse": "Momentáneo" },
     "confirmations": { "pending": "Pendiente", "confirmed": "Confirmado", "unconfirmed": "Sin confirmar", "reset_failed": "Falló el reset", "pulse_completed": "Pulso finalizado" }
   },

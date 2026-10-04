@@ -1,6 +1,10 @@
 # ModbusConnectionCard
 
-Refinamiento AC35: el detalle presenta tres grupos en orden estable, Entradas/Salidas/Variables, con iconos y conteos. Comandos/físico/feedback de salida permanecen juntos con su rol visible; históricos y mediciones conservan contratos y precisión. La clasificación solo afecta presentación, no permisos ni ejecución.
+AC37: los comandos con `relatedPhysicalOutputs` muestran Salidas relacionadas (símbolos separados) y, sin feedback, Estado leído del comando. La lista es metadata declarativa: no se utiliza como lectura, escritura, actualState ni feedback. No se agrega estado mixto/agregado. Los bindings históricos y los destinos singulares mantienen su presentación existente; no se configura M100/M101 automáticamente.
+
+AC26: la política `none`, no la presencia/ausencia de una dirección, determina la terminología sin confirmación física. El mapper UI `plcStatusLabel` conserva los estados internos y cambia solo las etiquetas: coincidencia con lectura del comando, lectura pendiente, coincidencia no verificada, o sin lectura actual si no está disponible. Reset/pulso mantienen su mensaje operativo; optional/required mantienen la presentación existente. No cambia bindings ni ejecución.
+
+Refinamiento AC26/AC35 (manual V4): el detalle presenta Entradas/Salidas/Comandos PLC/Feedback independiente/Variables, con iconos y conteos. La clasificación usa únicamente el rol guardado: no deduce relaciones Ladder por símbolo o nombre ni reclasifica históricos. Comandos sin feedback independiente muestran «Estado leído» y, si el estado interno es confirmed, «Coincide con la lectura del comando», no confirmación física. El estado interno, los contratos, precisión, permisos y ejecución no cambian. Physical sigue siendo un binding declarado, no prueba de actuación física; una configuración errónea requiere verificar el Ladder antes de corregirla.
 
 AC35: optional `onOpen` renders the compact connection summary (variable/OK/error counts), without variable rows or commands. ModbusView opens the selected connection locally and provides a back action, keeping polling and refresh unchanged. Summary skeleton mirrors that composition. Numeric values share formatMeasurement (maximum two displayed decimals); underlying diagnostics/RAW are unchanged.
 

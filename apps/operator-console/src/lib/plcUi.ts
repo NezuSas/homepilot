@@ -8,6 +8,27 @@ export const modbusWordOrders = ['high_first', 'low_first'] as const;
 export const modbusRefreshIntervals = [1000, 5000, 10000, 30000, 60000] as const;
 export const plcSwitchCommands = ['turn_on', 'turn_off'] as const;
 
+/** Labels describe the stored symbol, never an inferred Ladder relationship. */
+export function plcRelatedPointLabel(symbol: string): string {
+  if (/^Y[0-9]+$/i.test(symbol.trim())) return 'plc.physical_output';
+  if (/^X[0-9]+$/i.test(symbol.trim())) return 'plc.physical_input';
+  return 'plc.related_logical_point';
+}
+
+/** Presentation only: a no-feedback policy never claims independent confirmation. */
+export function plcStatusLabel(variable: ModbusVariable, confirmation: unknown, readingAvailable: boolean): string | undefined {
+  if (typeof confirmation !== 'string') return undefined;
+  if (variable.plc?.feedbackPolicy !== 'none') return `plc.confirmations.${confirmation}`;
+  const labels: Record<string, string> = {
+    confirmed: readingAvailable ? 'plc.command_read_matches' : 'plc.command_read_unavailable',
+    pending: 'plc.command_read_pending',
+    unconfirmed: 'plc.command_read_unverified',
+    reset_failed: 'plc.confirmations.reset_failed',
+    pulse_completed: 'plc.confirmations.pulse_completed',
+  };
+  return labels[confirmation];
+}
+
 /** UI wording only; the service/dispatcher remain authoritative. Unknown errors never expose transport text. */
 export function plcErrorKey(code: unknown): string {
   const keys: Record<string, string> = { TIMEOUT: 'timeout', CONNECTION: 'connection', connection_error: 'connection', INVALID_CONFIG: 'mapping', CONVERSION: 'conversion', READ_ONLY: 'write_rejected', FORBIDDEN: 'permission', FEEDBACK_TIMEOUT: 'feedback', RESET_FAILED: 'reset', DISABLED: 'disabled', PROTOCOL: 'protocol', NOT_FOUND: 'missing', LIMIT: 'busy', IN_USE: 'in_use' };

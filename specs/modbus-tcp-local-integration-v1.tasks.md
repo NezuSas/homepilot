@@ -1,5 +1,22 @@
 # Tareas — Modbus TCP local V1
 
+## Relación declarativa de salidas — AC37
+
+- [x] Añadir lista opcional al binding/JSON y validación por clasificación del perfil, sin migración ni cambios de servicios de ejecución.
+- [x] Editor buscable con selección acumulativa, resumen y retirada individual; listado y ES/EN sin confirmación física.
+- [x] Validar persistencia, compatibilidad, transporte simulado y responsive focal. 8 suites Jest: 345/345 PASS; 4 escenarios AC37 móvil/tablet portrait/tablet landscape/desktop, ES/EN y claro/oscuro: 4/4 PASS. Typecheck, lint, arquitectura, spec, BDD, módulo, no-production-any e i18n PASS. Sin configuración real, PLC físico, Git ni deploy; no responsive completo. Primer intento Playwright bloqueado por permisos del sandbox sobre artefactos; reejecución local autorizada PASS.
+
+## Claridad manual V4 — AC26
+
+- [x] Usar feedbackPolicy none como autoridad de etiquetas, incluso con metadatos históricos; sustituir «Confirmación» por «Política de feedback» y no presentar coincidencias cuando no hay lectura disponible. Cobertura de render y traducciones ES/EN; backend y bindings intactos.
+- [x] Validación de esta corrección: PlcBindingEditor/plcUi, 48/48 tests PASS; escenario PLC I/O tablet portrait, 1/1 PASS con API simulada. Typecheck raíz/consola y lint PASS; controles spec/BDD/módulo PASS. Sin comandos físicos, cambios SQLite, Git ni deploy; no responsive completo.
+
+- [x] Separar comandos/feedback por rol declarado sin inferir relaciones ni modificar JSON.
+- [x] Distinguir lectura del comando de confirmación física; estado inicial del Probe sin prueba ejecutada.
+- [x] Validación local: 10 suites Jest focalizadas, 317/317 PASS; dos escenarios Playwright seleccionados de tablet portrait (editor PLC y Read Probe), 2/2 PASS con API simulada. Typecheck raíz/consola, lint y controles spec/BDD/módulo PASS. Sin PLC físico, Git ni deploy. No responsive completo ni certificación de configuración desplegada.
+- [ ] Corregir X1 y deduplicar M200/Y0: pendiente de base real y referencias verificables (base local inspeccionada sin tablas Modbus).
+- [ ] Confirmar función de M100/M101: falta Ladder correspondiente; no reclasificar por nombre.
+
 ## Refinamiento de jerarquía AC35
 
 - [x] Separar Entradas/Salidas/Variables con iconos/conteos de paleta vigente y roles explícitos, sin modificar datos ni ejecución.

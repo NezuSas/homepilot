@@ -8,6 +8,8 @@ export interface PlcBinding {
   role: PlcRole;
   command?: PlcAddress;
   physical?: PlcAddress;
+  /** Declarative destinations only: never transport reads, writes or feedback. */
+  relatedPhysicalOutputs?: PlcAddress[];
   feedback?: PlcAddress;
   logical?: PlcAddress;
   feedbackPolicy: 'none' | 'optional' | 'required';
@@ -49,6 +51,24 @@ export function validatePlcBinding(value: unknown, variable: Pick<ModbusVariable
   if (['input', 'output', 'output_command', 'output_feedback'].includes(role) && variable.dataType !== 'boolean') return invalid();
   if (['measurement', 'setpoint'].includes(role) && variable.dataType === 'boolean') return invalid();
   const command = address(input.command, true), physical = address(input.physical), feedback = address(input.feedback), logical = address(input.logical);
+  let relatedPhysicalOutputs: PlcAddress[] | undefined;
+  if (input.relatedPhysicalOutputs !== undefined) {
+    if (!Array.isArray(input.relatedPhysicalOutputs)) return invalid();
+    if (input.relatedPhysicalOutputs.length) {
+      if (physical || role !== 'output_command' || !command) return invalid();
+      const seen = new Set<string>();
+      relatedPhysicalOutputs = input.relatedPhysicalOutputs.map(item => {
+        const point = address(item);
+        if (!point || point.profileId !== variable.profileId) return invalid();
+        const resolved = resolveModbusAddress(point.profileId, point.symbolicAddress, capacities);
+        if (resolved.segment.channel !== 'outputs') return invalid();
+        const key = `${point.area}:${point.address}`;
+        if (seen.has(key)) return invalid();
+        seen.add(key);
+        return point;
+      });
+    }
+  }
   const feedbackPolicy = input.feedbackPolicy ?? 'none', mode = input.mode ?? 'sustained';
   if (!['none', 'optional', 'required'].includes(String(feedbackPolicy)) || !['sustained', 'pulse'].includes(String(mode))) return invalid();
   if (feedbackPolicy !== 'none' && !feedback) return invalid();
@@ -71,7 +91,7 @@ export function validatePlcBinding(value: unknown, variable: Pick<ModbusVariable
     try { if (!resolveModbusAddress(command.profileId, command.symbolicAddress, capacities).segment.supportsPulse) return invalid(); } catch { return invalid(); }
   }
   try { validateProfileMapping(variable, modbusWordCount(variable.dataType), capacities); } catch { return invalid(); }
-  return { role, ...(command ? { command } : {}), ...(physical ? { physical } : {}), ...(feedback ? { feedback } : {}), ...(logical ? { logical } : {}), feedbackPolicy: feedbackPolicy as PlcBinding['feedbackPolicy'], feedbackTimeoutMs: bounded(input.feedbackTimeoutMs, 2000, 250, 10000), mode: mode as PlcBinding['mode'], pulseDurationMs: bounded(input.pulseDurationMs, 500, 100, 5000), ...(role === 'setpoint' ? { min: input.min as number, max: input.max as number } : {}) };
+  return { role, ...(command ? { command } : {}), ...(physical ? { physical } : {}), ...(relatedPhysicalOutputs ? { relatedPhysicalOutputs } : {}), ...(feedback ? { feedback } : {}), ...(logical ? { logical } : {}), feedbackPolicy: feedbackPolicy as PlcBinding['feedbackPolicy'], feedbackTimeoutMs: bounded(input.feedbackTimeoutMs, 2000, 250, 10000), mode: mode as PlcBinding['mode'], pulseDurationMs: bounded(input.pulseDurationMs, 500, 100, 5000), ...(role === 'setpoint' ? { min: input.min as number, max: input.max as number } : {}) };
 }
 
 /** Explicit binding converted into the existing generic transport variable. */

@@ -1,25 +1,35 @@
 import type { ReactNode } from 'react';
+import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { ModbusVariable } from '../../../../packages/integrations/modbus/domain/Modbus';
 import { plcRoles, type PlcAddress, type PlcBinding } from '../../../../packages/integrations/modbus/domain/PlcBinding';
-import { resolveModbusAddress } from '../../../../packages/integrations/modbus/domain/ModbusAddressProfile';
+import { modbusAddressProfiles, resolveModbusAddress, type ModbusModuleCapacities } from '../../../../packages/integrations/modbus/domain/ModbusAddressProfile';
 import { Input } from './ui/Input';
 import { NumberInput } from './ui/NumberInput';
 import { SearchableSelectField } from './ui/SearchableSelectField';
 import { AlertBanner } from './ui/AlertBanner';
+import { Button } from './ui/Button';
 import { plcFeedbackPolicies, plcCommandModes } from '../lib/plcUi';
 
 type Draft = Omit<ModbusVariable, 'deviceId' | 'connectionId'>;
 /** Local extension: inherited palette; explicit relationships, no inferred Ladder. */
-export function PlcBindingEditor({ variable, onChange, commandField }: { variable: Draft; onChange: (value: Draft) => void; commandField?: ReactNode }) {
+export function PlcBindingEditor({ variable, onChange, commandField, capacities }: { variable: Draft; onChange: (value: Draft) => void; commandField?: ReactNode; capacities?: ModbusModuleCapacities }) {
   const { t } = useTranslation();
   const plc = variable.plc;
   const update = (fields: Partial<PlcBinding>) => { if (plc) onChange({ ...variable, plc: { ...plc, ...fields } }); };
   const resolve = (symbol: string): PlcAddress => {
     const profileId = variable.profileId ?? '';
-    try { const result = resolveModbusAddress(profileId, symbol); return { profileId, symbolicAddress: result.symbolicAddress, area: result.area, address: result.address }; }
+    try { const result = resolveModbusAddress(profileId, symbol, capacities); return { profileId, symbolicAddress: result.symbolicAddress, area: result.area, address: result.address }; }
     catch { return { profileId, symbolicAddress: symbol.toUpperCase(), area: 'coil', address: -1 }; }
   };
+  const profile = modbusAddressProfiles.find(item => item.id === variable.profileId);
+  const outputOptions = profile?.segments.filter(segment => segment.channel === 'outputs').flatMap(segment =>
+    Array.from({ length: segment.count }, (_, index) => profile.format(segment, segment.first + index)).flatMap(symbol => {
+      try {
+        resolveModbusAddress(profile.id, symbol, capacities);
+        return plc?.relatedPhysicalOutputs?.some(point => point.symbolicAddress === symbol) ? [] : [{ value: symbol, label: symbol, group: segment.module }];
+      } catch { return []; }
+    })) ?? [];
   return <fieldset className="min-w-0 space-y-3 border-t border-border pt-3 sm:col-span-2">
     <legend className="px-1 text-body-compact font-semibold">{t('plc.title')}</legend>
     <SearchableSelectField label={t('plc.role')} value={plc?.role ?? 'legacy'} options={[{ value: 'legacy', label: t('plc.legacy') }, ...plcRoles.map(value => ({ value, label: t(`plc.roles.${value}`) }))]} onChange={role => {
@@ -30,6 +40,11 @@ export function PlcBindingEditor({ variable, onChange, commandField }: { variabl
       {!variable.profileId && <AlertBanner variant="warning" message={t('plc.profile_required')} />}
       <div className="grid gap-3 sm:grid-cols-2">
         {plc.role === 'output_command' && <Input label={t('plc.command')} value={variable.symbolicAddress ?? ''} readOnly helperText={t('plc.command_hint')} />}
+        {plc.role === 'output_command' && <div className="min-w-0 space-y-2">
+          <SearchableSelectField label={t('plc.related_outputs')} value="" placeholder={t('plc.add_related_output')} options={outputOptions} disabled={!profile || !!plc.physical} onChange={symbol => update({ relatedPhysicalOutputs: [...(plc.relatedPhysicalOutputs ?? []), resolve(symbol)] })} />
+          <ul aria-label={t('plc.related_outputs')} className="flex flex-wrap gap-2">{plc.relatedPhysicalOutputs?.map(point => <li key={`${point.area}:${point.address}`}><Button type="button" variant="secondary" aria-label={t('plc.remove_related_output', { symbol: point.symbolicAddress })} onClick={() => update({ relatedPhysicalOutputs: plc.relatedPhysicalOutputs?.filter(item => item !== point) })}>{point.symbolicAddress}<X aria-hidden="true" className="size-4" /></Button></li>)}</ul>
+          <p className="text-caption text-muted-foreground">{t('plc.related_outputs_hint')}</p>
+        </div>}
         {['input', 'output'].includes(plc.role) && <Input label={t(plc.role === 'output' ? 'plc.physical_output' : 'plc.physical_input')} value={plc.physical?.symbolicAddress ?? ''} maxLength={32} helperText={plc.role === 'output' ? t('plc.physical_hint') : undefined} onChange={event => update({ physical: event.target.value ? resolve(event.target.value) : undefined })} />}
         {plc.role === 'output' && commandField}
         {plc.role === 'input' && <Input label={t('plc.logical')} value={plc.logical?.symbolicAddress ?? ''} maxLength={32} onChange={event => update({ logical: event.target.value ? resolve(event.target.value) : undefined })} />}

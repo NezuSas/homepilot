@@ -1,4 +1,4 @@
-import { ArrowDownToLine, ArrowUpFromLine, Cable, Settings, Variable } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpFromLine, Cable, Settings, Variable, Terminal, Activity } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { ModbusConnection, ModbusVariable, ModbusDiagnostic } from '../../../../packages/integrations/modbus/domain/Modbus';
 import { Button } from './ui/Button';
@@ -6,19 +6,23 @@ import { LoadingState } from './ui/LoadingState';
 import { DashboardSkeletonBar as Bar } from './ui/DashboardCardSkeleton';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import { modbusAddressProfiles } from '../../../../packages/integrations/modbus/domain/ModbusAddressProfile';
-import { plcConnectionAvailable, plcConnectionKey, plcErrorKey, plcReadFunction, plcSensorDevice } from '../lib/plcUi';
+import { plcConnectionAvailable, plcConnectionKey, plcErrorKey, plcReadFunction, plcRelatedPointLabel, plcSensorDevice, plcStatusLabel } from '../lib/plcUi';
 import { SensorMetricCard } from '../views/dashboards/widgets/SensorMetricCard';
 import { formatMeasurement } from '../lib/formatMeasurement';
 
 export type ModbusConnectionSummary = ModbusConnection & { diagnostic?: ModbusDiagnostic; variables: (ModbusVariable & { diagnostic?: ModbusDiagnostic })[] };
-export function getModbusVariableGroup(variable: ModbusVariable): 'input' | 'output' | 'variable' {
+export function getModbusVariableGroup(variable: ModbusVariable): 'input' | 'output' | 'command' | 'feedback' | 'variable' {
   if (variable.plc?.role === 'input') return 'input';
-  if (variable.plc && ['output', 'output_command', 'output_feedback'].includes(variable.plc.role)) return 'output';
+  if (variable.plc?.role === 'output') return 'output';
+  if (variable.plc?.role === 'output_command') return 'command';
+  if (variable.plc?.role === 'output_feedback') return 'feedback';
   return 'variable';
 }
 const variableGroups = [
   { id: 'input', label: 'plc.roles.input', icon: ArrowDownToLine },
   { id: 'output', label: 'plc.roles.output', icon: ArrowUpFromLine },
+  { id: 'command', label: 'plc.roles.output_command', icon: Terminal },
+  { id: 'feedback', label: 'plc.roles.output_feedback', icon: Activity },
   { id: 'variable', label: 'modbus.variables', icon: Variable },
 ] as const;
 export function ModbusConnectionCard({ connection, onEdit, onAdd, onVariable, onCommand, onOpen }: {
@@ -55,14 +59,19 @@ export function ModbusConnectionCard({ connection, onEdit, onAdd, onVariable, on
         const commanded = variable.diagnostic?.commandedState ?? state?.commandedState;
         const hasCommand = typeof commanded === 'boolean' || typeof commanded === 'number';
         const unavailable = !plcConnectionAvailable(connection) || (variable.diagnostic?.status !== undefined ? variable.diagnostic.status !== 'online' : state?.available === false || state?.stale === true);
+        const statusLabel = plcStatusLabel(variable, confirmation, !unavailable && value !== undefined);
+        const hasRelatedOutputs = !!variable.plc?.relatedPhysicalOutputs?.length;
+        const readLabel = hasRelatedOutputs && variable.plc?.feedbackPolicy === 'none' ? 'plc.command_read_state' : hasCommand ? 'plc.read_state' : undefined;
         return <li key={variable.deviceId} className="flex flex-wrap items-start gap-2 py-2">
           <div className="min-w-0 basis-full sm:basis-0 sm:flex-1"><p className="break-words text-body-compact font-medium">{variable.name}</p>
             <p className="break-words text-caption text-muted-foreground">{t(variable.plc ? `plc.roles.${variable.plc.role}` : 'plc.legacy')} · {variable.symbolicAddress ?? `${t(`modbus.${variable.area}`)} ${variable.address}`} · {t(variable.writable ? 'modbus.write_allowed' : 'modbus.read_only')}</p>
-            {variable.plc && <p className="break-words text-caption text-muted-foreground">{[variable.plc.command && `${t('plc.command')}: ${variable.plc.command.symbolicAddress}`, variable.plc.physical && `${t('plc.physical')}: ${variable.plc.physical.symbolicAddress}`, variable.plc.logical && `${t('plc.logical')}: ${variable.plc.logical.symbolicAddress}`, ['output', 'output_command'].includes(variable.plc.role) && `${t('plc.feedback')}: ${variable.plc.feedback?.symbolicAddress ?? t('plc.not_configured')}`].filter(Boolean).join(' · ')}</p>}
+            {variable.plc && <p className="break-words text-caption text-muted-foreground">{[variable.plc.command && `${t('plc.command')}: ${variable.plc.command.symbolicAddress}`, variable.plc.physical && `${t(plcRelatedPointLabel(variable.plc.physical.symbolicAddress))}: ${variable.plc.physical.symbolicAddress}`, variable.plc.logical && `${t('plc.logical')}: ${variable.plc.logical.symbolicAddress}`, ['output', 'output_command'].includes(variable.plc.role) && `${t('plc.feedback')}: ${variable.plc.feedback?.symbolicAddress ?? t('plc.not_configured')}`].filter(Boolean).join(' · ')}</p>}
+            {!!variable.plc?.relatedPhysicalOutputs?.length && <p className="break-words text-caption text-muted-foreground">{t('plc.related_outputs')}: {variable.plc.relatedPhysicalOutputs.map(point => point.symbolicAddress).join(' · ')}</p>}
             {variable.plc?.mode === 'pulse' && <p className="text-caption text-muted-foreground">{t('plc.modes.pulse')} · {variable.plc.pulseDurationMs} ms</p>}
             {variable.plc?.role === 'setpoint' && <p className="text-caption text-muted-foreground">{t('plc.limits')}: {variable.plc.min} – {variable.plc.max} {variable.unit}</p>}
             {hasCommand && <p className="text-caption tabular-nums">{t('plc.requested_state')}: {typeof commanded === 'boolean' ? t(commanded ? 'plc.on' : 'plc.off') : `${formatMeasurement(commanded as number)} ${variable.unit}`}</p>}
-            <p className="text-body-compact tabular-nums">{hasCommand && <>{t('plc.actual_state')}: </>}{unavailable ? t('plc.unavailable') : value === undefined ? t('plc.awaiting') : typeof value === 'boolean' ? t(value ? 'plc.on' : 'plc.off') : `${typeof value === 'number' ? formatMeasurement(value) : value} ${variable.unit}`}{typeof confirmation === 'string' && <> · {t(`plc.confirmations.${confirmation}`)}</>}</p>
+            <p className="text-body-compact tabular-nums">{readLabel && <>{t(readLabel)}: </>}{unavailable ? t('plc.unavailable') : value === undefined ? t('plc.awaiting') : typeof value === 'boolean' ? t(value ? 'plc.on' : 'plc.off') : `${typeof value === 'number' ? formatMeasurement(value) : value} ${variable.unit}`}{statusLabel && <> · {t(statusLabel)}</>}</p>
+            {variable.plc?.command && (variable.plc.feedbackPolicy === 'none' || !variable.plc.feedback) && <p className="text-caption text-muted-foreground">{t('plc.no_independent_feedback')}</p>}
             {variable.plc?.role === 'measurement' && <div className="mt-2 w-full max-w-xs"><SensorMetricCard title={variable.name} sensorDecimals visualStyle={variable.visualStyle} device={plcSensorDevice(variable, plcConnectionAvailable(connection), devices.find(device => device.id === variable.deviceId))} /></div>}
             {variable.diagnostic?.error && <p role="status" className="text-caption text-danger">{t(plcErrorKey(variable.diagnostic.error))}</p>}
             <details className="text-caption text-muted-foreground"><summary className="cursor-pointer py-1">{t('plc.technical')}</summary><p className="break-words">{t(`modbus.${variable.area}`)} · PDU {variable.address} · {plcReadFunction(variable.area)} · {variable.dataType} · {variable.wordOrder}</p><p>{t('modbus.scale')}: {variable.scale} · {t('modbus.offset')}: {variable.offset}</p><p className="break-words">RAW {variable.diagnostic?.raw?.join(', ') ?? '—'} · {variable.diagnostic?.latencyMs ?? '—'} ms · {date(variable.diagnostic?.lastReadAt)}</p></details>

@@ -1,5 +1,6 @@
 {
   "modbus": {
+    "not_started": "No test executed",
     "variables": "Variables",
     "delete": "Delete", "delete_connection": "Delete connection", "delete_variable": "Delete variable", "delete_confirmation": "This removes the saved configuration. It does not write to the PLC. This cannot be undone.", "delete_error": "Could not delete. Check your access and try again.", "connection_in_use": "Delete this connection's variables first.", "variable_in_use": "This variable is used by a scene, automation or dashboard. Remove those references before deleting it.",
     "no_unit": "No unit", "result_filter": "Readings", "filter_all": "All", "filter_valid": "Valid readings", "filter_active": "With activity / non-zero RAW", "filtered_count": "{{count}} of {{total}} readings",
@@ -2119,7 +2120,19 @@
     "no_content_yet": "No content available yet"
   },
   "plc": {
+    "read_state": "Read state",
+    "command_read_matches": "Matches the command readback",
+    "command_read_pending": "Command readback pending",
+    "command_read_unverified": "Command readback match not verified",
+    "command_read_unavailable": "No current command readback",
+    "no_independent_feedback": "No independent feedback: command readback does not confirm physical actuation.",
     "physical_hint": "Physical channel controlled by the Ladder; it does not confirm state by itself.",
+    "related_logical_point": "Related logical point",
+    "related_outputs": "Related outputs",
+    "command_read_state": "Command read state",
+    "add_related_output": "Add output",
+    "remove_related_output": "Remove {{symbol}}",
+    "related_outputs_hint": "Declared relationship with the Ladder. Does not configure its logic or confirm physical actuation.",
     "feedback_hint": "Address read to confirm actual state. Must differ from the command; configure it according to the Ladder.",
     "variable_count": "{{count}} variables",
     "open_connection": "View variables",
@@ -2134,8 +2147,8 @@
     "allow_setpoint_write": "Allow setpoint writes", "assignment_hint": "Assign a room to use this variable in dashboards and routines. Saving does not send a physical command.",
     "measurement_value": "Measured value", "comparison": "Comparison", "comparisons": { "eq": "Equal to", "gt": "Greater than", "gte": "Greater than or equal", "lt": "Less than", "lte": "Less than or equal" },
     "authorize_command": "Authorize PLC command", "write_warning": "This command can actuate connected equipment. Check the binding and ensure it is safe before confirming.", "setpoint_value": "Target value", "confirm_write": "Confirm and execute", "command_failed": "The command was not confirmed. Check the actual state and diagnostics before deciding whether to send a new command.", "test_command": "Test command", "test_command_named": "Test command for {{name}}",
-    "title": "PLC I/O", "role": "PLC role", "legacy": "Variables", "command": "Command", "command_hint": "Uses the PLC element configured above.", "physical": "Physical input/output", "feedback": "Independent feedback", "logical": "Logical input (optional)", "feedback_policy": "Confirmation", "feedback_timeout": "Feedback timeout (ms)", "mode": "Command mode", "pulse_duration": "Pulse duration (ms)", "minimum": "Minimum", "maximum": "Maximum", "room": "Room", "unassigned": "Unassigned", "profile_required": "Select a PLC profile to configure symbolic addresses.", "watchdog_warning": "Reset requires a PLC watchdog: loss of power or network can prevent OFF.", "setpoint_hint": "D/HD setpoints require Xinje v2, limits and explicitly authorized writing.", "assignment_failed": "The variable was saved, but room assignment failed. Check the selection and save again.", "online": "Online", "unavailable": "Unavailable", "awaiting": "No reading", "on": "Active", "off": "Inactive", "technical": "Technical diagnostics",
-    "roles": { "input": "Inputs", "output": "Outputs", "output_command": "Output commands", "output_feedback": "Output feedback", "measurement": "Measurements", "setpoint": "Setpoints", "diagnostic": "Diagnostics" },
+    "title": "PLC I/O", "role": "PLC role", "legacy": "Variables", "command": "Command", "command_hint": "Uses the PLC element configured above.", "physical": "Physical input/output", "feedback": "Independent feedback", "logical": "Logical input (optional)", "feedback_policy": "Feedback policy", "feedback_timeout": "Feedback timeout (ms)", "mode": "Command mode", "pulse_duration": "Pulse duration (ms)", "minimum": "Minimum", "maximum": "Maximum", "room": "Room", "unassigned": "Unassigned", "profile_required": "Select a PLC profile to configure symbolic addresses.", "watchdog_warning": "Reset requires a PLC watchdog: loss of power or network can prevent OFF.", "setpoint_hint": "D/HD setpoints require Xinje v2, limits and explicitly authorized writing.", "assignment_failed": "The variable was saved, but room assignment failed. Check the selection and save again.", "online": "Online", "unavailable": "Unavailable", "awaiting": "No reading", "on": "Active", "off": "Inactive", "technical": "Technical diagnostics",
+    "roles": { "input": "Inputs", "output": "Outputs", "output_command": "PLC commands", "output_feedback": "Independent feedback", "measurement": "Measurements", "setpoint": "Setpoints", "diagnostic": "Diagnostics" },
     "policies": { "none": "No feedback", "optional": "Optional", "required": "Required" }, "modes": { "sustained": "Sustained", "pulse": "Momentary" },
     "confirmations": { "pending": "Pending", "confirmed": "Confirmed", "unconfirmed": "Unconfirmed", "reset_failed": "Reset failed", "pulse_completed": "Pulse completed" }
   },

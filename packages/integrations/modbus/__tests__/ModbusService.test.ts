@@ -21,6 +21,25 @@ describe('Feature: PLC I/O controller (AC20/AC21/AC22/AC23/AC25)', () => {
   const profileId = 'xinje-xl5e-16t-v2';
   beforeEach(() => { f = modbusFixture(); });
   afterEach(async () => { await f.service.stop(); f.cleanup(); });
+  it.each([
+    ['M100', 100, ['Y0']], ['M100', 100, ['Y0', 'Y1']], ['M101', 101, ['Y3', 'Y4']],
+  ] as const)('Scenario: %s declarative destinations persist without extra reads or writes (AC37)', async (symbolicAddress, address, symbols) => {
+    const c = await f.service.saveConnection('admin', 'h', { name: 'PLC', host: '192.168.1.5', profileId, enabled: true });
+    const v = await f.service.saveVariable('admin', c.id, { name: symbolicAddress, profileId, symbolicAddress, area: 'coil', address, dataType: 'boolean', writable: true,
+      plc: { role: 'output_command', command: { profileId, symbolicAddress }, relatedPhysicalOutputs: symbols.map(symbol => ({ profileId, symbolicAddress: symbol })), feedbackPolicy: 'none' } });
+    expect(new SQLiteModbusRepository(f.dbPath).variable(v.deviceId)?.plc).toEqual(v.plc);
+    const device = (await f.devices.findDeviceById(v.deviceId))!;
+    f.transport.read.mockResolvedValue(false);
+    const result = await f.service.executeCommand(device, { name: 'turn_on' });
+    expect(result).toMatchObject({ success: true, newState: { actualState: false, commandState: false } });
+    expect(f.transport.writeCoil).toHaveBeenCalledTimes(1);
+    expect(f.transport.writeCoil).toHaveBeenCalledWith(c, address, true);
+    expect(f.transport.writeHoldingRegisters).not.toHaveBeenCalled();
+    await f.service.pollOnce();
+    expect(f.transport.read.mock.calls.every(call => call[1].address === address)).toBe(true);
+    expect(f.repository.variable(v.deviceId)?.plc?.feedback).toBeUndefined();
+    expect((await f.devices.findDeviceById(v.deviceId))?.lastKnownState?.actualState).toBe(false);
+  });
   it.each(['auto', 'gauge', 'thermometer', 'level', 'battery'])('Scenario: %s visualization persists and reaches state sync without changing the device family (AC30)', async visualStyle => {
     const c = await f.service.saveConnection('admin', 'h', { name: 'PLC', enabled: true, host: '192.168.1.5' });
     const v = await f.service.saveVariable('admin', c.id, { name: 'Reading', area: 'holding_register', address: 100, dataType: 'uint16', visualStyle });
@@ -68,6 +87,15 @@ describe('Feature: PLC I/O controller (AC20/AC21/AC22/AC23/AC25)', () => {
     expect(f.repository.variable(v.deviceId)?.plc?.feedback?.symbolicAddress).toBe('M200');
     const reloaded = new SQLiteModbusRepository(f.dbPath);
     expect(reloaded.variable(v.deviceId)?.plc).toEqual(v.plc);
+  });
+  it('Scenario: Declarative destinations do not replace configured independent feedback (AC37)', async () => {
+    const { c, v, device } = await output({ role: 'output_command', physical: null, relatedPhysicalOutputs: ['Y0', 'Y1'].map(symbolicAddress => ({ profileId, symbolicAddress })) });
+    f.transport.read.mockImplementation(async (_c, variable) => variable.address === 200);
+    expect(await f.service.executeCommand(device, { name: 'turn_on' })).toMatchObject({ success: true, newState: { actualState: true, feedbackState: true, confirmation: 'confirmed' } });
+    expect(f.transport.writeCoil).toHaveBeenCalledTimes(1);
+    expect(f.transport.writeCoil).toHaveBeenCalledWith(c, 100, true);
+    expect(f.transport.read.mock.calls.every(call => call[1].address === 200)).toBe(true);
+    expect(f.repository.variable(v.deviceId)?.plc?.feedback?.symbolicAddress).toBe('M200');
   });
   it('Scenario: Independent feedback OFF stays OFF and timeout does not repeat ON', async () => {
     const { device } = await output(); f.transport.read.mockResolvedValue(false);

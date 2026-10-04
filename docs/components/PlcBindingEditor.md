@@ -1,5 +1,7 @@
 # PlcBindingEditor
 
+AC37: `output_command` admite `relatedPhysicalOutputs` declarativo. Reutiliza SearchableSelectField buscable para añadir varias salidas y botones para retirarlas individualmente. Opciones provienen de segmentos clasificados como outputs por el perfil, con capacidades de la conexión; no se infieren prefijos, intermediarios ni feedback. Guardar usa el JSON existente y no escribe al PLC. No se ofrece la lista para output singular ni se combina con physical. `capacities?: ModbusModuleCapacities` es prop opcional, sin estado global nuevo. La explicación ES/EN deja claro que la relación no configura Ladder ni confirma actuación física; histórico sin lista conserva comportamiento.
+
 AC35: physical and command fields use equal columns when space permits, stacked on mobile. Physical channel and feedback address include concise explanations; none never creates feedback. Feedback policy and mode choices come from shared typed constants in plcUi; existing backend validation is authoritative. No implicit physical-to-feedback mapping.
 
 Editor modular PLC I/O del formulario de variable de ModbusView. Implementación: `apps/operator-console/src/components/PlcBindingEditor.tsx`; validación autoritativa: `packages/integrations/modbus/domain/PlcBinding.ts`.

@@ -7,12 +7,53 @@ jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) =>
 jest.mock('../stores/useDeviceSnapshotStore', () => ({ useDeviceSnapshotStore: (selector: (state: { devices: [] }) => unknown) => selector({ devices: [] }) }));
 const base: Omit<ModbusVariable, 'deviceId' | 'connectionId'> = { name: 'PLC', profileId: 'xinje-xl5e-16t-v2', symbolicAddress: 'D100', area: 'holding_register', address: 100, dataType: 'uint16', scale: 1, offset: 0, wordOrder: 'high_first', unit: '', writable: false };
 describe('Feature: PLC binding editor (AC26)', () => {
+  it('Scenario: Declarative destinations display without fictitious physical point or confirmation (AC37)', () => {
+    const profileId = 'xinje-xl5e-16t-v1';
+    const variable: ModbusVariable = { ...base, deviceId: 'v', connectionId: 'c', symbolicAddress: 'M100', plc: {
+      role: 'output_command', command: { profileId, symbolicAddress: 'M100', area: 'coil', address: 100 },
+      relatedPhysicalOutputs: ['Y0', 'Y1'].map((symbolicAddress, index) => ({ profileId, symbolicAddress, area: 'coil', address: 24576 + index })),
+      feedbackPolicy: 'none', feedbackTimeoutMs: 2000, mode: 'sustained', pulseDurationMs: 500,
+    } };
+    const original = JSON.stringify(variable);
+    const html = renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: false, variables: [variable] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
+    expect(html).toContain('plc.related_outputs: Y0 · Y1');
+    expect(html).toContain('plc.command: M100');
+    expect(html).toContain('plc.feedback: plc.not_configured');
+    expect(html).toContain('plc.command_read_state:');
+    expect(html).not.toContain('plc.related_logical_point:');
+    const editor = renderToStaticMarkup(<PlcBindingEditor variable={variable} onChange={() => { throw new Error('Render must not mutate configuration'); }} />);
+    expect(editor).toContain('plc.related_outputs_hint');
+    expect(editor).toContain('plc.remove_related_output');
+    expect(JSON.stringify(variable)).toBe(original);
+  });
+  it.each([
+    ['Y0', 'plc.physical_output'],
+    ['X1', 'plc.physical_input'],
+    ['M100', 'plc.related_logical_point'],
+    ['M101', 'plc.related_logical_point'],
+    [undefined, undefined],
+  ])('Scenario: Related point %s uses symbol semantics without modifying bindings (AC26)', (symbol, label) => {
+    const profileId = 'xinje-xl5e-16t-v1';
+    const variable: ModbusVariable = { ...base, deviceId: 'v', connectionId: 'c', plc: {
+      role: 'output', feedbackPolicy: 'none', feedbackTimeoutMs: 2000, mode: 'sustained', pulseDurationMs: 500,
+      command: { profileId, symbolicAddress: 'M100', area: 'coil', address: 100 },
+      physical: symbol ? { profileId, symbolicAddress: symbol, area: 'coil', address: 100 } : undefined,
+    } };
+    const original = JSON.stringify(variable);
+    const html = renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: false, variables: [variable] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
+    if (label) expect(html).toContain(`${label}: ${symbol}`);
+    for (const other of ['plc.physical', 'plc.physical_input', 'plc.physical_output', 'plc.related_logical_point']) {
+      if (other !== label) expect(html).not.toContain(`${other}:`);
+    }
+    expect(html).toContain('plc.command: M100');
+    expect(JSON.stringify(variable)).toBe(original);
+  });
   it('Scenario: Commissioning groups inputs outputs and variables without changing bindings (AC35)', () => {
     const policy = { mode: 'sustained' as const, feedbackPolicy: 'none' as const, feedbackTimeoutMs: 2000, pulseDurationMs: 500 };
     for (const role of ['input', 'output', 'output_command', 'output_feedback', 'measurement', 'setpoint', 'diagnostic'] as const) {
       const variable: ModbusVariable = { ...base, deviceId: role, connectionId: 'c', plc: { ...policy, role } };
       const original = JSON.stringify(variable);
-      expect(getModbusVariableGroup(variable)).toBe(role === 'input' ? 'input' : role.startsWith('output') ? 'output' : 'variable');
+      expect(getModbusVariableGroup(variable)).toBe(role === 'input' ? 'input' : role === 'output' ? 'output' : role === 'output_command' ? 'command' : role === 'output_feedback' ? 'feedback' : 'variable');
       expect(JSON.stringify(variable)).toBe(original);
     }
     expect(getModbusVariableGroup({ ...base, deviceId: 'legacy', connectionId: 'c' })).toBe('variable');
@@ -63,7 +104,7 @@ describe('Feature: PLC binding editor (AC26)', () => {
   it.each(['pending', 'unconfirmed'])('Scenario: %s separates the requested ON from actual OFF', confirmation => {
     const html = renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: true, diagnostic: { status: 'online' }, variables: [{ ...base, deviceId: 'v', connectionId: 'c', dataType: 'boolean', diagnostic: { status: 'online', value: false, commandedState: true, confirmation } }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
     expect(html).toContain('plc.requested_state: plc.on');
-    expect(html).toContain('plc.actual_state: plc.off');
+    expect(html).toContain('plc.read_state: plc.off');
     expect(html).toContain(`plc.confirmations.${confirmation}`);
   });
   it.each([['online', 'plc.connected'], ['unavailable', 'plc.disconnected'], ['error', 'plc.error']] as const)('Scenario: Connection %s has an independent connectivity label', (status, label) => {
@@ -81,5 +122,33 @@ describe('Feature: PLC binding editor (AC26)', () => {
   it('Scenario: A connection error never renders the retained measurement as a live meter', () => {
     const html = renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: true, diagnostic: { status: 'error' }, variables: [{ ...base, deviceId: 'v', connectionId: 'c', visualStyle: 'level', unit: '%', diagnostic: { status: 'online', value: 25 }, plc: { role: 'measurement', mode: 'sustained', feedbackPolicy: 'none', feedbackTimeoutMs: 2000, pulseDurationMs: 500 } }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
     expect(html).toContain('plc.unavailable'); expect(html).not.toContain('aria-valuenow="25"');
+  });
+  it('Scenario: Command readback never claims physical confirmation without independent feedback (AC26)', () => {
+    const profileId = 'xinje-xl5e-16t-v2';
+    const address = (symbolicAddress: string, address: number) => ({ profileId, symbolicAddress, address, area: 'coil' as const });
+    const variable: ModbusVariable = { ...base, deviceId: 'command', connectionId: 'c', symbolicAddress: 'M200', area: 'coil', address: 200, dataType: 'boolean',
+      plc: { role: 'output', command: address('M200', 200), physical: address('Y0', 24576), feedbackPolicy: 'none', feedbackTimeoutMs: 2000, mode: 'sustained', pulseDurationMs: 500 } };
+    const render = (feedback = false) => renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: true, variables: [{ ...variable, plc: { ...variable.plc!, ...(feedback ? { feedback: address('M300', 300), feedbackPolicy: 'required' as const } : {}) }, diagnostic: { status: 'online', value: true, commandedState: true, confirmation: 'confirmed' } }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
+    expect(render()).toContain('plc.command_read_matches');
+    expect(render()).toContain('plc.no_independent_feedback');
+    expect(render()).not.toContain('plc.confirmations.confirmed');
+    expect(render()).not.toContain('plc.actual_state');
+    expect(render(true)).toContain('plc.confirmations.confirmed');
+    expect(render(true)).not.toContain('plc.no_independent_feedback');
+  });
+  it.each(['confirmed', 'pending', 'unconfirmed'])('Scenario: Policy none suppresses physical confirmation for %s even with retained feedback metadata (AC26)', confirmation => {
+    const profileId = 'xinje-xl5e-16t-v1';
+    const feedback = { profileId, symbolicAddress: 'M300', area: 'coil' as const, address: 300 };
+    const html = renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: true, variables: [{ ...base, deviceId: 'v', connectionId: 'c', plc: { role: 'output', feedbackPolicy: 'none', feedbackTimeoutMs: 2000, mode: 'sustained', pulseDurationMs: 500, feedback }, diagnostic: { status: 'online', value: false, commandedState: false, confirmation } }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
+    expect(html).toContain('plc.read_state');
+    expect(html).toContain('plc.command_read_');
+    expect(html).not.toContain(`plc.confirmations.${confirmation}`);
+    expect(html).not.toContain('plc.actual_state');
+  });
+  it('Scenario: A stale confirmed command does not claim a current readback match (AC26)', () => {
+    const html = renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: false, variables: [{ ...base, deviceId: 'v', connectionId: 'c', plc: { role: 'output', feedbackPolicy: 'none', feedbackTimeoutMs: 2000, mode: 'sustained', pulseDurationMs: 500 }, diagnostic: { status: 'online', value: true, confirmation: 'confirmed' } }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
+    expect(html).toContain('plc.command_read_unavailable');
+    expect(html).not.toContain('plc.command_read_matches');
+    expect(html).not.toContain('plc.confirmations.confirmed');
   });
 });

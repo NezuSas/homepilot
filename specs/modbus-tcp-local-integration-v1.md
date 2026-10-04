@@ -1,5 +1,9 @@
 # Integración Modbus TCP local V1
 
+Claridad de estados AC26: `feedbackPolicy=none` es la condición autoritativa de presentación, incluso con metadatos históricos de feedback o sin command explícito. No usar «Confirmado», «Confirmación» ni «Sin confirmar» para ese estado: coincidencia/lectura pendiente/coincidencia no verificada, manteniendo reset y pulso diferenciados. Lectura no disponible nunca muestra coincidencia actual. Selector de configuración: «Política de feedback». Las políticas optional/required conservan sus estados independientes; no cambiar servicio, contratos, bindings, actualState, ejecución ni datos PLC.
+
+Refinamiento documental/UX AC26 (manual V4): separar los roles de comandos PLC y feedback independiente del grupo Salidas sin inferir relaciones Ladder ni reclasificar JSON histórico. La lectura de un comando sin feedback independiente no confirma actuación física: mostrar «Estado leído» y «Coincide con la lectura del comando», conservando el estado de confirmación interno. Read Probe inicial muestra «Sin prueba ejecutada» y solo lee tras acción explícita. No modificar transporte, servicio, permisos, polling, actualState o bindings existentes. Las correcciones X1/M1 y duplicados M200/Y0 requieren la base de configuración real y revisión de referencias; M100/M101 requiere evidencia Ladder no suministrada.
+
 Refinamiento visual AC35: detalle de conexión separa Entradas, Salidas y Variables con iconos, conteos y jerarquía de la paleta vigente; orden estable independiente del orden recibido. Salidas agrupa comando/físico/feedback conservando el rol de cada elemento; Variables conserva mediciones/setpoints/diagnóstico e históricos. No modifica bindings, lectura, escritura, transporte ni actualState.
 
 ## Refresco prioritario Dashboard — AC36 (2026-10-04)
@@ -48,6 +52,8 @@ Conexiones nuevas deshabilitadas y variables de solo lectura por defecto. Activa
 Migración aditiva 035: tablas modbus_connections y modbus_variables con referencias al hogar y dispositivo. Configuraciones existentes no se migran ni alteran. Crear variable y dispositivo es transaccional. Antes de cualquier instalación en MiniPC hacer backup de SQLite. Para revertir, deshabilitar conexiones y regresar al binario anterior conservando tablas; no borrar dispositivos automáticamente. API y UI deberán reconstruirse posteriormente, sin desplegar durante esta tarea.
 
 ## Criterios de aceptación
+
+- AC37 (extensión declarativa aprobada): `plc.relatedPhysicalOutputs?: PlcAddress[]` en JSON existente para `output_command`, sin `physical` simultáneo. Lista no vacía exige command y mismo perfil; resolver/revalidar por perfil y clasificación `segment.channel=outputs`, capacidades instaladas y direcciones únicas. Vacía normaliza a ausente. Histórico sin lista conserva binding/ejecución. Selector buscable con selección acumulativa, resumen y retirada individual; ES/EN y cuatro tamaños. Lista solo describe destinos funcionales, sin inferir Ladder/intermediarios/OFF, lecturas/escrituras adicionales, feedback ni actualState agregado. No modificar ModbusService ni DeviceCommandService; no migrar/configurar automáticamente M100/M101. Persistencia/relectura y ejecución con transporte simulado deben demostrar una sola escritura al comando y ninguna lectura a destinos. Para downgrade, runtime anterior omite el campo al editar: respaldar JSON y no editar esas relaciones con binarios antiguos.
 
 - AC1: guardar y cargar configuración conserva mapa explícito; nuevas conexiones y escrituras desactivadas.
 - AC2: no Admin ni hogar ajeno pueden leer/configurar; entradas inválidas no contactan red.
