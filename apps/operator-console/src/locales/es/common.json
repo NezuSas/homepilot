@@ -2121,6 +2121,8 @@
   },
   "plc": {
     "read_state": "Estado leído",
+    "physical_read_state": "Estado leído de la salida PLC",
+    "command_raw": "RAW del comando",
     "command_read_matches": "Coincide con la lectura del comando",
     "command_read_pending": "Lectura del comando pendiente",
     "command_read_unverified": "Coincidencia con el comando no verificada",

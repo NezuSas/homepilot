@@ -1,5 +1,7 @@
 # ModbusReadProbe
 
+Claridad AC26 (manual V4): al abrir o cambiar destino/rango se muestra «Sin prueba ejecutada». «Lectura detenida» solo aparece después de solicitar explícitamente una lectura, incluso si falló; no implica éxito ni genera resultados ficticios. Abrir el editor no ejecuta solicitudes. Se conserva la lectura exclusiva FC01–04 y el contrato existente.
+
 AC16/AC17 refinement: table uses one contained overscroll region, separated borders and individually sticky opaque header cells above rows; Create variable never wraps. Local All/Valid/Active filters do not modify samples and conversion is computed before filtering, so a hidden zero word remains part of a 32-bit value. All retains failures/previous RAW; valid includes zero, active uses non-zero/true RAW. Empty filter results are explained. Unit uses MeasurementUnitSelect; numeric drafts use NumberInput. Modal only closes explicitly by default.
 
 Referencia local del asistente de puesta en marcha de Sistema → Modbus TCP. Implementación: `apps/operator-console/src/components/ModbusReadProbe.tsx`; composición y editor: `apps/operator-console/src/views/ModbusView.tsx`; lectura: `packages/integrations/modbus/application/ModbusService.ts`. Contrato aprobado: [Integración Modbus TCP local V1](../../specs/modbus-tcp-local-integration-v1.md), AC8–AC15. La configuración persistida se documenta en [ModbusConnectionCard](ModbusConnectionCard.md).

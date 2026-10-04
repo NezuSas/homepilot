@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Pencil } from 'lucide-react';
+import { Cloud, Pencil } from 'lucide-react';
 import { IconButton } from '../../../components/ui/IconButton';
 import { HomeContextIndicator } from '../../../components/HomeContextIndicator';
 import { useTranslation } from 'react-i18next';
@@ -12,20 +12,27 @@ import { WeatherScene, getWeatherCategory } from './clock/designs/WeatherScene';
 import { getSensorReading, formatSensorValue } from './SensorMetricCard';
 import type { SectionCardIcon } from './sectionCardCatalog';
 
-export function InformationCardSkeleton() {
+export function InformationCardSkeleton({ showIcon = true }: { showIcon?: boolean } = {}) {
   return <span aria-hidden="true" className="inline-flex w-full items-center gap-2 p-2">
-    <span className="h-5 w-5 shrink-0 animate-pulse rounded-control bg-muted" />
+    {showIcon && <span className="h-5 w-5 shrink-0 animate-pulse rounded-control bg-muted" />}
     <span className="h-4 w-24 max-w-full animate-pulse rounded-control bg-muted" />
   </span>;
 }
 
-function WeatherInformation() {
+function WeatherIndicatorIcon({ className }: { className?: string }) {
+  const { weather, status } = useCuencaWeather(getClockLocale());
+  return weather && status === 'ready'
+    ? <WeatherScene category={getWeatherCategory(weather.code, isDaytimeHour(new Date()))} size="sm" className={className} />
+    : <Cloud className={className} aria-hidden="true" />;
+}
+
+function WeatherInformation({ bare = false }: { bare?: boolean }) {
   const { t } = useTranslation();
   const { weather, status } = useCuencaWeather(getClockLocale());
-  if (status === 'loading') return <InformationCardSkeleton />;
+  if (status === 'loading') return <InformationCardSkeleton showIcon={!bare} />;
   if (!weather || status !== 'ready') return <span>{t('dashboard.editor.sections.information_unavailable')}</span>;
-  return <><WeatherScene category={getWeatherCategory(weather.code, isDaytimeHour(new Date()))} size="sm" className="h-5 w-5 shrink-0" />
-    <span>{formatTemperature(weather.temperature)} · {weather.label}</span></>;
+  return <>{!bare && <WeatherScene category={getWeatherCategory(weather.code, isDaytimeHour(new Date()))} size="sm" className="h-5 w-5 shrink-0" />}
+    <span className="min-w-0 truncate">{formatTemperature(weather.temperature)} · {weather.label}</span></>;
 }
 
 /** Read-only information: same local time, weather service and sensor model. */
@@ -33,13 +40,14 @@ export function InformationCard({ source, device, title, icon, pill = false }: {
   pill?: boolean; source: 'info_time' | 'info_weather' | 'info_sensor'; device?: SnapshotDevice; title: string; icon?: SectionCardIcon;
 }) {
   const { t } = useTranslation();
-  const Icon = getDashboardIconComponent(icon ?? (source === 'info_time' ? 'Clock' : source === 'info_weather' ? 'Cloud' : 'Gauge'));
+  const Icon = source === 'info_weather' && !icon ? WeatherIndicatorIcon
+    : getDashboardIconComponent(icon ?? (source === 'info_time' ? 'Clock' : 'Gauge'));
   const reading = source === 'info_sensor' ? getSensorReading(device) : undefined;
   const numeric = reading?.value === null || reading?.value === undefined ? NaN : Number(reading.value.replace(',', '.'));
   const value = reading?.value === null || reading?.value === undefined ? t('dashboard.editor.sections.information_unavailable')
     : Number.isFinite(numeric) ? formatSensorValue(numeric, true) : reading.value;
   if (pill) return <HomeContextIndicator icon={Icon} primaryIcon className="dashboard-context-chip">
-    {source === 'info_time' ? <TimeBadgeContent bare /> : source === 'info_weather' ? <WeatherInformation /> : <>{title}: {value}{reading?.value != null && reading.unit ? ` ${reading.unit}` : ''}</>}
+    {source === 'info_time' ? <TimeBadgeContent bare /> : source === 'info_weather' ? <WeatherInformation bare /> : <span className="min-w-0 truncate">{title}: {value}{reading?.value != null && reading.unit ? ` ${reading.unit}` : ''}</span>}
   </HomeContextIndicator>;
   return <div role="group" aria-label={title} className="flex h-full min-w-0 flex-wrap items-center gap-2 px-3 py-2 text-body-compact font-semibold text-foreground">
     {source === 'info_time' ? <TimeBadgeContent /> : source === 'info_weather' ? <WeatherInformation /> : <>

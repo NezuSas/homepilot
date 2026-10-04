@@ -20,7 +20,11 @@ export interface DeviceToggleExecutionDependencies {
  * command. The actual command response remains the source of truth.
  */
 export function createDeviceTogglePlan(device: SnapshotDevice): DeviceTogglePlan | null {
-  const wasActive = isDeviceActive(device);
+  const priorState = device.lastKnownState ?? {};
+  const commandDrivenOutput = device.integrationSource === 'modbus-tcp' && priorState.plcRole === 'output' && priorState.feedbackState === undefined && typeof priorState.physicalState === 'boolean' && typeof priorState.commandState === 'boolean';
+  // Output appearance follows the PLC output; control intent follows its command.
+  if (commandDrivenOutput && (priorState.available === false || priorState.stale === true)) return null;
+  const wasActive = commandDrivenOutput ? priorState.commandState === true : isDeviceActive(device);
   const targetActive = !wasActive;
   const preferredCommand: DeviceToggleCommand = targetActive ? 'turn_on' : 'turn_off';
 
@@ -32,15 +36,17 @@ export function createDeviceTogglePlan(device: SnapshotDevice): DeviceTogglePlan
 
   if (!command) return null;
 
-  const priorState = device.lastKnownState ?? {};
-  const optimisticState: Record<string, unknown> = {
+  const optimisticState: Record<string, unknown> = commandDrivenOutput ? {
+    ...priorState,
+    commandedState: targetActive,
+  } : {
     ...priorState,
     on: targetActive,
     state: targetActive ? 'on' : 'off',
     isActive: targetActive,
   };
 
-  if (!targetActive) {
+  if (!targetActive && !commandDrivenOutput) {
     optimisticState.brightness = 0;
     optimisticState.level = 0;
   }

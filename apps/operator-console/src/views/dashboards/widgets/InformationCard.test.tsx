@@ -2,11 +2,35 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { EditableInformationCard, InformationCard, InformationCardSkeleton } from './InformationCard';
 import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
+import { useCuencaWeather } from './clock/useCuencaWeather';
 jest.mock('../../../config', () => ({ API_BASE_URL: '' }));
 jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
-jest.mock('./clock/useCuencaWeather', () => ({ useCuencaWeather: () => ({ weather: null, status: 'loading' }) }));
+jest.mock('./clock/useCuencaWeather', () => ({ useCuencaWeather: jest.fn() }));
 
 describe('Feature: Independent dashboard information badges (AC48)', () => {
+  beforeEach(() => {
+    jest.mocked(useCuencaWeather).mockReturnValue({ weather: null, status: 'loading' });
+  });
+  it('Scenario: Weather pill keeps one configured icon and a single-line reading (AC55)', () => {
+    jest.mocked(useCuencaWeather).mockReturnValue({ status: 'ready', weather: {
+      temperature: 19, code: 0, windSpeed: 0, updatedAt: '2026-10-04T12:00', location: 'Cuenca', label: 'Despejado',
+    } });
+    const html = renderToStaticMarkup(React.createElement(InformationCard, { source: 'info_weather', title: 'Weather', pill: true, icon: 'Battery' }));
+    expect(html).toContain('19°C');
+    expect(html).toContain('Despejado');
+    expect(html).toContain('whitespace-nowrap');
+    expect(html).toContain('truncate');
+    expect(html.match(/<svg/g)).toHaveLength(1);
+    expect(html).toContain('lucide-battery');
+    const automatic = renderToStaticMarkup(React.createElement(InformationCard, { source: 'info_weather', title: 'Weather', pill: true }));
+    expect(automatic.match(/<svg/g)).toHaveLength(1);
+    expect(automatic).toContain('viewBox="0 0 64 64"');
+  });
+  it('Scenario: Pending weather pill has no duplicate icon skeleton (AC55)', () => {
+    const html = renderToStaticMarkup(React.createElement(InformationCard, { source: 'info_weather', title: 'Weather', pill: true }));
+    expect(html.match(/animate-pulse/g)).toHaveLength(1);
+    expect(html.match(/<svg/g)).toHaveLength(1);
+  });
   it('Scenario: Only edit mode exposes an explicit pencil, not an Edit text action (AC55)', () => {
     const render = (isEditing: boolean) => renderToStaticMarkup(React.createElement(EditableInformationCard, { isEditing, onEdit: () => {}, children: 'Reading' }));
     expect(render(false)).not.toContain('<button');

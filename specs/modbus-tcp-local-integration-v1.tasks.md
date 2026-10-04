@@ -1,5 +1,11 @@
 # Tareas — Modbus TCP local V1
 
+## Estado de salidas individuales — AC38
+
+- [x] Separar selección de estado físico y comparación del comando sin modificar destinos de escritura ni feedback independiente.
+- [x] Control de dashboard basado en commandState, conservando la lectura física durante la ejecución; etiquetas ES/EN y RAW del comando explícito.
+- [x] Validar casos divergentes, OFF, fallo físico, escrituras exclusivas, toggle, snapshot/dashboard, históricos y regresiones AC37: 9 suites, 355/355 PASS. Typecheck, lint, build backend/frontend, spec, BDD, módulo, arquitectura, no-production-any e i18n PASS; detector UI sin hallazgos. Sin SQLite real, PLC físico, Git ni deploy. No suite global/responsive completo (excluido por solicitud previa) ni Docker/runtime (evitar conexión a integraciones reales); no candidato a publicación. Primer intento detectó tipado opcional; corregido con rechazo explícito de lectura física ausente. Prueba histórica corregida para usar configuración válida, conservando cobertura del coil legacy sin binding.
+
 ## Relación declarativa de salidas — AC37
 
 - [x] Añadir lista opcional al binding/JSON y validación por clasificación del perfil, sin migración ni cambios de servicios de ejecución.

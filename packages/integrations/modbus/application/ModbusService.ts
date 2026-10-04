@@ -167,9 +167,16 @@ export class ModbusService implements DeviceDriver {
     const value = sample.value;
     const physicalState = plc?.physical ? await this.transport.read(connection, plcReadVariable(variable, plc.physical)) : undefined;
     const feedbackState = plc?.feedback ? await this.transport.read(connection, plcReadVariable(variable, plc.feedback)) : undefined;
-    const actual = feedbackState ?? value;
+    const readsPhysicalOutput = plc?.role === 'output' && !!plc.physical && plc.feedbackPolicy === 'none';
+    let actual = feedbackState ?? value;
+    if (readsPhysicalOutput) {
+      if (physicalState === undefined) throw new ModbusError('PROTOCOL', 'Missing physical output reading');
+      actual = physicalState;
+    }
+    // Without independent feedback, command readback is not physical confirmation.
+    const comparisonState = readsPhysicalOutput ? value : actual;
     const command = this.commands.get(variable.deviceId);
-    const confirmation = command ? (command.confirmation === 'reset_failed' ? 'reset_failed' : actual === command.commandedState ? 'confirmed' : command.confirmation === 'pending' ? 'pending' : 'unconfirmed') : undefined;
+    const confirmation = command ? (command.confirmation === 'reset_failed' ? 'reset_failed' : comparisonState === command.commandedState ? 'confirmed' : command.confirmation === 'pending' ? 'pending' : 'unconfirmed') : undefined;
     if (command && confirmation) this.commands.set(variable.deviceId, { ...command, confirmation });
     this.diagnostics.set(variable.deviceId, { status: 'online', lastReadAt: new Date().toISOString(), latencyMs: Date.now() - started, raw: sample.raw, value: actual });
     return { ...this.state(variable, actual), ...(plc ? { actualState: actual, ...(['output', 'output_command'].includes(plc.role) ? { commandState: value } : ['measurement', 'setpoint'].includes(plc.role) ? { measurementState: value } : plc.role === 'input' && plc.logical ? { logicalState: value } : {}), physicalState, feedbackState, ...(command ? { commandedState: command.commandedState, confirmation } : {}) } : {}) };

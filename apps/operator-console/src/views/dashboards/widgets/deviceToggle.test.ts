@@ -21,6 +21,20 @@ function createDevice(overrides: Partial<SnapshotDevice> = {}): SnapshotDevice {
 }
 
 describe('dashboard device toggle', () => {
+  it.each([[false, true, 'turn_on'], [true, false, 'turn_off']] as const)('Scenario: Command %s controls an output displaying physical %s (AC38)', (commandState, physicalState, command) => {
+    const device = createDevice({ integrationSource: 'modbus-tcp', lastKnownState: { plcRole: 'output', commandState, physicalState, actualState: physicalState, value: physicalState, state: physicalState ? 'on' : 'off', available: true } });
+    const plan = createDeviceTogglePlan(device);
+    expect(plan?.command).toBe(command);
+    expect(isDeviceActive(device)).toBe(physicalState);
+    expect(isDeviceActive(plan!.optimisticDevice)).toBe(physicalState);
+    expect(plan?.optimisticDevice.lastKnownState?.commandState).toBe(commandState);
+    expect(plan?.optimisticDevice.lastKnownState?.commandedState).toBe(!commandState);
+    expect(createDeviceTogglePlan({ ...device, lastKnownState: { ...device.lastKnownState, stale: true } })).toBeNull();
+  });
+  it('Scenario: Configured feedback controls retain their behavior (AC38)', () => {
+    const device = createDevice({ integrationSource: 'modbus-tcp', lastKnownState: { plcRole: 'output', commandState: false, feedbackState: true, state: 'on' } });
+    expect(createDeviceTogglePlan(device)?.command).toBe('turn_off');
+  });
   it('selects a pressed button state and command for a supported card tap', () => {
     const plan = createDeviceTogglePlan(createDevice());
 

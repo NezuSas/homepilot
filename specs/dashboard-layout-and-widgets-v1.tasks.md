@@ -2,6 +2,10 @@
 
 ## Refinamiento AC55
 
+- [x] Corregir composición horizontal de etiquetas y clima con un solo icono; cubrir lectura, carga, icono personalizado y geometría responsive focalizada, sin cambios de contratos ni persistencia.
+
+Evidencia del ajuste de etiquetas (2026-10-04): InformationCard 7/7 Jest PASS; responsive focalizado 3/3 PASS en 390, 768 y 1024 px, ambos temas. Icono único, centros alineados y texto en una sola línea, sin desbordar el viewport. El test cuenta líneas por posición vertical, no por cantidad de fragmentos de texto del Range. Typecheck raíz/consola, lint consola, builds raíz/consola y controles spec/BDD/module coverage PASS. Builds verificados con permisos de escritura tras EPERM del sandbox. Sin responsive completo, Git/GitHub ni deploy.
+
 - [x] Refinamiento adicional: ancho intrínseco real del menú, marca proporcional/preview reloj completo, etiquetas con lápiz/placeholder/icono y preview de píldora; validar focalizadamente.
 
 Refinamiento AC55/AC35: 5 suites Jest, 33/33 PASS y 9 escenarios responsive únicos PASS (tres etiquetas, menú Section, reloj y cuatro PLC I/O). El reloj se comprobó en 6×6 y 12×8 en cuatro anchos, con esfera/marca dentro del preview; las medidas se toman atómicamente tras estabilizar ResizeObserver. Icono de etiqueta comprobado en preview, guardado y recarga. Se corrigió el selector del test para usar searchbox y el nombre accesible real del icono; no se relajaron límites visuales. Inspección visual de móvil/tablet y ambos temas Modbus en una ronda acotada. Sin responsive completo, Git/deploy ni PLC físico.

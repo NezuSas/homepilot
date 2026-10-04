@@ -23,7 +23,7 @@ export function HomeContextIndicator({ icon: Icon, children, className, primaryI
       <Icon className="h-3.5 w-3.5" aria-hidden="true" />
     </span>
     <span className="min-w-0">
-      <span className="block truncate font-semibold text-foreground">{children}</span>
+      <span className="flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap font-semibold text-foreground">{children}</span>
     </span>
   </>;
 

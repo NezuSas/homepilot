@@ -2,6 +2,8 @@
 
 ## Refinamiento AC55 — autorizado (2026-10-04)
 
+Las etiquetas de información mantienen icono y contenido en una sola línea horizontal, sin duplicar el icono climático dentro del texto. Temperatura y condición comparten la misma línea; el contenido largo se trunca sin aumentar la altura, conservando el texto en el DOM. La fila puede envolver etiquetas completas en pantallas estrechas. Se conservan iconos personalizados, paleta semántica, estados de carga y configuración histórica.
+
 Refinamiento AC55 adicional: menú Section con ancho intrínseco de icono/etiqueta más padding mínimo, sin ancho de tarjeta. Marca del reloj proporcional a su esfera, preview sin recortes y mismos límites que el renderer. Fila de etiquetas con lápiz centrado hover/focus/tap, placeholder discontinuo para añadir, icono configurable mediante selector existente y preview de la misma píldora final. Sin cambios de persistencia ni conversión histórica.
 
 Lápiz centrado en edición por hover/foco o toque; eliminar únicamente desde footer izquierdo con confirmación. Menú Section ajustado al contenido. Reloj adaptativo sin frase decorativa. Preview visible y proporción real, tabs simples; sustituye altura fija AC54 por altura según panel, acotada al visualViewport. Watermark inferior izquierda. Etiquetas independientes debajo del título, con primitivas del hero, readonly y sensores asignados: guardar como Section extra.badgeRow=true y extra.cards en JSON existente. No ofrecer nuevas info_* en catálogo normal ni nuevos badges en título; conservar históricos sin conversión automática. Sin nuevas API/SQL/migraciones. Reversión previa mediante export/backup; versión anterior conserva JSON y muestra la fila como Section ordinaria. Mantener bindings/import existentes.

@@ -4,6 +4,12 @@ import es from '../../locales/es/common.json';
 import en from '../../locales/en/common.json';
 const variable: ModbusVariable = { deviceId: 'v', connectionId: 'c', name: 'Temperature', area: 'holding_register', address: 100, dataType: 'uint16', wordOrder: 'high_first', scale: 1, offset: 0, unit: '°C', writable: false, visualStyle: 'thermometer' };
 describe('Feature: PLC installer presentation (AC28/AC30/AC32)', () => {
+  it.each([es, en])('Scenario: Individual output read state and command RAW are explicit without confirmation (AC38)', translations => {
+    for (const key of ['physical_read_state', 'command_raw', 'command_read_state'] as const) {
+      expect(translations.plc[key]).toBeTruthy();
+      expect(translations.plc[key]).not.toMatch(/confirmado|confirmación|\bconfirmed\b|\bconfirmation\b/i);
+    }
+  });
   it.each([es, en])('Scenario: Related outputs have complete translations (AC37)', translations => {
     for (const key of ['related_outputs', 'command_read_state', 'add_related_output', 'remove_related_output', 'related_outputs_hint'] as const) expect(translations.plc[key]).toBeTruthy();
     expect(translations.plc.related_outputs_hint).toMatch(/No configura|Does not configure/);

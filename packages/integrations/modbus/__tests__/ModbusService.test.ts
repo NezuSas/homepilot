@@ -76,6 +76,55 @@ describe('Feature: PLC I/O controller (AC20/AC21/AC22/AC23/AC25)', () => {
       plc: { role: 'output', command: { profileId, symbolicAddress: 'M100' }, physical: { profileId, symbolicAddress: 'Y0' }, feedback: { profileId, symbolicAddress: 'M200' }, feedbackPolicy: 'required', feedbackTimeoutMs: 250, ...extra } });
     return { c, v, device: (await f.devices.findDeviceById(v.deviceId))! };
   }
+  it.each([[false, true], [true, false], [false, false]])('Scenario: Individual output command %s and physical %s remain distinct (AC38)', async (commandState, physicalState) => {
+    const { v } = await output({ feedbackPolicy: 'none', feedback: null });
+    f.transport.read.mockImplementation(async (_c, point) => point.address === 24576 ? physicalState : commandState);
+    await f.service.pollOnce();
+    expect((await f.devices.findDeviceById(v.deviceId))?.lastKnownState).toMatchObject({ commandState, physicalState, actualState: physicalState, value: physicalState, state: physicalState ? 'on' : 'off', available: true });
+    expect((await f.service.list('admin', 'h'))[0].variables[0].diagnostic?.value).toBe(physicalState);
+    expect(f.transport.writeCoil).not.toHaveBeenCalled();
+  });
+  it('Scenario: Physical read failure retains stale physical data without command fallback (AC38)', async () => {
+    const { v } = await output({ feedbackPolicy: 'none', feedback: null });
+    f.transport.read.mockImplementation(async (_c, point) => point.address === 24576);
+    await f.service.pollOnce(1000);
+    f.transport.read.mockImplementation(async (_c, point) => { if (point.address === 24576) throw new ModbusError('TIMEOUT', 'test'); return false; });
+    await f.service.pollOnce(10000);
+    expect((await f.devices.findDeviceById(v.deviceId))?.lastKnownState).toMatchObject({ actualState: true, value: true, available: false, stale: true });
+  });
+  it.each([['M200', 200, 'Y0'], ['M201', 201, 'Y1']])('Scenario: %s control writes only command while physical is ON (AC38)', async (symbolicAddress, address, physical) => {
+    const c = await f.service.saveConnection('admin', 'h', { name: 'PLC', host: '192.168.1.5', profileId, enabled: true });
+    const updated = await f.service.saveVariable('admin', c.id, { name: 'Output', profileId, symbolicAddress, address, area: 'coil', dataType: 'boolean', writable: true, plc: { role: 'output', command: { profileId, symbolicAddress }, physical: { profileId, symbolicAddress: physical }, feedbackPolicy: 'none' } });
+    const device = (await f.devices.findDeviceById(updated.deviceId))!;
+    f.transport.read.mockImplementation(async (_c, point) => point.address !== Number(address));
+    const result = await f.service.executeCommand(device, { name: 'toggle' });
+    expect(result).toMatchObject({ success: true, newState: { commandState: false, physicalState: true, actualState: true } });
+    expect(f.transport.writeCoil.mock.calls.map(call => [call[1], call[2]])).toEqual([[Number(address), true]]);
+    expect(updated.plc?.feedbackPolicy).toBe('none');
+  });
+  it('Scenario: Physical divergence does not determine command readback status (AC38)', async () => {
+    const { device } = await output({ feedbackPolicy: 'none', feedback: null });
+    f.transport.read.mockImplementation(async (_c, point) => point.address === 100);
+    expect(await f.service.executeCommand(device, { name: 'turn_on' })).toMatchObject({ success: true, newState: { commandState: true, actualState: false, confirmation: 'confirmed' } });
+  });
+  it('Scenario: Command RAW is preserved while diagnostic value follows physical (AC38)', async () => {
+    const { v } = await output({ feedbackPolicy: 'none', feedback: null });
+    f.transport.readSample = jest.fn().mockResolvedValue({ raw: [false], value: false });
+    f.transport.read.mockResolvedValue(true);
+    await f.service.pollOnce();
+    expect(f.transport.readSample).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ address: 100 }));
+    expect((await f.service.list('admin', 'h'))[0].variables[0].diagnostic).toMatchObject({ raw: [false], value: true });
+    expect((await f.devices.findDeviceById(v.deviceId))?.lastKnownState).toMatchObject({ commandState: false, physicalState: true, actualState: true });
+  });
+  it('Scenario: Historical writable coil without PLC binding retains its readback (AC38)', async () => {
+    const c = await f.service.saveConnection('admin', 'h', { name: 'Legacy', host: '192.168.1.5', enabled: true });
+    const v = await f.service.saveVariable('admin', c.id, { name: 'Legacy output', area: 'coil', address: 100, dataType: 'boolean', writable: true });
+    f.transport.read.mockResolvedValue(false);
+    await f.service.pollOnce();
+    expect((await f.devices.findDeviceById(v.deviceId))?.lastKnownState).toMatchObject({ value: false, state: 'off' });
+    expect((await f.devices.findDeviceById(v.deviceId))?.lastKnownState).not.toHaveProperty('actualState');
+    expect(f.transport.read.mock.calls.map(call => call[1].address)).toEqual([100]);
+  });
   it('Scenario: ON is written once to M100 and confirmed only through M200', async () => {
     const { c, v, device } = await output();
     f.transport.read.mockImplementation(async (_c, variable) => variable.address === 200);

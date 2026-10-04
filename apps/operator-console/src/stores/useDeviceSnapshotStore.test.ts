@@ -2,6 +2,7 @@
 import { apiFetch } from '../lib/apiClient';
 import { applyModbusRealtimeState, isKnownModbusStateEvent, useDeviceSnapshotStore, type SnapshotDevice } from './useDeviceSnapshotStore';
 import type { RealtimeEventMessage } from './useAppShellStore';
+import { isDeviceActive } from '../views/dashboards/dashboardUtils';
 
 jest.mock('../lib/apiClient');
 jest.mock('../config', () => ({
@@ -125,6 +126,13 @@ describe('Feature: immediate PLC dashboard state (AC36)', () => {
     expect(useDeviceSnapshotStore.getState().devices[0]).toEqual({ ...device, lastKnownState: { value: 21 }, updatedAt: event.timestamp });
     applyModbusRealtimeState({ ...event, timestamp: '2026-10-04T12:00:02.000Z', payload: { ...event.payload, newState: { value: 22 } } });
     expect(useDeviceSnapshotStore.getState().devices[0].lastKnownState).toEqual({ value: 22 });
+    expect(mockApiFetch).not.toHaveBeenCalled();
+  });
+  it('Scenario: Physical output ON reaches dashboard while command remains OFF (AC38)', () => {
+    applyModbusRealtimeState({ ...event, payload: { ...event.payload, newState: { plcRole: 'output', commandState: false, physicalState: true, actualState: true, value: true, state: 'on', available: true, stale: false } } });
+    const snapshot = useDeviceSnapshotStore.getState().devices[0];
+    expect(snapshot.lastKnownState).toMatchObject({ commandState: false, physicalState: true, actualState: true });
+    expect(isDeviceActive(snapshot)).toBe(true);
     expect(mockApiFetch).not.toHaveBeenCalled();
   });
 

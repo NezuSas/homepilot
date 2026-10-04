@@ -37,6 +37,7 @@ export function ModbusReadProbe({ homeId, initial, onClose, onCreate }: {
   const [refreshMs, setRefreshMs] = useState(0), [running, setRunning] = useState(false), [busy, setBusy] = useState(false);
   const [creating, setCreating] = useState(false), [error, setError] = useState('');
   const [result, setResult] = useState<ModbusProbeResult | null>(null);
+  const [hasAttemptedRead, setHasAttemptedRead] = useState(false);
   const [rowFilter, setRowFilter] = useState('all');
   const [dataType, setDataType] = useState<ModbusVariable['dataType']>('uint16');
   const [scale, setScale] = useState(1), [offset, setOffset] = useState(0), [unit, setUnit] = useState('');
@@ -50,7 +51,7 @@ export function ModbusReadProbe({ homeId, initial, onClose, onCreate }: {
   const displayedRows = result ? presentProbeRows(result.rows, conversion, rowFilter) : [];
   const stop = () => { active.current?.abort(); setRunning(false); setBusy(false); };
   const close = () => { if (creating) return; stop(); onClose(); };
-  const reset = () => { setResult(null); setError(''); };
+  const reset = () => { setResult(null); setError(''); setHasAttemptedRead(false); };
   useEffect(() => {
     if (!running) return;
     let disposed = false, timer: ReturnType<typeof setTimeout> | undefined;
@@ -81,7 +82,7 @@ export function ModbusReadProbe({ homeId, initial, onClose, onCreate }: {
     catch { setError(t('modbus.save_error')); } finally { setCreating(false); }
   };
   return <Modal isOpen onClose={close} title={t('modbus.probe_title')} description={t('modbus.probe_hint')} headerAlign="start" className="max-w-5xl text-card-foreground" bodyClassName="overflow-x-hidden overscroll-contain" layerClassName="overflow-hidden">
-    <form className="space-y-4" onSubmit={event => { event.preventDefault(); if (!profileId || addresses) setRunning(true); }}>
+    <form className="space-y-4" onSubmit={event => { event.preventDefault(); if (!profileId || addresses) { setHasAttemptedRead(true); setRunning(true); } }}>
       <fieldset disabled={running || creating} className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="sm:col-span-2 lg:col-span-full"><ModbusProfileSelect value={profileId} disabled={running || creating} onChange={value => { setProfileId(value); reset(); setDataType('uint16'); }} /></div>
         <Input label={t('modbus.host')} value={host} required placeholder="192.168.1.5" onChange={e => { setHost(e.target.value); reset(); }} />
@@ -99,7 +100,7 @@ export function ModbusReadProbe({ homeId, initial, onClose, onCreate }: {
       <div className="flex flex-wrap items-center gap-2">
         <Button type="submit" size="lg" disabled={running || creating || !homeId || (!!profileId && !addresses)}>{t('modbus.probe_start')}</Button>
         {running && <Button type="button" variant="secondary" size="lg" onClick={stop}>{t('modbus.probe_stop')}</Button>}
-        <span role="status" className="text-caption text-muted-foreground">{t(busy ? 'modbus.reading' : running ? 'modbus.waiting' : 'modbus.stopped')}</span>
+        <span role="status" className="text-caption text-muted-foreground">{t(busy ? 'modbus.reading' : running ? 'modbus.waiting' : hasAttemptedRead ? 'modbus.stopped' : 'modbus.not_started')}</span>
       </div>
     </form>
     {error && <AlertBanner variant="danger" role="alert" message={error} />}

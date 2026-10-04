@@ -2121,6 +2121,8 @@
   },
   "plc": {
     "read_state": "Read state",
+    "physical_read_state": "PLC output read state",
+    "command_raw": "Command RAW",
     "command_read_matches": "Matches the command readback",
     "command_read_pending": "Command readback pending",
     "command_read_unverified": "Command readback match not verified",

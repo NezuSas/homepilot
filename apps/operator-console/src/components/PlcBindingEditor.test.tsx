@@ -4,8 +4,21 @@ import { ModbusAddressFields } from './ModbusAddressFields';
 import { getModbusVariableGroup, ModbusConnectionCard, ModbusConnectionCardSkeleton } from './ModbusConnectionCard';
 import type { ModbusVariable } from '../../../../packages/integrations/modbus/domain/Modbus';
 jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
-jest.mock('../stores/useDeviceSnapshotStore', () => ({ useDeviceSnapshotStore: (selector: (state: { devices: [] }) => unknown) => selector({ devices: [] }) }));
+const mockSnapshots: { id: string; lastKnownState: Record<string, unknown> }[] = [];
+jest.mock('../stores/useDeviceSnapshotStore', () => ({ useDeviceSnapshotStore: (selector: (state: { devices: typeof mockSnapshots }) => unknown) => selector({ devices: mockSnapshots }) }));
+afterEach(() => { mockSnapshots.length = 0; });
 const base: Omit<ModbusVariable, 'deviceId' | 'connectionId'> = { name: 'PLC', profileId: 'xinje-xl5e-16t-v2', symbolicAddress: 'D100', area: 'holding_register', address: 100, dataType: 'uint16', scale: 1, offset: 0, wordOrder: 'high_first', unit: '', writable: false };
+it('Scenario: Individual output displays physical ON, command OFF and command RAW separately (AC38)', () => {
+  const profileId = base.profileId!;
+  const variable: ModbusVariable = { ...base, deviceId: 'v', connectionId: 'c', symbolicAddress: 'M200', plc: { role: 'output', command: { profileId, symbolicAddress: 'M200', area: 'coil', address: 200 }, physical: { profileId, symbolicAddress: 'Y0', area: 'coil', address: 24576 }, feedbackPolicy: 'none', mode: 'sustained', feedbackTimeoutMs: 2000, pulseDurationMs: 500 } };
+  mockSnapshots.push({ id: 'v', lastKnownState: { commandState: false, physicalState: true, actualState: true, value: true, state: 'on', confirmation: 'confirmed' } });
+  const html = renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: true, variables: [{ ...variable, diagnostic: { status: 'online', value: true, raw: [false] } }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
+  expect(html).toContain('plc.physical_read_state: plc.on');
+  expect(html).toContain('plc.command_read_state: plc.off');
+  expect(html).toContain('plc.command_raw (M200) false');
+  expect(html).toContain('plc.command_read_matches');
+  expect(html).not.toContain('plc.confirmations.confirmed');
+});
 describe('Feature: PLC binding editor (AC26)', () => {
   it('Scenario: Declarative destinations display without fictitious physical point or confirmation (AC37)', () => {
     const profileId = 'xinje-xl5e-16t-v1';
