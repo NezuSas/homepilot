@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
 import { type SnapshotDevice, type SnapshotRoom } from '../../../stores/useDeviceSnapshotStore';
 import { isDeviceActive } from '../dashboardUtils';
+import { isMomentaryPlcCommand } from '../../../lib/plcUi';
 import { IconButton } from '../../../components/ui/IconButton';
 import { CurtainDeviceTileLoadingGeometry } from '../../../components/CurtainDeviceTile';
 import type { MediaPlayerCommand } from './MediaPlayerCard';
@@ -53,7 +54,7 @@ export function SectionCardItem({
   roomsByHome: Record<string, SnapshotRoom[]>;
   snapshotPending: boolean;
   processingCardId: string | null;
-  actionFeedback: { id: string; status: 'success' | 'error' } | null;
+  actionFeedback: { id: string; status: 'success' | 'error'; message?: string } | null;
   catalogLabel: (kind: SectionCardKind) => string;
   handleCardAction: (card: NormalizedSectionCardItem, event?: MouseEvent) => void | Promise<void>;
   handleMediaCardAction: (card: NormalizedSectionCardItem, command: MediaPlayerCommand, params?: Record<string, unknown>) => void | Promise<void>;
@@ -83,7 +84,9 @@ export function SectionCardItem({
   const span = gridOptions ? gridOptions.columns === 'full' || gridOptions.columns > 6 ? 'full' : gridOptions.columns <= 3 ? 'small' : 'medium' : savedSpan;
   const subtitle = card.entityName || card.description;
   const isCamera = normalizeKind(card.kind) === 'camera';
-  const normalizedKind = normalizeKind(card.kind);
+  const assignedDevice = card.entityId ? devices.find(device => device.id === card.entityId) : undefined;
+  const plcPulse = isMomentaryPlcCommand(assignedDevice) && ['device', 'light', 'action'].includes(normalizeKind(card.kind));
+  const normalizedKind = plcPulse ? 'action' : normalizeKind(card.kind);
   const skeletonVariant: DashboardCardSkeletonVariant | null = normalizedKind === 'sensor' ? 'sensor'
     : normalizedKind === 'camera' ? 'camera'
       : normalizedKind === 'media' ? 'media'
@@ -94,9 +97,6 @@ export function SectionCardItem({
   const roomDevices = normalizedKind === 'room' && card.entityId
     ? devices.filter((device) => device.roomId === card.entityId)
     : [];
-  const assignedDevice = card.entityId
-    ? devices.find((device) => device.id === card.entityId)
-    : undefined;
   // Buttons and clocks can render their configured content immediately. A
   // missing device after the first snapshot is unavailable, not still loading.
   const initialPending = Boolean(card.entityId && (skeletonVariant || normalizedKind === 'info_sensor') && needsInitialDashboardSkeleton(snapshotPending, Boolean(assignedDevice)));
@@ -105,7 +105,7 @@ export function SectionCardItem({
     ? (roomsByHome[assignedDevice.homeId] ?? []).find((room) => room.id === assignedDevice.roomId)?.name
     : undefined;
   const cardIsActive = assignedDevice ? isDeviceActive(assignedDevice) : false;
-  const actionIsActive = normalizedKind === 'action' && (processingCardId === card.id || (actionFeedback?.id === card.id && actionFeedback.status === 'success'));
+  const actionIsActive = normalizedKind === 'action' && (processingCardId === card.id || (!plcPulse && actionFeedback?.id === card.id && actionFeedback.status === 'success'));
   const tileIsActive = normalizedKind === 'action' ? actionIsActive : cardIsActive;
   const isActionable = Boolean(card.entityId)
     && !isEditing
@@ -118,7 +118,7 @@ export function SectionCardItem({
 
 
   const cardContent = <SectionCardContent
-    kind={card.kind}
+    kind={plcPulse ? 'action' : card.kind}
     title={card.title || catalogLabel(card.kind)}
     subtitle={isCamera ? assignedRoomName : subtitle}
     span={span}
@@ -141,6 +141,7 @@ export function SectionCardItem({
     onDeviceCommand={isCover ? executeSectionDeviceCommand : undefined}
     onAction={normalizedKind === 'action' && !isEditing ? () => { void handleCardAction(card); } : undefined}
     actionFeedback={processingCardId === card.id ? 'pending' : actionFeedback?.id === card.id ? actionFeedback.status : undefined}
+    actionError={actionFeedback?.id === card.id && actionFeedback.message ? t(actionFeedback.message) : undefined}
   />;
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } = useSortable({

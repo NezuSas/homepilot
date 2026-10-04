@@ -40,6 +40,17 @@ describe('Feature: PLC I/O controller (AC20/AC21/AC22/AC23/AC25)', () => {
     expect(f.repository.variable(v.deviceId)?.plc?.feedback).toBeUndefined();
     expect((await f.devices.findDeviceById(v.deviceId))?.lastKnownState?.actualState).toBe(false);
   });
+  it.each([['M100', 100, ['Y0', 'Y1']], ['M101', 101, ['Y3', 'Y4']]] as const)('Scenario: Momentary %s completes only the command pulse, not related outputs (AC39)', async (symbolicAddress, address, symbols) => {
+    const c = await f.service.saveConnection('admin', 'h', { name: 'Simulated PLC', host: '192.168.1.5', profileId, enabled: true });
+    const v = await f.service.saveVariable('admin', c.id, { name: symbolicAddress, profileId, symbolicAddress, area: 'coil', address, dataType: 'boolean', writable: true, plc: { role: 'output_command', command: { profileId, symbolicAddress }, relatedPhysicalOutputs: symbols.map(symbolicAddress => ({ profileId, symbolicAddress })), mode: 'pulse', pulseDurationMs: 100, feedbackPolicy: 'none' } });
+    f.transport.read.mockImplementation(async (_c, point) => point.address >= 24576);
+    const device = (await f.devices.findDeviceById(v.deviceId))!;
+    expect(await f.service.executeCommand(device, { name: 'press' })).toMatchObject({ success: true, newState: { actualState: false, commandState: false, confirmation: 'pulse_completed' } });
+    expect(f.transport.writeCoil.mock.calls.map(call => [call[1], call[2]])).toEqual([[address, true], [address, false]]);
+    expect(f.transport.read.mock.calls.every(call => call[1].address === address)).toBe(true);
+    expect(f.transport.writeHoldingRegisters).not.toHaveBeenCalled();
+    expect(f.repository.variable(v.deviceId)?.plc?.relatedPhysicalOutputs).toHaveLength(2);
+  });
   it.each(['auto', 'gauge', 'thermometer', 'level', 'battery'])('Scenario: %s visualization persists and reaches state sync without changing the device family (AC30)', async visualStyle => {
     const c = await f.service.saveConnection('admin', 'h', { name: 'PLC', enabled: true, host: '192.168.1.5' });
     const v = await f.service.saveVariable('admin', c.id, { name: 'Reading', area: 'holding_register', address: 100, dataType: 'uint16', visualStyle });

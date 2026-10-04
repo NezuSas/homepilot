@@ -3,6 +3,8 @@ import { Check, CircleAlert, Loader2, MousePointerClick } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../../../lib/apiClient';
 import { canExecuteCommand } from '../../../lib/deviceCapabilities';
+import { isMomentaryPlcCommand, plcErrorKey, plcResponseError } from '../../../lib/plcUi';
+import { isDeviceUnavailable } from '../../../lib/deviceAvailability';
 import { cn } from '../../../lib/utils';
 import { API_BASE_URL } from '../../../config';
 import { Button } from '../../../components/ui/Button';
@@ -29,7 +31,9 @@ export function ActionButtonWidget({ config, isEditing, onConfigure }: {
   const devices = useDeviceSnapshotStore((state) => state.devices);
   const upsertDevice = useDeviceSnapshotStore((state) => state.upsertDevice);
   const feedbackTimerRef = useRef<number | null>(null);
+  const executionLock = useRef(false);
   const [status, setStatus] = useState<ActionStatus>('idle');
+  const [actionError, setActionError] = useState<string | null>(null);
   useEffect(() => () => {
     if (feedbackTimerRef.current !== null) window.clearTimeout(feedbackTimerRef.current);
   }, []);
@@ -50,7 +54,8 @@ export function ActionButtonWidget({ config, isEditing, onConfigure }: {
   }
 
   const title = config.appearance.title || config.binding.entityName || device.name;
-  const canPress = canExecuteCommand(device, 'press');
+  const plcPulse = isMomentaryPlcCommand(device);
+  const canPress = canExecuteCommand(device, 'press') && (!plcPulse || !isDeviceUnavailable(device));
   const feedbackLabel = status === 'pending'
     ? t('dashboards.widgets.action_button.pending')
     : status === 'success'
@@ -61,24 +66,31 @@ export function ActionButtonWidget({ config, isEditing, onConfigure }: {
 
   const handlePress = async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    if (isEditing || status === 'pending' || !canPress) return;
+    if (isEditing || executionLock.current || status === 'pending' || !canPress) return;
+    executionLock.current = true;
 
     if (feedbackTimerRef.current !== null) window.clearTimeout(feedbackTimerRef.current);
     setStatus('pending');
+    setActionError(null);
     try {
       const response = await apiFetch(`${API}/devices/${encodeURIComponent(device.id)}/command`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command: 'press' }),
       });
-      if (!response.ok) throw new Error(`ACTION_BUTTON_${response.status}`);
-      upsertDevice(await response.json() as SnapshotDevice);
-      setStatus('success');
-    } catch {
-      setStatus('error');
+      if (!response.ok) throw new Error(plcPulse ? await plcResponseError(response) : 'ACTION_BUTTON_FAILED');
+      const updated = await response.json() as SnapshotDevice;
+      upsertDevice(updated);
+      if (plcPulse && (updated.lastKnownState?.confirmation === 'reset_failed' || updated.lastKnownState?.error)) throw new Error(plcErrorKey(updated.lastKnownState.error ?? 'RESET_FAILED'));
+      setStatus(plcPulse ? 'idle' : 'success');
+    } catch (error) {
+      if (plcPulse) setActionError(error instanceof Error && error.message.startsWith('plc.errors.') ? error.message : plcErrorKey(undefined));
+      setStatus(plcPulse ? 'idle' : 'error');
+    } finally {
+      executionLock.current = false;
     }
 
-    feedbackTimerRef.current = window.setTimeout(() => setStatus('idle'), 2800);
+    if (!plcPulse) feedbackTimerRef.current = window.setTimeout(() => setStatus('idle'), 2800);
   };
 
   return (
@@ -87,6 +99,8 @@ export function ActionButtonWidget({ config, isEditing, onConfigure }: {
       onClick={handlePress}
       disabled={isEditing || status === 'pending' || !canPress}
       aria-busy={status === 'pending' || undefined}
+      data-plc-momentary={plcPulse || undefined}
+      data-action-state={status}
       aria-label={t('dashboards.widgets.action_button.aria', { name: title })}
       title={!canPress ? t('dashboards.widgets.action_button.unavailable') : undefined}
       variant="ghost"
@@ -109,6 +123,7 @@ export function ActionButtonWidget({ config, isEditing, onConfigure }: {
         <p className="mt-1 line-clamp-2 text-widget-meta-fluid text-muted-foreground">
           {t('dashboards.widgets.action_button.description')}
         </p>
+        {actionError && <p role="alert" className="mt-1 break-words text-widget-meta-fluid text-danger">{t(actionError)}</p>}
       </div>
     </Button>
   );

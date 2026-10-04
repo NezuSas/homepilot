@@ -1,6 +1,82 @@
 import { expect, test } from '@playwright/test';
 import { mdiAutoFix, mdiHome, mdiRobot, mdiWeatherWindy } from '@mdi/js';
 
+for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 1024 }, { width: 1024, height: 768 }, { width: 1440, height: 900 }]) {
+  test(`Feature: Momentary PLC action UI — Scenario: Historical cards execute once and return ready at ${viewport.width} (AC39)`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport);
+    const makeDevice = (id: string, name: string, role: string, mode: string) => ({ id, name, homeId: 'responsive-home', roomId: 'room-test', status: 'ASSIGNED', type: 'switch', integrationSource: 'modbus-tcp',
+      capabilities: [{ type: 'switch', name: 'PLC', commands: (mode === 'pulse' ? ['press', 'pulse'] : ['turn_on', 'turn_off', 'toggle']).map(name => ({ name })) }],
+      lastKnownState: { plcRole: role, plcMode: mode, actualState: true, value: true, state: 'on', commandState: false, ...(role === 'output' ? { physicalState: true } : {}), available: true, stale: false, writable: true },
+    });
+    const devices = [makeDevice('pulse-section-test', 'Comando de grupo', 'output_command', 'pulse'), makeDevice('pulse-widget-test', 'Comando independiente', 'output_command', 'pulse'), makeDevice('persistent-test', 'Comando sostenido', 'output_command', 'sustained'), makeDevice('physical-test', 'Salida física Y0', 'output', 'sustained')];
+    const template = responsiveDashboard.tabs[0].widgets[1];
+    const fixture = { ...responsiveDashboard, tabs: [{ ...responsiveDashboard.tabs[0], widgets: [
+      { ...template, config: { ...template.config, extra: { cards: [
+        { id: 'pulse-historical-card', kind: 'light', title: devices[0].name, entityId: devices[0].id, span: 'small' },
+        { id: 'persistent-card', kind: 'light', title: devices[2].name, entityId: devices[2].id, span: 'small' },
+        { id: 'physical-card', kind: 'light', title: devices[3].name, entityId: devices[3].id, span: 'small' },
+      ] } } },
+      { id: 'historical-widget', type: 'device_control', config: { ...template.config, binding: { entityId: devices[1].id, entityType: 'device' }, appearance: { title: devices[1].name }, extra: {} } },
+    ] }] };
+    await prepareAuthenticatedDashboard(page, fixture);
+    await page.route('**/api/v1/devices', route => route.fulfill({ json: devices }));
+    const requests: { id: string; command: unknown }[] = [];
+    let release: (() => void) | undefined;
+    let fail = false;
+    await page.route('**/api/v1/devices/*/command', async route => {
+      const id = route.request().url().split('/').at(-2)!;
+      requests.push({ id, command: route.request().postDataJSON().command });
+      await new Promise<void>(resolve => { release = resolve; });
+      if (fail) { await route.fulfill({ status: 400, json: { error: { code: 'RESET_FAILED' } } }); return; }
+      const device = devices.find(device => device.id === id)!;
+      await route.fulfill({ json: { ...device, lastKnownState: { ...device.lastKnownState, state: 'off', value: false, actualState: false, commandState: false, confirmation: 'pulse_completed' } } });
+    });
+    for (const language of ['es', 'en']) {
+      await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+      await page.evaluate(language => localStorage.setItem('i18nextLng', language), language);
+      await page.reload();
+      const ready = language === 'es' ? 'Ejecutar' : 'Run';
+      const pending = language === 'es' ? 'Ejecutando' : 'Running';
+      const section = page.locator('[data-dashboard-card-id="pulse-historical-card"] [data-plc-momentary="true"]');
+      const standalone = page.locator('.dashboard-action-button[data-plc-momentary="true"]');
+      for (const theme of ['light', 'dark']) {
+        await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
+        await expect(section).toContainText(ready);
+        await expect(standalone).toContainText(ready);
+        await expect(section).not.toHaveAttribute('aria-pressed');
+        await expect(standalone).not.toHaveAttribute('aria-pressed');
+        await expect(page.locator('[data-dashboard-card-id="physical-card"]')).toHaveClass(/homepilot-section-light-tile-active/);
+        await expect(page.locator('[data-dashboard-card-id="persistent-card"] [data-plc-momentary]')).toHaveCount(0);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
+      }
+      for (const button of [section, standalone]) {
+        const before = requests.length;
+        fail = false;
+        await button.evaluate(element => { (element as HTMLButtonElement).click(); (element as HTMLButtonElement).click(); });
+        await expect(button).toContainText(pending);
+        await expect(button).toBeDisabled();
+        await expect.poll(() => requests.length).toBe(before + 1);
+        expect(requests.at(-1)?.command).toBe('press');
+        release!();
+        await expect(button).toContainText(ready);
+        await expect(button).toBeEnabled();
+        await expect(button).toHaveAttribute('data-action-state', 'idle');
+        fail = true;
+        await button.click();
+        await expect.poll(() => requests.length).toBe(before + 2);
+        release!();
+        await expect(button).toBeEnabled();
+        await expect(button).toContainText(ready);
+        await expect(button.getByRole('alert')).toBeVisible();
+        await expect(button).toHaveAttribute('data-action-state', 'idle');
+        await expect(button).not.toHaveAttribute('aria-pressed');
+      }
+      expect(requests.every(request => ['pulse-section-test', 'pulse-widget-test'].includes(request.id) && request.command === 'press')).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath(`plc-action-${language}.png`), animations: 'disabled' });
+    }
+  });
+}
+
 for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 1024 }, { width: 1024, height: 768 }]) {
   test(`Feature: Weather label single line — Scenario: One icon and inline reading at ${viewport.width} (AC55)`, async ({ page }, testInfo) => {
     await page.setViewportSize(viewport);

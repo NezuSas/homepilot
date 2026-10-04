@@ -8,6 +8,11 @@ export const modbusWordOrders = ['high_first', 'low_first'] as const;
 export const modbusRefreshIntervals = [1000, 5000, 10000, 30000, 60000] as const;
 export const plcSwitchCommands = ['turn_on', 'turn_off'] as const;
 
+/** Presentation only. Related outputs and actualState never classify an action. */
+export function isMomentaryPlcCommand(device?: Pick<SnapshotDevice, 'integrationSource' | 'lastKnownState'>): boolean {
+  return device?.integrationSource === 'modbus-tcp' && device.lastKnownState?.plcRole === 'output_command' && device.lastKnownState.plcMode === 'pulse';
+}
+
 /** Labels describe the stored symbol, never an inferred Ladder relationship. */
 export function plcRelatedPointLabel(symbol: string): string {
   if (/^Y[0-9]+$/i.test(symbol.trim())) return 'plc.physical_output';

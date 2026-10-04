@@ -5,6 +5,8 @@ import { cn } from '../../../lib/utils';
 import { useDeviceSnapshotStore } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig } from '../types';
 import { apiFetch } from '../../../lib/apiClient';
+import { isMomentaryPlcCommand } from '../../../lib/plcUi';
+import { ActionButtonWidget } from './ActionButtonWidget';
 import { API_BASE_URL } from '../../../config';
 import { isDeviceActive } from '../dashboardUtils';
 import { DormantWidgetPlaceholder } from '../components/DormantWidgetPlaceholder';
@@ -43,6 +45,8 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
       />
     );
   }
+
+  if (isMomentaryPlcCommand(device)) return <ActionButtonWidget config={config} isEditing={isEditing} onConfigure={onConfigure} />;
 
   if (device.type === 'camera' || device.semanticType === 'camera') {
     const roomName = device.roomId

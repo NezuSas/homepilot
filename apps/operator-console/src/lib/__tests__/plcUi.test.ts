@@ -1,9 +1,20 @@
-import { plcConnectionAvailable, plcConnectionKey, plcErrorKey, plcSensorDevice, plcReadFunction, plcResponseError, plcStatusLabel } from '../plcUi';
+import { isMomentaryPlcCommand, plcConnectionAvailable, plcConnectionKey, plcErrorKey, plcSensorDevice, plcReadFunction, plcResponseError, plcStatusLabel } from '../plcUi';
 import type { ModbusVariable, ModbusDiagnostic } from '../../../../../packages/integrations/modbus/domain/Modbus';
 import es from '../../locales/es/common.json';
 import en from '../../locales/en/common.json';
 const variable: ModbusVariable = { deviceId: 'v', connectionId: 'c', name: 'Temperature', area: 'holding_register', address: 100, dataType: 'uint16', wordOrder: 'high_first', scale: 1, offset: 0, unit: '°C', writable: false, visualStyle: 'thermometer' };
 describe('Feature: PLC installer presentation (AC28/AC30/AC32)', () => {
+  it('Scenario: Only PLC output_command pulse is momentary regardless of actualState (AC39)', () => {
+    const device = { integrationSource: 'modbus-tcp', lastKnownState: { plcRole: 'output_command', plcMode: 'pulse', actualState: true, physicalState: true } };
+    const original = JSON.stringify(device);
+    expect(isMomentaryPlcCommand(device)).toBe(true);
+    expect(isMomentaryPlcCommand({ ...device, lastKnownState: { ...device.lastKnownState, plcMode: 'sustained' } })).toBe(false);
+    expect(isMomentaryPlcCommand({ ...device, lastKnownState: { ...device.lastKnownState, plcRole: 'output' } })).toBe(false);
+    expect(isMomentaryPlcCommand({ ...device, integrationSource: 'home-assistant' })).toBe(false);
+    expect(isMomentaryPlcCommand()).toBe(false);
+    expect(JSON.stringify(device)).toBe(original);
+    for (const translations of [es, en]) expect(translations.dashboards.widgets.action_button.execute).toBeTruthy();
+  });
   it.each([es, en])('Scenario: Individual output read state and command RAW are explicit without confirmation (AC38)', translations => {
     for (const key of ['physical_read_state', 'command_raw', 'command_read_state'] as const) {
       expect(translations.plc[key]).toBeTruthy();

@@ -19,6 +19,8 @@ interface SectionActionCardProps {
   isBlocked?: boolean;
   ariaLabel?: string;
   pressed?: boolean;
+  momentaryCommand?: boolean;
+  actionError?: string;
 }
 
 export function SectionActionCard({
@@ -35,6 +37,8 @@ export function SectionActionCard({
   isBlocked,
   ariaLabel,
   pressed,
+  momentaryCommand,
+  actionError,
 }: SectionActionCardProps) {
   const { t } = useTranslation();
   const Icon = getDashboardIconComponent(icon ?? getDefaultIcon(normalizeKind(kind)));
@@ -50,9 +54,10 @@ export function SectionActionCard({
       aria-disabled={!isInteractiveAction || isBlocked || actionFeedback === 'pending' || undefined}
       aria-busy={actionFeedback === 'pending' || undefined}
       aria-label={ariaLabel ?? t('dashboard.editor.sections.action_button_aria', { name: title })}
-      aria-pressed={pressed}
-      data-action-state={actionFeedback ?? 'idle'}
-      title={actionFeedback === 'error' ? t('dashboard.editor.sections.action_button_error') : unavailable ? t('dashboard.editor.sections.action_button_unavailable') : subtitle}
+      aria-pressed={momentaryCommand ? undefined : pressed}
+      data-plc-momentary={momentaryCommand || undefined}
+      data-action-state={momentaryCommand ? actionFeedback === 'pending' ? 'pending' : 'idle' : actionFeedback ?? 'idle'}
+      title={actionError ?? (actionFeedback === 'error' ? t('dashboard.editor.sections.action_button_error') : unavailable ? t('dashboard.editor.sections.action_button_unavailable') : subtitle)}
       variant="ghost"
       className={cn(
         SECTION_BUTTON_TILE_CLASSES,
@@ -65,8 +70,10 @@ export function SectionActionCard({
     >
       <Icon aria-hidden="true" className={getLightTileIconClasses(Boolean(isActive))} />
       <span className="line-clamp-2 min-w-0 text-micro font-bold leading-tight text-foreground">{title}</span>
+      {momentaryCommand && <span className="min-w-0 text-micro text-muted-foreground">{t(actionFeedback === 'pending' ? 'dashboards.widgets.action_button.pending' : 'dashboards.widgets.action_button.execute')}</span>}
+      {momentaryCommand && actionFeedback === 'error' && <span role="alert" className="line-clamp-2 min-w-0 text-micro text-danger">{actionError ?? t('dashboard.editor.sections.action_button_error')}</span>}
       {actionFeedback === 'success' && <span role="status" className="sr-only">{t('dashboard.editor.sections.action_button_success')}</span>}
-      {actionFeedback === 'error' && <span role="alert" className="sr-only">{t('dashboard.editor.sections.action_button_error')}</span>}
+      {!momentaryCommand && actionFeedback === 'error' && <span role="alert" className="sr-only">{t('dashboard.editor.sections.action_button_error')}</span>}
     </Button>
   );
 }

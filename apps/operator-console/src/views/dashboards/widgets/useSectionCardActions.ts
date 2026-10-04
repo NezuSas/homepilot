@@ -1,4 +1,6 @@
-import { useCallback, useState, type MouseEvent } from 'react';
+import { useCallback, useRef, useState, type MouseEvent } from 'react';
+import { isMomentaryPlcCommand, plcErrorKey, plcResponseError } from '../../../lib/plcUi';
+import { isDeviceUnavailable } from '../../../lib/deviceAvailability';
 import { apiFetch } from '../../../lib/apiClient';
 import { API_BASE_URL } from '../../../config';
 import { canExecuteCommand } from '../../../lib/deviceCapabilities';
@@ -17,13 +19,17 @@ interface SectionCardActionsOptions {
 
 export function useSectionCardActions({ devices, isEditing, upsertDevice }: SectionCardActionsOptions) {
   const [processingCardId, setProcessingCardId] = useState<string | null>(null);
+  const pulseLocks = useRef(new Set<string>());
   const { actionFeedback, clearActionFeedback, showActionFeedback } = useMomentaryActionFeedback();
 
   const handleCardAction = async (card: NormalizedSectionCardItem, event?: MouseEvent) => {
     event?.stopPropagation();
     if (isEditing || !card.entityId) return;
 
-    const normalized = normalizeKind(card.kind);
+    const assignedDevice = devices.find(candidate => candidate.id === card.entityId);
+    const plcPulse = isMomentaryPlcCommand(assignedDevice);
+    const storedKind = normalizeKind(card.kind);
+    const normalized = plcPulse && ['device', 'light', 'action'].includes(storedKind) ? 'action' : storedKind;
     if (normalized === 'scene') {
       // One card, two possible targets: a HomePilot scene (plain id) or an
       // automation "routine" (id stored with the AUTOMATION_ENTITY_PREFIX).
@@ -84,6 +90,8 @@ export function useSectionCardActions({ devices, isEditing, upsertDevice }: Sect
           ? 'activate'
           : null;
       if (!command) return;
+      if (plcPulse && (pulseLocks.current.has(device.id) || isDeviceUnavailable(device))) return;
+      if (plcPulse) pulseLocks.current.add(device.id);
 
       setProcessingCardId(card.id);
       clearActionFeedback();
@@ -93,14 +101,15 @@ export function useSectionCardActions({ devices, isEditing, upsertDevice }: Sect
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ command }),
         });
-        if (!response.ok) throw new Error(`ACTION_BUTTON_${response.status}`);
+        if (!response.ok) throw new Error(plcPulse ? await plcResponseError(response) : 'ACTION_BUTTON_FAILED');
         const updated = await response.json() as SnapshotDevice;
         upsertDevice(updated);
-        showActionFeedback(card.id, 'success');
+        if (plcPulse && (updated.lastKnownState?.confirmation === 'reset_failed' || updated.lastKnownState?.error)) throw new Error(plcErrorKey(updated.lastKnownState.error ?? 'RESET_FAILED'));
+        if (!plcPulse) showActionFeedback(card.id, 'success');
       } catch (error) {
-        console.error('[SectionWidget] Failed to execute action-button card:', error);
-        showActionFeedback(card.id, 'error');
+        showActionFeedback(card.id, 'error', plcPulse ? error instanceof Error && error.message.startsWith('plc.errors.') ? error.message : plcErrorKey(undefined) : undefined);
       } finally {
+        if (plcPulse) pulseLocks.current.delete(device.id);
         setProcessingCardId(null);
       }
       return;

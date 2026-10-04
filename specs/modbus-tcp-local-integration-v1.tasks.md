@@ -1,5 +1,11 @@
 # Tareas — Modbus TCP local V1
 
+## Acción momentánea PLC — AC39 (solo Fase 1 UI)
+
+- [x] Clasificar output_command+pulse por metadatos existentes, reutilizando press y botones de acción, sin backend ni configuración real.
+- [x] Adaptar tarjetas históricas al renderizar y ejecutar; pending, bloqueo inmediato, error traducido y retorno a listo sin pintar estado físico ni alterar actualState.
+- [x] Validar regresiones sostenidas/físicas/acciones HA, ES/EN y responsive focal: 12 suites Jest, 354/354 PASS; cuatro escenarios AC39 móvil/tablet vertical/tablet horizontal/escritorio, 4/4 PASS con API simulada. Typecheck, lint, builds backend/frontend, spec, BDD, módulo, arquitectura, no-production-any e i18n PASS; detector UI sin hallazgos. Responsive reejecutado con permisos locales tras bloqueo del sandbox. Sin SQLite real, PLC físico, cambios de M100/M101, Git ni deploy. No suite global ni responsive completo ni Docker/runtime; no candidato a publicación. Advertencias de build existentes sobre tamaño de chunk y Browserslist.
+
 ## Estado de salidas individuales — AC38
 
 - [x] Separar selección de estado físico y comparación del comando sin modificar destinos de escritura ni feedback independiente.

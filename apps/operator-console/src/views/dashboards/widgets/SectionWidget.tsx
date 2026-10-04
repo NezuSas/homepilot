@@ -23,6 +23,7 @@ import { SectionCardItem } from './SectionCardItem';
 import { SectionCardCatalogModal } from './SectionCardCatalogModal';
 import { SectionCardEditorModal } from './SectionCardEditorModal';
 import { useSectionCardActions } from './useSectionCardActions';
+import { isMomentaryPlcCommand } from '../../../lib/plcUi';
 import { getDashboardIconComponent } from '../components/dashboardIconRegistry';
 import { isDeviceOperational } from '../../../lib/deviceOperationalEligibility';
 import type { CardGridOptions } from '../types';
@@ -382,7 +383,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         width: sectionGridWidth > 0 ? getCardGridWidth(sectionGridWidth, gridOptionsOverride?.columns ?? (span === 'small' ? 3 : span === 'medium' ? 6 : 12)) : undefined,
         minHeight: getCardGridHeight(gridOptionsOverride?.rows),
         ...((normalizedPreviewKind === 'sensor' || isClockKind(kind)) && typeof gridOptionsOverride?.rows === 'number' ? { height: getCardGridHeight(gridOptionsOverride.rows), minHeight: 0, ...(isClockKind(kind) ? { containerType: 'size' as const, containerName: 'clock-card' } : {}) } : {}),
-      } : undefined} className={isEditorPreview || normalizedPreviewKind.startsWith('info_') ? cn('homepilot-sized-card relative grid shrink-0 min-w-0 overflow-hidden shadow-sm', normalizedPreviewKind === 'sensor' && typeof gridOptionsOverride?.rows === 'number' && 'homepilot-bounded-sensor', getCardFrameClass(normalizedPreviewKind, span, previewDevice ? isDeviceActive(previewDevice) : false)) : cn(
+      } : undefined} className={isEditorPreview || normalizedPreviewKind.startsWith('info_') ? cn('homepilot-sized-card relative grid shrink-0 min-w-0 overflow-hidden shadow-sm', normalizedPreviewKind === 'sensor' && typeof gridOptionsOverride?.rows === 'number' && 'homepilot-bounded-sensor', getCardFrameClass(normalizedPreviewKind, span, previewDevice && !isMomentaryPlcCommand(previewDevice) ? isDeviceActive(previewDevice) : false)) : cn(
         "grid overflow-hidden rounded-section transition-[height,width,max-width] duration-200",
         !isClockPreview && "bg-background/40",
         isClockPreview && (isEditorPreview ? 'homepilot-clock-preview-host homepilot-clock-preview-host--editor' : 'homepilot-clock-preview-host homepilot-clock-preview-host--catalog'),
@@ -399,7 +400,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           span={span}
           icon={(normalizedPreviewKind === 'action' ? getBoundRoutineIcon(deviceIdOverride, scenes, automations) : undefined) ?? iconOverride ?? getDefaultIcon(kind)}
           isAssigned={Boolean(deviceIdOverride)}
-          isActive={previewDevice ? isDeviceActive(previewDevice) : false}
+        isActive={previewDevice && !isMomentaryPlcCommand(previewDevice) ? isDeviceActive(previewDevice) : false}
           device={previewDevice}
           mediaVariant={mediaVariantOverride}
           sensorScale={sensorScaleOverride}

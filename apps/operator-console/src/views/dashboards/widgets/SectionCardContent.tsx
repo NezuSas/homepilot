@@ -11,6 +11,7 @@ import { SectionRoomCard } from './SectionRoomCard';
 import { SectionSceneCard } from './SectionSceneCard';
 import { SensorMetricCard } from './SensorMetricCard';
 import { InformationCard } from './InformationCard';
+import { isMomentaryPlcCommand } from '../../../lib/plcUi';
 import { isClockKind, normalizeKind, type SensorScale, type MediaVariant, type SectionCardIcon, type SectionCardKind, type SectionCardSpan } from './sectionCardCatalog';
 
 interface SectionCardContentProps {
@@ -36,6 +37,7 @@ interface SectionCardContentProps {
   onDeviceCommand?: (deviceId: string, command: string, params?: Record<string, unknown>) => Promise<SnapshotDevice | null>;
   onAction?: () => void;
   actionFeedback?: 'pending' | 'success' | 'error';
+  actionError?: string;
 }
 
 export function SectionCardContent({
@@ -61,8 +63,10 @@ export function SectionCardContent({
   onDeviceCommand,
   onAction,
   actionFeedback,
+  actionError,
 }: SectionCardContentProps) {
-  const normalized = normalizeKind(kind);
+  const plcPulse = isMomentaryPlcCommand(device) && ['device', 'light', 'action'].includes(normalizeKind(kind));
+  const normalized = plcPulse ? 'action' : normalizeKind(kind);
   const isSmall = span === 'small';
   if (normalized === 'info_time' || normalized === 'info_weather' || normalized === 'info_sensor') return <InformationCard source={normalized} device={device} title={title} icon={icon} />;
 
@@ -76,7 +80,7 @@ export function SectionCardContent({
       ? <CurtainDeviceTile device={device} roomName={subtitle} onUpdate={onDeviceUpdate} onCommand={onDeviceCommand} layout="dashboard" density={density} />
       : <CurtainDeviceTilePreview title={title} roomName={subtitle} layout="dashboard" density={density} />;
   }
-  if (normalized === 'action') return <SectionActionCard kind={kind} title={title} subtitle={subtitle} icon={icon} isAssigned={isAssigned} isActive={isActive} isPreview={isPreview} isEditorPreview={isEditorPreview} onAction={onAction} actionFeedback={actionFeedback} />;
+  if (normalized === 'action') return <SectionActionCard kind={plcPulse ? 'action' : kind} title={title} subtitle={subtitle} icon={icon} isAssigned={isAssigned} isActive={plcPulse ? actionFeedback === 'pending' : isActive} isPreview={isPreview} isEditorPreview={isEditorPreview} onAction={onAction} actionFeedback={actionFeedback} momentaryCommand={plcPulse} actionError={actionError} />;
   if (normalized === 'energy') return <SectionEnergyCard />;
   if (normalized === 'room') return <SectionRoomCard title={title} roomDeviceCount={roomDeviceCount} roomActiveCount={roomActiveCount} />;
   if (normalized === 'scene') return <SectionSceneCard title={title} subtitle={subtitle} />;
