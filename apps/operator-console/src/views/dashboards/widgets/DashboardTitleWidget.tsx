@@ -14,7 +14,6 @@ import { cn } from '../../../lib/utils';
 import { generateId } from '../../../utils/generateId';
 import { Button } from '../../../components/ui/Button';
 import { IconButton } from '../../../components/ui/IconButton';
-import { SearchableSelectField } from '../../../components/ui/SearchableSelectField';
 import { SegmentedControl } from '../../../components/ui/SegmentedControl';
 import { Textarea } from '../../../components/ui/Textarea';
 import { TitleBadgeRow } from './DashboardTitleBadges';
@@ -54,9 +53,6 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, ed
   const hasWeatherBadge = badges.some((badge) => badge.kind === 'weather');
   const hasTimeBadge = badges.some((badge) => badge.kind === 'time');
   const linkableTabs = tabs.filter((candidate) => candidate.id !== currentTabId);
-  const availableTabsForBadge = linkableTabs.filter(
-    (candidate) => !badges.some((badge) => badge.kind === 'tab' && badge.tabId === candidate.id),
-  );
 
   // Badges always sit in their own row at the bottom, full width; only their
   // horizontal position within that row is configurable.
@@ -72,7 +68,6 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, ed
   const toggleTimeBadge = () => setBadges(
     hasTimeBadge ? badges.filter((badge) => badge.kind !== 'time') : [...badges, { id: generateId(), kind: 'time' as const }],
   );
-  const addTabBadge = (tabId: string) => setBadges([...badges, { id: generateId(), kind: 'tab' as const, tabId }]);
   const removeBadge = (id: string) => setBadges(badges.filter((badge) => badge.id !== id));
 
   const rendered = useMemo(() => renderTemplate(markdown, t('dashboard.user_fallback')), [markdown, t]);
@@ -243,17 +238,7 @@ export function DashboardTitleWidget({ config, isEditing, isSelected = false, ed
                 );
               })}
 
-              {availableTabsForBadge.length > 0 && (
-                <SearchableSelectField
-                  value=""
-                  onChange={(value) => { if (value) addTabBadge(value); }}
-                  options={availableTabsForBadge.map((candidate) => ({ value: candidate.id, label: candidate.title }))}
-                  placeholder={t('dashboard.editor.sections.badge_add_tab')}
-                  size="small"
-                  fullWidth={false}
-                  className="w-auto"
-                />
-              )}
+
             </div>
 
             {badges.length > 0 && (

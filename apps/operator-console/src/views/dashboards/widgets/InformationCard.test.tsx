@@ -16,6 +16,12 @@ describe('Feature: Independent dashboard information badges (AC48)', () => {
     const missing = renderToStaticMarkup(React.createElement(InformationCard, { source: 'info_sensor', title: 'Temperature' }));
     expect(missing).toContain('information_unavailable');
   });
+  it('Scenario: Label row reuses the hero indicator without commands', () => {
+    const html = renderToStaticMarkup(React.createElement(InformationCard, { source: 'info_sensor', title: 'Temperature', pill: true }));
+    expect(html).toContain('dashboard-context-chip');
+    expect(html).toContain('information_unavailable');
+    expect(html).not.toContain('<button');
+  });
   it('Scenario: Time and pending weather render without decorative actions', () => {
     const time = renderToStaticMarkup(React.createElement(InformationCard, { source: 'info_time', title: 'Time' }));
     expect(time).toMatch(/\d{2}:\d{2}/);

@@ -47,12 +47,13 @@ interface SectionCardEditorModalProps {
     gridOptionsOverride?: CardGridOptions,
   ) => ReactNode;
   onClose: () => void;
+  onDelete: () => void;
   onSave: () => void;
 }
 
 export function SectionCardEditorModal({
   cardDraft, setCardDraft, catalogLabel, assignableDevices, assignableRooms,
-  scenes, automations, displayActions, devices, renderCatalogPreview, onClose, onSave, sectionWidth,
+  scenes, automations, displayActions, devices, renderCatalogPreview, onClose, onSave, onDelete, sectionWidth,
 }: SectionCardEditorModalProps) {
   const { t } = useTranslation();
   const [validMinimum, setValidMinimum] = useState(true);
@@ -66,16 +67,18 @@ export function SectionCardEditorModal({
   const sensorScale = normalizeSensorScale({ min: cardDraft.sensorMin, max: cardDraft.sensorMax });
   const invalidScale = cardDraft.kind === 'sensor' && (!validMinimum || !validMaximum || ((cardDraft.sensorMin !== undefined || cardDraft.sensorMax !== undefined) && !sensorScale));
   return (
-    <Modal isOpen onClose={onClose} title={t('common.edit')} headerAlign="start" className="section-card-editor max-w-5xl"
+    <Modal isOpen onClose={onClose} title={t('common.edit')} headerAlign="start" layerClassName="!items-start" className="section-card-editor !my-0 max-w-5xl"
       bodyClassName="flex flex-1 flex-col overflow-hidden" headerClassName="shrink-0" contentClassName="min-h-0 flex-1"
       footerClassName="justify-end gap-2 px-5 py-4 sm:px-8"
       footer={<>
+        <Button type="button" variant="ghost" className="mr-auto text-danger" onClick={onDelete}>{t('common.delete')}</Button>
         <Button type="button" onClick={onClose} variant="secondary">{t('dashboard.editor.sections.cancel')}</Button>
         <Button type="button" onClick={onSave} disabled={invalidScale}>{t('dashboard.editor.sections.save')}</Button>
       </>}>
           <div className="section-card-editor-layout">
             <div className="section-card-editor-preview" data-card-editor-preview>
-            <CardPreviewFrame fitHeight label={t('dashboards.edit_session.preview')} sectionWidth={sectionWidth}>
+            <h3 className="mb-3 text-body-compact font-semibold">{t('dashboards.edit_session.preview')}</h3>
+            <CardPreviewFrame fitCard label={t('dashboards.edit_session.preview')} sectionWidth={sectionWidth}>
             {renderCatalogPreview(
               cardDraft.kind,
               cardDraft.title || catalogLabel(cardDraft.kind),
@@ -92,7 +95,7 @@ export function SectionCardEditorModal({
             </CardPreviewFrame>
             </div>
             <div className="section-card-editor-controls space-y-4" data-card-editor-controls>
-            <SegmentedControl layout="scroll" optionClassName="min-h-11 normal-case tracking-normal" value={panel} onChange={setPanel} label={t('dashboards.edit_session.label')} options={(['configuration', 'design', 'visibility'] as const).map(value => ({ value, label: t(`dashboards.edit_session.${value}`) }))} />
+            <SegmentedControl layout="scroll" className="card-editor-tabs" optionClassName="min-h-11 normal-case tracking-normal" value={panel} onChange={setPanel} label={t('dashboards.edit_session.label')} options={(['configuration', 'design', 'visibility'] as const).map(value => ({ value, label: t(`dashboards.edit_session.${value}`) }))} />
             {panel === 'design' && <CardGridSizePicker value={gridOptions} onChange={next => setCardDraft(draft => ({ ...draft, gridOptions: next }))} />}
             {panel === 'visibility' && <ToggleSwitch label={t('dashboards.edit_session.visible')} checked={!cardDraft.hidden} onCheckedChange={visible => setCardDraft(draft => ({ ...draft, hidden: !visible }))} />}
             <div hidden={panel !== 'configuration'} className="space-y-4">
@@ -151,11 +154,11 @@ export function SectionCardEditorModal({
               className="h-12 rounded-2xl border-border/60 bg-background/60 px-4 font-semibold"
             />
 
-            {!isClockKind(cardDraft.kind) && (
+            {!isClockKind(cardDraft.kind) && !cardDraft.kind.startsWith('info_') && (
               <SearchableSelectField
                 label={t('dashboard.editor.sections.card_type')}
                 value={cardDraft.kind === 'action' ? 'light' : cardDraft.kind}
-                options={cardKinds
+                options={cardKinds.filter(kind => !kind.startsWith('info_'))
                   .filter((kind) => !isClockKind(kind))
                   .map((kind) => ({
                     value: kind,

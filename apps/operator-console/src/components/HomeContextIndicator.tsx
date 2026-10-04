@@ -1,9 +1,9 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, ComponentType } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface HomeContextIndicatorProps {
-  icon: LucideIcon;
+  icon: LucideIcon | ComponentType<{ className?: string }>;
   children: ReactNode;
   className?: string;
   primaryIcon?: boolean;

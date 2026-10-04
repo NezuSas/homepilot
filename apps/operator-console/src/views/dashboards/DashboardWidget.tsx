@@ -354,7 +354,7 @@ export function DashboardWidgetNode({
           {/* A selected section exposes only its direct manipulation tools. */}
           <div className={cn("pointer-events-auto absolute z-30 flex items-center", isSection ? "-top-5 right-3" : "right-2 top-2")}>
             <div className="flex items-center gap-1 rounded-xl border border-border/50 bg-background/95 p-1 shadow-lg backdrop-blur-md">
-              {isSection && <ActionMenu label={t('dashboards.edit_session.section_actions')} items={[
+              {isSection && <ActionMenu compact label={t('dashboards.edit_session.section_actions')} items={[
                 { label: t('common.edit'), icon: Pencil, onSelect: () => {
                     setSectionDraftTitle(widget.config.appearance?.title ?? ''); setSectionDraftIcon(widget.config.appearance?.icon ?? '');
                     setSectionDraftSpan(widget.config.extra?.sectionGridVersion === 2 ? widget.config.layout.span ?? 1 : 1); setIsSectionEditorOpen(true);

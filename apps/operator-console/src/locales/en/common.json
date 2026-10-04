@@ -360,7 +360,9 @@
       "add_system_status": "System",
       "add_energy_snapshot": "Energy",
       "sections": {
-        "add_title": "Add title",
+      "create_labels": "Create labels",
+      "add_labels": "Add label",
+      "add_title": "Add title",
         "title_area": "Dashboard title",
         "title_placeholder": "Hello {{ user }}",
         "subtitle_placeholder": "Add your text here. Template variables are supported ✨",

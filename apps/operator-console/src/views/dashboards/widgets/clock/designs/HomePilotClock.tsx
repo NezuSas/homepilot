@@ -38,13 +38,6 @@ export function HomePilotClock({ now, locale, copy, weather, weatherStatus }: Cl
           </div>
         </div>
 
-        <div className="homepilot-clock-reference-quote">
-          <span aria-hidden="true" className="homepilot-clock-reference-quote-mark">“</span>
-          <p>
-            {isEnglish ? 'Great spaces' : 'Los grandes espacios'}<br />
-            {isEnglish ? 'begin with great control.' : 'empiezan con un buen control.'}
-          </p>
-        </div>
       </div>
     </ClockShell>
   );

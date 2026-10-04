@@ -1,5 +1,9 @@
 # SPEC: Dashboard Layout and Widgets V1
 
+## Refinamiento AC55 — autorizado (2026-10-04)
+
+Lápiz centrado en edición por hover/foco o toque; eliminar únicamente desde footer izquierdo con confirmación. Menú Section ajustado al contenido. Reloj adaptativo sin frase decorativa. Preview visible y proporción real, tabs simples; sustituye altura fija AC54 por altura según panel, acotada al visualViewport. Watermark inferior izquierda. Etiquetas independientes debajo del título, con primitivas del hero, readonly y sensores asignados: guardar como Section extra.badgeRow=true y extra.cards en JSON existente. No ofrecer nuevas info_* en catálogo normal ni nuevos badges en título; conservar históricos sin conversión automática. Sin nuevas API/SQL/migraciones. Reversión previa mediante export/backup; versión anterior conserva JSON y muestra la fila como Section ordinaria. Mantener bindings/import existentes.
+
 ## Sensor adaptable y editor estable — AC54 (2026-10-04)
 
 - Sensor permite dimensiones manuales con mínimo 4 columnas/4 filas para título y lectura legibles. La altura manual reserva exactamente sus filas; presentar valor/unidad o ausencia y nombre antes que instrumentos decorativos, sin scroll ni recortes. Instrumentos se ajustan al alto/ancho y se omiten en tamaños compactos; conservar lectura accesible, límites reales y advertencias. Tarjetas automáticas históricas mantienen su geometría.

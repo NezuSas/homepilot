@@ -23,6 +23,9 @@ describe('Feature: Shared dashboard action menu (AC48)', () => {
     expect(narrow.width).toBe(164);
     expect(narrow.top + narrow.maxHeight).toBeLessThanOrEqual(330);
   });
+  it('Scenario: Compact Section popup uses measured longest-label width', () => {
+    expect(getActionMenuPosition({ top: 80, bottom: 124, right: 300 }, 132, { top: 0, left: 0, width: 320, height: 800 }, 132)).toMatchObject({ width: 132, left: 168 });
+  });
   it('Scenario: Outside pointer or focus dismisses, while trigger and portal interactions do not', () => {
     const target = {} as Node;
     expect(shouldDismissActionMenu(target, { contains: () => false }, { contains: () => false })).toBe(true);

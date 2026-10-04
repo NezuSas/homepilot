@@ -360,7 +360,9 @@
       "add_system_status": "Sistema",
       "add_energy_snapshot": "Energía",
       "sections": {
-        "add_title": "Añadir título",
+      "create_labels": "Crear etiquetas",
+      "add_labels": "Añadir etiqueta",
+      "add_title": "Añadir título",
         "title_area": "Título del tablero",
         "title_placeholder": "Hola {{ user }}",
         "subtitle_placeholder": "Añade tu texto aquí, se admiten variables de plantilla ✨",

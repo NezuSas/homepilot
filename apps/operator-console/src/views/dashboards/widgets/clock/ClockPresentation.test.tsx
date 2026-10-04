@@ -39,7 +39,7 @@ describe('HomePilot Clock', () => {
     expect(markup[0]).toContain('11:51');
     expect(markup[0]).toContain('Cuenca');
     expect(markup[0]).toContain('19');
-    expect(markup[0]).toContain('Los grandes espacios');
-    expect(markup[0]).toContain('empiezan con un buen control.');
+    expect(markup[0]).not.toContain('Los grandes espacios');
+    expect(markup[0]).not.toContain('empiezan con un buen control.');
   });
 });

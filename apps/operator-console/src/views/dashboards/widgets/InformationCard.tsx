@@ -1,3 +1,5 @@
+import { Clock, Cloud } from 'lucide-react';
+import { HomeContextIndicator } from '../../../components/HomeContextIndicator';
 import { useTranslation } from 'react-i18next';
 import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
 import { getDashboardIconComponent } from '../components/dashboardIconRegistry';
@@ -21,12 +23,12 @@ function WeatherInformation() {
   if (status === 'loading') return <InformationCardSkeleton />;
   if (!weather || status !== 'ready') return <span>{t('dashboard.editor.sections.information_unavailable')}</span>;
   return <><WeatherScene category={getWeatherCategory(weather.code, isDaytimeHour(new Date()))} size="sm" className="h-5 w-5 shrink-0" />
-    <span>{formatTemperature(weather.temperature)}</span></>;
+    <span>{formatTemperature(weather.temperature)} · {weather.label}</span></>;
 }
 
 /** Read-only information: same local time, weather service and sensor model. */
-export function InformationCard({ source, device, title, icon }: {
-  source: 'info_time' | 'info_weather' | 'info_sensor'; device?: SnapshotDevice; title: string; icon?: SectionCardIcon;
+export function InformationCard({ source, device, title, icon, pill = false }: {
+  pill?: boolean; source: 'info_time' | 'info_weather' | 'info_sensor'; device?: SnapshotDevice; title: string; icon?: SectionCardIcon;
 }) {
   const { t } = useTranslation();
   const Icon = getDashboardIconComponent(icon ?? 'Gauge');
@@ -34,6 +36,9 @@ export function InformationCard({ source, device, title, icon }: {
   const numeric = reading?.value === null || reading?.value === undefined ? NaN : Number(reading.value.replace(',', '.'));
   const value = reading?.value === null || reading?.value === undefined ? t('dashboard.editor.sections.information_unavailable')
     : Number.isFinite(numeric) ? formatSensorValue(numeric, true) : reading.value;
+  if (pill) return <HomeContextIndicator icon={source === 'info_time' ? Clock : source === 'info_weather' ? Cloud : Icon} primaryIcon className="dashboard-context-chip">
+    {source === 'info_time' ? <TimeBadgeContent bare /> : source === 'info_weather' ? <WeatherInformation /> : <>{title}: {value}{reading?.value != null && reading.unit ? ` ${reading.unit}` : ''}</>}
+  </HomeContextIndicator>;
   return <div role="group" aria-label={title} className="flex h-full min-w-0 flex-wrap items-center gap-2 px-3 py-2 text-body-compact font-semibold text-foreground">
     {source === 'info_time' ? <TimeBadgeContent /> : source === 'info_weather' ? <WeatherInformation /> : <>
       <Icon aria-hidden="true" className="h-5 w-5 shrink-0 text-primary" />

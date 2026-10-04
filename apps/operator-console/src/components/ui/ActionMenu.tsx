@@ -12,8 +12,8 @@ export function shouldDismissActionMenu(target: Node | null, trigger: Pick<Node,
 }
 
 export function getActionMenuPosition(anchor: { top: number; bottom: number; right: number }, height: number,
-  viewport: { top: number; left: number; width: number; height: number }) {
-  const width = Math.min(224, Math.max(0, viewport.width - 16));
+  viewport: { top: number; left: number; width: number; height: number }, contentWidth = 224) {
+  const width = Math.min(contentWidth, Math.max(0, viewport.width - 16));
   const below = Math.max(0, viewport.top + viewport.height - anchor.bottom - 16);
   const above = Math.max(0, anchor.top - viewport.top - 16);
   const useAbove = below < height && above > below;
@@ -25,7 +25,7 @@ export function getActionMenuPosition(anchor: { top: number; bottom: number; rig
 
 /** Shared dashboard/Section actions: portal, outside dismissal and keyboard.
  * This is a non-modal popup: it never locks scrolling or traps page focus. */
-export function ActionMenu({ label, items }: { label: string; items: ActionMenuItem[] }) {
+export function ActionMenu({ label, items, compact = false }: { label: string; items: ActionMenuItem[]; compact?: boolean }) {
   const id = useId();
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0, width: 224, maxHeight: 320 });
@@ -48,9 +48,11 @@ export function ActionMenu({ label, items }: { label: string; items: ActionMenuI
       const anchor = trigger.current?.getBoundingClientRect();
       if (!anchor) return;
       if (anchor.bottom < viewportTop || anchor.top > viewportTop + (viewportHeight ?? window.innerHeight)) { setIsOpen(false); return; }
+      if (compact && popup.current) popup.current.style.width = 'max-content';
+      const contentWidth = compact ? popup.current?.getBoundingClientRect().width ?? 224 : 224;
       setPosition(getActionMenuPosition(anchor, popup.current?.scrollHeight ?? 0, {
         top: viewportTop, left: viewportLeft, width: viewportWidth ?? window.innerWidth, height: viewportHeight ?? window.innerHeight,
-      }));
+      }, contentWidth));
     };
     const dismissOutside = (event: Event) => {
       if (event.target instanceof Node && shouldDismissActionMenu(event.target, trigger.current, popup.current)) setIsOpen(false);
@@ -66,7 +68,7 @@ export function ActionMenu({ label, items }: { label: string; items: ActionMenuI
       window.removeEventListener('resize', update);
       window.removeEventListener('scroll', update, true);
     };
-  }, [isOpen, viewportTop, viewportLeft, viewportWidth, viewportHeight]);
+  }, [isOpen, viewportTop, viewportLeft, viewportWidth, viewportHeight, compact]);
 
   useLayoutEffect(() => {
     if (isOpen) {
@@ -99,7 +101,7 @@ export function ActionMenu({ label, items }: { label: string; items: ActionMenuI
         if (next !== undefined && controls[next]) { event.preventDefault(); controls[next].focus(); }
       }}>
       {items.map((item, index) => <Button key={index} role="menuitem" variant="ghost" size="md" disabled={item.disabled}
-        className={`min-h-11 w-full justify-start${item.danger ? ' text-danger' : ''}`}
+        className={`min-h-11 w-full whitespace-nowrap justify-start${item.danger ? ' text-danger' : ''}`}
         onClick={() => { close(true); item.onSelect(); }}>
         <item.icon className="h-4 w-4" aria-hidden="true" />{item.label}
       </Button>)}

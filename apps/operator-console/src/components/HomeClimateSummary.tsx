@@ -58,10 +58,6 @@ export const HomeClimateSummary: React.FC<HomeClimateSummaryProps> = ({ currentU
             <span className="font-normal text-muted-foreground">{weatherLabel}</span>
           </HomeContextIndicator>
         </div>
-        <div className="mt-1 text-left text-micro leading-tight text-muted-foreground" aria-label="HomePilot by NEZU">
-          <span className="block font-semibold text-foreground/70">HomePilot</span>
-          <span className="block">by NEZU</span>
-        </div>
       </div>
       <HomeDashboardButton
         label={t('dashboard.open_dashboard')}

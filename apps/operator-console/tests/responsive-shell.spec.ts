@@ -1,6 +1,45 @@
 import { expect, test } from '@playwright/test';
 import { mdiAutoFix, mdiHome, mdiRobot, mdiWeatherWindy } from '@mdi/js';
 
+for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 1024 }, { width: 1024, height: 768 }]) {
+  test(`Feature: Dashboard label row — Scenario: Separate labels persist and edit controls remain explicit at ${viewport.width} (AC55)`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport);
+    await prepareAuthenticatedDashboard(page);
+    let saved = responsiveDashboard;
+    await page.route('**/api/v1/dashboards', route => route.fulfill({ json: [saved] }));
+    await page.route('**/api/v1/dashboards/responsive-dashboard', route => {
+      if (route.request().method() === 'PATCH') saved = { ...saved, ...route.request().postDataJSON() };
+      return route.fulfill({ json: saved });
+    });
+    await page.goto('/dashboards/responsive-dashboard/responsive-tab'); await enterDashboardEdit(page);
+    const card = page.locator('[data-dashboard-card-id="responsive-sensor"]');
+    await expect(card.getByRole('button', { name: /Card actions|Acciones de tarjeta/i })).toHaveCount(0);
+    await card.dispatchEvent('pointerup', { pointerType: 'touch' });
+    await expect(card.getByRole('button', { name: /^(Edit|Editar)$/i })).toBeVisible();
+    await card.getByRole('button', { name: /^(Edit|Editar)$/i }).click();
+    const editor = page.getByRole('dialog', { name: /^(Edit|Editar)$/i });
+    await expect(editor.getByRole('heading', { name: /^(Preview|Vista previa)$/i })).toBeVisible();
+    const remove = (await editor.getByRole('button', { name: /^(Delete|Eliminar)$/i }).boundingBox())!;
+    const save = (await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).boundingBox())!;
+    expect(remove.x).toBeLessThan(save.x);
+    await page.screenshot({ path: testInfo.outputPath('card-editor.png'), animations: 'disabled' });
+    await editor.getByRole('button', { name: /^(Cancel|Cancelar)$/i }).click();
+    await page.getByRole('button', { name: /^(Create labels|Crear etiquetas)$/i }).click();
+    const row = page.locator('[data-dashboard-badge-row]');
+    await row.getByRole('button', { name: /^(Add label|Añadir etiqueta)$/i }).click();
+    const catalog = page.locator('.max-h-section-modal');
+    await catalog.getByRole('button', { name: /^(Time|Hora)$/i }).click();
+    await page.getByRole('dialog', { name: /^(Edit|Editar)$/i }).getByRole('button', { name: /^(Save|Guardar)$/i }).click();
+    await expect(row.locator('.dashboard-context-chip')).toHaveCount(1);
+    await expect(page.locator('.homepilot-dashboard-titlebar').getByRole('status')).toHaveText(/Cambios guardados|Changes saved/);
+    await page.reload();
+    await expect(row.locator('.dashboard-context-chip')).toHaveCount(1);
+    await expect(row.getByRole('button')).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
+    await page.screenshot({ path: testInfo.outputPath('label-row.png'), animations: 'disabled' });
+  });
+}
+
 test('Feature: PLC dashboard realtime — Scenario: Received readings update without snapshot debounce (AC36)', async ({ page }) => {
   await page.setViewportSize({ width: 768, height: 1024 });
   await prepareAuthenticatedDashboard(page);
@@ -34,7 +73,7 @@ test('Feature: PLC dashboard realtime — Scenario: Received readings update wit
 });
 
 for (const viewport of [{ name: 'mobile portrait', width: 390, height: 844 }, { name: 'tablet portrait', width: 768, height: 1024 }, { name: 'tablet landscape', width: 1024, height: 768 }, { name: 'desktop', width: 1440, height: 900 }]) {
-  test(`Feature: Adaptive sensor editor — Scenario: Stable panels, bounded readings and explicit switch fit ${viewport.name} (AC54)`, async ({ page }, testInfo) => {
+  test(`Feature: Adaptive sensor editor — Scenario: Adaptive panels, bounded readings and explicit switch fit ${viewport.name} (AC54/AC55)`, async ({ page }, testInfo) => {
     await page.setViewportSize(viewport);
     const section = responsiveDashboard.tabs[0]!.widgets[1]!;
     let dashboard = { ...responsiveDashboard, tabs: [{ ...responsiveDashboard.tabs[0]!, widgets: [{ ...section, config: { ...section.config, extra: { cards: [{ ...section.config.extra.cards[0]!, gridOptions: { columns: 4, rows: 4 }, visualStyle: 'gauge' }] } } }] }] };
@@ -57,7 +96,8 @@ for (const viewport of [{ name: 'mobile portrait', width: 390, height: 844 }, { 
     for (const panel of [/^(Design|Diseño)$/i, /^(Visibility|Visibilidad)$/i, /^(Configuration|Configuración)$/i]) {
       await editor.getByRole('radio', { name: panel }).click();
       const bounds = (await editor.boundingBox())!;
-      expect(bounds.height).toBeCloseTo(initial.height, 0); expect(bounds.width).toBeCloseTo(initial.width, 0);
+      expect(bounds.y).toBeCloseTo(initial.y, 0); expect(bounds.width).toBeCloseTo(initial.width, 0);
+      expect(bounds.y + bounds.height).toBeLessThanOrEqual(viewport.height);
     }
     const controls = (await editor.locator('[data-card-editor-controls]').boundingBox())!;
     const preview = (await editor.locator('[data-card-editor-preview]').boundingBox())!;
@@ -1504,6 +1544,15 @@ test('Feature: Initial view skeletons — Scenario: Home waits for favorites and
   await expect(favoriteGrid).toBeVisible();
   await expect(favoriteGrid.getByRole('button')).toHaveCount(2);
   await page.screenshot({ path: testInfo.outputPath('home-complete.png') });
+  for (const width of [390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    const hero = (await page.locator('.homepilot-home-hero').boundingBox())!;
+    const watermark = (await page.locator('.homepilot-home-watermark').boundingBox())!;
+    expect(watermark.x).toBeGreaterThanOrEqual(hero.x);
+    expect(watermark.x).toBeLessThan(hero.x + hero.width / 2);
+    const borderBottom = await page.locator('.homepilot-home-hero').evaluate(element => parseFloat(getComputedStyle(element).borderBottomWidth));
+    expect(hero.y + hero.height - borderBottom - watermark.y - watermark.height).toBeCloseTo(16, 0);
+  }
   await expect(skeleton).toHaveCount(0);
   await favoriteGrid.getByRole('button', { name: 'Run Trabajo', exact: true }).click();
   await expect.poll(() => findingsRead).toBeGreaterThan(1);
@@ -4295,18 +4344,8 @@ test('Feature: Clock editing — Scenario: A section clock can be resized with b
   const edit = /^(Edit|Editar)$/i;
   await expect(clock.getByRole('button', { name: edit })).toHaveCount(1);
   await clock.hover();
-  const clockActionsButton = clock.getByRole('button', { name: cardActions });
-  await clockActionsButton.click();
-  const clockMenu = page.getByRole('menu', { name: cardActions });
-  await expect(clockMenu.getByRole('menuitem', { name: edit })).toBeVisible();
-  await expect(clockMenu.getByRole('menuitem', { name: /^(Delete|Eliminar)$/i })).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(clockMenu).not.toBeVisible();
-  await expect(clockActionsButton).toHaveAttribute('aria-expanded', 'false');
-  await expect(page.getByRole('heading', { name: edit })).toHaveCount(0);
-
-  await clockActionsButton.click();
-  await page.getByRole('menu', { name: cardActions }).getByRole('menuitem', { name: edit }).click();
+  await expect(clock.getByRole('button', { name: cardActions })).toHaveCount(0);
+  await clock.getByRole('button', { name: edit }).click();
   const clockEditor = page.getByRole('dialog', { name: edit });
   await clockEditor.getByRole('radio', { name: /^(Design|Diseño)$/i }).click();
   const grid = clockEditor.getByRole('grid');
@@ -4321,19 +4360,15 @@ test('Feature: Clock editing — Scenario: A section clock can be resized with b
     if (await sidebarBackdrop.isVisible()) await sidebarBackdrop.click({ position: { x: viewport.width - 16, y: 96 } });
     await expect(clock.locator('[data-homepilot-clock]')).toBeVisible();
     const exterior = (await clock.boundingBox())!;
-    const details = (await clock.locator('.homepilot-clock-reference-details').boundingBox())!;
-    expect(details.y + details.height).toBeLessThanOrEqual(exterior.y + exterior.height + 1);
-    for (const selector of ['.homepilot-clock-reference-time', '.homepilot-clock-reference-temperature']) {
-      const reading = clock.locator(selector);
-      await expect.poll(() => reading.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
-    }
+    await expect(clock.locator('.homepilot-clock-reference-details')).not.toBeVisible();
+    const dial = (await clock.locator('.homepilot-clock-reference-dial-frame').boundingBox())!;
+    expect(dial.y + dial.height).toBeLessThanOrEqual(exterior.y + exterior.height + 1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width + 1);
     if (viewport.width === 390 || viewport.width === 1440) await page.screenshot({ path: testInfo.outputPath(`clock-resized-${viewport.width}.png`), animations: 'disabled' });
   }
   await expect(sensor.getByRole('button', { name: edit })).toHaveCount(1);
   await sensor.hover();
-  await sensor.getByRole('button', { name: cardActions }).click();
-  await page.getByRole('menu', { name: cardActions }).getByRole('menuitem', { name: edit }).click();
+  await sensor.getByRole('button', { name: edit }).click();
   await expect(page.getByRole('heading', { name: edit })).toBeVisible();
   await page.getByRole('button', { name: /^(Close|Cerrar)$/i }).click();
 
@@ -4345,8 +4380,9 @@ test('Feature: Clock editing — Scenario: A section clock can be resized with b
   }).toEqual(['responsive-sensor', 'responsive-weather']);
 
   await clock.hover();
-  await clock.getByRole('button', { name: cardActions }).click();
-  await page.getByRole('menu', { name: cardActions }).getByRole('menuitem', { name: /^(Delete|Eliminar)$/i }).click();
+  await clock.getByRole('button', { name: edit }).click();
+  await page.getByRole('dialog', { name: edit }).getByRole('button', { name: /^(Delete|Eliminar)$/i }).click();
+  await page.getByRole('dialog', { name: /^(Delete|Eliminar)$/i }).getByRole('button', { name: /^(Delete|Eliminar)$/i }).click();
   await expect(clock).toHaveCount(0);
 
   await page.getByRole('button', { name: /^(Add card|Añadir tarjeta)$/i }).click();
@@ -4475,9 +4511,7 @@ test('Feature: Media Player design — Scenario: Classic preview and persisted d
 
   await enterDashboardEdit(page);
   await card.hover();
-  const cardActions = /^(Card actions|Acciones de tarjeta)$/i;
-  await card.getByRole('button', { name: cardActions }).click();
-  await page.getByRole('menu', { name: cardActions }).getByRole('menuitem', { name: /^(Edit|Editar)$/i }).click();
+  await card.getByRole('button', { name: /^(Edit|Editar)$/i }).click();
   await expect(page.getByRole('button', { name: /^(Premium)$/i })).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: /^(Classic|Clásico)$/i }).click();
   await expect(page.getByRole('button', { name: /^(Classic|Clásico)$/i })).toHaveAttribute('aria-pressed', 'true');
@@ -4570,9 +4604,8 @@ test(`Feature: Media player idle — Scenario: ${mediaVariant} reports no playba
   await enterDashboardEdit(page);
   await expect(card.locator('[data-media-player] > div').first().locator('p').first().locator('..').locator('svg')).toHaveCount(0);
   await card.hover();
-  const cardActions = card.getByRole('button', { name: /^(Card actions|Acciones de tarjeta)$/i });
-  await cardActions.click();
-  await expect(page.getByRole('menu', { name: /^(Card actions|Acciones de tarjeta)$/i })).toBeVisible();
+  await card.getByRole('button', { name: /^(Edit|Editar)$/i }).click();
+  await expect(page.getByRole('dialog', { name: /^(Edit|Editar)$/i })).toBeVisible();
 });
 }
 

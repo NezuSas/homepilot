@@ -30,7 +30,7 @@ export function WeatherBadgeContent() {
 }
 
 /** Live HH:MM badge; updates every 30s, which is plenty for a minute-resolution clock. */
-export function TimeBadgeContent() {
+export function TimeBadgeContent({ bare = false }: { bare?: boolean } = {}) {
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -41,8 +41,8 @@ export function TimeBadgeContent() {
   const time = new Intl.DateTimeFormat(getClockLocale(), { hour: '2-digit', minute: '2-digit' }).format(now);
 
   return (
-    <span className={badgePillClass}>
-      <Clock className="h-4 w-4" aria-hidden="true" />
+    <span className={bare ? 'tabular-nums' : badgePillClass}>
+      {!bare && <Clock className="h-4 w-4" aria-hidden="true" />}
       <span>{time}</span>
     </span>
   );

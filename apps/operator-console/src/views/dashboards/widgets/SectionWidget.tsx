@@ -2,6 +2,8 @@ import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { DndContext, KeyboardSensor, MouseSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SectionCardDragContext, sectionCardDragId, resolvePlacedCardRows } from '../sectionCardDrag';
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { InformationCard } from './InformationCard';
+import ConfirmModal from '../../../components/ConfirmModal';
 import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
@@ -44,6 +46,7 @@ function getBoundRoutineIcon(entityId: string | undefined, scenes: AssignableSce
 }
 
 export function SectionWidget({ config, isEditing, onUpdate, sectionId }: SectionWidgetProps) {
+  const badgeRow = config.extra?.badgeRow === true;
   const sectionGridRef = useRef<HTMLDivElement>(null);
   const [sectionGridWidth, setSectionGridWidth] = useState(0);
   useEffect(() => {
@@ -74,6 +77,7 @@ export function SectionWidget({ config, isEditing, onUpdate, sectionId }: Sectio
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [catalogCategoryFilter, setCatalogCategoryFilter] = useState<SectionCardCategory | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const { rowSpans, registerCard } = useMasonryRowSpans();
   const cardDragSensors = useSensors(
@@ -121,6 +125,7 @@ export function SectionWidget({ config, isEditing, onUpdate, sectionId }: Sectio
   const editingCard = editingCardId ? cards.find((card) => card.id === editingCardId) : undefined;
 
   useEffect(() => {
+    if (badgeRow) return;
     if (!hasRoutineAction && !isCatalogOpen && (!editingCardId || (normalizeKind(cardDraft.kind) !== 'scene' && normalizeKind(cardDraft.kind) !== 'action' && normalizeKind(cardDraft.kind) !== 'light'))) return;
 
     const controller = new AbortController();
@@ -147,9 +152,10 @@ export function SectionWidget({ config, isEditing, onUpdate, sectionId }: Sectio
     return () => {
       controller.abort();
     };
-  }, [cardDraft.kind, editingCardId, hasRoutineAction, isCatalogOpen]);
+  }, [cardDraft.kind, editingCardId, hasRoutineAction, isCatalogOpen, badgeRow]);
 
   useEffect(() => {
+    if (badgeRow) return;
     if (!editingCardId || (normalizeKind(cardDraft.kind) !== 'action' && normalizeKind(cardDraft.kind) !== 'light')) return;
     const controller = new AbortController();
     void apiFetch(`${API_BASE_URL}/api/v1/dashboard-action-targets`, { signal: controller.signal })
@@ -162,7 +168,7 @@ export function SectionWidget({ config, isEditing, onUpdate, sectionId }: Sectio
       }).then((actions) => { if (!controller.signal.aborted) setDisplayActions(actions); })
       .catch(() => { if (!controller.signal.aborted) setDisplayActions([]); });
     return () => controller.abort();
-  }, [cardDraft.kind, editingCardId]);
+  }, [cardDraft.kind, editingCardId, badgeRow]);
 
   useEffect(() => {
     if (!hasRoutineAction && !isCatalogOpen && (!editingCardId || (normalizeKind(cardDraft.kind) !== 'scene' && normalizeKind(cardDraft.kind) !== 'action' && normalizeKind(cardDraft.kind) !== 'light'))) return;
@@ -193,9 +199,9 @@ export function SectionWidget({ config, isEditing, onUpdate, sectionId }: Sectio
     };
   }, [cardDraft.kind, editingCardId, hasRoutineAction, isCatalogOpen]);
 
-  const catalogItems = cardKinds.map((kind) => ({
+  const catalogItems = (badgeRow ? ['info_time', 'info_weather', 'info_sensor'] as const : cardKinds.filter(kind => !kind.startsWith('info_'))).map((kind) => ({
     kind,
-    title: catalogLabel(kind),
+    title: badgeRow ? t(`dashboard.editor.sections.${kind}`) : catalogLabel(kind),
     description: catalogDescription(kind),
     widgetType: getWidgetType(kind),
     span: getDefaultSpan(kind),
@@ -368,9 +374,10 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     return (
       <div style={isEditorPreview ? {
         ...getCardPresentationStyle(gridOptionsOverride?.rows),
+        ...(isClockKind(kind) ? { containerName: 'clock-card' } : {}),
         width: sectionGridWidth > 0 ? getCardGridWidth(sectionGridWidth, gridOptionsOverride?.columns ?? (span === 'small' ? 3 : span === 'medium' ? 6 : 12)) : undefined,
         minHeight: getCardGridHeight(gridOptionsOverride?.rows),
-        ...(normalizedPreviewKind === 'sensor' && typeof gridOptionsOverride?.rows === 'number' ? { height: getCardGridHeight(gridOptionsOverride.rows), minHeight: 0 } : {}),
+        ...((normalizedPreviewKind === 'sensor' || isClockKind(kind)) && typeof gridOptionsOverride?.rows === 'number' ? { height: getCardGridHeight(gridOptionsOverride.rows), minHeight: 0, ...(isClockKind(kind) ? { containerType: 'size' as const, containerName: 'clock-card' } : {}) } : {}),
       } : undefined} className={isEditorPreview || normalizedPreviewKind.startsWith('info_') ? cn('homepilot-sized-card relative grid shrink-0 min-w-0 overflow-hidden shadow-sm', normalizedPreviewKind === 'sensor' && typeof gridOptionsOverride?.rows === 'number' && 'homepilot-bounded-sensor', getCardFrameClass(normalizedPreviewKind, span, previewDevice ? isDeviceActive(previewDevice) : false)) : cn(
         "grid overflow-hidden rounded-section transition-[height,width,max-width] duration-200",
         !isClockPreview && "bg-background/40",
@@ -430,6 +437,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       sectionWidth={sectionGridWidth}
       renderCatalogPreview={renderCatalogPreview}
       onClose={() => setEditingCardId(null)}
+      onDelete={() => setPendingDeleteId(editingCard.id)}
       onSave={saveCardEditor}
     />
   ) : null;
@@ -459,7 +467,6 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
           executeSectionDeviceCommand={executeSectionDeviceCommand}
           upsertDevice={upsertDevice}
           openCardEditor={openCardEditor}
-          removeCard={removeCard}
           registerRowSpanRef={registerCard}
           rowSpan={rowSpans[card.id] ?? 1}
           placedRow={placedRows[card.id]}
@@ -477,6 +484,16 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       {sharedDrag ? sortableCards : <DndContext sensors={cardDragSensors} onDragEnd={handleCardDragEnd}>{sortableCards}</DndContext>}
     </div>
   );
+
+  if (badgeRow) return <div data-dashboard-badge-row className="flex min-w-0 flex-wrap items-center gap-2">
+    {cards.filter(card => isEditing || !card.hidden).map(card => <div key={card.id} className="relative group/badge">
+      <InformationCard pill source={card.kind === 'info_time' ? 'info_time' : card.kind === 'info_weather' ? 'info_weather' : 'info_sensor'} title={card.title} icon={card.icon} device={devices.find(device => device.id === card.entityId && device.roomId !== null)} />
+      {isEditing && <Button variant="ghost" size="sm" aria-label={t('common.edit')} onClick={() => openCardEditor(card)}>{t('common.edit')}</Button>}
+    </div>)}
+    {isEditing && <Button variant="outline" onClick={() => setIsCatalogOpen(true)}>{t('dashboard.editor.sections.add_labels')}</Button>}
+    {catalogModal}{editorModal}
+    <ConfirmModal isOpen={pendingDeleteId !== null} title={t('common.delete')} description={t('common.delete')} onClose={() => setPendingDeleteId(null)} onConfirm={() => { if (pendingDeleteId) removeCard(pendingDeleteId); setPendingDeleteId(null); setEditingCardId(null); }} />
+  </div>;
 
   return (
     <section
@@ -521,6 +538,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
 
       {catalogModal}
       {editorModal}
+      <ConfirmModal isOpen={pendingDeleteId !== null} title={t('common.delete')} description={t('common.delete')} confirmText={t('common.delete')} onClose={() => setPendingDeleteId(null)} onConfirm={() => { if (pendingDeleteId) removeCard(pendingDeleteId); setPendingDeleteId(null); setEditingCardId(null); }} />
     </section>
   );
 }

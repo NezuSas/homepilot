@@ -1,5 +1,7 @@
 # Modal
 
+AC55: el editor de tarjeta usa composición local, superior anclada y altura según panel, con máximo visualViewport y footer accesible. Eliminar se sitúa a la izquierda y requiere ConfirmModal; navegación simple, preview visible con renderer real. No modifica dimensiones ni comportamiento de otros modales.
+
 AC80 refinement: `dismissible` defaults false. Backdrop and Escape do not close a form; explicit close/Cancel still call onClose, preserving Tab trap and restored focus. Informational overlays may opt into `dismissible=true`. Controlled popup/listbox dismissal remains independent.
 
 **Source:** `apps/operator-console/src/components/ui/Modal.tsx`

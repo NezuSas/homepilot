@@ -264,6 +264,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
         <div className="relative z-10 min-w-0">
           <HomeClimateSummary currentUserId={currentUserId} onOpenOwnDashboardTab={onOpenOwnDashboardTab} onReady={setContextSettled} />
         </div>
+        <div className="homepilot-home-watermark absolute z-10 text-micro leading-tight text-muted-foreground" aria-label="HomePilot by NEZU"><span className="block font-semibold text-foreground/70">HomePilot</span><span className="block">by NEZU</span></div>
       </header>
 
       <DashboardRoutinesSection

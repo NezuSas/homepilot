@@ -2,17 +2,15 @@ import { useContext, useEffect, useState, useRef, type MouseEvent } from 'react'
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { SectionCardDragContext, sectionCardDragId, DASHBOARD_DRAG_TRANSITION } from '../sectionCardDrag';
-import { Loader2, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { Loader2, Pencil } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
 import { type SnapshotDevice, type SnapshotRoom } from '../../../stores/useDeviceSnapshotStore';
 import { isDeviceActive } from '../dashboardUtils';
-import { Button } from '../../../components/ui/Button';
 import { IconButton } from '../../../components/ui/IconButton';
 import { CurtainDeviceTileLoadingGeometry } from '../../../components/CurtainDeviceTile';
 import type { MediaPlayerCommand } from './MediaPlayerCard';
 import { MASONRY_ROW_GAP_PX, MASONRY_ROW_UNIT_PX } from './useMasonryRowSpans';
-import { ModalPortal } from './ModalPortal';
 import { SectionCardContent } from './SectionCardContent';
 import { InformationCardSkeleton } from './InformationCard';
 import { getCardFrameClass, getCardGridHeight, getCardGridRowSpan, getCardPresentationStyle } from './cardGridResize';
@@ -20,7 +18,7 @@ import { DashboardCardSkeleton, type DashboardCardSkeletonVariant } from '../../
 import { needsInitialDashboardSkeleton, useDelayedSkeleton } from '../../../components/ui/useDashboardDelayedSkeleton';
 import {
   getDefaultSpan, getEffectiveCardSpan, getSpanClass,
-  normalizeKind, type NormalizedSectionCardItem,
+  isClockKind, normalizeKind, type NormalizedSectionCardItem,
   type SectionCardKind,
 } from './sectionCardCatalog';
 
@@ -43,7 +41,6 @@ export function SectionCardItem({
   executeSectionDeviceCommand,
   upsertDevice,
   openCardEditor,
-  removeCard,
   registerRowSpanRef,
   rowSpan,
   placedRow,
@@ -63,17 +60,20 @@ export function SectionCardItem({
   executeSectionDeviceCommand: (deviceId: string, command: string, params?: Record<string, unknown>) => Promise<SnapshotDevice | null>;
   upsertDevice: (device: SnapshotDevice) => void;
   openCardEditor: (card: NormalizedSectionCardItem) => void;
-  removeCard: (id: string) => void;
   registerRowSpanRef: (cardId: string, element: HTMLElement | null) => void;
   rowSpan: number;
   placedRow?: number;
 }) {
   const { t } = useTranslation();
   const dragIdentities = useContext(SectionCardDragContext);
-  const [isCardMenuOpen, setIsCardMenuOpen] = useState(false);
-  const [cardMenuPosition, setCardMenuPosition] = useState<{ top: number; right: number } | null>(null);
+  const [touchSelected, setTouchSelected] = useState(false);
   const previewNode = useRef<HTMLDivElement | null>(null);
-
+  useEffect(() => {
+    if (!touchSelected) return;
+    const dismiss = (event: PointerEvent) => { if (event.target instanceof Node && !previewNode.current?.contains(event.target)) setTouchSelected(false); };
+    document.addEventListener('pointerdown', dismiss);
+    return () => document.removeEventListener('pointerdown', dismiss);
+  }, [touchSelected]);
   // getEffectiveCardSpan guards against a stale/manually-dragged 'small'
   // span on a kind that can't render as a quarter-width tile; media is
   // always full width, including when a legacy configuration stores less.
@@ -91,7 +91,6 @@ export function SectionCardItem({
           : normalizedKind === 'room' ? 'generic' : null;
   const isCover = normalizedKind === 'cover';
   const isTileKind = normalizedKind === 'device' || normalizedKind === 'light' || normalizedKind === 'action';
-  const isCompactDeviceCard = isTileKind && span === 'small';
   const roomDevices = normalizedKind === 'room' && card.entityId
     ? devices.filter((device) => device.roomId === card.entityId)
     : [];
@@ -117,16 +116,6 @@ export function SectionCardItem({
   const reserveContentGeometry = normalizedKind === 'sensor';
   const overlaySkeleton = reserveContentGeometry || isCover;
 
-  useEffect(() => {
-    if (!isCardMenuOpen) return;
-
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsCardMenuOpen(false);
-    };
-
-    window.addEventListener('keydown', closeOnEscape);
-    return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [isCardMenuOpen]);
 
   const cardContent = <SectionCardContent
     kind={card.kind}
@@ -177,8 +166,9 @@ export function SectionCardItem({
       }}
       style={{
         ...getCardPresentationStyle(gridOptions?.rows),
+        ...(isClockKind(card.kind) ? { containerName: 'clock-card' } : {}),
         minHeight: explicitHeight,
-        ...(normalizedKind === 'sensor' && explicitHeight !== undefined ? { height: explicitHeight, minHeight: 0 } : {}),
+        ...((normalizedKind === 'sensor' || isClockKind(card.kind)) && explicitHeight !== undefined ? { height: explicitHeight, minHeight: 0, ...(isClockKind(card.kind) ? { containerType: 'size' as const, containerName: 'clock-card' } : {}) } : {}),
         gridColumn: gridOptions?.columnStart ? `${gridOptions.columnStart} / span ${gridOptions.columns === 'full' ? 12 : gridOptions.columns}` : gridOptions ? gridOptions.columns === 'full' ? '1 / -1' : `span ${gridOptions.columns}` : undefined,
         // Tile-kind cards get a fixed uniform height so identical tiles
         // don't jitter a few pixels apart from a 1- vs 2-line title. But
@@ -192,6 +182,8 @@ export function SectionCardItem({
         transform: CSS.Translate.toString(transform),
         transition: transition ?? undefined,
       }}
+      onPointerUp={(event) => { if (isEditing && event.pointerType === 'touch' && !isDragging) setTouchSelected(true); }}
+      onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setTouchSelected(false); }}
       onClick={initialPending || isCover || normalizedKind === 'action' ? undefined : (event) => { void handleCardAction(card, event); }}
       onKeyDown={isActionable && normalizedKind !== 'action' && !initialPending ? (event) => {
         if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) return;
@@ -245,7 +237,7 @@ export function SectionCardItem({
       {isEditing ? (
         <>
           {(
-            <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center opacity-0 transition-opacity duration-150 group-hover/card:opacity-100 group-focus-within/card:opacity-100 [@media(hover:none)]:hidden">
+            <div className={cn("pointer-events-none absolute inset-0 z-20 grid place-items-center opacity-0 transition-opacity duration-150 group-hover/card:opacity-100 group-focus-within/card:opacity-100", touchSelected && "opacity-100")}>
               <IconButton
                 icon={Pencil}
                 label={t('common.edit')}
@@ -256,79 +248,12 @@ export function SectionCardItem({
                   openCardEditor(card);
                 }}
                 variant="default"
-                size={isCompactDeviceCard ? "sm" : "md"}
+                size="lg"
                 className="pointer-events-auto rounded-full bg-background/95 shadow-lg backdrop-blur-md hover:text-primary"
               />
             </div>
           )}
-          <div className={cn("pointer-events-none absolute right-2 top-2 z-30 opacity-0 transition-opacity duration-150 group-hover/card:pointer-events-auto group-hover/card:opacity-100 group-focus-within/card:pointer-events-auto group-focus-within/card:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100", isCompactDeviceCard && "right-1 top-1")}>
-            <IconButton
-              icon={MoreVertical}
-              label={t('dashboard.editor.sections.card_actions')}
-              aria-haspopup="menu"
-              aria-expanded={isCardMenuOpen}
-              onPointerDown={(event) => event.stopPropagation()}
-              onKeyDown={(event) => {
-                event.stopPropagation();
-                if (event.key === 'Escape') setIsCardMenuOpen(false);
-              }}
-              onClick={(event) => {
-                event.stopPropagation();
-                const rect = event.currentTarget.getBoundingClientRect();
-                setCardMenuPosition({ top: rect.bottom + 8, right: Math.max(8, window.innerWidth - rect.right) });
-                setIsCardMenuOpen((isOpen) => !isOpen);
-              }}
-              variant="default"
-              size={isCompactDeviceCard ? "sm" : "md"}
-              className="rounded-full bg-background/95 shadow-lg backdrop-blur-md hover:text-primary"
-            />
-          </div>
         </>
-      ) : null}
-
-      {isEditing && isCardMenuOpen && cardMenuPosition ? (
-        <ModalPortal>
-          <div className="fixed inset-0 z-40" aria-hidden="true" onPointerDown={() => setIsCardMenuOpen(false)} />
-          <div
-            role="menu"
-            aria-label={t('dashboard.editor.sections.card_actions')}
-            style={cardMenuPosition}
-            onPointerDown={(event) => event.stopPropagation()}
-            className="fixed z-50 min-w-36 rounded-panel border border-border/70 bg-card p-1.5 shadow-depth-3"
-          >
-            {(
-              <>
-                <Button
-                  role="menuitem"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setIsCardMenuOpen(false);
-                    openCardEditor(card);
-                  }}
-                  className="w-full justify-start font-semibold"
-                >
-                  <Pencil className="h-4 w-4" aria-hidden="true" />
-                  {t('common.edit')}
-                </Button>
-                <div role="separator" className="my-1 border-t border-border/65" />
-              </>
-            )}
-            <Button
-              role="menuitem"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setIsCardMenuOpen(false);
-                removeCard(card.id);
-              }}
-              className="w-full justify-start font-semibold text-danger hover:bg-danger/10 hover:text-danger"
-            >
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
-              {t('common.delete')}
-            </Button>
-          </div>
-        </ModalPortal>
       ) : null}
 
     </div>

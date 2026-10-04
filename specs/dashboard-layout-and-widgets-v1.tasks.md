@@ -1,5 +1,15 @@
 # Tareas: Dashboard Layout and Widgets V1
 
+## Refinamiento AC55
+
+- [x] Lápiz centrado y eliminación confirmada en footer.
+- [x] Menú compacto, reloj adaptativo, watermark fijo.
+- [x] Preview visible, tabs simples, altura según panel.
+- [x] Fila independiente de etiquetas y compatibilidad histórica.
+- [x] Tests focalizados y controles; sin suites completas/Git/deploy.
+
+Validación AC55 (2026-10-04): 8 suites Jest, 92/92 PASS; 13 escenarios responsive únicos PASS (cuatro editores adaptativos, tres filas de etiquetas, secciones, reloj, dos reproductores sin reproducción, diseño de reproductor e Inicio). Marca de agua comprobada en cuatro anchos. Typecheck raíz/consola, lint consola y build raíz/consola PASS; spec coverage, BDD, module coverage, i18n, no-production-any y architecture boundaries PASS. Inspección visual limitada a una ronda y una confirmación; sin suites completas ni hardware físico. Las etiquetas nuevas usan el JSON Section existente; las históricas no se convierten. Advertencias no bloqueantes: Browserslist antiguo, chunks grandes y WebSocket simulado sin servidor real.
+
 ## Adaptación Sensor y editor — AC54 (2026-10-04)
 
 - [x] Dimensiones Sensor manuales con mínimo 4×4; limitar altura real a las filas reservadas y adaptar instrumento por ancho/alto. Conservar modo automático histórico.

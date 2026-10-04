@@ -1,4 +1,6 @@
-# SensorMetricCard — instrumento analógico local
+# SensorMetricCard
+
+AC55: preview de edición muestra el presenter real al tamaño elegido (escala descendente solo cuando no cabe), con etiqueta visible. El editor crece según panel, reemplazando la altura fija AC54; controles superiores anclados, footer accesible y lápiz centrado en tarjeta. Lectura/escala/precisión no cambian. — instrumento analógico local
 
 AC54: dimensiones manuales reservan exactamente su altura; CSS container queries utiliza ancho y alto de la propia carcasa, no un breakpoint de tablet. Debajo de 150 px de alto o 120 px de ancho se omite el gráfico decorativo y se conservan nombre, lectura/unidad, ausencia y advertencias. La presentación binaria se compacta sin solapar el nombre y sigue siendo de solo lectura. `switch` es una preferencia opcional de tarjeta (no del mapping PLC); las seis opciones son visibles. Selección explícita prima sobre auto: estados booleanos pueden visualizarse como 0/1; switch solo reconoce booleanos/ON/OFF/0/1 y no inventa un bit para otras mediciones.
 

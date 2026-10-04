@@ -24,6 +24,8 @@ import { cn } from '../../lib/utils';
 import { availableSectionSlot, moveSectionSlot, resolveSectionSlots, sectionLayoutKey, type SectionLayout } from './sectionSlots';
 import { Button } from '../../components/ui/Button';
 import { generateId } from '../../utils/generateId';
+import { createDefaultWidgetConfig } from './dashboardMutations';
+import { SectionWidget } from './widgets/SectionWidget';
 import { readCanvasSections, projectCanvasSections } from './dashboardSectionsAdapter';
 import ConfirmModal from '../../components/ConfirmModal';
 import type { DashboardWidget, DashboardWidgetConfig } from './types';
@@ -301,12 +303,17 @@ export function DashboardCanvas({
     });
   }, [dragLayout?.widgets, widgets, t]);
 
+  const badgeWidget = sanitizedWidgets.find(widget => widget.type === 'section' && widget.config.extra?.badgeRow === true);
+  const createBadgeRow = () => {
+    const config = createDefaultWidgetConfig('section', undefined, { titleArea: '', newSection: '', titlePlaceholder: '', subtitlePlaceholder: '' });
+    onLayoutChange([...widgets, { id: generateId(), type: 'section', config: { ...config, appearance: { ...config.appearance, showTitle: false }, extra: { ...config.extra, badgeRow: true, cards: [] } } }], sectionLayout);
+  };
   const titleWidget = sanitizedWidgets.find((widget) => widget.type === 'dashboard_title') ?? null;
   const sectionModel = useMemo(() => readCanvasSections(sanitizedWidgets, currentTabId ?? 'preview'), [sanitizedWidgets, currentTabId]);
   // Everything that isn't the pinned title flows and reorders together,
   // Home Assistant "Sections" style: order in this array is visual order.
   const flowWidgets = useMemo(
-    () => projectCanvasSections(sanitizedWidgets, sectionModel).filter((widget) => widget.type !== 'dashboard_title'),
+    () => projectCanvasSections(sanitizedWidgets, sectionModel).filter((widget) => widget.type !== 'dashboard_title' && widget.config.extra?.badgeRow !== true),
     [sanitizedWidgets, sectionModel],
   );
   const flowWidgetIds = useMemo(() => flowWidgets.map((widget) => widget.id), [flowWidgets]);
@@ -636,6 +643,9 @@ export function DashboardCanvas({
         ) : canEditLayout ? <CanvasFlowItem span={columns} gap={gap}>
           <Button type="button" variant="outline" size="md" onClick={onAddTitleClick}>{t('dashboard.editor.sections.add_title')}</Button>
         </CanvasFlowItem> : null}
+
+        {badgeWidget ? <CanvasFlowItem span={columns} gap={gap}><SectionWidget sectionId={badgeWidget.id} config={badgeWidget.config} isEditing={isEditing} onUpdate={config => onWidgetConfigChange?.(badgeWidget.id, config)} /></CanvasFlowItem>
+          : canEditLayout ? <CanvasFlowItem span={columns} gap={gap}><Button variant="outline" onClick={createBadgeRow}>{t('dashboard.editor.sections.create_labels')}</Button></CanvasFlowItem> : null}
 
         {useSectionSlots && <CanvasFlowItem span={columns} gap={gap}>
           <SortableContext items={sectionSlots.filter((id): id is string => id !== null)} strategy={rectSortingStrategy}>
