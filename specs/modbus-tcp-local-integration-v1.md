@@ -24,6 +24,8 @@ Refinamiento visual AC35: detalle de conexión separa Entradas, Salidas y Variab
 
 ## Refinamiento de formularios y tabla — alcance autorizado
 
+- AC42 refinamiento local autorizado: creación de variable inicia con Nombre/Uso/Perfil, sin mostrar punto/relaciones/conversión antes de elegir Uso explícitamente. Seleccionar el mismo rol inicial también habilita el formulario; Guardar permanece bloqueado hasta elegir. Edición histórica y creación desde Probe conservan apertura técnica/configuración existente. Modal compacto en vertical y ancho con dos regiones (dirección/relaciones y presentación/opciones) en horizontal desde 1024px, primitivas de 44px, paleta y ES/EN vigentes. Estado de selección exclusivo de UI; no cambia payloads, JSON, validadores, SQLite, servicios, relaciones Ladder ni comandos. Validación responsive local con mocks, sin PLC, Git ni deploy.
+
 - AC16: Tabla de probe con scroll contenido, encabezado opaco fijo y acción Crear variable en una línea. Filtros locales Todos / Lecturas válidas / Con actividad (RAW no cero/true), sin borrar muestras ni ocultar errores en Todos. Conversión de 32 bits utiliza la secuencia original completa antes de filtrar.
 - AC17: Unidad mediante selector buscable modular, catálogo amplio de unidades habituales y Sin unidad. Conservar valores históricos desconocidos como opción; no convertir magnitudes ni cerrar el contrato backend a un enum. Campos numéricos pueden borrarse durante edición; vacío no se convierte en cero ni se envía al guardar. Inputs/selects estándar 44px. Formulario solo cierra mediante acción explícita; lectura sigue readonly. Sin API/SQL nuevo.
 

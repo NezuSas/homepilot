@@ -28,11 +28,24 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 1024 
     const add = async (name: string, role: RegExp) => {
       await page.getByRole('button', { name: /^(Add variable|Añadir variable)$/i }).click();
       await editor.getByLabel(/^(Name|Nombre)$/i).fill(name);
+      await expect(editor.locator('[data-modbus-point-summary]')).toHaveCount(0);
+      await expect(editor.locator('[data-modbus-editor-options]')).toHaveCount(0);
+      await expect(editor.getByRole('button', { name: /^(Save|Guardar)$/i })).toBeDisabled();
       await editor.getByRole('button', { name: /^(Home Pilot usage|Uso en Home Pilot)$/i }).click(); await page.getByRole('option', { name: role, exact: true }).click();
     };
     const physicalInput = () => editor.getByRole('group', { name: /^(Physical input|Entrada física)$/i });
     const channel = (group: ReturnType<typeof physicalInput>) => group.getByLabel(/^(Channel|Canal)$/i);
     await add('Input ordinal', /^(Inputs|Entradas)$/i);
+    await expect(editor.getByRole('button', { name: /^(Visualization|Visualización)$/i })).toHaveCount(0);
+    await expect(editor.getByRole('button', { name: /^(Unit|Unidad)$/i, exact: true })).toHaveCount(0);
+    const addressBounds = (await editor.locator('[data-modbus-editor-address]').boundingBox())!;
+    const optionsBounds = (await editor.locator('[data-modbus-editor-options]').boundingBox())!;
+    if (viewport.width >= 1024) {
+      expect((await editor.boundingBox())!.width).toBeGreaterThan(800);
+      expect(optionsBounds.x).toBeGreaterThanOrEqual(addressBounds.x + addressBounds.width);
+    } else {
+      expect(optionsBounds.y).toBeGreaterThanOrEqual(addressBounds.y + addressBounds.height);
+    }
     // A role change must not retain D0's numeric draft; no blur or repeated entry.
     for (const [ordinal, symbol] of [[0, 'X0'], [1, 'X1'], [7, 'X7'], [8, 'X10']] as const) {
       await channel(physicalInput()).fill(String(ordinal));
@@ -710,10 +723,10 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     await page.getByRole('button', { name: /^(Add variable|Añadir variable)$/i }).click();
     const editor = page.getByRole('dialog', { name: /^(Configure variable|Configurar variable)$/i });
     await editor.getByLabel(/^(Name|Nombre)$/i).fill('CMDPLC 1');
-    await editor.getByRole('switch', { name: /^(Advanced configuration|Configuración avanzada)$/i }).click();
-    await editor.getByLabel(/^(PLC element|Elemento PLC)$/i, { exact: true }).fill('M100');
     await editor.getByRole('button', { name: /^(Home Pilot usage|Uso en Home Pilot)$/i }).click();
     await page.getByRole('option', { name: /^(PLC commands|Comandos PLC)$/i, exact: true }).click();
+    await editor.getByRole('switch', { name: /^(Advanced configuration|Configuración avanzada)$/i }).click();
+    await editor.getByLabel(/^(PLC element|Elemento PLC)$/i, { exact: true }).fill('M100');
     for (const symbol of ['Y0', 'Y1']) {
       await editor.getByRole('button', { name: /^(Related outputs|Salidas relacionadas)$/i }).click();
       await page.getByRole('searchbox', { name: /^(Search|Buscar)$/i, exact: true }).fill(symbol);
@@ -1037,10 +1050,10 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     };
     await card.getByRole('button', { name: /^(Add variable|Añadir variable)$/i }).click();
     await editor.getByLabel(/^(Name|Nombre)$/i).fill('Luz exterior');
-    await editor.getByRole('switch', { name: /^(Advanced configuration|Configuración avanzada)$/i }).click();
-    await editor.getByLabel(/^(PLC element|Elemento PLC)$/i, { exact: true }).fill('M100');
     await editor.getByRole('button', { name: /^(Home Pilot usage|Uso en Home Pilot)$/i }).click();
     await page.getByRole('option', { name: /^(Outputs|Salidas)$/i, exact: true }).click();
+    await editor.getByRole('switch', { name: /^(Advanced configuration|Configuración avanzada)$/i }).click();
+    await editor.getByLabel(/^(PLC command|Comando PLC)$/i, { exact: true }).fill('M100');
     await editor.getByLabel(/^(Physical output|Salida física)$/i).fill('Y0');
     await expect(editor.getByLabel(/^(PLC command|Comando PLC)$/i, { exact: true })).toHaveValue('M100');
     expect(await editor.locator('input').evaluateAll(inputs => inputs.filter(input => (input as HTMLInputElement).value === 'M100').length)).toBe(1);
@@ -1094,9 +1107,9 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     await page.reload(); await openDetail();
     await card.getByRole('button', { name: /^(Add variable|Añadir variable)$/i }).click();
     await editor.getByLabel(/^(Name|Nombre)$/i).fill('Temperatura objetivo');
+    await editor.getByRole('button', { name: /^(Home Pilot usage|Uso en Home Pilot)$/i }).click(); await page.getByRole('option', { name: 'Setpoints', exact: true }).click();
     await editor.getByRole('switch', { name: /^(Advanced configuration|Configuración avanzada)$/i }).click();
     await editor.getByLabel(/^(PLC element|Elemento PLC)$/i, { exact: true }).fill('D100');
-    await editor.getByRole('button', { name: /^(Home Pilot usage|Uso en Home Pilot)$/i }).click(); await page.getByRole('option', { name: 'Setpoints', exact: true }).click();
     await editor.getByRole('button', { name: /^(Unit|Unidad)$/i, exact: true }).click(); await page.getByRole('option', { name: '°C', exact: true }).click();
     await editor.getByLabel(/^(Minimum|Mínimo)$/i).fill('5'); await editor.getByLabel(/^(Maximum|Máximo)$/i).fill('40');
     await editor.getByRole('switch', { name: /^(Allow setpoint writes|Permitir escritura del setpoint)$/i }).click(); await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click(); await expect(editor).not.toBeVisible();
@@ -1115,9 +1128,9 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     await confirm.click(); await expect(authorization).not.toBeVisible(); expect(commands).toEqual([{ command: { name: 'set_value', params: { value: 22 } } }, { command: { name: 'set_value', params: { value: 22 } } }]);
     await card.getByRole('button', { name: /^(Add variable|Añadir variable)$/i }).click();
     await editor.getByLabel(/^(Name|Nombre)$/i).fill('Nivel depósito');
+    await editor.getByRole('button', { name: /^(Home Pilot usage|Uso en Home Pilot)$/i }).click(); await page.getByRole('option', { name: /^(Measurements|Mediciones)$/i, exact: true }).click();
     await editor.getByRole('switch', { name: /^(Advanced configuration|Configuración avanzada)$/i }).click();
     await editor.getByLabel(/^(PLC element|Elemento PLC)$/i, { exact: true }).fill('HD100');
-    await editor.getByRole('button', { name: /^(Home Pilot usage|Uso en Home Pilot)$/i }).click(); await page.getByRole('option', { name: /^(Measurements|Mediciones)$/i, exact: true }).click();
     await editor.getByRole('button', { name: /^(Visualization|Visualización)$/i }).click(); await page.getByRole('option', { name: /^(Level|Nivel)$/i, exact: true }).click();
     await editor.getByRole('button', { name: /^(Unit|Unidad)$/i, exact: true }).click(); await page.getByRole('option', { name: '%', exact: true }).click();
     await editor.getByText(/^(Measurement preview|Vista previa de medición)$/i, { exact: true }).click();
@@ -1139,9 +1152,9 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     await expect(card.locator('[data-sensor-visualizer="thermometer"]')).toBeVisible();
     await card.getByRole('button', { name: /^(Add variable|Añadir variable)$/i }).click();
     await editor.getByLabel(/^(Name|Nombre)$/i).fill('Entrada puerta');
+    await editor.getByRole('button', { name: /^(Home Pilot usage|Uso en Home Pilot)$/i }).click(); await page.getByRole('option', { name: /^(Inputs|Entradas)$/i, exact: true }).click();
     await editor.getByRole('switch', { name: /^(Advanced configuration|Configuración avanzada)$/i }).click();
     await editor.getByLabel(/^(PLC element|Elemento PLC)$/i, { exact: true }).fill('X0');
-    await editor.getByRole('button', { name: /^(Home Pilot usage|Uso en Home Pilot)$/i }).click(); await page.getByRole('option', { name: /^(Inputs|Entradas)$/i, exact: true }).click();
     await editor.getByLabel(/^(Physical input|Entrada física)$/i).fill('X0');
     await editor.getByLabel(/^(Logical input \(optional\)|Entrada lógica \(opcional\))$/i).fill('M0');
     await editor.getByRole('button', { name: /^(Room|Estancia)$/i, exact: true }).click(); await page.getByRole('option', { name: 'Acceso', exact: true }).click();

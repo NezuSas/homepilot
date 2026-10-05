@@ -19,6 +19,12 @@ Familias y roles vienen de `semantics`; módulos, radix, permisos y canales prov
 
 El modo avanzado conserva controles técnicos y capacidad por módulo. Crear una variable nueva aplica validación semántica adicional local antes del guardado; el backend conserva sus validadores y autoridad. Resolver un punto no prueba hardware ni ejecuta una lectura.
 
+### Formulario adaptativo
+
+En creación manual, `usageSelected` es estado exclusivo de UI: el instalador elige Uso antes de ver dirección, relaciones y opciones; Guardar también comprueba esa elección. No se añade al payload. Edición existente y apertura desde Probe ya tienen contexto y muestran sus campos sin exigir una nueva selección. Desde 1024px el modal utiliza dos regiones laterales; en vertical/móvil se apilan. Se conservan Input/NumberInput/SearchableSelectField/MeasurementUnitSelect/ToggleSwitch y el modal protegido existentes, sin nuevos tamaños de control ni colores.
+
+Guardar/Cancelar (y la retirada existente) utilizan el footer modular del modal, fuera del scroll del contenido; el botón de guardar mantiene su asociación HTML al formulario. Unidad/visualización/vista previa se ocultan para nuevas entradas y comandos binarios mientras se elige su punto, sin convertir su borrador ni ocultar controles numéricos históricos. Evidencia actual de este refinamiento en las tareas AC42: 371 tests focalizados y 16 escenarios responsive distintos, sin validar hardware real ni repetir la suite global.
+
 ## Compatibilidad y seguridad
 
 - Abrir una configuración histórica, alternar modo o cancelar no modifica símbolos, PDU, IDs o relaciones. Históricos incompatibles se muestran con advertencia y escape avanzado, sin normalización automática.

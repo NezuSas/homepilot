@@ -1,5 +1,11 @@
 # Tareas — Modbus TCP local V1
 
+## Editor de variable compacto y adaptativo — refinamiento AC42
+
+- [x] Separar dirección/relaciones y opciones en horizontal; conservar apilado vertical, controles estándar y protección del borrador.
+- [x] Elección explícita de uso para nuevas variables, sin cambiar defaults persistidos ni formularios históricos/Probe.
+- [x] Validación: 371/371 Jest focalizados (11 suites, sin retirar casos); 16 escenarios responsive distintos PASS en ejecuciones focalizadas (4 AC42, 4 salidas declarativas, 4 perfiles/Probe y 4 PLC I/O). Confirmación final AC42 4/4 incluye elección previa, opciones exclusivas de medición, canal 0 sin blur, disposición lateral/apilada y guardado/reapertura. Inputs de salida usan la etiqueta existente Comando PLC tras elegir Uso; se conserva la cobertura de las relaciones. Typecheck raíz/consola, lint, builds backend/frontend, arquitectura, spec, BDD, i18n, módulo, primitivas y no-production-any PASS. Detector layout/type sin hallazgos; whitespace revisado sin Git. Dos rondas de revisión visual local con mocks y acciones Guardar/Cancelar fuera del scroll. No suite Jest global ni responsive global; no tablet física, SQLite real, PLC, Docker, Git ni deploy. Advertencias existentes de Browserslist/chunks; no aprobación de release.
+
 ## Acción momentánea PLC — AC39 (solo Fase 1 UI)
 
 - [x] Clasificar output_command+pulse por metadatos existentes, reutilizando press y botones de acción, sin backend ni configuración real.

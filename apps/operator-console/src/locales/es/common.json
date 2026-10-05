@@ -2123,7 +2123,8 @@
   },
   "plc": {
     "semantic": {
-      "usage": "Uso en Home Pilot", "point": "Punto", "family": "Familia", "channel": "Canal", "index": "Índice",
+        "usage": "Uso en Home Pilot", "point": "Punto", "family": "Familia", "channel": "Canal", "index": "Índice",
+        "choose_usage": "Seleccionar uso", "choose_usage_hint": "Elige el uso de la variable para mostrar sus campos de configuración.", "variable_options": "Presentación y opciones",
       "advanced": "Configuración avanzada", "ordinal_hint": "Índice ordinal desde 0. El perfil genera el símbolo.",
       "radix": "Base {{radix}}", "no_options": "Este perfil no ofrece puntos compatibles. Revisa la configuración avanzada.",
       "invalid_capacity": "Revisa las capacidades del módulo antes de seleccionar un canal.", "no_channels": "No hay canales declarados para este módulo.",

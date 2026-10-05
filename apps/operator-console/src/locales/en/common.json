@@ -2123,7 +2123,8 @@
   },
   "plc": {
     "semantic": {
-      "usage": "Home Pilot usage", "point": "Point", "family": "Family", "channel": "Channel", "index": "Index",
+        "usage": "Home Pilot usage", "point": "Point", "family": "Family", "channel": "Channel", "index": "Index",
+        "choose_usage": "Select usage", "choose_usage_hint": "Choose the variable usage to display its configuration fields.", "variable_options": "Presentation and options",
       "advanced": "Advanced configuration", "ordinal_hint": "Zero-based ordinal. The profile generates the symbol.",
       "radix": "Radix {{radix}}", "no_options": "This profile provides no compatible points. Review advanced configuration.",
       "invalid_capacity": "Review module capacities before selecting a channel.", "no_channels": "No channels declared for this module.",

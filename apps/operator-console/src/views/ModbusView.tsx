@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { Cable, Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { modbusRegisterTypes, modbusWordCount, modbusVisualStyles, type ModbusConnection, type ModbusVariable } from '../../../../packages/integrations/modbus/domain/Modbus';
@@ -33,6 +33,7 @@ type Editor = { kind: 'connection'; id?: string } | { kind: 'variable'; connecti
 /** Operate: compact configuration, explicit map and safe opt-in; inherited HomePilot palette/controls. */
 export function ModbusView() {
   const { t } = useTranslation();
+  const editorFormId = useId();
   const homeId = useDeviceSnapshotStore(s => s.homes[0]?.id ?? '');
   const refresh = useDeviceSnapshotStore(s => s.refreshSnapshot);
   const roomsByHome = useDeviceSnapshotStore(s => s.roomsByHome);
@@ -48,10 +49,12 @@ export function ModbusView() {
   const [commandVariable, setCommandVariable] = useState<ModbusVariable | null>(null);
   const [connectionForm, setConnectionForm] = useState(connectionDefaults);
   const [variableForm, setVariableForm] = useState(variableDefaults);
+  const [usageSelected, setUsageSelected] = useState(false);
   const loadingRequest = useRef<Promise<void> | null>(null);
   const previewConnection = editor?.kind === 'variable' ? connections.find(connection => connection.id === editor.connectionId) : undefined;
   const savedPreview = previewConnection?.variables.find(variable => editor?.kind === 'variable' && variable.deviceId === editor.deviceId && variable.address === variableForm.address && variable.area === variableForm.area && variable.dataType === variableForm.dataType && variable.scale === variableForm.scale && variable.offset === variableForm.offset);
   const outputBinding = variableForm.plc?.role === 'output';
+  const showMeasurementOptions = variableForm.dataType !== 'boolean' && (!variableForm.plc || ['measurement', 'setpoint', 'diagnostic'].includes(variableForm.plc.role) || (editor?.kind === 'variable' && !!editor.deviceId));
   const symbolicAddressField = variableForm.profileId ? <ModbusAddressFields compact={outputBinding} technicalDisclosure symbolLabel={outputBinding ? t('plc.command_address') : undefined} profileId={variableForm.profileId} symbol={variableForm.symbolicAddress ?? ''} capacities={previewConnection?.moduleCapacities} onSymbol={symbolicAddress => {
     try { const resolved = resolveModbusAddress(variableForm.profileId!, symbolicAddress); const bit = resolved.area === 'coil' || resolved.area === 'discrete_input'; setVariableForm({ ...variableForm, symbolicAddress, area: resolved.area, address: resolved.address, dataType: bit ? 'boolean' : variableForm.dataType === 'boolean' ? 'uint16' : variableForm.dataType, scale: bit ? 1 : variableForm.scale, offset: bit ? 0 : variableForm.offset, ...(bit ? { visualStyle: undefined } : {}), writable: false }); }
     catch { setVariableForm({ ...variableForm, symbolicAddress, writable: false }); }
@@ -83,6 +86,7 @@ export function ModbusView() {
     setConnectionForm(connection ?? { ...connectionDefaults }); setFormError(''); setEditor({ kind: 'connection', id: connection?.id });
   };
   const openVariable = (connectionId: string, variable?: ModbusVariable) => {
+    setUsageSelected(!!variable);
     setRoomId(variable ? useDeviceSnapshotStore.getState().devices.find(device => device.id === variable.deviceId)?.roomId ?? '' : '');
     const profileId = connections.find(item => item.id === connectionId)?.profileId;
     let initial = { ...variableDefaults };
@@ -113,11 +117,12 @@ export function ModbusView() {
       const data: { connection: ModbusConnectionSummary } = await response.json(); saved = data.connection;
       await load();
     }
-    setProbe(false); setVariableForm(variable); setFormError(''); setEditor({ kind: 'variable', connectionId: saved.id });
+    setProbe(false); setUsageSelected(true); setVariableForm(variable); setFormError(''); setEditor({ kind: 'variable', connectionId: saved.id });
     setRoomId('');
   };
   const save = async (event: FormEvent) => {
     event.preventDefault(); if (!editor) return;
+    if (editor.kind === 'variable' && !usageSelected) { setFormError(t('plc.semantic.choose_usage_hint')); return; }
     setBusy(true); setFormError('');
     let configuredVariable = variableForm;
     if (editor.kind === 'variable' && variableForm.profileId) {
@@ -156,8 +161,13 @@ export function ModbusView() {
     {activeConnection ? <div className="space-y-3"><Button variant="ghost" size="lg" onClick={() => setConnectionId(null)}>{t('plc.back_connections')}</Button><ModbusConnectionCard key={activeConnection.id} connection={activeConnection} onEdit={() => openConnection(activeConnection)} onAdd={() => openVariable(activeConnection.id)} onVariable={variable => openVariable(activeConnection.id, variable)} onCommand={setCommandVariable} /></div> : <div className="grid items-start gap-4 lg:grid-cols-2">{connections.map(connection => <ModbusConnectionCard key={connection.id} connection={connection} onOpen={() => setConnectionId(connection.id)} onEdit={() => openConnection(connection)} onAdd={() => openVariable(connection.id)} onVariable={variable => openVariable(connection.id, variable)} />)}</div>}
     {commandVariable && <PlcCommandDialog variable={commandVariable} onClose={() => setCommandVariable(null)} onExecuted={async () => { await load(true); await refresh({ force: true }); }} />}
     {probe && <ModbusReadProbe homeId={homeId} onClose={() => setProbe(false)} onCreate={createFromProbe} />}
-    <Modal isOpen={editor !== null && !confirmDelete} onClose={close} title={t(editor?.kind === 'variable' ? 'modbus.variable_title' : 'modbus.connection_title')} description={t('modbus.safe_hint')} className="max-w-xl text-card-foreground" headerAlign="start">
-      <form onSubmit={save} className="grid gap-3 sm:grid-cols-2">
+    <Modal isOpen={editor !== null && !confirmDelete} onClose={close} title={t(editor?.kind === 'variable' ? 'modbus.variable_title' : 'modbus.connection_title')} description={t('modbus.safe_hint')} className={editor?.kind === 'variable' ? 'max-w-2xl text-card-foreground lg:max-w-5xl' : 'max-w-xl text-card-foreground'} headerClassName="p-5 pb-4 pr-14 sm:p-6 sm:pb-4 sm:pr-16 [&_p]:text-caption [&_p]:font-normal" contentClassName="px-5 pb-5 sm:px-6 sm:pb-6" headerAlign="start" footer={
+      <div className="flex w-full flex-wrap justify-end gap-2 px-5 py-3 sm:px-6">
+        {(editor?.kind === 'connection' ? editor.id : editor?.deviceId) && <Button variant="ghost" className="mr-auto text-danger" type="button" size="lg" disabled={busy} onClick={() => { setFormError(''); setConfirmDelete(true); }}><Trash2 aria-hidden="true" className="size-4" />{t('modbus.delete')}</Button>}
+        <Button variant="secondary" type="button" size="lg" disabled={busy} onClick={close}>{t('modbus.cancel')}</Button><Button form={editorFormId} type="submit" size="lg" disabled={editor?.kind === 'variable' && !usageSelected} isLoading={busy}>{t('modbus.save')}</Button>
+      </div>
+    }>
+      <form id={editorFormId} onSubmit={save} className="grid items-start gap-4 sm:grid-cols-2">
         {formError && <div className="sm:col-span-2"><AlertBanner role="alert" variant="danger" className="text-foreground [&_p]:opacity-100" message={formError} /></div>}
         {editor?.kind === 'connection' ? <>
           <Input label={t('modbus.name')} value={connectionForm.name} maxLength={80} required onChange={e => setConnectionForm({ ...connectionForm, name: e.target.value })} />
@@ -170,11 +180,15 @@ export function ModbusView() {
           <NumberInput label={t('modbus.pollIntervalMs')} min={1000} max={60000} value={connectionForm.pollIntervalMs} onValueChange={pollIntervalMs => setConnectionForm({ ...connectionForm, pollIntervalMs })} onEmpty={() => setConnectionForm({ ...connectionForm, pollIntervalMs: NaN })} />
           <div className="flex items-center justify-between gap-3 sm:col-span-2"><span className="text-body-compact">{t('modbus.enable_polling')}</span><ToggleSwitch label={t('modbus.enable_polling')} checked={connectionForm.enabled} onCheckedChange={enabled => setConnectionForm({ ...connectionForm, enabled })} /></div>
         </> : <>
-          <div className="sm:col-span-2"><Input label={t('modbus.name')} value={variableForm.name} maxLength={80} required onChange={e => setVariableForm({ ...variableForm, name: e.target.value })} /></div>
-          <ModbusVariablePointEditor key={`${editor?.kind === 'variable' ? editor.connectionId : ''}:${editor?.kind === 'variable' ? editor.deviceId ?? 'new' : ''}`} historical={editor?.kind === 'variable' && !!editor.deviceId} variable={variableForm} onChange={setVariableForm} capacities={previewConnection?.moduleCapacities} advancedField={variableForm.profileId ? symbolicAddressField : <>
+          <div data-modbus-editor-address className={`min-w-0 space-y-3 sm:col-span-2 ${usageSelected ? 'lg:col-span-1' : ''}`}>
+          <Input label={t('modbus.name')} value={variableForm.name} maxLength={80} required onChange={e => setVariableForm({ ...variableForm, name: e.target.value })} />
+          <ModbusVariablePointEditor key={`${editor?.kind === 'variable' ? editor.connectionId : ''}:${editor?.kind === 'variable' ? editor.deviceId ?? 'new' : ''}`} usageSelected={usageSelected} onUsageSelected={() => setUsageSelected(true)} historical={editor?.kind === 'variable' && !!editor.deviceId} variable={variableForm} onChange={setVariableForm} capacities={previewConnection?.moduleCapacities} advancedField={variableForm.profileId ? symbolicAddressField : <>
             <NumberInput label={t('modbus.address')} helperText={t('modbus.address_hint')} min={0} max={65536 - modbusWordCount(variableForm.dataType)} value={variableForm.address} onValueChange={address => setVariableForm({ ...variableForm, address })} onEmpty={() => setVariableForm({ ...variableForm, address: NaN })} />
             <SearchableSelectField label={t('modbus.area')} value={variableForm.area} options={modbusAreas.map(value => ({ value, label: t(`modbus.${value}`) }))} onChange={value => { const area = value as ModbusVariable['area']; setVariableForm({ ...variableForm, area, dataType: area === 'coil' || area === 'discrete_input' ? 'boolean' : 'uint16', visualStyle: undefined, writable: false, scale: 1, offset: 0 }); }} />
           </>} />
+          </div>
+          {usageSelected && <fieldset data-modbus-editor-options className="grid min-w-0 content-start gap-3 border-t border-border pt-3 sm:col-span-2 sm:grid-cols-2 lg:col-span-1">
+          <legend className="text-body-compact font-semibold">{t('plc.semantic.variable_options')}</legend>
           <details className="min-w-0 sm:col-span-2"><summary className="cursor-pointer py-2 text-body-compact font-medium">{t('plc.technical_conversion')}</summary><div className="grid gap-3 py-2 sm:grid-cols-2">
           <SearchableSelectField label={t('modbus.dataType')} value={variableForm.dataType} options={(variableForm.area === 'coil' || variableForm.area === 'discrete_input' ? ['boolean'] : modbusRegisterTypes).map(value => ({ value, label: value }))} onChange={value => setVariableForm({ ...variableForm, dataType: value as ModbusVariable['dataType'] })} />
           {variableForm.dataType !== 'boolean' && <>
@@ -184,16 +198,14 @@ export function ModbusView() {
           {modbusWordCount(variableForm.dataType) === 2 && <SearchableSelectField label={t('modbus.wordOrder')} value={variableForm.wordOrder} options={modbusWordOrders.map(value => ({ value, label: t(`modbus.${value}`) }))} onChange={value => setVariableForm({ ...variableForm, wordOrder: value as ModbusVariable['wordOrder'] })} />}
           {modbusWordCount(variableForm.dataType) === 2 && <p className="text-caption text-muted-foreground sm:col-span-2">{t('modbus.two_words')}</p>}
           </div></details>
-          {variableForm.dataType !== 'boolean' && <MeasurementUnitSelect label={t('modbus.unit')} value={variableForm.unit} onChange={unit => setVariableForm({ ...variableForm, unit })} />}
+          {showMeasurementOptions && <MeasurementUnitSelect label={t('modbus.unit')} value={variableForm.unit} onChange={unit => setVariableForm({ ...variableForm, unit })} />}
           {canWrite && <div className="flex items-center justify-between gap-3 sm:col-span-2"><span className="text-body-compact">{t(variableForm.plc?.role === 'setpoint' ? 'plc.allow_setpoint_write' : 'modbus.allow_write')}</span><ToggleSwitch label={t(variableForm.plc?.role === 'setpoint' ? 'plc.allow_setpoint_write' : 'modbus.allow_write')} checked={variableForm.writable} onCheckedChange={writable => setVariableForm({ ...variableForm, writable })} /></div>}
-          {variableForm.dataType !== 'boolean' && <><SearchableSelectField label={t('plc.visualization')} value={variableForm.visualStyle ?? 'gauge'} options={modbusVisualStyles.map(value => ({ value, label: t(`dashboard.editor.sections.sensor_visual_${value}`) }))} onChange={value => { const visualStyle = modbusVisualStyles.find(style => style === value); setVariableForm({ ...variableForm, visualStyle }); }} />
+          {showMeasurementOptions && <><SearchableSelectField label={t('plc.visualization')} value={variableForm.visualStyle ?? 'gauge'} options={modbusVisualStyles.map(value => ({ value, label: t(`dashboard.editor.sections.sensor_visual_${value}`) }))} onChange={value => { const visualStyle = modbusVisualStyles.find(style => style === value); setVariableForm({ ...variableForm, visualStyle }); }} />
             <details className="min-w-0 sm:col-span-2"><summary className="cursor-pointer py-2 text-body-compact">{t('plc.measurement_preview')}</summary><div className="max-w-xs"><SensorMetricCard title={variableForm.name || t('plc.roles.measurement')} sensorDecimals visualStyle={variableForm.visualStyle} device={plcSensorDevice({ ...variableForm, deviceId: editor?.kind === 'variable' ? editor.deviceId ?? 'preview' : 'preview', connectionId: editor?.kind === 'variable' ? editor.connectionId : '', diagnostic: savedPreview?.diagnostic }, plcConnectionAvailable(previewConnection))} /></div><p className="mt-2 text-caption text-muted-foreground">{t('plc.preview_hint')}</p></details></>}
-          <SearchableSelectField label={t('plc.room')} value={roomId || 'unassigned'} options={[{ value: 'unassigned', label: t('plc.unassigned') }, ...(roomsByHome[homeId] ?? []).map(room => ({ value: room.id, label: room.name }))]} onChange={value => setRoomId(value === 'unassigned' ? '' : value)} />
+          <div className="min-w-0 sm:col-span-2"><SearchableSelectField label={t('plc.room')} value={roomId || 'unassigned'} options={[{ value: 'unassigned', label: t('plc.unassigned') }, ...(roomsByHome[homeId] ?? []).map(room => ({ value: room.id, label: room.name }))]} onChange={value => setRoomId(value === 'unassigned' ? '' : value)} /></div>
           <p className="text-caption text-muted-foreground sm:col-span-2">{t('plc.assignment_hint')}</p>
+          </fieldset>}
         </>}
-        <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-3 sm:col-span-2">
-          {(editor?.kind === 'connection' ? editor.id : editor?.deviceId) && <Button variant="ghost" className="mr-auto text-danger" type="button" size="lg" disabled={busy} onClick={() => { setFormError(''); setConfirmDelete(true); }}><Trash2 aria-hidden="true" className="size-4" />{t('modbus.delete')}</Button>}
-          <Button variant="secondary" type="button" size="lg" disabled={busy} onClick={close}>{t('modbus.cancel')}</Button><Button type="submit" size="lg" isLoading={busy}>{t('modbus.save')}</Button></div>
       </form>
     </Modal>
     <Modal isOpen={confirmDelete} onClose={() => { if (!busy) setConfirmDelete(false); }} title={t(editor?.kind === 'connection' ? 'modbus.delete_connection' : 'modbus.delete_variable')} description={t('modbus.delete_confirmation')} headerAlign="start">

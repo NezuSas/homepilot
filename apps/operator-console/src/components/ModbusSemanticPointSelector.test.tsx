@@ -63,4 +63,25 @@ describe('Feature: Reusable semantic addressing selector (AC42)', () => {
     const html = renderToStaticMarkup(<ModbusVariablePointEditor variable={variable} historical onChange={onChange} advancedField={<p>M100 · PDU 100</p>} />);
     expect(html).toContain('M100'); expect(html).toContain('plc.semantic.advanced'); expect(onChange).not.toHaveBeenCalled(); expect(JSON.stringify(variable)).toBe(before);
   });
+  it('Scenario: A new variable shows only identification until usage is explicitly selected (AC42)', () => {
+    const variable = { name: '', profileId: profile.id, symbolicAddress: 'D0', area: 'holding_register' as const, address: 0, dataType: 'uint16' as const, scale: 1, offset: 0, wordOrder: 'high_first' as const, unit: '', writable: false, plc: { role: 'measurement' as const, feedbackPolicy: 'none' as const, mode: 'sustained' as const, pulseDurationMs: 500, feedbackTimeoutMs: 2000 } };
+    const before = JSON.stringify(variable), onChange = jest.fn(), onUsageSelected = jest.fn();
+    const original = selects.SearchableSelectField;
+    const spy = jest.spyOn(selects, 'SearchableSelectField').mockImplementation(props => original(props));
+    try {
+      const html = renderToStaticMarkup(<ModbusVariablePointEditor variable={variable} usageSelected={false} onUsageSelected={onUsageSelected} onChange={onChange} advancedField={<p>Technical fields</p>} />);
+      expect(html).toContain('plc.semantic.choose_usage_hint');
+      expect(html).not.toContain('data-modbus-point-summary');
+      expect(html).not.toContain('Technical fields');
+      const usage = spy.mock.calls.find(([props]) => props.label === 'plc.semantic.usage')![0];
+      expect(usage.value).toBe('');
+      usage.onChange('measurement');
+      expect(onUsageSelected).toHaveBeenCalledTimes(1);
+      expect(onChange).not.toHaveBeenCalled();
+      expect(JSON.stringify(variable)).toBe(before);
+    } finally { spy.mockRestore(); }
+    const chosen = renderToStaticMarkup(<ModbusVariablePointEditor variable={variable} usageSelected onChange={onChange} advancedField={<p>Technical fields</p>} />);
+    expect(chosen).toContain('D0');
+    expect(chosen).toContain('data-modbus-point-summary');
+  });
 });
