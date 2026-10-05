@@ -8,7 +8,9 @@ for (const width of [390, 768, 1024, 1440]) {
     await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: 'h', name: 'Home' }] }));
     const variables = [10, 2, 1].map(number => ({ deviceId: `v${number}`, connectionId: 'c', name: `Input ${number}`, symbolicAddress: `M${number}`, address: number, area: 'coil', dataType: 'boolean', scale: 1, offset: 0, wordOrder: 'high_first', unit: '', writable: false, diagnostic: { status: number === 2 ? 'error' : 'online', value: false, ...(number === 2 ? { error: 'TIMEOUT' } : {}) }, plc: { role: 'input', physical: { profileId: 'xinje-xl5e-16t-v1', symbolicAddress: `X${number}`, address: 20480 + number, area: 'coil' }, mode: 'sustained', feedbackPolicy: 'none', feedbackTimeoutMs: 2000, pulseDurationMs: 500 } }));
     const output = { ...variables[0], deviceId: 'output', name: 'Output Y0', symbolicAddress: 'M200', plc: { ...variables[0].plc, role: 'output', physical: { ...variables[0].plc.physical, symbolicAddress: 'Y0', address: 24576 }, command: { ...variables[0].plc.physical, symbolicAddress: 'M200', address: 200 } } };
-    const connection = { id: 'c', homeId: 'h', name: 'PLC fixture', host: '127.0.0.1', port: 502, unitId: 1, enabled: true, timeoutMs: 2000, pollIntervalMs: 5000, diagnostic: { status: 'online' }, variables: [...variables, output] };
+    const command = { ...variables[0], deviceId: 'command', name: 'Command M100', symbolicAddress: 'M100', address: 100, plc: { role: 'output_command', command: { profileId: 'xinje-xl5e-16t-v1', symbolicAddress: 'M100', area: 'coil', address: 100 }, relatedPhysicalOutputs: [output.plc.physical, { ...output.plc.physical, symbolicAddress: 'Y1', address: 24577 }], mode: 'sustained', feedbackPolicy: 'none', feedbackTimeoutMs: 2000, pulseDurationMs: 500 } };
+    const measurement = { ...variables[0], deviceId: 'measurement', name: 'Temperature D110', symbolicAddress: 'D110', address: 110, area: 'holding_register', dataType: 'uint16', scale: 0.1, unit: '°C', diagnostic: { status: 'online', value: 22, raw: [220] }, plc: { role: 'measurement', feedbackPolicy: 'none', feedbackTimeoutMs: 2000, pulseDurationMs: 500 } };
+    const connection = { id: 'c', homeId: 'h', name: 'PLC fixture', host: '127.0.0.1', port: 502, unitId: 1, enabled: true, timeoutMs: 2000, pollIntervalMs: 5000, diagnostic: { status: 'online' }, variables: [...variables, output, command, measurement] };
     const writes: string[] = [];
     await page.route('**/api/v1/modbus/**', route => { if (route.request().method() !== 'GET') writes.push(route.request().method()); return route.fulfill({ json: { connections: [connection] } }); });
     await page.route('**/api/v1/devices/*/command', route => { writes.push('command'); return route.fulfill({ json: {} }); });
@@ -22,20 +24,46 @@ for (const width of [390, 768, 1024, 1440]) {
       const rows = card.locator('[data-modbus-variable-group="input"] li');
       await expect(rows).toHaveCount(3);
       await expect(rows.nth(0)).toContainText('Input 1'); await expect(rows.nth(1)).toContainText('Input 2'); await expect(rows.nth(2)).toContainText('Input 10');
+      const grid = card.locator('[data-modbus-variable-group="input"] [data-modbus-variable-grid]');
+      expect(await grid.evaluate(element => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(width >= 768 ? 2 : 1);
+      const first = rows.first();
+      const sibling = rows.nth(1);
+      const compactBounds = await first.boundingBox();
+      expect(compactBounds?.height).toBeLessThan(220);
+      const siblingBefore = await sibling.boundingBox();
+      const diagnostic = first.locator('[data-modbus-variable-diagnostic]');
+      await expect(diagnostic).not.toHaveAttribute('open');
+      await diagnostic.locator('summary').click();
+      await expect(diagnostic).toHaveAttribute('open', '');
+      await expect(diagnostic).toContainText('PDU 1');
+      await expect(diagnostic).toContainText('FC01');
+      const expandedBounds = await first.boundingBox();
+      expect(expandedBounds!.height).toBeGreaterThan(compactBounds!.height);
+      if (width >= 768) {
+        const siblingAfter = await sibling.boundingBox();
+        expect(siblingAfter!.height).toBeCloseTo(siblingBefore!.height, 0);
+        expect(siblingAfter!.y).toBeCloseTo(siblingBefore!.y, 0);
+      }
+      await diagnostic.locator('summary').click();
+      const configure = first.getByRole('button', { name: /Input 1/ });
+      await configure.focus(); await expect(configure).toBeFocused();
+      const controlBounds = await configure.boundingBox();
+      expect(controlBounds!.width).toBeGreaterThanOrEqual(43.99);
+      expect(controlBounds!.height).toBeGreaterThanOrEqual(43.99);
       const search = card.getByRole('searchbox');
       await search.fill('X2'); await expect(rows).toHaveCount(1);
       await search.fill('missing-point'); await expect(card.getByRole('status').filter({ hasText: /No results|No se encontraron resultados/i })).toBeVisible();
       await search.fill('');
       await card.getByRole('radio', { name: /^(Outputs|Salidas) \(1\)$/i }).click();
       await expect(rows).toHaveCount(0); await expect(card.locator('li')).toHaveCount(1);
-      await card.getByRole('radio', { name: /^(All|Todo) \(4\)$/i }).click();
+      await card.getByRole('radio', { name: /^(All|Todo) \(6\)$/i }).click();
       await card.getByRole('button', { name: /Variables with errors|Variables con error/i }).click();
       await expect(card.locator('li')).toHaveCount(1); await expect(card.locator('li')).toContainText('Input 2');
       await card.getByRole('button', { name: /Variables with errors|Variables con error/i }).click();
       for (const theme of ['dark', 'light']) {
         await page.evaluate(value => document.documentElement.classList.toggle('light', value === 'light'), theme);
         expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
-        await page.screenshot({ path: testInfo.outputPath(`modbus-compact-${language}-${theme}.png`), animations: 'disabled' });
+        await page.screenshot({ path: testInfo.outputPath(`modbus-compact-${language}-${theme}.png`), fullPage: true, animations: 'disabled' });
       }
     }
     expect(writes).toEqual([]);
@@ -994,12 +1022,18 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     await editor.locator('.sensor-metric-card').scrollIntoViewIfNeeded(); await captureDialog(editor, 'measurement-preview');
     await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click(); await expect(editor).not.toBeVisible();
     expect(variables[2]).toMatchObject({ visualStyle: 'level', writable: false, plc: { role: 'measurement' } });
-    await page.reload(); await openDetail(); await expect(card.locator('[data-sensor-visualizer="level"]')).toBeVisible();
+    await page.reload(); await openDetail();
+    const measurementRow = card.locator('[data-modbus-variable-id]').filter({ hasText: 'Nivel depósito' });
+    await expect(measurementRow.locator('[data-modbus-variable-diagnostic]')).not.toHaveAttribute('open');
+    await measurementRow.locator('[data-modbus-variable-diagnostic] summary').click();
+    await expect(card.locator('[data-sensor-visualizer="level"]')).toBeVisible();
     await card.getByRole('button', { name: /^(Configure Nivel depósito|Configurar Nivel depósito)$/i }).click();
     await editor.getByRole('button', { name: /^(Visualization|Visualización)$/i }).click(); await page.getByRole('option', { name: /^(Thermometer|Termómetro)$/i, exact: true }).click();
     await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click(); await expect(editor).not.toBeVisible();
     expect(variables[2]).toMatchObject({ visualStyle: 'thermometer' });
-    await page.reload(); await openDetail(); await expect(card.locator('[data-sensor-visualizer="thermometer"]')).toBeVisible();
+    await page.reload(); await openDetail();
+    await measurementRow.locator('[data-modbus-variable-diagnostic] summary').click();
+    await expect(card.locator('[data-sensor-visualizer="thermometer"]')).toBeVisible();
     await card.getByRole('button', { name: /^(Add variable|Añadir variable)$/i }).click();
     await editor.getByLabel(/^(Name|Nombre)$/i).fill('Entrada puerta');
     await editor.getByLabel(/^(PLC element|Elemento PLC)$/i, { exact: true }).fill('X0');

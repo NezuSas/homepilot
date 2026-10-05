@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ModbusConnectionCard, type ModbusConnectionSummary } from './ModbusConnectionCard';
+import { ModbusConnectionCard, ModbusConnectionCardSkeleton, type ModbusConnectionSummary } from './ModbusConnectionCard';
 jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'es' } }) }));
 jest.mock('../stores/useDeviceSnapshotStore', () => ({ useDeviceSnapshotStore: (selector: (state: { devices: never[] }) => unknown) => selector({ devices: [] }) }));
 
@@ -24,5 +24,22 @@ describe('Feature: Compact Modbus navigation (AC40)', () => {
     expect(html).toContain('plc.open_connection');
     expect(html).not.toContain('modbus.search_variables');
     expect(html).not.toContain('Point 10');
+  });
+  it('Scenario: Dense grid and initial diagnostics reserve no expanded content (AC40)', () => {
+    const html = renderToStaticMarkup(<ModbusConnectionCard connection={connection} {...callbacks} />);
+    expect(html).toContain('data-modbus-variable-grid');
+    expect(html).toContain('grid items-start gap-2 md:grid-cols-2');
+    expect(html.match(/data-modbus-variable-diagnostic/g)).toHaveLength(3);
+    expect(html).not.toContain(' open=');
+    expect(html).toContain('PDU 1');
+    expect(html).toContain('FC01');
+    expect(html).toContain('modbus.scale');
+    expect(html).toContain('data-modbus-variable-id="v1"');
+  });
+  it('Scenario: Initial detail skeleton fills two compact rows without actions (AC40)', () => {
+    const html = renderToStaticMarkup(<ModbusConnectionCardSkeleton />);
+    expect(html).toContain('grid items-start gap-2 md:grid-cols-2');
+    expect(html.match(/rounded-panel border border-border px-3 py-2/g)).toHaveLength(4);
+    expect(html).not.toContain('<button');
   });
 });
