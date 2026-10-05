@@ -15,7 +15,7 @@ import { SearchableSelectField } from './ui/SearchableSelectField';
 import { AlertBanner } from './ui/AlertBanner';
 import { LoadingState } from './ui/LoadingState';
 import { DashboardSkeletonBar as Bar } from './ui/DashboardCardSkeleton';
-import { resolveModbusRange, type ModbusModuleCapacities } from '../../../../packages/integrations/modbus/domain/ModbusAddressProfile';
+import { resolveModbusRange, modbusAddressProfiles, type ModbusModuleCapacities } from '../../../../packages/integrations/modbus/domain/ModbusAddressProfile';
 import { ModbusAddressFields, ModbusModuleCapacityFields, ModbusProfileSelect } from './ModbusAddressFields';
 
 export type ModbusProbeSelection = { connection: Omit<ModbusConnection, 'id' | 'homeId'>; variable: Omit<ModbusVariable, 'deviceId' | 'connectionId'> };
@@ -93,7 +93,7 @@ export function ModbusReadProbe({ homeId, initial, onClose, onCreate }: {
           <NumberInput label={t('modbus.range_start')} min={0} max={65535} value={start} onValueChange={value => { setStart(value); reset(); }} onEmpty={() => { setStart(NaN); reset(); }} />
           <NumberInput label={t('modbus.range_end')} min={Number.isFinite(start) ? start : 0} max={Number.isFinite(start) ? Math.min(65535, start + 63) : 65535} value={end} onValueChange={value => { setEnd(value); reset(); }} onEmpty={() => { setEnd(NaN); reset(); }} />
         </>}
-        {profileId && /^[XY]/i.test(symbol) && <ModbusModuleCapacityFields capacities={capacities} disabled={running || creating} onChange={value => { setCapacities(value); reset(); }} />}
+        {modbusAddressProfiles.find(profile => profile.id === profileId)?.segments.some(segment => segment.module) && <ModbusModuleCapacityFields profileId={profileId} capacities={capacities} disabled={running || creating} onChange={value => { setCapacities(value); reset(); }} />}
         <SearchableSelectField label={t('modbus.refresh')} disabled={running || creating} value={String(refreshMs)} options={[{ value: '0', label: t('modbus.manual') }, ...modbusRefreshIntervals.map(value => ({ value: String(value), label: `${value / 1000} s` }))]} onChange={value => setRefreshMs(Number(value))} />
       </fieldset>
       <p className="text-caption text-muted-foreground">{t('modbus.range_hint')}</p>

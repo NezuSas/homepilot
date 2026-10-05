@@ -1,8 +1,19 @@
 import type { ModbusArea } from './Modbus';
+import type { PlcRole } from './PlcBinding';
+
+export type ModbusPointKind = 'physical_input' | 'physical_output' | 'internal_memory' | 'register';
+export interface ModbusSegmentSemantics {
+  familyId: string;
+  kind: ModbusPointKind;
+  /** Candidate usages, not permission to write or a Ladder relationship. */
+  compatibleRoles: readonly PlcRole[];
+}
 
 /** Runtime profile metadata; never serialized into connection/variable JSON. */
 export interface ModbusAddressSegment {
-  prefix: string; first: number; count: number; base: number; radix: 8 | 10;
+  prefix: string; first: number; count: number; base: number; radix: number;
+  /** Optional for compatibility with historical/custom runtime definitions. */
+  semantics?: ModbusSegmentSemantics;
   area: ModbusArea; writable: boolean; module?: string; channel?: 'inputs' | 'outputs';
   supportsPulse: boolean; supportsSetpoint: boolean;
 }

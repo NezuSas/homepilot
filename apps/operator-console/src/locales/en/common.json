@@ -2122,6 +2122,20 @@
     "no_content_yet": "No content available yet"
   },
   "plc": {
+    "semantic": {
+      "usage": "Home Pilot usage", "point": "Point", "family": "Family", "channel": "Channel", "index": "Index",
+      "advanced": "Advanced configuration", "ordinal_hint": "Zero-based ordinal. The profile generates the symbol.",
+      "radix": "Radix {{radix}}", "no_options": "This profile provides no compatible points. Review advanced configuration.",
+      "invalid_capacity": "Review module capacities before selecting a channel.", "no_channels": "No channels declared for this module.",
+      "historical_point": "{{symbol}} is preserved. It does not match guided options; review it in advanced configuration.",
+      "clear_relation": "Remove relationship", "value_source": "Value displayed from: {{symbol}}",
+      "feedback_hint": "Independent return signal declared by the installer. It is not inferred from a related output.",
+      "change_title": "Review configuration change",
+      "role_change_warning": "This change will discard configured PLC relationships in the draft. Continue? Nothing is saved until you select Save.",
+      "profile_change_warning": "This change will discard the draft symbol and relationships. Select and validate points from the new profile. Continue?",
+      "invalid_selection": "Select points compatible with the usage and profile. Review the command, physical output and relationships.",
+      "kinds": { "physical_input": "Physical input", "physical_output": "Physical output", "internal_memory": "Internal memory", "register": "Register" }
+    },
     "read_state": "Read state",
     "physical_read_state": "PLC output read state",
     "command_raw": "Command RAW",

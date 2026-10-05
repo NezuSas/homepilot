@@ -4,15 +4,16 @@ import type { ModbusAddressProfile, ModbusAddressSegment, ModbusModuleCapacities
 const bits: ModbusAddressSegment[] = [
   ['M', 0, 20480, true], ['SM', 36864, 4096, false], ['T', 40960, 4096, false],
   ['C', 45056, 4096, false], ['HM', 49408, 6144, true], ['HT', 57600, 1024, false], ['HC', 58624, 1024, false],
-].map(([prefix, base, count, writable]) => ({ prefix: String(prefix), base: Number(base), count: Number(count), writable: Boolean(writable), supportsPulse: Boolean(writable), supportsSetpoint: false, first: 0, radix: 10, area: 'coil' }));
+].map(([prefix, base, count, writable]) => ({ prefix: String(prefix), base: Number(base), count: Number(count), writable: Boolean(writable), supportsPulse: Boolean(writable), supportsSetpoint: false, first: 0, radix: 10, area: 'coil', semantics: { familyId: String(prefix), kind: 'internal_memory', compatibleRoles: writable ? ['input', 'output_command', 'output_feedback', 'diagnostic'] : ['input', 'output_feedback', 'diagnostic'] } }));
 const registers: ModbusAddressSegment[] = [
   ['D', 0, 20480], ['SD', 28672, 4096], ['TD', 32768, 4096], ['CD', 36864, 4096],
   ['HD', 41088, 6144], ['HTD', 48256, 1024], ['HCD', 49280, 1024],
-].map(([prefix, base, count]) => ({ prefix: String(prefix), base: Number(base), count: Number(count), first: 0, radix: 10, area: 'holding_register', writable: false, supportsPulse: false, supportsSetpoint: false }));
+].map(([prefix, base, count]) => ({ prefix: String(prefix), base: Number(base), count: Number(count), first: 0, radix: 10, area: 'holding_register', writable: false, supportsPulse: false, supportsSetpoint: false, semantics: { familyId: String(prefix), kind: 'register', compatibleRoles: ['measurement', 'diagnostic'] } }));
 const digital: ModbusAddressSegment[] = ['X', 'Y'].flatMap(prefix => Array.from({ length: 17 }, (_, module) => ({
   prefix, first: module === 0 ? 0 : 4096 + (module - 1) * 64, count: 64, radix: 8,
   base: (prefix === 'X' ? 20480 : 24576) + (module === 0 ? 0 : 256 + (module - 1) * 64),
   area: 'coil', writable: prefix === 'Y', supportsPulse: false, supportsSetpoint: false, module: module === 0 ? 'CPU' : String(module), channel: prefix === 'X' ? 'inputs' : 'outputs',
+  semantics: { familyId: prefix, kind: prefix === 'X' ? 'physical_input' : 'physical_output', compatibleRoles: prefix === 'X' ? ['input', 'output_feedback', 'diagnostic'] : ['output', 'output_feedback', 'diagnostic'] },
 })));
 function validateCapacities(value: unknown): ModbusModuleCapacities | undefined {
   if (value === undefined || value === null) return undefined;
@@ -55,6 +56,7 @@ export const xinjeXL5E: ModbusAddressProfile = {
 const v2Segments = v1Segments.map(segment => ({ ...segment,
   writable: segment.writable || ['D', 'HD'].includes(segment.prefix),
   supportsSetpoint: ['D', 'HD'].includes(segment.prefix),
+  semantics: segment.semantics && { ...segment.semantics, compatibleRoles: ['D', 'HD'].includes(segment.prefix) ? [...segment.semantics.compatibleRoles, 'setpoint' as const] : segment.semantics.compatibleRoles },
 }));
 export const xinjeXL5EV2: ModbusAddressProfile = { ...xinjeXL5E, id: 'xinje-xl5e-16t-v2', version: 2,
   segments: v2Segments, resolve: (symbol, capacities) => resolve(v2Segments, symbol, capacities),

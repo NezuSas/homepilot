@@ -2122,6 +2122,20 @@
     "no_content_yet": "No hay contenido disponible todavía"
   },
   "plc": {
+    "semantic": {
+      "usage": "Uso en Home Pilot", "point": "Punto", "family": "Familia", "channel": "Canal", "index": "Índice",
+      "advanced": "Configuración avanzada", "ordinal_hint": "Índice ordinal desde 0. El perfil genera el símbolo.",
+      "radix": "Base {{radix}}", "no_options": "Este perfil no ofrece puntos compatibles. Revisa la configuración avanzada.",
+      "invalid_capacity": "Revisa las capacidades del módulo antes de seleccionar un canal.", "no_channels": "No hay canales declarados para este módulo.",
+      "historical_point": "Se conserva {{symbol}}. No coincide con las opciones guiadas; revísalo en configuración avanzada.",
+      "clear_relation": "Quitar relación", "value_source": "Valor mostrado desde: {{symbol}}",
+      "feedback_hint": "Señal independiente de retorno, declarada por el instalador. No se deduce de una salida relacionada.",
+      "change_title": "Revisar cambio de configuración",
+      "role_change_warning": "Este cambio descartará las relaciones PLC configuradas en el borrador. ¿Deseas continuar? Nada se guarda hasta pulsar Guardar.",
+      "profile_change_warning": "Este cambio descartará el símbolo y las relaciones del borrador. Deberás seleccionar y validar puntos del nuevo perfil. ¿Deseas continuar?",
+      "invalid_selection": "Selecciona puntos compatibles con el uso y el perfil. Revisa el comando, la salida física y las relaciones.",
+      "kinds": { "physical_input": "Entrada física", "physical_output": "Salida física", "internal_memory": "Memoria interna", "register": "Registro" }
+    },
     "read_state": "Estado leído",
     "physical_read_state": "Estado leído de la salida PLC",
     "command_raw": "RAW del comando",

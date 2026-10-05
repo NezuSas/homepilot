@@ -9,8 +9,8 @@ Modo **Operate**: introducir un símbolo y revisar área y dirección PDU efecti
 | Control | Props | Comportamiento |
 | --- | --- | --- |
 | `ModbusProfileSelect` | `value?: string`, `onChange: (value: string) => void`, `disabled?: boolean` | Selector controlado; genérico se representa con cadena vacía al padre. Etiqueta los perfiles con fabricante, familia, modelo y versión. |
-| `ModbusAddressFields` | `profileId: string`, `symbol: string`, `end?: string`, `capacities?: ModbusModuleCapacities`, `disabled?: boolean`, `onSymbol: (value: string) => void`, `onEnd?: (value: string) => void`, `technicalDisclosure?: boolean` | Un símbolo para el editor; dos extremos para probe. Convierte entrada a mayúsculas, limita a 32 caracteres y resuelve en cada render. El campo final aparece cuando existen `end` y `onEnd`. El disclosure técnico es opcional y su default es `false`. |
-| `ModbusModuleCapacityFields` | `capacities?: ModbusModuleCapacities`, `onChange: (value: ModbusModuleCapacities) => void`, `disabled?: boolean` | Selección local de CPU o expansión 1–16; configuración controlada por el padre. Activar capacidad conocida inicializa entradas/salidas en 0; desactivarla elimina el módulo del mapa. |
+| `ModbusAddressFields` | `profileId: string`, `symbol: string`, `end?: string`, `capacities?: ModbusModuleCapacities`, `disabled?: boolean`, `onSymbol: (value: string) => void`, `onEnd?: (value: string) => void`, `technicalDisclosure?: boolean`, `symbolLabel?: string`, `compact?: boolean`, `optional?: boolean` | Un símbolo para el editor; dos extremos para probe. Conserva la entrada sin normalizarla en la UI, limita a 32 caracteres y delega resolución/formato al perfil. El placeholder procede de `format()`. El campo final aparece cuando existen `end` y `onEnd`. El disclosure técnico es opcional y su default es `false`. |
+| `ModbusModuleCapacityFields` | `profileId?: string`, `capacities?: ModbusModuleCapacities`, `onChange: (value: ModbusModuleCapacities) => void`, `disabled?: boolean` | Módulos y límites derivados de `profileModules()`, sin CPU/expansiones/límites propios de la UI. Configuración controlada por el padre. Activar capacidad conocida inicializa entradas/salidas en 0; desactivarla elimina el módulo del mapa. |
 
 La resolución válida muestra símbolo normalizado, área y PDU en `role="status"`; la inválida muestra error traducido en `role="alert"`, sin conservar una resolución anterior. Cuando falta capacidad física para X/Y aparece una advertencia de dirección reservada. Los campos se apilan en móvil y pasan a dos columnas desde `sm`; el bloque ocupa todo el ancho del formulario. Etiquetas, foco, ayuda y estados disabled proceden de los controles compartidos; copy de `modbus.*`.
 
@@ -35,6 +35,8 @@ La ejecución principal reportó 238 pruebas Jest aprobadas en ocho suites (203 
 No se validaron PLC físico, firmware, base real, suites completas ni despliegue. La evidencia focal no certifica compatibilidad física ni accesibilidad completa y no autoriza publicación.
 
 ## Disclosure del editor de instalador — AC29
+
+AC42 añade el [editor semántico compartido](ModbusSemanticPointSelector.md). Estos campos técnicos se conservan como escape avanzado y como controles del Read Probe; no constituyen un segundo parser. Las reglas y ejemplos Xinje descritos arriba pertenecen al perfil, no al componente genérico.
 
 `technicalDisclosure=false` conserva la resolución visible habitual y el rango completo de la prueba de lectura. `ModbusView` pasa `technicalDisclosure` para el editor de variable: el símbolo permanece como entrada principal y la resolución área/PDU queda dentro de un `details` inicialmente cerrado, con resumen traducido «Dirección técnica». No cambia el resolver ni convierte resolver una dirección en leer o escribir al PLC. La advertencia de capacidad reservada y el error de símbolo inválido permanecen visibles fuera del disclosure.
 
