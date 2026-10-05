@@ -1,6 +1,7 @@
 import { useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IconPicker } from '../components/IconPicker';
+import { getClockGridOptions } from './clock/clockRegistry';
 import { SearchableSelectField } from '../../../components/ui/SearchableSelectField';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
@@ -63,8 +64,8 @@ export function SectionCardEditorModal({
   const defaultColumns = cardDraft.span === 'full' ? 12 : cardDraft.span === 'small' ? 3 : 6;
   const clock = isClockKind(cardDraft.kind);
   const sensor = cardDraft.kind === 'sensor';
-  const minimum = clock ? 6 : sensor ? 4 : 2;
-  const gridOptions: CardGridOptions = clock || sensor ? { ...cardDraft.gridOptions, columns: Math.max(minimum, typeof cardDraft.gridOptions?.columns === 'number' ? cardDraft.gridOptions.columns : defaultColumns) as CardColumns, rows: typeof cardDraft.gridOptions?.rows === 'number' ? Math.max(minimum, cardDraft.gridOptions.rows) : 'auto', minColumns: minimum as CardColumns, minRows: minimum } : cardDraft.gridOptions ?? { columns: defaultColumns as CardColumns, rows: 'auto' };
+  const minimum = sensor ? 4 : 2;
+  const gridOptions: CardGridOptions = clock ? getClockGridOptions(cardDraft.gridOptions) : sensor ? { ...cardDraft.gridOptions, columns: Math.max(minimum, typeof cardDraft.gridOptions?.columns === 'number' ? cardDraft.gridOptions.columns : defaultColumns) as CardColumns, rows: typeof cardDraft.gridOptions?.rows === 'number' ? Math.max(minimum, cardDraft.gridOptions.rows) : 'auto', minColumns: minimum as CardColumns, minRows: minimum } : cardDraft.gridOptions ?? { columns: defaultColumns as CardColumns, rows: 'auto' };
   const sensorScale = normalizeSensorScale({ min: cardDraft.sensorMin, max: cardDraft.sensorMax });
   const invalidScale = cardDraft.kind === 'sensor' && (!validMinimum || !validMaximum || ((cardDraft.sensorMin !== undefined || cardDraft.sensorMax !== undefined) && !sensorScale));
   return (
@@ -97,7 +98,7 @@ export function SectionCardEditorModal({
             </div>
             <div className="section-card-editor-controls space-y-4" data-card-editor-controls>
             <SegmentedControl layout="scroll" className="card-editor-tabs" optionClassName="min-h-11 normal-case tracking-normal" value={panel} onChange={setPanel} label={t('dashboards.edit_session.label')} options={(isBadgeRow ? ['configuration', 'visibility'] as const : ['configuration', 'design', 'visibility'] as const).map(value => ({ value, label: t(`dashboards.edit_session.${value}`) }))} />
-            {panel === 'design' && <CardGridSizePicker value={gridOptions} onChange={next => setCardDraft(draft => ({ ...draft, gridOptions: next }))} />}
+            {panel === 'design' && <CardGridSizePicker value={gridOptions} allowAutomatic={!clock} onChange={next => setCardDraft(draft => ({ ...draft, gridOptions: clock ? getClockGridOptions(next) : next }))} />}
             {panel === 'visibility' && <ToggleSwitch label={t('dashboards.edit_session.visible')} checked={!cardDraft.hidden} onCheckedChange={visible => setCardDraft(draft => ({ ...draft, hidden: !visible }))} />}
             <div hidden={panel !== 'configuration'} className="space-y-4">
             {cardDraft.kind.startsWith('info_') && <SearchableSelectField

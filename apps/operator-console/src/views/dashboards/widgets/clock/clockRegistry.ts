@@ -1,8 +1,26 @@
 import type { ComponentType } from 'react';
 import { HomePilotClock } from './designs/HomePilotClock';
 import type { ClockDesignProps, ClockStyle, ClockStyleOption } from './clockTypes';
+import type { CardGridOptions } from '../../types';
 
-export const CLOCK_MIN_LAYOUT = { w: 4, h: 4 } as const;
+/** AC56: minimum readable dial is 70px at 300px useful Section width. */
+export const CLOCK_GRID = {
+  default: { columns: 12, rows: 6 },
+  min: { columns: 4, rows: 4 },
+  max: { columns: 12, rows: 8 },
+} as const;
+export const CLOCK_MIN_LAYOUT = { w: CLOCK_GRID.min.columns, h: CLOCK_GRID.min.rows } as const;
+
+/** Local projection only: historical JSON is not written back on load. */
+export function getClockGridOptions(saved?: Omit<Partial<CardGridOptions>, 'columns'> & { columns?: number | 'full' }): CardGridOptions {
+  const columns = typeof saved?.columns === 'number' && Number.isFinite(saved.columns) ? Math.round(saved.columns) : CLOCK_GRID.default.columns;
+  const rows = typeof saved?.rows === 'number' && Number.isFinite(saved.rows) ? Math.round(saved.rows) : CLOCK_GRID.default.rows;
+  const fitted = Math.max(CLOCK_GRID.min.columns, Math.min(CLOCK_GRID.max.columns, columns)) as CardGridOptions['columns'];
+  return { ...saved, columns: fitted, rows: Math.max(CLOCK_GRID.min.rows, Math.min(CLOCK_GRID.max.rows, rows)),
+    minColumns: CLOCK_GRID.min.columns, minRows: CLOCK_GRID.min.rows,
+    maxColumns: CLOCK_GRID.max.columns, maxRows: CLOCK_GRID.max.rows,
+    ...(saved?.columnStart === undefined ? {} : { columnStart: Math.min(saved.columnStart, 13 - Number(fitted)) }) };
+}
 
 export const CLOCK_STYLES: ClockStyleOption[] = [
   {
@@ -10,8 +28,8 @@ export const CLOCK_STYLES: ClockStyleOption[] = [
     label: 'Reloj',
     labelEs: 'Reloj',
     labelEn: 'Clock',
-    minW: 4,
-    minH: 4,
+    minW: CLOCK_GRID.min.columns,
+    minH: CLOCK_GRID.min.rows,
   },
 ];
 

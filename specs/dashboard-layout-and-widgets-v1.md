@@ -1,5 +1,15 @@
 # SPEC: Dashboard Layout and Widgets V1
 
+## Contrato geométrico del reloj — AC56 (2026-10-05)
+
+- Si no están soportados `container-type: size` y las unidades cqw/cqh/cqi, el CSS base muestra únicamente esfera centrada de 72px, sin marca. La mejora por niveles vive en un único `@supports`; no usa un parser, observer ni estado adicional. La prueba degrada la hoja real excluyendo esa mejora; no certifica un navegador antiguo.
+- Un contrato local `CLOCK_GRID` define default 12×6, mínimo medido 4×4 y máximo 12×8. Usa la grilla existente: 12 columnas, fila 20px y gap 8px. Alto determinista `rows * 28 - 8`; todos los renderers establecen `clock-card / size` después de determinar el alto, sin dependencia circular.
+- Relojes históricos sin filas explícitas se proyectan localmente a 12×6 (160px); no hay escritura automática ni migración SQLite. El guardado explícito usa el contrato. IDs/kinds/estilos permanecen compatibles.
+- Niveles definidos únicamente en el bloque CSS AC56: L1 esfera/hora/fecha/clima, L2 sin clima, L3 esfera/hora, L4 esfera. Marca decorativa visible solo desde diámetro100px. L5 no aplica: el rango no permite franjas bajas. Presupuesto mínimo legible de esfera70px, detalles12px y hora20px mínimo.
+- Elegir el nivel más completo entre horizontal (L3 desde200×104px, L2 desde228×132px, L1 desde244×160px) y vertical (L3 desde94×132px, L2 desde146×172px); proporción>1,2 solo desempata. Esfera/detalles como bloque centrado de ancho máximo480px con gap8..20px; surplus en márgenes, no entre elementos. Columnas de detalles100/128/144px y esfera limitada también a42% del ancho cuando hay detalles. Vertical L1 necesitaría236px, fuera del contrato de216px. Ambos renderers consultan el mismo tamaño exterior; el ClockShell conserva el único borde. La esfera mantiene diámetro idéntico en ambos ejes y único tope enorme28rem. No cambia grilla, tamaños persistidos ni proyección histórica.
+- DashboardUtils no impone ancho máximo global. Barrido en build local: todos los tamaños 4..12 × 4..8, todos los anchos enteros útiles desde 300px hasta el límite de cada viewport 360/768/1024/1440, más 4000px; cobertura de sección explícita, histórica automática e independiente. Verificar esfera ≥70px, cuadratura, contención, overflow, solapamiento de textos y niveles; pruebas separadas de clamp/selector.
+- **AC56:** Contrato único y geometría del reloj válidos en todos los tamaños permitidos; sin `homepilot-clock-compact` ni ResizeObserver de presentación. No certifica un máximo infinito ni tablet física/Safari.
+
 ## Refinamiento AC55 — autorizado (2026-10-04)
 
 Las etiquetas de información mantienen icono y contenido en una sola línea horizontal, sin duplicar el icono climático dentro del texto. Temperatura y condición comparten la misma línea; el contenido largo se trunca sin aumentar la altura, conservando el texto en el DOM. La fila puede envolver etiquetas completas en pantallas estrechas. Se conservan iconos personalizados, paleta semántica, estados de carga y configuración histórica.

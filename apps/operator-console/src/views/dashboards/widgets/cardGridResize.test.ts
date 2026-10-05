@@ -1,4 +1,5 @@
 import { fitCardsToSectionWidth, getCardFrameClass, getCardGridHeight, getCardGridRowSpan, getCardGridWidth, getCardPresentationStyle, pickCardGridSize, resizeCardGrid } from './cardGridResize';
+import { CLOCK_GRID, getClockGridOptions } from './clock/clockRegistry';
 
 describe('Feature: Twelve-column card resizing (AC48)', () => {
   it('Scenario: New selections cannot create a one-by-one card, but historical sizes are not rewritten', () => {
@@ -76,7 +77,7 @@ describe('Feature: Twelve-column card resizing (AC48)', () => {
   });
 });
 describe('Clock design minimum (AC53)', () => {
-  it('clamps mouse and touch picks to six columns and rows', () => {
-    expect(pickCardGridSize({ columns: 12, rows: 'auto', minColumns: 6, minRows: 6 }, 1, 1, 120, 80)).toMatchObject({ columns: 6, rows: 6 });
+  it('clamps mouse and touch picks to the single measured clock minimum', () => {
+    expect(pickCardGridSize(getClockGridOptions(), 1, 1, 120, 80)).toMatchObject(CLOCK_GRID.min);
   });
 });

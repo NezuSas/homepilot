@@ -1,4 +1,5 @@
 import type { DashboardTab, DashboardWidget, DashboardWidgetConfig, WidgetType } from './types';
+import { getClockGridOptions } from './widgets/clock/clockRegistry';
 
 interface WidgetLabels {
   titleArea: string;
@@ -20,14 +21,15 @@ export interface TabConfigFields {
 export function createDefaultWidgetConfig(type: WidgetType, size: { w: number; h: number } | undefined, labels: WidgetLabels): DashboardWidgetConfig {
   const isDashboardTitle = type === 'dashboard_title';
   const isSection = type === 'section';
+  const clock = type === 'clock_display' ? getClockGridOptions() : null;
 
   // Legacy coordinates remain persisted, but the canvas uses array order and span.
   return {
     layout: {
       x: 0,
       y: 0,
-      w: isDashboardTitle ? 12 : isSection ? 4 : (size?.w ?? 4),
-      h: isDashboardTitle ? 2 : isSection ? 2 : (size?.h ?? 4),
+      w: clock ? Number(clock.columns) : isDashboardTitle ? 12 : isSection ? 4 : (size?.w ?? 4),
+      h: clock ? Number(clock.rows) : isDashboardTitle ? 2 : isSection ? 2 : (size?.h ?? 4),
       span: isDashboardTitle ? undefined : 1,
     },
     binding: { entityId: '', entityType: 'system' },

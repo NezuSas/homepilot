@@ -32,6 +32,10 @@ import { AssistantInsightWidget } from './widgets/AssistantInsightWidget';
 import { SystemStatusWidget } from './widgets/SystemStatusWidget';
 import { EnergySnapshotWidget } from './widgets/EnergySnapshotWidget';
 import { ClockWidget } from './widgets/ClockWidget';
+import { getClockGridOptions } from './widgets/clock/clockRegistry';
+import { getCardGridHeight, getCardGridWidth } from './widgets/cardGridResize';
+import { CardGridSizePicker } from './widgets/CardGridSizePicker';
+import { CardPreviewFrame } from './widgets/CardPreviewFrame';
 import { SectionWidget } from './widgets/SectionWidget'; import { DashboardTitleWidget } from './widgets/DashboardTitleWidget';
 
 interface DashboardWidgetNodeProps {
@@ -144,7 +148,11 @@ export function DashboardWidgetNode({
   const isCamera = widget.type === 'device_control' && (boundDevice?.type === 'camera' || boundDevice?.semanticType === 'camera');
   const isDevice = (widget.type === 'device_control' || widget.type === 'action_button') && !isCamera;
   const isSection = widget.type === 'section'; const isTitleWidget = widget.type === 'dashboard_title';
-  const canConfigureWidget = widget.type !== 'clock_display';
+  const canConfigureWidget = true;
+  const [clockEditorOpen, setClockEditorOpen] = useState(false);
+  const [clockDraft, setClockDraft] = useState(getClockGridOptions);
+  const [clockSectionWidth, setClockSectionWidth] = useState(300);
+  const clockGrid = widget.type === 'clock_display' ? getClockGridOptions({ columns: widget.config.layout.w, rows: widget.config.layout.h }) : null;
   const SectionDraftIcon = sectionDraftIcon ? getDashboardIconComponent(sectionDraftIcon) : null;
   const openTitleEditor = () => {
     setIsTitleEditorOpen(true);
@@ -166,7 +174,7 @@ export function DashboardWidgetNode({
   return (
     <div
       onClick={(e) => { e.stopPropagation(); if (!isSection) onClick(); }}
-      style={{ ...accentStyle, containerType: 'inline-size' }}
+      style={{ ...accentStyle, containerType: clockGrid ? 'size' : 'inline-size', ...(clockGrid ? { containerName: 'clock-card', borderWidth: 0, width: `calc(${Number(clockGrid.columns) / 12 * 100}% - ${8 - Number(clockGrid.columns) / 12 * 8}px)`, height: getCardGridHeight(clockGrid.rows), minHeight: 0 } : {}) }}
       className={cn(
         "homepilot-dashboard-widget relative h-full w-full min-h-0 overflow-visible transition-[transform,box-shadow,background-color,border-color] duration-300 group @container touch-manipulation",
         // Editing restores the section boundary without changing its inner card grid.
@@ -194,6 +202,27 @@ export function DashboardWidgetNode({
       )}
     >
       {/* Content */}
+      {widget.type === 'clock_display' && <Modal isOpen={clockEditorOpen} onClose={() => setClockEditorOpen(false)} title={t('common.edit')}
+        footer={<>
+          <Button variant="secondary" onClick={() => setClockEditorOpen(false)}>{t('common.cancel')}</Button>
+          <Button onClick={() => {
+            const size = getClockGridOptions(clockDraft);
+            onConfigChange?.(widget.id, { layout: { ...widget.config.layout, w: Number(size.columns), h: Number(size.rows) } });
+            setClockEditorOpen(false);
+          }}>{t('common.save')}</Button>
+        </>}>
+        <div className="grid min-w-0 gap-6 md:grid-cols-2">
+          <CardGridSizePicker value={clockDraft} allowAutomatic={false} onChange={next => setClockDraft(getClockGridOptions(next))} />
+          <div className="homepilot-dashboard-screen min-w-0">
+            <h3 className="mb-3 text-body-compact font-semibold">{t('dashboards.edit_session.preview')}</h3>
+            <CardPreviewFrame fitCard sectionWidth={clockSectionWidth} label={t('dashboards.edit_session.preview')}>
+              <div style={{ containerType: 'size', containerName: 'clock-card', width: getCardGridWidth(clockSectionWidth, clockDraft.columns), height: getCardGridHeight(clockDraft.rows) }}>
+                <ClockWidget config={widget.config} />
+              </div>
+            </CardPreviewFrame>
+          </div>
+        </div>
+      </Modal>}
       <div className="h-full w-full min-h-0">
         <WidgetContent
           widget={widget}
@@ -388,6 +417,10 @@ export function DashboardWidgetNode({
                       setSectionDraftIcon(widget.config.appearance?.icon ?? '');
                       setSectionDraftSpan(widget.config.extra?.sectionGridVersion === 2 ? widget.config.layout.span ?? 1 : 1);
                       setIsSectionEditorOpen(true);
+                    } else if (clockGrid) {
+                      setClockDraft(clockGrid);
+                      setClockSectionWidth(event.currentTarget.closest('.homepilot-dashboard-widget')?.parentElement?.clientWidth ?? 300);
+                      setClockEditorOpen(true);
                     } else {
                       onClick();
                     }

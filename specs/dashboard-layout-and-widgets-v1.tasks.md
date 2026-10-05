@@ -1,5 +1,16 @@
 # Tareas: Dashboard Layout and Widgets V1
 
+## Contrato geométrico AC56
+
+- [x] Refinamiento por revisión de capturas: bloque centrado, mejor nivel entre ambas disposiciones, baseline de contenido300×160 preservado, paridad exterior, marca oculta bajo100px y prueba multimotor muestreada cada50px. Documentar umbrales, tabla de27 tamaños y diff sin Git.
+
+- [x] Medir la grilla desplegada sin modificaciones; 12 columnas interiores, fila 20px, gap 8px.
+- [x] Centralizar contrato, proyección histórica local y alto determinista; eliminar observer/modo compacto.
+- [x] Adaptar composición por dimensiones y forma, con límites legibles.
+- [x] Validar build local: 48/48 Jest y 6/6 responsive; barrido de 285120 combinaciones, tres caminos de render y límites del editor. Typecheck raíz/consola, lint, builds raíz/consola, spec/BDD/cobertura modular/i18n/arquitectura/primitivas/ausencia de any PASS.
+- [x] Registrar medidas, niveles, cambios por archivo y límites no certificados en docs/clock-size-contract-review.md. Capturas móvil/tablet inspeccionadas; sin tablet física, Safari/Firefox, Docker, suites globales, Git, deploy, SQLite ni PLC.
+- [x] Comprobar matriz observable 12×6/12×7 a 300/700/1364px y ambos editores; fallback progresivo de solo esfera 72px con prueba del CSS base compilado. Documentar falta de baseline visual anterior, borde independiente y ausencia de certificación en motores antiguos reales.
+
 ## Refinamiento AC55
 
 - [x] Corregir composición horizontal de etiquetas y clima con un solo icono; cubrir lectura, carga, icono personalizado y geometría responsive focalizada, sin cambios de contratos ni persistencia.

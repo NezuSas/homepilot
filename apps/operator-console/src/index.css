@@ -1346,21 +1346,6 @@
     align-items: center;
   }
 
-  .homepilot-dashboard-screen.homepilot-clock-compact .homepilot-clock-reference-layout {
-    grid-template-rows: auto minmax(0, 1fr);
-    gap: 0.35rem;
-    padding: 0.5rem;
-  }
-  .homepilot-dashboard-screen.homepilot-clock-compact .homepilot-clock-reference-quote { display: none; }
-  .homepilot-dashboard-screen.homepilot-clock-compact .homepilot-clock-reference-main { gap: 0.5rem; }
-  .homepilot-dashboard-screen.homepilot-clock-compact .homepilot-clock-reference-dial-frame { width: min(100%, 110px); justify-self: center; }
-  .homepilot-dashboard-screen.homepilot-clock-compact .homepilot-clock-reference-divider { margin: 0.25rem 0; }
-  .homepilot-dashboard-screen.homepilot-clock-compact .homepilot-clock-reference-time { font-size: clamp(1rem, 5cqi, 1.5rem); }
-  .homepilot-dashboard-screen.homepilot-clock-compact .homepilot-clock-reference-weekday,
-  .homepilot-dashboard-screen.homepilot-clock-compact .homepilot-clock-reference-date,
-  .homepilot-dashboard-screen.homepilot-clock-compact .homepilot-clock-reference-condition { font-size: 0.625rem; }
-  .homepilot-dashboard-screen.homepilot-clock-compact .homepilot-clock-reference-temperature { font-size: 0.875rem; }
-  .homepilot-dashboard-screen.homepilot-clock-compact .homepilot-clock-reference-weather { grid-template-columns: 1rem minmax(0, 1fr); column-gap: 0.25rem; }
 
   .homepilot-dashboard-screen .homepilot-clock-reference-header {
     justify-content: space-between;
@@ -2417,20 +2402,111 @@
 /* AC55: same context primitive as Inicio, with normal theme tokens. */
 .dashboard-context-chip { flex: 0 1 auto; border-radius: var(--radius-pill); max-width: 100%; }
 .dashboard-context-chip .homepilot-clock-badge { border: 0; padding: 0; }
-@container clock-card (min-height: 211px) {
-  .homepilot-dashboard-screen .homepilot-clock-reference-dial-frame { width: min(100%, 18rem, calc(100cqh - 5rem)); }
-}
 .homepilot-home-hero { padding-bottom: 3.5rem; }
-@container clock-card (max-height: 210px) {
-  .homepilot-dashboard-screen .homepilot-clock-reference-details,
-  .homepilot-dashboard-screen .homepilot-clock-reference-header { display: none; }
-  .homepilot-dashboard-screen .homepilot-clock-reference-main { grid-template-columns: minmax(0, 1fr); height: 100%; }
-  .homepilot-dashboard-screen .homepilot-clock-reference-layout { padding: 0.5rem; grid-template-rows: minmax(0, 1fr); }
-  .homepilot-dashboard-screen .homepilot-clock-reference-dial-frame { width: min(100%, 170px, calc(100cqh - 1rem)); justify-self: center; }
+/* AC56 degraded baseline: a 72px dial fits the smallest permitted wrapper,
+ * including both ClockShell and standalone borders. No query units required. */
+.homepilot-dashboard-screen .homepilot-clock-reference-layout {
+  display: grid; grid-template-rows: minmax(0, 1fr); padding: 8px;
 }
-@container clock-card (max-width: 240px) {
-  .homepilot-dashboard-screen .homepilot-clock-reference-details { display: none; }
-  .homepilot-dashboard-screen .homepilot-clock-reference-main { grid-template-columns: minmax(0, 1fr); }
+.homepilot-dashboard-screen .homepilot-clock-reference-header,
+.homepilot-dashboard-screen .homepilot-clock-reference-details { display: none; }
+.homepilot-dashboard-screen .homepilot-clock-reference-main {
+  grid-template-columns: minmax(0, 1fr); height: 100%; gap: 8px;
+  place-items: center; --clock-level: 4;
+}
+.homepilot-dashboard-screen .homepilot-clock-reference-dial-frame {
+  width: 72px; height: 72px; max-width: none; max-height: none; flex: none;
+}
+.homepilot-dashboard-screen .homepilot-clock-reference-brand { display: none; font-size: 10px; letter-spacing: 0.04em; }
+@supports (container-type: size) and (width: 1cqw) and (height: 1cqh) and (font-size: 1cqi) {
+/* AC56: choose the best feasible content level, then aspect ratio breaks ties.
+ * Horizontal L3 200x104, L2 228x132, L1 244x160; vertical L3 94x132,
+ * L2 146x172. Vertical weather needs 236px, outside the 216px contract.
+ * Both paths query the same exterior size; the single ClockShell owns its border.
+ * Main tracks stay intrinsic and centered; surplus space never becomes the gap. */
+.homepilot-dashboard-screen .homepilot-clock-reference-layout {
+  display: grid; grid-template-rows: minmax(0, 1fr); padding: 8px;
+}
+.homepilot-dashboard-screen .homepilot-clock-reference-header,
+.homepilot-dashboard-screen .homepilot-clock-reference-details { display: none; }
+.homepilot-dashboard-screen .homepilot-clock-reference-main {
+  --clock-level: 4; --clock-arrangement: solo;
+  --clock-gap: clamp(8px, 3cqw, 20px);
+  --clock-diameter: min(calc(100cqw - 18px), calc(100cqh - 18px), 28rem);
+  grid-template-columns: var(--clock-diameter); grid-template-rows: auto;
+  width: 100%; max-width: 480px; height: 100%; gap: var(--clock-gap);
+  justify-self: center; justify-content: center; align-content: center; place-items: center;
+}
+.homepilot-dashboard-screen .homepilot-clock-reference-dial-frame {
+  width: var(--clock-diameter); height: var(--clock-diameter);
+  max-width: none; max-height: none; flex: none;
+}
+.homepilot-dashboard-screen .homepilot-clock-reference-brand { display: none; font-size: clamp(10px, 5cqi, 12px); letter-spacing: 0.04em; }
+@container (min-width: 98px) {
+  .homepilot-dashboard-screen .homepilot-clock-reference-brand { display: block; }
+}
+.homepilot-dashboard-screen .homepilot-clock-reference-time { font-size: clamp(20px, 5cqw, 32px); line-height: 1.25; white-space: nowrap; }
+.homepilot-dashboard-screen .homepilot-clock-reference-weekday,
+.homepilot-dashboard-screen .homepilot-clock-reference-date,
+.homepilot-dashboard-screen .homepilot-clock-reference-location,
+.homepilot-dashboard-screen .homepilot-clock-reference-condition { font-size: 12px; line-height: 16px; margin-top: 0; }
+.homepilot-dashboard-screen .homepilot-clock-reference-divider { margin: 8px 0; }
+.homepilot-dashboard-screen .homepilot-clock-reference-weather { grid-template-columns: 24px minmax(0, 1fr); gap: 4px 8px; }
+.homepilot-dashboard-screen .homepilot-clock-reference-temperature { font-size: 20px; line-height: 24px; }
+.homepilot-dashboard-screen .homepilot-clock-reference-date,
+.homepilot-dashboard-screen .homepilot-clock-reference-weekday,
+.homepilot-dashboard-screen .homepilot-clock-reference-weather,
+.homepilot-dashboard-screen .homepilot-clock-reference-divider { display: none; }
+@container clock-card (min-width: 94px) and (min-height: 132px) {
+  .homepilot-dashboard-screen .homepilot-clock-reference-main {
+    --clock-level: 3; --clock-arrangement: vertical;
+    --clock-diameter: min(calc(100cqw - 18px), calc(100cqh - 54px), 28rem);
+    grid-template-columns: var(--clock-diameter); grid-template-rows: auto 28px; gap: 8px;
+  }
+  .homepilot-dashboard-screen .homepilot-clock-reference-details { display: block; width: 100%; text-align: center; }
+  .homepilot-dashboard-screen .homepilot-clock-reference-time { font-size: 20px; }
+}
+@container clock-card ((min-width: 200px) and (min-height: 104px) and (height < 132px)) or ((min-width: 200px) and (min-height: 104px) and (aspect-ratio > 1.2)) {
+  .homepilot-dashboard-screen .homepilot-clock-reference-main {
+    --clock-level: 3; --clock-arrangement: horizontal;
+    --clock-diameter: min(calc(100cqw - 118px - var(--clock-gap)), calc(100cqh - 18px), 42cqw, 28rem);
+    grid-template-columns: var(--clock-diameter) 100px; grid-template-rows: auto; gap: var(--clock-gap);
+  }
+  .homepilot-dashboard-screen .homepilot-clock-reference-details { display: block; width: 100px; text-align: left; }
+}
+@container clock-card (min-width: 146px) and (min-height: 172px) {
+  .homepilot-dashboard-screen .homepilot-clock-reference-main {
+    --clock-level: 2; --clock-arrangement: vertical;
+    --clock-diameter: min(calc(100cqw - 18px), calc(100cqh - 90px), 28rem);
+    grid-template-columns: var(--clock-diameter); grid-template-rows: auto 64px; gap: 8px;
+  }
+  .homepilot-dashboard-screen .homepilot-clock-reference-details { display: block; width: 128px; text-align: center; }
+  .homepilot-dashboard-screen .homepilot-clock-reference-time { font-size: 20px; }
+  .homepilot-dashboard-screen .homepilot-clock-reference-date,
+  .homepilot-dashboard-screen .homepilot-clock-reference-weekday { display: block; }
+}
+@container clock-card ((min-width: 228px) and (min-height: 132px) and (height < 172px)) or ((min-width: 228px) and (min-height: 132px) and (aspect-ratio > 1.2)) {
+  .homepilot-dashboard-screen .homepilot-clock-reference-main {
+    --clock-level: 2; --clock-arrangement: horizontal;
+    --clock-diameter: min(calc(100cqw - 146px - var(--clock-gap)), calc(100cqh - 18px), 42cqw, 28rem);
+    grid-template-columns: var(--clock-diameter) 128px; grid-template-rows: auto; gap: var(--clock-gap);
+  }
+  .homepilot-dashboard-screen .homepilot-clock-reference-details { display: block; width: 128px; text-align: left; }
+  .homepilot-dashboard-screen .homepilot-clock-reference-date,
+  .homepilot-dashboard-screen .homepilot-clock-reference-weekday { display: block; }
+}
+@container clock-card (min-width: 244px) and (min-height: 160px) {
+  .homepilot-dashboard-screen .homepilot-clock-reference-main {
+    --clock-level: 1; --clock-arrangement: horizontal;
+    --clock-diameter: min(calc(100cqw - 162px - var(--clock-gap)), calc(100cqh - 18px), 42cqw, 28rem);
+    grid-template-columns: var(--clock-diameter) 144px; grid-template-rows: auto; gap: var(--clock-gap);
+  }
+  .homepilot-dashboard-screen .homepilot-clock-reference-details { display: block; width: 144px; text-align: left; }
+  .homepilot-dashboard-screen .homepilot-clock-reference-date,
+  .homepilot-dashboard-screen .homepilot-clock-reference-weekday { display: block; }
+  .homepilot-dashboard-screen .homepilot-clock-reference-weather { display: grid; }
+  .homepilot-dashboard-screen .homepilot-clock-reference-divider { display: block; }
+}
 }
 .home-conversation-cancel-request { color: hsl(var(--primary)); }
 @media (max-width: 40rem) { .home-conversation-thread { padding-block: 1rem 1.5rem; } .home-conversation-empty-state { min-height: min(28rem, calc(100dvh - 13rem)); align-items: start; padding-block: 3.25rem 1.5rem; } .home-conversation-empty-title { font-size: 1.75rem; } .home-conversation-empty-description { max-width: 31ch; } .home-conversation-suggestions { align-items: stretch; flex-direction: column; width: 100%; } .home-conversation-suggestion { justify-content: flex-start; width: 100%; } .home-conversation-message--assistant { padding-left: 0.5rem; } .home-conversation-thread-actions { width: 100%; margin-top: 0; padding-top: 0.625rem; } .home-conversation-new-thread { width: 100%; } .home-conversation-composer-meta { align-items: center; } .home-conversation-composer-meta #home-conversation-input-hint { display: none; } }

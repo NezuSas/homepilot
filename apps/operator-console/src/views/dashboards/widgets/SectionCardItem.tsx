@@ -13,6 +13,7 @@ import { CurtainDeviceTileLoadingGeometry } from '../../../components/CurtainDev
 import type { MediaPlayerCommand } from './MediaPlayerCard';
 import { MASONRY_ROW_GAP_PX, MASONRY_ROW_UNIT_PX } from './useMasonryRowSpans';
 import { SectionCardContent } from './SectionCardContent';
+import { getClockGridOptions } from './clock/clockRegistry';
 import { InformationCardSkeleton } from './InformationCard';
 import { getCardFrameClass, getCardGridHeight, getCardGridRowSpan, getCardPresentationStyle } from './cardGridResize';
 import { DashboardCardSkeleton, type DashboardCardSkeletonVariant } from '../../../components/ui/DashboardCardSkeleton';
@@ -79,7 +80,7 @@ export function SectionCardItem({
   // span on a kind that can't render as a quarter-width tile; media is
   // always full width, including when a legacy configuration stores less.
   const savedSpan = getEffectiveCardSpan(card.kind, card.span ?? getDefaultSpan(card.kind));
-  const gridOptions = card.gridOptions;
+  const gridOptions = isClockKind(card.kind) ? getClockGridOptions(card.gridOptions) : card.gridOptions;
   const explicitHeight = getCardGridHeight(gridOptions?.rows);
   const span = gridOptions ? gridOptions.columns === 'full' || gridOptions.columns > 6 ? 'full' : gridOptions.columns <= 3 ? 'small' : 'medium' : savedSpan;
   const subtitle = card.entityName || card.description;

@@ -6,6 +6,7 @@ import { EditableInformationCard, InformationCard } from './InformationCard';
 import ConfirmModal from '../../../components/ConfirmModal';
 import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { getClockGridOptions } from './clock/clockRegistry';
 import { cn } from '../../../lib/utils';
 import { API_BASE_URL } from '../../../config';
 import { fetchDiagnosticResource } from '../../../lib/diagnosticResourceRequests';
@@ -287,7 +288,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     if (!editingCard) return;
     const sensorScale = normalizeSensorScale({ min: cardDraft.sensorMin, max: cardDraft.sensorMax });
     if (cardDraft.kind === 'sensor' && (cardDraft.sensorMin !== undefined || cardDraft.sensorMax !== undefined) && !sensorScale) return;
-    const sizeMinimum = isClockKind(cardDraft.kind) ? 6 : 4;
+    const sizeMinimum = 4;
     const nextCards = cards.map((card) => {
       if (card.id !== editingCard.id) return card;
 
@@ -301,7 +302,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         entityName: selectedDisplayAction?.deviceName || selectedScene?.name || selectedAutomation?.name || selectedRoom?.name || selectedDevice?.name,
         span: isClockKind(cardDraft.kind) ? 'full' : getEffectiveCardSpan(cardDraft.kind, cardDraft.span),
         icon: cardDraft.icon,
-        gridOptions: (isClockKind(cardDraft.kind) || cardDraft.kind === 'sensor') && cardDraft.gridOptions ? { ...cardDraft.gridOptions, columns: typeof cardDraft.gridOptions.columns === 'number' ? Math.max(sizeMinimum, cardDraft.gridOptions.columns) as CardGridOptions['columns'] : 'full', rows: typeof cardDraft.gridOptions.rows === 'number' ? Math.max(sizeMinimum, cardDraft.gridOptions.rows) : 'auto', minColumns: sizeMinimum as 4 | 6, minRows: sizeMinimum } : cardDraft.gridOptions,
+        gridOptions: isClockKind(cardDraft.kind) ? getClockGridOptions(cardDraft.gridOptions) : cardDraft.kind === 'sensor' && cardDraft.gridOptions ? { ...cardDraft.gridOptions, columns: typeof cardDraft.gridOptions.columns === 'number' ? Math.max(sizeMinimum, cardDraft.gridOptions.columns) as CardGridOptions['columns'] : 'full', rows: typeof cardDraft.gridOptions.rows === 'number' ? Math.max(sizeMinimum, cardDraft.gridOptions.rows) : 'auto', minColumns: sizeMinimum, minRows: sizeMinimum } : cardDraft.gridOptions,
         hidden: cardDraft.hidden,
       };
       if (cardDraft.kind === 'media') updatedCard.mediaVariant = cardDraft.mediaVariant;
@@ -359,6 +360,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     const normalizedPreviewKind = normalizeKind(kind);
     const isCameraPreview = normalizedPreviewKind === 'camera';
     const isClockPreview = isClockKind(normalizedPreviewKind);
+    if (isClockPreview) gridOptionsOverride = getClockGridOptions(gridOptionsOverride);
     const isScenePreview = normalizedPreviewKind === 'scene';
     const isRoomPreview = normalizedPreviewKind === 'room';
     const isCoverPreview = normalizedPreviewKind === 'cover';
@@ -383,7 +385,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         width: sectionGridWidth > 0 ? getCardGridWidth(sectionGridWidth, gridOptionsOverride?.columns ?? (span === 'small' ? 3 : span === 'medium' ? 6 : 12)) : undefined,
         minHeight: getCardGridHeight(gridOptionsOverride?.rows),
         ...((normalizedPreviewKind === 'sensor' || isClockKind(kind)) && typeof gridOptionsOverride?.rows === 'number' ? { height: getCardGridHeight(gridOptionsOverride.rows), minHeight: 0, ...(isClockKind(kind) ? { containerType: 'size' as const, containerName: 'clock-card' } : {}) } : {}),
-      } : undefined} className={isEditorPreview || normalizedPreviewKind.startsWith('info_') ? cn('homepilot-sized-card relative grid shrink-0 min-w-0 overflow-hidden shadow-sm', normalizedPreviewKind === 'sensor' && typeof gridOptionsOverride?.rows === 'number' && 'homepilot-bounded-sensor', getCardFrameClass(normalizedPreviewKind, span, previewDevice && !isMomentaryPlcCommand(previewDevice) ? isDeviceActive(previewDevice) : false)) : cn(
+      } : isClockPreview ? { height: getCardGridHeight(gridOptionsOverride?.rows), containerType: 'size', containerName: 'clock-card' } : undefined} className={isEditorPreview || normalizedPreviewKind.startsWith('info_') ? cn('homepilot-sized-card relative grid shrink-0 min-w-0 overflow-hidden shadow-sm', normalizedPreviewKind === 'sensor' && typeof gridOptionsOverride?.rows === 'number' && 'homepilot-bounded-sensor', getCardFrameClass(normalizedPreviewKind, span, previewDevice && !isMomentaryPlcCommand(previewDevice) ? isDeviceActive(previewDevice) : false)) : cn(
         "grid overflow-hidden rounded-section transition-[height,width,max-width] duration-200",
         !isClockPreview && "bg-background/40",
         isClockPreview && (isEditorPreview ? 'homepilot-clock-preview-host homepilot-clock-preview-host--editor' : 'homepilot-clock-preview-host homepilot-clock-preview-host--catalog'),

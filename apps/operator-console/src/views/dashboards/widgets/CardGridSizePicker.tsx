@@ -5,7 +5,7 @@ import type { CardGridOptions } from '../types';
 import { CARD_EDITOR_MAX_ROWS, pickCardGridSize } from './cardGridResize';
 
 /** One two-dimensional control for mouse, touch and keyboard sizing. */
-export function CardGridSizePicker({ value, onChange }: { value: CardGridOptions; onChange: (value: CardGridOptions) => void }) {
+export function CardGridSizePicker({ value, onChange, allowAutomatic = true }: { value: CardGridOptions; onChange: (value: CardGridOptions) => void; allowAutomatic?: boolean }) {
   const { t } = useTranslation();
   const id = useId();
   const columns = value.columns === 'full' ? 12 : value.columns;
@@ -51,7 +51,7 @@ export function CardGridSizePicker({ value, onChange }: { value: CardGridOptions
       </div>)}
     </div>
     <div className="flex flex-wrap gap-2">
-      <Button type="button" variant="secondary" size="sm" aria-pressed={value.rows === 'auto'} onClick={() => onChange({ ...value, rows: 'auto' })}>{t('dashboards.edit_session.auto')}</Button>
+      {allowAutomatic && <Button type="button" variant="secondary" size="sm" aria-pressed={value.rows === 'auto'} onClick={() => onChange({ ...value, rows: 'auto' })}>{t('dashboards.edit_session.auto')}</Button>}
       {(value.maxColumns ?? 12) === 12 && <Button type="button" variant="secondary" size="sm" aria-pressed={value.columns === 'full'} onClick={() => onChange({ ...value, columns: 'full', ...(value.columnStart === undefined ? {} : { columnStart: 1 }) })}>{t('dashboard.editor.sections.card_size_full')}</Button>}
     </div>
   </div>;
