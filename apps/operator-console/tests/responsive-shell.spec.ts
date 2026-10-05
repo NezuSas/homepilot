@@ -1,6 +1,47 @@
 import { expect, test } from '@playwright/test';
 import { mdiAutoFix, mdiHome, mdiRobot, mdiWeatherWindy } from '@mdi/js';
 
+for (const width of [390, 768, 1024, 1440]) {
+  test(`Feature: Compact Modbus navigation — Scenario: Local filters preserve bindings at ${width} (AC40)`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: width === 768 ? 1024 : 900 });
+    await prepareAuthenticatedDashboard(page);
+    await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: 'h', name: 'Home' }] }));
+    const variables = [10, 2, 1].map(number => ({ deviceId: `v${number}`, connectionId: 'c', name: `Input ${number}`, symbolicAddress: `M${number}`, address: number, area: 'coil', dataType: 'boolean', scale: 1, offset: 0, wordOrder: 'high_first', unit: '', writable: false, diagnostic: { status: number === 2 ? 'error' : 'online', value: false, ...(number === 2 ? { error: 'TIMEOUT' } : {}) }, plc: { role: 'input', physical: { profileId: 'xinje-xl5e-16t-v1', symbolicAddress: `X${number}`, address: 20480 + number, area: 'coil' }, mode: 'sustained', feedbackPolicy: 'none', feedbackTimeoutMs: 2000, pulseDurationMs: 500 } }));
+    const output = { ...variables[0], deviceId: 'output', name: 'Output Y0', symbolicAddress: 'M200', plc: { ...variables[0].plc, role: 'output', physical: { ...variables[0].plc.physical, symbolicAddress: 'Y0', address: 24576 }, command: { ...variables[0].plc.physical, symbolicAddress: 'M200', address: 200 } } };
+    const connection = { id: 'c', homeId: 'h', name: 'PLC fixture', host: '127.0.0.1', port: 502, unitId: 1, enabled: true, timeoutMs: 2000, pollIntervalMs: 5000, diagnostic: { status: 'online' }, variables: [...variables, output] };
+    const writes: string[] = [];
+    await page.route('**/api/v1/modbus/**', route => { if (route.request().method() !== 'GET') writes.push(route.request().method()); return route.fulfill({ json: { connections: [connection] } }); });
+    await page.route('**/api/v1/devices/*/command', route => { writes.push('command'); return route.fulfill({ json: {} }); });
+    for (const language of ['es', 'en']) {
+      await page.goto('/system/modbus');
+      await page.evaluate(value => localStorage.setItem('i18nextLng', value), language); await page.reload();
+      await expect(page.getByRole('button', { name: /Add connection|Añadir conexión/i })).toBeVisible();
+      await page.getByRole('button', { name: /^(View variables|Ver variables)$/i }).click();
+      await expect(page.getByRole('button', { name: /Add connection|Añadir conexión/i })).toHaveCount(0);
+      const card = page.getByRole('region', { name: 'PLC fixture', exact: true });
+      const rows = card.locator('[data-modbus-variable-group="input"] li');
+      await expect(rows).toHaveCount(3);
+      await expect(rows.nth(0)).toContainText('Input 1'); await expect(rows.nth(1)).toContainText('Input 2'); await expect(rows.nth(2)).toContainText('Input 10');
+      const search = card.getByRole('searchbox');
+      await search.fill('X2'); await expect(rows).toHaveCount(1);
+      await search.fill('missing-point'); await expect(card.getByRole('status').filter({ hasText: /No results|No se encontraron resultados/i })).toBeVisible();
+      await search.fill('');
+      await card.getByRole('radio', { name: /^(Outputs|Salidas) \(1\)$/i }).click();
+      await expect(rows).toHaveCount(0); await expect(card.locator('li')).toHaveCount(1);
+      await card.getByRole('radio', { name: /^(All|Todo) \(4\)$/i }).click();
+      await card.getByRole('button', { name: /Variables with errors|Variables con error/i }).click();
+      await expect(card.locator('li')).toHaveCount(1); await expect(card.locator('li')).toContainText('Input 2');
+      await card.getByRole('button', { name: /Variables with errors|Variables con error/i }).click();
+      for (const theme of ['dark', 'light']) {
+        await page.evaluate(value => document.documentElement.classList.toggle('light', value === 'light'), theme);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+        await page.screenshot({ path: testInfo.outputPath(`modbus-compact-${language}-${theme}.png`), animations: 'disabled' });
+      }
+    }
+    expect(writes).toEqual([]);
+  });
+}
+
 for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 1024 }, { width: 1024, height: 768 }, { width: 1440, height: 900 }]) {
   test(`Feature: Momentary PLC action UI — Scenario: Historical cards execute once and return ready at ${viewport.width} (AC39)`, async ({ page }, testInfo) => {
     await page.setViewportSize(viewport);

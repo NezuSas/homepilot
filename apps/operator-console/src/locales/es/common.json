@@ -1,5 +1,7 @@
 {
   "modbus": {
+    "all_variables": "Todo",
+    "search_variables": "Buscar por nombre o dirección",
     "not_started": "Sin prueba ejecutada",
     "variables": "Variables",
     "delete": "Eliminar", "delete_connection": "Eliminar conexión", "delete_variable": "Eliminar variable", "delete_confirmation": "Se eliminará la configuración guardada. No se escribe al PLC. Esta acción no se puede deshacer.", "delete_error": "No se pudo eliminar. Comprueba tu acceso y reintenta.", "connection_in_use": "Elimina primero las variables de esta conexión.", "variable_in_use": "Esta variable se usa en una escena, automatización o tablero. Quita esas referencias antes de eliminarla.",

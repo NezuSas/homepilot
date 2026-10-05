@@ -1,5 +1,7 @@
 # Spec-Driven Coverage Matrix
 
+Modbus AC40: resumen de conexiones y detalle compacto; selector de grupos, búsqueda por nombre/direcciones, filtro de errores, orden natural, advertencia de feedback compartida y acciones contextuales. Jest 62/62 PASS; responsive focalizado 8/8 PASS y confirmación final AC40 4/4 PASS. Typecheck/lint/builds y controles spec/BDD/módulo/i18n/arquitectura PASS. Tests simulados sin SQL real, PLC, Git ni deploy; no validación global ni Docker.
+
 Refinamiento AC55/AC35: menú Section realmente intrínseco, marca y esfera del reloj contenidas en preview 6×6/12×8, etiquetas con lápiz/placeholder/icono persistido y preview final sin cuadrícula, agrupación Modbus Entradas/Salidas/Variables y skeleton por grupo. 5 suites Jest, 33/33 PASS; 9 escenarios responsive focalizados únicos PASS. Typecheck, lint y builds raíz/consola PASS; spec/BDD/module coverage/i18n/no-production-any/architecture boundaries PASS. Mocks locales: sin hardware, responsive completo, Git/GitHub, Docker ni deploy. Sin schema/migración ni cambios de ejecución.
 
 Dashboard AC55 (2026-10-04): lápiz centrado hover/focus/tap, eliminación confirmada en editor, menú Section compacto, reloj adaptativo sin frase decorativa, preview real con título y tabs simples, altura de editor por panel limitada por visualViewport, watermark inferior izquierda y fila independiente de etiquetas reutilizando HomeContextIndicator. JSON Section compatible, sin schema/migración ni conversión histórica. 8 suites Jest, 92/92 PASS; 13 escenarios responsive focalizados únicos PASS. Typecheck, lint consola y builds raíz/consola PASS; spec/BDD/module coverage/i18n/no-production-any/architecture boundaries PASS. Sin suites completas, Git/GitHub, Docker, deploy ni PLC físico. No se declara candidato a release.
@@ -109,7 +111,7 @@ The command fails if a file cannot be mapped to an existing spec.
 - AC48 colocación y controles (2026-10-03): coordenadas opcionales en JSON compatible, conservación de huecos, colisiones, crecimiento intrínseco y transferencia; anchos según canvas y acciones de Section unificadas. Tests focalizados 222/222 PASS en 10 suites; sin ejecución responsive ni certificación táctil.
 - AC48 mínimos/preview/menús: ActionMenu y CardPreviewFrame con pruebas propias; tamaño nuevo mínimo 2 × 2 sin reescribir histórico, preview estable y título primero. 48/48 Jest PASS, typecheck/lint/builds y checks de spec/BDD/módulos PASS; responsive no ejecutado.
 - AC48 transferencia/etiquetas: tamaño proporcional entre Sections, preview uniforme y Etiqueta independiente; 153/153 tests focalizados PASS, tipos/lint/builds/spec/BDD/módulos/i18n/arquitectura PASS. Sin responsive ni comprobación visual en tablet.
-- The **971** audited TypeScript/TSX files have a mapping rule to an existing
+- The **972** audited TypeScript/TSX files have a mapping rule to an existing
   spec.
 - All bounded contexts under `packages/` and all API route families are
   covered.

@@ -70,7 +70,7 @@ describe('Feature: PLC binding editor (AC26)', () => {
       expect(JSON.stringify(variable)).toBe(original);
     }
     expect(getModbusVariableGroup({ ...base, deviceId: 'legacy', connectionId: 'c' })).toBe('variable');
-    const html = renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: false, variables: [{ ...base, deviceId: 'legacy', connectionId: 'c' }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
+    const html = renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: false, variables: [{ ...base, deviceId: 'legacy', connectionId: 'c' }, ...(['input', 'output'] as const).map(role => ({ ...base, deviceId: role, connectionId: 'c', plc: { ...policy, role } }))] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
     expect(html.indexOf('data-modbus-variable-group="input"')).toBeLessThan(html.indexOf('data-modbus-variable-group="output"'));
     expect(html.indexOf('data-modbus-variable-group="output"')).toBeLessThan(html.indexOf('data-modbus-variable-group="variable"'));
     expect(html).toContain('plc.legacy');
