@@ -1007,6 +1007,17 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     const preview = editor.locator('.sensor-metric-card');
     await expect(preview).toBeVisible();
     await expect(preview.getByRole('meter')).toHaveAttribute('aria-valuetext', '22.4567 °C');
+    await page.evaluate(async () => {
+      // Load both reading fonts before taking the baseline. On Linux a font
+      // first requested by a different visualizer can otherwise resize it.
+      await Promise.all([
+        document.fonts.load('400 16px Rubik'),
+        document.fonts.load('400 16px "Disket Mono"'),
+      ]);
+      await document.fonts.ready;
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    });
+    await waitForSettledLayout(preview);
     const original = (await preview.boundingBox())!;
     for (const [label, style] of [[/^(Thermometer|Termómetro)$/, 'thermometer'], [/^(Level|Nivel)$/, 'level'], [/^(Battery|Batería)$/, 'battery'], [/^(Circular)$/, 'gauge']] as const) {
       await selector.click(); await page.getByRole('option', { name: label }).click();
@@ -1015,8 +1026,10 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
       if (style === 'level') await expect(preview.locator('[data-sensor-level-tank]')).toBeVisible();
       if (style === 'battery') await expect(preview.locator('[data-sensor-level-tank]')).toHaveCount(0);
       await expect(preview.getByRole('meter')).toHaveAttribute('aria-valuetext', '22.4567 °C');
-      const bounds = (await preview.boundingBox())!;
-      expect(bounds.width).toBeCloseTo(original.width, 1); expect(bounds.height).toBeCloseTo(original.height, 1);
+      await expect.poll(async () => {
+        const bounds = (await preview.boundingBox())!;
+        return Math.max(Math.abs(bounds.width - original.width), Math.abs(bounds.height - original.height));
+      }).toBeLessThan(0.05);
       expect(await preview.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
     }
     await selector.click(); await page.getByRole('option', { name: /^(Level|Nivel)$/ }).click();
@@ -1085,19 +1098,30 @@ test('Feature: Sensor fixed scale — Scenario: Editor preview and reload keep o
 
 test('Feature: Dashboard idle preference — Scenario: Optional local stay preserves only the open dashboard (AC34)', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 768, height: 1024 }); await prepareAuthenticatedDashboard(page);
-  const start = Date.now(); await page.clock.install({ time: start }); await page.clock.pauseAt(start);
   await page.route('**/api/v1/settings/home-personalization', route => route.fulfill({ json: { morningPhrase: '', afternoonPhrase: '', nightPhrase: '', heroImages: [] } }));
   await page.goto('/system/home-personalization');
   const selector = page.getByRole('button', { name: /Dashboard navigation|Navegación del tablero/ });
   await expect(selector).toContainText(/Return to Home|Volver a Inicio/);
+  // Freeze time only once authentication, the route and its form have settled.
+  const start = Date.now(); await page.clock.install({ time: start }); await page.clock.pauseAt(start);
   await selector.click(); await page.getByRole('option', { name: /Stay on the dashboard|Permanecer en el tablero/ }).click();
   await page.screenshot({ path: testInfo.outputPath('dashboard-idle-preference.png'), animations: 'disabled' });
+  await page.clock.resume();
   await page.goto('/dashboards/responsive-dashboard/responsive-tab'); await expect(page.locator('[data-dashboard-card-id="responsive-sensor"]')).toBeVisible();
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1_000));
   await page.clock.fastForward(121_000); await expect(page).toHaveURL(/\/dashboards\/responsive-dashboard\/responsive-tab$/);
-  await page.reload(); await expect(page.locator('[data-dashboard-card-id="responsive-sensor"]')).toBeVisible(); await page.clock.fastForward(121_000); await expect(page).toHaveURL(/\/dashboards\/responsive-dashboard\/responsive-tab$/);
+  await page.clock.resume();
+  await page.reload(); await expect(page.locator('[data-dashboard-card-id="responsive-sensor"]')).toBeVisible();
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1_000));
+  await page.clock.fastForward(121_000); await expect(page).toHaveURL(/\/dashboards\/responsive-dashboard\/responsive-tab$/);
   expect(await page.evaluate(() => localStorage.getItem('__homepilot_keep_dashboard'))).toBe('true');
 
+  await page.clock.resume();
   await page.goto('/system/home-personalization');
+  await expect(selector).toContainText(/Stay on the dashboard|Permanecer en el tablero/);
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1_000));
+  // Start the inactivity window from a real user event after the form is ready.
+  await page.keyboard.press('Escape');
   await expect(page).toHaveURL(/\/system\/home-personalization$/);
 
   await page.clock.fastForward(119_000);
@@ -1107,8 +1131,11 @@ test('Feature: Dashboard idle preference — Scenario: Optional local stay prese
   await expect(page).toHaveURL(/\/$/);
 
   await page.evaluate(() => localStorage.setItem('__homepilot_keep_dashboard', 'false'));
+  await page.clock.resume();
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
   await expect(page.locator('[data-dashboard-card-id="responsive-sensor"]')).toBeVisible();
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1_000));
+  await page.keyboard.press('Escape');
 
   await page.clock.fastForward(121_000);
   await expect(page).toHaveURL(/\/$/);
@@ -1828,13 +1855,13 @@ for (const viewport of [
 
 test('Feature: Automatic appearance — Scenario: Optional schedule switches at local boundaries and manual disables it', async ({ page }) => {
   await prepareAuthenticatedDashboard(page);
-  const localStart = await page.evaluate(() => new Date(2026, 9, 1, 18, 29, 59).getTime());
-  await page.clock.install({ time: localStart });
-  await page.clock.pauseAt(localStart);
   await page.route('**/api/v1/settings/home-personalization', route => route.fulfill({ json: { morningPhrase: '', afternoonPhrase: '', nightPhrase: '', heroImages: [] } }));
   await page.goto('/system/home-personalization');
   const selector = page.getByRole('button', { name: /Appearance|Apariencia/i });
   await expect(selector).toContainText(/Manual/i);
+  const localStart = await page.evaluate(() => new Date(2026, 9, 1, 18, 29, 59).getTime());
+  await page.clock.install({ time: localStart });
+  await page.clock.pauseAt(localStart);
   await selector.click();
   await page.getByRole('listbox', { name: /Appearance|Apariencia/i }).getByRole('option', { name: /^(Automatic|Automático)\b/i }).click();
   await expect(page.locator('html')).toHaveClass(/light/);
@@ -1843,7 +1870,10 @@ test('Feature: Automatic appearance — Scenario: Optional schedule switches at 
   await page.clock.fastForward(11.5 * 60 * 60 * 1000);
   await expect(page.locator('html')).toHaveClass(/light/);
   // The existing inactivity policy returns to Home while the clock advances overnight.
+  await page.clock.resume();
   await page.goto('/system/home-personalization');
+  await expect(selector).toContainText(/Automatic|Automático/i);
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1_000));
   await selector.click();
   await page.getByRole('option', { name: 'Manual', exact: true }).click();
   await page.clock.fastForward(12.5 * 60 * 60 * 1000);
@@ -1952,10 +1982,33 @@ for (const viewport of [{ name: 'mobile', width: 320, height: 720 }, { name: 'ta
       { entityId: 'sensor.pending', friendlyName: pending.name, state: '900', attributes: { unit_of_measurement: 'W' } },
     ] }));
     await page.goto('/home');
-    await expect(page.getByRole('main').getByRole('status', { name: /Cargando/i })).toBeVisible();
+
+    const homeLoading = page
+      .getByRole('main')
+      .getByRole('status', { name: /Cargando/i });
+
+    await expect(homeLoading).toBeVisible();
+
     release();
+
+    // DashboardView keeps HomeSkeleton visible until its initial snapshot,
+    // findings, routines, personalization, favorites and home context settle.
+    // Waiting for that UI contract is stronger than waiting for one HTTP
+    // response because findings are filtered against the completed snapshot.
+    await expect(homeLoading).not.toBeVisible();
+
+    const initialInsights = page.getByRole('region', {
+      name: 'Sugerencias Inteligentes',
+      exact: true,
+    });
+
+    await expect(initialInsights.getByRole('article')).toHaveCount(5);
+
     for (const theme of ['dark', 'light']) {
-      await page.goto('/home');
+      if (theme === 'light') {
+        await page.goto('/home');
+      }
+
       await page.evaluate(light => document.documentElement.classList.toggle('light', light), theme === 'light');
       const insights = page.getByRole('region', { name: 'Sugerencias Inteligentes', exact: true });
       await expect(insights.getByRole('article')).toHaveCount(5);
@@ -3022,6 +3075,23 @@ async function prepareLoginShell(page: import('@playwright/test').Page) {
   });
 }
 
+async function waitForSettledLayout(locator: import('@playwright/test').Locator) {
+  await locator.evaluate(async element => {
+    await document.fonts.ready;
+    // Bounding boxes include ancestor transforms, including the modal's
+    // zoom-in animation. Wait for finite motion, not infinite sensor effects.
+    const animations = new Set<Animation>(element.getAnimations({ subtree: true }));
+    for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+      for (const animation of parent.getAnimations()) animations.add(animation);
+    }
+    await Promise.all([...animations]
+      .filter(animation => Number.isFinite(animation.effect?.getTiming().iterations ?? Infinity))
+      .map(animation => animation.finished.catch(() => undefined)));
+    // Allow preview ResizeObserver scaling to settle after the modal finishes.
+    await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+  });
+}
+
 async function prepareAuthenticatedDashboard(page: import('@playwright/test').Page, dashboard: object = responsiveDashboard, user = dashboardUser) {
   await page.addInitScript((user) => {
     localStorage.setItem('hp_session_token', 'responsive-test-token');
@@ -3061,6 +3131,20 @@ async function prepareAuthenticatedDashboard(page: import('@playwright/test').Pa
   await page.route('**/api/v1/assistant/summary', async (route) => {
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ totalOpen: 0 }) });
   });
+  // Home waits for all of these resources before exposing its content. Keep
+  // the shared fixture offline and deterministic; individual tests can
+  // override any route below with their own data or loading gate.
+  await page.route('**/api/v1/rooms', route => route.fulfill({ json: [] }));
+  await page.route('**/api/v1/scenes', route => route.fulfill({ json: [] }));
+  await page.route('**/api/v1/automations', route => route.fulfill({ json: [] }));
+  await page.route('**/api/v1/scenes/favorites', route => route.fulfill({ json: { sceneIds: [], initialized: true } }));
+  await page.route('**/api/v1/automations/favorites', route => route.fulfill({ json: { automationIds: [], initialized: true } }));
+  await page.route('**/api/v1/settings/home-personalization', route => route.fulfill({
+    json: { morningPhrase: '', afternoonPhrase: '', nightPhrase: '', heroImages: [] },
+  }));
+  await page.route('https://api.open-meteo.com/**', route => route.fulfill({
+    json: { current: { temperature_2m: 19, weather_code: 0, wind_speed_10m: 3, time: '2026-10-05T12:34' } },
+  }));
 }
 
 for (const viewport of [
@@ -3474,6 +3558,25 @@ test('Feature: scene favorites — a legacy local favorite migrates once and the
   });
   await prepareAuthenticatedDashboard(page);
   await page.route('**/api/v1/automations', route => route.fulfill({ json: [] }));
+  await page.route('**/api/v1/automations/favorites', route => route.fulfill({ json: { automationIds: [], initialized: true } }));
+  await page.route('**/api/v1/settings/home-personalization', route => route.fulfill({
+    json: {
+      morningPhrase: '',
+      afternoonPhrase: '',
+      nightPhrase: '',
+      heroImages: [],
+    },
+  }));
+  await page.route('https://api.open-meteo.com/**', route => route.fulfill({
+    json: {
+      current: {
+        temperature_2m: 19,
+        weather_code: 0,
+        wind_speed_10m: 3,
+        time: '2026-10-05T12:34',
+      },
+    },
+  }));
   await page.route('**/api/v1/homes', (route) => route.fulfill({ json: [{ id: 'responsive-home', ownerId: dashboardUser.id, name: 'Casa' }] }));
   await page.route('**/api/v1/scenes', (route) => route.fulfill({ json: [{
     id: 'favorite-scene', homeId: 'responsive-home', roomId: null, name: 'Escena noche', actions: [],
@@ -4130,6 +4233,26 @@ for (const viewport of [...viewports, { name: 'tablet landscape', width: 1024, h
     await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: 'responsive-home', ownerId: dashboardUser.id, name: 'Casa' }] }));
     await page.route('**/api/v1/scenes', route => route.fulfill({ json: [{ id: 'palette-scene', userId: dashboardUser.id, homeId: 'responsive-home', roomId: null, name: 'Paleta compartida', actions: [{ deviceId: 'cover-living', command: 'open' }] }] }));
     await page.route('**/api/v1/scenes/favorites', route => route.fulfill({ json: { sceneIds: [], initialized: true } }));
+    await page.route('**/api/v1/automations', route => route.fulfill({ json: [] }));
+    await page.route('**/api/v1/automations/favorites', route => route.fulfill({ json: { automationIds: [], initialized: true } }));
+    await page.route('**/api/v1/settings/home-personalization', route => route.fulfill({
+      json: {
+        morningPhrase: '',
+        afternoonPhrase: '',
+        nightPhrase: '',
+        heroImages: [],
+      },
+    }));
+    await page.route('https://api.open-meteo.com/**', route => route.fulfill({
+      json: {
+        current: {
+          temperature_2m: 19,
+          weather_code: 0,
+          wind_speed_10m: 3,
+          time: '2026-10-05T12:34',
+        },
+      },
+    }));
     const tokens = ['--primary', '--primary-foreground', '--card', '--popover', '--foreground', '--muted-foreground', '--border', '--ring', '--success', '--warning', '--danger'];
     for (const theme of ['dark', 'light']) {
       await page.goto('/dashboards/responsive-dashboard/responsive-tab');
@@ -4142,11 +4265,16 @@ for (const viewport of [...viewports, { name: 'tablet landscape', width: 1024, h
       for (const palette of inherited) expect(palette).toEqual(global);
       if (viewport.name === 'mobile' || viewport.name === 'desktop') await page.screenshot({ path: testInfo.outputPath(`dashboard-${theme}.png`), animations: 'disabled' });
       await page.goto('/');
+      await expect(page.getByRole('main').getByRole('status', { name: /Loading|Cargando/i })).not.toBeVisible();
       await page.evaluate(isLight => document.documentElement.classList.toggle('light', isLight), theme === 'light');
       expect(await page.locator('body').evaluate((element, names) => names.map(name => getComputedStyle(element).getPropertyValue(name).trim()), tokens)).toEqual(global);
       const homeAction = page.getByRole('button', { name: /Open Principal in my dashboard|Abrir.*Principal.*mi tablero/i });
       await expect(homeAction).toBeVisible();
-      expect(await homeAction.evaluate(element => getComputedStyle(element).color)).toBe(await page.locator('body').evaluate(element => getComputedStyle(element).color));
+      // The shared Button primitive transitions its color when the theme
+      // changes. Assert the final palette, not an intermediate RGB frame.
+      await expect.poll(() => homeAction.evaluate(element =>
+        getComputedStyle(element).color === getComputedStyle(document.body).color,
+      )).toBe(true);
       if (viewport.name === 'mobile' || viewport.name === 'desktop') await page.screenshot({ path: testInfo.outputPath(`home-${theme}.png`), animations: 'disabled' });
       await page.goto('/routines/scenes');
       await page.evaluate(isLight => document.documentElement.classList.toggle('light', isLight), theme === 'light');
@@ -5793,8 +5921,11 @@ for (const viewport of viewports) {
     await password.fill('invalid-password');
     await password.press('Enter');
 
-    await expect(page.locator('[role="alert"]')).toBeVisible();
-    await expect(page.locator('[role="alert"]')).toContainText(/./);
+    const loginAlert = page.getByRole('alert').filter({
+      hasText: /Invalid credentials|Credenciales inválidas/i,
+    });
+    await expect(loginAlert).toBeVisible();
+    await expect(loginAlert).toContainText(/Invalid credentials|Credenciales inválidas/i);
   });
 
   test(`keeps the authenticated dashboard responsive on ${viewport.name}`, async ({ page }) => {
