@@ -232,8 +232,9 @@ describe('Feature: PLC I/O controller (AC20/AC21/AC22/AC23/AC25)', () => {
     expect((await f.service.list('admin', 'h'))[0]).toMatchObject({ diagnostic: { status: 'online' }, variables: expect.arrayContaining([expect.objectContaining({ deviceId: broken.deviceId, diagnostic: expect.objectContaining({ status: 'variable_error', error: 'CONVERSION' }) })]) });
   });
   it('Scenario: Simulated PLC independent feedback reaches real dispatcher state sync and events (AC27)', async () => {
-    const { c, v } = await output();
+    const { c, v } = await output({ feedbackTimeoutMs: 2000 });
     let commanded = false, feedback = false;
+    let logicalNow = Date.now(), awaitingFeedback = false, feedbackReads = 0;
     const requests: number[] = [], sockets = new Set<Socket>();
     const server = createServer(socket => {
       sockets.add(socket); socket.on('close', () => sockets.delete(socket));
@@ -253,13 +254,23 @@ describe('Feature: PLC I/O controller (AC20/AC21/AC22/AC23/AC25)', () => {
     // Test-only loopback transport; production configuration validation remains private-IP/502.
     const tcp = new ModbusTcpClient();
     const endpoint = (connection: ModbusConnection): ModbusConnection => ({ ...connection, host: '127.0.0.1', port: (server.address() as AddressInfo).port });
-    const transport: ModbusTransport = { read: (connection, variable) => tcp.read(endpoint(connection), variable), readSample: (connection, variable) => tcp.readSample(endpoint(connection), variable), readRange: (connection, area, start, count, signal) => tcp.readRange(endpoint(connection), area, start, count, signal), writeCoil: (connection, address, value) => tcp.writeCoil(endpoint(connection), address, value), writeHoldingRegisters: (connection, address, words) => tcp.writeHoldingRegisters(endpoint(connection), address, words) };
+    const transport: ModbusTransport = { read: async (connection, variable) => {
+      const value = await tcp.read(endpoint(connection), variable);
+      // Advance the feedback deadline only after a real TCP response. Wall-clock
+      // scheduling must not turn this mismatch scenario into a 1 ms socket timeout.
+      if (awaitingFeedback && variable.address === 200) { logicalNow += 1000; feedbackReads++; }
+      return value;
+    }, readSample: (connection, variable) => tcp.readSample(endpoint(connection), variable), readRange: (connection, area, start, count, signal) => tcp.readRange(endpoint(connection), area, start, count, signal), writeCoil: (connection, address, value) => tcp.writeCoil(endpoint(connection), address, value), writeHoldingRegisters: (connection, address, words) => tcp.writeHoldingRegisters(endpoint(connection), address, words) };
     const service = new ModbusService(f.repository, transport, f.devices, new SQLiteHomeRepository(f.dbPath), (id, state) => syncDeviceStateUseCase(id, state, 'plc-e2e', deps));
     const dispatcher = new DeviceCommandService(f.devices, { register: () => undefined, resolve: () => service }, deps);
+    const now = jest.spyOn(Date, 'now').mockImplementation(() => logicalNow);
     try {
       await service.pollOnce();
       expect((await f.devices.findDeviceById(v.deviceId))?.lastKnownState?.state).toBe('off');
+      awaitingFeedback = true;
       await expect(dispatcher.dispatch(v.deviceId, 'turn_on')).rejects.toThrow('FEEDBACK_TIMEOUT');
+      awaitingFeedback = false;
+      expect(feedbackReads).toBe(2);
       expect(commanded).toBe(true);
       expect((await f.devices.findDeviceById(v.deviceId))?.lastKnownState).toMatchObject({ state: 'off', actualState: false, commandedState: true });
       feedback = true; await service.pollOnce(Date.now() + 6000);
@@ -267,7 +278,7 @@ describe('Feature: PLC I/O controller (AC20/AC21/AC22/AC23/AC25)', () => {
       expect(events.mock.calls.some(([event]) => event.eventType === 'DeviceStateUpdatedEvent')).toBe(true);
       expect(logs).toHaveBeenCalled(); expect(requests).toContain(200); expect(requests).toContain(24576);
       expect((await service.list('admin', 'h'))[0].variables[0].diagnostic?.raw).toBeDefined();
-    } finally { await service.stop(); for (const socket of sockets) socket.destroy(); await new Promise<void>(resolve => server.close(() => resolve())); }
+    } finally { now.mockRestore(); await service.stop(); for (const socket of sockets) socket.destroy(); await new Promise<void>(resolve => server.close(() => resolve())); }
   });
 });
 
