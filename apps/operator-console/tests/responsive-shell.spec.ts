@@ -5078,9 +5078,14 @@ test.describe('Icon picker on touch tablets', () => {
       await page.setViewportSize({ width: viewport.width, height: viewport.keyboardHeight });
       const option = picker.getByRole('listbox').getByRole('option', { name: 'home', exact: true });
       await expect(option).toBeVisible();
-      const optionBounds = await option.boundingBox();
-      expect(optionBounds).toBeTruthy();
-      expect(optionBounds!.y + optionBounds!.height).toBeLessThanOrEqual(viewport.keyboardHeight);
+      // Resize dispatch and React's visualViewport bounds update are
+      // asynchronous. Visibility alone also accepts an off-screen option.
+      // Require the complete option to fit without scrolling it into place.
+      await expect(option).toBeInViewport({ ratio: 1 });
+      await expect.poll(async () => {
+        const bounds = await option.boundingBox();
+        return bounds ? bounds.y + bounds.height : Infinity;
+      }).toBeLessThanOrEqual(viewport.keyboardHeight);
       await option.tap();
       await expect(picker).toHaveCount(0);
     });
