@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: [main, develop]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ci:
     name: Quality gates
@@ -29,9 +36,6 @@ jobs:
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
         run: node scripts/check-sdd-pr-reference.mjs
-      - name: Install responsive test browser
-        run: npx playwright install --with-deps chromium
-
-      - name: Run complete quality gate
-        run: npm run verify:quality
+      - name: Run non-visual quality gates (full Jest coverage and builds)
+        run: npm run verify:ci
 

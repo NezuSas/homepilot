@@ -6,3 +6,4 @@
 - [x] AC4: `check:module-test-coverage` exige una suite de comportamiento por módulo mantenido; Automation queda cubierto por su suite conductual en Devices.
 - [x] AC5: Extraer persistencia de los handlers a repositorios inyectados y bloquear SQL directo desde rutas. Evidencia: `npm run check:architecture-boundaries`.
 - [x] AC6: Añadir quality gates reproducibles en CI.
+- [x] AC6: Separar CI ordinario no visual y validación completa local/manual, sin eliminar pruebas ni reducir umbrales. Cubrir la composición de scripts y los triggers con pruebas; validación larga y ejecución remota del nuevo workflow pendientes del usuario.

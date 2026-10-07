@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { mdiAutoFix, mdiHome, mdiRobot, mdiWeatherWindy } from '@mdi/js';
+import { clockSweepPlan } from './clockSweepPlan';
 
 for (const fallback of [false, true]) {
   test(`Feature: Clock size contract — Scenario: ${fallback ? 'Unsupported queries retain a bounded dial' : 'Default content matrix'} (AC56)`, async ({ page }, testInfo) => {
@@ -69,8 +70,10 @@ for (const fallback of [false, true]) {
 }
 
 for (const width of [360, 768, 1024, 1440]) {
-  test(`Feature: Clock size contract — Scenario: Built clock geometry sweep at ${width}px (AC56)`, async ({ page }, testInfo) => {
-    test.setTimeout(300_000);
+  const plan = clockSweepPlan(width, Number(process.env.HOMEPILOT_CLOCK_SAMPLE_STEP ?? 1));
+  for (const [batchIndex, sampleWidths] of plan.batches.entries()) {
+  test(`Feature: Clock size contract — Scenario: Built clock geometry sweep at ${width}px batch ${batchIndex + 1}/${plan.batches.length} (AC56)`, async ({ page }, testInfo) => {
+    test.setTimeout(60_000);
     await page.setViewportSize({ width, height: 900 });
     const section = responsiveDashboard.tabs[0]!.widgets[1]!;
     const dashboard = { ...responsiveDashboard, tabs: [{ ...responsiveDashboard.tabs[0]!, widgets: [
@@ -88,7 +91,7 @@ for (const width of [360, 768, 1024, 1440]) {
     // This suite must run against vite preview, not a development server.
     expect(await page.locator('script[src*="/assets/"]').count()).toBeGreaterThan(0);
     expect(await page.locator('script[src*="/@vite/client"]').count()).toBe(0);
-    const result = await page.evaluate(({ sampleStep }) => {
+    const result = await page.evaluate(({ sampleWidths }) => {
       const originals = [...document.querySelectorAll<HTMLElement>('[data-homepilot-clock]')].map(clock => clock.closest<HTMLElement>('[data-dashboard-card-id],.homepilot-dashboard-widget')!);
       const failures: Array<Record<string, unknown>> = [];
       const levels: Record<string, number> = {}; let combinations = 0;
@@ -96,8 +99,6 @@ for (const width of [360, 768, 1024, 1440]) {
       // Sidebar closed + one Section spanning all slots is the widest case for this viewport.
       // Canvas padding 16px mobile / 32px tablet+, Section padding 40px + grid padding 4px.
       const maxUsefulWidth = Math.max(300, innerWidth - (innerWidth < 640 ? 16 : 32) - 44);
-      const samples = new Set<number>([300, maxUsefulWidth, 4000]);
-      for (let sectionWidth = 300; sectionWidth <= maxUsefulWidth; sectionWidth += sampleStep) samples.add(sectionWidth);
       const paths: Array<{ height: number; type: string; name: string }> = [];
       for (const original of originals) {
       paths.push({ height: original.getBoundingClientRect().height, type: getComputedStyle(original).containerType, name: getComputedStyle(original).containerName });
@@ -105,7 +106,7 @@ for (const width of [360, 768, 1024, 1440]) {
       frame.style.cssText = 'position:fixed;left:0;top:0;container:clock-card / size;min-height:0;min-width:0;display:grid;';
       frame.style.borderWidth = getComputedStyle(original).borderWidth;
       const host = document.createElement('div'); host.className = 'homepilot-dashboard-screen'; host.append(frame); document.body.append(host);
-      for (const sectionWidth of samples) for (let columns = 4; columns <= 12; columns++) for (let rows = 4; rows <= 8; rows++) {
+      for (const sectionWidth of sampleWidths) for (let columns = 4; columns <= 12; columns++) for (let rows = 4; rows <= 8; rows++) {
         const w = (sectionWidth + 8) * columns / 12 - 8, h = rows * 28 - 8;
         frame.style.width = `${w}px`; frame.style.height = `${h}px`;
         const dial = frame.querySelector<HTMLElement>('.homepilot-clock-reference-dial-frame')!;
@@ -167,13 +168,16 @@ for (const width of [360, 768, 1024, 1440]) {
       host.remove();
       }
       return { combinations, maxUsefulWidth, levels, failures, paths };
-    }, { sampleStep: Number(process.env.HOMEPILOT_CLOCK_SAMPLE_STEP ?? 1) });
+    }, { sampleWidths });
+    expect(result.maxUsefulWidth).toBe(plan.maxUsefulWidth);
+    expect(result.combinations).toBe(sampleWidths.length * 45 * 3);
     await testInfo.attach('clock-sweep.json', { body: JSON.stringify(result, null, 2), contentType: 'application/json' });
     console.log('CLOCK_SWEEP', testInfo.project.name, JSON.stringify({ combinations: result.combinations, failures: result.failures, levels: result.levels }));
     expect(result.failures).toEqual([]);
     for (const path of result.paths) expect(path).toEqual({ height: 160, type: 'size', name: 'clock-card' });
     await page.screenshot({ path: testInfo.outputPath('clock-contract.png'), animations: 'disabled' });
   });
+  }
 }
 
 test('Feature: Clock size contract — Scenario: Contact sheet preserves real dimensions (AC56)', async ({ page }, testInfo) => {
