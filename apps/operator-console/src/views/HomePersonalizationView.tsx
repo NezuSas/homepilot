@@ -153,12 +153,17 @@ export function HomePersonalizationView() {
             id={`home-${key}`}
             value={settings[key]}
             onChange={(event) => setSettings((current) => ({ ...current, [key]: event.target.value }))}
+            onInput={(event) => {
+              const element = event.currentTarget;
+              element.style.height = 'auto';
+              element.style.height = `${Math.min(element.scrollHeight, 160)}px`;
+            }}
             placeholder={t(`home_personalization.${key}Placeholder`)}
             maxLength={1000}
             rows={4}
             disabled={operation !== 'idle'}
             aria-describedby={`home-${key}-count`}
-            className="max-h-40 min-h-28 w-full resize-y overflow-y-auto text-body-compact"
+            className="max-h-40 min-h-28 w-full resize-none overflow-y-auto text-body-compact"
           />
         </div>)}</div>
         <Button onClick={() => void savePhrases()} disabled={operation !== 'idle'} isLoading={operation === 'saving'} className="self-start">{t(operation === 'saving' ? 'home_personalization.saving' : 'home_personalization.save')}</Button>

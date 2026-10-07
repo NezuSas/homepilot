@@ -3,11 +3,17 @@ import { AutomationBuilderActionSection } from './AutomationBuilderActionSection
 import type { AutomationBuilderDevice } from './AutomationBuilderTypes';
 
 jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key, i18n: { resolvedLanguage: 'es' } }) }));
-jest.mock('../stores/useDeviceSnapshotStore', () => ({ useDeviceSnapshotStore: () => ({}) }));
+jest.mock('../stores/useDeviceSnapshotStore', () => ({
+  useDeviceSnapshotStore: (selector: (state: unknown) => unknown) => selector({
+    roomsByHome: {
+      'home-1': [{ id: 'room-1', homeId: 'home-1', name: 'Sala' }],
+    },
+  }),
+}));
 
 const devices: AutomationBuilderDevice[] = [
-  { id: 'tv-button', name: 'On/Off tv', type: 'button', semanticType: 'light', capabilities: [{ type: 'button', name: 'Button', commands: [{ name: 'press' }] }] },
-  { id: 'read-only-sensor', name: 'Temperature', type: 'sensor', capabilities: [{ type: 'sensor', name: 'Sensor', commands: [] }] },
+  { id: 'tv-button', homeId: 'home-1', roomId: 'room-1', name: 'On/Off tv', type: 'button', semanticType: 'light', capabilities: [{ type: 'button', name: 'Button', commands: [{ name: 'press' }] }] },
+  { id: 'read-only-sensor', homeId: 'home-1', roomId: 'room-1', name: 'Temperature', type: 'sensor', capabilities: [{ type: 'sensor', name: 'Sensor', commands: [] }] },
 ];
 
 describe('automation action command selection', () => {

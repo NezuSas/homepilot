@@ -146,6 +146,7 @@ describe('Bootstrap Integration', () => {
       userId: home.ownerId,
       name: 'Apagar luz durable',
       enabled: false,
+      sharedUserIds: [],
       trigger: {
         type: 'device_state_changed',
         deviceId: device.id,

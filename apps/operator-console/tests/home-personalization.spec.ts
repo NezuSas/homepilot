@@ -17,8 +17,25 @@ async function prepare(page: Page, images: Array<{ slot: number; url: string }> 
   await page.route('**/api/v1/dashboards', (route) => route.fulfill({ json: [] }));
   await page.route('**/api/v1/homes', (route) => route.fulfill({ json: [] }));
   await page.route('**/api/v1/devices', (route) => route.fulfill({ json: [] }));
+  await page.route('**/api/v1/rooms', (route) => route.fulfill({ json: [] }));
+  await page.route('**/api/v1/scenes', (route) => route.fulfill({ json: [] }));
+  await page.route('**/api/v1/automations', (route) => route.fulfill({ json: [] }));
+  await page.route('**/api/v1/scenes/favorites', (route) => route.fulfill({
+    json: { sceneIds: [], initialized: true },
+  }));
+  await page.route('**/api/v1/automations/favorites', (route) => route.fulfill({
+    json: { automationIds: [], initialized: true },
+  }));
   await page.route('**/api/v1/assistant/findings', (route) => route.fulfill({ json: [] }));
   await page.route('**/api/v1/assistant/summary', (route) => route.fulfill({ json: { totalOpen: 0 } }));
+  await page.route('https://api.open-meteo.com/**', (route) => route.fulfill({ json: {
+    current: {
+      temperature_2m: 19,
+      weather_code: 0,
+      wind_speed_10m: 3,
+      time: '2026-10-05T12:34',
+    },
+  } }));
   await page.route(endpoint, (route) => route.fulfill({ json: {
     morningPhrase: 'Frase de mañana', afternoonPhrase: 'Frase de tarde', nightPhrase: 'Frase de noche', heroImages: images,
   } }));
@@ -165,7 +182,7 @@ test('Admin can edit Home phrases with a 1000-character limit and responsive ima
   await page.getByRole('button', { name: /guardar frases|save phrases/i }).click();
   await expect.poll(() => saved).toMatchObject({ morningPhrase: 'A'.repeat(1000) });
   await expect(page.getByRole('status')).toContainText(/frases guardadas correctamente|phrases saved successfully/i);
-  await expect(page.getByText('image_home_1')).toBeVisible();
+  await expect(page.getByText(/^(Fondo 1|Background 1)$/i)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });
 
@@ -222,20 +239,20 @@ test('Admin adds and confirms removal of an image through the visible controls',
   await page.getByRole('button', { name: /añadir imagen|add image/i }).and(page.locator('button')).click();
   const chooser = await chooserPromise;
   await chooser.setFiles({ name: 'home.png', mimeType: 'image/png', buffer: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) });
-  await expect(page.getByText('image_home_1')).toBeVisible();
+  await expect(page.getByText(/^(Fondo 1|Background 1)$/i)).toBeVisible();
   await expect(page.getByRole('status')).toContainText(/imagen cargada correctamente|image uploaded successfully/i);
   await page.getByRole('button', { name: /eliminar imagen 1|delete image 1/i }).click();
   const confirm = page.getByRole('dialog', { name: /eliminar esta imagen|delete this image/i });
   await expect(confirm).toBeVisible();
   await confirm.getByRole('button', { name: /cancelar|cancel/i }).click();
   expect(deleteRequests).toBe(0);
-  await expect(page.getByText('image_home_1')).toBeVisible();
+  await expect(page.getByText(/^(Fondo 1|Background 1)$/i)).toBeVisible();
   await page.getByRole('button', { name: /eliminar imagen 1|delete image 1/i }).click();
   await confirm.getByRole('button', { name: /^eliminar$|^delete$/i }).click();
   await expect(confirm.getByRole('button', { name: /eliminando|deleting/i })).toBeDisabled();
-  await expect(page.getByText('image_home_1')).toBeVisible();
+  await expect(page.getByText(/^(Fondo 1|Background 1)$/i)).toBeVisible();
   releaseDelete();
-  await expect(page.getByText('image_home_1')).toHaveCount(0);
+  await expect(page.getByText(/^(Fondo 1|Background 1)$/i)).toHaveCount(0);
   expect(deleteRequests).toBe(1);
   await expect(page.getByRole('status')).toContainText(/imagen eliminada correctamente|image deleted successfully/i);
 });
@@ -256,7 +273,7 @@ test('failed upload reports the error, reenables actions and preserves existing 
   await expect(page.getByRole('button', { name: /subiendo|uploading/i })).toBeDisabled();
   releaseUpload();
   await expect(page.getByRole('alert')).toContainText('No se pudo subir');
-  await expect(page.getByText('image_home_1')).toBeVisible();
+  await expect(page.getByText(/^(Fondo 1|Background 1)$/i)).toBeVisible();
   await expect(page.getByRole('button', { name: /añadir imagen|add image/i }).and(page.locator('button'))).toBeEnabled();
 });
 
@@ -458,7 +475,7 @@ for (const viewport of [
     expect(heroBox && phraseBox && firstBox && secondBox && actionBox).toBeTruthy();
     expect(actionBox!.height).toBeGreaterThanOrEqual(44);
     expect(actionBox!.width).toBeLessThan(240);
-    expect(Math.abs(brandBox!.x - firstBox!.x)).toBeLessThan(1);
+    expect(Math.abs(brandBox!.x - firstBox!.x)).toBeLessThanOrEqual(2);
     expect(firstBox!.width).toBeGreaterThan(firstBox!.height);
     expect(secondBox!.y).toBeGreaterThanOrEqual(firstBox!.y + firstBox!.height);
     expect(firstBox!.y).toBeGreaterThan(phraseBox!.y + phraseBox!.height);

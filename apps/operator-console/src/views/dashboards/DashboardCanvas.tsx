@@ -195,14 +195,14 @@ function SortableCanvasWidget({
   );
 }
 
-function SectionDropSlot({ index, columns, gap, editing, children }: { index: number; columns: number; gap: number; editing: boolean; children?: ReactNode }) {
+function SectionDropSlot({ index, columns, gap, editing, hasContent, children }: { index: number; columns: number; gap: number; editing: boolean; hasContent: boolean; children?: ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id: `section-slot-${index}`, disabled: !editing });
   const { nodeRef, rowSpan } = useMeasuredRowSpan(gap);
   return <div
     ref={(node) => { setNodeRef(node); nodeRef.current = node; }}
     style={{ gridColumn: (index % columns) + 1, gridRow: `span ${rowSpan}` }}
     data-section-slot={index}
-      className={cn('min-w-0', !children && 'min-h-36', isOver && editing && 'rounded-panel outline outline-2 outline-primary/75 bg-primary/10')}
+      className={cn('min-w-0', !hasContent && 'min-h-36', isOver && editing && 'rounded-panel outline outline-2 outline-primary/75 bg-primary/10')}
   >{children}</div>;
 }
 
@@ -352,17 +352,32 @@ export function DashboardCanvas({
     useSensor(TouchSensor, { activationConstraint: { delay: 500, tolerance: 8 } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: (event, args) => {
-        // Ancestor Sections are not card destinations unless empty. Leave the
-        // registered containers intact and filter only measured candidates.
-        const isCard = args.context.active?.data.current?.kind === 'section-card';
+        // Cards navigate between cards/empty Sections. Sections that use the
+        // sparse slot model navigate only through slot droppables; otherwise
+        // overlapping Section and slot rectangles make keyboard movement
+        // collapse the order instead of preserving intentional gaps.
+        const activeKind = args.context.active?.data.current?.kind;
+        const isCard = activeKind === 'section-card';
+        const isSectionSlotDrag = activeKind === 'section' && useSectionSlots;
         const droppableRects = new Map(args.context.droppableRects);
+
         for (const container of args.context.droppableContainers.getEnabled()) {
           const data = container.data.current;
-          const eligible = isCard ? data?.kind === 'section-card' || (data?.kind === 'section' && data.cardCount === 0)
-            : data?.kind !== 'section-card';
+          const id = String(container.id);
+
+          const eligible = isCard
+            ? data?.kind === 'section-card' || (data?.kind === 'section' && data.cardCount === 0)
+            : isSectionSlotDrag
+              ? id.startsWith('section-slot-')
+              : data?.kind !== 'section-card';
+
           if (!eligible) droppableRects.delete(container.id);
         }
-        return sortableKeyboardCoordinates(event, { ...args, context: { ...args.context, droppableRects } });
+
+        return sortableKeyboardCoordinates(event, {
+          ...args,
+          context: { ...args.context, droppableRects },
+        });
       },
     }),
   );
@@ -653,7 +668,14 @@ export function DashboardCanvas({
             <div className="grid min-w-0 items-start" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gridAutoRows: `${CANVAS_ROW_UNIT}px`, gridAutoFlow: 'row dense', gap: `${gap}px` }}>
               {Array.from({ length: slotCount }, (_, index) => {
                 const widget = sectionById.get(sectionSlots[index] ?? '');
-                return <SectionDropSlot key={index} index={index} columns={columns} gap={gap} editing={isEditing}>
+                return <SectionDropSlot
+                  key={index}
+                  index={index}
+                  columns={columns}
+                  gap={gap}
+                  editing={isEditing}
+                  hasContent={Boolean(widget) || Boolean(!widget && index === availableSectionSlot(sectionSlots) && addSectionControl)}
+                >
                   {!widget && index === availableSectionSlot(sectionSlots) && addSectionControl}
                   {widget && <SortableCanvasWidget
                     key={widget.id}

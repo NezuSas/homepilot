@@ -1,4 +1,13 @@
 import { renderToStaticMarkup } from 'react-dom/server';
+
+jest.mock('../ModbusConnectionCard', () => ({
+  ModbusSettingsSkeleton: ({ label }: { label: string }) => (
+    <div role="status" aria-busy="true">
+      <span aria-hidden="true">{label}</span>
+    </div>
+  ),
+}));
+
 import { HomePersonalizationSkeleton, HomeAssistantSettingsSkeleton, OnboardingSkeleton } from './ComponentSkeletons';
 import { ScenesSkeleton, AutomationsSkeleton, SpacesSkeleton, HomeSkeleton, DeviceManagerSkeleton, CamerasSkeleton, DisplayControlsSkeleton, DeviceInspectorSkeleton, DiscoverySkeleton, HaDiscoverySkeleton, UsersSkeleton, DiagnosticsSkeleton, ViewSkeleton } from './ComponentSkeletons';
 describe('Feature: Component-owned skeletons (AC51)', () => {

@@ -240,7 +240,9 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       widgetType: item.widgetType,
       span: item.span,
       icon: item.icon,
-      ...(!isClockKind(item.kind) && item.kind !== 'media' && item.kind !== 'camera' ? { gridOptions: { columns: 2 as const, rows: 2 } } : {}),
+      ...(!isClockKind(item.kind) && item.kind !== 'media' && item.kind !== 'camera'
+        ? { gridOptions: { columns: (item.span === 'small' ? 3 : item.span === 'medium' ? 6 : 12) as CardGridOptions['columns'], rows: 2 } }
+        : {}),
       ...(item.kind === 'media' ? { mediaVariant: 'premium' as const } : {}),
       ...(item.kind === 'sensor' ? { visualStyle: 'auto' as const } : {}),
     };
@@ -525,7 +527,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
       {sectionGrid}
 
       {isEditing ? (
-        <div className="flex w-full justify-center">
+        <div className="absolute -top-5 left-3 z-30">
           <Button
             type="button"
             variant="ghost"

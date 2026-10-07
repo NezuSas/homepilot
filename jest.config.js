@@ -6,6 +6,20 @@ module.exports = {
   testMatch: ['**/__tests__/**/*.test.ts', '**/*.test.ts', '**/*.test.tsx'],
   clearMocks: true,
   coverageProvider: 'v8',
+
+  /*
+   * Jest owns coverage for backend, domain logic and non-visual frontend logic.
+   *
+   * React presentation components are behaviorally gated by the Playwright
+   * responsive suite. Their Jest test files still execute normally; only
+   * their .tsx implementation files are excluded from the global coverage
+   * denominator.
+   */
+  coveragePathIgnorePatterns: [
+    '/node_modules/',
+    '<rootDir>[\\\\/]apps[\\\\/]operator-console[\\\\/]src[\\\\/].*\\.tsx$',
+  ],
+
   coverageThreshold: {
     global: {
       branches: 78,

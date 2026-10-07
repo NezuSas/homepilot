@@ -15,6 +15,10 @@ jest.mock('react-i18next', () => ({
     ? 'Icon unavailable' : key }),
 }));
 
+jest.mock('../../../components/ui/ComponentSkeletons', () => ({
+  IconPickerSkeleton: () => null,
+}));
+
 describe('Dashboard MDI icons', () => {
   it('resolves a valid canonical MDI to its official path', () => {
     const html = renderToStaticMarkup(createElement(getDashboardIconComponent('mdi:camera')));

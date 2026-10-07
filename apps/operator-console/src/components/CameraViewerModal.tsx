@@ -51,6 +51,7 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
+      dismissible
       closeLabel={t('camera.viewer_label', { name })}
       hideCloseButton
       layerClassName="z-[120] !items-center !overflow-hidden bg-background/95 p-0 backdrop-blur-xl"

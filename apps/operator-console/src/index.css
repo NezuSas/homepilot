@@ -1133,7 +1133,7 @@
   @media (prefers-reduced-motion: reduce) { .sensor-liquid, .sensor-liquid-surface { transition: none; transition-duration: 0s !important; } }
   .sensor-analog-readout { position: relative; margin: -8% 0 0; display: grid; justify-items: center; gap: 0.25rem; }
   .sensor-analog-readout .sensor-reading-value { flex-direction: row; flex-wrap: nowrap; align-items: baseline; gap: 0.25rem; }
-  .sensor-analog-readout .sensor-reading-number { font-size: clamp(0.75rem, var(--sensor-reading-scale, 12cqi), 2.25rem); font-weight: 550; }
+  .sensor-analog-readout .sensor-reading-number { font-size: clamp(0.875rem, var(--sensor-reading-scale, 12cqi), 2.25rem); font-weight: 550; }
   .sensor-analog-readout .sensor-reading-plain { font-size: clamp(0.625rem, var(--sensor-reading-scale, 12cqi), 2.25rem); }
   .sensor-analog-readout .sensor-reading-unit { font-size: clamp(0.625rem, 8cqi, 1rem); }
 
