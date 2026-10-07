@@ -123,6 +123,17 @@ describe('MediaService image upload validation', () => {
     expect(await service.listHomeImages()).toEqual([]);
   });
 
+  it('accepts the exact Home image byte limit and rejects malformed large Base64', async () => {
+    const service = new MediaService(mediaDirectory);
+    const payload = Buffer.alloc(5 * 1024 * 1024);
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(payload);
+    const encoded = payload.toString('base64');
+    await expect(service.addHomeImage(`data:image/png;base64,${encoded}`)).resolves.toHaveLength(1);
+    await expect(service.addHomeImage(`data:image/png;base64,${encoded}!`)).rejects.toThrow('Invalid image data URI');
+    expect((await fs.stat(path.join(mediaDirectory, 'home', 'image_home_1.png'))).size).toBe(payload.length);
+    expect(await fs.readdir(path.join(mediaDirectory, 'home'))).toEqual(['image_home_1.png']);
+  });
+
   it('compacts mixed image extensions without retaining an obsolete slot file', async () => {
     const service = new MediaService(mediaDirectory);
     const jpeg = `data:image/jpeg;base64,${Buffer.from([0xff, 0xd8, 0xff, 0x01]).toString('base64')}`;

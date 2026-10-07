@@ -167,6 +167,7 @@
 - **Descripción**: Guardar tres frases y exponer lectura autenticada y escritura exclusiva de Admin, con límite de 1000 caracteres. Reutilizar el servicio y volumen persistente de medios para hasta cinco imágenes validadas; mantener slots deterministas y contiguos al añadir, reemplazar o eliminar, sin archivos huérfanos.
 - **Módulos**: persistencia global existente de variables de sistema (sin migración nueva), `MediaService` y rutas de settings.
 - **Criterio Relacionado**: **AC31–AC32**.
+- **Regresión Linux/CI (2026-10-07)**: el parser de imágenes valida cabecera y alfabeto Base64 por separado, evitando capturar varios megabytes con una expresión regular repetida. Conserva límites de bytes decodificados y firmas; prueba el límite exacto de Home (5 MiB), exceso y Base64 inválido sin archivos residuales. Validación global pendiente de ejecución por el usuario.
 
 ### [UI-Home-01] Personalización administrativa y hero de Inicio
 - **Descripción**: Ocultar «Mi Hogar», ofrecer en Sistema la edición Admin de frases con contador, feedback async y textarea adaptable, y la gestión de imágenes con posición, preview, confirmación modular y progreso. Compartir la regla horaria del saludo y la frase, resolver frases vacías por prioridad entre periodos; conservar fallback ambiental, caché privada de imágenes con URL versionada, carrusel de diez segundos y contenido superior legible y responsive.

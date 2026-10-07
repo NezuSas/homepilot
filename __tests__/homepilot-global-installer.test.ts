@@ -49,6 +49,21 @@ const diagnosticSystem = `
 `;
 
 describe('HomePilot global installation wizard without system operations', () => {
+  it('validates client names under the Linux CI C.UTF-8 locale without collating ranges', () => {
+    const result = runShell(`
+      export LC_ALL=C.UTF-8
+      for name in 'Cliente Prueba' 'Casa Prueba' 'José Muñoz' 'Instalación NEZU'; do
+        hp_valid_name "$name"
+      done
+      for name in '' '../Casa' 'Casa/Prueba' 'Casa;exit' ' Casa'; do
+        if hp_valid_name "$name"; then exit 1; fi
+      done
+      printf 'NAMES_VALIDATED\\n'
+    `);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('NAMES_VALIDATED');
+  });
+
   it('shows one branded diagnostic summary without legacy banners or technical inventories by default', () => {
     const result = runShell(`${diagnosticSystem}
       bash() { printf 'UNEXPECTED_DOCKER_PS\\n'; }

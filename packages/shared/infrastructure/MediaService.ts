@@ -181,13 +181,20 @@ export class MediaService {
   }
 
   private parseImageDataUri(dataUri: string, maxBytes: number): { extension: string; buffer: Buffer } {
-    const matches = dataUri.match(/^data:image\/([a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=]+)$/);
-    if (!matches || matches.length !== 3) throw new Error('Invalid image data URI');
+    // Do not capture a multi-megabyte payload in a repeated regex group:
+    // V8's unoptimised regexp engine can overflow its stack under coverage.
+    const matches = dataUri.match(/^data:image\/([a-zA-Z0-9.+-]+);base64,/);
+    if (!matches) throw new Error('Invalid image data URI');
+    const encoded = dataUri.slice(matches[0].length);
+    if (!encoded || /[^A-Za-z0-9+/=]/.test(encoded)) throw new Error('Invalid image data URI');
 
     const requestedType = matches[1].toLowerCase();
     if (!MediaService.ALLOWED_IMAGE_TYPES.has(requestedType)) throw new Error('Unsupported image type');
 
-    const buffer = Buffer.from(matches[2], 'base64');
+    // Keep the decoded check as well: padding can put a payload over the
+    // byte limit even when its encoded length equals this upper bound.
+    if (encoded.length > 4 * Math.ceil(maxBytes / 3)) throw new Error('Image exceeds allowed size');
+    const buffer = Buffer.from(encoded, 'base64');
     if (!buffer.length || buffer.length > maxBytes) throw new Error('Image exceeds allowed size');
     if (!this.hasExpectedImageSignature(requestedType, buffer)) throw new Error('Invalid image payload');
 

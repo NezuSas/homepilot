@@ -21,7 +21,12 @@ hp_community=false
 hp_edge_hostname=''
 hp_pairing_changed=false
 
-hp_valid_name() { [[ -n "$1" && ${#1} -le 80 && "$1" =~ ^[[:alnum:]À-ÿ][[:alnum:]À-ÿ[:space:]._-]*$ ]]; }
+hp_valid_name() {
+  # Explicit Latin letters avoid locale-dependent collating ranges (À-ÿ).
+  local letters='[:alnum:]ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ'
+  local pattern="^[$letters][$letters[:space:]._-]*$"
+  [[ -n "$1" && ${#1} -le 80 && "$1" =~ $pattern ]]
+}
 hp_valid_hostname() { [[ ${#1} -le 63 && "$1" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; }
 hp_valid_edge_url() { [[ "$1" =~ ^https://([a-z0-9-]+\.)+nezuecuador\.com(:[0-9]+)?$ ]]; }
 hp_valid_lan_ip() {
