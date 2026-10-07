@@ -1364,6 +1364,9 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     await expect(editor.getByLabel(/^(PLC command|Comando PLC)$/i, { exact: true })).toHaveValue('M200');
     await editor.getByLabel(/^(Physical output|Salida física)$/i).fill('Y1');
     await expect(editor.getByLabel(/^(PLC command|Comando PLC)$/i, { exact: true })).toHaveValue('M200');
+    // Sequential bounding boxes must not sample different frames of the
+    // modal's translate/zoom entrance animation. Keep the 4px alignment limit.
+    await waitForSettledLayout(editor);
     const physicalBounds = (await editor.getByLabel(/^(Physical output|Salida física)$/i).boundingBox())!;
     const commandBounds = (await editor.getByLabel(/^(PLC command|Comando PLC)$/i, { exact: true }).boundingBox())!;
     // Compact layouts place physical and command side by side; mobile stacks them.
