@@ -7,3 +7,5 @@
 - [x] AC5: Extraer persistencia de los handlers a repositorios inyectados y bloquear SQL directo desde rutas. Evidencia: `npm run check:architecture-boundaries`.
 - [x] AC6: Añadir quality gates reproducibles en CI.
 - [x] AC6: Separar CI ordinario no visual y validación completa local/manual, sin eliminar pruebas ni reducir umbrales. Cubrir la composición de scripts y los triggers con pruebas; validación larga y ejecución remota del nuevo workflow pendientes del usuario.
+- [x] AC6: Sustituir repetición automática del pre-push por comprobación de evidencia completa vigente y runtime actual; invalidar evidencia al fallar, caducar o cambiar código/condiciones comprobadas. Pruebas focalizadas de composición y evidencia: 21 PASS. No se importan resultados anteriores ni se desactivan controles.
+- [ ] AC6: Ejecutar la nueva validación completa local y comprobar el primer push con evidencia; ejecución larga reservada al usuario. CI remoto y deploy no ejecutados por el agente.

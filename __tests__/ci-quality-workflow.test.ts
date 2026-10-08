@@ -22,8 +22,17 @@ describe('Feature: Explicit full quality validation (Engineering Quality AC6)', 
   });
 
   it('Scenario: Full validation still executes every visual test after non-visual controls', () => {
-    expect(scripts['verify:quality']).toBe('npm run verify:ci && npm run test:responsive');
+    expect(scripts['verify:quality']).toBe('node scripts/verify-quality-receipt.cjs --validate');
+    expect(read('scripts/verify-quality-receipt.cjs')).toContain("const STAGES = ['verify:ci', 'test:responsive'];");
     expect(scripts['test:responsive']).toBe('node scripts/run-responsive-tests.mjs');
+  });
+
+  it('Scenario: Push checks prior complete evidence and fresh runtime without rerunning suites (AC6)', () => {
+    const hook = read('.githooks/pre-push');
+    expect(hook).toContain('npm run verify:quality:check');
+    expect(scripts['verify:quality:check']).toBe('node scripts/verify-quality-receipt.cjs --check-push');
+    expect(hook).toContain('npm run verify:local-control-runtime');
+    expect(hook.split(/\r?\n/)).not.toContain('npm run verify:quality');
   });
 
   it('Scenario: Remote full validation is explicit, not repeated on every push', () => {

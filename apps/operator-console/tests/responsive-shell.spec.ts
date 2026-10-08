@@ -966,9 +966,12 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     await page.mouse.click(bounds.x / 2, bounds.y + bounds.height / 2);
     await expect(dialog).toBeVisible(); await expect(id).toHaveValue('2');
     const area = dialog.getByRole('button', { name: /^(Area|Área)$/i });
-    const inputBounds = (await id.boundingBox())!, selectBounds = (await area.boundingBox())!;
-    expect(inputBounds.height).toBeCloseTo(44, 1); expect(selectBounds.height).toBeCloseTo(44, 1);
+    // Modal's zoom-in animation scales bounding boxes during entry. Retry the
+    // real geometry without weakening AC79's 44px control-height assertion.
+    await expect.poll(async () => (await id.boundingBox())?.height).toBeCloseTo(44, 1);
+    await expect.poll(async () => (await area.boundingBox())?.height).toBeCloseTo(44, 1);
     if (viewport.name !== 'mobile') {
+      const selectBounds = (await area.boundingBox())!;
       const neighbor = (await dialog.getByLabel(/^(Timeout \(ms\)|Espera máxima \(ms\))$/i).boundingBox())!;
       expect(Math.abs(neighbor.y - selectBounds.y)).toBeLessThan(1);
     }
