@@ -32,6 +32,15 @@ validación y push. Si una herramienta modifica archivos después de validar,
 hay que validar de nuevo. Los archivos ignorados de runtime y artefactos
 generados no forman parte del código validado.
 
+Los exports locales de diagnóstico `/ci-failed-[0-9]*.txt` están ignorados
+explícitamente: no se publican, no bloquean el push y pueden crearse o retirarse
+sin invalidar nuevas evidencias. La regla solo aplica en la raíz y no excluye
+todos los TXT, código ni tests. Un archivo ya registrado sigue siendo parte de
+la huella incluso si después coincide con una regla de ignore. No borrar logs
+ni agregarlos a Git para resolver este caso. Al introducir por primera vez la
+regla, la evidencia antigua (que los incluía) queda obsoleta y hay que generar
+una nueva validación completa; no se reescribe ni se reetiqueta como vigente.
+
 Es evidencia operativa local, no una firma resistente a manipulación: no protege
 contra alteraciones manuales internas de node_modules, cambios del sistema
 operativo ni falsificación deliberada del archivo. Tras cambiar dependencias,

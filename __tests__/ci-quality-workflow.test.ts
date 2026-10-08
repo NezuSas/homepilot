@@ -35,6 +35,16 @@ describe('Feature: Explicit full quality validation (Engineering Quality AC6)', 
     expect(hook.split(/\r?\n/)).not.toContain('npm run verify:quality');
   });
 
+  it('Scenario: Local CI diagnostic exports are ignored narrowly, not source or all text files (AC6)', () => {
+    const patterns = read('.gitignore').split(/\r?\n/);
+    expect(patterns).toContain('/ci-failed-[0-9]*.txt');
+    expect(patterns).not.toContain('*.txt');
+    expect(patterns).not.toContain('ci-failed-*');
+    // Only untracked/non-ignored files use the exclusion; tracked inputs remain hashed.
+    expect(read('scripts/verify-quality-receipt.cjs'))
+      .toContain("['ls-files', '-z', '--cached', '--others', '--exclude-standard']");
+  });
+
   it('Scenario: Remote full validation is explicit, not repeated on every push', () => {
     const workflow = read('.github/workflows/full-quality-validation.yml');
     expect(workflow).toContain('  workflow_dispatch:');
