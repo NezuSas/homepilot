@@ -91,6 +91,14 @@ etwork_mode: host para la API y publica el puerto 13000.
 
 ## 5. Límites
 
+### AC31 / REQ-31: Preservación del runtime existente
+
+Antes de construir o recrear la API, instalador y mantenimiento verifican en modo lectura el proyecto Compose y los montajes canónicos `data`/`backups`. Reutilizan el proyecto existente y abortan ante discrepancias. Un montaje TPM existente o una identidad SQLite `bound` exige conservar el overlay TPM, aunque falte el marcador del instalador global. Si el TPM requerido, la identidad o los montajes no son verificables, no se recrea la API. La consulta SQLite es exclusivamente `readonly`/`query_only`; no ejecuta enrollment ni migraciones. Una API detenida sin montaje TPM requiere revisión manual.
+
+El mantenimiento se ejecuta desde la raíz de su propio checkout. El informe separa el tamaño de datos/backups, imágenes y caché, sin prometer una cuota estricta ni sumar capas compartidas. No se habilita borrado automático: `--gc-homepilot` sigue siendo una acción explícita e independiente, con las protecciones de AC29. No se eliminan backups, datos ni imágenes pendientes de recuperación.
+
+Cobertura: `__tests__/homepilot-runtime-preservation.test.ts`, escenarios con Docker y TPM simulados, sin conexiones al appliance.
+
 - `ha_companion` es una opción explícita y no migra ni modifica un Home Assistant existente.
 - HACS y SonoffLAN se provisionan automáticamente en `ha_companion`; en `bridge_ha` solo se instalan con autorización explícita del operador.
 - `native_only` habilita el appliance y sus integraciones locales; no implementa todavía cada protocolo posible de terceros.

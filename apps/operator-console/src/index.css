@@ -2431,7 +2431,7 @@
 .homepilot-dashboard-screen .homepilot-clock-reference-details { display: none; }
 .homepilot-dashboard-screen .homepilot-clock-reference-main {
   --clock-level: 4; --clock-arrangement: solo;
-  --clock-gap: clamp(8px, 3cqw, 20px);
+  --clock-gap: clamp(8px, 3cqw, 16px);
   --clock-diameter: min(calc(100cqw - 18px), calc(100cqh - 18px), 28rem);
   grid-template-columns: var(--clock-diameter); grid-template-rows: auto;
   width: 100%; max-width: 480px; height: 100%; gap: var(--clock-gap);
@@ -2445,7 +2445,7 @@
 @container (min-width: 98px) {
   .homepilot-dashboard-screen .homepilot-clock-reference-brand { display: block; }
 }
-.homepilot-dashboard-screen .homepilot-clock-reference-time { font-size: clamp(20px, 5cqw, 32px); line-height: 1.25; white-space: nowrap; }
+.homepilot-dashboard-screen .homepilot-clock-reference-time { font-size: clamp(20px, 5cqw, 28px); font-weight: 600; letter-spacing: -0.02em; line-height: 1.25; white-space: nowrap; }
 .homepilot-dashboard-screen .homepilot-clock-reference-weekday,
 .homepilot-dashboard-screen .homepilot-clock-reference-date,
 .homepilot-dashboard-screen .homepilot-clock-reference-location,
@@ -2464,15 +2464,17 @@
     grid-template-columns: var(--clock-diameter); grid-template-rows: auto 28px; gap: 8px;
   }
   .homepilot-dashboard-screen .homepilot-clock-reference-details { display: block; width: 100%; text-align: center; }
+  .homepilot-dashboard-screen .homepilot-clock-reference-accessible-time { display: none; }
   .homepilot-dashboard-screen .homepilot-clock-reference-time { font-size: 20px; }
 }
 @container clock-card ((min-width: 200px) and (min-height: 104px) and (height < 132px)) or ((min-width: 200px) and (min-height: 104px) and (aspect-ratio > 1.2)) {
   .homepilot-dashboard-screen .homepilot-clock-reference-main {
     --clock-level: 3; --clock-arrangement: horizontal;
     --clock-diameter: min(calc(100cqw - 118px - var(--clock-gap)), calc(100cqh - 18px), 42cqw, 28rem);
-    grid-template-columns: var(--clock-diameter) 100px; grid-template-rows: auto; gap: var(--clock-gap);
+    grid-template-columns: var(--clock-diameter) max-content; grid-template-rows: auto; gap: var(--clock-gap);
   }
-  .homepilot-dashboard-screen .homepilot-clock-reference-details { display: block; width: 100px; text-align: left; }
+  .homepilot-dashboard-screen .homepilot-clock-reference-details { display: block; width: auto; text-align: left; }
+  .homepilot-dashboard-screen .homepilot-clock-reference-accessible-time { display: none; }
 }
 @container clock-card (min-width: 146px) and (min-height: 172px) {
   .homepilot-dashboard-screen .homepilot-clock-reference-main {
@@ -2481,6 +2483,7 @@
     grid-template-columns: var(--clock-diameter); grid-template-rows: auto 64px; gap: 8px;
   }
   .homepilot-dashboard-screen .homepilot-clock-reference-details { display: block; width: 128px; text-align: center; }
+  .homepilot-dashboard-screen .homepilot-clock-reference-accessible-time { display: none; }
   .homepilot-dashboard-screen .homepilot-clock-reference-time { font-size: 20px; }
   .homepilot-dashboard-screen .homepilot-clock-reference-date,
   .homepilot-dashboard-screen .homepilot-clock-reference-weekday { display: block; }
@@ -2492,6 +2495,7 @@
     grid-template-columns: var(--clock-diameter) 128px; grid-template-rows: auto; gap: var(--clock-gap);
   }
   .homepilot-dashboard-screen .homepilot-clock-reference-details { display: block; width: 128px; text-align: left; }
+  .homepilot-dashboard-screen .homepilot-clock-reference-accessible-time { display: none; }
   .homepilot-dashboard-screen .homepilot-clock-reference-date,
   .homepilot-dashboard-screen .homepilot-clock-reference-weekday { display: block; }
 }
@@ -2502,6 +2506,7 @@
     grid-template-columns: var(--clock-diameter) 144px; grid-template-rows: auto; gap: var(--clock-gap);
   }
   .homepilot-dashboard-screen .homepilot-clock-reference-details { display: block; width: 144px; text-align: left; }
+  .homepilot-dashboard-screen .homepilot-clock-reference-accessible-time { display: none; }
   .homepilot-dashboard-screen .homepilot-clock-reference-date,
   .homepilot-dashboard-screen .homepilot-clock-reference-weekday { display: block; }
   .homepilot-dashboard-screen .homepilot-clock-reference-weather { display: grid; }

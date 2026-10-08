@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 mode="mini-pc"
 failures=0
@@ -21,7 +22,7 @@ warn() { printf 'WARN %s\n' "$1"; failures=$((failures + 1)); }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --mode) mode="${2:-}"; shift 2 ;;
+    --mode) [[ $# -ge 2 && -n "$2" ]] || { printf 'ERROR falta valor para --mode\n' >&2; exit 2; }; mode="$2"; shift 2 ;;
     --help) usage; exit 0 ;;
     *) printf 'ERROR opción no reconocida: %s\n' "$1" >&2; exit 2 ;;
   esac

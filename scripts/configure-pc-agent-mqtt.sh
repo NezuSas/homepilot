@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 readonly credentials_dir="data/mqtt"
 readonly password_file="${credentials_dir}/passwordfile"
@@ -34,7 +35,7 @@ case "$command_name" in
     prepare_only=false
     while [[ $# -gt 0 ]]; do
       case "$1" in
-        --ha-username) ha_username="${2:-}"; shift 2 ;;
+        --ha-username) [[ $# -ge 2 && -n "$2" ]] || fail 'Falta valor para --ha-username.'; ha_username="$2"; shift 2 ;;
         --prepare-only) prepare_only=true; shift ;;
         --help) usage; exit 0 ;;
         *) fail "Opción no reconocida: $1" ;;
@@ -68,7 +69,7 @@ EOF
     device_name=""
     while [[ $# -gt 0 ]]; do
       case "$1" in
-        --device-name) device_name="${2:-}"; shift 2 ;;
+        --device-name) [[ $# -ge 2 && -n "$2" ]] || fail 'Falta valor para --device-name.'; device_name="$2"; shift 2 ;;
         --help) usage; exit 0 ;;
         *) fail "Opción no reconocida: $1" ;;
       esac
@@ -78,7 +79,9 @@ EOF
     if grep -q "^user ${device_name}$" "$acl_file"; then
       fail "Ya existe una ACL para ${device_name}."
     fi
-    docker run --rm -it -v "$(pwd)/${credentials_dir}:/mqtt" eclipse-mosquitto:2 \
+    docker_tty=()
+    [[ ! -t 0 || ! -t 1 ]] || docker_tty=(-t)
+    docker run --rm -i "${docker_tty[@]}" -v "$(pwd)/${credentials_dir}:/mqtt" eclipse-mosquitto:2 \
       mosquitto_passwd /mqtt/passwordfile "$device_name"
     cat >> "$acl_file" <<EOF
 

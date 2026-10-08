@@ -1,5 +1,16 @@
 # Tasks — HomePilot Global Installer v1
 
+- [x] T15 (AC13): progreso modular ámbar y tiempo transcurrido en apt/build/inicio, modo técnico explícito, códigos de error y limpieza del indicador sin logs crudos ni porcentajes ficticios.
+- [ ] T16 (AC13): comprobar animación, resize e interrupción en terminal SSH real; ejecutar regresión completa actualizada antes de publicar.
+
+- [x] T13 (AC12): completar paquetes del host y comprobaciones previas, diferir CIDR hasta Python disponible, resolver raíz de motores/diagnósticos, validar argumentos MQTT/readiness y cubrir sintaxis de todos los Bash.
+- [ ] T14 (AC12): validar instalación limpia Ubuntu y actualización de MiniPC existente en entorno autorizado; verificar repositorios externos, TPM y servicios reales. No sustituir esta validación por mocks.
+
+- [x] T9 (AC9): consola persistente y aliases CLI; delegación en motores existentes, operaciones aisladas y códigos de error sin falsos éxitos.
+- [x] T10 (AC10): cabecera única, presentación modular compartida, terminal estrecha/no TTY, selección validada y estados que distinguen servicio activo de conexión comprobada.
+- [x] T11 (AC11): diagnóstico de identidad read-only compartido, consultas WOL sin efectos secundarios, raíz MQTT y verificación de HA administrado.
+- [ ] T12 (AC9–AC11): ejecutar regresión completa del candidato y validar interacción/resize en terminal SSH real y operación autorizada en MiniPC. No se declara comprobado desde simulaciones.
+
 - [x] T1: inventariar/reutilizar instalador histórico, Compose, checks, claim y enrollment (AC2–AC6).
 - [x] T2: implementar wizard global con salida TTY/no TTY, validación y confirmación (AC1).
 - [x] T3: validar sistema base, Docker y TPM con operaciones simulables (AC2, AC4).

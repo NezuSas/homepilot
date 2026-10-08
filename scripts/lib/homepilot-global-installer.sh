@@ -3,6 +3,8 @@
 source "$(dirname "${BASH_SOURCE[0]}")/android-display-appliance.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/api-health.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/homepilot-terminal-ui.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/homepilot-runtime-preservation.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/homepilot-admin-menu.sh"
 
 hp_client=''
 hp_installation=''
@@ -86,7 +88,11 @@ hp_collect_architecture() {
     hp_android=true
     hp_read 'CIDR LAN autorizado (ej. 192.168.1.0/24): ' || hp_fail 'Falta CIDR Android.'
     hp_android_cidrs="$REPLY"
-    android_display_validate_cidrs "$hp_android_cidrs" || hp_fail 'CIDR Android inválido.'
+    if command -v python3 >/dev/null 2>&1; then
+      android_display_validate_cidrs "$hp_android_cidrs" || hp_fail 'CIDR Android inválido.'
+    else
+      hp_warn 'El CIDR se verificará después de preparar Python y antes de desplegar.'
+    fi
     hp_ui_confirm_value "$hp_android_cidrs"
   fi
   if hp_yes_no '¿Esta instalación utilizará dispositivos o agentes MQTT?' false; then
@@ -162,13 +168,21 @@ hp_preflight() {
 
 hp_install_base() {
   local missing=() package
-  for package in ca-certificates curl jq openssh-server; do
+  for package in ca-certificates curl jq openssh-server openssh-client git python3 openssl iproute2 coreutils util-linux grep sed gawk findutils tar gzip; do
     dpkg-query -W -f='${Status}' "$package" 2>/dev/null | grep -q 'install ok installed' || missing+=("$package")
   done
   if (( ${#missing[@]} > 0 )); then
-    apt-get update -qq
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "${missing[@]}"
+    hp_ui_run 'Actualizando catálogo de paquetes' apt-get update -qq
+    DEBIAN_FRONTEND=noninteractive hp_ui_run 'Instalando dependencias del sistema' apt-get install -y --no-install-recommends "${missing[@]}"
   fi
+  local executable
+  for executable in curl jq ssh git python3 openssl ip ss df du stat timeout install realpath flock grep sed awk find tar gzip systemctl hostnamectl getent; do
+    command -v "$executable" >/dev/null 2>&1 \
+      || { hp_fail "Dependencia requerida no disponible: ${executable}. No se desplegará."; return 1; }
+  done
+  python3 -c 'import ipaddress, json, pathlib, os, stat, pwd, grp' \
+    || { hp_fail 'Python no dispone de los módulos estándar requeridos.'; return 1; }
+  openssl version >/dev/null || { hp_fail 'OpenSSL no está operativo.'; return 1; }
   systemctl enable --now ssh >/dev/null
   hp_ok 'Paquetes base y SSH local disponibles.'
 }
@@ -189,11 +203,11 @@ hp_install_docker() {
   chmod a+r /etc/apt/keyrings/docker.asc
   printf 'Types: deb\nURIs: https://download.docker.com/linux/ubuntu\nSuites: %s\nComponents: stable\nArchitectures: %s\nSigned-By: /etc/apt/keyrings/docker.asc\n' \
     "${UBUNTU_CODENAME:-$VERSION_CODENAME}" "$(dpkg --print-architecture)" >/etc/apt/sources.list.d/docker.sources
-  apt-get update -qq
+  hp_ui_run 'Actualizando catálogo Docker' apt-get update -qq
   if command -v docker >/dev/null; then
-    DEBIAN_FRONTEND=noninteractive apt-get install -y docker-buildx-plugin docker-compose-plugin
+    DEBIAN_FRONTEND=noninteractive hp_ui_run 'Preparando Compose y Buildx' apt-get install -y docker-buildx-plugin docker-compose-plugin
   else
-    DEBIAN_FRONTEND=noninteractive apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    DEBIAN_FRONTEND=noninteractive hp_ui_run 'Instalando Docker' apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
   fi
   systemctl enable --now docker >/dev/null
   docker info >/dev/null && docker compose version >/dev/null && docker buildx version >/dev/null || hp_fail 'Docker no quedó operativo.'
@@ -203,8 +217,8 @@ hp_install_docker() {
 hp_verify_tpm() {
   hp_tpm_device_available || hp_fail 'TPM 2.0 no disponible.'
   if ! command -v tpm2_getcap >/dev/null || ! command -v tpm2_getrandom >/dev/null; then
-    apt-get update -qq
-    DEBIAN_FRONTEND=noninteractive apt-get install -y tpm2-tools
+    hp_ui_run 'Actualizando catálogo TPM' apt-get update -qq
+    DEBIAN_FRONTEND=noninteractive hp_ui_run 'Preparando herramientas TPM' apt-get install -y tpm2-tools
   fi
   TPM2TOOLS_TCTI=device:/dev/tpmrm0 tpm2_getcap properties-fixed >/dev/null 2>&1 || hp_fail 'El TPM no responde a tpm2_getcap.'
   TPM2TOOLS_TCTI=device:/dev/tpmrm0 tpm2_getrandom 8 >/dev/null 2>&1 || hp_fail 'El TPM no genera entropía.'
@@ -217,8 +231,8 @@ hp_install_cloudflared_binary() {
   curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg -o /usr/share/keyrings/cloudflare-main.gpg
   printf 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared any main\n' \
     >/etc/apt/sources.list.d/cloudflared.list
-  apt-get update -qq
-  DEBIAN_FRONTEND=noninteractive apt-get install -y cloudflared
+  hp_ui_run 'Actualizando catálogo Cloudflare' apt-get update -qq
+  DEBIAN_FRONTEND=noninteractive hp_ui_run 'Instalando Cloudflared' apt-get install -y cloudflared
 }
 
 hp_configure_cloudflared() {
@@ -275,7 +289,7 @@ hp_is_paired() {
     (.homeId | type) == "string" and (.edgeId | type) == "string"
   ' data/cloud-gateway.json >/dev/null 2>&1
 }
-hp_binding_status() { docker exec homepilot-api node dist/scripts/enroll-edge-device.js --status | tail -n 1; }
+hp_binding_status() { homepilot_runtime_identity_status; }
 
 hp_pair_directory() {
   [[ "$hp_remote" == true ]] || return 0
@@ -372,14 +386,14 @@ hp_complete_pending_runtime() {
 
 hp_finish() {
   hp_step 8 'INSTALACIÓN FINALIZADA'
-  hp_ui_center "$HP_AMBER$HP_BOLD" 'HOMEPILOT INSTALLATION READY'
+  hp_ui_center "$HP_AMBER$HP_BOLD" 'INSTALACIÓN PREPARADA'
   printf '\n'
   hp_ui_status '✓' "$HP_GREEN" 'API' 'Healthy'
   hp_ui_status '✓' "$HP_GREEN" 'UI' 'Online'
   if [[ "$hp_remote" == true ]]; then
     hp_ui_status '✓' "$HP_GREEN" 'TPM 2.0' 'Bound'
     hp_ui_status '✓' "$HP_GREEN" 'Directory Edge' 'Paired'
-    hp_ui_status '✓' "$HP_GREEN" 'Cloudflare Tunnel' 'Connected'
+    hp_ui_status '!' "$HP_YELLOW" 'Cloudflare Tunnel' 'Servicio activo; conexión no verificada'
   else
     hp_ui_status '●' "$HP_YELLOW" 'TPM 2.0' 'Verificado · binding pendiente'
     hp_ui_status '—' "$HP_SECONDARY" 'Directory Edge' 'Pendiente'
@@ -398,7 +412,7 @@ hp_finish() {
   hp_ui_block "$HP_AMBER" "http://$(hp_lan_address):${ui_port}"
   hp_ui_wrap_block "$HP_SECONDARY" 'Desde ahí: crear administrador, configurar integraciones, completar onboarding y Dashboard.'
   printf '\n'
-  hp_ui_center "$HP_GREEN" 'Installation completed successfully.'
+  hp_ui_center "$HP_GREEN" 'Instalación completada.'
 }
 
 hp_diag_api_status() { homepilot_api_health_status 2>/dev/null || true; }
@@ -473,7 +487,7 @@ hp_global_diagnostic() {
     state="$(hp_diag_container_state homepilot-display-bridge)"
     case "$state" in
       healthy) hp_ui_status '✓' "$HP_GREEN" 'Android Display' 'Healthy' ;;
-      running) hp_ui_status '✓' "$HP_GREEN" 'Android Display' 'Running' ;;
+      running) hp_ui_status '!' "$HP_YELLOW" 'Android Display' 'En ejecución; salud no verificada' ;;
       *) hp_diag_failure 'Android Display' 'Unavailable' ;;
     esac
   else
@@ -493,7 +507,7 @@ hp_global_diagnostic() {
   fi
 
   if hp_is_paired; then
-    hp_ui_status '✓' "$HP_GREEN" 'Directory Edge' 'Paired'
+    hp_ui_status '✓' "$HP_GREEN" 'Directory Edge' 'Emparejado; conectividad no verificada'
   else
     hp_ui_status '—' "$HP_SECONDARY" 'Directory Edge' 'Not installed'
   fi
@@ -511,14 +525,15 @@ hp_global_diagnostic() {
   fi
   state="$(hp_diag_cloudflared_state)"
   case "$state" in
-    active) hp_ui_status '✓' "$HP_GREEN" 'Cloudflare Tunnel' 'Connected' ;;
+    active) hp_ui_status '!' "$HP_YELLOW" 'Cloudflare Tunnel' 'Servicio activo; conexión no verificada' ;;
     inactive) hp_diag_failure 'Cloudflare Tunnel' 'Inactive' ;;
     *) hp_ui_status '—' "$HP_SECONDARY" 'Cloudflare Tunnel' 'Not installed' ;;
   esac
   if [[ "$mqtt" == true ]]; then
     state="$(hp_diag_container_state homepilot-mqtt)"
     case "$state" in
-      healthy|running) hp_ui_status '✓' "$HP_GREEN" 'MQTT' 'Running' ;;
+      healthy) hp_ui_status '✓' "$HP_GREEN" 'MQTT' 'Saludable' ;;
+      running) hp_ui_status '!' "$HP_YELLOW" 'MQTT' 'En ejecución; protocolo no verificado' ;;
       *) hp_diag_failure 'MQTT' 'Unavailable' ;;
     esac
   else
@@ -528,7 +543,8 @@ hp_global_diagnostic() {
   printf '\n'
   hp_ui_separator
   if (( hp_diagnostic_failures == 0 )); then
-    hp_ok 'Sistema operativo correctamente'
+    hp_ok 'Comprobaciones realizadas sin fallos'
+    hp_ui_wrap_block "$HP_SECONDARY" 'No certifica conectividad remota ni actuación de dispositivos.'
   else
     hp_ui_status '!' "$HP_YELLOW" 'Sistema requiere atención' "$hp_diagnostic_failures módulo(s)"
   fi
@@ -541,47 +557,19 @@ hp_global_diagnostic() {
 }
 
 hp_existing_menu() {
-  hp_banner
-  hp_ui_center "$HP_SOFT" 'Existing HomePilot installation detected'
-  hp_ui_select 'Selecciona una acción' 'Estado / diagnóstico' \
-    'Completar configuración pendiente' 'Reparar componentes seleccionados' 'Cancelar' \
-    || hp_fail 'Falta selección.'
-  case "$REPLY" in
-    1) hp_global_diagnostic ;;
-    2)
-      [[ "$(hp_saved_value HOMEPILOT_GLOBAL_INSTALLER_VERSION '')" == v1 ]] \
-        || hp_fail 'Instalación histórica: usa su procedimiento de pairing; el wizard no cambiará el perfil.'
-      hp_remote=true
-      hp_complete_pending_runtime
-      if ! hp_is_paired; then
-        hp_read 'URL pública HomePilot asignada por NEZU (https://...): ' || hp_fail 'Falta URL pública.'
-        hp_edge_hostname="$REPLY"
-        hp_valid_edge_url "$hp_edge_hostname" || hp_fail 'URL pública inválida.'
-        hp_ui_confirm_value "$hp_edge_hostname"
-      fi
-      hp_verify_tpm
-      hp_configure_cloudflared
-      hp_pair_directory
-      hp_bind_identity
-      ;;
-    3)
-      hp_ui_select 'Selecciona un componente' 'Paquetes base y Docker' \
-        'Servicio Cloudflare' 'Diagnóstico API' || hp_fail 'Falta selección.'
-      case "$REPLY" in
-        1) hp_yes_no '¿Reparar paquetes base y Docker?' false && { hp_install_base; hp_install_docker; } ;;
-        2) hp_remote=true; hp_yes_no '¿Reparar servicio Cloudflare?' false && hp_configure_cloudflared ;;
-        3) hp_global_diagnostic ;;
-        *) hp_fail 'Componente inválido.' ;;
-      esac
-      ;;
-    4) hp_ok 'Sin cambios.' ;;
-    *) hp_fail 'Opción inválida.' ;;
-  esac
+  hp_admin_menu
 }
 
 hp_main() {
+  local -a arguments=()
+  local argument
+  for argument in "$@"; do
+    if [[ "$argument" == --verbose ]]; then export HOMEPILOT_VERBOSE=1; else arguments+=("$argument"); fi
+  done
+  set -- "${arguments[@]}"
   hp_color_init
-  if hp_existing_installation; then hp_existing_menu; return; fi
+  if (( $# > 0 )); then hp_admin_cli "$@"; return; fi
+  if hp_existing_installation; then hp_admin_menu; return; fi
   hp_banner
   hp_ui_begin
   hp_collect_information
@@ -594,6 +582,9 @@ hp_main() {
   hp_yes_no '¿Aplicar esta configuración?' false || { hp_warn 'Instalación cancelada sin cambios.'; return 1; }
   if [[ "$hp_change_hostname" == true ]]; then hostnamectl set-hostname "$hp_hostname"; fi
   hp_install_base
+  if [[ "$hp_android" == true ]]; then
+    android_display_validate_cidrs "$hp_android_cidrs" || hp_fail 'CIDR Android inválido; no se desplegará.'
+  fi
   hp_install_docker
   hp_verify_tpm
   hp_prepare_mqtt

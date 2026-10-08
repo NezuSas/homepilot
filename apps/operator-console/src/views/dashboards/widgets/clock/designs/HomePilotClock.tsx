@@ -1,6 +1,6 @@
 import { Clock3 } from 'lucide-react';
 import type { ClockDesignProps } from '../clockTypes';
-import { getHandAngles } from '../clockUtils';
+import { getHandAngles, pad } from '../clockUtils';
 import { AnalogDial, ClockShell } from './ClockShared';
 import { ClockDateTimeSummary, ClockWeatherSummary } from './ClockSummaries';
 
@@ -12,6 +12,9 @@ export function HomePilotClock({ now, locale, copy, weather, weatherStatus }: Cl
   return (
     <ClockShell tone="analog" className="homepilot-clock-surface homepilot-clock-reference">
       <div data-homepilot-clock className="homepilot-clock-reference-layout relative z-10">
+        <time className="homepilot-clock-reference-accessible-time sr-only" dateTime={now.toISOString()}>
+          {pad(now.getHours())}:{pad(now.getMinutes())}
+        </time>
         <header className="homepilot-clock-reference-header">
           <div className="homepilot-clock-reference-heading">
             <Clock3 aria-hidden="true" className="homepilot-clock-reference-header-icon" />

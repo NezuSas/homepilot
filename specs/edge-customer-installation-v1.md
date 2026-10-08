@@ -32,7 +32,7 @@ Una miniPC de cliente puede contener un Home Assistant operativo, servicios Dock
 - **REQ-04:** La limpieza solo debe ejecutarse por confirmación explícita o con `--clean`; no puede ejecutar ningún `docker * prune` global y solo puede remover contenedores HomePilot ya detenidos.
 - **REQ-05:** Si falta `.env`, el script debe crearla desde una plantilla de cliente sin sobrescribir una existente.
 - **REQ-06:** El script debe validar el compose, crear directorios persistentes requeridos y opcionalmente iniciar HomePilot con `--start`.
-- **REQ-07:** El script debe presentar una cabecera profesional `NEZU / HOMEPILOT EDGE` y estados visuales, sin codigos ANSI cuando la salida no sea una terminal interactiva.
+- **REQ-07:** La consola global presenta una cabecera profesional NEZU/HomePilot única; los motores técnicos históricos mantienen un título compacto sin logo y reutilizan la presentación compartida. No hay códigos ANSI cuando la salida no es una terminal interactiva. Ver extensión AC9–AC11 de `homepilot-global-installer-v1.md`.
 - **REQ-08:** El script debe ofrecer `--status` para verificar contenedores, healthchecks y endpoints sin crear archivos, limpiar ni iniciar servicios.
 - **REQ-09:** Cuando se use `--start`, el script debe esperar hasta un timeout explicito a que API, UI, Ollama, STT y TTS queden operativos antes de reportar el resultado final.
 - **REQ-10:** La salida de `--status` debe mostrar el puerto host configurado para cada servicio HomePilot y el puerto comprobado para Home Assistant.
@@ -52,7 +52,7 @@ Una miniPC de cliente puede contener un Home Assistant operativo, servicios Dock
 - [x] AC4: Sin `--clean`, el script solicita confirmación antes de limpiar; con `--clean --yes`, remueve únicamente contenedores HomePilot ya detenidos, sin tocar recursos globales de Docker.
 - [x] AC13: La guía distingue miniPC nueva, instalación con Home Assistant existente y otros proyectos Docker, e indica usar un directorio dedicado para evitar una colisión de proyecto Compose.
 - [x] AC5: El script falla antes de arrancar cuando Docker, Compose o el compose de cliente no estan disponibles.
-- [x] AC6: El script muestra la cabecera de Nezu/HomePilot y conserva salida legible si se redirige a un archivo.
+- [x] AC6: La consola global muestra la única cabecera Nezu/HomePilot; el motor técnico no repite el logo y conserva salida legible si se redirige a un archivo.
 - [x] AC7: `--status` indica el estado de API, UI, Ollama, STT, TTS y Home Assistant; devuelve un codigo distinto de cero si algun componente esperado no esta sano.
 - [x] AC8: `--start` no declara el sistema listo mientras existan servicios HomePilot en arranque; si el timeout vence, reporta la falla y termina con codigo distinto de cero.
 - [x] AC9: `--status` identifica en su salida los puertos de API, UI, Ollama, STT, TTS y Home Assistant.

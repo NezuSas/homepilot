@@ -131,7 +131,7 @@ regenerate_yaml() {
 
 list_devices() {
   local name os mac host broadcast port
-  ensure_registry
+  if [[ ! -f "$registry_file" ]]; then printf '%s\n' 'No hay computadoras registradas.'; return; fi
   local count=0
   divider
   printf '%b\n' "${BOLD}Computadoras Wake-on-LAN registradas${RESET}"
@@ -274,13 +274,10 @@ menu() {
   done
 }
 
-ensure_configuration_binding
-ensure_registry
-
 case "${1:-}" in
-  '') menu ;;
+  '') ensure_configuration_binding; ensure_registry; menu ;;
   --list) list_devices ;;
-  --regenerate) regenerate_yaml ;;
+  --regenerate) ensure_configuration_binding; regenerate_yaml ;;
   --help) usage ;;
   *) fail "Opción no reconocida: $1. Use --help." ;;
 esac

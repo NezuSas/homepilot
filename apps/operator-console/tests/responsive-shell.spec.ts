@@ -42,12 +42,28 @@ for (const fallback of [false, true]) {
         frame.style.cssText = 'position:fixed;left:0;top:0;container:clock-card / size;min-height:0;min-width:0;display:grid;';
         frame.style.borderWidth = getComputedStyle(original).borderWidth;
         const host = document.createElement('div'); host.className = 'homepilot-dashboard-screen'; host.append(frame); document.body.append(host);
+        // AC56: short/wide cards center the visible group, not a reserved text column.
+        if (!fallback) for (const width of [197.333, 300, 700, 906.667]) {
+          frame.style.width = `${width}px`; frame.style.height = '104px';
+          const dial = frame.querySelector<HTMLElement>('.homepilot-clock-reference-dial-frame')!.getBoundingClientRect();
+          const time = frame.querySelector<HTMLElement>('.homepilot-clock-reference-time')!;
+          const accessibleTime = frame.querySelector<HTMLElement>('.homepilot-clock-reference-accessible-time')!;
+          const bounds = frame.getBoundingClientRect();
+          const text = time.getBoundingClientRect();
+          const digital = text.height > 0;
+          const right = digital ? text.right : dial.right;
+          if (Math.abs((dial.left + right) / 2 - (bounds.left + bounds.right) / 2) > 1) failures.push(`visible group centering ${path}/${width}`);
+          if ((getComputedStyle(accessibleTime).display !== 'none') === digital) failures.push(`accessible time level ${path}/${width}`);
+          if (digital && (Number.parseFloat(getComputedStyle(time).fontSize) > 28 || text.left - dial.right > 16.1)) failures.push(`analog hierarchy ${path}/${width}`);
+        }
         for (const sectionWidth of fallback ? [300, 700, 1364] : [243, 244, 300, 700, 1364]) for (const columns of fallback ? [4,5,6,7,8,9,10,11,12] : [12]) for (const rows of fallback ? [4,5,6,7,8] : [6,7]) {
           frame.style.width = `${(sectionWidth + 8) * columns / 12 - 8}px`; frame.style.height = `${rows * 28 - 8}px`;
           const visible = (part: string) => frame.querySelector<HTMLElement>(`.homepilot-clock-reference-${part}`)!.getBoundingClientRect().height > 0;
           const dial = frame.querySelector<HTMLElement>('.homepilot-clock-reference-dial-frame')!.getBoundingClientRect();
           const bounds = frame.getBoundingClientRect();
           const level = Number(getComputedStyle(frame.querySelector<HTMLElement>('.homepilot-clock-reference-main')!).getPropertyValue('--clock-level'));
+          const accessibleTime = frame.querySelector<HTMLElement>('.homepilot-clock-reference-accessible-time')!;
+          if ((getComputedStyle(accessibleTime).display !== 'none') !== (level === 4)) failures.push(`accessible time ${path}/${sectionWidth}/${columns}/${rows}`);
           combinations++;
           if (!fallback) records.push({ path: path === 0 ? 'section' : 'independent', sectionWidth, columns, rows, level, header: visible('header'), brand: visible('brand'), digital: visible('time'), weekday: visible('weekday'), date: visible('date'), weather: visible('weather') });
           if (fallback && (level !== 4 || visible('details') || visible('header') || visible('brand') || Math.abs(dial.width - 72) > .1 || Math.abs(dial.height - 72) > .1)) failures.push(`fallback content/diameter ${path}/${sectionWidth}/${columns}/${rows}`);
@@ -128,7 +144,7 @@ for (const width of [360, 768, 1024, 1440]) {
         const shell = frame.querySelector<HTMLElement>('.homepilot-clock-surface')!;
         const shellStyle = getComputedStyle(shell);
         const inlineBudget = shell.getBoundingClientRect().width - parseFloat(shellStyle.borderLeftWidth) - parseFloat(shellStyle.borderRightWidth);
-        const gap = Math.min(20, Math.max(8, inlineBudget * .03));
+        const gap = Math.min(16, Math.max(8, inlineBudget * .03));
         const detailWidth = level === 1 ? 144 : level === 2 ? 128 : 100;
         const expectedDiameter = arrangement === 'horizontal'
           ? Math.min(inlineBudget - 18 - detailWidth - gap, ch - 18, inlineBudget * .42, 448)
@@ -178,6 +194,107 @@ for (const width of [360, 768, 1024, 1440]) {
     await page.screenshot({ path: testInfo.outputPath('clock-contract.png'), animations: 'disabled' });
   });
   }
+}
+
+for (const viewport of [
+  { width: 360, height: 800 }, { width: 768, height: 1024 },
+  { width: 1024, height: 768 }, { width: 1440, height: 900 },
+]) {
+  test(`Feature: Clock size contract — Scenario: Visual QA of dashboard and editor at ${viewport.width}px (AC56)`, async ({ page }, testInfo) => {
+    test.setTimeout(60_000);
+    await page.setViewportSize(viewport);
+    await page.clock.setFixedTime(new Date('2026-10-05T17:34:00Z'));
+    const section = responsiveDashboard.tabs[0]!.widgets[1]!;
+    const dashboard = { ...responsiveDashboard, tabs: [{ ...responsiveDashboard.tabs[0]!, widgets: [
+      { ...section, config: { ...section.config, extra: { ...section.config.extra, cards: [
+        { id: 'visual-qa-clock', kind: 'clock_premium', title: 'Reloj', span: 'full', gridOptions: { columns: 12, rows: 6 } },
+      ] } } },
+      { id: 'visual-qa-independent', type: 'clock_display', config: {
+        layout: { x: 0, y: 1, w: 12, h: 6, span: 1 },
+        binding: { entityId: '', entityType: 'system' }, visibility: { rules: [], defaultState: 'show' },
+        appearance: { title: 'Reloj', showTitle: true },
+      } },
+    ] }] };
+    await prepareAuthenticatedDashboard(page, dashboard);
+    let saved = dashboard;
+    await page.route('**/api/v1/dashboards/responsive-dashboard', async route => {
+      if (route.request().method() === 'PATCH') saved = { ...saved, ...route.request().postDataJSON() };
+      await route.fulfill({ json: saved });
+    });
+    await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+    await expect(page.locator('[data-homepilot-clock]')).toHaveCount(2);
+    await page.evaluate(() => document.fonts.ready.then(() => undefined));
+    const backdrop = page.getByTestId('mobile-sidebar-backdrop');
+    if (await backdrop.isVisible()) await backdrop.click({ position: { x: viewport.width - 16, y: 96 } });
+    await enterDashboardEdit(page);
+    const sectionClock = page.locator('[data-dashboard-card-id="visual-qa-clock"]');
+    const independentClock = page.locator('.homepilot-dashboard-widget')
+      .filter({ has: page.locator('[data-homepilot-clock]') })
+      .filter({ hasNot: page.locator('[data-dashboard-card-id]') });
+    const geometry = (clock: import('@playwright/test').Locator) => clock.evaluate(element => {
+      let frame: HTMLElement | null = element as HTMLElement;
+      while (frame && !getComputedStyle(frame).containerName.split(' ').includes('clock-card')) frame = frame.parentElement;
+      if (!frame) throw new Error('Clock has no sizing container');
+      const bounds = frame.getBoundingClientRect();
+      const dial = element.querySelector<HTMLElement>('.homepilot-clock-reference-dial-frame')!.getBoundingClientRect();
+      const main = element.querySelector<HTMLElement>('.homepilot-clock-reference-main')!;
+      const previewRegion = element.closest('[role="dialog"]') ? element.closest('[role="region"]')?.getBoundingClientRect() : null;
+      const previewFits = !previewRegion || bounds.left >= previewRegion.left - 1 && bounds.top >= previewRegion.top - 1
+        && bounds.right <= previewRegion.right + 1 && bounds.bottom <= previewRegion.bottom + 1;
+      const tools = element.closest('.homepilot-dashboard-widget')?.querySelector<HTMLElement>('[data-clock-edit-tools]');
+      const toolsBounds = tools?.getBoundingClientRect();
+      const toolsFit = !toolsBounds || toolsBounds.bottom <= bounds.top - 1
+        && toolsBounds.left >= bounds.left - 1 && toolsBounds.right <= bounds.right + 1
+        && tools!.scrollWidth <= tools!.clientWidth + 1;
+      const scale = bounds.width / frame.offsetWidth;
+      const visible = (part: string) => element.querySelector<HTMLElement>(`.homepilot-clock-reference-${part}`)!.getBoundingClientRect().height > 0;
+      return {
+        width: frame.offsetWidth, height: frame.offsetHeight, dial: dial.width / scale,
+        radius: getComputedStyle(element.closest('.homepilot-clock-surface')!).borderTopLeftRadius,
+        level: Number(getComputedStyle(main).getPropertyValue('--clock-level')),
+        arrangement: getComputedStyle(main).getPropertyValue('--clock-arrangement').trim(),
+        digital: visible('time'), date: visible('date'), weather: visible('weather'),
+        fits: previewFits && toolsFit && Math.abs(dial.width - dial.height) < 1 && dial.left >= bounds.left - 1 && dial.top >= bounds.top - 1
+          && dial.right <= bounds.right + 1 && dial.bottom <= bounds.bottom + 1
+          && frame.scrollWidth <= frame.clientWidth + 1 && frame.scrollHeight <= frame.clientHeight + 1,
+      };
+    });
+    const evidence: Array<Record<string, unknown>> = [];
+    for (const theme of ['light', 'dark']) {
+      await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
+      for (const [path, card] of [['section', sectionClock], ['independent', independentClock]] as const) {
+        for (const [columns, rows] of [[4, 4], [12, 6], [12, 8]]) {
+          await card.scrollIntoViewIfNeeded(); await card.hover();
+          if (path === 'independent') await expect(card.locator('[data-clock-edit-tools]')).toHaveCount(1);
+          await card.getByRole('button', { name: path === 'section' ? /^(Edit|Editar)$/i : /^(Configure|Configurar)$/i }).click();
+          const editor = page.getByRole('dialog', { name: /^(Edit|Editar)$/i });
+          if (path === 'section') await editor.getByRole('radio', { name: /^(Design|Diseño)$/i }).click();
+          await editor.getByRole('gridcell', { name: new RegExp(`: ${columns}, .*: ${rows}$`, 'i') }).click();
+          const preview = editor.locator('[data-homepilot-clock]');
+          await expect.poll(async () => (await geometry(preview)).fits).toBe(true);
+          const before = await geometry(preview);
+          const stem = `${viewport.width}-${theme}-${path}-${columns}x${rows}`;
+          await editor.screenshot({ path: testInfo.outputPath(`${stem}-editor.png`), animations: 'disabled' });
+          await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
+          await expect(editor).not.toBeVisible();
+          const rendered = card.locator('[data-homepilot-clock]');
+          await expect.poll(async () => (await geometry(rendered)).fits).toBe(true);
+          await expect.poll(async () => {
+            const after = await geometry(rendered);
+            return after.level === before.level && after.arrangement === before.arrangement && after.radius === before.radius
+              && after.digital === before.digital && after.date === before.date && after.weather === before.weather
+              && Math.abs(after.width - before.width) <= 1 && after.height === before.height && Math.abs(after.dial - before.dial) <= 1;
+          }).toBe(true);
+          const after = await geometry(rendered);
+          evidence.push({ viewport, theme, path, columns, rows, preview: before, dashboard: after });
+          await card.screenshot({ path: testInfo.outputPath(`${stem}-card.png`), animations: 'disabled' });
+        }
+      }
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width + 1);
+      await page.screenshot({ path: testInfo.outputPath(`${viewport.width}-${theme}-dashboard.png`), fullPage: true, animations: 'disabled' });
+    }
+    await testInfo.attach('clock-visual-qa.json', { body: JSON.stringify(evidence, null, 2), contentType: 'application/json' });
+  });
 }
 
 test('Feature: Clock size contract — Scenario: Contact sheet preserves real dimensions (AC56)', async ({ page }, testInfo) => {
@@ -5308,6 +5425,26 @@ test('Feature: Clock editing — Scenario: A standalone clock shares the bounded
   for (let i = 0; i < 20; i++) { await grid.press('ArrowRight'); await grid.press('ArrowDown'); }
   await expect(grid.getByRole('gridcell', { name: /: 12, .*: 8$/i })).toHaveAttribute('aria-selected', 'true');
   await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
+  await expect(editor).not.toBeVisible();
+  // Editing adds a separate toolbar above the clock; the outer widget is not
+  // the size container in this mode. Protect the actual 8-row clock surface.
+  const renderedClock = clock.locator('[data-homepilot-clock]');
+  await expect.poll(() => renderedClock.evaluate(element => {
+    let frame: HTMLElement | null = element as HTMLElement;
+    while (frame && !getComputedStyle(frame).containerName.split(' ').includes('clock-card')) frame = frame.parentElement;
+    if (!frame) throw new Error('Standalone clock has no sizing container');
+    return getComputedStyle(frame).height;
+  })).toBe('216px');
+  await expect(clock.locator('[data-clock-edit-tools]')).toHaveCount(1);
+  await expect.poll(() => renderedClock.evaluate(element => {
+    let frame: HTMLElement | null = element as HTMLElement;
+    while (frame && !getComputedStyle(frame).containerName.split(' ').includes('clock-card')) frame = frame.parentElement;
+    const tools = element.closest('.homepilot-dashboard-widget')?.querySelector('[data-clock-edit-tools]');
+    if (!frame || !tools) throw new Error('Standalone clock edit geometry missing');
+    return tools.getBoundingClientRect().bottom <= frame.getBoundingClientRect().top;
+  })).toBe(true);
+  await page.locator('.homepilot-dashboard-titlebar').getByRole('button', { name: /^(Done|Finalizar)$/i }).click();
+  await expect(clock.locator('[data-clock-edit-tools]')).toHaveCount(0);
   await expect(clock).toHaveCSS('height', '216px');
 });
 

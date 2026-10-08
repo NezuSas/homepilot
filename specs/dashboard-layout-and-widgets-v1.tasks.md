@@ -2,6 +2,13 @@
 
 ## Contrato geométrico AC56
 
+- [x] Corregir la aserción histórica del editor independiente: en edición medir el contenedor `clock-card` (12×8 =216px), comprobar franja de herramientas separada y conservar la aserción216px del widget completo fuera de edición. No modificar renderer ni contrato; repetición Playwright pendiente del usuario.
+
+- [x] Añadir revisión visual acotada en Playwright/build local a360/768/1024/1440px, ambos temas y caminos sección/independiente, para4×4/12×6/12×8. Comparar geometría y nivel del preview contra tarjeta guardada; producir capturas y JSON de evidencia. Usuario comunicó4/4 escenarios PASS (48 pares); capturas representativas inspeccionadas.
+- [x] Separar controles de edición del reloj independiente en una franja medida en flujo, con wrapping y contenedor clock-card intacto; reforzar los cuatro escenarios para detectar herramientas que invadan o desborden la tarjeta. Repetición de navegador posterior a esta corrección pendiente; no reutilizar el PASS previo.
+
+- [x] Refinar jerarquía analógica y centrado intrínseco de L3; mantener hora accesible en L4/fallback sin anunciar segundos. Preservar contrato y niveles. Añadir cobertura de presentación; validación geométrica posterior pendiente de ejecución por el usuario.
+
 - [x] Refinamiento por revisión de capturas: bloque centrado, mejor nivel entre ambas disposiciones, baseline de contenido300×160 preservado, paridad exterior, marca oculta bajo100px y prueba multimotor muestreada cada50px. Documentar umbrales, tabla de27 tamaños y diff sin Git.
 
 - [x] Medir la grilla desplegada sin modificaciones; 12 columnas interiores, fila 20px, gap 8px.

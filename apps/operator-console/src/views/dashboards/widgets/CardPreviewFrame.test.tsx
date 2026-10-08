@@ -13,6 +13,11 @@ describe('Feature: Stable full-grid card preview (AC48)', () => {
     expect(getPreviewScale(400, 400, 216, 108)).toBe(0.5);
     expect(getPreviewScale(400, 800, 216, 54)).toBe(0.25);
   });
+  it('Scenario: Small-to-large clocks preserve their dimensions while their preview scale changes (AC56)', () => {
+    expect(getPreviewScale(212, 110, 216)).toBe(1);
+    expect(getPreviewScale(212, 330, 216)).toBeCloseTo(212 / 330);
+    expect(getPreviewScale(212, 110, 216)).toBe(1);
+  });
   it('Scenario: Wide and intrinsically tall previews fit uniformly without changing card dimensions', () => {
     expect(getPreviewScale(400, 800, 216)).toBe(0.5);
     expect(getPreviewScale(400, 300, 432)).toBe(0.5);

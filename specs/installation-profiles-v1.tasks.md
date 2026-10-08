@@ -2,6 +2,9 @@
 
 ## Implementado
 
+- [x] AC31: Preflight de solo lectura para conservar proyecto, datos, backups y TPM en ambos puntos de despliegue, incluyendo instalaciones sin marcador global; pruebas con Docker simulado y reporte separado de almacenamiento.
+- [ ] AC31: Validar en MiniPC el preflight y un despliegue autorizado; no se ha ejecutado desde este ajuste local.
+
 - [x] Perfil de instalación disponible en runtime y cubierto por `__tests__/InstallationProfile.test.ts`.
 
 ## Verificación pendiente

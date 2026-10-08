@@ -49,6 +49,50 @@ const diagnosticSystem = `
 `;
 
 describe('HomePilot global installation wizard without system operations', () => {
+  it('prepares missing host dependencies and verifies them before enabling SSH', () => {
+    const result = runShell(`
+      dpkg-query() { [[ "$*" != *python3* && "$*" != *openssl* && "$*" != *git* ]] && printf 'install ok installed'; }
+      apt-get() { printf 'APT:%s\\n' "$*"; }
+      python3() { printf 'PYTHON_VERIFIED\\n'; }
+      openssl() { return 0; }
+      systemctl() { printf 'SSH:%s\\n' "$*" >&2; }
+      command() { [[ "$1" != -v ]] || return 0; builtin command "$@"; }
+      hp_install_base
+    `);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('APT:install -y --no-install-recommends git python3 openssl');
+    expect(result.stdout).toContain('PYTHON_VERIFIED');
+    expect(result.stderr).toContain('SSH:enable --now ssh');
+  });
+
+  it('reuses installed packages without apt and rejects a missing executable', () => {
+    const result = runShell(`
+      dpkg-query() { printf 'install ok installed'; }
+      apt-get() { printf 'UNEXPECTED_APT\\n'; return 99; }
+      systemctl() { printf 'UNEXPECTED_SERVICE\\n'; return 99; }
+      command() { [[ "$*" != '-v openssl' ]]; }
+      hp_install_base
+    `);
+    expect(result.status).not.toBe(0);
+    expect(result.stdout).not.toContain('UNEXPECTED_APT');
+    expect(result.stdout).not.toContain('UNEXPECTED_SERVICE');
+    expect(result.stdout + result.stderr).toContain('openssl');
+  });
+
+  it('does not reinstall packages when all base dependencies are already present', () => {
+    const result = runShell(`
+      dpkg-query() { printf 'install ok installed'; }
+      apt-get() { printf 'UNEXPECTED_APT\\n'; return 99; }
+      command() { return 0; }
+      python3() { return 0; }
+      openssl() { return 0; }
+      systemctl() { return 0; }
+      hp_install_base
+    `);
+    expect(result.status).toBe(0);
+    expect(result.stdout).not.toContain('UNEXPECTED_APT');
+  });
+
   it('validates client names under the Linux CI C.UTF-8 locale without collating ranges', () => {
     const result = runShell(`
       export LC_ALL=C.UTF-8
@@ -67,20 +111,21 @@ describe('HomePilot global installation wizard without system operations', () =>
   it('shows one branded diagnostic summary without legacy banners or technical inventories by default', () => {
     const result = runShell(`${diagnosticSystem}
       bash() { printf 'UNEXPECTED_DOCKER_PS\\n'; }
-      hp_existing_menu
+      hp_banner
+      hp_global_diagnostic
     `, '1\nn\n');
     expect(result.status).toBe(0);
-    expect(result.stdout.match(/Welcome to/g)).toHaveLength(1);
+    expect(result.stdout.match(/Bienvenido a/g)).toHaveLength(1);
     expect(result.stdout).toContain('ESTADO / DIAGNÓSTICO');
     expect(result.stdout).toContain('HomePilot API');
-    expect(result.stdout).toContain('Healthy');
+    expect(result.stdout).toContain('Saludable');
     expect(result.stdout).toContain('Home Assistant');
-    expect(result.stdout).toContain('Online');
+    expect(result.stdout).toContain('Disponible');
     expect(result.stdout).toContain('Directory Edge');
     expect(result.stdout).toContain('TPM 2.0');
     expect(result.stdout).toContain('Android Display');
-    expect(result.stdout).toContain('Not installed');
-    expect(result.stdout).toContain('Sistema operativo correctamente');
+    expect(result.stdout).toContain('No configurado');
+    expect(result.stdout).toContain('Comprobaciones realizadas sin fallos');
     expect(result.stdout).not.toContain('Instalador técnico');
     expect(result.stdout).not.toContain('UNEXPECTED_DOCKER_PS');
     expect(result.stdout).not.toContain('Docker containers');
@@ -99,13 +144,14 @@ describe('HomePilot global installation wizard without system operations', () =>
         esac
       }
       bash() { printf 'TECHNICAL:%s:embedded=%s\\n' "$*" "$HOMEPILOT_INSTALLER_EMBEDDED"; }
-      hp_existing_menu
+      hp_banner
+      hp_global_diagnostic
     `, '1\ns\n');
     expect(result.status).toBe(0);
-    expect(result.stdout).toMatch(/Android Display\s+Running/);
-    expect(result.stdout).toMatch(/MQTT\s+Running/);
+    expect(result.stdout).toMatch(/Android Display\s+En ejecución/);
+    expect(result.stdout).toMatch(/MQTT\s+En ejecución/);
     expect(result.stdout).toContain('TECHNICAL:scripts/check-edge-install.sh:embedded=1');
-    expect(result.stdout.match(/Welcome to/g)).toHaveLength(1);
+    expect(result.stdout.match(/Bienvenido a/g)).toHaveLength(1);
   });
 
   it('uses container-aware API health in the detailed checker, never the obsolete host port 3000', () => {
@@ -139,9 +185,9 @@ describe('HomePilot global installation wizard without system operations', () =>
     expect(result.stdout).toContain(`DEPLOY:${profile}:false:false:false:true`);
     expect(result.stdout).toContain('TPM_OK');
     expect(result.stdout).toContain('FINISHED');
-    expect(result.stdout).toContain('Welcome to');
+    expect(result.stdout).toContain('Bienvenido a');
     expect(result.stdout).toContain('H O M E P I L O T');
-    expect(result.stdout).toContain('SYSTEM CHECK');
+    expect(result.stdout).toContain('COMPROBACIÓN INICIAL');
     expect(result.stdout).toContain('REVISAR CONFIGURACIÓN');
     expect(result.stdout).not.toMatch(/\x1b\[/);
   });
@@ -320,8 +366,8 @@ describe('HomePilot global installation wizard without system operations', () =>
     const result = runShell(`
       hp_saved_value() { printf ''; }
       hp_deploy() { printf 'UNEXPECTED_DEPLOY\\n'; return 1; }
-      hp_existing_menu
-    `, '2\n');
+      hp_admin_operation complete
+    `);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('Instalación histórica');
     expect(result.stdout).not.toContain('UNEXPECTED_DEPLOY');
@@ -332,10 +378,10 @@ describe('HomePilot global installation wizard without system operations', () =>
       hp_existing_installation() { return 0; }
       hp_deploy() { printf 'UNEXPECTED_DEPLOY\\n'; return 1; }
       hp_main
-    `, '4\n');
+    `, '0\n');
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain('Existing HomePilot installation detected');
-    expect(result.stdout).toContain('Sin cambios');
+    expect(result.stdout).toContain('ADMINISTRACIÓN DE LA INSTALACIÓN');
+    expect(result.stdout).toContain('No se realizan acciones adicionales');
     expect(result.stdout).not.toContain('UNEXPECTED_DEPLOY');
   });
 });

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
 source "$(dirname "${BASH_SOURCE[0]}")/lib/api-health.sh"
 
 compose_file="${1:-docker-compose.office.yml}"

@@ -153,6 +153,7 @@ export function DashboardWidgetNode({
   const [clockDraft, setClockDraft] = useState(getClockGridOptions);
   const [clockSectionWidth, setClockSectionWidth] = useState(300);
   const clockGrid = widget.type === 'clock_display' ? getClockGridOptions({ columns: widget.config.layout.w, rows: widget.config.layout.h }) : null;
+  const hasClockEditTools = Boolean(clockGrid) && isEditing && !isOverlay;
   const SectionDraftIcon = sectionDraftIcon ? getDashboardIconComponent(sectionDraftIcon) : null;
   const openTitleEditor = () => {
     setIsTitleEditorOpen(true);
@@ -174,9 +175,10 @@ export function DashboardWidgetNode({
   return (
     <div
       onClick={(e) => { e.stopPropagation(); if (!isSection) onClick(); }}
-      style={{ ...accentStyle, containerType: clockGrid ? 'size' : 'inline-size', ...(clockGrid ? { containerName: 'clock-card', borderWidth: 0, width: `calc(${Number(clockGrid.columns) / 12 * 100}% - ${8 - Number(clockGrid.columns) / 12 * 8}px)`, height: getCardGridHeight(clockGrid.rows), minHeight: 0 } : {}) }}
+      style={{ ...accentStyle, containerType: clockGrid && !hasClockEditTools ? 'size' : 'inline-size', ...(clockGrid ? { containerName: hasClockEditTools ? undefined : 'clock-card', borderWidth: 0, width: `calc(${Number(clockGrid.columns) / 12 * 100}% - ${8 - Number(clockGrid.columns) / 12 * 8}px)`, height: hasClockEditTools ? 'auto' : getCardGridHeight(clockGrid.rows), minHeight: 0, ...(hasClockEditTools ? { backgroundColor: 'transparent' } : {}) } : {}) }}
       className={cn(
         "homepilot-dashboard-widget relative h-full w-full min-h-0 overflow-visible transition-[transform,box-shadow,background-color,border-color] duration-300 group @container touch-manipulation",
+        hasClockEditTools && "flex flex-col gap-2",
         // Editing restores the section boundary without changing its inner card grid.
         isSection
           ? (isEditing
@@ -203,6 +205,7 @@ export function DashboardWidgetNode({
     >
       {/* Content */}
       {widget.type === 'clock_display' && <Modal isOpen={clockEditorOpen} onClose={() => setClockEditorOpen(false)} title={t('common.edit')}
+        className="max-w-5xl" headerAlign="start" footerClassName="justify-end gap-2 p-5 sm:p-6"
         footer={<>
           <Button variant="secondary" onClick={() => setClockEditorOpen(false)}>{t('common.cancel')}</Button>
           <Button onClick={() => {
@@ -216,14 +219,17 @@ export function DashboardWidgetNode({
           <div className="homepilot-dashboard-screen min-w-0">
             <h3 className="mb-3 text-body-compact font-semibold">{t('dashboards.edit_session.preview')}</h3>
             <CardPreviewFrame fitCard sectionWidth={clockSectionWidth} label={t('dashboards.edit_session.preview')}>
-              <div style={{ containerType: 'size', containerName: 'clock-card', width: getCardGridWidth(clockSectionWidth, clockDraft.columns), height: getCardGridHeight(clockDraft.rows) }}>
+              <div className="rounded-section sm:rounded-panel" style={{ containerType: 'size', containerName: 'clock-card', width: getCardGridWidth(clockSectionWidth, clockDraft.columns), height: getCardGridHeight(clockDraft.rows) }}>
                 <ClockWidget config={widget.config} />
               </div>
             </CardPreviewFrame>
           </div>
         </div>
       </Modal>}
-      <div className="h-full w-full min-h-0">
+      <div className="h-full w-full min-h-0" style={clockGrid ? {
+        borderRadius: 'inherit',
+        ...(hasClockEditTools ? { containerType: 'size', containerName: 'clock-card', height: getCardGridHeight(clockGrid.rows), flexShrink: 0 } : {}),
+      } : undefined}>
         <WidgetContent
           widget={widget}
           isEditing={isEditing}
@@ -381,8 +387,8 @@ export function DashboardWidgetNode({
       {isEditing && !isOverlay && !isTitleWidget && (
         <>
           {/* A selected section exposes only its direct manipulation tools. */}
-          <div className={cn("pointer-events-auto absolute z-30 flex items-center", isSection ? "-top-5 right-3" : "right-2 top-2")}>
-            <div className="flex items-center gap-1 rounded-xl border border-border/50 bg-background/95 p-1 shadow-lg backdrop-blur-md">
+          <div data-clock-edit-tools={hasClockEditTools ? '' : undefined} className={cn("pointer-events-auto z-30 flex items-center", hasClockEditTools ? "relative order-first justify-end" : "absolute", !hasClockEditTools && (isSection ? "-top-5 right-3" : "right-2 top-2"))}>
+            <div className={cn("flex items-center gap-1 rounded-xl border border-border/50 bg-background/95 p-1 shadow-lg backdrop-blur-md", hasClockEditTools && "max-w-full flex-wrap justify-end")}>
               {isSection && <ActionMenu compact label={t('dashboards.edit_session.section_actions')} items={[
                 { label: t('common.edit'), icon: Pencil, onSelect: () => {
                     setSectionDraftTitle(widget.config.appearance?.title ?? ''); setSectionDraftIcon(widget.config.appearance?.icon ?? '');

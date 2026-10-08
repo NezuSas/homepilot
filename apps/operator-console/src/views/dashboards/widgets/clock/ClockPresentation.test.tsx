@@ -15,6 +15,13 @@ const props = {
 };
 
 describe('HomePilot Clock', () => {
+  it('keeps a non-live textual time available for the dial-only level (AC56)', () => {
+    const markup = renderToStaticMarkup(createElement(CLOCK_DESIGN_COMPONENTS['analog-classic'], props));
+    expect(markup).toContain('class="homepilot-clock-reference-accessible-time sr-only"');
+    expect(markup).toMatch(/<time[^>]*class="homepilot-clock-reference-accessible-time sr-only"[^>]*>11:51<\/time>/);
+    expect(markup).not.toContain('aria-live="assertive"');
+  });
+
   it('offers one selectable clock while accepting all historical style IDs', () => {
     expect(CLOCK_STYLES.map((style) => style.value)).toEqual(['analog-classic']);
     for (const style of ['minimal', 'digital', 'analog-classic', 'analog-minimal'] as const) {

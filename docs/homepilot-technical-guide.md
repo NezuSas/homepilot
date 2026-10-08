@@ -438,6 +438,28 @@ The BuildKit cache is separate from Docker runtime images. There is still **no m
 
 ### HomePilot runtime image lifecycle
 
+### Existing installation and TPM preservation
+
+### Unified administration entry point
+
+`bash scripts/homepilot-install.sh` opens the existing-installation administration menu, or the original new-installation wizard when no `.env` or canonical database is present. Only the global console owns the NEZU/HomePilot header. Maintenance and installation scripts remain backward-compatible operational engines with compact titles and shared presentation, not separate branded applications.
+
+For read-only inspection use `bash scripts/homepilot-install.sh --status`, `--components`, `--storage` or `--recovery`. The recovery screen only reports backup-directory size and protected rollback/pending images: it neither creates backups nor restores data. Identity status uses a read-only SQLite connection, not the enrollment CLI. Directory configuration and an active cloudflared service are not claims of live connectivity.
+
+`--deploy`, `--clean` and `--gc-homepilot` delegate to the existing maintenance engine with its confirmations; `--yes` explicitly suppresses those confirmations. Image GC is never attached automatically to deploy. Menu operations run in separate strict Bash processes, so a caught child error cannot disable fail-fast handling or contaminate the next operation's configuration. Failed operations remain failures, including the exit status when leaving after a failure. Existing technical commands remain supported. CLI help itself does not query the appliance.
+
+The components menu shows saved choices and delegates existing MQTT-agent, managed-HA Wake-on-LAN and authorized HACS/SonoffLAN operations. It does not silently enable capabilities or modify bindings. System repair and completion require Linux/root and confirmation. Real SSH/TTY and appliance verification remain required before a release.
+
+### Runtime preservation checks
+
+Before deployment, maintenance and the lower-level installer inspect the existing API's Compose project and persistent mount sources. They preserve the project name and require the canonical `data` and `backups` directories of the selected checkout; a mismatch stops deployment rather than selecting another database. Maintenance resolves its own repository root even when invoked from another working directory.
+
+A historical TPM mapping or a `bound` identity in the existing SQLite database requires the TPM overlay independently of the global-installer marker. The identity check opens SQLite read-only with `query_only`; it does not enroll, migrate, print binding metadata or replace keys. An unavailable required `/dev/tpmrm0`, unreadable identity, or stopped API without an existing TPM mapping stops deployment for manual review. Custom noncanonical persistent mounts are deliberately not migrated automatically.
+
+The storage report includes aggregate sizes for `data` and `backups`; these can grow legitimately through history and retained backups. Runtime-image GC remains explicit, not part of deploy. BuildKit limits are collection targets, not a strict total disk quota. No backup retention deletion or automatic recovery-tag cleanup is enabled.
+
+### Protected image versions
+
 The four always-on Compose-built services (API, UI, STT and TTS), plus the optional Android Display Bridge when enabled, have final-image labels `io.nezu.homepilot.managed=v1`, `io.nezu.homepilot.service=<service>`, `io.nezu.homepilot.role=runtime` and `io.nezu.homepilot.revision=<short git commit or unknown>`. The label is applied in the final Dockerfile stage, not to arbitrary builder intermediates. The installer and maintenance deploy both pass the revision as a build argument. The current Compose image is the active version; `homepilot-rollback-<service>:latest` is the one retained previous version. Before a rebuild, the image currently used by each Compose container is protected as `homepilot-rollback-pending-<service>:latest`. Only after the new runtime passes its operational health checks does the script promote that pending tag to the single rollback tag and remove the pending tag. The old rollback tag then moves off its former image; the explicit GC command may later reclaim it if it is otherwise unreferenced. No automatic rollback/restoration is attempted. When Android Display is disabled, its image is not required for deployment; existing current/rollback/pending tags remain protected from GC.
 
 Revision and API probe-role `ARG` instructions are declared immediately before the final `LABEL`, after all dependency, model, copy and compilation work. Consequently, changing only these metadata inputs cannot invalidate preceding `RUN` layers; the API runtime and camera probe can share their functional build cache. A genuine source, lockfile, base-image or GC change can still require rebuilding. [Dockerfile ARG cache semantics](https://docs.docker.com/reference/dockerfile/#impact-on-build-caching).
@@ -815,6 +837,47 @@ curl -fsS http://localhost/health
 | Changes do not appear in WSL | Run git pull --ff-only inside /home/oscar/homepilot |
 
 ## Maintenance rules
+
+### Dependencias del instalador y límites de verificación
+
+La consola separa preparación de requisitos, progreso operativo y verificación de salud.
+
+#### Presentación de operaciones largas
+
+En terminal interactiva, instalación de paquetes y construcción/inicio Compose muestran una etapa, indicador ámbar de actividad y tiempo transcurrido. No hay porcentaje global: estas herramientas no proporcionan una medida uniforme. Los checks de salud siguen separados del resultado del comando.
+
+La opción 8 del menú alterna salida resumida/detallada. También puede activarse desde la entrada principal con `bash scripts/homepilot-install.sh --verbose` o `bash scripts/homepilot-install.sh --deploy --verbose`. Sin TTY se conserva la salida técnica sin animación, para automatización. Los scripts históricos pueden usar `HOMEPILOT_VERBOSE=1`.
+
+El modo resumido no guarda ni reproduce logs crudos, que podrían incluir URLs privadas o valores de entorno. Al fallar muestra etapa y código e indica cómo activar detalles. No se capturan prompts, secretos, pairing ni enrollment. No repetir una operación con efectos secundarios automáticamente solo para obtener más salida. La validación visual en SSH real sigue pendiente.
+
+#### Requisitos por capa
+
+El punto de entrada para una MiniPC nueva es `sudo bash scripts/homepilot-install.sh`. Requiere el checkout disponible, Ubuntu LTS x86_64 con systemd, TPM real, espacio libre y acceso a los repositorios externos. Solo prepara paquetes después de la confirmación; reutiliza paquetes ya instalados. No se garantiza una instalación sin fallos de red, repositorios, hardware, puertos ocupados o credenciales incorrectas.
+
+| Script / biblioteca | Responsabilidad y dependencias |
+| --- | --- |
+| homepilot-install.sh | Consola principal; Bash y bibliotecas locales. |
+| lib/homepilot-global-installer.sh | Prepara Git, Python 3, OpenSSL, certificados, curl, jq, SSH, iproute2 y utilidades Unix; instala/reutiliza Docker, Compose y Buildx; TPM y Cloudflared según flujo. Verifica comandos, módulos Python y OpenSSL antes del despliegue. |
+| lib/homepilot-admin-menu.sh | Delega operaciones; no instala dependencias al consultar. Reparación de paquetes requiere consentimiento y root. |
+| lib/homepilot-terminal-ui.sh | Presentación Bash; tput opcional, sin ANSI si no hay TTY. |
+| install-edge-office.sh | Motor de instalación/perfiles; presupone host preparado por el global. Dependencias de aplicación resueltas por los Dockerfiles. |
+| homepilot-maintenance.sh | Motor de actualización y limpieza explícita; Docker/Compose/Buildx, utilidades del host y requisitos opcionales Android. No prepara automáticamente una máquina virgen. |
+| lib/homepilot-runtime-preservation.sh | Inspección Docker e identidad SQLite de solo lectura dentro del API existente. |
+| lib/homepilot-builder.sh | Docker Buildx, Compose, awk y política BuildKit local. |
+| lib/homepilot-images.sh | Docker y utilidades Unix; Git para revisionado, con fallback unknown. |
+| lib/appliance-storage-report.sh | df/du y Docker para informes; no instala ni limpia. |
+| lib/camera-acceleration.sh | Docker, timeout y FFmpeg de la imagen API; hardware opcional, fallback software existente. |
+| lib/android-display-appliance.sh | Python 3 y módulos estándar, OpenSSL; ADB y runtime Python dentro del bridge Docker. Preparación protegida en Linux requiere root/sudo. |
+| lib/api-health.sh | Docker y curl dentro del API; no requiere curl del host para esa consulta. |
+| configure-pc-agent-mqtt.sh | Docker/Compose y Mosquitto dentro de la imagen; no necesita mosquitto_passwd instalado en el host. |
+| configure-wol-devices.sh | Bash/utilidades Unix y Home Assistant administrado para validar/aplicar; WOL del PC remoto depende de su BIOS/NIC. |
+| check-edge-install.sh | Diagnóstico Docker/Compose y HTTP; no instala paquetes. |
+| check-pc-integration-readiness.sh | Diagnóstico heredado MiniPC/PC Linux, no instalador; playerctl/pactl corresponden al PC Linux objetivo. |
+| test-android-display-appliance.sh | Pruebas con fixtures temporales; Python y Bash, no preparación de producción. |
+
+API/UI instalan dependencias npm desde el lockfile durante el build Docker. STT/TTS instalan Python y requirements en sus imágenes; el bridge instala ADB en su imagen. Node/npm y navegadores Playwright locales pertenecen a desarrollo/QA, no a la instalación MiniPC. No duplicar estos runtimes en el host.
+
+La sintaxis Bash y los tests simulados no acreditan una instalación real. Pendiente: ejecutar la regresión actualizada y validar una instalación limpia y una actualización autorizada en MiniPC, con hardware/red reales. No se modifican SQLite ni bindings al comprobar dependencias.
 
 - Do not document behavior the code does not implement.
 - Do not change API contracts without updating consumers.

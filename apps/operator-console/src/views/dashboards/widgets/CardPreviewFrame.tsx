@@ -22,6 +22,9 @@ export function CardPreviewFrame({ label, children, sectionWidth = 0, fitHeight 
     const observer = new ResizeObserver(update);
     if (frame.current) observer.observe(frame.current);
     if (content.current) observer.observe(content.current);
+    // The fixed full-grid stage does not resize when only the card's width changes.
+    // Observe the presenter too, otherwise a small-to-large selection keeps scale=1.
+    if (fitCard && content.current?.firstElementChild) observer.observe(content.current.firstElementChild);
     return () => observer.disconnect();
   }, [sectionWidth, fitHeight, fitCard, fitContent]);
   if (fitContent) return <div role="region" aria-label={label} className="min-h-11 min-w-0 max-w-full">{children}</div>;

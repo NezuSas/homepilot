@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
 source "$(dirname "${BASH_SOURCE[0]}")/lib/camera-acceleration.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-builder.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-images.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/android-display-appliance.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/api-health.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-runtime-preservation.sh"
 
 readonly ENV_FILE=".env"
 profile=""
@@ -35,8 +37,8 @@ mqtt_enabled="${HOMEPILOT_INSTALL_MQTT_ENABLED:-false}"
 tpm_enabled="${HOMEPILOT_INSTALL_TPM_ENABLED:-false}"
 
 append_global_overlays() {
-  [[ "$global_install" == true ]] || return 0
   [[ "$tpm_enabled" != true ]] || camera_compose_args+=(-f docker-compose.tpm.yml)
+  [[ "$global_install" == true ]] || return 0
   if [[ "$mqtt_enabled" == true ]]; then
     if [[ "$profile" == ha_companion ]]; then
       camera_compose_args+=(-f docker-compose.mqtt-secure.yml)
@@ -46,35 +48,16 @@ append_global_overlays() {
   fi
 }
 
-if [[ -t 1 ]]; then
-  RED='\033[0;31m'
-  GREEN='\033[0;32m'
-  YELLOW='\033[1;33m'
-  BLUE='\033[0;34m'
-  CYAN='\033[0;36m'
-  BOLD='\033[1m'
-  DIM='\033[2m'
-  NC='\033[0m'
-else
-  RED=''
-  GREEN=''
-  YELLOW=''
-  BLUE=''
-  CYAN=''
-  BOLD=''
-  DIM=''
-  NC=''
-fi
-
-if [[ "$global_install" == true ]]; then
-  source scripts/lib/homepilot-terminal-ui.sh
-  hp_color_init
-  RED="$HP_RED" GREEN="$HP_GREEN" YELLOW="$HP_YELLOW"
-  BLUE="$HP_AMBER" CYAN="$HP_SOFT" BOLD="$HP_BOLD" DIM="$HP_DIM" NC="$HP_RESET"
-fi
+source scripts/lib/homepilot-terminal-ui.sh
+hp_color_init
+trap 'hp_ui_shutdown' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+RED="$HP_RED" GREEN="$HP_GREEN" YELLOW="$HP_YELLOW"
+BLUE="$HP_AMBER" CYAN="$HP_SOFT" BOLD="$HP_BOLD" DIM="$HP_DIM" NC="$HP_RESET"
 
 divider() {
-  printf '%b\n' "${DIM}────────────────────────────────────────────────────────────────────────${NC}"
+  hp_ui_separator
 }
 
 detect_technician_environment() {
@@ -133,17 +116,7 @@ configure_profile() {
 
 banner() {
   [[ "${HOMEPILOT_INSTALLER_EMBEDDED:-0}" != 1 ]] || return 0
-  if [[ -t 1 ]]; then
-    clear
-  fi
-  printf '%b\n' "${CYAN}${BOLD}"
-  printf '%s\n' '   ███╗   ██╗███████╗███████╗██╗   ██╗'
-  printf '%s\n' '   ████╗  ██║██╔════╝╚══███╔╝██║   ██║'
-  printf '%s\n' '   ██╔██╗ ██║█████╗    ███╔╝ ██║   ██║'
-  printf '%s\n' '   ██║╚██╗██║██╔══╝   ███╔╝  ██║   ██║'
-  printf '%s\n' '   ██║ ╚████║███████╗███████╗╚██████╔╝'
-  printf '%s\n' '   ╚═╝  ╚═══╝╚══════╝╚══════╝ ╚═════╝ '
-  printf '%b\n' "${NC}${BOLD}   N E Z U   ·   H O M E P I L O T${NC}"
+  printf '%b\n' "${BOLD}HomePilot · preparación técnica${NC}"
   if [[ -n "$profile" ]]; then
     printf '%b\n' "${BLUE}   Instalador técnico · Perfil ${profile}${NC}"
   else
@@ -172,16 +145,16 @@ Opciones:
                        Mantiene HACS y SonoffLAN sin reconstruir ni reiniciar HomePilot.
                        Detecta el entorno del técnico y usa el Home Assistant existente.
   --api-url URL        Configuracion avanzada para una API en otro origen.
-  --cloud-url URL      URL pública de HomePilot Cloud para emparejar esta MiniPC.
-  --pairing-code CODE  Código temporal mostrado por el propietario.
-                       Por defecto se deja vacia y UI/API usan el mismo dominio.
+                       Por defecto UI/API usan el mismo dominio.
+                       El pairing se gestiona desde scripts/homepilot-install.sh.
   --yes                No pide confirmacion para --clean o --start.
   --help               Muestra esta ayuda.
 EOF
 }
 
 section() {
-  printf '\n%b\n' "${CYAN}${BOLD}▸ $1${NC}"
+  printf '\n'
+  hp_ui_block "$HP_PRIMARY$HP_BOLD" "$1"
   divider
 }
 
@@ -382,10 +355,10 @@ run_technician_wizard() {
   # La confirmación del checklist cubre las acciones elegidas y evita prompts duplicados.
   [[ "$status_only" == false ]] && assume_yes=true
 }
-ok() { printf '%b\n' "${GREEN}●${NC}  $1"; }
-warn() { printf '%b\n' "${YELLOW}●${NC}  $1"; }
-info() { printf '%b\n' "${BLUE}●${NC}  $1"; }
-fail() { printf '%b\n' "${RED}● Error:${NC} $1" >&2; exit 1; }
+ok() { hp_ok "$1"; }
+warn() { hp_warn "$1"; }
+info() { hp_ui_wrap_block "$HP_SECONDARY" "$1"; }
+fail() { hp_fail "$1"; exit 1; }
 
 env_value() {
   local key="$1"
@@ -874,6 +847,11 @@ for port in "${required_ports[@]}"; do
   fi
 done
 
+if [[ "$start" == true ]]; then
+  [[ "$(env_value HOMEPILOT_TPM_ENABLED false)" != true ]] || tpm_enabled=true
+  homepilot_runtime_preflight
+fi
+
 if [[ "$clean" == true ]]; then
   section "Limpieza acotada a HomePilot"
   if confirm "Se retirarán solo contenedores detenidos del proyecto HomePilot. Continuar?"; then
@@ -1037,8 +1015,8 @@ if [[ "$start" == true ]]; then
   if confirm "Se construiran e iniciaran los servicios HomePilot de este compose. Continuar?"; then
     homepilot_image_prepare_rollback "${camera_compose_args[@]}"
     if [[ "$global_install" == true ]]; then
-      if ! (COMPOSE_BAKE=false docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" "${build_services[@]}" \
-        && docker compose "${camera_compose_args[@]}" up --no-build --no-deps -d "${runtime_services[@]}"); then
+      if ! { COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios HomePilot' docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" "${build_services[@]}" \
+        && hp_ui_run 'Iniciando servicios HomePilot' docker compose "${camera_compose_args[@]}" up --no-build --no-deps -d "${runtime_services[@]}"; }; then
         if [[ -z "$camera_acceleration_overlay" ]]; then
           fail 'No se pudo iniciar el conjunto modular HomePilot; se conservan las imágenes de rollback.'
         fi
@@ -1061,11 +1039,11 @@ if [[ "$start" == true ]]; then
         camera_acceleration_fallback='software (libx264)'
         camera_acceleration_reason='falló el inicio con el override VAAPI'
         camera_acceleration_report
-        COMPOSE_BAKE=false docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" "${build_services[@]}"
-        docker compose "${camera_compose_args[@]}" up --no-build --no-deps -d "${runtime_services[@]}"
+        COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios HomePilot' docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" "${build_services[@]}"
+        hp_ui_run 'Iniciando servicios HomePilot' docker compose "${camera_compose_args[@]}" up --no-build --no-deps -d "${runtime_services[@]}"
       fi
-    elif ! (COMPOSE_BAKE=false docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" \
-      && docker compose "${camera_compose_args[@]}" up --no-build -d); then
+    elif ! { COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios HomePilot' docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" \
+      && hp_ui_run 'Iniciando servicios HomePilot' docker compose "${camera_compose_args[@]}" up --no-build -d; }; then
       if [[ -z "$camera_acceleration_overlay" ]]; then
         fail 'No se pudo iniciar HomePilot.'
       fi
@@ -1088,8 +1066,8 @@ if [[ "$start" == true ]]; then
       camera_acceleration_fallback='software (libx264)'
       camera_acceleration_reason='falló el inicio con el override VAAPI'
       camera_acceleration_report
-      COMPOSE_BAKE=false docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME"
-      docker compose "${camera_compose_args[@]}" up --no-build -d
+      COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios HomePilot' docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME"
+      hp_ui_run 'Iniciando servicios HomePilot' docker compose "${camera_compose_args[@]}" up --no-build -d
     fi
     docker compose "${camera_compose_args[@]}" ps
     if ! wait_for_runtime_ready; then

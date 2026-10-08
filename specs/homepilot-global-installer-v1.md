@@ -52,8 +52,34 @@ Producción requiere TPM real, nunca `SoftwareDeviceIdentityProvider`. El instal
 
 ## Validación local
 
+### Extensión local: consola de administración unificada (AC9–AC11)
+
+El requisito de Issue queda exceptuado por autorización del usuario para este ajuste local. El punto de entrada `homepilot-install.sh` conserva el wizard de instalación nueva y abre un menú persistente al detectar una instalación existente. La cabecera NEZU/HomePilot pertenece exclusivamente a la consola global. Los motores históricos de instalación y mantenimiento siguen disponibles sin logos ni limpieza de terminal propios; reutilizan la paleta, separadores y mensajes de `homepilot-terminal-ui.sh`.
+
+- **AC9:** Menú con diagnóstico, actualización, componentes, almacenamiento, consulta de backups/rollback, reparación y completar pendientes; opción volver/salir y reintento de selección inválida. `--status`, `--deploy`, `--clean`, `--gc-homepilot`, `--components`, `--storage`, `--recovery` y `--help` delegan en el mismo contrato. `--yes` solo aplica a deploy/clean/GC. Los motores existentes conservan confirmaciones; no se activa limpieza automática. Cada operación se ejecuta en un proceso Bash estricto independiente para que el menú pueda capturar errores sin desactivar `errexit` ni heredar secretos o decisiones mutables. Un fallo muestra código no cero, vuelve al menú y conserva ese resultado al salir si no se ejecuta posteriormente otra operación.
+- **AC10:** Una sola cabecera, español, estados diferenciados y adaptación de texto/identificadores a terminales estrechas; logo compacto sin TTY o por debajo de 44 columnas. Logs no TTY mantienen mensajes completos, sin ANSI ni movimientos de terminal. Pasos numerados admiten total variable; la administración usa vistas sin numeración de instalación. INT/TERM restauran la terminal al salir. Servicio Cloudflare activo no se presenta como conexión verificada; configuración Directory persistida no acredita conectividad. Consulta de backups/rollback no crea ni restaura backups ni elimina etiquetas pendientes: no se ofrece una recuperación automática no implementada.
+- **AC11:** La consulta de identidad es exclusivamente `readonly`/`query_only`, compartida con el preflight, sin bootstrap ni enrollment; no cambia el proceso explícito de vinculación. Wake-on-LAN `--help`/`--list` no escribe configuración/registro. MQTT resuelve la raíz del checkout. El mantenimiento verifica Home Assistant administrado en `ha_companion`, preservando la topología. La ayuda técnica deja de anunciar argumentos de pairing no admitidos.
+
+Tests: `__tests__/homepilot-admin-console.test.ts`, `__tests__/homepilot-global-installer.test.ts` y `__tests__/homepilot-runtime-preservation.test.ts`. La aprobación operacional requiere validación posterior en terminal/SSH y MiniPC reales. Esta extensión no cambia Modbus, bindings, contratos API ni formato persistido; no implementa nuevas políticas de borrado, backup o restauración.
+
 Jest: 287 suites y 2843 pruebas superadas (14 del wizard). Sintaxis Bash, `check:spec-coverage`, `check:bdd-traceability`, `check:module-test-coverage`, `check:docker-profiles`, `check:no-production-any`, `check:architecture-boundaries`, `check:tuya-policy`, `typecheck` y `build` superados. Compose se comprobó de forma declarativa; no se ejecutó ningún despliegue.
 
 ## Validación pendiente fuera de CI
+
+### Preparación completa de dependencias del host (AC12)
+
+- AC12: el instalador Ubuntu instala únicamente paquetes faltantes: certificados, curl, jq, SSH cliente/servidor, Git, Python 3, OpenSSL, iproute2 y utilidades Unix utilizadas por los motores. Comprueba ejecutables, módulos estándar de Python y OpenSSL antes de iniciar Docker/desplegar. No instala npm/Python de aplicación en el host: los Dockerfiles y lockfiles/requirements siguen siendo la fuente de sus dependencias.
+- El CIDR Android se valida al recoger datos si Python existe; de lo contrario se informa la validación pendiente y se verifica después de preparar Python, antes de Docker, credenciales MQTT y despliegue. No se instalan paquetes antes de la confirmación general.
+- Entradas técnicas y diagnósticos resuelven la raíz del checkout. Argumentos incompletos de readiness/MQTT fallan con mensaje explícito; alta MQTT no exige un TTY inexistente.
+- La cobertura de sintaxis incluye todos los scripts Bash de `scripts/` y `scripts/lib/`. Las pruebas de paquetes usan mocks: no acreditan una instalación real, acceso a repositorios ni salud del hardware.
+- Linux Agent remoto requiere playerctl/pactl en el PC objetivo, no en la MiniPC. Playwright y Node/npm locales son requisitos de desarrollo/QA, no del appliance Docker. No se instalan herramientas de desarrollo ni agentes remotos automáticamente.
+
+### Progreso operativo compacto (AC13)
+
+- AC13: conservar paleta, cabecera y pasos existentes; instalación de paquetes y build/inicio Compose no interactivos muestran indicador ámbar con tiempo transcurrido en TTY. El indicador expresa actividad, nunca un porcentaje inventado. Completar un comando no equivale a certificar salud: los checks existentes siguen ejecutándose.
+- `--verbose` en la consola principal o la opción 8 del menú conserva salida técnica. Sin TTY se mantiene la salida completa y sin animación/ANSI. No se capturan ni ejecutan en background prompts, credenciales, pairing o enrollment.
+- La operación sigue en foreground con los mismos argumentos, variables de entorno y código de salida. Solo la animación es background; se detiene al finalizar y al cerrar/interrumpir la consola. Los motores conservan reintentos y rollback existentes.
+- No se guardan logs crudos: pueden contener URLs privadas o valores de entorno. El modo resumido muestra etapa y código de error e indica cómo habilitar diagnóstico; no muestra colas de salida sin sanitización. El modo técnico conserva el flujo anterior y no se comparte sin revisión.
+- Pruebas simuladas cubren éxito/error, código, limpieza de indicador, TTY/no TTY, terminal estrecha, selección de detalle y CLI. Validación visual en SSH real pendiente.
 
 La primera MiniPC requiere prueba operacional real de TPM, Docker, cloudflared, Directory y salud de hardware/red. Esta spec no autoriza ejecutar deploy en la máquina de desarrollo.

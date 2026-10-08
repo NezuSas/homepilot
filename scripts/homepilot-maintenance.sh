@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
-source "$(dirname "${BASH_SOURCE[0]}")/lib/camera-acceleration.sh"
-source "$(dirname "${BASH_SOURCE[0]}")/lib/appliance-storage-report.sh"
-source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-builder.sh"
-source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-images.sh"
-source "$(dirname "${BASH_SOURCE[0]}")/lib/android-display-appliance.sh"
-source "$(dirname "${BASH_SOURCE[0]}")/lib/api-health.sh"
+readonly HOMEPILOT_MAINTENANCE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$HOMEPILOT_MAINTENANCE_ROOT"
+source "$HOMEPILOT_MAINTENANCE_ROOT/scripts/lib/camera-acceleration.sh"
+source "$HOMEPILOT_MAINTENANCE_ROOT/scripts/lib/appliance-storage-report.sh"
+source "$HOMEPILOT_MAINTENANCE_ROOT/scripts/lib/homepilot-builder.sh"
+source "$HOMEPILOT_MAINTENANCE_ROOT/scripts/lib/homepilot-images.sh"
+source "$HOMEPILOT_MAINTENANCE_ROOT/scripts/lib/android-display-appliance.sh"
+source "$HOMEPILOT_MAINTENANCE_ROOT/scripts/lib/api-health.sh"
+source "$HOMEPILOT_MAINTENANCE_ROOT/scripts/lib/homepilot-runtime-preservation.sh"
+source "$HOMEPILOT_MAINTENANCE_ROOT/scripts/lib/homepilot-terminal-ui.sh"
 
 profile="bridge_ha"
 compose_file="docker-compose.office.yml"
@@ -25,23 +29,12 @@ camera_enabled=true
 mqtt_enabled=false
 tpm_enabled=false
 
-if [[ -t 1 ]]; then
-  RED='\033[0;31m'
-  GREEN='\033[0;32m'
-  YELLOW='\033[1;33m'
-  BLUE='\033[0;34m'
-  BOLD='\033[1m'
-  DIM='\033[2m'
-  NC='\033[0m'
-else
-  RED=''
-  GREEN=''
-  YELLOW=''
-  BLUE=''
-  BOLD=''
-  DIM=''
-  NC=''
-fi
+hp_color_init
+trap 'hp_ui_shutdown' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+RED="$HP_RED" GREEN="$HP_GREEN" YELLOW="$HP_YELLOW" BLUE="$HP_AMBER"
+BOLD="$HP_BOLD" DIM="$HP_DIM" NC="$HP_RESET"
 
 usage() {
   cat <<'EOF'
@@ -101,11 +94,12 @@ load_installer_capabilities() {
     voice_enabled="$(env_value HOMEPILOT_VOICE_ENABLED true)"
     camera_enabled="$(env_value HOMEPILOT_CAMERA_ENABLED true)"
     mqtt_enabled="$(env_value HOMEPILOT_MQTT_ENABLED false)"
-    tpm_enabled="$(env_value HOMEPILOT_TPM_ENABLED true)"
     for value in "$voice_enabled" "$camera_enabled" "$mqtt_enabled" "$tpm_enabled"; do
       [[ "$value" == true || "$value" == false ]] || fail 'Capacidad del instalador inválida en .env.'
     done
   fi
+  tpm_enabled="$(env_value HOMEPILOT_TPM_ENABLED "$global_installer_v1")"
+  [[ "$tpm_enabled" == true || "$tpm_enabled" == false ]] || fail 'Capacidad TPM inválida en .env.'
 }
 
 configure_profile() {
@@ -137,7 +131,6 @@ configure_profile() {
     if [[ "$global_installer_v1" != true ]]; then compose_files+=("docker-compose.pc-agents.yml"); fi
   fi
   if [[ "$global_installer_v1" == true ]]; then
-    [[ "$tpm_enabled" != true ]] || compose_files+=("docker-compose.tpm.yml")
     if [[ "$mqtt_enabled" == true ]]; then
       if [[ "$profile" == ha_companion ]]; then
         compose_files+=("docker-compose.mqtt-secure.yml")
@@ -146,6 +139,7 @@ configure_profile() {
       fi
     fi
   fi
+  [[ "$tpm_enabled" != true ]] || compose_files+=("docker-compose.tpm.yml")
   if [[ -f .env ]]; then
     android_display_load
     if [[ "$android_display_enabled" == true ]]; then
@@ -160,40 +154,35 @@ configure_profile() {
 
 banner() {
   [[ "${HOMEPILOT_INSTALLER_EMBEDDED:-0}" != 1 ]] || return 0
-  printf '%b\n' "${BLUE}${BOLD}"
-  printf '%s\n' '   _   _ _____ _____ _   _'
-  printf '%s\n' '  | \ | | ____|__  /| | | |'
-  printf '%s\n' '  |  \| |  _|   / / | | | |'
-  printf '%s\n' '  | |\  | |___ / /_ | |_| |'
-  printf '%s\n' '  |_| \_|_____/____| \___/'
-  printf '%b\n' "${NC}${BOLD}   H O M E P I L O T   M A I N T E N A N C E${NC}"
+  printf '%b\n' "${BOLD}HomePilot · mantenimiento${NC}"
   printf '%b\n' "${DIM}   Perfil ${profile} · mantenimiento acotado al proyecto HomePilot${NC}"
   divider
 }
 
 divider() {
-  printf '%b\n' "${DIM}------------------------------------------------------------------------${NC}"
+  hp_ui_separator
 }
 
 section() {
-  printf '\n%b\n' "${BOLD}$1${NC}"
+  printf '\n'
+  hp_ui_block "$HP_PRIMARY$HP_BOLD" "$1"
   divider
 }
 
 ok() {
-  printf '%b\n' "${GREEN}OK${NC}  $1"
+  hp_ok "$1"
 }
 
 warn() {
-  printf '%b\n' "${YELLOW}WARN${NC} $1"
+  hp_warn "$1"
 }
 
 info() {
-  printf '%b\n' "${BLUE}INFO${NC} $1"
+  hp_ui_wrap_block "$HP_SECONDARY" "$1"
 }
 
 fail() {
-  printf '%b\n' "${RED}ERROR${NC} $1" >&2
+  hp_fail "$1"
   exit 1
 }
 
@@ -315,7 +304,8 @@ verify_runtime_once() {
     check_container 'homepilot-mqtt' 'MQTT Mosquitto'
   fi
 
-  if [[ "$profile" == "bridge_ha" ]]; then
+  if [[ "$profile" == "bridge_ha" || "$profile" == "ha_companion" ]]; then
+    [[ "$profile" != ha_companion ]] || check_container 'homeassistant' 'Home Assistant administrado'
     check_endpoint "Home Assistant existente · puerto ${ha_port}" "http://127.0.0.1:${ha_port}/" "200,301,302,401,403"
   fi
   if [[ "$android_display_enabled" == true ]]; then
@@ -401,11 +391,11 @@ select_camera_acceleration_for_deploy() {
 maintenance_build_and_up() {
   local -a compose_options=("$@")
   if [[ "$global_installer_v1" == true ]]; then
-    COMPOSE_BAKE=false docker compose "${compose_options[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" "${build_services[@]}" \
-      && docker compose "${compose_options[@]}" up -d --no-build --no-deps "${runtime_services[@]}"
+    COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios HomePilot' docker compose "${compose_options[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" "${build_services[@]}" \
+      && hp_ui_run 'Iniciando servicios HomePilot' docker compose "${compose_options[@]}" up -d --no-build --no-deps "${runtime_services[@]}"
   else
-    COMPOSE_BAKE=false docker compose "${compose_options[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" \
-      && docker compose "${compose_options[@]}" up -d --no-build
+    COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios HomePilot' docker compose "${compose_options[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" \
+      && hp_ui_run 'Iniciando servicios HomePilot' docker compose "${compose_options[@]}" up -d --no-build
   fi
 }
 
@@ -517,6 +507,9 @@ fi
 
 load_saved_profile
 load_installer_capabilities
+if [[ "$deploy" == true ]]; then
+  homepilot_runtime_preflight
+fi
 configure_profile
 banner
 check_requirements

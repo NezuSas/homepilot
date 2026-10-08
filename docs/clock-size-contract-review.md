@@ -1,5 +1,33 @@
 # Reloj: contrato y validación geométrica AC56
 
+## Corrección de la aserción del editor independiente
+
+La suite responsive completa comunicada por el usuario terminó con309PASS/1FAIL: el escenario histórico esperaba216px en el widget exterior mientras seguía en edición. El renderer existente añade una franja de herramientas en flujo y gap encima del contenedor del reloj; por eso el exterior medía270px, sin alterar la superficie12×8 de216px. No es evidencia de que el reloj haya incumplido su contrato.
+
+La prueba ahora mide el contenedor real `clock-card`, exige216px, comprueba que las herramientas quedan encima sin invadirlo y finaliza edición para conservar la aserción216px del widget completo y ausencia de herramientas. Los límites4×4/12×8 siguen comprobándose por teclado. No cambia código de producción, dimensiones, niveles ni persistencia. Repetición del escenario corregido y suite completa pendiente; no se declara PASS sin ejecución.
+
+## Refinamiento de presentación — 2026-10-07
+
+### QA visual de pantalla y editor
+
+El usuario ejecutó la matriz de cuatro pantallas:4/4 escenarios PASS (48 pares), incluida la paridad de radios. Se inspeccionaron capturas de móvil claro, tablet oscuro y escritorio oscuro. La última mostró que los controles de edición independientes tapaban parcialmente la hora; esa superposición no estaba cubierta por la geometría interna. Corrección: franja de herramientas en flujo normal encima del reloj, con wrapping en anchos pequeños; el contenedor interior conserva dimensiones, radio y niveles, sin cambios persistidos. La prueba ahora comprueba que la franja no invade la tarjeta ni desborda. Esta corrección posterior requiere repetir los cuatro escenarios; el PASS anterior no la valida.
+
+Validación posterior de la franja:9/9 Jest en ClockPresentation/CardPreviewFrame PASS; typecheck y lint Operator Console PASS; spec coverage, BDD traceability y module test coverage PASS. No se ejecutaron builds, responsive ni suite completa para esta última corrección; el usuario ejecutará el proceso visual con build local. Sin Git, deploy, SQLite ni PLC.
+
+Cuatro escenarios `Visual QA of dashboard and editor at ...px (AC56)` ejecutan el build real a360×800,768×1024,1024×768 y1440×900. Cada escenario recorre claro/oscuro, reloj de sección/independiente y4×4/12×6/12×8:48 pares preview/tarjeta en total. Verifican círculo, contención, ausencia de scroll del contenedor, igualdad de dimensiones CSS, diámetro compensado por escala del preview y mismos nivel/disposición/elementos visibles después del guardado simulado. Capturan modal, tarjeta y dashboard; adjuntan `clock-visual-qa.json`. No equivale a validar hardware táctil ni todo el rango geométrico, y no contacta al PLC.
+
+El barrido exhaustivo conserva el presupuesto de100px para L3, pero su expectativa de gap se actualiza de20 a16px para coincidir con la spec y el CSS refinado. No se eliminan comprobaciones ni se amplían tolerancias. Resultados de los nuevos escenarios pendientes hasta su ejecución.
+
+Primera pasada de escritorio:1/1 escenario y12 pares PASS, pero la inspección de capturas detectó recorte en el editor independiente al ampliar de4×4 a12×6. La geometría interna cabía; el preview visible no. Se reforzó la prueba con contención contra la región de vista previa y se corrigió el observador de CardPreviewFrame para incluir su tarjeta intrínseca. Editor independiente ampliado y footer alineado mediante props del Modal existente. Confirmación posterior pendiente; el PASS anterior no certifica ausencia de recorte.
+
+Confirmación de escritorio tras corregir el recorte:1/1 escenario (12 pares) PASS, capturas nuevas de preview independiente claro/oscuro inspeccionadas;12/12 Jest en tres suites y controles spec/BDD/module coverage PASS. Se añadió después la misma clase de radio del renderer al preview independiente y comparación del radio en la prueba. Esa última paridad visual y la matriz completa de cuatro pantallas requieren ejecución posterior. No declarar todas las pantallas aprobadas ni release; typecheck raíz/lint global y demás validaciones no ejecutadas en esta revisión acotada.
+
+La envoltura interior del clock_display hereda el radio de su tarjeta para que ClockShell no pierda el redondeado por un div intermedio. Solo se aplica a relojes; otros widgets conservan su envoltura.
+
+Hora de20..28px, peso600 y separación8..16px para que la esfera conserve protagonismo. L3 horizontal usa una columna de texto intrínseca; el cálculo de diámetro conserva su presupuesto conservador previo, sin cambiar umbrales, contrato4×4..12×8 ni niveles. Los márgenes reciben el espacio sobrante. L4 y fallback incluyen una hora textual accesible sin región live; se oculta cuando aparece la hora digital principal para evitar duplicados.
+
+ClockPresentation cubre el marcado accesible. Default content matrix y Unsupported queries cubren su disponibilidad por nivel; el primero añade centrado del grupo visible y jerarquía en alturas104px y anchos197,333/300/700/906,667px, tanto sección como reloj independiente. La geometría anterior no constituye evidencia del CSS nuevo: pruebas de navegador, capturas actualizadas y validaciones completas pendientes de ejecución por el usuario. No se declara aprobación de publicación.
+
 ## Revisión vigente de composición — 2026-10-05
 
 Esta sección sustituye los umbrales y la matriz de las revisiones anteriores conservadas más abajo como evidencia histórica. Se toma como baseline la medida de Fase0 indicada por el usuario:300×160px, esfera110px y detalles visibles. La revisión conserva fecha/hora a12px mínimo y añade clima en el default; la esfera actual mide125,16px en ese caso, no110px.

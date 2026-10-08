@@ -35,4 +35,12 @@ storage_report() {
   else
     warn 'No se pudo consultar el uso y el espacio RECLAIMABLE de Docker.'
   fi
+  section 'Datos persistentes de HomePilot (no se eliminan)'
+  local directory
+  for directory in data backups; do
+    if [[ -d "$directory" ]]; then
+      du -sh -- "$directory" || warn "No se pudo medir ${directory}."
+    fi
+  done
+  info 'Datos, backups y auditoría pueden crecer por uso; no son imágenes duplicadas. Las cifras Docker comparten capas y no deben sumarse como disco físico.'
 }
