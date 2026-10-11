@@ -40,7 +40,7 @@ services:
       HOMEPILOT_INTEGRATION_API_KEY: ${HOMEPILOT_INTEGRATION_API_KEY:-}
       HOMEPILOT_INTENTFLOW_BASE_URL: ${HOMEPILOT_INTENTFLOW_BASE_URL:-}
 
-      TTS_PROVIDER: ${TTS_PROVIDER:-piper}
+      TTS_PROVIDER: ${TTS_PROVIDER:-kokoro}
       # The API uses host networking on Linux; Docker service DNS is unavailable here.
       TTS_BASE_URL: http://127.0.0.1:${HOMEPILOT_TTS_PORT:-8088}
       TTS_TIMEOUT_MS: ${TTS_TIMEOUT_MS:-45000}
@@ -86,6 +86,9 @@ services:
         HOMEPILOT_BUILD_REVISION: ${HOMEPILOT_BUILD_REVISION:-unknown}
     container_name: homepilot-tts
     environment:
+      TTS_ENGINE: ${TTS_PROVIDER:-kokoro}
+      KOKORO_VOICE_ES: ${KOKORO_VOICE_ES:-em_alex}
+      KOKORO_VOICE_EN: ${KOKORO_VOICE_EN:-af_heart}
       PIPER_VOICE_ES: ${PIPER_VOICE_ES:-es_MX-claude-high}
       PIPER_FALLBACK_VOICE_ES: ${PIPER_FALLBACK_VOICE_ES:-es_ES-sharvard-medium}
       PIPER_VOICE_EN: ${PIPER_VOICE_EN:-en_US-lessac-medium}

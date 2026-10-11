@@ -24,10 +24,8 @@ export class CommandExecutor extends ConversationCollaborator {
       return this.modules.hooks.executeSingleCommand(deviceId, command, prompt, correlationId, hasParams ? params : undefined, knownDevice);
     }
 
-    const device = deviceId === 'all' ? null : knownDevice ?? await this.deps.deviceRepository.findDeviceById(deviceId);
-    const homeId = deviceId === 'all'
-      ? (await this.deps.permissionGate.authorizedHomeIdsFor(userId))[0]
-      : device?.homeId;
+    const device = knownDevice ?? await this.deps.deviceRepository.findDeviceById(deviceId);
+    const homeId = device?.homeId;
 
     if (!homeId) throw new Error('DEVICE_HOME_ID_NOT_FOUND');
     await this.deps.permissionGate.assertHomeAuthorized(userId, homeId);
@@ -36,17 +34,9 @@ export class CommandExecutor extends ConversationCollaborator {
   }
 
   public async executeSingleCommand(deviceId: string, command: DeviceCommandV1, prompt: string, correlationId: string, params?: Record<string, unknown>, knownDevice?: Device): Promise<SceneExecutionResult> {
-    let homeId: string | undefined;
-    let roomId: string | null = null;
-
-    if (deviceId === 'all') {
-      const allDevices = await this.deps.deviceRepository.findAll();
-      homeId = allDevices[0]?.homeId;
-    } else {
-      const device = knownDevice ?? await this.deps.deviceRepository.findDeviceById(deviceId);
-      homeId = device?.homeId;
-      roomId = device?.roomId ?? null;
-    }
+    const device = knownDevice ?? await this.deps.deviceRepository.findDeviceById(deviceId);
+    const homeId = device?.homeId;
+    const roomId = device?.roomId ?? null;
 
     if (!homeId) throw new Error('DEVICE_HOME_ID_NOT_FOUND');
 

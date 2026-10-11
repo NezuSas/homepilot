@@ -60,6 +60,10 @@ export class UserManagementService {
     if (!payload.username || payload.username.trim().length === 0) {
       throw new Error('INVALID_INPUT: Username cannot be empty');
     }
+    // Usernames become folder names under /media/users and appear in logs: bound them and refuse path or control characters.
+    if (payload.username.trim().length > 40 || /[\u0000-\u001f\\/]/.test(payload.username)) {
+      throw new Error('INVALID_INPUT: Username must be at most 40 characters and cannot contain slashes or control characters');
+    }
     if (!payload.passwordPlain || payload.passwordPlain.length < 8) {
       throw new Error('INVALID_INPUT: Password must be at least 8 characters long');
     }

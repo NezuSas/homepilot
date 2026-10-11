@@ -198,6 +198,52 @@ describe('Feature: protección de inicio de sesión', () => {
     expect(container.services.userManagementService.updateProfile).toHaveBeenCalledWith('owner-1', 'Owner', expect.stringMatching(/^\/media\/users\/owner\.png\?v=\d+$/));
     expect(response.writeHead).toHaveBeenCalledWith(200, expect.any(Object));
   });
+
+  it.each([
+    ['an external URL', 'https://tracker.example/pixel.png'],
+    ['another user avatar', '/media/users/other/avatar.png?v=1'],
+    ['a traversal path', '/media/users/owner/../other/avatar.png'],
+    ['a script URL', 'javascript:alert(1)'],
+  ])('Scenario: Given %s as the avatar When updating the profile Then it is refused and nothing is saved', async (_name, avatar) => {
+    const saveUserAvatar = jest.fn();
+    const routes = new AuthRoutes({ saveUserAvatar } as unknown as MediaService, new LoginAttemptRateLimiter());
+    const container = {
+      guards: { authGuard: { protect: jest.fn().mockResolvedValue(true) } },
+      services: { userManagementService: { updateProfile: jest.fn() } },
+      repositories: { userRepository: { findById: jest.fn() } },
+    } as unknown as BootstrapContainer;
+    const request = createRequest();
+    request.user = { id: 'owner-1', username: 'owner', displayName: null, avatarDataUri: null, role: 'admin' };
+    request._fastifyParsedBody = JSON.stringify({ displayName: 'Owner', avatarDataUri: avatar });
+    const response = new MockResponse();
+
+    await routes.handle(request, response as unknown as http.ServerResponse, '/api/v1/auth/me', 'PATCH', container);
+
+    expect(response.writeHead).toHaveBeenCalledWith(400, expect.any(Object));
+    expect(saveUserAvatar).not.toHaveBeenCalled();
+    expect(container.services.userManagementService.updateProfile).not.toHaveBeenCalled();
+  });
+
+  it('Scenario: Given the current stored avatar or none When updating only the name Then the profile is saved', async () => {
+    const routes = new AuthRoutes({ saveUserAvatar: jest.fn() } as unknown as MediaService, new LoginAttemptRateLimiter());
+    for (const avatar of ['/media/users/owner/avatar.png?v=7', null]) {
+      const updateProfile = jest.fn().mockResolvedValue(undefined);
+      const container = {
+        guards: { authGuard: { protect: jest.fn().mockResolvedValue(true) } },
+        services: { userManagementService: { updateProfile } },
+        repositories: { userRepository: { findById: jest.fn().mockResolvedValue({ id: 'owner-1', username: 'owner', displayName: 'Owner', avatarDataUri: avatar, role: 'admin', isActive: true }) } },
+      } as unknown as BootstrapContainer;
+      const request = createRequest();
+      request.user = { id: 'owner-1', username: 'owner', displayName: null, avatarDataUri: null, role: 'admin' };
+      request._fastifyParsedBody = JSON.stringify({ displayName: 'Owner', avatarDataUri: avatar });
+      const response = new MockResponse();
+
+      await routes.handle(request, response as unknown as http.ServerResponse, '/api/v1/auth/me', 'PATCH', container);
+
+      expect(updateProfile).toHaveBeenCalledWith('owner-1', 'Owner', avatar);
+      expect(response.writeHead).toHaveBeenCalledWith(200, expect.any(Object));
+    }
+  });
 });
 describe('Feature: authentication route resilience contracts', () => {
   it('Scenario: Given a missing or invalid directory SSO token When the public endpoint is called Then it returns the stable public error contract', async () => {

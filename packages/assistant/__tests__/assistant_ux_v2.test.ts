@@ -89,7 +89,7 @@ describe('AssistantConversationService UX V2', () => {
     // 1. Initial request
     intentInterpreter.interpret.mockResolvedValue({
       type: 'command',
-      deviceId: 'all',
+      deviceId: 'd1',
       command: 'turn_off',
       prompt
     });

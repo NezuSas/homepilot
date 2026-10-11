@@ -715,8 +715,11 @@ test('Feature: Section slots — moving to a gap and swapping Sections persist w
   const moveSectionWithKeyboard = async (name: string, keys: string[]) => {
     const source = handle(name);
 
-    await source.focus();
-    await expect(source).toBeFocused();
+    // On a loaded machine the editor can re-render between focusing and the check; focus again until it holds.
+    await expect(async () => {
+      await source.focus();
+      await expect(source).toBeFocused({ timeout: 1000 });
+    }).toPass({ timeout: 8000 });
 
     await page.keyboard.press('Space');
     await expect(source).toHaveAttribute('data-dashboard-drag-origin', 'true');

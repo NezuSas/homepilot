@@ -84,10 +84,11 @@ export class IntentCommandRunner extends ConversationCollaborator {
         userName: userName || undefined
       }, language), userId, language, memory, 'command');
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      // The detail stays in the log; the user gets a plain sentence, never an internal code or message.
+      console.error(`[ASSISTANT_COMMAND_FAILED] ${error instanceof Error ? error.message : String(error)}`);
       return {
         type: 'error',
-        message: errorMessage || getAssistantResponseText('execution.unknown_error', language, {})
+        message: getAssistantResponseText('execution.unknown_error', language, {})
       };
     }
   }
@@ -166,10 +167,11 @@ export class IntentCommandRunner extends ConversationCollaborator {
       }, userId, language, memory, 'multi_command');
 
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      // The detail stays in the log; the user gets a plain sentence, never an internal code or message.
+      console.error(`[ASSISTANT_COMMAND_FAILED] ${error instanceof Error ? error.message : String(error)}`);
       return {
         type: 'error',
-        message: errorMessage || getAssistantResponseText('execution.unknown_error', language, {})
+        message: getAssistantResponseText('execution.unknown_error', language, {})
       };
     }
   }

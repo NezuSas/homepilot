@@ -234,6 +234,15 @@ export class AuthRoutes extends ApiRoutes {
         const displayName = typeof payload.displayName === 'string' ? payload.displayName.trim() || null : null;
         let finalAvatarDataUri = typeof payload.avatarDataUri === 'string' ? payload.avatarDataUri : null;
 
+        // Only a new upload (data URI) or the user's own stored avatar may be saved; an arbitrary URL would
+        // make every browser that shows this avatar contact a third party.
+        const ownAvatarPrefix = `/media/users/${req.user!.username}/`;
+        if (finalAvatarDataUri !== null
+          && !finalAvatarDataUri.startsWith('data:image/')
+          && (!finalAvatarDataUri.startsWith(ownAvatarPrefix) || finalAvatarDataUri.includes('..'))) {
+          return this.sendError(res, 400, 'VALIDATION_ERROR', 'Avatar must be a new image upload or the current avatar'), true;
+        }
+
         // If the payload contains a raw Base64 data URI (new upload), process it physically
         if (finalAvatarDataUri?.startsWith('data:image/')) {
           const savedPath = await this.mediaService.saveUserAvatar(req.user!.username, finalAvatarDataUri);

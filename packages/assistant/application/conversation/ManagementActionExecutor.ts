@@ -172,7 +172,8 @@ export class ManagementActionExecutor extends ConversationCollaborator {
 
       return { type: 'error', message: getAssistantResponseText('management.execution_failed', language, {}) };
     } catch (err: unknown) {
-      return { type: 'error', message: err instanceof Error ? err.message : String(err) };
+      console.error(`[ASSISTANT_MANAGEMENT_FAILED] ${err instanceof Error ? err.message : String(err)}`);
+      return { type: 'error', message: getAssistantResponseText('management.execution_failed', language, {}) };
     }
   }
 }

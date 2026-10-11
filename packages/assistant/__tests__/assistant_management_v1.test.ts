@@ -449,7 +449,8 @@ describe('Assistant Management V1', () => {
 
       expect(sceneRepo.saveScene).not.toHaveBeenCalled();
       expect(automationRepo.save).not.toHaveBeenCalled();
-      expect(response).toEqual({ type: 'error', message: 'INVALID_PAYLOAD: deviceId and valid command are required for add mode' });
+      // The internal reason stays in the log; the user only reads a plain sentence.
+      expect(response).toEqual({ type: 'error', message: 'No se pudo ejecutar la acción de gestión.' });
     });
   });
 });
