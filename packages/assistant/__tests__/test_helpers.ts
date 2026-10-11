@@ -28,6 +28,8 @@ import { AssistantDraftRepository } from '../domain/repositories/AssistantDraftR
 import { AssistantLearningRepository } from '../domain/repositories/AssistantLearningRepository';
 import { ConfirmationTicketRepository } from '../domain/repositories/ConfirmationTicketRepository';
 import { ConfirmationTicket } from '../domain/ConfirmationTicket';
+import type { AssistantConversationService } from '../application/AssistantConversationService';
+import type { ConversationModules } from '../application/conversation/ConversationModules';
 
 export const createTestDevice = (overrides?: Partial<Device>): Device => ({
   id: 'dev-1',
@@ -337,3 +339,10 @@ export const createMockSystemVariableService = (overrides?: any): any => ({
   getSystemTimezone: jest.fn().mockResolvedValue('America/Guayaquil'),
   ...overrides
 });
+
+/**
+ * Test seam: reaches the collaborators composed by the conversation service so tests can exercise
+ * a single collaborator method without replaying a whole conversation turn.
+ */
+export const conversationModulesOf = (service: AssistantConversationService): ConversationModules =>
+  (service as unknown as { modules: ConversationModules }).modules;

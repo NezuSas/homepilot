@@ -2,22 +2,14 @@ import { DeviceRepository } from '../../devices/domain/repositories/DeviceReposi
 import { RoomRepository } from '../../topology/domain/repositories/RoomRepository';
 import { HomeRepository } from '../../topology/domain/repositories/HomeRepository';
 import { AssistantMultiCommandResult } from './ports/IntentInterpreterPort';
-import { Device } from '../../devices/domain/types';
-import { DeviceCommandV1 } from '../../devices/domain/commands';
-import { Room } from '../../topology/domain/types';
 import { ScopeFilter } from './ScopeFilter';
 import { AuthorizedScope, RepositoryAuthorizedScope } from './multicommand/AuthorizedScope';
 import { parseCompound } from './multicommand/compoundParsing';
 import { parseExclusion } from './multicommand/exclusionParsing';
 import { parseZoneCategoryCommand } from './multicommand/zoneCategoryParsing';
-import { resolveTargets } from './multicommand/targetResolution';
 import {
   COMMAND_CONNECTORS,
   EXCLUSION_WORDS,
-  categoryMatchesDeviceName,
-  extractCategoryWord,
-  inferCommandFromSegment,
-  isControllableDevice,
   normalizePrompt,
 } from './multicommand/textRules';
 
@@ -38,7 +30,7 @@ export class AssistantMultiCommandParser {
   }
 
   public async parse(prompt: string, userId?: string): Promise<AssistantMultiCommandResult | null> {
-    const normalized = this.normalizePrompt(prompt);
+    const normalized = normalizePrompt(prompt);
 
     // Conectores que dividen oraciones de comandos
     const connectors = COMMAND_CONNECTORS;
@@ -54,47 +46,9 @@ export class AssistantMultiCommandParser {
 
     const hasConnector = connectors.some(c => normalized.includes(c));
     if (hasConnector) {
-      return await this.parseCompound(prompt, normalized, connectors, userId);
+      return await parseCompound(prompt, normalized, connectors, this.scope, userId);
     }
 
     return await parseZoneCategoryCommand(prompt, normalized, this.scope, this.scopeFilter, userId);
-  }
-
-  // ─── Delegates to the pure rules (kept as members for existing callers/tests) ──
-
-  protected getAuthorizedDevices(userId?: string): Promise<Device[]> {
-    return this.scope.getAuthorizedDevices(userId);
-  }
-
-  protected getAuthorizedRooms(userId?: string): Promise<Room[]> {
-    return this.scope.getAuthorizedRooms(userId);
-  }
-
-  protected parseCompound(originalPrompt: string, normalized: string, connectors: string[], userId?: string): Promise<AssistantMultiCommandResult> {
-    return parseCompound(originalPrompt, normalized, connectors, this.scope, userId);
-  }
-
-  protected resolveTargets(segment: string, allDevices: readonly Device[], allRooms: readonly Room[]): ReturnType<typeof resolveTargets> {
-    return resolveTargets(segment, allDevices, allRooms);
-  }
-
-  protected extractCategoryWord(basePartWithVerb: string): string {
-    return extractCategoryWord(basePartWithVerb);
-  }
-
-  protected categoryMatchesDeviceName(category: string, deviceName: string): boolean {
-    return categoryMatchesDeviceName(category, deviceName);
-  }
-
-  protected inferCommandFromSegment(segment: string): DeviceCommandV1 | null {
-    return inferCommandFromSegment(segment);
-  }
-
-  protected normalizePrompt(prompt: string): string {
-    return normalizePrompt(prompt);
-  }
-
-  protected isControllableDevice(device: Device, command: string): boolean {
-    return isControllableDevice(device, command);
   }
 }

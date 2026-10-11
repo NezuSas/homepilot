@@ -1,4 +1,5 @@
 import { AssistantConversationService } from '../application/AssistantConversationService';
+import type { ExecutedCommandResult } from '../application/conversation/conversationTypes';
 import type { IntentInterpreterPort } from '../application/ports/IntentInterpreterPort';
 import type { AssistantConfirmationPolicyPort } from '../application/ports/AssistantConfirmationPolicyPort';
 import { SceneExecutionService } from '../../devices/application/SceneExecutionService';
@@ -34,6 +35,13 @@ import type { RoomRepository } from '../../topology/domain/repositories/RoomRepo
 import type { AssistantMemoryPort } from '../application/ports/AssistantMemoryPort';
 import { FollowUpResolverPort } from '../application/ports/FollowUpResolverPort';
 import { SUPPORTED_HOME_CONVERSATION_PROMPTS } from './fixtures/supportedHomeConversationPrompts';
+import { inferCommandFromPrompt, isBulkActionAccept, isBulkActionReject, isConfirmation, isNegativeConfirmation, isPositiveConfirmation, isSuggestionAccept, isSuggestionPostpone, isSuggestionReject, resolveSelectionFromMemory } from '../application/conversation/confirmationReplies';
+import { extractTargetPhrase, isBulkFastPath, isRoomBulkFastPath, isRoomSingularLightFastPath, isSingularLightRequest } from '../application/conversation/fastPathMatching';
+import { isAttentionQuery, isCompanyQuery, isConversationContextQuery, isDateTimeQuery, isGreeting, isHelpQuery, isHomeSummaryQuery, isLikelyHomeControlPrompt, isNameQuery, isPresentation, isRecentActivityQuery, isScopeQuery, isWellnessQuery } from '../application/conversation/generalQueryIntents';
+import { buildCommandSuccessMessage, formatMultiCommandSummary, handleCompanyInfoQuery, handleConversationContext } from '../application/conversation/responseMessages';
+import { resolveRoomAlias } from '../application/conversation/roomAliasResolution';
+import { containsWord, isInventoryCountQuery, isListAutomationsIntent, isListScenesIntent, isManagementIntent, isPointStateQuery, isStateQuery } from '../application/conversation/stateQueryIntents';
+import { conversationModulesOf } from './test_helpers';
 
 describe('AssistantConversationService', () => {
   let service: AssistantConversationService;
@@ -834,13 +842,10 @@ describe('AssistantConversationService', () => {
   });
   describe('Feature: draft creation boundaries', () => {
     it('Scenario: Given a known room without assigned devices When a draft is requested Then explains that no draft can be made', async () => {
-      const internals = service as unknown as {
-        handleDraftCreation(prompt: string, language: string, userId: string): Promise<{ type: string; message: string }>;
-      };
       mockDeviceRepo.findAll.mockResolvedValue([]);
       mockRoomRepo.findAll.mockResolvedValue([createTestRoom({ id: 'r1', name: 'Cuarto Master', homeId: 'h1' })]);
 
-      await expect(internals.handleDraftCreation('crea una escena en cuarto master', 'es', 'draft-user')).resolves.toEqual({
+      await expect(conversationModulesOf(service).drafts.handleDraftCreation('crea una escena en cuarto master', 'es', 'draft-user')).resolves.toEqual({
         type: 'answer',
         message: 'Encontré la estancia "Cuarto Master", pero ningún dispositivo está asignado a ella.'
       });
@@ -848,15 +853,12 @@ describe('AssistantConversationService', () => {
     });
 
     it('Scenario: Given a known room with only non-controllable devices When a routine draft is requested Then preserves device safety', async () => {
-      const internals = service as unknown as {
-        handleDraftCreation(prompt: string, language: string, userId: string): Promise<{ type: string; message: string }>;
-      };
       mockDeviceRepo.findAll.mockResolvedValue([
         createTestDevice({ id: 'temperature-1', name: 'Temperatura', type: 'sensor', roomId: 'r1', homeId: 'h1' }),
       ]);
       mockRoomRepo.findAll.mockResolvedValue([createTestRoom({ id: 'r1', name: 'Cuarto Master', homeId: 'h1' })]);
 
-      await expect(internals.handleDraftCreation('crea una rutina para apagar cuarto master', 'es', 'draft-user')).resolves.toEqual({
+      await expect(conversationModulesOf(service).drafts.handleDraftCreation('crea una rutina para apagar cuarto master', 'es', 'draft-user')).resolves.toEqual({
         type: 'answer',
         message: 'Encontré dispositivos en "Cuarto Master", pero ninguno es controlable (luces, interruptores o enchufes).'
       });
@@ -907,15 +909,11 @@ describe('AssistantConversationService', () => {
   });
   describe('Feature: point state query branches', () => {
     it('Scenario: Given an explicit point-state query When no device or room matches Then returns a safe not-found answer', async () => {
-      const internals = service as unknown as {
-        isPointStateQuery(prompt: string): boolean;
-        handlePointStateQuery(prompt: string, language: string, userId: string): Promise<{ type: string; message: string }>;
-      };
       mockDeviceRepo.findAll.mockResolvedValue([]);
       mockRoomRepo.findAll.mockResolvedValue([]);
 
-      expect(internals.isPointStateQuery('luz inexistente esta encendida')).toBe(true);
-      await expect(internals.handlePointStateQuery('luz inexistente esta encendida', 'es', 'state-user')).resolves.toEqual({
+      expect(isPointStateQuery('luz inexistente esta encendida')).toBe(true);
+      await expect(conversationModulesOf(service).readings.handlePointStateQuery('luz inexistente esta encendida', 'es', 'state-user')).resolves.toEqual({
         type: 'answer',
         message: 'No pude encontrar el dispositivo por el que preguntas.'
       });
@@ -925,15 +923,12 @@ describe('AssistantConversationService', () => {
       ['off', 'Todo está apagado en Cuarto Master.'],
       ['on', 'Todo está encendido en Cuarto Master.']
     ])('Scenario: Given a room with devices all %s When its state is queried Then reports the aggregate state', async (state, expectedMessage) => {
-      const internals = service as unknown as {
-        handlePointStateQuery(prompt: string, language: string, userId: string): Promise<{ type: string; message: string }>;
-      };
       mockDeviceRepo.findAll.mockResolvedValue([
         createTestDevice({ id: 'light-1', name: 'Luz Uno', type: 'light', roomId: 'r1', lastKnownState: { state } }),
         createTestDevice({ id: 'light-2', name: 'Luz Dos', type: 'light', roomId: 'r1', lastKnownState: { state } })
       ]);
 
-      await expect(internals.handlePointStateQuery('cuarto master esta encendido', 'es', 'state-user')).resolves.toEqual({
+      await expect(conversationModulesOf(service).readings.handlePointStateQuery('cuarto master esta encendido', 'es', 'state-user')).resolves.toEqual({
         type: 'answer',
         message: expectedMessage
       });
@@ -1019,15 +1014,12 @@ describe('AssistantConversationService', () => {
   });
   describe('Feature: detailed state answers', () => {
     it('Scenario: Given active and inactive devices When global status is requested Then returns the compact status and stores the detail context', async () => {
-      const internals = service as unknown as {
-        handleStateQuery(prompt: string, language: string, userName: string | null, userId: string): Promise<{ type: string; message: string }>;
-      };
       mockDeviceRepo.findAll.mockResolvedValue([
         createTestDevice({ id: 'light-on', name: 'Luz Sala', type: 'light', roomId: 'r1', lastKnownState: { on: true } }),
         createTestDevice({ id: 'light-off', name: 'Luz Patio', type: 'light', roomId: 'r1', lastKnownState: { on: false } })
       ]);
 
-      const response = await internals.handleStateQuery('estado', 'es', 'Oscar', 'state-user');
+      const response = await conversationModulesOf(service).stateQueries.handleStateQuery('estado', 'es', 'Oscar', 'state-user');
 
       expect(response).toEqual(expect.objectContaining({
         type: 'answer',
@@ -1042,24 +1034,18 @@ describe('AssistantConversationService', () => {
     });
 
     it('Scenario: Given an unknown room in a state request When the user asks for its lights Then returns a bounded answer instead of broadening the scope', async () => {
-      const internals = service as unknown as {
-        handleStateQuery(prompt: string, language: string, userName: string | null, userId: string): Promise<{ type: string; message: string }>;
-      };
       mockDeviceRepo.findAll.mockResolvedValue([createTestDevice({ id: 'light-1', type: 'light', roomId: 'r1' })]);
 
-      await expect(internals.handleStateQuery('que luces estan encendidas en garaje', 'es', null, 'state-user')).resolves.toEqual({
+      await expect(conversationModulesOf(service).stateQueries.handleStateQuery('que luces estan encendidas en garaje', 'es', null, 'state-user')).resolves.toEqual({
         type: 'answer',
         message: 'No encontré esa estancia.'
       });
     });
 
     it('Scenario: Given a roomless light request When no room is named Then asks the user to choose a room', async () => {
-      const internals = service as unknown as {
-        handleStateQuery(prompt: string, language: string, userName: string | null, userId: string): Promise<{ type: string; message: string }>;
-      };
       mockDeviceRepo.findAll.mockResolvedValue([createTestDevice({ id: 'light-1', type: 'light', roomId: 'r1' })]);
 
-      const response = await internals.handleStateQuery('dime la luz encendida', 'es', null, 'state-user');
+      const response = await conversationModulesOf(service).stateQueries.handleStateQuery('dime la luz encendida', 'es', null, 'state-user');
 
       expect(response).toEqual(expect.objectContaining({ type: 'clarification', message: '¿En qué estancia?' }));
       expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('state-user', expect.objectContaining({
@@ -1068,15 +1054,12 @@ describe('AssistantConversationService', () => {
     });
   });
     it('Scenario: Given known device states When the user asks for devices on and off Then returns both lists', async () => {
-      const internals = service as unknown as {
-        handleStateQuery(prompt: string, language: string, userName: string | null, userId: string): Promise<{ type: string; message: string }>;
-      };
       mockDeviceRepo.findAll.mockResolvedValue([
         createTestDevice({ id: 'light-on', name: 'Luz Sala', type: 'light', roomId: 'r1', lastKnownState: { on: true } }),
         createTestDevice({ id: 'light-off', name: 'Luz Patio', type: 'light', roomId: 'r1', lastKnownState: { on: false } })
       ]);
 
-      const response = await internals.handleStateQuery('dime qué dispositivos están encendidos y apagados', 'es', null, 'state-user');
+      const response = await conversationModulesOf(service).stateQueries.handleStateQuery('dime qué dispositivos están encendidos y apagados', 'es', null, 'state-user');
 
       expect(response.message).toContain('Encendidas:');
       expect(response.message).toContain('Luz Sala (Cuarto Master)');
@@ -1085,29 +1068,23 @@ describe('AssistantConversationService', () => {
     });
 
     it('Scenario: Given no matching lights are on When the user asks their state Then reports the empty state', async () => {
-      const internals = service as unknown as {
-        handleStateQuery(prompt: string, language: string, userName: string | null, userId: string): Promise<{ type: string; message: string }>;
-      };
       mockDeviceRepo.findAll.mockResolvedValue([
         createTestDevice({ id: 'light-off', name: 'Luz Patio', type: 'light', roomId: 'r1', lastKnownState: { on: false } })
       ]);
 
-      const response = await internals.handleStateQuery('qué luces están encendidas', 'es', null, 'state-user');
+      const response = await conversationModulesOf(service).stateQueries.handleStateQuery('qué luces están encendidas', 'es', null, 'state-user');
 
       expect(response).toEqual({ type: 'answer', message: 'No hay luces encendidas en este momento.' });
     });
 
     it('Scenario: Given a remembered device When the user asks where it is Then uses the cached room name', async () => {
-      const internals = service as unknown as {
-        handleStateQuery(prompt: string, language: string, userName: string | null, userId: string, entities: Array<{ id: string; name: string; type: string; roomName?: string }>): Promise<{ type: string; message: string }>;
-      };
       mockDeviceRepo.findAll.mockResolvedValue([
         createTestDevice({ id: 'light-on', name: 'Luz Sala', type: 'light', roomId: 'r1', lastKnownState: { on: true } })
       ]);
 
-      await expect(internals.handleStateQuery('dónde está', 'es', null, 'state-user', [
+      await expect(conversationModulesOf(service).stateQueries.handleStateQuery('dónde está', 'es', null, 'state-user', [
         { id: 'light-on', name: 'Luz Sala', type: 'light', roomName: 'Sala guardada' }
-      ])).resolves.toEqual({ type: 'answer', message: 'Luz Sala (Sala guardada)' });
+      ] as never)).resolves.toEqual({ type: 'answer', message: 'Luz Sala (Sala guardada)' });
     });
   describe('Greetings', () => {
     it('should respond to "Hola" with a friendly answer in Spanish', async () => {
@@ -1556,32 +1533,24 @@ describe('AssistantConversationService', () => {
     });
   });  describe('Feature: deterministic conversational parsing helpers', () => {
     it('resolves confirmation polarity, ordinal choices, labels, and safe command inference', () => {
-      const internals = service as unknown as {
-        isConfirmation(value: string): boolean;
-        isPositiveConfirmation(value: string): boolean;
-        isNegativeConfirmation(value: string): boolean;
-        resolveSelectionFromMemory(value: string, options: Array<{ id: string; label: string }>, language: string): string | null;
-        inferCommandFromPrompt(value: string): string | undefined;
-        isStateQuery(value: string): boolean;
-      };
       const options = [
         { id: 'device-1', label: 'Luz Sala' },
         { id: 'device-2', label: 'Luz Cocina' },
         { id: 'scene-1', label: 'Escena Cine' },
       ];
 
-      expect(internals.isConfirmation('confirmo ahora')).toBe(true);
-      expect(internals.isPositiveConfirmation('no')).toBe(false);
-      expect(internals.isNegativeConfirmation('cancelar ahora')).toBe(true);
-      expect(internals.resolveSelectionFromMemory('la segunda', options, 'es')).toBe('device-2');
-      expect(internals.resolveSelectionFromMemory('selected Luz Sala', options, 'en')).toBe('device-1');
-      expect(internals.resolveSelectionFromMemory('cine', options, 'es')).toBe('scene-1');
-      expect(internals.resolveSelectionFromMemory('desconocido', options, 'es')).toBeNull();
-      expect(internals.inferCommandFromPrompt('abre la cortina')).toBe('open');
-      expect(internals.inferCommandFromPrompt('turn off kitchen')).toBe('turn_off');
-      expect(internals.inferCommandFromPrompt('pregunta general')).toBeUndefined();
-      expect(internals.isStateQuery('qué luces están encendidas')).toBe(true);
-      expect(internals.isStateQuery('enciende esa luz')).toBe(false);
+      expect(isConfirmation('confirmo ahora')).toBe(true);
+      expect(isPositiveConfirmation('no')).toBe(false);
+      expect(isNegativeConfirmation('cancelar ahora')).toBe(true);
+      expect(resolveSelectionFromMemory('la segunda', options, 'es')).toBe('device-2');
+      expect(resolveSelectionFromMemory('selected Luz Sala', options, 'en')).toBe('device-1');
+      expect(resolveSelectionFromMemory('cine', options, 'es')).toBe('scene-1');
+      expect(resolveSelectionFromMemory('desconocido', options, 'es')).toBeNull();
+      expect(inferCommandFromPrompt('abre la cortina')).toBe('open');
+      expect(inferCommandFromPrompt('turn off kitchen')).toBe('turn_off');
+      expect(inferCommandFromPrompt('pregunta general')).toBeUndefined();
+      expect(isStateQuery('qué luces están encendidas')).toBe(true);
+      expect(isStateQuery('enciende esa luz')).toBe(false);
     });
   });
 
@@ -1678,19 +1647,8 @@ describe('AssistantConversationService', () => {
         executionMode: 'parallel' as const, createdAt: '', updatedAt: '',
       };
       mockSceneRepo.findSceneById.mockResolvedValue(scene);
-      const internals = service as unknown as {
-        executeIntent(
-          intent: { type: 'scene'; target: string; prompt: string },
-          request: { prompt: string; userId: string },
-          language: string,
-          userId: string,
-          userName: string | null,
-          prompt: string,
-          memory: null
-        ): Promise<{ type: string; message: string }>;
-      };
 
-      const response = await internals.executeIntent(
+      const response = await conversationModulesOf(service).intents.executeIntent(
         { type: 'scene', target: 'scene-1', prompt: 'activa escena cine' },
         { prompt: 'activa escena cine', userId: 'scene-owner' },
         'es',
@@ -1724,70 +1682,41 @@ describe('AssistantConversationService', () => {
   });
   describe('Feature: point-state and company query classification', () => {
     it('classifies point-state prompts while leaving broad inventory questions to the state-query flow', () => {
-      const internals = service as unknown as {
-        isPointStateQuery(value: string): boolean;
-        isCompanyQuery(value: string): boolean;
-      };
-
-      expect(internals.isPointStateQuery('esta encendida la luz sala')).toBe(true);
-      expect(internals.isPointStateQuery('esta apagado el comedor')).toBe(true);
-      expect(internals.isPointStateQuery('is on the kitchen light')).toBe(true);
-      expect(internals.isPointStateQuery('que luces estan encendidas')).toBe(false);
-      expect(internals.isPointStateQuery('which lights are on')).toBe(false);
-      expect(internals.isCompanyQuery('quien creo homepilot')).toBe(true);
-      expect(internals.isCompanyQuery('tell me a joke')).toBe(false);
+      expect(isPointStateQuery('esta encendida la luz sala')).toBe(true);
+      expect(isPointStateQuery('esta apagado el comedor')).toBe(true);
+      expect(isPointStateQuery('is on the kitchen light')).toBe(true);
+      expect(isPointStateQuery('que luces estan encendidas')).toBe(false);
+      expect(isPointStateQuery('which lights are on')).toBe(false);
+      expect(isCompanyQuery('quien creo homepilot')).toBe(true);
+      expect(isCompanyQuery('tell me a joke')).toBe(false);
     });
   });
   describe('Feature: conversational intent predicates', () => {
     it('classifies help, presentation, scope, time, summary, activity, greetings, wellness, and state inventory questions deterministically', () => {
-      const internals = service as unknown as {
-        isNameQuery(value: string): boolean;
-        isHelpQuery(value: string): boolean;
-        isPresentation(value: string): boolean;
-        isScopeQuery(value: string): boolean;
-        isDateTimeQuery(value: string): boolean;
-        isHomeSummaryQuery(value: string): boolean;
-        isRecentActivityQuery(value: string): boolean;
-        isConversationContextQuery(value: string): boolean;
-        isGreeting(value: string): boolean;
-        isWellnessQuery(value: string): boolean;
-        isStateQuery(value: string): boolean;
-        isInventoryCountQuery(value: string): boolean;
-      };
-
-      expect(internals.isNameQuery('como te llamas')).toBe(true);
-      expect(internals.isHelpQuery('necesito ayuda con la casa')).toBe(true);
-      expect(internals.isPresentation('que puedes controlar')).toBe(true);
-      expect(internals.isScopeQuery('cuales son tus limites')).toBe(true);
-      expect(internals.isDateTimeQuery('que hora es')).toBe(true);
-      expect(internals.isHomeSummaryQuery('dame un resumen de la casa')).toBe(true);
-      expect(internals.isRecentActivityQuery('que cambio recientemente')).toBe(true);
-      expect(internals.isConversationContextQuery('repite tu ultima respuesta')).toBe(true);
-      expect(internals.isGreeting('hola nezu')).toBe(true);
-      expect(internals.isWellnessQuery('estas funcionando correctamente')).toBe(true);
-      expect(internals.isInventoryCountQuery('cuantas luces tengo')).toBe(true);
-      expect(internals.isStateQuery('que luces estan encendidas')).toBe(true);
-      expect(internals.isStateQuery('enciende esa luz')).toBe(false);
-      expect(internals.isStateQuery('cuantas luces tengo')).toBe(true);
-      expect(internals.isPresentation('enciende sala')).toBe(false);
+      expect(isNameQuery('como te llamas')).toBe(true);
+      expect(isHelpQuery('necesito ayuda con la casa')).toBe(true);
+      expect(isPresentation('que puedes controlar')).toBe(true);
+      expect(isScopeQuery('cuales son tus limites')).toBe(true);
+      expect(isDateTimeQuery('que hora es')).toBe(true);
+      expect(isHomeSummaryQuery('dame un resumen de la casa')).toBe(true);
+      expect(isRecentActivityQuery('que cambio recientemente')).toBe(true);
+      expect(isConversationContextQuery('repite tu ultima respuesta')).toBe(true);
+      expect(isGreeting('hola nezu')).toBe(true);
+      expect(isWellnessQuery('estas funcionando correctamente')).toBe(true);
+      expect(isInventoryCountQuery('cuantas luces tengo')).toBe(true);
+      expect(isStateQuery('que luces estan encendidas')).toBe(true);
+      expect(isStateQuery('enciende esa luz')).toBe(false);
+      expect(isStateQuery('cuantas luces tengo')).toBe(true);
+      expect(isPresentation('enciende sala')).toBe(false);
     });
 
     it('formats remembered conversation context in both the available and empty cases', () => {
-      const internals = service as unknown as {
-        handleConversationContext(memory: { originalPrompt?: string } | null, language: string): { message: string };
-      };
-
-      expect(internals.handleConversationContext({ originalPrompt: 'apaga la sala' }, 'es').message).toContain('apaga la sala');
-      expect(internals.handleConversationContext(null, 'en').message).toContain('do not have a previous request');
+      expect(handleConversationContext({ originalPrompt: 'apaga la sala' } as never, 'es').message).toContain('apaga la sala');
+      expect(handleConversationContext(null, 'en').message).toContain('do not have a previous request');
     });
   });
   describe('Feature: residential summaries and activity answers', () => {
     it('reports home summaries, recent activity, and contextual capability guidance from authorized inventory', async () => {
-      const internals = service as unknown as {
-        handleHomeSummary(language: string, userId: string): Promise<{ message: string }>;
-        handleRecentActivity(language: string): Promise<{ message: string }>;
-        handleCapabilitiesGuide(userId: string, language: string): Promise<{ message: string }>;
-      };
       mockDeviceRepo.findAll.mockResolvedValue([
         createTestDevice({ id: 'light-on', homeId: 'home-1', type: 'light', lastKnownState: { on: true } }),
         createTestDevice({ id: 'sensor-offline', homeId: 'home-1', type: 'sensor', lastKnownState: { available: false } }),
@@ -1799,71 +1728,54 @@ describe('AssistantConversationService', () => {
         { sourceType: 'scene', sourceId: 'scene-1', status: 'success', summary: 'Cinema scene' },
       ] as never);
 
-      await expect(internals.handleHomeSummary('es', 'user-1')).resolves.toEqual(expect.objectContaining({ message: expect.stringContaining('1 de 2') }));
-      await expect(internals.handleRecentActivity('en')).resolves.toEqual(expect.objectContaining({ message: expect.stringContaining('no recent') }));
-      await expect(internals.handleRecentActivity('es')).resolves.toEqual(expect.objectContaining({ message: expect.stringContaining('Cinema scene') }));
-      await expect(internals.handleCapabilitiesGuide('user-1', 'en')).resolves.toEqual(expect.objectContaining({ message: expect.stringContaining('Current HomePilot context') }));
+      await expect(conversationModulesOf(service).homeInfo.handleHomeSummary('es', 'user-1')).resolves.toEqual(expect.objectContaining({ message: expect.stringContaining('1 de 2') }));
+      await expect(conversationModulesOf(service).homeInfo.handleRecentActivity('en')).resolves.toEqual(expect.objectContaining({ message: expect.stringContaining('no recent') }));
+      await expect(conversationModulesOf(service).homeInfo.handleRecentActivity('es')).resolves.toEqual(expect.objectContaining({ message: expect.stringContaining('Cinema scene') }));
+      await expect(conversationModulesOf(service).homeInfo.handleCapabilitiesGuide('user-1', 'en')).resolves.toEqual(expect.objectContaining({ message: expect.stringContaining('Current HomePilot context') }));
     });
   });
   describe('Feature: deterministic assistant response helpers', () => {
     it('recognizes scene, automation, and management requests without sending commands', () => {
-      const internals = service as unknown as {
-        isListScenesIntent(value: string): boolean;
-        isListAutomationsIntent(value: string): boolean;
-        isManagementIntent(value: string): boolean;
-        extractTargetPhrase(value: string): string;
-        isRoomBulkFastPath(value: string): { command: string; roomName: string; bulkType: string } | null;
-        isRoomSingularLightFastPath(value: string): { command: string; roomName: string } | null;
-        containsWord(source: string, word: string): boolean;
-      };
-
-      expect(internals.isListScenesIntent('lista las escenas')).toBe(true);
-      expect(internals.isListScenesIntent('activa la escena cine')).toBe(false);
-      expect(internals.isListAutomationsIntent('list automations')).toBe(true);
-      expect(internals.isListAutomationsIntent('activa rutina noche')).toBe(false);
-      expect(internals.isManagementIntent('renombra la escena cine a noche')).toBe(true);
-      expect(internals.isManagementIntent('enciende la sala')).toBe(false);
-      expect(internals.extractTargetPhrase('Apaga la luz de la sala')).toBe('la luz de la sala');
-      expect(internals.extractTargetPhrase('turn off')).toBe('');
-      expect(internals.isRoomBulkFastPath('apaga todas las luces en sala')).toEqual({ command: 'turn_off', roomName: 'sala', bulkType: 'lights' });
-      expect(internals.isRoomBulkFastPath('turn on all lights in kitchen')).toEqual({ command: 'turn_on', roomName: 'kitchen', bulkType: 'lights' });
-      expect(internals.isRoomBulkFastPath('apaga todo')).toBeNull();
-      expect(internals.isRoomSingularLightFastPath('enciende la luz en sala')).toEqual({ command: 'turn_on', roomName: 'sala' });
-      expect(internals.isRoomSingularLightFastPath('turn off the lamp in kitchen')).toEqual({ command: 'turn_off', roomName: 'kitchen' });
-      expect(internals.containsWord('apaga la luz', 'la')).toBe(true);
-      expect(internals.containsWord('lateral', 'la')).toBe(false);
+      expect(isListScenesIntent('lista las escenas')).toBe(true);
+      expect(isListScenesIntent('activa la escena cine')).toBe(false);
+      expect(isListAutomationsIntent('list automations')).toBe(true);
+      expect(isListAutomationsIntent('activa rutina noche')).toBe(false);
+      expect(isManagementIntent('renombra la escena cine a noche')).toBe(true);
+      expect(isManagementIntent('enciende la sala')).toBe(false);
+      expect(extractTargetPhrase('Apaga la luz de la sala')).toBe('la luz de la sala');
+      expect(extractTargetPhrase('turn off')).toBe('');
+      expect(isRoomBulkFastPath('apaga todas las luces en sala')).toEqual({ command: 'turn_off', roomName: 'sala', bulkType: 'lights' });
+      expect(isRoomBulkFastPath('turn on all lights in kitchen')).toEqual({ command: 'turn_on', roomName: 'kitchen', bulkType: 'lights' });
+      expect(isRoomBulkFastPath('apaga todo')).toBeNull();
+      expect(isRoomSingularLightFastPath('enciende la luz en sala')).toEqual({ command: 'turn_on', roomName: 'sala' });
+      expect(isRoomSingularLightFastPath('turn off the lamp in kitchen')).toEqual({ command: 'turn_off', roomName: 'kitchen' });
+      expect(containsWord('apaga la luz', 'la')).toBe(true);
+      expect(containsWord('lateral', 'la')).toBe(false);
     });
 
     it('formats successful, partial, and failed execution summaries consistently', () => {
-      const internals = service as unknown as {
-        buildCommandSuccessMessage(command: 'turn_on' | 'turn_off' | 'toggle', deviceName: string, userName: string | null, language: string): string;
-        formatMultiCommandSummary(results: unknown[], language: string, bulkType?: 'all' | 'lights'): string;
-      };
       const success = (name: string, command: 'turn_on' | 'turn_off') => ({
         deviceName: name,
         action: { command },
         result: { status: 'success', actions: [] },
-      });
+      }) as unknown as ExecutedCommandResult;
       const failed = (name: string, error: string) => ({
         deviceName: name,
         action: { command: 'turn_off' },
         result: { status: 'failed', actions: [{ error }] },
-      });
+      }) as unknown as ExecutedCommandResult;
 
-      expect(internals.buildCommandSuccessMessage('turn_on', 'Sala', null, 'es')).toBe('Encendí Sala.');
-      expect(internals.buildCommandSuccessMessage('turn_off', 'Kitchen', null, 'en')).toBe('Turned off Kitchen.');
-      expect(internals.formatMultiCommandSummary([success('Sala', 'turn_on')], 'es')).toBe('Encendí Sala.');
-      expect(internals.formatMultiCommandSummary([success('Sala', 'turn_on'), success('Cocina', 'turn_on')], 'es')).toContain('Sala y Cocina');
-      expect(internals.formatMultiCommandSummary([success('A', 'turn_off'), success('B', 'turn_off'), success('C', 'turn_off'), success('D', 'turn_off')], 'en', 'lights')).toContain('turned off 4 lights');
-      expect(internals.formatMultiCommandSummary([failed('Sala', 'offline')], 'es')).toContain('offline');
-      expect(internals.formatMultiCommandSummary([success('Sala', 'turn_on'), failed('Cocina', 'offline')], 'en')).toContain('Executed 1 of 2');
+      expect(buildCommandSuccessMessage('turn_on', 'Sala', null, 'es')).toBe('Encendí Sala.');
+      expect(buildCommandSuccessMessage('turn_off', 'Kitchen', null, 'en')).toBe('Turned off Kitchen.');
+      expect(formatMultiCommandSummary([success('Sala', 'turn_on')], 'es')).toBe('Encendí Sala.');
+      expect(formatMultiCommandSummary([success('Sala', 'turn_on'), success('Cocina', 'turn_on')], 'es')).toContain('Sala y Cocina');
+      expect(formatMultiCommandSummary([success('A', 'turn_off'), success('B', 'turn_off'), success('C', 'turn_off'), success('D', 'turn_off')], 'en', 'lights')).toContain('turned off 4 lights');
+      expect(formatMultiCommandSummary([failed('Sala', 'offline')], 'es')).toContain('offline');
+      expect(formatMultiCommandSummary([success('Sala', 'turn_on'), failed('Cocina', 'offline')], 'en')).toContain('Executed 1 of 2');
     });
   });
   describe('Feature: managed scene and automation changes', () => {
     it('prepares confirmed rename, automation, and scene-edit actions without executing them directly', async () => {
-      const internals = service as unknown as {
-        handleManagementIntent(prompt: string, userId: string, language: string): Promise<{ type: string; message: string }>;
-      };
       const scene = {
         id: 'scene-cine', homeId: 'h1', userId: 'user-1', roomId: null, name: 'Cine', actions: [{ deviceId: 'light-1', command: { name: 'turn_off' as const, params: {} } }], executionMode: 'parallel' as const, createdAt: '', updatedAt: '',
       };
@@ -1875,10 +1787,10 @@ describe('AssistantConversationService', () => {
       }]);
       mockDeviceRepo.findAll.mockResolvedValue([createTestDevice({ id: 'light-1', homeId: 'h1', name: 'Luz Sala', type: 'light' })]);
 
-      await expect(internals.handleManagementIntent('renombra la escena cine a noche', 'user-1', 'es')).resolves.toEqual(expect.objectContaining({ type: 'clarification', message: expect.stringContaining('renombrar') }));
-      await expect(internals.handleManagementIntent('desactiva la automatizacion noche', 'user-1', 'es')).resolves.toEqual(expect.objectContaining({ type: 'clarification', message: expect.stringContaining('desactivar') }));
-      await expect(internals.handleManagementIntent('agrega luz sala a la escena cine', 'user-1', 'es')).resolves.toEqual(expect.objectContaining({ type: 'clarification', message: expect.stringContaining('agregar') }));
-      await expect(internals.handleManagementIntent('quita luz sala de la escena cine', 'user-1', 'es')).resolves.toEqual(expect.objectContaining({ type: 'clarification', message: expect.stringContaining('quitar') }));
+      await expect(conversationModulesOf(service).management.handleManagementIntent('renombra la escena cine a noche', 'user-1', 'es')).resolves.toEqual(expect.objectContaining({ type: 'clarification', message: expect.stringContaining('renombrar') }));
+      await expect(conversationModulesOf(service).management.handleManagementIntent('desactiva la automatizacion noche', 'user-1', 'es')).resolves.toEqual(expect.objectContaining({ type: 'clarification', message: expect.stringContaining('desactivar') }));
+      await expect(conversationModulesOf(service).management.handleManagementIntent('agrega luz sala a la escena cine', 'user-1', 'es')).resolves.toEqual(expect.objectContaining({ type: 'clarification', message: expect.stringContaining('agregar') }));
+      await expect(conversationModulesOf(service).management.handleManagementIntent('quita luz sala de la escena cine', 'user-1', 'es')).resolves.toEqual(expect.objectContaining({ type: 'clarification', message: expect.stringContaining('quitar') }));
 
       expect(mockMemory.saveShortTermMemory).toHaveBeenCalledTimes(4);
       expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
@@ -1886,75 +1798,54 @@ describe('AssistantConversationService', () => {
   });
   describe('Feature: confirmation and clarification guardrails', () => {
     it('recognizes confirmation polarity and resolves deterministic clarification choices', () => {
-      const internals = service as unknown as {
-        isConfirmation(value: string): boolean;
-        isPositiveConfirmation(value: string): boolean;
-        isNegativeConfirmation(value: string): boolean;
-        resolveSelectionFromMemory(value: string, options: Array<{ id: string; label: string }>, language: string): string | null;
-        isLikelyHomeControlPrompt(value: string): boolean;
-        isClarificationSelectionReply(value: string): boolean;
-        isSuggestionAccept(value: string): boolean;
-        isSuggestionReject(value: string): boolean;
-        isSuggestionPostpone(value: string): boolean;
-        isBulkActionAccept(value: string): boolean;
-        isBulkActionReject(value: string): boolean;
-      };
       const options = [
         { id: 'sala', label: 'Luz Sala' },
         { id: 'cocina', label: 'Luz Cocina' },
         { id: 'patio', label: 'Luz Patio' },
       ];
 
-      expect(internals.isConfirmation('procede ahora')).toBe(true);
-      expect(internals.isPositiveConfirmation('go ahead please')).toBe(true);
-      expect(internals.isNegativeConfirmation('cancelar ahora')).toBe(true);
-      expect(internals.resolveSelectionFromMemory('sala', options, 'es')).toBe('sala');
-      expect(internals.resolveSelectionFromMemory('la segunda', options, 'es')).toBe('cocina');
-      expect(internals.resolveSelectionFromMemory('selected patio', options, 'en')).toBe('patio');
-      expect(internals.resolveSelectionFromMemory('unknown', options, 'en')).toBeNull();
-      expect(internals.isLikelyHomeControlPrompt('apaga la luz sala')).toBe(true);
-      expect(internals.isLikelyHomeControlPrompt('dime como funciona homepilot')).toBe(false);
-      expect(internals.isClarificationSelectionReply('la segunda')).toBe(true);
-      expect(internals.isClarificationSelectionReply('que luces estan encendidas')).toBe(false);
-      expect(internals.isSuggestionAccept('create it')).toBe(true);
-      expect(internals.isSuggestionReject('dismiss')).toBe(true);
-      expect(internals.isSuggestionPostpone('remind me later')).toBe(true);
-      expect(internals.isBulkActionAccept('confirm')).toBe(true);
-      expect(internals.isBulkActionReject('no thanks')).toBe(true);
+      expect(isConfirmation('procede ahora')).toBe(true);
+      expect(isPositiveConfirmation('go ahead please')).toBe(true);
+      expect(isNegativeConfirmation('cancelar ahora')).toBe(true);
+      expect(resolveSelectionFromMemory('sala', options, 'es')).toBe('sala');
+      expect(resolveSelectionFromMemory('la segunda', options, 'es')).toBe('cocina');
+      expect(resolveSelectionFromMemory('selected patio', options, 'en')).toBe('patio');
+      expect(resolveSelectionFromMemory('unknown', options, 'en')).toBeNull();
+      expect(isLikelyHomeControlPrompt('apaga la luz sala')).toBe(true);
+      expect(isLikelyHomeControlPrompt('dime como funciona homepilot')).toBe(false);
+      expect(conversationModulesOf(service).pendingFlow.isClarificationSelectionReply('la segunda')).toBe(true);
+      expect(conversationModulesOf(service).pendingFlow.isClarificationSelectionReply('que luces estan encendidas')).toBe(false);
+      expect(isSuggestionAccept('create it')).toBe(true);
+      expect(isSuggestionReject('dismiss')).toBe(true);
+      expect(isSuggestionPostpone('remind me later')).toBe(true);
+      expect(isBulkActionAccept('confirm')).toBe(true);
+      expect(isBulkActionReject('no thanks')).toBe(true);
     });
   });
   describe('Feature: deterministic room command parsing', () => {
     it('extracts device targets and only recognizes complete Spanish and English room-control phrases', () => {
-      const internals = service as unknown as {
-        extractTargetPhrase(value: string): string;
-        isRoomBulkFastPath(value: string): { command: 'turn_on' | 'turn_off'; roomName: string; bulkType: 'all' | 'lights' } | null;
-        isSingularLightRequest(value: string): boolean;
-        isRoomSingularLightFastPath(value: string): { command: 'turn_on' | 'turn_off'; roomName: string } | null;
-      };
-
-      expect(internals.extractTargetPhrase('enciende la lámpara sala')).toBe('la lampara sala');
-      expect(internals.extractTargetPhrase('turn off')).toBe('');
-      expect(internals.extractTargetPhrase('estado de cocina')).toBe('estado de cocina');
-      expect(internals.isRoomBulkFastPath('apaga las luces en sala')).toEqual({ command: 'turn_off', roomName: 'sala', bulkType: 'lights' });
-      expect(internals.isRoomBulkFastPath('turn on everything in kitchen')).toEqual({ command: 'turn_on', roomName: 'kitchen', bulkType: 'all' });
-      expect(internals.isRoomBulkFastPath('apaga todas las luces y la sala')).toBeNull();
-      expect(internals.isRoomBulkFastPath('turn off all lights')).toBeNull();
-      expect(internals.isSingularLightRequest('enciende la luz del patio')).toBe(true);
-      expect(internals.isSingularLightRequest('enciende todas las luces')).toBe(false);
-      expect(internals.isRoomSingularLightFastPath('prende la luz en patio')).toEqual({ command: 'turn_on', roomName: 'patio' });
-      expect(internals.isRoomSingularLightFastPath('switch off the lamp at office')).toEqual({ command: 'turn_off', roomName: 'office' });
-      expect(internals.isRoomSingularLightFastPath('enciende luxury patio')).toBeNull();
+      expect(extractTargetPhrase('enciende la lámpara sala')).toBe('la lampara sala');
+      expect(extractTargetPhrase('turn off')).toBe('');
+      expect(extractTargetPhrase('estado de cocina')).toBe('estado de cocina');
+      expect(isRoomBulkFastPath('apaga las luces en sala')).toEqual({ command: 'turn_off', roomName: 'sala', bulkType: 'lights' });
+      expect(isRoomBulkFastPath('turn on everything in kitchen')).toEqual({ command: 'turn_on', roomName: 'kitchen', bulkType: 'all' });
+      expect(isRoomBulkFastPath('apaga todas las luces y la sala')).toBeNull();
+      expect(isRoomBulkFastPath('turn off all lights')).toBeNull();
+      expect(isSingularLightRequest('enciende la luz del patio')).toBe(true);
+      expect(isSingularLightRequest('enciende todas las luces')).toBe(false);
+      expect(isRoomSingularLightFastPath('prende la luz en patio')).toEqual({ command: 'turn_on', roomName: 'patio' });
+      expect(isRoomSingularLightFastPath('switch off the lamp at office')).toEqual({ command: 'turn_off', roomName: 'office' });
+      expect(isRoomSingularLightFastPath('enciende luxury patio')).toBeNull();
     });
   });
   it('resolves room aliases by exact, fuzzy, user-defined, ambiguous, and invalid targets', () => {
-    const internals = service as unknown as { resolveRoomAlias(name: string, rooms: ReadonlyArray<ReturnType<typeof createTestRoom>>, devices: ReadonlyArray<ReturnType<typeof createTestDevice>>, userId: string, aliases: Record<string, string>): { status: string; rooms: ReadonlyArray<{ id: string }>; candidates?: string[] } };
     const rooms = [createTestRoom({ id: 'sala', name: 'Sala Principal', homeId: 'h1' }), createTestRoom({ id: 'sala-2', name: 'Sala TV', homeId: 'h1' })];
     const device = createTestDevice({ id: 'device-1', homeId: 'h1', name: 'Luz', type: 'light' });
-    expect(internals.resolveRoomAlias('sala principal', rooms, [device], 'user-1', {})).toMatchObject({ status: 'resolved', rooms: [{ id: 'sala' }] });
-    expect(internals.resolveRoomAlias('principal', rooms, [device], 'user-1', {})).toMatchObject({ status: 'resolved', rooms: [{ id: 'sala' }] });
-    expect(internals.resolveRoomAlias('living', rooms, [device], 'user-1', { living: 'sala' })).toMatchObject({ status: 'resolved', rooms: [{ id: 'sala' }] });
-    expect(internals.resolveRoomAlias('sala', rooms, [device], 'user-1', {})).toMatchObject({ status: 'ambiguous' });
-    expect(internals.resolveRoomAlias('unknown', rooms, [device], 'user-1', { unknown: 'device-1' })).toMatchObject({ status: 'not_found' });
+    expect(resolveRoomAlias('sala principal', rooms, [device], 'user-1', {})).toMatchObject({ status: 'resolved', rooms: [{ id: 'sala' }] });
+    expect(resolveRoomAlias('principal', rooms, [device], 'user-1', {})).toMatchObject({ status: 'resolved', rooms: [{ id: 'sala' }] });
+    expect(resolveRoomAlias('living', rooms, [device], 'user-1', { living: 'sala' })).toMatchObject({ status: 'resolved', rooms: [{ id: 'sala' }] });
+    expect(resolveRoomAlias('sala', rooms, [device], 'user-1', {})).toMatchObject({ status: 'ambiguous' });
+    expect(resolveRoomAlias('unknown', rooms, [device], 'user-1', { unknown: 'device-1' })).toMatchObject({ status: 'not_found' });
   });
 
   describe('Feature: conversation preferences and direct household commands', () => {
@@ -1972,9 +1863,7 @@ describe('AssistantConversationService', () => {
         createTestDevice({ id: 'light-off', name: 'Luz mesa', roomId: 'r1', type: 'light', lastKnownState: { state: 'off' } }),
       ]);
 
-      const response = await (service as unknown as {
-        handlePointStateQuery(prompt: string, language: string, userId: string): Promise<{ type: string; message: string }>;
-      }).handlePointStateQuery('esta encendida cuarto master', 'es', 'state-reader');
+      const response = await conversationModulesOf(service).readings.handlePointStateQuery('esta encendida cuarto master', 'es', 'state-reader');
 
       expect(response).toEqual(expect.objectContaining({
         type: 'answer',
@@ -1989,9 +1878,7 @@ describe('AssistantConversationService', () => {
       ]);
       mockRoomRepo.findAll.mockResolvedValue([createTestRoom({ id: 'r1', name: 'Sala', homeId: 'h1' })]);
 
-      const response = await (service as unknown as {
-        handlePointStateQuery(prompt: string, language: string, userId: string): Promise<{ type: string; message: string }>;
-      }).handlePointStateQuery('esta encendida luz inexistente', 'es', 'state-reader');
+      const response = await conversationModulesOf(service).readings.handlePointStateQuery('esta encendida luz inexistente', 'es', 'state-reader');
 
       expect(response).toEqual({ type: 'answer', message: 'No pude encontrar el dispositivo por el que preguntas.' });
       expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
@@ -2001,15 +1888,10 @@ describe('AssistantConversationService', () => {
       mockRoomRepo.findAll.mockResolvedValue([]);
       mockSceneRepo.findAll.mockResolvedValue([]);
       mockAutomationRepo.findAll.mockResolvedValue([]);
-      const privateService = service as unknown as {
-        handleRoomQuery(language: string, userId: string): Promise<{ type: string; message: string }>;
-        handleListScenes(language: string, userId: string): Promise<{ type: string; message: string }>;
-        handleListAutomations(language: string, userId: string): Promise<{ type: string; message: string }>;
-      };
 
-      await expect(privateService.handleRoomQuery('en', 'empty-reader')).resolves.toEqual({ type: 'answer', message: "I don't know any rooms yet." });
-      await expect(privateService.handleListScenes('en', 'empty-reader')).resolves.toEqual({ type: 'answer', message: "You don't have any scenes created yet." });
-      await expect(privateService.handleListAutomations('en', 'empty-reader')).resolves.toEqual({ type: 'answer', message: "You don't have any automations yet." });
+      await expect(conversationModulesOf(service).homeInfo.handleRoomQuery('en', 'empty-reader')).resolves.toEqual({ type: 'answer', message: "I don't know any rooms yet." });
+      await expect(conversationModulesOf(service).homeInfo.handleListScenes('en', 'empty-reader')).resolves.toEqual({ type: 'answer', message: "You don't have any scenes created yet." });
+      await expect(conversationModulesOf(service).homeInfo.handleListAutomations('en', 'empty-reader')).resolves.toEqual({ type: 'answer', message: "You don't have any automations yet." });
     });
 
     it('Scenario: Given a room with only off controllable devices When its state is requested Then confirms everything is off', async () => {
@@ -2018,9 +1900,7 @@ describe('AssistantConversationService', () => {
       ]);
       mockRoomRepo.findAll.mockResolvedValue([createTestRoom({ id: 'r1', name: 'Sala', homeId: 'h1' })]);
 
-      await expect((service as unknown as {
-        handlePointStateQuery(prompt: string, language: string, userId: string): Promise<{ type: string; message: string }>;
-      }).handlePointStateQuery('esta apagada sala', 'es', 'state-reader')).resolves.toEqual({
+      await expect(conversationModulesOf(service).readings.handlePointStateQuery('esta apagada sala', 'es', 'state-reader')).resolves.toEqual({
         type: 'answer', message: 'Todo está apagado en Sala.',
       });
     });
@@ -2032,9 +1912,7 @@ describe('AssistantConversationService', () => {
       ]);
       mockRoomRepo.findAll.mockResolvedValue([createTestRoom({ id: 'r1', name: 'Sala', homeId: 'h1' })]);
 
-      await expect((service as unknown as {
-        handlePointStateQuery(prompt: string, language: string, userId: string): Promise<{ type: string; message: string }>;
-      }).handlePointStateQuery('esta encendida sala', 'es', 'state-reader')).resolves.toEqual({
+      await expect(conversationModulesOf(service).readings.handlePointStateQuery('esta encendida sala', 'es', 'state-reader')).resolves.toEqual({
         type: 'answer', message: 'Todo está encendido en Sala.',
       });
     });
@@ -2044,9 +1922,7 @@ describe('AssistantConversationService', () => {
       ]);
       mockRoomRepo.findAll.mockResolvedValue([createTestRoom({ id: 'r1', name: 'Office', homeId: 'h1' })]);
 
-      await expect((service as unknown as {
-        handlePointStateQuery(prompt: string, language: string, userId: string): Promise<{ type: string; message: string }>;
-      }).handlePointStateQuery('is office on', 'en', 'state-reader')).resolves.toEqual({
+      await expect(conversationModulesOf(service).readings.handlePointStateQuery('is office on', 'en', 'state-reader')).resolves.toEqual({
         type: 'answer', message: "I don't see controllable devices in Office.",
       });
     });
@@ -2056,9 +1932,7 @@ describe('AssistantConversationService', () => {
         createTestDevice({ id: 'light-2', name: 'Luz Sala', type: 'light', lastKnownState: { state: 'off' } }),
       ]);
 
-      await expect((service as unknown as {
-        handlePointStateQuery(prompt: string, language: string, userId: string): Promise<{ type: string; message: string; clarification?: { options: Array<{ id: string }> } }>;
-      }).handlePointStateQuery('luz sala esta encendida', 'es', 'state-reader')).resolves.toMatchObject({
+      await expect(conversationModulesOf(service).readings.handlePointStateQuery('luz sala esta encendida', 'es', 'state-reader')).resolves.toMatchObject({
         type: 'clarification',
         clarification: { options: [expect.objectContaining({ id: 'light-1' }), expect.objectContaining({ id: 'light-2' })] },
       });
@@ -2069,9 +1943,7 @@ describe('AssistantConversationService', () => {
         createTestDevice({ id: 'dimmer-1', name: 'Dimmer Sala', type: 'light', lastKnownState: { state: 45 } }),
       ]);
 
-      await expect((service as unknown as {
-        handlePointStateQuery(prompt: string, language: string, userId: string): Promise<{ type: string; message: string }>;
-      }).handlePointStateQuery('dimmer sala esta encendido', 'es', 'state-reader')).resolves.toEqual({
+      await expect(conversationModulesOf(service).readings.handlePointStateQuery('dimmer sala esta encendido', 'es', 'state-reader')).resolves.toEqual({
         type: 'answer', message: 'Sí, Dimmer Sala está encendido.',
       });
     });
@@ -2080,9 +1952,7 @@ describe('AssistantConversationService', () => {
         createTestDevice({ id: 'light-1', name: 'Luz Sala', type: 'light', lastKnownState: { state: 'on' } }),
       ]);
 
-      await expect((service as unknown as {
-        handlePointStateQuery(prompt: string, language: string, userId: string): Promise<{ type: string; message: string }>;
-      }).handlePointStateQuery('luz sala esta apagada', 'es', 'state-reader')).resolves.toEqual({
+      await expect(conversationModulesOf(service).readings.handlePointStateQuery('luz sala esta apagada', 'es', 'state-reader')).resolves.toEqual({
         type: 'answer', message: 'No, Luz Sala está encendido.',
       });
     });
@@ -2149,9 +2019,7 @@ describe('AssistantConversationService', () => {
         createTestRoom({ id: 'r2', name: 'Cocina', homeId: 'h1' })
       ]);
 
-      const response = await (service as unknown as {
-        handleStateQuery(normalized: string, language: string, userName: string | null, userId: string): Promise<{ type: string; message: string }>;
-      }).handleStateQuery('estado de la casa', 'es', 'Oscar', 'state-summary');
+      const response = await conversationModulesOf(service).stateQueries.handleStateQuery('estado de la casa', 'es', 'Oscar', 'state-summary');
 
       expect(response).toEqual(expect.objectContaining({
         type: 'answer',
@@ -2176,9 +2044,7 @@ describe('AssistantConversationService', () => {
       mockRoomRepo.findAll.mockResolvedValue(rooms);
       mockRoomRepo.findRoomsByHomeId.mockResolvedValue(rooms);
 
-      const response = await (service as unknown as {
-        handleStateQuery(normalized: string, language: string, userName: string | null, userId: string): Promise<{ type: string; message: string }>;
-      }).handleStateQuery('como esta la sala', 'es', 'Gustavo', 'room-status');
+      const response = await conversationModulesOf(service).stateQueries.handleStateQuery('como esta la sala', 'es', 'Gustavo', 'room-status');
 
       expect(response.message).toContain('Gustavo, Así está Sala de Reuniones ahora:');
       expect(response.message).toContain('Encendidos (1): Estar.');
@@ -2219,25 +2085,17 @@ describe('AssistantConversationService', () => {
   });
   describe('Feature: deterministic informational intent classification', () => {
     it('Scenario: Given date, greeting, wellness, and state prompts When they are classified Then no device command is inferred', async () => {
-      const privateService = service as unknown as {
-        handleDateTimeQuery(prompt: string, language: string): Promise<{ type: string; message: string }>;
-        isGreeting(prompt: string): boolean;
-        isWellnessQuery(prompt: string): boolean;
-        isStateQuery(prompt: string): boolean;
-        isAttentionQuery(prompt: string): boolean;
-      };
-
-      const dateResponse = await privateService.handleDateTimeQuery('qué fecha es hoy', 'es');
-      const timeResponse = await privateService.handleDateTimeQuery('what time is it', 'en');
+      const dateResponse = await conversationModulesOf(service).homeInfo.handleDateTimeQuery('qué fecha es hoy', 'es');
+      const timeResponse = await conversationModulesOf(service).homeInfo.handleDateTimeQuery('what time is it', 'en');
 
       expect(dateResponse).toMatchObject({ type: 'answer', message: expect.stringContaining('Hoy es') });
       expect(timeResponse).toMatchObject({ type: 'answer', message: expect.stringContaining('Home systems remain attentive') });
-      expect(privateService.isGreeting('buenas tardes')).toBe(true);
-      expect(privateService.isWellnessQuery('estas funcionando correctamente')).toBe(true);
-      expect(privateService.isStateQuery('qué luces están encendidas')).toBe(true);
-      expect(privateService.isStateQuery('como esta la sala')).toBe(true);
-      expect(privateService.isStateQuery('enciende esas luces')).toBe(false);
-      expect(privateService.isAttentionQuery('que dispositivos necesitan atencion')).toBe(true);
+      expect(isGreeting('buenas tardes')).toBe(true);
+      expect(isWellnessQuery('estas funcionando correctamente')).toBe(true);
+      expect(isStateQuery('qué luces están encendidas')).toBe(true);
+      expect(isStateQuery('como esta la sala')).toBe(true);
+      expect(isStateQuery('enciende esas luces')).toBe(false);
+      expect(isAttentionQuery('que dispositivos necesitan atencion')).toBe(true);
     });
   });
   it('Scenario: Given unavailable devices When attention is requested Then only unavailable authorized devices are reported', async () => {
@@ -2246,9 +2104,7 @@ describe('AssistantConversationService', () => {
       createTestDevice({ id: 'unavailable', name: 'Sensor sin conexión', lastKnownState: { state: 'unavailable' } })
     ]);
 
-    const response = await (service as unknown as {
-      handleAttentionQuery(language: string, userId: string): Promise<{ type: string; message: string }>;
-    }).handleAttentionQuery('es', 'attention-user');
+    const response = await conversationModulesOf(service).homeInfo.handleAttentionQuery('es', 'attention-user');
 
     expect(response).toEqual({
       type: 'answer',
@@ -2257,45 +2113,35 @@ describe('AssistantConversationService', () => {
   });
   describe('Feature: deterministic command recognizers', () => {
     it('Scenario: Given supported bulk and singular phrasing When fast-path recognizers parse it Then they preserve scope and reject ambiguous input', () => {
-      const privateService = service as unknown as {
-        isRoomBulkFastPath(prompt: string): { command: 'turn_on' | 'turn_off'; roomName: string; bulkType: 'all' | 'lights' } | null;
-        isBulkFastPath(prompt: string): { command: 'turn_on' | 'turn_off'; bulkType: 'all' | 'lights' } | null;
-        isRoomSingularLightFastPath(prompt: string): { command: 'turn_on' | 'turn_off'; roomName: string } | null;
-        isPointStateQuery(prompt: string): boolean;
-        extractTargetPhrase(prompt: string): string;
-        isCompanyQuery(prompt: string): boolean;
-        handleCompanyInfoQuery(language: string): { type: string; message: string };
-      };
-
-      expect(privateService.isRoomBulkFastPath('apaga todas las luces en Sala')).toEqual({
+      expect(isRoomBulkFastPath('apaga todas las luces en Sala')).toEqual({
         command: 'turn_off', roomName: 'sala', bulkType: 'lights'
       });
-      expect(privateService.isRoomBulkFastPath('turn on all lights in Kitchen')).toEqual({
+      expect(isRoomBulkFastPath('turn on all lights in Kitchen')).toEqual({
         command: 'turn_on', roomName: 'kitchen', bulkType: 'lights'
       });
-      expect(privateService.isRoomBulkFastPath('apaga luces y ventilador en Sala')).toBeNull();
-      expect(privateService.isRoomBulkFastPath('apaga luces')).toBeNull();
-      expect(privateService.isRoomBulkFastPath('apaga las luces que esten encendidas')).toBeNull();
-      expect(privateService.isBulkFastPath('apaga las luces que esten encendidas')).toEqual({
+      expect(isRoomBulkFastPath('apaga luces y ventilador en Sala')).toBeNull();
+      expect(isRoomBulkFastPath('apaga luces')).toBeNull();
+      expect(isRoomBulkFastPath('apaga las luces que esten encendidas')).toBeNull();
+      expect(isBulkFastPath('apaga las luces que esten encendidas')).toEqual({
         command: 'turn_off',
         bulkType: 'lights'
       });
 
-      expect(privateService.isRoomSingularLightFastPath('enciende la luz en Sala')).toEqual({
+      expect(isRoomSingularLightFastPath('enciende la luz en Sala')).toEqual({
         command: 'turn_on', roomName: 'sala'
       });
-      expect(privateService.isRoomSingularLightFastPath('switch off a lamp in Kitchen')).toEqual({
+      expect(isRoomSingularLightFastPath('switch off a lamp in Kitchen')).toEqual({
         command: 'turn_off', roomName: 'kitchen'
       });
-      expect(privateService.isRoomSingularLightFastPath('enciende luxury en Sala')).toBeNull();
+      expect(isRoomSingularLightFastPath('enciende luxury en Sala')).toBeNull();
 
-      expect(privateService.isPointStateQuery('la luz esta encendida')).toBe(true);
-      expect(privateService.isPointStateQuery('que luces estan encendidas')).toBe(false);
-      expect(privateService.extractTargetPhrase('apaga la luz de sala')).toBe('la luz de sala');
-      expect(privateService.extractTargetPhrase('turn off')).toBe('');
-      expect(privateService.isCompanyQuery('quién creó homepilot')).toBe(true);
-      expect(privateService.isCompanyQuery('estado de luces')).toBe(false);
-      expect(privateService.handleCompanyInfoQuery('en')).toMatchObject({
+      expect(isPointStateQuery('la luz esta encendida')).toBe(true);
+      expect(isPointStateQuery('que luces estan encendidas')).toBe(false);
+      expect(extractTargetPhrase('apaga la luz de sala')).toBe('la luz de sala');
+      expect(extractTargetPhrase('turn off')).toBe('');
+      expect(isCompanyQuery('quién creó homepilot')).toBe(true);
+      expect(isCompanyQuery('estado de luces')).toBe(false);
+      expect(handleCompanyInfoQuery('en')).toMatchObject({
         type: 'answer', message: expect.stringContaining('NEZU S.A.S.')
       });
     });
@@ -2309,10 +2155,6 @@ describe('AssistantConversationService', () => {
     } as never;
 
     it('Scenario: Given a pending suggestion When accepted Then records acceptance and clears the pending state', async () => {
-      const internals = service as unknown as {
-        handleSuggestionAccept(userId: string, language: string, value: never): Promise<{ type: string; message: string }>;
-      };
-
       mockMemory.getShortTermMemory.mockResolvedValue({
         lastQueryType: 'none',
         entities: [],
@@ -2320,15 +2162,12 @@ describe('AssistantConversationService', () => {
         pendingSuggestion: suggestion,
       });
 
-      const response = await internals.handleSuggestionAccept('suggestion-user', 'es', suggestion);
+      const response = await conversationModulesOf(service).suggestions.handleSuggestionAccept('suggestion-user', 'es', suggestion);
 
       expect(response).toEqual({ type: 'answer', message: '¡Listo! He creado un borrador para ti.' });
       expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('suggestion-user', expect.objectContaining({ pendingSuggestion: undefined }));
     });
     it('Scenario: Given a high-confidence alias suggestion with one authorized target When accepted Then creates only that personal alias', async () => {
-      const internals = service as unknown as {
-        handleSuggestionAccept(userId: string, language: string, value: never): Promise<{ type: string; message: string }>;
-      };
       const infoSpy = jest.spyOn(console, 'info').mockImplementation(() => undefined);
       mockDeviceRepo.findAll.mockResolvedValue([
         createTestDevice({ id: 'light-desk', name: 'Luz Escritorio', type: 'light', roomId: 'r1', homeId: 'h1' }),
@@ -2346,7 +2185,7 @@ describe('AssistantConversationService', () => {
       } as never;
 
       try {
-        const response = await internals.handleSuggestionAccept('alias-user', 'es', aliasSuggestion);
+        const response = await conversationModulesOf(service).suggestions.handleSuggestionAccept('alias-user', 'es', aliasSuggestion);
 
         expect(mockMemory.setAlias).toHaveBeenCalledWith('alias-user', 'escritorio', 'light-desk');
         expect(response.message).toBe('Alias creado: a partir de ahora entenderé "escritorio" como "Luz Escritorio".');
@@ -2356,9 +2195,6 @@ describe('AssistantConversationService', () => {
     });
 
     it('Scenario: Given an alias suggestion that collides with a device name When accepted Then keeps the device namespace unchanged', async () => {
-      const internals = service as unknown as {
-        handleSuggestionAccept(userId: string, language: string, value: never): Promise<{ type: string; message: string }>;
-      };
       mockDeviceRepo.findAll.mockResolvedValue([
         createTestDevice({ id: 'light-desk', name: 'Luz Escritorio', type: 'light', roomId: 'r1', homeId: 'h1' }),
         createTestDevice({ id: 'light-other', name: 'Escritorio', type: 'light', roomId: 'r1', homeId: 'h1' }),
@@ -2374,15 +2210,12 @@ describe('AssistantConversationService', () => {
         metadata: { alias: 'escritorio', target: 'Luz Escritorio', confidence: 'high' },
       } as never;
 
-      const response = await internals.handleSuggestionAccept('alias-user', 'es', aliasSuggestion);
+      const response = await conversationModulesOf(service).suggestions.handleSuggestionAccept('alias-user', 'es', aliasSuggestion);
 
       expect(mockMemory.setAlias).not.toHaveBeenCalled();
       expect(response.message).toBe('No puedo usar "escritorio" como alias porque un dispositivo ya tiene ese nombre.');
     });
     it('Scenario: Given a scene suggestion with an authorized home When accepted Then creates a reviewable scene draft', async () => {
-      const internals = service as unknown as {
-        handleSuggestionAccept(userId: string, language: string, value: never): Promise<{ type: string; message: string }>;
-      };
       mockMemory.getShortTermMemory.mockResolvedValue({
         lastQueryType: 'none', entities: [], timestamp: '2026-08-17T00:00:00.000Z',
       });
@@ -2393,7 +2226,7 @@ describe('AssistantConversationService', () => {
         metadata: { homeId: 'h1', roomId: 'r1', deviceIds: ['light-desk', 'light-door'] },
       } as never;
 
-      const response = await internals.handleSuggestionAccept('draft-user', 'en', sceneSuggestion);
+      const response = await conversationModulesOf(service).suggestions.handleSuggestionAccept('draft-user', 'en', sceneSuggestion);
 
       expect(mockDraftService.createDraft).toHaveBeenCalledWith('draft-user', 'scene', {
         homeId: 'h1', roomId: 'r1', deviceIds: ['light-desk', 'light-door'],
@@ -2402,9 +2235,6 @@ describe('AssistantConversationService', () => {
     });
 
     it('Scenario: Given an automation suggestion with a time When accepted Then creates a scoped automation draft', async () => {
-      const internals = service as unknown as {
-        handleSuggestionAccept(userId: string, language: string, value: never): Promise<{ type: string; message: string }>;
-      };
       mockMemory.getShortTermMemory.mockResolvedValue({
         lastQueryType: 'none', entities: [], timestamp: '2026-08-17T00:00:00.000Z',
       });
@@ -2415,7 +2245,7 @@ describe('AssistantConversationService', () => {
         metadata: { homeId: 'h1', deviceId: 'light-desk', hour: 22 },
       } as never;
 
-      const response = await internals.handleSuggestionAccept('draft-user', 'es', automationSuggestion);
+      const response = await conversationModulesOf(service).suggestions.handleSuggestionAccept('draft-user', 'es', automationSuggestion);
 
       expect(mockDraftService.createDraft).toHaveBeenCalledWith('draft-user', 'automation', {
         homeId: 'h1', deviceId: 'light-desk', hour: '22', trigger: { type: 'time', hour: 22 },
@@ -2423,22 +2253,14 @@ describe('AssistantConversationService', () => {
       expect(response.message).toBe('He creado un borrador de automatización para ti. Puedes revisarlo en tus borradores.');
     });
     it('Scenario: Given a pending suggestion When rejected Then returns the localized acknowledgement', async () => {
-      const internals = service as unknown as {
-        handleSuggestionReject(userId: string, language: string, value: never): Promise<{ type: string; message: string }>;
-      };
-
-      await expect(internals.handleSuggestionReject('suggestion-user', 'es', suggestion)).resolves.toEqual({
+      await expect(conversationModulesOf(service).suggestions.handleSuggestionReject('suggestion-user', 'es', suggestion)).resolves.toEqual({
         type: 'answer',
         message: 'Entendido, no volveré a sugerirte esto por ahora.'
       });
     });
 
     it('Scenario: Given a pending suggestion When postponed Then returns the localized acknowledgement', async () => {
-      const internals = service as unknown as {
-        handleSuggestionPostpone(userId: string, language: string, value: never): Promise<{ type: string; message: string }>;
-      };
-
-      await expect(internals.handleSuggestionPostpone('suggestion-user', 'en', suggestion)).resolves.toEqual({
+      await expect(conversationModulesOf(service).suggestions.handleSuggestionPostpone('suggestion-user', 'en', suggestion)).resolves.toEqual({
         type: 'answer',
         message: "Okay, I'll remind you later."
       });
@@ -2448,13 +2270,12 @@ describe('AssistantConversationService', () => {
     it('Scenario: Given no prior memory When a suggestion is available Then stores a fresh pending suggestion and appends its hint', async () => {
       const internals = service as unknown as {
         suggestionService: { getSuggestion: jest.Mock };
-        attachSuggestionIfNeeded(response: { type: 'answer'; message: string }, userId: string, language: string, memory: null, context: 'command'): Promise<{ type: string; message: string }>;
       };
       internals.suggestionService.getSuggestion.mockResolvedValue({
         id: 'fresh-suggestion', type: 'scene_suggestion', message: 'Create a scene?', metadata: {}
       });
 
-      const response = await internals.attachSuggestionIfNeeded({ type: 'answer', message: 'Done.' }, 'suggestion-user', 'en', null, 'command');
+      const response = await conversationModulesOf(service).session.attachSuggestionIfNeeded({ type: 'answer', message: 'Done.' }, 'suggestion-user', 'en', null, 'command');
 
       expect(response.message).toContain('💡 Create a scene?');
       expect(response.message).toContain('You can reply:');
@@ -2467,11 +2288,10 @@ describe('AssistantConversationService', () => {
     it('Scenario: Given an eligible response When no suggestion is returned Then preserves the response unchanged', async () => {
       const internals = service as unknown as {
         suggestionService: { getSuggestion: jest.Mock };
-        attachSuggestionIfNeeded(response: { type: 'answer'; message: string }, userId: string, language: string, memory: null, context: 'command'): Promise<{ type: string; message: string }>;
       };
       internals.suggestionService.getSuggestion.mockResolvedValue(null);
 
-      await expect(internals.attachSuggestionIfNeeded({ type: 'answer', message: 'Done.' }, 'suggestion-user', 'es', null, 'command')).resolves.toEqual({
+      await expect(conversationModulesOf(service).session.attachSuggestionIfNeeded({ type: 'answer', message: 'Done.' }, 'suggestion-user', 'es', null, 'command')).resolves.toEqual({
         type: 'answer', message: 'Done.'
       });
       expect(mockMemory.saveShortTermMemory).not.toHaveBeenCalled();
@@ -2546,11 +2366,8 @@ describe('Feature: interpreter ambiguity persistence', () => {
   it('preserves a climate parameter through authorized transient-scene execution', async () => {
     const climate = createTestDevice({ id: 'climate-1', type: 'climate', homeId: 'h1', name: 'Aire Sala' });
     mockDeviceRepo.findDeviceById.mockResolvedValue(climate);
-    const internals = service as unknown as {
-      executeAuthorizedCommand(userId: string, deviceId: string, command: 'set_temperature', prompt: string, correlationId: string, params: Record<string, unknown>): Promise<unknown>;
-    };
 
-    await internals.executeAuthorizedCommand('user-1', climate.id, 'set_temperature', 'pon aire sala a 22 grados', 'climate-parameter-test', { temperature: 22 });
+    await conversationModulesOf(service).commands.executeAuthorizedCommand('user-1', climate.id, 'set_temperature', 'pon aire sala a 22 grados', 'climate-parameter-test', { temperature: 22 });
 
     expect(mockDispatcher.dispatch).toHaveBeenCalledWith(climate.id, expect.objectContaining({
       name: 'set_temperature',

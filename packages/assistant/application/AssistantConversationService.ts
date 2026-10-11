@@ -29,7 +29,6 @@ import { DomesticSkillResolver } from './DomesticSkillResolver';
 import { ScopeFilter } from './ScopeFilter';
 import { PermissionGate } from './PermissionGate';
 import { ConversationModules } from './conversation/ConversationModules';
-import { createConversationLegacySurface } from './conversation/ConversationLegacySurface';
 import type { AssistantConversationResponse, AssistantConverseRequest } from './conversation/conversationTypes';
 
 // The conversation contracts stay importable from this module.
@@ -114,7 +113,6 @@ export class AssistantConversationService {
       attemptContextRoomFastPathExecution: (...args) => this.attemptContextRoomFastPathExecution(...args),
       applySafetyGateV2: (...args) => this.applySafetyGateV2(...args)
     });
-    Object.assign(this, createConversationLegacySurface(this.modules));
   }
 
   private readonly domesticSkillResolver: DomesticSkillResolver;
@@ -143,8 +141,9 @@ export class AssistantConversationService {
     return await this.modules.planner.plan(context);
   }
 
-  // Entry points that collaborators reach through the hooks above, so overriding one on the
-  // service instance affects every internal call site.
+  // Supported test seam: collaborators reach these entry points through the hooks above, so a test can
+  // intercept one with jest.spyOn on the service instance and affect every internal call site. Tests
+  // that exercise a single collaborator or pure module call it directly (see conversationModulesOf).
   private executeIntent(
     intent: Intent,
     request: AssistantConverseRequest,

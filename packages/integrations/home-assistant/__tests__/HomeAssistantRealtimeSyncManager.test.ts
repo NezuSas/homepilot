@@ -4,8 +4,13 @@ import { DeviceRepository } from '../../../devices/domain/repositories/DeviceRep
 import { ActivityLogRepository } from '../../../devices/domain/repositories/ActivityLogRepository';
 import { HomeAssistantRealtimeSocket, HomeAssistantRealtimeSyncManager } from '../application/HomeAssistantRealtimeSyncManager';
 import { HomeAssistantSettingsService } from '../application/HomeAssistantSettingsService';
+import type { HomeAssistantStateEventProcessor } from '../application/sync/StateEventProcessor';
 import { HomeAssistantStateReader } from '../application/ports/HomeAssistantStateReader';
 import { INBOX_OBSERVATION_INTERVAL_MS, UNAVAILABLE_INBOX_RETENTION_MS } from '../../../devices/application/deviceAvailability';
+
+// Test seam: the realtime manager feeds socket events to this processor; tests drive it directly.
+const eventProcessorOf = (manager: HomeAssistantRealtimeSyncManager): HomeAssistantStateEventProcessor =>
+  (manager as unknown as { eventProcessor: HomeAssistantStateEventProcessor }).eventProcessor;
 
 const createDevice = (id: string, entityId: string): Device => ({
   id,
@@ -282,7 +287,7 @@ describe('Feature: Home Assistant resilience and reconciliation', () => {
     const systemEvent = jest.fn();
     manager.on('system_event', systemEvent);
 
-    await (manager as unknown as { processEvent(data: unknown): Promise<void> }).processEvent({
+    await eventProcessorOf(manager).process({
       entity_id: 'light.living_room',
       new_state: { state: 'on', attributes: { brightness: 180 } },
     });
@@ -322,7 +327,7 @@ describe('Feature: Home Assistant resilience and reconciliation', () => {
     const systemEvent = jest.fn();
     manager.on('system_event', systemEvent);
 
-    await (manager as unknown as { processEvent(data: unknown): Promise<void> }).processEvent({
+    await eventProcessorOf(manager).process({
       entity_id: 'light.living_room',
       new_state: { state: 'on', attributes: { color_mode: 'rgb', brightness: 180 } },
     });
@@ -347,7 +352,7 @@ describe('Feature: Home Assistant resilience and reconciliation', () => {
     const systemEvent = jest.fn();
     manager.on('system_event', systemEvent);
 
-    await (manager as unknown as { processEvent(data: unknown): Promise<void> }).processEvent({
+    await eventProcessorOf(manager).process({
       entity_id: 'light.living_room',
       new_state: { state: 'on', attributes: { brightness: 181 } },
     });
@@ -367,7 +372,7 @@ describe('Feature: Home Assistant resilience and reconciliation', () => {
       { saveActivity: jest.fn().mockResolvedValue(undefined) } as unknown as ActivityLogRepository,
     );
 
-    await (manager as unknown as { processEvent(data: unknown): Promise<void> }).processEvent({
+    await eventProcessorOf(manager).process({
       entity_id: 'light.invalid',
       new_state: null,
     });
@@ -452,7 +457,7 @@ describe('Feature: Home Assistant resilience and reconciliation', () => {
       { saveActivity } as unknown as ActivityLogRepository,
     );
 
-    await expect((manager as unknown as { processEvent(data: unknown): Promise<void> }).processEvent({
+    await expect(eventProcessorOf(manager).process({
       entity_id: 'light.faulty', new_state: { state: 'on', attributes: {} },
     })).resolves.toBeUndefined();
     expect(saveDevice).toHaveBeenCalledTimes(1);
@@ -509,7 +514,7 @@ describe('Feature: Home Assistant resilience and reconciliation', () => {
       { saveActivity } as unknown as ActivityLogRepository,
     );
 
-    await (manager as unknown as { processEvent(data: unknown): Promise<void> }).processEvent({
+    await eventProcessorOf(manager).process({
       entity_id: 'light.not_imported',
       new_state: { state: 'on' },
     });
@@ -566,7 +571,7 @@ describe('Feature: Home Assistant resilience and reconciliation', () => {
     const systemEvent = jest.fn();
     manager.on('system_event', systemEvent);
 
-    await expect((manager as unknown as { processEvent(data: unknown): Promise<void> }).processEvent({
+    await expect(eventProcessorOf(manager).process({
       entity_id: 'light.audited',
       new_state: { state: 'on', attributes: {} },
     })).resolves.toBeUndefined();
@@ -613,7 +618,7 @@ describe('Feature: Home Assistant resilience and reconciliation', () => {
       { saveActivity: jest.fn().mockResolvedValue(undefined) } as unknown as ActivityLogRepository,
     );
 
-    await (manager as unknown as { processEvent(data: unknown): Promise<void> }).processEvent({
+    await eventProcessorOf(manager).process({
       entity_id: 'sensor.temperature',
       new_state: { state: 23, attributes: 'invalid' },
     });
@@ -695,7 +700,7 @@ describe('Feature: Home Assistant resilience and reconciliation', () => {
     const systemEvent = jest.fn();
     manager.on('system_event', systemEvent);
 
-    await (manager as unknown as { processEvent(data: unknown): Promise<void> }).processEvent({
+    await eventProcessorOf(manager).process({
       entity_id: 'sensor.new', new_state: { state: 'ready', attributes: {} },
     });
 

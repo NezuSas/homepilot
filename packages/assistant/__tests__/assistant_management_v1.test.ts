@@ -16,6 +16,7 @@ import {
   createMockSystemVariableService
 } from './test_helpers';
 import { createTestDevice } from './test_helpers';
+import { conversationModulesOf } from './test_helpers';
 
 describe('Assistant Management V1', () => {
   let service: AssistantConversationService;
@@ -399,9 +400,7 @@ describe('Assistant Management V1', () => {
     it('persists a confirmed automation state change and clears the pending action', async () => {
       automationRepo.findById.mockResolvedValue({ id: 'a1', name: 'Noche', userId: 'manager', enabled: false });
       memory.getShortTermMemory.mockResolvedValue({ lastQueryType: 'management_confirm', entities: [], timestamp: '2026-08-17T00:00:00.000Z', pendingManagementAction: pendingAction('toggle_automation', 'a1', { enabled: true }) });
-      const response = await (service as unknown as {
-        executeManagementAction(action: never, userId: string, language: string): Promise<{ type: string; message: string }>;
-      }).executeManagementAction(pendingAction('toggle_automation', 'a1', { enabled: true }) as never, 'manager', 'es');
+      const response = await conversationModulesOf(service).managementActions.executeManagementAction(pendingAction('toggle_automation', 'a1', { enabled: true }) as never, 'manager', 'es');
 
       expect(automationRepo.save).toHaveBeenCalledWith(expect.objectContaining({ id: 'a1', enabled: true }));
       expect(memory.saveShortTermMemory).toHaveBeenCalledWith('manager', expect.objectContaining({ pendingManagementAction: undefined }));
@@ -411,9 +410,7 @@ describe('Assistant Management V1', () => {
     it('adds a confirmed command to a scene and preserves its command contract', async () => {
       const scene = { id: 's1', name: 'Cine', userId: 'manager', actions: [], updatedAt: '' };
       sceneRepo.findSceneById.mockResolvedValue(scene);
-      const response = await (service as unknown as {
-        executeManagementAction(action: never, userId: string, language: string): Promise<{ type: string; message: string }>;
-      }).executeManagementAction(pendingAction('edit_scene', 's1', { mode: 'add', deviceId: 'light-1', command: 'turn_off' }) as never, 'manager', 'en');
+      const response = await conversationModulesOf(service).managementActions.executeManagementAction(pendingAction('edit_scene', 's1', { mode: 'add', deviceId: 'light-1', command: 'turn_off' }) as never, 'manager', 'en');
 
       expect(sceneRepo.saveScene).toHaveBeenCalledWith(expect.objectContaining({
         id: 's1', actions: [{ deviceId: 'light-1', command: { name: 'turn_off', params: {} } }],
@@ -433,9 +430,7 @@ describe('Assistant Management V1', () => {
         updatedAt: '',
       };
       sceneRepo.findSceneById.mockResolvedValue(scene);
-      const response = await (service as unknown as {
-        executeManagementAction(action: never, userId: string, language: string): Promise<{ type: string; message: string }>;
-      }).executeManagementAction(pendingAction('edit_scene', 's1', { mode: 'remove', deviceId: 'light-1' }) as never, 'manager', 'es');
+      const response = await conversationModulesOf(service).managementActions.executeManagementAction(pendingAction('edit_scene', 's1', { mode: 'remove', deviceId: 'light-1' }) as never, 'manager', 'es');
 
       expect(sceneRepo.saveScene).toHaveBeenCalledWith(expect.objectContaining({
         actions: [{ deviceId: 'light-2', command: { name: 'turn_on', params: {} } }],
@@ -445,17 +440,13 @@ describe('Assistant Management V1', () => {
 
     it('returns a stable error when a confirmed management target no longer exists', async () => {
       sceneRepo.findSceneById.mockResolvedValue(null);
-      const response = await (service as unknown as {
-        executeManagementAction(action: never, userId: string, language: string): Promise<{ type: string; message: string }>;
-      }).executeManagementAction(pendingAction('rename_scene', 'missing', { newName: 'Nuevo nombre' }) as never, 'manager', 'es');
+      const response = await conversationModulesOf(service).managementActions.executeManagementAction(pendingAction('rename_scene', 'missing', { newName: 'Nuevo nombre' }) as never, 'manager', 'es');
 
       expect(sceneRepo.saveScene).not.toHaveBeenCalled();
       expect(response).toEqual({ type: 'error', message: 'No se pudo ejecutar la acción de gestión.' });
     });
     it('rejects an incomplete confirmed action without changing a scene or automation', async () => {
-      const response = await (service as unknown as {
-        executeManagementAction(action: never, userId: string, language: string): Promise<{ type: string; message: string }>;
-      }).executeManagementAction(pendingAction('edit_scene', 's1', { mode: 'add', deviceId: 'light-1' }) as never, 'manager', 'es');
+      const response = await conversationModulesOf(service).managementActions.executeManagementAction(pendingAction('edit_scene', 's1', { mode: 'add', deviceId: 'light-1' }) as never, 'manager', 'es');
 
       expect(sceneRepo.saveScene).not.toHaveBeenCalled();
       expect(automationRepo.save).not.toHaveBeenCalled();

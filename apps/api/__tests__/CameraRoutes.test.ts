@@ -7,9 +7,19 @@ import { BootstrapContainer } from '../../../bootstrap';
 import { Device } from '../../../packages/devices/domain/types';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { CameraRoutes } from '../routes/CameraRoutes';
+import type { CameraHlsSessionStore } from '../routes/camera/CameraHlsSessionStore';
+import { CameraHlsProxyRoutes } from '../routes/camera/CameraHlsProxyRoutes';
+import { createCameraProxyToken, verifyCameraProxyToken } from '../routes/camera/cameraProxyToken';
+import { resolveCameraEntityId } from '../routes/camera/cameraEntity';
+import { resolveHlsPath, rewriteHlsManifest } from '../routes/camera/hlsManifest';
 import type { NativeCameraSource, NativeCameraSourceRepository } from '../../../packages/devices/domain/repositories/NativeCameraSourceRepository';
 import { NativeCameraStreamingService } from '../../../packages/integrations/native-camera/application/NativeCameraStreamingService';
 import type { MediaTranscoderPort } from '../../../packages/integrations/native-camera/application/ports/MediaTranscoderPort';
+
+// Test seam: the HLS session store composed by CameraRoutes is shared with its route groups, so tests
+// read it to inspect or age sessions created through the public handler.
+const sessionStoreOf = (routes: CameraRoutes): CameraHlsSessionStore =>
+  (routes as unknown as { sessionStore: CameraHlsSessionStore }).sessionStore;
 
 const cameraDevice: Device = {
   id: 'camera-1',
@@ -198,16 +208,13 @@ describe('CameraRoutes', () => {
       secondViewer as unknown as http.ServerResponse,
       '/api/v1/devices/camera-1/camera/session', 'GET', container,
     );
-    const internals = routes as unknown as {
-      hlsSessions: Map<string, { lastAccessAt: number }>;
-      reapInactiveNativeHls(): void;
-    };
-    const sessions = [...internals.hlsSessions.values()];
+    const store = sessionStoreOf(routes);
+    const sessions = [...store.sessions.values()];
     sessions[0].lastAccessAt = Date.now() - 100_000;
-    internals.reapInactiveNativeHls();
+    store.reapInactiveNativeHls();
     expect(mediaTranscoder.stopHlsRuntime).not.toHaveBeenCalled();
     sessions[1].lastAccessAt = Date.now() - 100_000;
-    internals.reapInactiveNativeHls();
+    store.reapInactiveNativeHls();
     expect(mediaTranscoder.stopHlsRuntime).toHaveBeenCalledWith('camera-1');
   });
   it('includes proxied HLS only when the viewer explicitly requests it', async () => {
@@ -454,7 +461,7 @@ describe('CameraRoutes', () => {
     );
     const session = JSON.parse(sessionResponse.end.mock.calls[0][0] as string) as Record<string, string>;
     const token = new URL(session.hlsPath, 'http://localhost').searchParams.get('token');
-    const hlsSessions = (routes as unknown as { hlsSessions: Map<string, { expiresAt: number }> }).hlsSessions;
+    const hlsSessions = sessionStoreOf(routes).sessions;
     hlsSessions.get(token as string)!.expiresAt = Date.now() - 1;
 
     await routes.handle(
@@ -884,14 +891,10 @@ describe('CameraRoutes', () => {
   it('rejects an expired HLS session without contacting the upstream camera', async () => {
     const response = new MockResponse();
     const container = createContainer();
-    const internals = routes as unknown as {
-      createCameraProxyToken(deviceId: string): string;
-      registerHlsSession(token: string, deviceId: string, masterPath: string, source: 'home-assistant'): void;
-      hlsSessions: Map<string, { expiresAt: number }>;
-    };
-    const token = internals.createCameraProxyToken('camera-1');
-    internals.registerHlsSession(token, 'camera-1', '/api/hls/master.m3u8', 'home-assistant');
-    internals.hlsSessions.get(token)!.expiresAt = Date.now() - 1;
+    const store = sessionStoreOf(routes);
+    const token = createCameraProxyToken('camera-1');
+    store.register(token, 'camera-1', '/api/hls/master.m3u8', 'home-assistant');
+    store.sessions.get(token)!.expiresAt = Date.now() - 1;
 
     await routes.handle(
       createRequest(`/api/v1/devices/camera-1/camera/hls/master.m3u8?token=${encodeURIComponent(token)}`),
@@ -906,32 +909,24 @@ describe('CameraRoutes', () => {
     expect(container.adapters.homeAssistantClient.getCameraHlsMedia).not.toHaveBeenCalled();
   });
   it('keeps HLS proxy tokens, camera identities, and rewritten resources scoped to the selected camera', () => {
-    const internals = routes as unknown as {
-      createCameraProxyToken(deviceId: string): string;
-      verifyCameraProxyToken(token: string, deviceId: string): boolean;
-      resolveCameraEntityId(device: Device | null): string | null;
-      registerHlsSession(token: string, deviceId: string, masterPath: string, source: 'home-assistant'): void;
-      hlsSessions: Map<string, { deviceId: string; resourcesById: Map<string, string>; resourceIdsByPath: Map<string, string> }>;
-      rewriteHlsManifest(manifest: string, currentPath: string, session: { deviceId: string; resourcesById: Map<string, string>; resourceIdsByPath: Map<string, string> }, token: string): string;
-      resolveHlsPath(currentPath: string, uri: string): string;
-    };
-    const token = internals.createCameraProxyToken('camera-1');
+    const store = sessionStoreOf(routes);
+    const token = createCameraProxyToken('camera-1');
 
-    expect(internals.verifyCameraProxyToken(token, 'camera-1')).toBe(true);
-    expect(internals.verifyCameraProxyToken(token, 'camera-2')).toBe(false);
-    expect(internals.verifyCameraProxyToken('invalid', 'camera-1')).toBe(false);
-    expect(internals.resolveCameraEntityId(null)).toBeNull();
-    expect(internals.resolveCameraEntityId({ ...cameraDevice, externalId: 'ha:light.office' })).toBeNull();
-    expect(internals.resolveCameraEntityId({ ...cameraDevice, integrationSource: 'native-camera', type: 'camera' })).toBe('native');
+    expect(verifyCameraProxyToken(token, 'camera-1')).toBe(true);
+    expect(verifyCameraProxyToken(token, 'camera-2')).toBe(false);
+    expect(verifyCameraProxyToken('invalid', 'camera-1')).toBe(false);
+    expect(resolveCameraEntityId(null)).toBeNull();
+    expect(resolveCameraEntityId({ ...cameraDevice, externalId: 'ha:light.office' })).toBeNull();
+    expect(resolveCameraEntityId({ ...cameraDevice, integrationSource: 'native-camera', type: 'camera' })).toBe('native');
 
-    internals.registerHlsSession(token, 'camera-1', '/api/hls/master.m3u8', 'home-assistant');
-    const session = internals.hlsSessions.get(token)!;
-    const rewritten = internals.rewriteHlsManifest('#EXTM3U\n#EXT-X-MEDIA:URI="audio.m3u8"\nsegment.ts\ndata:text/plain,ignored', '/api/hls/master.m3u8', session, token);
+    store.register(token, 'camera-1', '/api/hls/master.m3u8', 'home-assistant');
+    const session = store.sessions.get(token)!;
+    const rewritten = rewriteHlsManifest('#EXTM3U\n#EXT-X-MEDIA:URI="audio.m3u8"\nsegment.ts\ndata:text/plain,ignored', '/api/hls/master.m3u8', session, token);
     expect(rewritten).toContain('/camera/hls/resource/');
     expect(rewritten).toContain('data:text/plain,ignored');
     expect(session.resourcesById.size).toBe(2);
-    expect(internals.resolveHlsPath('/api/hls/master.m3u8', 'segment.ts')).toBe('/api/hls/segment.ts');
-    expect(() => internals.resolveHlsPath('/api/hls/master.m3u8', 'https://untrusted.example/segment.ts')).toThrow('CAMERA_HLS_RESOURCE_INVALID');
+    expect(resolveHlsPath('/api/hls/master.m3u8', 'segment.ts')).toBe('/api/hls/segment.ts');
+    expect(() => resolveHlsPath('/api/hls/master.m3u8', 'https://untrusted.example/segment.ts')).toThrow('CAMERA_HLS_RESOURCE_INVALID');
   });
   it('serves native HLS manifests from the registered directory and rejects traversal paths', async () => {
     const tempDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'homepilot-camera-test-'));
@@ -940,26 +935,22 @@ describe('CameraRoutes', () => {
     fs.writeFileSync(manifestPath, '#EXTM3U\nsegment-1.ts\n');
     fs.writeFileSync(segmentPath, 'segment');
     const nativeRoutes = new CameraRoutes();
-    const internals = nativeRoutes as unknown as {
-      createCameraProxyToken(deviceId: string): string;
-      registerHlsSession(token: string, deviceId: string, masterPath: string, source: 'native', nativeDirectory: string): void;
-      hlsSessions: Map<string, { deviceId: string; expiresAt: number; source: 'native'; masterPath: string; resourcesById: Map<string, string>; resourceIdsByPath: Map<string, string>; nativeDirectory: string }>;
-      serveNativeHlsResource(res: http.ServerResponse, session: unknown, filePath: string): Promise<void>;
-    };
-    const token = internals.createCameraProxyToken('camera-1');
-    internals.registerHlsSession(token, 'camera-1', manifestPath, 'native', tempDirectory);
-    const session = internals.hlsSessions.get(token)!;
+    const store = sessionStoreOf(nativeRoutes);
+    const hlsProxyRoutes = new CameraHlsProxyRoutes(store);
+    const token = createCameraProxyToken('camera-1');
+    store.register(token, 'camera-1', manifestPath, 'native', tempDirectory);
+    const session = store.sessions.get(token)!;
     const manifestResponse = new MockResponse();
     const invalidResponse = new MockResponse();
 
     try {
-      await internals.serveNativeHlsResource(manifestResponse as unknown as http.ServerResponse, session, manifestPath);
+      await hlsProxyRoutes.serveNativeHlsResource(manifestResponse as unknown as http.ServerResponse, session, manifestPath);
       const manifest = manifestResponse.end.mock.calls[0][0] as string;
       expect(manifestResponse.writeHead).toHaveBeenCalledWith(200, expect.objectContaining({ 'Content-Type': 'application/vnd.apple.mpegurl' }));
       expect(manifest).toContain('/camera/hls/resource/segment-1.ts?token=');
       expect(session.resourcesById.get('segment-1.ts')).toBe(segmentPath);
 
-      await internals.serveNativeHlsResource(invalidResponse as unknown as http.ServerResponse, session, path.join(tempDirectory, '..', 'outside.ts'));
+      await hlsProxyRoutes.serveNativeHlsResource(invalidResponse as unknown as http.ServerResponse, session, path.join(tempDirectory, '..', 'outside.ts'));
       expect(invalidResponse.writeHead).toHaveBeenCalledWith(404, { 'Content-Type': 'application/json' });
     } finally {
       fs.rmSync(tempDirectory, { recursive: true, force: true });
@@ -1021,7 +1012,7 @@ describe('CameraRoutes', () => {
     );
     const session = JSON.parse(sessionResponse.end.mock.calls[0][0] as string) as Record<string, string>;
     const token = new URL(session.hlsPath, 'http://localhost').searchParams.get('token')!;
-    const hlsSessions = (routes as unknown as { hlsSessions: Map<string, { expiresAt: number }> }).hlsSessions;
+    const hlsSessions = sessionStoreOf(routes).sessions;
     const beforeRequest = hlsSessions.get(token)!.expiresAt;
 
     await routes.handle(

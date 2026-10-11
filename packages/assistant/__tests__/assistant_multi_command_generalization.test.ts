@@ -8,6 +8,16 @@ import {
   createTestHome
 } from './test_helpers';
 import { AssistantMultiCommandResult } from '../application/ports/IntentInterpreterPort';
+import { RepositoryAuthorizedScope } from '../application/multicommand/AuthorizedScope';
+import { parseCompound } from '../application/multicommand/compoundParsing';
+import { resolveTargets } from '../application/multicommand/targetResolution';
+import {
+  categoryMatchesDeviceName,
+  extractCategoryWord,
+  inferCommandFromSegment,
+  isControllableDevice,
+  normalizePrompt,
+} from '../application/multicommand/textRules';
 
 /**
  * Covers the generalization requested after the two literal user-reported phrases
@@ -283,64 +293,42 @@ describe('AssistantMultiCommandParser - empty category scope', () => {
 });
 
 describe('AssistantMultiCommandParser - deterministic parsing primitives', () => {
-  function parserForPrimitives() {
-    return new AssistantMultiCommandParser(createMockDeviceRepository(), createMockRoomRepository()) as unknown as {
-      normalizePrompt(prompt: string): string;
-      inferCommandFromSegment(segment: string): string | null;
-      extractCategoryWord(segment: string): string;
-      categoryMatchesDeviceName(category: string, deviceName: string): boolean;
-      isControllableDevice(device: ReturnType<typeof createTestDevice>, command: string): boolean;
-    };
-  }
-
   it('normalizes accents and punctuation while preserving comma separators for exclusions', () => {
-    const parser = parserForPrimitives();
-
-    expect(parser.normalizePrompt('¿Apaga lámparas, excepto la Cocina!')).toBe('apaga lamparas , excepto la cocina');
+    expect(normalizePrompt('¿Apaga lámparas, excepto la Cocina!')).toBe('apaga lamparas , excepto la cocina');
   });
 
   it('recognizes command words only at valid boundaries and preserves ambiguous inputs', () => {
-    const parser = parserForPrimitives();
-
-    expect(parser.inferCommandFromSegment('turn off office light')).toBe('turn_off');
-    expect(parser.inferCommandFromSegment('enciende la sala')).toBe('turn_on');
-    expect(parser.inferCommandFromSegment('configuracion avanzada')).toBeNull();
-    expect(parser.inferCommandFromSegment('apaga y enciende todo')).toBeNull();
+    expect(inferCommandFromSegment('turn off office light')).toBe('turn_off');
+    expect(inferCommandFromSegment('enciende la sala')).toBe('turn_on');
+    expect(inferCommandFromSegment('configuracion avanzada')).toBeNull();
+    expect(inferCommandFromSegment('apaga y enciende todo')).toBeNull();
   });
 
   it('treats short English command words as complete tokens only', () => {
-    const parser = parserForPrimitives();
-
-    expect(parser.inferCommandFromSegment('switch off the office')).toBe('turn_off');
-    expect(parser.inferCommandFromSegment('turn on the office light')).toBe('turn_on');
-    expect(parser.inferCommandFromSegment('onion lamp')).toBeNull();
-    expect(parser.inferCommandFromSegment('power off and on')).toBeNull();
+    expect(inferCommandFromSegment('switch off the office')).toBe('turn_off');
+    expect(inferCommandFromSegment('turn on the office light')).toBe('turn_on');
+    expect(inferCommandFromSegment('onion lamp')).toBeNull();
+    expect(inferCommandFromSegment('power off and on')).toBeNull();
   });
   it('derives category words and tolerates Spanish singular or plural device names', () => {
-    const parser = parserForPrimitives();
-
-    expect(parser.extractCategoryWord('apaga todas las luces')).toBe('luces');
-    expect(parser.extractCategoryWord('apaga todo')).toBe('todo');
-    expect(parser.categoryMatchesDeviceName('dicroicos', 'Dicroico Cocina')).toBe(true);
-    expect(parser.categoryMatchesDeviceName('ventilador', 'Ventiladores Sala')).toBe(true);
-    expect(parser.categoryMatchesDeviceName('dicroicos', 'Luz Sala')).toBe(false);
+    expect(extractCategoryWord('apaga todas las luces')).toBe('luces');
+    expect(extractCategoryWord('apaga todo')).toBe('todo');
+    expect(categoryMatchesDeviceName('dicroicos', 'Dicroico Cocina')).toBe(true);
+    expect(categoryMatchesDeviceName('ventilador', 'Ventiladores Sala')).toBe(true);
+    expect(categoryMatchesDeviceName('dicroicos', 'Luz Sala')).toBe(false);
   });
 
   it('rejects unavailable sensors while accepting controllable physical devices', () => {
-    const parser = parserForPrimitives();
-
-    expect(parser.isControllableDevice(createTestDevice({ type: 'light', name: 'Luz Sala' }), 'turn_on')).toBe(true);
-    expect(parser.isControllableDevice(createTestDevice({ type: 'sensor', name: 'Sensor Patio' }), 'turn_on')).toBe(false);
-    expect(parser.isControllableDevice(createTestDevice({ type: 'light', name: 'Luz Exterior', lastKnownState: { state: 'unavailable' } }), 'turn_off')).toBe(false);
+    expect(isControllableDevice(createTestDevice({ type: 'light', name: 'Luz Sala' }), 'turn_on')).toBe(true);
+    expect(isControllableDevice(createTestDevice({ type: 'sensor', name: 'Sensor Patio' }), 'turn_on')).toBe(false);
+    expect(isControllableDevice(createTestDevice({ type: 'light', name: 'Luz Exterior', lastKnownState: { state: 'unavailable' } }), 'turn_off')).toBe(false);
   });
   it('keeps malformed connector input bounded instead of generating an empty command list', async () => {
     const deviceRepo = createMockDeviceRepository();
     const roomRepo = createMockRoomRepository();
-    const parser = new AssistantMultiCommandParser(deviceRepo, roomRepo) as unknown as {
-      parseCompound(originalPrompt: string, normalized: string, connectors: string[], userId?: string): Promise<AssistantMultiCommandResult>;
-    };
+    const scope = new RepositoryAuthorizedScope(deviceRepo, roomRepo);
 
-    await expect(parser.parseCompound('apaga sala', 'apaga sala', [' y '], 'u1')).resolves.toEqual({
+    await expect(parseCompound('apaga sala', 'apaga sala', [' y '], scope, 'u1')).resolves.toEqual({
       type: 'failure',
       message: 'No se encontraron múltiples acciones claras.'
     });
@@ -353,13 +341,10 @@ describe('AssistantMultiCommandParser - deterministic parsing primitives', () =>
     const rooms = [createTestRoom({ id: 'r1', name: 'Sala' })];
     deviceRepo.findAll.mockResolvedValue(devices);
     roomRepo.findAll.mockResolvedValue(rooms);
-    const parser = new AssistantMultiCommandParser(deviceRepo, roomRepo) as unknown as {
-      getAuthorizedDevices(userId?: string): Promise<unknown[]>;
-      getAuthorizedRooms(userId?: string): Promise<unknown[]>;
-    };
+    const scope = new RepositoryAuthorizedScope(deviceRepo, roomRepo);
 
-    await expect(parser.getAuthorizedDevices('user-1')).resolves.toEqual(devices);
-    await expect(parser.getAuthorizedRooms('user-1')).resolves.toEqual(rooms);
+    await expect(scope.getAuthorizedDevices('user-1')).resolves.toEqual(devices);
+    await expect(scope.getAuthorizedRooms('user-1')).resolves.toEqual(rooms);
   });
   it('fails safely when an exclusion cannot be resolved instead of broadening the requested action', async () => {
     const deviceRepo = createMockDeviceRepository();
@@ -390,23 +375,16 @@ describe('AssistantMultiCommandParser - direct target resolution contracts', () 
       createTestDevice({ id: 'hall-a', name: 'Luz Pasillo A', type: 'light' }),
       createTestDevice({ id: 'hall-b', name: 'Luz Pasillo B', type: 'light' }),
     ];
-    const parser = new AssistantMultiCommandParser(
-      createMockDeviceRepository(),
-      createMockRoomRepository(),
-    ) as unknown as {
-      resolveTargets(segment: string, devices: ReadonlyArray<ReturnType<typeof createTestDevice>>, rooms: ReturnType<typeof createTestRoom>[]): Promise<unknown>;
-    };
-
-    await expect(parser.resolveTargets('luz escritorio', devices, [])).resolves.toEqual(
+    await expect(resolveTargets('luz escritorio', devices, [])).resolves.toEqual(
       expect.objectContaining({ type: 'match', devices: [expect.objectContaining({ id: 'desk' })] }),
     );
-    await expect(parser.resolveTargets('luz pasillo', devices, [])).resolves.toEqual(
+    await expect(resolveTargets('luz pasillo', devices, [])).resolves.toEqual(
       expect.objectContaining({
         type: 'clarificationRequired',
         options: expect.arrayContaining([expect.objectContaining({ id: 'hall-a' }), expect.objectContaining({ id: 'hall-b' })]),
       }),
     );
-    await expect(parser.resolveTargets('luz garaje', devices, [])).resolves.toEqual(
+    await expect(resolveTargets('luz garaje', devices, [])).resolves.toEqual(
       expect.objectContaining({
         type: 'clarificationRequired',
         originalSegment: 'luz garaje',
@@ -416,26 +394,12 @@ describe('AssistantMultiCommandParser - direct target resolution contracts', () 
   });
 
   it('returns a stable failure when no device token can be resolved at all', async () => {
-    const parser = new AssistantMultiCommandParser(
-      createMockDeviceRepository(),
-      createMockRoomRepository(),
-    ) as unknown as {
-      resolveTargets(segment: string, devices: ReturnType<typeof createTestDevice>[], rooms: ReturnType<typeof createTestRoom>[]): Promise<unknown>;
-    };
-
-    await expect(parser.resolveTargets('garaje inexistente', [], [])).resolves.toEqual(
+    await expect(resolveTargets('garaje inexistente', [], [])).resolves.toEqual(
       expect.objectContaining({ type: 'failure', message: expect.stringContaining('garaje inexistente') }),
     );
   });
   it('rejects room references that have no devices instead of silently applying an action', async () => {
-    const parser = new AssistantMultiCommandParser(
-      createMockDeviceRepository(),
-      createMockRoomRepository(),
-    ) as unknown as {
-      resolveTargets(segment: string, devices: ReturnType<typeof createTestDevice>[], rooms: ReturnType<typeof createTestRoom>[]): Promise<unknown>;
-    };
-
-    await expect(parser.resolveTargets('apaga oficina', [], [createTestRoom({ id: 'office', name: 'Oficina' })])).resolves.toEqual(
+    await expect(resolveTargets('apaga oficina', [], [createTestRoom({ id: 'office', name: 'Oficina' })])).resolves.toEqual(
       expect.objectContaining({ type: 'failure', message: expect.stringContaining('Oficina') }),
     );
   });

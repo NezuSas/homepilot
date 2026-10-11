@@ -21,6 +21,9 @@ import {
   createFakeConfirmationTicketRepository
 } from './test_helpers';
 import { SceneExecutionService } from '../../devices/application/SceneExecutionService';
+import { isRoomSingularLightFastPath } from '../application/conversation/fastPathMatching';
+import { resolveRoomAlias } from '../application/conversation/roomAliasResolution';
+import { conversationModulesOf } from './test_helpers';
 
 describe('Assistant Semantic Hardening', () => {
   let service: AssistantConversationService;
@@ -77,7 +80,7 @@ describe('Assistant Semantic Hardening', () => {
 
     // This is a room bulk command or similar. 
     // In singular light path, it tries to resolve room.
-    const res = await (service as any).resolveRoomAlias('mi cuarto', [createTestRoom({ id: 'r1', name: 'Dormitorio' })], [], 'u1', {});
+    const res = await resolveRoomAlias('mi cuarto', [createTestRoom({ id: 'r1', name: 'Dormitorio' })], [], 'u1', {});
     expect(res.status).toBe('not_found');
   });
 
@@ -104,7 +107,7 @@ describe('Assistant Semantic Hardening', () => {
     mockDeviceRepo.findAll.mockResolvedValue([]);
     mockMemory.getAliases.mockResolvedValue({});
 
-    const res = await (service as any).handleStateQuery('qué luces hay en el garaje', 'es', 'User', 'u1');
+    const res = await conversationModulesOf(service).stateQueries.handleStateQuery('qué luces hay en el garaje', 'es', 'User', 'u1');
     
     expect(res.type).toBe('answer');
     expect(res.message).toContain('No encontré esa estancia');
@@ -114,7 +117,7 @@ describe('Assistant Semantic Hardening', () => {
     const testDevice = createTestDevice({ id: 'd1', name: 'test light', status: 'ASSIGNED', lastKnownState: { state: 'on' } });
     mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
 
-    const matches = await (service as any).findMatchingDevices('test light', 'u1');
+    const matches = await conversationModulesOf(service).devices.findMatchingDevices('test light', 'u1');
     expect(matches).toHaveLength(1);
     expect(matches[0].id).toBe('d1');
   });
@@ -127,7 +130,7 @@ describe('Assistant Semantic Hardening', () => {
     });
     mockDeviceRepo.findAll.mockResolvedValue([unavailableDevice]);
 
-    const matches = await (service as any).findMatchingDevices('Luz Cocina', 'u1');
+    const matches = await conversationModulesOf(service).devices.findMatchingDevices('Luz Cocina', 'u1');
     expect(matches).toHaveLength(0);
   });
 
@@ -456,12 +459,12 @@ describe('Assistant Semantic Hardening', () => {
   describe('Typo lux must not route to room singular light (Fix 2)', () => {
     it('"prende lux sala" does NOT route to isRoomSingularLightFastPath', () => {
       // Internal unit test: verify the regex explicitly rejects 'lux'
-      const result = (service as any).isRoomSingularLightFastPath('prende lux sala');
+      const result = isRoomSingularLightFastPath('prende lux sala');
       expect(result).toBeNull();
     });
 
     it('"prende luz sala" DOES route to isRoomSingularLightFastPath', () => {
-      const result = (service as any).isRoomSingularLightFastPath('prende luz sala');
+      const result = isRoomSingularLightFastPath('prende luz sala');
       expect(result).not.toBeNull();
       expect(result?.roomName).toBe('sala');
       expect(result?.command).toBe('turn_on');
@@ -521,7 +524,7 @@ describe('Assistant Semantic Hardening', () => {
       // No aliases stored
       mockMemory.getAliases.mockResolvedValue({});
 
-      const resolution = await (service as any).resolveRoomAlias(
+      const resolution = await resolveRoomAlias(
         'office',
         [room],
         [],
@@ -541,7 +544,7 @@ describe('Assistant Semantic Hardening', () => {
       const userAliases = { 'office': 'r1' };
       mockMemory.getAliases.mockResolvedValue(userAliases);
 
-      const resolution = await (service as any).resolveRoomAlias(
+      const resolution = await resolveRoomAlias(
         'office',
         [room],
         [],

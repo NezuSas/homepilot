@@ -214,7 +214,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
 
     client.on('event', async (data: unknown) => {
       this.settingsService.updateStatusFromOperation('reachable');
-      await this.processEvent(data);
+      await this.eventProcessor.process(data);
     });
 
     // Marcar el socket como "caída de red" antes de conectar,
@@ -255,12 +255,6 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
       this._destroySocket('network_drop');
       this._openSocket();
     }, delayMs);
-  }
-
-  // ─── Event Processing ────────────────────────────────────────────────────────
-
-  private async processEvent(data: unknown): Promise<void> {
-    await this.eventProcessor.process(data);
   }
 
   // ─── Silent State Reconciliation ─────────────────────────────────────────────
