@@ -5,102 +5,23 @@ import { ActivityLogRepository } from '../../../devices/domain/repositories/Acti
 import { HomeAssistantSettingsService } from './HomeAssistantSettingsService';
 import { HomeAssistantStateReader } from './ports/HomeAssistantStateReader';
 import { ObservableRealtimeSyncStateProvider, RealtimeSyncObservableState } from '../../../system-observability/domain/ObservableStateProviders';
-import { buildUnavailableDeviceState, trackInboxAvailability, hasExpiredInboxAvailability, INBOX_OBSERVATION_INTERVAL_MS } from '../../../devices/application/deviceAvailability';
+import { INBOX_OBSERVATION_INTERVAL_MS } from '../../../devices/application/deviceAvailability';
 import type { ExpiredInboxDeviceRemover } from '../../../devices/application/ports/ExpiredInboxDeviceRemover';
 import { logRuntimeDiagnostic } from '../../../shared/config/runtimeEnvironment';
+import type {
+  CloseReason,
+  HomeAssistantRealtimeSocket,
+  HomeAssistantRealtimeSocketFactory,
+  ResilienceEventLogger,
+  SystemStateChangeEvent,
+} from './sync/syncTypes';
+import { computeBackoffStep } from './sync/reconnectPolicy';
+import { getErrorMessage } from './sync/stateChangeMapping';
+import { HomeAssistantStateEventProcessor } from './sync/StateEventProcessor';
+import { HomeAssistantStateReconciler } from './sync/StateReconciler';
+import { createResilienceEventLogger } from './sync/resilienceLogger';
 
-export interface SystemStateChangeEvent {
-  eventId: string;
-  occurredAt: string;
-  source: 'home_assistant' | 'local_sensor' | 'other';
-  deviceId: string;
-  externalId: string;
-  previousState?: {
-    state?: string;
-    attributes?: Record<string, unknown>;
-  };
-  newState: {
-    state?: string;
-    attributes?: Record<string, unknown>;
-  };
-}
-
-/**
- * Motivo de cierre del WebSocket.
- * Determina si la estrategia de reconexión actúa.
- */
-type CloseReason = 'stop_manual' | 'reconfigure' | 'auth_error' | 'network_drop';
-
-export interface HomeAssistantRealtimeSocket {
-  on(event: 'error', listener: (type: 'auth_error' | 'unreachable', error: Error) => void): this;
-  on(event: 'close' | 'ready', listener: () => void): this;
-  on(event: 'event', listener: (data: unknown) => void): this;
-  connect(): Promise<void>;
-  forceClose(): void;
-}
-
-export type HomeAssistantRealtimeSocketFactory = (
-  baseUrl: string,
-  token: string,
-) => HomeAssistantRealtimeSocket;
-
-/** Secuencia de backoff en milisegundos: 1s → 2s → 5s → 10s (fijo). */
-const BACKOFF_DELAYS_MS = [1000, 2000, 5000, 10000];
-
-interface HomeAssistantStateChangePayload {
-  entityId: string;
-  newState: unknown;
-  attributes: Record<string, unknown>;
-}
-
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
-function areStructuredValuesEqual(left: unknown, right: unknown): boolean {
-  if (Object.is(left, right)) return true;
-
-  if (Array.isArray(left) && Array.isArray(right)) {
-    return left.length === right.length
-      && left.every((value, index) => areStructuredValuesEqual(value, right[index]));
-  }
-
-  if (!isRecord(left) || !isRecord(right)) return false;
-
-  const leftKeys = Object.keys(left).sort();
-  const rightKeys = Object.keys(right).sort();
-  if (leftKeys.length !== rightKeys.length) return false;
-
-  return leftKeys.every((key, index) => (
-    key === rightKeys[index] && areStructuredValuesEqual(left[key], right[key])
-  ));
-}
-
-function isDuplicateRealtimeSnapshot(
-  lastKnownState: Record<string, unknown> | null,
-  state: string,
-  attributes: Record<string, unknown>,
-): boolean {
-  return lastKnownState?.state === state
-    && areStructuredValuesEqual(lastKnownState.attributes ?? {}, attributes);
-}
-function parseStateChangePayload(data: unknown): HomeAssistantStateChangePayload | null {
-  if (!isRecord(data) || typeof data.entity_id !== 'string' || !isRecord(data.new_state)) {
-    return null;
-  }
-
-  const attributes = isRecord(data.new_state.attributes) ? data.new_state.attributes : {};
-
-  return {
-    entityId: data.entity_id,
-    newState: data.new_state.state,
-    attributes,
-  };
-}
+export type { SystemStateChangeEvent, HomeAssistantRealtimeSocket, HomeAssistantRealtimeSocketFactory };
 
 export class HomeAssistantRealtimeSyncManager extends EventEmitter implements ObservableRealtimeSyncStateProvider {
   private client: HomeAssistantRealtimeSocket | null = null;
@@ -127,18 +48,39 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
   private isReconciling: boolean = false;
   private reconciliationTimer: ReturnType<typeof setInterval> | null = null;
 
+  // ─── Collaborators ───────────────────────────────────────────────────────────
+  private readonly eventProcessor: HomeAssistantStateEventProcessor;
+  private readonly reconciler: HomeAssistantStateReconciler | null;
+  private readonly logResilienceEvent: ResilienceEventLogger;
+
   constructor(
     private readonly settingsService: HomeAssistantSettingsService,
-    private readonly deviceRepository: DeviceRepository,
-    private readonly activityLogRepository: ActivityLogRepository,
+    deviceRepository: DeviceRepository,
+    activityLogRepository: ActivityLogRepository,
     /** Opcional: inyectado para reconciliación. Si no se proporciona, se omite. */
-    private readonly haStateReader: HomeAssistantStateReader | null = null,
+    haStateReader: HomeAssistantStateReader | null = null,
     private readonly socketFactory: HomeAssistantRealtimeSocketFactory = (baseUrl, token) => (
       new HomeAssistantWebSocketClient(baseUrl, token)
     ),
     private readonly expiredInboxDeviceRemover: ExpiredInboxDeviceRemover | null = null,
   ) {
     super();
+    this.eventProcessor = new HomeAssistantStateEventProcessor(
+      deviceRepository,
+      activityLogRepository,
+      expiredInboxDeviceRemover,
+      {
+        onEventAccepted: () => { this.lastEventAt = new Date().toISOString(); },
+        publish: (systemEvent) => {
+          this.emit('device_state_updated', systemEvent);
+          this.emit('system_event', systemEvent);
+        },
+      },
+    );
+    this.reconciler = haStateReader
+      ? new HomeAssistantStateReconciler(haStateReader, deviceRepository, activityLogRepository, expiredInboxDeviceRemover)
+      : null;
+    this.logResilienceEvent = createResilienceEventLogger(activityLogRepository);
   }
 
   // ─── Public API ──────────────────────────────────────────────────────────────
@@ -220,7 +162,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
         // y ya habría programado un reconnectTimer.
         this._cancelRetry();
         this._destroySocket('auth_error');
-        this._logResilienceEvent('auth_error', 0, 0, `Permanent authentication failure with Home Assistant.`);
+        this.logResilienceEvent('auth_error', 0, 0, `Permanent authentication failure with Home Assistant.`);
       } else if (this.client === client) {
         this._cancelReconciliationTimer();
         // HomeAssistantWebSocketClient can tear down its underlying socket before
@@ -256,7 +198,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
       this.lastCloseReason = 'network_drop'; // Habilitar retrofit
       this.lastReconnectAt = new Date().toISOString();
 
-      this._logResilienceEvent('reconnect', this.retryAttempt, 0, 'WebSocket connection established successfully.');
+      this.logResilienceEvent('reconnect', this.retryAttempt, 0, 'WebSocket connection established successfully.');
 
       // Secuencia de bootstrap: Conectar → Suscribir → Reconciliar
       this._runReconciliation();
@@ -299,14 +241,14 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
       return;
     }
 
-    const delayMs = BACKOFF_DELAYS_MS[Math.min(this.retryIndex, BACKOFF_DELAYS_MS.length - 1)];
+    const { delayMs, nextRetryIndex } = computeBackoffStep(this.retryIndex);
     this.retryAttempt++;
-    this.retryIndex = Math.min(this.retryIndex + 1, BACKOFF_DELAYS_MS.length - 1);
+    this.retryIndex = nextRetryIndex;
 
     logRuntimeDiagnostic('log', `[HA-Sync] Reintento #${this.retryAttempt} en ${delayMs}ms...`);
     this.settingsService.updateStatusFromOperation('unreachable');
 
-    this._logResilienceEvent('reconnect', this.retryAttempt, delayMs, `Scheduling reconnection attempt #${this.retryAttempt} in ${delayMs}ms`);
+    this.logResilienceEvent('reconnect', this.retryAttempt, delayMs, `Scheduling reconnection attempt #${this.retryAttempt} in ${delayMs}ms`);
 
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
@@ -318,72 +260,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
   // ─── Event Processing ────────────────────────────────────────────────────────
 
   private async processEvent(data: unknown): Promise<void> {
-    const payload = parseStateChangePayload(data);
-    if (!payload) return;
-    this.lastEventAt = new Date().toISOString();
-
-    try {
-      const externalId = `ha:${payload.entityId}`;
-      const newState = payload.newState;
-      const attributes = payload.attributes;
-
-      const device = await this.deviceRepository.findByExternalId(externalId);
-      if (!device) return;
-
-      if (isDuplicateRealtimeSnapshot(device.lastKnownState, String(newState), attributes)) return;
-
-      const previousState = device.lastKnownState
-        ? { state: device.lastKnownState.state as string, attributes: device.lastKnownState.attributes as Record<string, unknown> }
-        : undefined;
-
-      const updatedDevice = {
-        ...device,
-        lastKnownState: device.status === 'PENDING' && device.roomId === null
-          ? trackInboxAvailability(device.lastKnownState, { state: String(newState), attributes }, Date.now()) : {
-          state: String(newState),
-          attributes: attributes
-        },
-        updatedAt: new Date().toISOString()
-      };
-
-      if (device.status === 'PENDING' && device.roomId === null && this.expiredInboxDeviceRemover) {
-        if (!await this.expiredInboxDeviceRemover.updatePendingState(device, updatedDevice.lastKnownState)) return;
-      } else {
-        await this.deviceRepository.saveDevice(updatedDevice);
-      }
-
-      try {
-        const cryptoRandom = typeof crypto !== 'undefined' ? crypto : (await import('crypto')).webcrypto;
-        const systemEvent: SystemStateChangeEvent = {
-          eventId: cryptoRandom.randomUUID(),
-          occurredAt: new Date().toISOString(),
-          source: 'home_assistant',
-          deviceId: device.id,
-          externalId: externalId,
-          previousState,
-          newState: {
-            state: String(newState),
-            attributes: attributes
-          }
-        };
-
-        this.emit('device_state_updated', systemEvent);
-        this.emit('system_event', systemEvent);
-
-        await this.activityLogRepository.saveActivity({
-          timestamp: new Date().toISOString(),
-          deviceId: device.id,
-          type: 'STATE_CHANGED',
-          description: `Device synchronized from Home Assistant WebSocket`,
-          data: { state: String(newState), attributes }
-        });
-      } catch (logErr: unknown) {
-        logRuntimeDiagnostic('error', `[HA-Sync] No se pudo guardar el activity log:`, getErrorMessage(logErr));
-      }
-
-    } catch (error: unknown) {
-      logRuntimeDiagnostic('error', `[HA-Sync] Exception procesando el evento WS:`, getErrorMessage(error));
-    }
+    await this.eventProcessor.process(data);
   }
 
   // ─── Silent State Reconciliation ─────────────────────────────────────────────
@@ -393,7 +270,7 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
    * de forma silenciosa (sin emitir system_event para no activar automatizaciones).
    */
   private async _runReconciliation(): Promise<void> {
-    if (!this.haStateReader) return;
+    if (!this.reconciler) return;
 
     // Guard: solo 1 reconciliación activa a la vez.
     if (this.isReconciling) {
@@ -404,89 +281,20 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
     this.isReconciling = true;
 
     try {
-      // Iniciando reconciliación de estado...
+      const result = await this.reconciler.reconcile(() => this.client);
 
-      let allStates;
-      const reconciliationClient = this.client;
-      try {
-        allStates = await this.haStateReader.getAllStates();
-        if (this.client !== reconciliationClient) return;
-      } catch (fetchError: unknown) {
-        // /api/states falló: log de warning pero NO cerrar el WS.
-        const errorMessage = getErrorMessage(fetchError);
-        logRuntimeDiagnostic('warn', '[HA-Sync] Reconciliation: fallo al obtener /api/states. WS sigue activo.', errorMessage);
-        this._logResilienceEvent('reconciliation', this.retryAttempt, 0,
-          `Failed to fetch /api/states: ${errorMessage}`, 0, 0);
+      if (result.status === 'aborted') return;
+
+      if (result.status === 'fetch_failed') {
+        this.logResilienceEvent('reconciliation', this.retryAttempt, 0,
+          `Failed to fetch /api/states: ${result.errorMessage}`, 0, 0);
         return;
       }
 
-      const localHaDevices = (await this.deviceRepository.findAll())
-        .filter((device) => device.integrationSource === 'ha' && device.externalId.startsWith('ha:'));
-      const statesByExternalId = new Map<string, (typeof allStates)[number]>(
-        allStates
-          .filter((state) => state.entity_id && state.state !== null && state.state !== undefined)
-          .map((state) => [`ha:${state.entity_id}`, state] as const),
-      );
-
-      let reconciledCount = 0;
-      let unavailableCount = 0;
-      let skippedCount = allStates.length - statesByExternalId.size;
-
-      for (const device of localHaDevices) {
-        try {
-          const haState = statesByExternalId.get(device.externalId);
-          if (device.status === 'PENDING' && device.roomId === null && this.expiredInboxDeviceRemover) {
-            const now = Date.now();
-            const nextState = haState
-              ? { state: String(haState.state), attributes: haState.attributes || {} }
-              : buildUnavailableDeviceState(device.lastKnownState);
-            const updated = { ...device, lastKnownState: trackInboxAvailability(device.lastKnownState, nextState, now), updatedAt: new Date(now).toISOString() };
-            if (this.client !== reconciliationClient) return;
-            if (!await this.expiredInboxDeviceRemover.updatePendingState(device, updated.lastKnownState)) continue;
-            if (hasExpiredInboxAvailability(updated.lastKnownState, now)) {
-              const removed = await this.expiredInboxDeviceRemover.removeIfUnreferenced(updated);
-              if (removed) await this.activityLogRepository.saveActivity({
-                timestamp: updated.updatedAt, deviceId: null, type: 'HA_RESILIENCE',
-                description: 'Expired unassigned discovery removed locally', data: { source: 'reconciliation', deviceId: device.id },
-              });
-            }
-            reconciledCount++;
-            continue;
-          }
-          if (!haState) {
-            if (device.lastKnownState?.state === 'unavailable') {
-              skippedCount++;
-              continue;
-            }
-
-            await this.deviceRepository.saveDevice({
-              ...device,
-              lastKnownState: buildUnavailableDeviceState(device.lastKnownState),
-              updatedAt: new Date().toISOString(),
-            });
-            unavailableCount++;
-            continue;
-          }
-
-          await this.deviceRepository.saveDevice({
-            ...device,
-            lastKnownState: {
-              state: String(haState.state),
-              attributes: haState.attributes || {}
-            },
-            updatedAt: new Date().toISOString()
-          });
-
-          reconciledCount++;
-        } catch (entityError: unknown) {
-          skippedCount++;
-          logRuntimeDiagnostic('warn', `[HA-Sync] Reconciliation: error parcheando ${device.externalId}:`, getErrorMessage(entityError));
-        }
-      }
-
+      const { reconciledCount, unavailableCount, skippedCount } = result;
       logRuntimeDiagnostic('log', `[HA-Sync] Reconciliación completada: ${reconciledCount} actualizados, ${unavailableCount} no disponibles, ${skippedCount} omitidos.`);
       this.lastReconciliationAt = new Date().toISOString();
-      this._logResilienceEvent('reconciliation', this.retryAttempt, 0,
+      this.logResilienceEvent('reconciliation', this.retryAttempt, 0,
         `State reconciliation completed: ${reconciledCount} updated, ${unavailableCount} unavailable, ${skippedCount} skipped`, reconciledCount, skippedCount);
 
     } finally {
@@ -516,31 +324,5 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
       lastReconnectAt: this.lastReconnectAt,
       lastReconciliationAt: this.lastReconciliationAt
     };
-  }
-
-  // ─── Structured Logging ──────────────────────────────────────────────────────
-
-  private _logResilienceEvent(
-    source: 'reconnect' | 'reconciliation' | 'auth_error',
-    attempt: number,
-    delayMs: number,
-    reason: string,
-    reconciledDevices?: number,
-    skippedDevices?: number
-  ): void {
-    this.activityLogRepository.saveActivity({
-      timestamp: new Date().toISOString(),
-      deviceId: null, // LOG-1: resilience events are not device-scoped
-      type: 'HA_RESILIENCE',
-      description: reason,
-      data: {
-        source,
-        attempt,
-        delayMs,
-        reconciledDevices,
-        skippedDevices,
-        reason
-      }
-    }).catch((error: unknown) => logRuntimeDiagnostic('warn', '[HA-Sync] Log de resiliencia falló:', getErrorMessage(error)));
   }
 }

@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 const root = process.cwd();
@@ -132,6 +132,13 @@ const migrationTargets = [
   },
 ];
 const errors = [];
+// The conversation service is split across its entry file and the collaborators in ./conversation.
+const conversationDir = join(root, 'packages', 'assistant', 'application', 'conversation');
+const readSource = (path) => {
+  const source = readFileSync(path, 'utf8');
+  if (!path.endsWith('AssistantConversationService.ts')) return source;
+  return [source, ...readdirSync(conversationDir).filter((name) => name.endsWith('.ts')).map((name) => readFileSync(join(conversationDir, name), 'utf8'))].join('\n');
+};
 const catalogSource = readFileSync(catalogPath, 'utf8');
 const declaredKeys = [...catalogSource.matchAll(/^  '([^']+)': \{/gm)].map((match) => match[1]);
 
@@ -163,7 +170,7 @@ for (const key of declaredKeys) {
 }
 
 for (const target of migrationTargets) {
-  const source = readFileSync(target.path, 'utf8');
+  const source = readSource(target.path);
   for (const key of target.keys) {
     if (!source.includes(`getAssistantResponseText('${key}'`)) {
       errors.push(`Migrated response key ${key} is not used by ${relative(root, target.path)}`);
@@ -176,7 +183,7 @@ if (/\bmessage:\s*(['"`])/.test(quickResponseSource)) {
   errors.push(`Literal assistant message found in ${relative(root, migrationTargets[0].path)}`);
 }
 
-const conversationSource = readFileSync(migrationTargets[3].path, 'utf8');
+const conversationSource = readSource(migrationTargets[3].path);
 const migratedConversationResponseFragments = [
   "Got it. I'll speak in English from now on.",
   'Perfecto. A partir de ahora hablaré en español.',

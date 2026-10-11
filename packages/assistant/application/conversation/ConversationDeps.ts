@@ -1,0 +1,58 @@
+import { DeviceRepository } from '../../../devices/domain/repositories/DeviceRepository';
+import { RoomRepository } from '../../../topology/domain/repositories/RoomRepository';
+import { HomeRepository } from '../../../topology/domain/repositories/HomeRepository';
+import { SceneRepository } from '../../../devices/domain/repositories/SceneRepository';
+import { AutomationRuleRepository } from '../../../devices/domain/repositories/AutomationRuleRepository';
+import { ExecutionRecordRepository } from '../../../devices/domain/repositories/ExecutionRecordRepository';
+import { ConfirmationTicketRepository } from '../../domain/repositories/ConfirmationTicketRepository';
+import { SceneExecutionService } from '../../../devices/application/SceneExecutionService';
+import { DeviceCommandDispatcherPort } from '../../../devices/application/ports/DeviceCommandDispatcherPort';
+import { SystemVariableService } from '../../../system-vars/application/SystemVariableService';
+import { AssistantDraftService } from '../AssistantDraftService';
+import { AssistantLearningService } from '../AssistantLearningService';
+import { SmartEntityResolver } from '../SmartEntityResolver';
+import { AssistantSuggestionService } from '../AssistantSuggestionService';
+import { AssistantPlannerV2ShadowService } from '../AssistantPlannerV2ShadowService';
+import { AssistantFastPathResolver } from '../AssistantFastPathResolver';
+import { AssistantMediaPlayerResolver } from '../AssistantMediaPlayerResolver';
+import { AssistantAliasManagementService } from '../AssistantAliasManagementService';
+import { DomesticSkillResolver } from '../DomesticSkillResolver';
+import { ScopeFilter } from '../ScopeFilter';
+import { PermissionGate } from '../PermissionGate';
+import type { IntentInterpreterPort } from '../ports/IntentInterpreterPort';
+import type { AssistantConfirmationPolicyPort } from '../ports/AssistantConfirmationPolicyPort';
+import type { AssistantSmallTalkPort } from '../ports/AssistantSmallTalkPort';
+import type { AssistantRoomManagementPort } from '../ports/AssistantRoomManagementPort';
+import type { AssistantMemoryPort } from '../ports/AssistantMemoryPort';
+import type { FollowUpResolverPort } from '../ports/FollowUpResolverPort';
+
+/** Dependencies of the assistant conversation service, shared read-only with every collaborator. */
+export interface ConversationDeps {
+  readonly intentInterpreter: IntentInterpreterPort;
+  readonly confirmationPolicy: AssistantConfirmationPolicyPort;
+  readonly sceneExecutionService: SceneExecutionService;
+  readonly deviceCommandDispatcher: DeviceCommandDispatcherPort;
+  readonly deviceRepository: DeviceRepository;
+  readonly roomRepository: RoomRepository;
+  readonly sceneRepository: SceneRepository;
+  readonly smallTalkService: AssistantSmallTalkPort;
+  readonly memoryService: AssistantMemoryPort;
+  readonly followUpResolver: FollowUpResolverPort;
+  readonly draftService: AssistantDraftService;
+  readonly automationRepository: AutomationRuleRepository;
+  readonly learningService: AssistantLearningService;
+  readonly entityResolver: SmartEntityResolver;
+  readonly suggestionService: AssistantSuggestionService;
+  readonly executionRecordRepository: ExecutionRecordRepository;
+  readonly systemVariableService: SystemVariableService;
+  readonly shadowService?: AssistantPlannerV2ShadowService;
+  readonly fastPathResolver: AssistantFastPathResolver;
+  readonly homeRepository?: HomeRepository;
+  readonly confirmationTicketRepository?: ConfirmationTicketRepository;
+  readonly roomManagementService?: AssistantRoomManagementPort;
+  readonly mediaPlayerResolver: AssistantMediaPlayerResolver;
+  readonly aliasManagementService: AssistantAliasManagementService;
+  readonly permissionGate: PermissionGate;
+  readonly domesticSkillResolver: DomesticSkillResolver;
+  readonly scopeFilter: ScopeFilter;
+}

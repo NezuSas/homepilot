@@ -3,22 +3,17 @@ import { PlannerV2Validator } from './PlannerV2Validator';
 import { PlannerV2Resolver } from './PlannerV2Resolver';
 import { PlannerV2Normalizer } from './PlannerV2Normalizer';
 import { AssistantConversationResponse } from './AssistantConversationService';
-import { TargetReference, AssistantPlanV2, PlannerAction } from './ports/AssistantPlannerV2';
+import { AssistantPlanV2 } from './ports/AssistantPlannerV2';
 import { AssistantMemoryState } from './ports/AssistantMemoryPort';
 import { LlmCircuitBreaker } from './LlmCircuitBreaker';
+import { readPlannerShadowConfig, SHADOW_MAX_TOKENS } from './planner/shadowConfig';
+import { getPromptSkipReason } from './planner/promptSkipPolicy';
+import { classifyInterpretError, classifyValidationError, compareV1V2 } from './planner/shadowComparison';
+import { buildShadowReport } from './planner/shadowReport';
+import { PlannerV2HybridExecutionGate } from './planner/HybridExecutionGate';
+import type { HybridExecutionResult, ShadowErrorInfo, ShadowResolutionResult } from './planner/shadowTypes';
 
-const SHADOW_TIMEOUT_MS = 1_500;
-const SHADOW_MAX_TOKENS = 48;
-
-export interface ShadowResolutionResult {
-  target: TargetReference;
-  resolvedType: string;
-  resolvedIds: string[];
-  command?: string;
-  confidence?: number;
-}
-
-export type ShadowErrorType = 'llm_failure' | 'timeout' | 'invalid_json' | 'invalid_json_contract' | 'empty_plan' | 'validation_failure' | 'resolution_failure' | 'build_failure' | 'unknown';
+export type { ShadowResolutionResult, ShadowErrorType } from './planner/shadowTypes';
 
 /**
  * AssistantPlannerV2ShadowService
@@ -45,37 +40,36 @@ export class AssistantPlannerV2ShadowService {
   private readonly normalizer = new PlannerV2Normalizer();
   /** Only guards the live execution path — shadow mode is diagnostic-only and never blocks the user. */
   private readonly circuitBreaker = new LlmCircuitBreaker();
+  private readonly hybridGate: PlannerV2HybridExecutionGate;
 
   constructor(
     private readonly llmInterpreter: LlmIntentInterpreter,
     private readonly validator: PlannerV2Validator,
     private readonly resolver: PlannerV2Resolver
   ) {
-    const flag = process.env.ASSISTANT_PLANNER_V2_SHADOW === 'true';
-    const isDev = process.env.NODE_ENV !== 'production';
-    const force = process.env.ASSISTANT_PLANNER_V2_SHADOW_FORCE === 'true';
+    const config = readPlannerShadowConfig();
 
-    this.isShadowEnabled = flag && (isDev || force);
-    const configuredSampleRate = Number(process.env.ASSISTANT_PLANNER_V2_SHADOW_SAMPLE_RATE ?? '0.1');
-    this.sampleRate = Number.isFinite(configuredSampleRate) && configuredSampleRate >= 0 && configuredSampleRate <= 1
-      ? configuredSampleRate
-      : 0.1;
-    const ultraLightEnabled = process.env.ASSISTANT_PLANNER_V2_SHADOW_ULTRA_LIGHT_PROMPT !== 'false'; // Default: true
-    const lightEnabled = process.env.ASSISTANT_PLANNER_V2_SHADOW_LIGHT_PROMPT === 'true'; // Fallback
-    
-    this.promptMode = ultraLightEnabled ? 'ultra_light' : (lightEnabled ? 'light' : 'full');
-    this.shadowTimeoutMs = SHADOW_TIMEOUT_MS;
-    this.executionTimeoutMs = parseInt(process.env.ASSISTANT_PLANNER_V2_EXECUTION_TIMEOUT_MS || '3500', 10);
+    this.isShadowEnabled = config.isShadowEnabled;
+    this.sampleRate = config.sampleRate;
+    this.promptMode = config.promptMode;
+    this.shadowTimeoutMs = config.shadowTimeoutMs;
+    this.executionTimeoutMs = config.executionTimeoutMs;
+    this.shadowModel = config.shadowModel;
+    this.resolvedModelName = config.resolvedModelName;
 
-    // Resolve model name: specific override → OLLAMA_MODEL env → hardcoded fallback
-    const modelOverride = process.env.ASSISTANT_PLANNER_V2_SHADOW_MODEL;
-    this.shadowModel = modelOverride || undefined;
-    this.resolvedModelName = modelOverride || process.env.OLLAMA_MODEL || 'phi3';
+    this.hybridGate = new PlannerV2HybridExecutionGate(
+      llmInterpreter,
+      validator,
+      resolver,
+      this.normalizer,
+      this.circuitBreaker,
+      { promptMode: this.promptMode, executionTimeoutMs: this.executionTimeoutMs, shadowModel: this.shadowModel }
+    );
 
     console.info(`[PLANNER_V2_SHADOW_INIT] ${JSON.stringify({
       enabled: this.isShadowEnabled,
       nodeEnv: process.env.NODE_ENV,
-      force,
+      force: config.force,
       sampleRate: this.sampleRate,
       promptMode: this.promptMode,
       ultraLightPrompt: this.promptMode === 'ultra_light',
@@ -109,14 +103,8 @@ export class AssistantPlannerV2ShadowService {
       return;
     }
 
-    const lowerPrompt = prompt.trim().toLowerCase();
-    
-    let skipReason: string | null = null;
-    if (!lowerPrompt) skipReason = 'empty_prompt';
-    else if (lowerPrompt.startsWith('selected:')) skipReason = 'internal_selection';
-    else if (lowerPrompt.startsWith('selection:')) skipReason = 'internal_selection';
-    else if (['habla en español', 'habla en ingles', 'habla en inglés', 'speak in english', 'speak in spanish', 'english', 'spanish', 'español', 'ingles', 'inglés'].includes(lowerPrompt)) skipReason = 'language_override';
-    
+    const skipReason = getPromptSkipReason(prompt);
+
     if (skipReason) {
       console.info(`[PLANNER_V2_SHADOW_SKIPPED] ${JSON.stringify({ reason: skipReason, promptLength: prompt.length })}`);
       return;
@@ -132,7 +120,7 @@ export class AssistantPlannerV2ShadowService {
     this.shadowInFlight = true;
     try {
       const t0 = Date.now();
-      let errorInfo: { message: string; type: ShadowErrorType } | null = null;
+      let errorInfo: ShadowErrorInfo | null = null;
       let plan: AssistantPlanV2 | null = null;
       let validationError: string | null = null;
       let resolutionResults: ShadowResolutionResult[] = [];
@@ -157,13 +145,7 @@ export class AssistantPlannerV2ShadowService {
       })}`);
 
       if (result.error) {
-        const msg = result.error.message;
-        let type: ShadowErrorType = 'llm_failure';
-        if (msg.includes('timed out')) type = 'timeout';
-        else if (msg.includes('JSON') || msg.includes('parse')) type = 'invalid_json';
-        else if (msg.includes('empty or invalid object')) type = 'empty_plan';
-        else if (msg.includes('build') || msg.includes('homeMap')) type = 'build_failure';
-        errorInfo = { message: msg, type };
+        errorInfo = classifyInterpretError(result.error.message);
       } else {
         plan = result.plan;
       }
@@ -184,8 +166,7 @@ export class AssistantPlannerV2ShadowService {
       if (plan && !errorInfo) {
         validationError = this.validator.validate(plan);
         if (validationError) {
-          const isContractError = validationError.includes('Invalid target type') || validationError.includes('target.type');
-          errorInfo = { message: validationError, type: isContractError ? 'invalid_json_contract' : 'validation_failure' as ShadowErrorType };
+          errorInfo = classifyValidationError(validationError);
         }
       }
 
@@ -219,77 +200,35 @@ export class AssistantPlannerV2ShadowService {
         console.warn(`[PLANNER_V2_SHADOW] Slow execution: ${latencyMs}ms`);
       }
 
-      // 4. Structured diagnostic log — always emitted, even on failure
-      const planStr = plan ? JSON.stringify(plan) : 'null';
-      const safePlan = planStr.length > 2000 ? { truncated: true, originalLength: planStr.length } : plan;
+      // 4. V1/V2 Comparison
+      const comparison = compareV1V2(v1Response.type, plan, errorInfo, validationError, resolutionResults);
 
-      // 5. V1/V2 Comparison
-      let likelyV2BetterCandidate = false;
-      let comparisonReason = 'v1_not_clarification';
-
-      if (v1Response.type === 'clarification') {
-        if (!plan || errorInfo || validationError) {
-          comparisonReason = validationError ? 'v2_validation_failed' : 'v2_invalid_or_error';
-        } else if (plan.plan_confidence < 0.8) {
-          comparisonReason = 'v2_low_plan_confidence';
-        } else if (!plan.actions || plan.actions.length === 0) {
-          comparisonReason = 'v2_no_actions';
-        } else if (plan.actions.some(a => (a.confidence || 0) < 0.8)) {
-          comparisonReason = 'v2_low_action_confidence';
-        } else if (resolutionResults.length !== plan.actions.length) {
-          comparisonReason = 'v2_resolution_mismatch';
-        } else if (resolutionResults.some(r => r.resolvedIds.length !== 1)) {
-          comparisonReason = 'v2_resolution_not_single';
-        } else {
-          likelyV2BetterCandidate = true;
-          comparisonReason = 'v2_single_high_confidence_match';
-        }
-      }
-
-      // 6. Update in-memory stats
+      // 5. Update in-memory stats
       this.totalRuns++;
-      if (likelyV2BetterCandidate) {
+      if (comparison.likelyV2BetterCandidate) {
         this.v2BetterCount++;
       }
 
-      console.info(`[PLANNER_V2_SHADOW_V2] ${JSON.stringify({
-        version: 'v2',
-        timestamp: new Date().toISOString(),
-
-
+      // 6. Structured diagnostic log — always emitted, even on failure
+      console.info(`[PLANNER_V2_SHADOW_V2] ${JSON.stringify(buildShadowReport({
         language,
         promptLength: prompt.length,
-        v1: {
-          type: v1Response.type,
-          messageLength: v1Response.message.length
-        },
-        v2: {
-          plan: safePlan,
-          normalized: wasNormalized,
-          normalization_changes: normalizationChanges,
-          validation: validationError || 'valid',
-          resolution: resolutionResults
-        },
-        comparison: {
-          v1_type: v1Response.type,
-          v2_type: plan ? plan.type : 'none',
-          v2_resolved_type: resolutionResults.length > 0 ? resolutionResults[0].resolvedType : 'none',
-          v2_action_count: plan?.actions?.length || 0,
-          likely_v2_better_candidate: likelyV2BetterCandidate,
-          reason: comparisonReason
-        },
+        v1: { type: v1Response.type, messageLength: v1Response.message.length },
+        plan,
+        wasNormalized,
+        normalizationChanges,
+        validationError,
+        resolutionResults,
+        comparison,
         stats: this.getMetrics(),
-        metrics: {
-          latency_ms: latencyMs,
-          prompt_chars: metadata.promptChars,
-          home_map_devices_count: metadata.devicesCount,
-          model: this.resolvedModelName,
-          timeout_ms: this.shadowTimeoutMs,
-          ultra_light_prompt_enabled: this.promptMode === 'ultra_light',
-          prompt_mode: this.promptMode
-        },
-        error: errorInfo
-      })}`);
+        latencyMs,
+        promptChars: metadata.promptChars,
+        homeMapDevicesCount: metadata.devicesCount,
+        model: this.resolvedModelName,
+        timeoutMs: this.shadowTimeoutMs,
+        promptMode: this.promptMode,
+        errorInfo
+      }))}`);
 
     } catch (err: unknown) {
       console.warn(`[PLANNER_V2_SHADOW_ERROR] ${err}`);
@@ -302,204 +241,12 @@ export class AssistantPlannerV2ShadowService {
    * Attempts to securely execute a prompt using V2 directly.
    * Returns null if any condition fails, allowing V1 fallback.
    */
-  public async attemptHybridExecution(
+  public attemptHybridExecution(
     prompt: string,
     userId: string,
     memory?: AssistantMemoryState | null
-  ): Promise<{ deviceId?: string; command: string; confidence: number; contextSource?: string; resolvedType?: string; resolvedIds?: string[] } | null> {
-    if (process.env.ASSISTANT_PLANNER_V2_EXECUTION !== 'true') return null;
-
-    const skip = (reason: string, extra?: Record<string, unknown>) => {
-      console.info(`[PLANNER_V2_EXECUTION_SKIPPED] ${JSON.stringify({ reason, promptLength: prompt.length, ...extra })}`);
-      return null;
-    };
-
-    const lowerPrompt = prompt.trim().toLowerCase();
-    let skipReason: string | null = null;
-    if (!lowerPrompt) skipReason = 'empty_prompt';
-    else if (lowerPrompt.startsWith('selected:')) skipReason = 'internal_selection';
-    else if (lowerPrompt.startsWith('selection:')) skipReason = 'internal_selection';
-    else if (['habla en español', 'habla en ingles', 'habla en inglés', 'speak in english', 'speak in spanish', 'english', 'spanish', 'español', 'ingles', 'inglés'].includes(lowerPrompt)) skipReason = 'language_override';
-
-    if (skipReason) return skip(skipReason);
-
-    // Ollama down/struggling: skip the LLM call entirely instead of paying the
-    // full execution timeout on every single turn during an outage.
-    if (this.circuitBreaker.isOpen()) return skip('circuit_open');
-
-    try {
-      const result = await this.llmInterpreter.interpretV2(prompt, userId, {
-        promptMode: this.promptMode,
-        timeoutMs: this.executionTimeoutMs,
-        model: this.shadowModel
-      });
-      if (result.error) {
-        this.circuitBreaker.recordFailure();
-        return skip('llm_error');
-      }
-      if (!result.plan) {
-        this.circuitBreaker.recordFailure();
-        return skip('empty_plan');
-      }
-      this.circuitBreaker.recordSuccess();
-
-      // Always normalize before validating — same pipeline as shadow
-      const normResult = this.normalizer.normalize(result.plan);
-      const plan = normResult.plan;
-      if (!plan) return skip('normalization_failed');
-
-      const validationError = this.validator.validate(plan);
-      if (validationError) return skip('validation_failed', {
-        validation_error: validationError,
-        normalized: normResult.normalized,
-        normalization_changes: normResult.changes
-      });
-
-      // 1. STRICT GATE CHECKS
-      if (plan.type !== 'plan') return skip('invalid_root_type');
-      if (!plan.actions || plan.actions.length === 0) return skip('empty_actions');
-
-      const allowedCommands = ['turn_on', 'turn_off', 'toggle'];
-
-      if (plan.actions.length > 1) {
-        // Multi-action plan (e.g. "prende la sala y la cocina"): only supported when
-        // every action shares the same command and resolves to exactly one distinct
-        // device each. This lets the model handle compound phrasing the deterministic
-        // multi-command parser's fixed connector list (" y ", " tambien ", ...) would
-        // otherwise have to hardcode — while never auto-executing on more than one
-        // device: it reuses the exact same "guarded multi-target" return shape the
-        // single-action path already uses for category/multi-device resolutions,
-        // so the caller still requires an explicit confirmation ticket either way.
-        return this.attemptMultiActionResolution(plan.actions, allowedCommands, userId, skip);
-      }
-
-      const action = plan.actions[0];
-      if (action.type !== 'set_state') return skip('invalid_action_type');
-
-      if (!action.command || !allowedCommands.includes(action.command)) return skip('invalid_command');
-
-      if (typeof action.confidence !== 'number' || action.confidence < 0.85) return skip('low_confidence');
-
-      // 2. RESOLUTION
-      const isPronounPrompt = /^(enci[eé]ndel[ao]s?|pr[eé]ndel[ao]s?|ap[aá]gal[ao]s?|es[ao]s?|la misma|el mismo|los mismos|las mismas|it|them)$/.test(lowerPrompt);
-      const isContextReference = action.target.type === 'context_reference';
-
-      let resolved: { type: string; deviceId?: string; deviceIds?: string[]; contextSource?: string };
-
-      if (isPronounPrompt) {
-        if (!memory || memory.lastQueryType !== 'command' || !memory.entities || memory.entities.length === 0) {
-          return skip('unsafe_context_resolution', {
-            memory_lastQueryType: memory?.lastQueryType,
-            memory_entities_count: memory?.entities?.length
-          });
-        }
-        
-        resolved = {
-          type: memory.entities.length > 1 ? 'multiple' : 'single',
-          deviceId: memory.entities.length === 1 ? memory.entities[0].id : undefined,
-          deviceIds: memory.entities.length > 1 ? memory.entities.map(e => e.id) : undefined,
-          contextSource: 'short_term_memory'
-        };
-        
-        console.info(`[PLANNER_V2_CONTEXT_RESOLVED] ${JSON.stringify({
-          context_source: 'short_term_memory',
-          resolvedIds: [resolved.deviceId]
-        })}`);
-      } else {
-        const res = await this.resolver.resolve(action.target, userId);
-        resolved = { 
-          type: res.type, 
-          deviceId: res.deviceId, 
-          deviceIds: res.deviceIds,
-          contextSource: res.contextSource 
-        };
-        
-        if (isContextReference && resolved.contextSource !== 'short_term_memory') {
-          return skip('unsafe_context_resolution');
-        }
-      }
-
-      // 3. SUCCESSFUL GATE PASS (or Guarded Multi-Target)
-      if (resolved.type === 'category' || (resolved.deviceIds && resolved.deviceIds.length > 1)) {
-        return {
-          command: action.command,
-          confidence: action.confidence,
-          resolvedType: resolved.type,
-          resolvedIds: resolved.deviceIds || []
-        };
-      }
-
-      if (resolved.type !== 'single' || !resolved.deviceId) return skip('non_single_resolution');
-
-      const finalContextSource = resolved.contextSource || 'semantic_match';
-
-      // 3. SUCCESSFUL GATE PASS
-      console.info(`[PLANNER_V2_EXECUTION_APPROVED] ${JSON.stringify({
-
-        deviceId: resolved.deviceId,
-        command: action.command,
-        confidence: action.confidence,
-        context_source: finalContextSource,
-        normalized: normResult.normalized,
-        normalization_changes: normResult.changes
-      })}`);
-
-      return {
-        deviceId: resolved.deviceId,
-        command: action.command,
-        confidence: action.confidence,
-        contextSource: finalContextSource
-      };
-
-    } catch (e) {
-      return skip('unexpected_error');
-    }
-  }
-
-  /**
-   * Resolves a multi-action plan into the same "guarded multi-target" shape
-   * `attemptHybridExecution` already returns for a single action resolving to a
-   * category/multiple devices — so the caller's existing confirmation-ticket
-   * flow handles it unchanged. Fails closed (skips the whole plan) rather than
-   * partially executing: mixed commands, non-single resolutions, pronoun/context
-   * references, or an over-long plan all abort the entire multi-action attempt.
-   */
-  private async attemptMultiActionResolution(
-    actions: PlannerAction[],
-    allowedCommands: string[],
-    userId: string,
-    skip: (reason: string, extra?: Record<string, unknown>) => null
-  ): Promise<{ command: string; confidence: number; resolvedType: string; resolvedIds: string[] } | null> {
-    if (actions.length > 8) return skip('too_many_actions');
-
-    const sharedCommand = actions[0].command;
-    for (const action of actions) {
-      if (action.type !== 'set_state') return skip('invalid_action_type');
-      if (!action.command || !allowedCommands.includes(action.command)) return skip('invalid_command');
-      if (action.command !== sharedCommand) return skip('mixed_commands_unsupported');
-      if (typeof action.confidence !== 'number' || action.confidence < 0.85) return skip('low_confidence');
-      // Pronoun/context resolution is inherently single-referent; mixing it into a
-      // multi-action plan is an ambiguous case left to the deterministic fallback.
-      if (action.target.type === 'context_reference') return skip('unsafe_context_resolution');
-    }
-
-    const deviceIds: string[] = [];
-    let minConfidence = 1;
-    for (const action of actions) {
-      const resolved = await this.resolver.resolve(action.target, userId);
-      if (resolved.type !== 'single' || !resolved.deviceId) return skip('non_single_resolution');
-      deviceIds.push(resolved.deviceId);
-      minConfidence = Math.min(minConfidence, action.confidence);
-    }
-
-    console.info(`[PLANNER_V2_MULTI_ACTION_RESOLVED] ${JSON.stringify({ count: deviceIds.length, command: sharedCommand })}`);
-
-    return {
-      command: sharedCommand as string,
-      confidence: minConfidence,
-      resolvedType: 'multiple',
-      resolvedIds: deviceIds
-    };
+  ): Promise<HybridExecutionResult | null> {
+    return this.hybridGate.attempt(prompt, userId, memory);
   }
 
   public getStatus() {

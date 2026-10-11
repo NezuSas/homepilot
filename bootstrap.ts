@@ -7,177 +7,27 @@ import { buildSystemVarsModule } from './infrastructure/assemblers/buildSystemVa
 import { buildAutomationModule } from './infrastructure/assemblers/buildAutomationModule';
 import { buildAuthModule } from './infrastructure/assemblers/buildAuthModule';
 import { buildAssistantModule } from './infrastructure/assemblers/buildAssistantModule';
+import { buildAssistantRuntime } from './infrastructure/assemblers/buildAssistantRuntime';
 import { buildCommandRouter } from './infrastructure/assemblers/buildCommandRouter';
 import { buildNativeCameraModule } from './infrastructure/assemblers/buildNativeCameraModule';
 import { buildModbusModule } from './infrastructure/assemblers/buildModbusModule';
-import type { ModbusService } from './packages/integrations/modbus/application/ModbusService';
+import {
+  buildEdgeIdentity,
+  buildManifestCatalog,
+  buildCloudGatewayServices,
+} from './infrastructure/assemblers/buildCloudGatewayModule';
+import { buildBootstrapContainer } from './infrastructure/assemblers/buildBootstrapContainer';
+import { startInitialAssistantScan } from './infrastructure/assemblers/startInitialAssistantScan';
+import type { BootstrapContainer, BootstrapOptions } from './infrastructure/assemblers/bootstrapTypes';
 import { HttpAndroidDisplayBridgeClient } from './packages/integrations/android-display/infrastructure/HttpAndroidDisplayBridgeClient';
 import { AndroidDisplayService } from './packages/integrations/android-display/application/AndroidDisplayService';
 import { DiagnosticsService } from './packages/system-observability/application/DiagnosticsService';
-import { InstallationVerificationBroker } from './packages/cloud-gateway/application/InstallationVerificationBroker';
-import { ManifestSyncService } from './packages/cloud-gateway/application/ManifestSyncService';
-import { EffectiveActionsProvider } from './packages/cloud-gateway/application/EffectiveActionsProvider';
-import { DeviceControlCatalogProvider } from './packages/cloud-gateway/application/DeviceControlCatalogProvider';
-import { CommandTokenCache } from './packages/cloud-gateway/application/CommandTokenCache';
-import { IntentFlowCommandExecutionService } from './packages/cloud-gateway/application/IntentFlowCommandExecutionService';
-import { DirectoryEdgeServiceTokenClient } from './packages/cloud-gateway/infrastructure/DirectoryEdgeServiceTokenClient';
-import { IntentFlowManifestClient } from './packages/cloud-gateway/infrastructure/IntentFlowManifestClient';
-import { IntentFlowCommandClient } from './packages/cloud-gateway/infrastructure/IntentFlowCommandClient';
-import { SqliteManifestCacheRepository } from './packages/cloud-gateway/infrastructure/SqliteManifestCacheRepository';
-import { readCloudEdgeConfig } from './packages/cloud-gateway/infrastructure/CloudEdgeConfigProvider';
-import { EdgeDeviceIdentityService } from './packages/cloud-gateway/application/EdgeDeviceIdentityService';
-import { DeviceIdentityError, type DeviceIdentityProvider } from './packages/cloud-gateway/application/DeviceIdentityProvider';
-import { SqliteDeviceBindingRepository } from './packages/cloud-gateway/infrastructure/SqliteDeviceBindingRepository';
-import { createDeviceIdentityProvider } from './packages/cloud-gateway/infrastructure/createDeviceIdentityProvider';
 import { RepositoryTopologyReferenceAdapter } from './packages/devices/infrastructure/adapters/RepositoryTopologyReferenceAdapter';
 import { getDatabasePath } from './packages/shared/config/getDatabasePath';
 import { DatabaseBackupService } from './packages/shared/infrastructure/database/DatabaseBackupService';
-import { IntentInterpreterService } from './packages/assistant/application/IntentInterpreterService';
-import { AssistantMultiCommandParser } from './packages/assistant/application/AssistantMultiCommandParser';
-import { OllamaClient } from './packages/assistant/infrastructure/OllamaClient';
-import { CloudflareWorkersAiClient } from './packages/assistant/infrastructure/CloudflareWorkersAiClient';
-import { AssistantContextBuilder } from './packages/assistant/application/AssistantContextBuilder';
-import { LlmIntentInterpreter } from './packages/assistant/application/LlmIntentInterpreter';
-import { AssistantConfirmationPolicy } from './packages/assistant/application/AssistantConfirmationPolicy';
-import { AssistantMemoryService } from './packages/assistant/application/AssistantMemoryService';
-import { AssistantConversationService } from './packages/assistant/application/AssistantConversationService';
-import { DomesticSkillResolver } from './packages/assistant/application/DomesticSkillResolver';
-import { PermissionGate } from './packages/assistant/application/PermissionGate';
-import { AssistantFastPathResolver } from './packages/assistant/application/AssistantFastPathResolver';
-import { AssistantAliasManagementService } from './packages/assistant/application/AssistantAliasManagementService';
-import { AssistantSmallTalkService } from './packages/assistant/application/AssistantSmallTalkService';
-import { TopologyRoomManagementAdapter } from './packages/assistant/infrastructure/TopologyRoomManagementAdapter';
-import { FollowUpResolver } from './packages/assistant/application/FollowUpResolver';
-import { PlannerV2Validator } from './packages/assistant/application/PlannerV2Validator';
-import { PlannerV2Resolver } from './packages/assistant/application/PlannerV2Resolver';
-import { AssistantPlannerV2ShadowService } from './packages/assistant/application/AssistantPlannerV2ShadowService';
-import { AssistantTextToSpeechService } from './packages/assistant/application/AssistantTextToSpeechService';
-import { AssistantSpeechToTextService } from './packages/assistant/application/AssistantSpeechToTextService';
 import fs from 'fs';
-import { randomUUID } from 'crypto';
 
-import type { SQLiteDashboardRepository } from './packages/topology/infrastructure/repositories/SQLiteDashboardRepository';
-import type { SQLiteHomeRepository } from './packages/topology/infrastructure/repositories/SQLiteHomeRepository';
-import type { SQLiteRoomRepository } from './packages/topology/infrastructure/repositories/SQLiteRoomRepository';
-import type { SQLiteDeviceRepository } from './packages/devices/infrastructure/repositories/SQLiteDeviceRepository';
-import type { SQLiteNativeCameraSourceRepository } from './packages/devices/infrastructure/repositories/SQLiteNativeCameraSourceRepository';
-import type { SQLiteAndroidDisplaySourceRepository } from './packages/integrations/android-display/infrastructure/SQLiteAndroidDisplaySourceRepository';
-import type { SqliteSceneRepository } from './packages/devices/infrastructure/repositories/SqliteSceneRepository';
-import type { SQLiteAutomationRuleRepository } from './packages/devices/infrastructure/repositories/SQLiteAutomationRuleRepository';
-import type { SQLiteActivityLogRepository } from './packages/devices/infrastructure/repositories/SQLiteActivityLogRepository';
-import type { SQLiteExecutionRecordRepository } from './packages/devices/infrastructure/repositories/SQLiteExecutionRecordRepository';
-import type { SQLiteAssistantMemoryRepository } from './packages/assistant/infrastructure/repositories/SQLiteAssistantMemoryRepository';
-import type { SQLiteAssistantLearningRepository } from './packages/assistant/infrastructure/repositories/SQLiteAssistantLearningRepository';
-import { AssistantLearningService } from './packages/assistant/application/AssistantLearningService';
-import { SmartEntityResolver } from './packages/assistant/application/SmartEntityResolver';
-import { AssistantSuggestionService } from './packages/assistant/application/AssistantSuggestionService';
-import type { SQLiteSettingsRepository } from './packages/integrations/home-assistant/infrastructure/SQLiteSettingsRepository';
-import type { SqliteUserRepository } from './packages/auth/infrastructure/SqliteUserRepository';
-import type { SqliteSessionRepository } from './packages/auth/infrastructure/SqliteSessionRepository';
-import type { SqliteDirectorySsoRepository } from './packages/auth/infrastructure/SqliteDirectorySsoRepository';
-import type { SqliteSystemSetupRepository } from './packages/system-setup/infrastructure/SqliteSystemSetupRepository';
-import type { SqliteSystemVariableRepository } from './packages/system-vars/infrastructure/SqliteSystemVariableRepository';
-import type { DashboardService } from './packages/topology/application/DashboardService';
-import type { HomeAssistantSettingsService } from './packages/integrations/home-assistant/application/HomeAssistantSettingsService';
-import type { AuthService } from './packages/auth/application/AuthService';
-import type { SystemSetupService } from './packages/system-setup/application/SystemSetupService';
-import type { UserManagementService } from './packages/auth/application/UserManagementService';
-import type { DirectorySsoService } from './packages/auth/application/DirectorySsoService';
-import type { AssistantService } from './packages/assistant/application/AssistantService';
-import type { AssistantActionService } from './packages/assistant/application/AssistantActionService';
-import type { HomeAssistantImportService } from './packages/devices/application/HomeAssistantImportService';
-import type { SystemVariableService } from './packages/system-vars/application/SystemVariableService';
-import type { SonoffLanDiscoveryService } from './packages/integrations/sonoff/application/SonoffLanDiscoveryService';
-import type { AuthGuard } from './packages/auth/infrastructure/AuthGuard';
-import type { HomeAssistantConnectionProvider } from './packages/integrations/home-assistant/application/HomeAssistantConnectionProvider';
-import type { HomeAssistantClientPort } from './packages/integrations/home-assistant/application/ports/HomeAssistantClientPort';
-import type { DeviceCommandDispatcherPort } from './packages/devices/application/ports/DeviceCommandDispatcherPort';
-import type { TopologyReferencePort } from './packages/devices/application/ports/TopologyReferencePort';
-import type { EventBusDeviceEventPublisher } from './packages/devices/infrastructure/adapters/EventBusDeviceEventPublisher';
-import type { EventBusTopologyEventPublisher } from './packages/topology/infrastructure/adapters/EventBusTopologyEventPublisher';
-import type { EventBus } from './packages/shared/domain/events/EventBus';
-import type { AutomationEngine } from './packages/automation/application/AutomationEngine';
-import type { SceneExecutionService } from './packages/devices/application/SceneExecutionService';
-import type { NativeCameraService } from './packages/integrations/native-camera/application/NativeCameraService';
-import type { NativeCameraStreamingService } from './packages/integrations/native-camera/application/NativeCameraStreamingService';
-
-export interface BootstrapContainer {
-  repositories: {
-    dashboardRepository: SQLiteDashboardRepository;
-    homeRepository: SQLiteHomeRepository;
-    roomRepository: SQLiteRoomRepository;
-    deviceRepository: SQLiteDeviceRepository;
-    nativeCameraSourceRepository: SQLiteNativeCameraSourceRepository;
-    androidDisplaySourceRepository: SQLiteAndroidDisplaySourceRepository;
-    manifestCacheRepository: SqliteManifestCacheRepository;
-    deviceBindingRepository: SqliteDeviceBindingRepository;
-    sceneRepository: SqliteSceneRepository;
-    automationRuleRepository: SQLiteAutomationRuleRepository;
-    activityLogRepository: SQLiteActivityLogRepository;
-    executionRecordRepository: SQLiteExecutionRecordRepository;
-    assistantMemoryRepository: SQLiteAssistantMemoryRepository;
-    assistantLearningRepository: SQLiteAssistantLearningRepository;
-    settingsRepository: SQLiteSettingsRepository;
-    userRepository: SqliteUserRepository;
-    sessionRepository: SqliteSessionRepository;
-    directorySsoRepository: SqliteDirectorySsoRepository;
-    systemSetupRepository: SqliteSystemSetupRepository;
-    systemVariableRepository: SqliteSystemVariableRepository;
-  };
-  services: {
-    modbusService: ModbusService;
-    dashboardService: DashboardService;
-    homeAssistantSettingsService: HomeAssistantSettingsService;
-    diagnosticsService: DiagnosticsService;
-    authService: AuthService;
-    systemSetupService: SystemSetupService;
-    userManagementService: UserManagementService;
-    directorySsoService: DirectorySsoService;
-    assistantService: AssistantService;
-    assistantActionService: AssistantActionService;
-    haImportService: HomeAssistantImportService;
-    systemVariableService: SystemVariableService;
-    sonoffDiscoveryService: SonoffLanDiscoveryService;
-    sceneExecutionService: SceneExecutionService;
-    databaseBackupService: DatabaseBackupService;
-    intentInterpreterService: IntentInterpreterService;
-    assistantConfirmationPolicy: AssistantConfirmationPolicy;
-    assistantConversationService: AssistantConversationService;
-    assistantPlannerV2ShadowService: AssistantPlannerV2ShadowService;
-    assistantTextToSpeechService: AssistantTextToSpeechService;
-    assistantSpeechToTextService: AssistantSpeechToTextService;
-    nativeCameraService: NativeCameraService;
-    nativeCameraStreamingService: NativeCameraStreamingService;
-    androidDisplayService: AndroidDisplayService;
-    installationVerificationBroker: InstallationVerificationBroker;
-    edgeDeviceIdentityService: EdgeDeviceIdentityService;
-    manifestSyncService: ManifestSyncService;
-    effectiveActionsProvider: EffectiveActionsProvider;
-    deviceControlCatalogProvider: DeviceControlCatalogProvider;
-    intentFlowCommandExecutionService: IntentFlowCommandExecutionService;
-  };
-  guards: {
-    authGuard: AuthGuard;
-  };
-  adapters: {
-    homeAssistantConnectionProvider: HomeAssistantConnectionProvider;
-    homeAssistantClient: HomeAssistantClientPort;
-    commandDispatcher: DeviceCommandDispatcherPort;
-    deviceEventPublisher: EventBusDeviceEventPublisher;
-    topologyEventPublisher: EventBusTopologyEventPublisher;
-    topologyReferencePort: TopologyReferencePort;
-  };
-  eventBus: EventBus;
-  dbPath: string;
-  engine?: AutomationEngine;
-}
-
-export interface BootstrapOptions {
-  dbPath?: string;
-  migrationsDir?: string;
-  verbose?: boolean;
-  deviceIdentityProvider?: DeviceIdentityProvider;
-}
+export type { BootstrapContainer, BootstrapOptions };
 
 /**
  * Bootstrap (Composition Root) - Refactorizado como orquestador liviano.
@@ -200,26 +50,23 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     verbose: isVerbose
   });
 
-  const deviceBindingRepository = new SqliteDeviceBindingRepository(db);
-  const edgeDeviceIdentityService = new EdgeDeviceIdentityService(
-    deviceBindingRepository, options?.deviceIdentityProvider ?? createDeviceIdentityProvider(dbPath), readCloudEdgeConfig,
-  );
-  if ((await edgeDeviceIdentityService.verifyAtStartup()).status !== 'READY') throw new DeviceIdentityError();
+  const edgeIdentity = await buildEdgeIdentity({
+    db,
+    dbPath,
+    deviceIdentityProvider: options?.deviceIdentityProvider,
+  });
 
-  const { eventBus, deviceEventPublisher, topologyEventPublisher } = buildEventBus();
+  const eventBusAssembly = buildEventBus();
+  const { eventBus, deviceEventPublisher, topologyEventPublisher } = eventBusAssembly;
 
   // 2. Repositorios y Módulos Base
   const repos = buildRepositories(dbPath, db);
-  const manifestCacheRepository = new SqliteManifestCacheRepository(dbPath);
-  const deviceControlCatalogProvider = new DeviceControlCatalogProvider({
-    cache: manifestCacheRepository,
-    devices: repos.deviceRepository,
-  });
+  const manifestCatalog = buildManifestCatalog(dbPath, repos.deviceRepository);
   const topologyReferencePort = new RepositoryTopologyReferenceAdapter(
     repos.homeRepository,
     repos.roomRepository
   );
-  
+
   const haModule = await buildHomeAssistantModule({
     settingsRepository: repos.settingsRepository,
     deviceRepository: repos.deviceRepository,
@@ -289,7 +136,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     dashboardRepository: repos.dashboardRepository,
     sceneRepository: repos.sceneRepository,
     automationRuleRepository: repos.automationRuleRepository,
-    deviceControlCatalogProvider,
+    deviceControlCatalogProvider: manifestCatalog.deviceControlCatalogProvider,
     nativeCameraSourceRepository: repos.nativeCameraSourceRepository,
     nativeCameraDriverRegistry: nativeCameraModule.nativeCameraDriverRegistry,
     androidDisplaySourceRepository: repos.androidDisplaySourceRepository,
@@ -320,213 +167,53 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
 
   const databaseBackupService = new DatabaseBackupService();
 
-  const ollamaClient = new OllamaClient(
-    process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
-    process.env.OLLAMA_MODEL || 'phi3',
-    parseInt(process.env.OLLAMA_TIMEOUT_MS || '15000')
-  );
-
-  if (process.env.OLLAMA_ENABLED === 'true') {
-    console.log(`[Assistant] Ollama enabled: model=${process.env.OLLAMA_MODEL || 'phi3'}, baseUrl=${process.env.OLLAMA_BASE_URL || 'http://localhost:11434'}`);
-    if (process.env.OLLAMA_PREWARM !== 'false') {
-      void ollamaClient.warmUp().then(
-        () => console.log('[Assistant] Ollama model is ready for local conversations.'),
-        () => console.warn('[Assistant] Ollama prewarm unavailable; deterministic assistant flows remain ready.')
-      );
-    }
-  }
-  const assistantMemoryService = new AssistantMemoryService(repos.executionRecordRepository, repos.assistantMemoryRepository);
-  const assistantLearningService = new AssistantLearningService(repos.assistantLearningRepository);
-  const smartEntityResolver = new SmartEntityResolver(
-    repos.deviceRepository,
-    repos.roomRepository,
-    repos.sceneRepository,
-    repos.automationRuleRepository,
-    assistantMemoryService,
-    assistantLearningService
-  );
-  const assistantSuggestionService = new AssistantSuggestionService(assistantLearningService, repos.deviceRepository);
-
-  const followUpResolver = new FollowUpResolver();
-  const contextBuilder = new AssistantContextBuilder(repos.deviceRepository, repos.sceneRepository, assistantMemoryService, repos.roomRepository, repos.homeRepository);
-  const llmInterpreter = new LlmIntentInterpreter(ollamaClient, contextBuilder, repos.deviceRepository, repos.sceneRepository);
-
-  const assistantMultiCommandParser = new AssistantMultiCommandParser(repos.deviceRepository, repos.roomRepository, repos.homeRepository);
-  const intentInterpreterService = new IntentInterpreterService(
-    repos.deviceRepository,
-    repos.sceneRepository,
-    repos.roomRepository,
-    assistantMultiCommandParser,
-    llmInterpreter,
-    assistantMemoryService,
-    repos.homeRepository
-  );
-
-  const assistantConfirmationPolicy = new AssistantConfirmationPolicy(
-    repos.sceneRepository,
-    repos.deviceRepository
-  );
-
-  const conversationalProvider = process.env.ASSISTANT_CONVERSATIONAL_LLM_PROVIDER || 'ollama';
-  const cloudflareAccountId = process.env.CLOUDFLARE_AI_ACCOUNT_ID;
-  const cloudflareApiToken = process.env.CLOUDFLARE_AI_API_TOKEN;
-  const conversationalLlmClient = conversationalProvider === 'cloudflare' && cloudflareAccountId && cloudflareApiToken
-    ? new CloudflareWorkersAiClient(
-      cloudflareAccountId,
-      cloudflareApiToken,
-      process.env.CLOUDFLARE_AI_MODEL || '@cf/meta/llama-3.1-8b-instruct-fast',
-      parseInt(process.env.CLOUDFLARE_AI_TIMEOUT_MS || '2200')
-    )
-    : conversationalProvider === 'ollama'
-      ? ollamaClient
-      : undefined;
-
-  if (conversationalProvider === 'cloudflare' && !conversationalLlmClient) {
-    console.warn('[Assistant] Cloudflare Workers AI is selected but missing account ID or API token; using deterministic conversational fallback.');
-  }
-
-  const assistantSmallTalkService = new AssistantSmallTalkService(conversationalLlmClient, contextBuilder);
-
-  const plannerV2Validator = new PlannerV2Validator();
-  const plannerV2Resolver = new PlannerV2Resolver(repos.deviceRepository, repos.roomRepository, repos.sceneRepository, assistantMemoryService, repos.homeRepository);
-  const shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, plannerV2Validator, plannerV2Resolver);
-  const assistantTextToSpeechService = new AssistantTextToSpeechService();
-  const assistantSpeechToTextService = new AssistantSpeechToTextService();
-
-  const assistantPermissionGate = new PermissionGate(
-    repos.deviceRepository,
-    repos.roomRepository,
-    repos.sceneRepository,
-    repos.automationRuleRepository,
-    repos.homeRepository
-  );
-  const domesticSkillResolver = new DomesticSkillResolver(assistantPermissionGate);
-  const assistantFastPathResolver = new AssistantFastPathResolver();
-  const assistantAliasManagementService = new AssistantAliasManagementService(
-    assistantMemoryService,
-    repos.deviceRepository,
-    repos.roomRepository
-  );
-  const roomManagementService = new TopologyRoomManagementAdapter({
-    homeRepository: repos.homeRepository,
-    roomRepository: repos.roomRepository,
-    eventPublisher: topologyEventPublisher,
-    idGenerator: { generate: () => randomUUID() },
-    clock: { now: () => new Date().toISOString() }
-  });
-  const assistantConversationService = new AssistantConversationService(
-    intentInterpreterService,
-    assistantConfirmationPolicy,
+  // 7. Runtime conversacional del asistente (LLM, planner, voz, conversación)
+  const assistantRuntime = buildAssistantRuntime({
+    repos,
+    assistantDraftService: assistantAssembly.assistantDraftService,
+    commandDispatcher: commandRouterAssembly.commandDispatcher,
     sceneExecutionService,
-    commandRouterAssembly.commandDispatcher,
-    repos.deviceRepository,
-    repos.roomRepository,
-    repos.sceneRepository,
-    assistantSmallTalkService,
-    assistantMemoryService,
-    followUpResolver,
-    assistantAssembly.assistantDraftService,
-    repos.automationRuleRepository,
-    assistantLearningService,
-    smartEntityResolver,
-    assistantSuggestionService,
-    repos.executionRecordRepository,
     systemVariableService,
-    shadowService,
-    assistantFastPathResolver,
-    assistantAliasManagementService,
-    repos.homeRepository,
-    repos.confirmationTicketRepository,
-    domesticSkillResolver,
-    roomManagementService
-  );
+    topologyEventPublisher,
+  });
 
-  const directoryTokenClient = new DirectoryEdgeServiceTokenClient(readCloudEdgeConfig, fetch, edgeDeviceIdentityService);
-  const manifestSyncService = new ManifestSyncService({
-    directory: directoryTokenClient,
-    intentFlow: new IntentFlowManifestClient(),
-    cache: manifestCacheRepository,
+  // 8. Cloud gateway (manifiestos y ejecución de comandos IntentFlow)
+  const cloudGateway = buildCloudGatewayServices({
+    manifestCacheRepository: manifestCatalog.manifestCacheRepository,
+    deviceRepository: repos.deviceRepository,
+    edgeDeviceIdentityService: edgeIdentity.edgeDeviceIdentityService,
   });
-  const intentFlowCommandExecutionService = new IntentFlowCommandExecutionService({
-    tokens: new CommandTokenCache(directoryTokenClient), client: new IntentFlowCommandClient(),
-  });
-  const container: BootstrapContainer = {
-    repositories: {
-      ...repos,
-      manifestCacheRepository,
-      deviceBindingRepository,
-      userRepository: authModule.userRepository,
-      sessionRepository: authModule.sessionRepository,
-      directorySsoRepository: authModule.directorySsoRepository,
-      systemSetupRepository: authModule.systemSetupRepository
-    },
-    services: {
-      modbusService,
-      dashboardService: commandRouterAssembly.dashboardService,
-      homeAssistantSettingsService: haModule.settingsService,
-      diagnosticsService,
-      authService: authModule.authService,
-      systemSetupService: authModule.systemSetupService,
-      userManagementService: authModule.userManagementService,
-      directorySsoService: authModule.directorySsoService,
-      assistantService: assistantAssembly.assistantService,
-      assistantActionService: commandRouterAssembly.assistantActionService,
-      haImportService: haModule.haImportService,
-      systemVariableService,
-      sonoffDiscoveryService: commandRouterAssembly.sonoffDiscoveryService,
-      sceneExecutionService,
-      databaseBackupService,
-      intentInterpreterService,
-      assistantConfirmationPolicy,
-      assistantConversationService,
-      assistantPlannerV2ShadowService: shadowService,
-      assistantTextToSpeechService,
-      assistantSpeechToTextService,
-      nativeCameraService: nativeCameraModule.nativeCameraService,
-      nativeCameraStreamingService: nativeCameraModule.nativeCameraStreamingService,
-      androidDisplayService,
-      installationVerificationBroker: new InstallationVerificationBroker(readCloudEdgeConfig),
-      edgeDeviceIdentityService,
-      manifestSyncService,
-      intentFlowCommandExecutionService,
-      effectiveActionsProvider: new EffectiveActionsProvider({
-        cache: manifestCacheRepository,
-        devices: repos.deviceRepository,
-      }),
-      deviceControlCatalogProvider
-    },
-    guards: {
-      authGuard: authModule.authGuard
-    },
-    adapters: {
-      homeAssistantConnectionProvider: haModule.connectionProvider,
-      homeAssistantClient: haModule.haClientProxy,
-      commandDispatcher: commandRouterAssembly.commandDispatcher,
-      deviceEventPublisher,
-      topologyEventPublisher,
-      topologyReferencePort
-    },
-    eventBus,
+
+  const container = buildBootstrapContainer({
     dbPath,
-    engine: automationEngine
-  };
+    repos,
+    edgeIdentity,
+    manifestCatalog,
+    cloudGateway,
+    eventBusAssembly,
+    topologyReferencePort,
+    haModule,
+    authModule,
+    assistantAssembly,
+    assistantRuntime,
+    nativeCameraModule,
+    commandRouterAssembly,
+    modbusService,
+    androidDisplayService,
+    systemVariableService,
+    sceneExecutionService,
+    diagnosticsService,
+    databaseBackupService,
+    automationEngine,
+  });
 
   console.log('[Bootstrap] Repositorios y servicios inyectados exitosamente.');
-  
+
   // -- TRIGGER INITIAL SCAN --
-  const initialScan = async () => {
-    if (process.env.NODE_ENV === 'test') return;
-    try {
-      const allHomes = await repos.homeRepository.findAll();
-      for (const h of allHomes) {
-        await assistantAssembly.assistantService.scan(h.id, 'system_boot');
-      }
-      console.log(`[Assistant] Initial system scan completed for ${allHomes.length} homes.`);
-    } catch (e) {
-      console.error('[Assistant] Initial scan failed:', e);
-    }
-  };
-  initialScan();
+  startInitialAssistantScan({
+    homeRepository: repos.homeRepository,
+    assistantService: assistantAssembly.assistantService,
+  });
 
   return container;
 }
