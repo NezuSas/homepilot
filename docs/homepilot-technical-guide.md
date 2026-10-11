@@ -673,6 +673,7 @@ WHISPER_MAX_AUDIO_BYTES=9000000
 |---|---|---|
 | HOMEPILOT_DEV_BOOTSTRAP | true | Creates admin/admin only when the database is empty; local development only |
 | HOMEPILOT_HOME_CHAT_ENABLED | true | Set by the installer. `false` hides "Conversar con mi casa" (menu, route, wake word and demo step) and makes the API refuse chat, text-to-speech and speech-to-text requests with `FEATURE_DISABLED`; the rest of the assistant is unaffected |
+| HOMEPILOT_VOICE_ENABLED | true | Set by the installer. `false` (or a disabled chat) makes the API refuse text-to-speech and speech-to-text with `FEATURE_DISABLED`, hides the microphone and spoken answers in the console, and keeps the STT and TTS services out of the deployment |
 | HOMEPILOT_DB_PATH | ./data/homepilot.db | SQLite path outside Docker/inside local WSL; containers normally use /app/data/homepilot.db |
 | HOMEPILOT_SQLITE_JOURNAL_MODE | WAL | Use WAL on the Linux mini PC; use DELETE only when Docker mounts data from Windows | Bundled HomePilot synthetic voice identity; `male` is also available |
 | TTS_PROVIDER | kokoro | Primary local voice engine with Piper fallback |

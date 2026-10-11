@@ -93,6 +93,7 @@ export class NativeCameraRoutes extends ApiRoutes {
   ): Promise<void> {
     const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return;
+    if (!container.guards.authGuard.requireRole(req, res, 'admin')) return;
 
     try {
       const devices = await this.nativeCameraService.discover();
@@ -109,6 +110,7 @@ export class NativeCameraRoutes extends ApiRoutes {
   ): Promise<void> {
     const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return;
+    if (!container.guards.authGuard.requireRole(req, res, 'operator')) return;
 
     try {
       const url = new URL(req.url || '/api/v1/native-cameras', 'http://localhost');
@@ -132,6 +134,7 @@ export class NativeCameraRoutes extends ApiRoutes {
   ): Promise<void> {
     const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return;
+    if (!container.guards.authGuard.requireRole(req, res, 'admin')) return;
 
     try {
       const body = await this.parseBody<Parameters<NativeCameraService['create']>[0]>(req);
@@ -156,6 +159,7 @@ export class NativeCameraRoutes extends ApiRoutes {
   ): Promise<void> {
     const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return;
+    if (!container.guards.authGuard.requireRole(req, res, 'admin')) return;
 
     try {
       const body = await this.parseBody<Parameters<NativeCameraService['update']>[1]>(req);
@@ -179,6 +183,7 @@ export class NativeCameraRoutes extends ApiRoutes {
   ): Promise<void> {
     const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return;
+    if (!container.guards.authGuard.requireRole(req, res, 'admin')) return;
 
     try {
       const result = await this.nativeCameraService.delete(deviceId);

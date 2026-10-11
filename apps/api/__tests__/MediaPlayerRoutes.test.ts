@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import { EventEmitter } from 'events';
 import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
@@ -134,6 +135,19 @@ describe('MediaPlayerRoutes', () => {
     expect(container.adapters.homeAssistantClient.getMediaArtwork).not.toHaveBeenCalled();
     expect(response.writeHead).toHaveBeenCalledWith(401, expect.any(Object));
     expect(response.end).toHaveBeenCalledWith(expect.stringContaining('UNAUTHORIZED'));
+  });
+
+  it('rejects a token forged with the old published development secret', async () => {
+    const routes = new MediaPlayerRoutes();
+    const container = createContainer();
+    const response = new MockResponse();
+    const payload = Buffer.from(JSON.stringify({ deviceId: 'media-1', artworkPath: '/api/states', expiresAt: Date.now() + 60_000 })).toString('base64url');
+    const forged = `${payload}.${crypto.createHmac('sha256', 'homepilot-media-artwork-development-secret').update(payload).digest('base64url')}`;
+
+    await routes.handle(createRequest(`/api/v1/devices/media-1/media/artwork?token=${forged}`), response as unknown as http.ServerResponse, '/api/v1/devices/media-1/media/artwork', 'GET', container);
+
+    expect(container.adapters.homeAssistantClient.getMediaArtwork).not.toHaveBeenCalled();
+    expect(response.writeHead).toHaveBeenCalledWith(401, expect.any(Object));
   });
 });
 

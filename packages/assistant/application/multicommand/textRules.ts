@@ -2,6 +2,9 @@ import { Device } from '../../../devices/domain/types';
 import { validateDeviceCommand } from '../../../devices/domain/CommandCapabilityValidator';
 import { DeviceCommandV1, isValidCommand } from '../../../devices/domain/commands';
 import { normalizeText } from '../textMatching';
+import { ScopeFilter } from '../ScopeFilter';
+
+const scopeFilter = new ScopeFilter();
 
 /**
  * Tablas de patrones y reglas de texto puras del parser de comandos múltiples:
@@ -95,6 +98,10 @@ export function inferCommandFromSegment(segment: string): DeviceCommandV1 | null
 }
 
 export function isControllableDevice(device: Device, command: string): boolean {
+  // Same availability and power-capability rules as every other path: a device still in the Inbox,
+  // or a player that cannot be powered on or off (a PC agent), is never swept into a command.
+  if (device.status !== 'ASSIGNED') return false;
+  if (isValidCommand(command) && scopeFilter.lacksDeclaredPowerFeature(device, command)) return false;
   const rawState = device.lastKnownState;
   if (rawState && typeof rawState['state'] === 'string' && rawState['state'] === 'unavailable') return false;
 

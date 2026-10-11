@@ -107,6 +107,17 @@ it('does not multiply timers after repeated view mounts and unmounts', async () 
   }
 });
 
+it('stops polling for good when the load reports that it can never succeed', async () => {
+  const load = jest.fn().mockResolvedValue('stop');
+  const stop = startSequentialPolling(load, 5_000);
+  await jest.advanceTimersByTimeAsync(0);
+  expect(load).toHaveBeenCalledTimes(1);
+  expect(jest.getTimerCount()).toBe(0);
+  await jest.advanceTimersByTimeAsync(20_000);
+  expect(load).toHaveBeenCalledTimes(1);
+  stop();
+});
+
 it('never delivers a response across a session change', async () => {
   let complete: ((response: Response) => void) | undefined;
   mockFetch.mockImplementation(() => new Promise<Response>((resolve) => { complete = resolve; }));

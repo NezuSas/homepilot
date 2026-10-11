@@ -56,6 +56,19 @@ describe('Feature: Home Assistant connection settings API', () => {
     expect(container.services.homeAssistantSettingsService.saveSettings).not.toHaveBeenCalled();
   });
 
+  it.each(['/api/v1/settings/home-assistant/test', '/api/v1/settings/test-ha-connection'])(
+    'Scenario: Given a non-administrator When %s is called Then no outbound connection is attempted',
+    async (path) => {
+      const routes = new SettingsRoutes(new MediaService());
+      const container = createContainer(false);
+
+      await routes.handle(createRequest({ baseUrl: 'http://10.0.0.5:22', accessToken: 'x' }), new MockResponse() as unknown as http.ServerResponse, path, 'POST', container);
+
+      expect(container.guards.authGuard.requireRole).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'admin');
+      expect(container.services.homeAssistantSettingsService.testConnection).not.toHaveBeenCalled();
+    },
+  );
+
   it('Scenario: Given an administrator When saving a URL without a replacement token Then it delegates the optional token unchanged', async () => {
     const routes = new SettingsRoutes(new MediaService());
     const container = createContainer();

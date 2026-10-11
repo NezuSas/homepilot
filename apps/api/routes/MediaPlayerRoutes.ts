@@ -5,6 +5,10 @@ import { Device } from '../../../packages/devices/domain/types';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { ApiRoutes } from './ApiRoutes';
 
+// Without a configured secret, a random one lives only as long as the process: artwork tokens are
+// short-lived and reissued per session. Neither the Home Assistant token nor a published constant signs them.
+const processSecret = crypto.randomBytes(32).toString('hex');
+
 interface ArtworkSessionPayload {
   readonly deviceId: string;
   readonly artworkPath: string;
@@ -153,9 +157,7 @@ export class MediaPlayerRoutes extends ApiRoutes {
   }
 
   private sign(value: string): string {
-    const secret = process.env.MEDIA_ARTWORK_SIGNING_SECRET
-      || process.env.HOME_ASSISTANT_TOKEN
-      || 'homepilot-media-artwork-development-secret';
+    const secret = process.env.MEDIA_ARTWORK_SIGNING_SECRET?.trim() || processSecret;
     return crypto.createHmac('sha256', secret).update(value).digest('base64url');
   }
 

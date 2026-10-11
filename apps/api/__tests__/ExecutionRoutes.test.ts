@@ -24,7 +24,7 @@ function createRequest(url: string): HomePilotRequest {
 
 function createContainer(isAuthorized = true): BootstrapContainer {
   return {
-    guards: { authGuard: { protect: jest.fn().mockResolvedValue(isAuthorized) } },
+    guards: { authGuard: { protect: jest.fn().mockResolvedValue(isAuthorized), requireRole: jest.fn().mockReturnValue(true) } },
     repositories: {
       executionRecordRepository: {
         findRecent: jest.fn().mockResolvedValue([{ id: 'recent-1' }]),
@@ -47,6 +47,24 @@ describe('Feature: execution history routes', () => {
 
     expect(container.guards.authGuard.protect).toHaveBeenCalled();
     expect(container.repositories.executionRecordRepository.findRecent).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['GET', '/api/v1/executions/recent'],
+    ['GET', '/api/v1/executions/scene/scene-1'],
+    ['POST', '/api/v1/executions/exec-1/actions/0/retry'],
+  ])('Scenario: Given a role below operator When %s %s is requested Then no history is read and nothing is retried', async (method, path) => {
+    const route = new ExecutionRoutes();
+    const container = createContainer();
+    (container.guards.authGuard.requireRole as jest.Mock).mockReturnValue(false);
+
+    await route.handle(createRequest(path), new MockResponse() as unknown as http.ServerResponse, path, method, container);
+
+    expect(container.guards.authGuard.requireRole).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'operator');
+    expect(container.repositories.executionRecordRepository.findRecent).not.toHaveBeenCalled();
+    expect(container.repositories.executionRecordRepository.findBySource).not.toHaveBeenCalled();
+    expect(container.repositories.executionRecordRepository.findById).not.toHaveBeenCalled();
+    expect(container.services.sceneExecutionService.execute).not.toHaveBeenCalled();
   });
 
   it.each([

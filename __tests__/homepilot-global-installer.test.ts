@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 const bash = process.platform === 'win32' && existsSync('C:/Program Files/Git/bin/bash.exe')
   ? 'C:/Program Files/Git/bin/bash.exe' : 'bash';
@@ -401,5 +401,19 @@ describe('HomePilot global installation wizard without system operations', () =>
     expect(result.stdout).toContain('ADMINISTRACIÓN DE LA INSTALACIÓN');
     expect(result.stdout).toContain('No se realizan acciones adicionales');
     expect(result.stdout).not.toContain('UNEXPECTED_DEPLOY');
+  });
+
+  it('removes the speech services when an installation turns voice off, in the installer and in maintenance', () => {
+    for (const script of ['scripts/install-edge-office.sh', 'scripts/homepilot-maintenance.sh']) {
+      const source = readFileSync(script, 'utf8');
+      const removal = source.indexOf('rm -sf homepilot-stt homepilot-tts');
+      expect(removal).toBeGreaterThan(0);
+      expect(source.slice(Math.max(0, removal - 400), removal)).toContain('voice_enabled" != true');
+    }
+  });
+
+  it('never keeps voice on in maintenance when the chat is off', () => {
+    const source = readFileSync('scripts/homepilot-maintenance.sh', 'utf8');
+    expect(source).toContain('[[ "$home_chat_enabled" == true ]] || voice_enabled=false');
   });
 });

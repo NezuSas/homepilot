@@ -65,6 +65,22 @@ function createContainer(): BootstrapContainer {
 describe('TopologyRoutes - additional contracts', () => {
   const routes = new TopologyRoutes();
 
+  it.each([
+    '/api/v1/integrations/discovery',
+    '/api/v1/integrations/state-sync',
+    '/api/v1/roomsX',
+    '/api/v1/devices',
+  ])('leaves %s to the routes that own it, without asking for a user session first', async (path) => {
+    const container = createContainer();
+    const response = createResponse();
+
+    const handled = await routes.handle(createRequest({}), response, path, 'POST', container);
+
+    expect(handled).toBe(false);
+    expect(container.guards.authGuard.protect).not.toHaveBeenCalled();
+    expect(response.end).not.toHaveBeenCalled();
+  });
+
   it('creates the first installation home and keeps the persisted result when event publication is unavailable', async () => {
     const container = createContainer();
     const response = createResponse();

@@ -167,7 +167,7 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
 
   const databaseBackupService = new DatabaseBackupService();
 
-  // 7. Runtime conversacional del asistente (LLM, planner, voz, conversación)
+  // 7. Runtime conversacional del asistente (voz, conversación)
   const assistantRuntime = buildAssistantRuntime({
     repos,
     assistantDraftService: assistantAssembly.assistantDraftService,

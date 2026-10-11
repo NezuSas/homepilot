@@ -20,9 +20,11 @@ interface HomeConversationViewProps {
   pendingPrompt?: PendingHomeConversationPrompt | null;
   onPendingPromptConsumed?: (id: string) => void;
   assistantTurnCoordinator: AssistantTurnCoordinator;
+  /** False when the installer left out local voice: no microphone, no spoken answers. */
+  voiceEnabled?: boolean;
 }
 
-export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pendingPrompt, onPendingPromptConsumed, assistantTurnCoordinator }) => {
+export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pendingPrompt, onPendingPromptConsumed, assistantTurnCoordinator, voiceEnabled = true }) => {
   const { t } = useTranslation();
   const { user } = useSession(noopSessionCleared);
   const conversationStorageKey = getConversationStorageKey(user?.id);
@@ -32,7 +34,7 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
   const handleScrollContainerReady = useCallback((element: HTMLDivElement | null) => {
     scrollRef.current = element;
   }, []);
-  const speech = useHomeConversationSpeech(assistantTurnCoordinator);
+  const speech = useHomeConversationSpeech(assistantTurnCoordinator, voiceEnabled);
 
   const addMessage = (message: NewChatMessage) => {
     const newMessage: ChatMessage = {
@@ -125,8 +127,8 @@ export const HomeConversationView: React.FC<HomeConversationViewProps> = ({ pend
         activityTone={activityStatus.tone}
         inputHint={speechNotice || t('assistant.conversation.input_hint')}
         isListening={isListening}
-        isSpeechRecordingSupported={speechSupport.recording}
-        isSpeechSynthesisSupported={speechSupport.synthesis}
+        isSpeechRecordingSupported={voiceEnabled && speechSupport.recording}
+        isSpeechSynthesisSupported={voiceEnabled && speechSupport.synthesis}
         isSpeechEnabled={speech.isSpeechEnabled}
         audioInputDevices={audioInputOptions}
         selectedAudioInputId={selectedAudioInputId}

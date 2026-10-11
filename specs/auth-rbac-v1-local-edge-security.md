@@ -33,6 +33,8 @@ Implement a robust, localized authentication and basic Role-Based Access Control
 | **`GET / POST /api/v1/settings/*` (Settings Read/Write)** | ❌ | ✅ |
 | **`POST /api/v1/auth/change-password`** | ✅ | ✅ |
 
+*Infrastructure and history*: native camera discovery, creation, update and removal, and the Home Assistant connection test require `admin`; the native camera list and the execution history (including retrying a failed action) require `operator` or higher. Machine-to-machine integration routes (`/api/v1/integrations/*`) authenticate only with their integration key and are never answered with a user-session error by another route group. Media artwork tokens are signed with `MEDIA_ARTWORK_SIGNING_SECRET` or a random per-process secret, never with the Home Assistant token or a published constant.
+
 *Diagnostics*: the snapshot and the event timeline require the `operator` role or higher; `parent`, `child` and `guest` sessions receive 403 `INSUFFICIENT_ROLE`, matching the console, where only `admin` and `operator` reach the system area.
 
 *Note*: Admin actions strictly require the `admin` role. `Operator` has expansive read permission and can execute live telemetry operations (commands), but cannot modify infrastructure arrays or sensitive credentials.

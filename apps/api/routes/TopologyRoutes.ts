@@ -34,9 +34,15 @@ export class TopologyRoutes extends ApiRoutes {
     method: string,
     container: BootstrapContainer
   ): Promise<boolean> {
+    // Only authenticate what this class owns: routes after it (machine-to-machine integration
+    // endpoints, which use their own key) must not be answered with a missing-session 401 first.
+    const ownsPath = pathname === '/api/v1/rooms' || pathname === '/api/v1/homes'
+      || pathname.startsWith('/api/v1/rooms/') || pathname.startsWith('/api/v1/homes/');
+    if (!ownsPath) return false;
+
     const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return true;
-    
+
 
     // GET /api/v1/rooms
     if (method === 'GET' && pathname === '/api/v1/rooms') {

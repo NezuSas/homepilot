@@ -135,7 +135,9 @@ describe('Conversation request parsing', () => {
       expect(isRoomCoverFastPath('cierra la cortina del cuarto master al 50%')).toBeNull();
       expect(isRoomCoverFastPath('abre la cortina de sala al 30 por ciento')).toBeNull();
       expect(isRoomCoverFastPath('set the curtain in office to 40')).toBeNull();
-    });
+      // Trailing politeness must not hide the percentage and fully close the covers.
+      expect(isRoomCoverFastPath('cierra las cortinas de la sala al 50% por favor')).toBeNull();
+      expect(isRoomCoverFastPath('abre la cortina de sala al 30 por ciento por favor')).toBeNull();    });
 
     it('parses global bulk requests and vague light commands', () => {
       expect(isBulkFastPath('apaga todas las luces')).toEqual({ command: 'turn_off', bulkType: 'lights' });

@@ -2,7 +2,7 @@ import { EventEmitter } from 'events';
 import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
-import { isHomeChatEnabled } from '../../../packages/shared/config/getInstallationProfile';
+import { isHomeChatEnabled, isVoiceEnabled } from '../../../packages/shared/config/getInstallationProfile';
 import { AssistantRoutes } from '../routes/AssistantRoutes';
 import { SystemRoutes } from '../routes/SystemRoutes';
 
@@ -44,8 +44,10 @@ function createContainer() {
 
 describe('Feature: installer option "Conversar con mi casa"', () => {
   const previous = process.env.HOMEPILOT_HOME_CHAT_ENABLED;
+  const previousVoice = process.env.HOMEPILOT_VOICE_ENABLED;
   afterEach(() => {
     if (previous === undefined) delete process.env.HOMEPILOT_HOME_CHAT_ENABLED; else process.env.HOMEPILOT_HOME_CHAT_ENABLED = previous;
+    if (previousVoice === undefined) delete process.env.HOMEPILOT_VOICE_ENABLED; else process.env.HOMEPILOT_VOICE_ENABLED = previousVoice;
   });
 
   it('is on unless the installer turned it off', () => {
@@ -72,6 +74,47 @@ describe('Feature: installer option "Conversar con mi casa"', () => {
     },
   );
 
+  it('reports voice as on only when the chat is on and the installer did not turn it off', () => {
+    delete process.env.HOMEPILOT_HOME_CHAT_ENABLED;
+    expect(isVoiceEnabled(undefined)).toBe(true);
+    expect(isVoiceEnabled('true')).toBe(true);
+    expect(isVoiceEnabled('false')).toBe(false);
+    process.env.HOMEPILOT_HOME_CHAT_ENABLED = 'false';
+    expect(isVoiceEnabled(undefined)).toBe(false);
+  });
+
+  it.each(['/api/v1/assistant/tts', '/api/v1/assistant/stt'])(
+    'answers 403 FEATURE_DISABLED on %s when only the voice is off, while the chat keeps answering',
+    async (path) => {
+      delete process.env.HOMEPILOT_HOME_CHAT_ENABLED;
+      process.env.HOMEPILOT_VOICE_ENABLED = 'false';
+      const { container, converse, synthesize, transcribe } = createContainer();
+      const response = new MockResponse();
+
+      await new AssistantRoutes().handle(createRequest(path), response as unknown as http.ServerResponse, path, 'POST', container);
+      expect(response.writeHead).toHaveBeenCalledWith(403, expect.any(Object));
+      expect(response.end).toHaveBeenCalledWith(expect.stringContaining('FEATURE_DISABLED'));
+      expect(synthesize).not.toHaveBeenCalled();
+      expect(transcribe).not.toHaveBeenCalled();
+
+      const chat = new MockResponse();
+      await new AssistantRoutes().handle(createRequest('/api/v1/assistant/converse'), chat as unknown as http.ServerResponse, '/api/v1/assistant/converse', 'POST', container);
+      expect(converse).toHaveBeenCalledTimes(1);
+      expect(chat.writeHead).toHaveBeenCalledWith(200, expect.any(Object));
+    },
+  );
+
+  it('publishes the voice option next to the chat option', async () => {
+    delete process.env.HOMEPILOT_HOME_CHAT_ENABLED;
+    process.env.HOMEPILOT_VOICE_ENABLED = 'false';
+    const { container } = createContainer();
+    const response = new MockResponse();
+
+    await new SystemRoutes().handle(createRequest('/api/v1/system/features', {}), response as unknown as http.ServerResponse, '/api/v1/system/features', 'GET', container);
+
+    expect(response.end).toHaveBeenCalledWith(JSON.stringify({ homeChat: true, voice: false }));
+  });
+
   it('keeps answering when it is on', async () => {
     delete process.env.HOMEPILOT_HOME_CHAT_ENABLED;
     const { container, converse } = createContainer();
@@ -91,7 +134,7 @@ describe('Feature: installer option "Conversar con mi casa"', () => {
     await new SystemRoutes().handle(createRequest('/api/v1/system/features', {}), response as unknown as http.ServerResponse, '/api/v1/system/features', 'GET', container);
 
     expect(response.writeHead).toHaveBeenCalledWith(200, expect.any(Object));
-    expect(response.end).toHaveBeenCalledWith(JSON.stringify({ homeChat: false }));
+    expect(response.end).toHaveBeenCalledWith(JSON.stringify({ homeChat: false, voice: false }));
   });
 
   it('does not reveal the options without a session', async () => {

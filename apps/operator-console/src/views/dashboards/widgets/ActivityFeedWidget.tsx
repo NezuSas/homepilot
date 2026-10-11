@@ -20,20 +20,24 @@ interface SystemEvent {
   description: string;
 }
 
-import { DormantWidgetPlaceholder } from '../components/DormantWidgetPlaceholder';
-
 export function ActivityFeedWidget({ config, isEditing, onConfigure }: { config: DashboardWidgetConfig; isEditing: boolean; onConfigure?: () => void }) {
   const { t } = useTranslation();
   const [events, setEvents] = useState<SystemEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [connected, setConnected] = useState(false);
 
   useEffect(() => {
     return startSequentialPolling(async (signal) => {
       try {
         const res = await fetchDiagnosticResource(`${API}/system/diagnostics/events`, signal);
+        // Roles below operator are refused for good; polling again would only repeat the refusal.
+        if (res.status === 403) return 'stop';
         if (res.ok) {
           const data: unknown = await res.json();
-          if (!signal.aborted && Array.isArray(data)) setEvents(data.slice(0, 10));
+          if (!signal.aborted && Array.isArray(data)) {
+            setEvents(data.slice(0, 10));
+            setConnected(true);
+          }
         }
       } catch {
         // Preserve the last activity feed while the next poll retries.
@@ -72,7 +76,7 @@ export function ActivityFeedWidget({ config, isEditing, onConfigure }: { config:
             {config.appearance.title || t('dashboards.widgets.activity_feed.label')}
           </Heading>
         </div>
-        {!loading && (
+        {connected && (
           <span className="hp-type-label text-muted-foreground/50">{t('shell.status.live')}</span>
         )}
       </div>
@@ -95,7 +99,7 @@ export function ActivityFeedWidget({ config, isEditing, onConfigure }: { config:
           />
         ) : (
           events.map((event, idx) => (
-            <div key={idx} className="flex items-start gap-3 group animate-in fade-in slide-in-from-bottom-1 duration-500" style={{ animationDelay: `${idx * 50}ms` }}>
+            <div key={`${event.occurredAt}|${event.eventType}|${event.description}`} className="flex items-start gap-3 group animate-in fade-in slide-in-from-bottom-1 duration-500" style={{ animationDelay: `${idx * 50}ms` }}>
               <div className="p-1.5 rounded-lg bg-muted/50 border border-border/40 shrink-0 mt-0.5">
                 {getEventIcon(event.category, event.eventType)}
               </div>

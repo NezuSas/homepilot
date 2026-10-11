@@ -103,9 +103,9 @@ function App() {
 
   const { status, user, handleLoginSuccess, handleLogout, clearSession, validateSession } = useSession(onSessionCleared);
   const installedFeatures = useInstalledFeatures(status === 'authenticated');
-  const currentView = resolveVisibleView(requestedView, installedFeatures);
+  const currentView = resolveVisibleView(requestedView, installedFeatures, status !== 'authenticated' || getAppAccessControl(user?.role).canAccessSystem);
   const demoSteps = useMemo(() => getAppDemoSteps(installedFeatures.homeChat), [installedFeatures.homeChat]);
-  // A bookmarked or shared link to a view this installation does not have lands on the home dashboard.
+  // A bookmarked or shared link to a view this installation or this role does not have lands on the home dashboard.
   useEffect(() => {
     if (requestedView !== currentView) navigate('/', { replace: true });
   }, [requestedView, currentView, navigate]);
@@ -344,6 +344,7 @@ function App() {
             tabId={urlTabId}
             setupStatus={setupStatus}
             pendingPrompt={wake.pendingPrompt}
+            voiceEnabled={installedFeatures.voice}
             assistantTurnCoordinator={wake.coordinator}
             onNavigate={navigateTo}
             onOpenOwnDashboardTab={(dashboardId, tabId) => navigate(dashboardTabPath(dashboardId, tabId))}
@@ -372,7 +373,7 @@ function App() {
         onPasswordChanged={handlePasswordChanged}
         onCloseProfileModal={() => setShowProfileModal(false)}
         onProfileSaved={setLocalProfile}
-        homeChatEnabled={installedFeatures.homeChat}
+        voiceEnabled={installedFeatures.voice}
         onWakeCommand={wake.onCommand}
         onWakeInterrupt={wake.onInterrupt}
         onWakeStatusChange={wake.onStatusChange}

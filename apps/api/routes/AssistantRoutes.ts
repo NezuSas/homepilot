@@ -14,7 +14,7 @@ import {
 } from '../../../packages/assistant/application/AssistantSpeechToTextService';
 import { sanitizeAssistantResponse } from '../../../packages/assistant/application/AssistantResponseSanitizer';
 import { SingleHomeInstallationError } from '../../../packages/topology/domain/errors';
-import { isHomeChatEnabled } from '../../../packages/shared/config/getInstallationProfile';
+import { isHomeChatEnabled, isVoiceEnabled } from '../../../packages/shared/config/getInstallationProfile';
 
 /**
  * Assistant routes: /api/v1/assistant/*
@@ -137,6 +137,10 @@ export class AssistantRoutes extends ApiRoutes {
     const isConversationRoute = method === 'POST' && ['/api/v1/assistant/converse', '/api/v1/assistant/tts', '/api/v1/assistant/stt'].includes(pathname);
     if (isConversationRoute && !isHomeChatEnabled()) {
       return this.sendError(res, 403, 'FEATURE_DISABLED', 'Home chat is disabled for this installation'), true;
+    }
+    const isVoiceRoute = method === 'POST' && ['/api/v1/assistant/tts', '/api/v1/assistant/stt'].includes(pathname);
+    if (isVoiceRoute && !isVoiceEnabled()) {
+      return this.sendError(res, 403, 'FEATURE_DISABLED', 'Voice is disabled for this installation'), true;
     }
 
     // POST /api/v1/assistant/converse

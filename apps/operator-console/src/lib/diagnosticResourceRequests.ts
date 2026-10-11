@@ -104,19 +104,21 @@ export function fetchDiagnosticResource(url: string, signal: AbortSignal): Promi
   });
 }
 
+/** `load` may resolve to `'stop'` when polling can never succeed (for example a 403), so it is not retried. */
 export function startSequentialPolling(
-  load: (signal: AbortSignal) => Promise<void>,
+  load: (signal: AbortSignal) => Promise<void | 'stop'>,
   intervalMs: number,
 ): () => void {
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let stopped = false;
   const tick = async () => {
     try {
-      await load(controller.signal);
+      stopped = (await load(controller.signal)) === 'stop';
     } catch {
       // A failed refresh still leaves the next scheduled attempt available.
     } finally {
-      if (!controller.signal.aborted) timer = setTimeout(() => { void tick(); }, intervalMs);
+      if (!controller.signal.aborted && !stopped) timer = setTimeout(() => { void tick(); }, intervalMs);
     }
   };
   void tick();

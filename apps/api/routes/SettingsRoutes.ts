@@ -90,6 +90,7 @@ export class SettingsRoutes extends ApiRoutes {
 
     // POST /api/v1/settings/home-assistant/test (canonical) and legacy test-ha-connection
     if (method === 'POST' && (pathname === '/api/v1/settings/home-assistant/test' || pathname === '/api/v1/settings/test-ha-connection')) {
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         const payload = await this.parseBody<{ baseUrl?: string; accessToken?: string }>(req);
         if (!payload.baseUrl || !payload.accessToken) {

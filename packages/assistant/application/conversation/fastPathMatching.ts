@@ -114,7 +114,8 @@ export function isRoomCoverFastPath(prompt: string): {
 } | null {
   const normalized = prompt.toLowerCase();
   // A percentage asks for a position, which the device resolver handles; this path only opens or closes fully.
-  if (/\s(?:a|al|en|to|at)\s+\d{1,3}\s*(?:%|por\s*ciento|percent)?$/u.test(normalized)) return null;
+  // A bare number only counts at the end of the prompt; with a percent marker it counts anywhere ("al 50% por favor").
+  if (/\s(?:a|al|en|to|at)\s+\d{1,3}\s*(?:%|por\s*ciento|percent|$)/u.test(normalized)) return null;
   const spanishMatch = /^(abre|cierra)\s+(?:la\s+|el\s+|las\s+|los\s+)?(?:cortina(?:s)?|persiana(?:s)?)\s+(?:en\s+|del\s+|de\s+la\s+|de\s+el\s+|de\s+|la\s+|el\s+)?(.+)$/iu.exec(normalized);
   if (spanishMatch) {
     return {

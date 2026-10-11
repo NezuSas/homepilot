@@ -26,8 +26,6 @@ interface SystemSnapshot {
   };
 }
 
-import { DormantWidgetPlaceholder } from '../components/DormantWidgetPlaceholder';
-
 export function SystemStatusWidget({ config, isEditing, onConfigure }: { config: DashboardWidgetConfig; isEditing: boolean; onConfigure?: () => void }) {
   const { t } = useTranslation();
   const [snapshot, setSnapshot] = useState<SystemSnapshot | null>(null);
@@ -37,6 +35,8 @@ export function SystemStatusWidget({ config, isEditing, onConfigure }: { config:
     return startSequentialPolling(async (signal) => {
       try {
         const res = await fetchDiagnosticResource(`${API}/system/diagnostics`, signal);
+        // Roles below operator are refused for good; polling again would only repeat the refusal.
+        if (res.status === 403) return 'stop';
         if (res.ok) {
           const data = await res.json() as SystemSnapshot;
           if (!signal.aborted) setSnapshot(data);
@@ -83,7 +83,7 @@ export function SystemStatusWidget({ config, isEditing, onConfigure }: { config:
             {config.appearance.title || t('dashboards.widgets.system_status.label')}
           </Heading>
         </div>
-        {!loading && (
+        {snapshot && (
            <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse shadow-glow shadow-success/50" />
               <span className="hp-type-label text-muted-foreground/50">{t('dashboards.widgets.system_status.online')}</span>

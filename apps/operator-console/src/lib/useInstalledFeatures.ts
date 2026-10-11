@@ -13,8 +13,10 @@ export function useInstalledFeatures(authenticated: boolean): InstalledFeatures 
     apiFetch(API_ENDPOINTS.system.features)
       .then((response) => (response.ok ? response.json() : null))
       .then((data: unknown) => {
-        const homeChat = (data as { homeChat?: unknown } | null)?.homeChat;
-        if (!cancelled && typeof homeChat === 'boolean') setFeatures({ homeChat });
+        const received = data as { homeChat?: unknown; voice?: unknown } | null;
+        if (cancelled || typeof received?.homeChat !== 'boolean') return;
+        // An older API does not report the voice option; it was always available then.
+        setFeatures({ homeChat: received.homeChat, voice: received.homeChat && received.voice !== false });
       })
       .catch(() => undefined);
     return () => { cancelled = true; };

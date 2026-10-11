@@ -99,6 +99,8 @@ load_installer_capabilities() {
     for value in "$home_chat_enabled" "$voice_enabled" "$camera_enabled" "$mqtt_enabled" "$tpm_enabled"; do
       [[ "$value" == true || "$value" == false ]] || fail 'Capacidad del instalador inválida en .env.'
     done
+    # Voice needs the chat: a hand-edited .env cannot turn voice on without it.
+    [[ "$home_chat_enabled" == true ]] || voice_enabled=false
   fi
   tpm_enabled="$(env_value HOMEPILOT_TPM_ENABLED "$global_installer_v1")"
   [[ "$tpm_enabled" == true || "$tpm_enabled" == false ]] || fail 'Capacidad TPM inválida en .env.'
@@ -393,6 +395,10 @@ select_camera_acceleration_for_deploy() {
 maintenance_build_and_up() {
   local -a compose_options=("$@")
   if [[ "$global_installer_v1" == true ]]; then
+    if [[ "$voice_enabled" != true ]]; then
+      # Turning voice off on an installation that had it must not leave the old speech services running.
+      docker compose "${compose_options[@]}" rm -sf homepilot-stt homepilot-tts >/dev/null
+    fi
     COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios HomePilot' docker compose "${compose_options[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" "${build_services[@]}" \
       && hp_ui_run 'Iniciando servicios HomePilot' docker compose "${compose_options[@]}" up -d --no-build --no-deps "${runtime_services[@]}"
   else

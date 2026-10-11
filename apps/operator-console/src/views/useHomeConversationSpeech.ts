@@ -12,7 +12,7 @@ const notifySpeechActivity = (speaking: boolean) => {
 };
 
 /** Owns synthesized assistant speech playback and the persisted speech toggle. */
-export function useHomeConversationSpeech(assistantTurnCoordinator: AssistantTurnCoordinator) {
+export function useHomeConversationSpeech(assistantTurnCoordinator: AssistantTurnCoordinator, voiceEnabled = true) {
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(readSpeechEnabledPreference);
   const speechEnabledRef = useRef(isSpeechEnabled);
   const speechAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -44,7 +44,7 @@ export function useHomeConversationSpeech(assistantTurnCoordinator: AssistantTur
   };
 
   const speakAssistantResponse = async (text: string, turn?: AssistantTurn) => {
-    if (!speechEnabledRef.current || !text.trim() || (turn && !assistantTurnCoordinator.isCurrent(turn))) return;
+    if (!voiceEnabled || !speechEnabledRef.current || !text.trim() || (turn && !assistantTurnCoordinator.isCurrent(turn))) return;
 
     speechRequestIdRef.current += 1;
     const requestId = speechRequestIdRef.current;

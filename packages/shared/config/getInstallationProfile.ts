@@ -30,6 +30,11 @@ export function isHomeChatEnabled(value = process.env.HOMEPILOT_HOME_CHAT_ENABLE
   return value !== 'false';
 }
 
+/** Local voice (speech-to-text and text-to-speech). It needs the chat, and is on unless the installer turned it off. */
+export function isVoiceEnabled(value = process.env.HOMEPILOT_VOICE_ENABLED): boolean {
+  return isHomeChatEnabled() && value !== 'false';
+}
+
 export function getSetupHttpUrl(value = process.env.HOMEPILOT_HOME_ASSISTANT_SETUP_URL): string | null {
   if (!value) return null;
 

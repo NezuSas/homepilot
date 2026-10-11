@@ -5,6 +5,7 @@ import {
   categoryMatchesDeviceName,
   extractCategoryWord,
   inferCommandFromSegment,
+  isControllableDevice,
   normalizePrompt,
   stripArticlesAndBulkWords,
 } from '../application/multicommand/textRules';
@@ -73,6 +74,25 @@ describe('multicommand targetResolution', () => {
     expect(await resolveTargets('xyz', [device('d1', 'Luz Sala')], [])).toEqual({
       type: 'failure',
       message: 'No pude encontrar qué controlar en: "xyz"',
+    });
+  });
+
+  describe('isControllableDevice', () => {
+    const assigned = (type: string, name: string, lastKnownState: Record<string, unknown> | null = null): Device =>
+      ({ id: name, name, type, status: 'ASSIGNED', homeId: 'h1', roomId: 'r1', lastKnownState }) as unknown as Device;
+
+    it('accepts an assigned light and refuses one still waiting in the Inbox', () => {
+      expect(isControllableDevice(assigned('light', 'Luz sala'), 'turn_off')).toBe(true);
+      expect(isControllableDevice({ ...assigned('light', 'Luz sala'), status: 'PENDING' } as Device, 'turn_off')).toBe(false);
+    });
+
+    it('refuses a name that looks controllable when the device is still in the Inbox', () => {
+      expect(isControllableDevice({ ...assigned('media_player', 'Luz del PC'), status: 'PENDING' } as Device, 'turn_off')).toBe(false);
+    });
+
+    it('refuses a media player whose declared features exclude power control, and accepts one that has it', () => {
+      expect(isControllableDevice(assigned('media_player', 'Luz del PC', { attributes: { supported_features: 4 } }), 'turn_off')).toBe(false);
+      expect(isControllableDevice(assigned('media_player', 'Luz del PC', { attributes: { supported_features: 256 } }), 'turn_off')).toBe(true);
     });
   });
 });

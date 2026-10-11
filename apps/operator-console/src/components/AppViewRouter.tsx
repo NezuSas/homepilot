@@ -23,6 +23,7 @@ interface AppViewRouterProps {
   tabId: string | null;
   setupStatus: SetupStatus | null;
   pendingPrompt: { id: string; text: string; interactionMode: 'voice' } | null;
+  voiceEnabled: boolean;
   assistantTurnCoordinator: AssistantTurnCoordinator;
   onNavigate: (view: View) => void;
   onOpenOwnDashboardTab: (dashboardId: string, tabId: string) => void;
@@ -51,6 +52,6 @@ export function AppViewRouter(props: AppViewRouterProps) {
     {props.currentView === 'system-users' && <UsersView currentUserId={props.user?.id ?? null} />}
     {props.currentView === 'system-home-personalization' && props.user?.role === 'admin' && <HomePersonalizationView />}
     {props.currentView === 'system-modbus' && props.user?.role === 'admin' && <ModbusView />}
-    {props.currentView === 'home-conversation' && <HomeConversationView pendingPrompt={props.pendingPrompt} assistantTurnCoordinator={props.assistantTurnCoordinator} onPendingPromptConsumed={props.onPendingPromptConsumed} />}
+    {props.currentView === 'home-conversation' && <HomeConversationView voiceEnabled={props.voiceEnabled} pendingPrompt={props.pendingPrompt} assistantTurnCoordinator={props.assistantTurnCoordinator} onPendingPromptConsumed={props.onPendingPromptConsumed} />}
   </Suspense></PageFrame>;
 }

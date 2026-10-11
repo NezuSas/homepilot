@@ -1019,6 +1019,10 @@ if [[ "$start" == true ]]; then
   section "Inicio de HomePilot"
   if confirm "Se construiran e iniciaran los servicios HomePilot de este compose. Continuar?"; then
     homepilot_image_prepare_rollback "${camera_compose_args[@]}"
+    if [[ "$global_install" == true && "$voice_enabled" != true ]]; then
+      # Turning voice off on an installation that had it must not leave the old speech services running.
+      docker compose "${camera_compose_args[@]}" rm -sf homepilot-stt homepilot-tts >/dev/null
+    fi
     if [[ "$global_install" == true ]]; then
       if ! { COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios HomePilot' docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" "${build_services[@]}" \
         && hp_ui_run 'Iniciando servicios HomePilot' docker compose "${camera_compose_args[@]}" up --no-build --no-deps -d "${runtime_services[@]}"; }; then

@@ -1,6 +1,6 @@
 import * as http from 'http';
 import { IANAZone } from 'luxon';
-import { isHomeChatEnabled } from '../../../packages/shared/config/getInstallationProfile';
+import { isHomeChatEnabled, isVoiceEnabled } from '../../../packages/shared/config/getInstallationProfile';
 import { BootstrapContainer } from '../../../bootstrap';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
@@ -127,7 +127,7 @@ export class SystemRoutes extends ApiRoutes {
     if (method === 'GET' && pathname === '/api/v1/system/features') {
       const isProtected = await container.guards.authGuard.protect(req, res, true);
       if (!isProtected) return true;
-      this.sendJson(res, { homeChat: isHomeChatEnabled() });
+      this.sendJson(res, { homeChat: isHomeChatEnabled(), voice: isVoiceEnabled() });
       return true;
     }
 

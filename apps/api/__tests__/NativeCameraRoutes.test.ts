@@ -49,7 +49,7 @@ describe('Feature: Native camera configuration', () => {
   }) as unknown as http.ServerResponse;
 
   const container = (allowed = true) => ({
-    guards: { authGuard: { protect: jest.fn().mockResolvedValue(allowed) } },
+    guards: { authGuard: { protect: jest.fn().mockResolvedValue(allowed), requireRole: jest.fn().mockReturnValue(true) } },
     repositories: { homeRepository, deviceRepository },
   }) as unknown as BootstrapContainer;
 
@@ -85,6 +85,25 @@ describe('Feature: Native camera configuration', () => {
 
     expect(res.writeHead).not.toHaveBeenCalled();
     expect(res.end).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['GET', '/api/v1/native-cameras/discover', 'admin'],
+    ['GET', '/api/v1/native-cameras?homeId=home-1', 'operator'],
+    ['POST', '/api/v1/native-cameras', 'admin'],
+    ['PUT', '/api/v1/native-cameras/camera-1', 'admin'],
+    ['DELETE', '/api/v1/native-cameras/camera-1', 'admin'],
+  ])('Scenario: Given a role below the requirement When %s %s is called Then it needs %s and nothing is read or changed', async (method, url, role) => {
+    const res = response();
+    const denied = container();
+    (denied.guards.authGuard.requireRole as jest.Mock).mockReturnValue(false);
+    const request = { url, headers: {} } as HomePilotRequest;
+
+    await routes.handle(request, res, url.split('?')[0], method, denied);
+
+    expect(denied.guards.authGuard.requireRole).toHaveBeenCalledWith(request, res, role);
+    expect(res.end).not.toHaveBeenCalled();
+    expect(homeRepository.findHomeById).not.toHaveBeenCalled();
   });
 
   it('Scenario: Given a native camera with stored credentials When its home cameras are listed Then the password remains masked', async () => {
@@ -151,7 +170,7 @@ describe('Feature: Native camera route error and mutation contracts', () => {
     createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
   };
   const response = () => ({ writeHead: jest.fn().mockReturnThis(), end: jest.fn().mockReturnThis() }) as unknown as http.ServerResponse;
-  const container = () => ({ guards: { authGuard: { protect: jest.fn().mockResolvedValue(true) } } }) as unknown as BootstrapContainer;
+  const container = () => ({ guards: { authGuard: { protect: jest.fn().mockResolvedValue(true), requireRole: jest.fn().mockReturnValue(true) } } }) as unknown as BootstrapContainer;
   const serviceFor = (overrides: Record<string, unknown>) => new NativeCameraRoutes({
     discover: jest.fn().mockResolvedValue([]),
     listByHome: jest.fn().mockReturnValue([]),
@@ -198,7 +217,7 @@ describe('Feature: Native camera route error and mutation contracts', () => {
 });
 describe('Feature: native camera mutation completion contracts', () => {
   const response = () => ({ writeHead: jest.fn().mockReturnThis(), end: jest.fn().mockReturnThis() }) as unknown as http.ServerResponse;
-  const container = () => ({ guards: { authGuard: { protect: jest.fn().mockResolvedValue(true) } } }) as unknown as BootstrapContainer;
+  const container = () => ({ guards: { authGuard: { protect: jest.fn().mockResolvedValue(true), requireRole: jest.fn().mockReturnValue(true) } } }) as unknown as BootstrapContainer;
   const request = (body: unknown = {}) => ({ url: '/api/v1/native-cameras/camera-1', headers: {}, _fastifyParsedBody: JSON.stringify(body) }) as HomePilotRequest;
 
   it('Scenario: Given rejected camera creation input When creating a native camera Then the service validation contract is preserved', async () => {

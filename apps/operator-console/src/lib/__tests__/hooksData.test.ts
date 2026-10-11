@@ -19,7 +19,7 @@ describe('Feature: useInstalledFeatures', () => {
   it('Scenario: Given no session When the hook renders Then every option stays on and nothing is requested', async () => {
     const { result } = renderHook(useInstalledFeatures, false);
     await flushPromises();
-    expect(result.current).toEqual({ homeChat: true });
+    expect(result.current).toEqual({ homeChat: true, voice: true });
     expect(apiFetchMock).not.toHaveBeenCalled();
   });
 
@@ -27,7 +27,21 @@ describe('Feature: useInstalledFeatures', () => {
     apiFetchMock.mockResolvedValue(jsonResponse({ homeChat: false }));
     const { result } = renderHook(useInstalledFeatures, true);
     await flushPromises();
-    expect(result.current).toEqual({ homeChat: false });
+    expect(result.current).toEqual({ homeChat: false, voice: false });
+  });
+
+  it('Scenario: Given a chat without voice When the installation answers Then only the voice turns off', async () => {
+    apiFetchMock.mockResolvedValue(jsonResponse({ homeChat: true, voice: false }));
+    const { result } = renderHook(useInstalledFeatures, true);
+    await flushPromises();
+    expect(result.current).toEqual({ homeChat: true, voice: false });
+  });
+
+  it('Scenario: Given an older API without the voice option When it answers Then voice follows the chat', async () => {
+    apiFetchMock.mockResolvedValue(jsonResponse({ homeChat: true }));
+    const { result } = renderHook(useInstalledFeatures, true);
+    await flushPromises();
+    expect(result.current).toEqual({ homeChat: true, voice: true });
   });
 
   it.each([
@@ -38,7 +52,7 @@ describe('Feature: useInstalledFeatures', () => {
     arrange();
     const { result } = renderHook(useInstalledFeatures, true);
     await flushPromises();
-    expect(result.current).toEqual({ homeChat: true });
+    expect(result.current).toEqual({ homeChat: true, voice: true });
   });
 
   it('Scenario: Given a late answer When the hook unmounts first Then nothing is applied', async () => {
@@ -48,7 +62,7 @@ describe('Feature: useInstalledFeatures', () => {
     unmount();
     resolve(jsonResponse({ homeChat: false }));
     await flushPromises();
-    expect(result.current).toEqual({ homeChat: true });
+    expect(result.current).toEqual({ homeChat: true, voice: true });
   });
 });
 
