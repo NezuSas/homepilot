@@ -1,29 +1,22 @@
 import type { CSSProperties } from 'react';
-import { Activity, BatteryFull, BatteryLow, BatteryMedium, Droplets, Gauge, MemoryStick, Sun, Thermometer, UserRound, Wifi, Wind, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
-import { formatMeasurement } from '../../../lib/formatMeasurement';
 import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
 import { getDashboardIconComponent } from '../components/dashboardIconRegistry';
-import { getDefaultIcon, normalizeSensorScale, type SensorScale, type SectionCardIcon } from './sectionCardCatalog';
+import { getDefaultIcon, normalizeSensorScale, normalizeSensorVisualStyle, type SensorScale, type SensorVisualStyle, type SectionCardIcon } from './sectionCardCatalog';
 import { getSensorGaugeScale, SensorAnalogGauge } from './SensorAnalogGauge';
 import { SensorThermometer } from './SensorThermometer';
 import { SensorLevelGauge } from './SensorLevelGauge';
 import { SensorBatteryGauge } from './SensorBatteryGauge';
-import { normalizeSensorVisualStyle, type SensorVisualStyle } from './sectionCardCatalog';
+import { CategoryIcon } from './SensorCategoryIcon';
+import { SensorPresentationHero } from './SensorPresentationHero';
+import { SensorBinaryInstrument } from './SensorBinaryInstrument';
+import { getCategoryLabel } from './sensorDisplay';
+import { asRecord, getSensorReading, getSensorSeverity, numericValue, resolveSensorVisualStyle } from './sensorReading';
 
-export type SensorCategory = 'battery' | 'temperature' | 'humidity' | 'pressure' | 'memory' | 'load' | 'power' | 'energy' | 'signal' | 'illuminance' | 'air_quality' | 'presence' | 'measurement' | 'status';
-export type SensorPresentation = 'percentage' | 'temperature' | 'binary' | 'categorical' | 'numeric';
-
-interface SensorReading {
-  value: string | null;
-  unit: string | null;
-  category: SensorCategory;
-  percentage: number | null;
-  presentation: SensorPresentation;
-  binaryState: 'on' | 'off' | null;
-  deviceClass: string;
-}
+export type { SensorCategory, SensorPresentation, SensorSeverity } from './sensorReading';
+export { formatSensorValue } from './sensorDisplay';
+export { getSensorReading, getSensorSeverity, resolveSensorVisualStyle };
 
 interface SensorMetricCardProps {
   device?: SnapshotDevice;
@@ -34,247 +27,6 @@ interface SensorMetricCardProps {
   sensorScale?: SensorScale;
   sensorDecimals?: boolean;
   visualStyle?: SensorVisualStyle;
-}
-
-const unavailableStates = new Set(['', 'none', 'null', 'unknown', 'unavailable', 'offline']);
-const binaryOnStates = new Set(['on', 'true', 'encendido', 'connected', 'conectado']);
-const binaryOffStates = new Set(['off', 'false', 'apagado', 'disconnected', 'desconectado']);
-const percentageClasses = new Set(['battery', 'humidity', 'memory', 'cpu', 'gpu', 'processor', 'signal_strength']);
-const temperatureUnits = new Set(['°c', '°f']);
-
-// Only categories with meaningful bounded ranges receive severity thresholds.
-const BOUNDED_PERCENTAGE_CATEGORIES = new Set<SensorCategory>(['battery', 'humidity', 'memory', 'signal']);
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : {};
-}
-
-function firstText(values: unknown[]): string | null {
-  for (const value of values) {
-    if (typeof value === 'string' && value.trim()) return value.trim();
-    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
-    if (typeof value === 'boolean') return String(value);
-  }
-  return null;
-}
-
-function numericValue(value: string | null): number | null {
-  if (!value) return null;
-  if (!/^[+-]?(?:\d+(?:[.,]\d+)?|[.,]\d+)$/.test(value)) return null;
-  const numeric = Number(value.replace(',', '.'));
-  return Number.isFinite(numeric) ? numeric : null;
-}
-
-function numericPercentage(value: string | null): number | null {
-  const numeric = numericValue(value);
-  return numeric === null ? null : Math.min(100, Math.max(0, numeric));
-}
-
-function classifySensor(deviceClass: string, haystack: string, unit: string | null, hasPercentage: boolean): SensorCategory {
-  if (deviceClass === 'battery') return 'battery';
-  if (deviceClass === 'temperature' || (unit && temperatureUnits.has(unit.toLowerCase()))) return 'temperature';
-  if (deviceClass === 'humidity') return 'humidity';
-  if (deviceClass === 'pressure' || ['bar', 'hPa', 'Pa', 'kPa'].includes(unit ?? '')) return 'pressure';
-  if (deviceClass === 'memory') return 'memory';
-  if (deviceClass === 'cpu' || deviceClass === 'gpu' || deviceClass === 'processor') return 'load';
-  if (deviceClass === 'power' || deviceClass === 'voltage') return 'power';
-  if (deviceClass === 'energy') return 'energy';
-  if (deviceClass === 'connectivity' || deviceClass === 'signal_strength') return 'signal';
-  if (haystack.includes('batt') || haystack.includes('bater')) return 'battery';
-  if (haystack.includes('temp') || unit === '°C' || unit === '°F') return 'temperature';
-  if (haystack.includes('humid') || haystack.includes('humed')) return 'humidity';
-  if (haystack.includes('memor') || haystack.includes('ram') || haystack.includes('disk') || haystack.includes('storage') || haystack.includes('almacen')) return 'memory';
-  if (haystack.includes('cpu') || haystack.includes('gpu')) return 'load';
-  if (haystack.includes('energ') || unit === 'kWh' || unit === 'Wh') return 'energy';
-  if (haystack.includes('power') || haystack.includes('potenc') || unit === 'W' || unit === 'kW') return 'power';
-  if (haystack.includes('signal') || haystack.includes('wifi') || haystack.includes('rssi') || haystack.includes('señal')) return 'signal';
-  if (haystack.includes('lux') || haystack.includes('illumin') || haystack.includes('ilumin') || unit === 'lx') return 'illuminance';
-  if (haystack.includes('air quality') || haystack.includes('calidad de aire') || haystack.includes('co2') || unit === 'ppm') return 'air_quality';
-  if (haystack.includes('presen') || haystack.includes('ocupa')) return 'presence';
-  if (hasPercentage) return 'measurement';
-  return 'status';
-}
-
-export function getSensorReading(device?: SnapshotDevice, isPreview = false): SensorReading {
-  if (!device && isPreview) {
-    return { value: '50', unit: '%', category: 'battery', percentage: 50, presentation: 'percentage', binaryState: null, deviceClass: 'battery' };
-  }
-
-  const state = asRecord(device?.lastKnownState);
-  const attributes = asRecord(state.attributes);
-  const rawValue = firstText([
-    state.state,
-    state.value,
-    state.native_value,
-    state.level,
-    state.battery,
-    attributes.state,
-    attributes.value,
-    attributes.native_value,
-    attributes.battery_level,
-  ]);
-  const metadataUnit = firstText([
-    state.unit_of_measurement,
-    state.unit,
-    state.native_unit_of_measurement,
-    attributes.unit_of_measurement,
-    attributes.unit,
-    attributes.native_unit_of_measurement,
-  ]);
-  const valueWithUnit = rawValue?.match(/^([+-]?(?:\d+(?:[.,]\d+)?|[.,]\d+))\s*(%|°[CF]|kWh|Wh|kW|W|V|A|RPM|rpm|lx|ppm|hPa|kPa|Pa|bar)$/i);
-  const value = valueWithUnit ? valueWithUnit[1] : rawValue;
-  const unit = metadataUnit ?? valueWithUnit?.[2] ?? null;
-  const deviceClass = firstText([state.device_class, state.deviceClass, attributes.device_class, attributes.deviceClass])?.toLowerCase() ?? '';
-  const haystack = [
-    device?.name,
-    device?.externalId,
-  ].filter((item): item is string => typeof item === 'string').join(' ').toLocaleLowerCase();
-
-  const percentageCandidate = numericPercentage(value);
-  const category = classifySensor(deviceClass, haystack, unit, percentageCandidate !== null && (unit === '%' || unit === null));
-  const availableValue = value && !unavailableStates.has(value.toLocaleLowerCase()) ? value : null;
-  const binaryValue = availableValue?.toLocaleLowerCase() ?? '';
-  const binaryState = binaryOnStates.has(binaryValue) ? 'on' : binaryOffStates.has(binaryValue) ? 'off' : null;
-  const isPercentage = percentageCandidate !== null && (unit === '%' || (!unit && (percentageClasses.has(deviceClass) || BOUNDED_PERCENTAGE_CATEGORIES.has(category) || category === 'load')));
-  const presentation: SensorPresentation = isPercentage ? 'percentage'
-    : category === 'temperature' && percentageCandidate !== null ? 'temperature'
-      : binaryState ? 'binary'
-        : percentageCandidate !== null ? 'numeric' : 'categorical';
-
-  return {
-    value: availableValue,
-    unit,
-    category,
-    percentage: isPercentage && BOUNDED_PERCENTAGE_CATEGORIES.has(category) ? percentageCandidate : null,
-    presentation,
-    binaryState,
-    deviceClass,
-  };
-}
-
-function BatteryIcon({ percentage }: { percentage: number | null }) {
-  const iconClassName = 'h-full w-full';
-  if (percentage === null || percentage <= 20) return <BatteryLow className={iconClassName} />;
-  if (percentage < 60) return <BatteryMedium className={iconClassName} />;
-  return <BatteryFull className={iconClassName} />;
-}
-
-function CategoryIcon({ category, percentage }: { category: SensorCategory; percentage: number | null }) {
-  const className = 'h-full w-full';
-  switch (category) {
-    case 'battery': return <BatteryIcon percentage={percentage} />;
-    case 'temperature': return <Thermometer className={className} />;
-    case 'humidity': return <Droplets className={className} />;
-    case 'pressure': return <Gauge className={className} />;
-    case 'memory': return <MemoryStick className={className} />;
-    case 'load': return <Gauge className={className} />;
-    case 'power': return <Zap className={className} />;
-    case 'energy': return <Zap className={className} />;
-    case 'signal': return <Wifi className={className} />;
-    case 'illuminance': return <Sun className={className} />;
-    case 'air_quality': return <Wind className={className} />;
-    case 'presence': return <UserRound className={className} />;
-    case 'measurement': return <Gauge className={className} />;
-    default: return <Activity className={className} />;
-  }
-}
-
-export type SensorSeverity = 'normal' | 'low' | 'critical' | 'unavailable' | 'informational';
-
-/** Thresholds are retained from the existing bounded sensor policy. Unbounded
- * values (power, energy, lux, text) do not imply a health judgment. */
-export function getSensorSeverity(reading: SensorReading): SensorSeverity {
-  if (reading.value === null) return 'unavailable';
-  const percentage = reading.percentage;
-  if (reading.category === 'battery' || reading.category === 'signal') {
-    if (percentage === null) return 'informational';
-    return percentage <= 20 ? 'critical' : percentage < 50 ? 'low' : 'normal';
-  }
-  if (reading.category === 'memory') {
-    if (percentage === null) return 'informational';
-    return percentage >= 85 ? 'critical' : percentage >= 65 ? 'low' : 'normal';
-  }
-  if (reading.category === 'humidity') {
-    if (percentage === null) return 'informational';
-    return percentage < 25 || percentage > 70 ? 'low' : 'normal';
-  }
-  return 'informational';
-}
-
-function displayValue(value: string | null, t: (key: string) => string): string {
-  switch (value?.toLowerCase()) {
-    case 'open': return t('dashboard.editor.sections.sensor_open');
-    case 'closed': return t('dashboard.editor.sections.sensor_closed');
-    case 'charging': return t('dashboard.editor.sections.sensor_charging');
-    case 'not charging':
-    case 'not_charging': return t('dashboard.editor.sections.sensor_not_charging');
-    case 'discharging': return t('dashboard.editor.sections.sensor_discharging');
-    default: return value ?? '—';
-  }
-}
-
-function getCategoryLabel(category: SensorCategory, t: (key: string) => string): string {
-  switch (category) {
-    case 'battery': return t('dashboard.editor.sections.sensor_battery');
-    case 'temperature': return t('dashboard.editor.sections.sensor_temperature');
-    case 'humidity': return t('dashboard.editor.sections.sensor_humidity');
-    case 'pressure': return t('dashboard.editor.sections.sensor_pressure');
-    case 'memory': return t('dashboard.editor.sections.sensor_memory');
-    case 'load': return t('dashboard.editor.sections.sensor_load');
-    case 'power': return t('dashboard.editor.sections.sensor_power');
-    case 'energy': return t('dashboard.editor.sections.sensor_energy');
-    case 'signal': return t('dashboard.editor.sections.sensor_signal');
-    case 'illuminance': return t('dashboard.editor.sections.sensor_illuminance');
-    case 'air_quality': return t('dashboard.editor.sections.sensor_air_quality');
-    case 'presence': return t('dashboard.editor.sections.sensor_presence');
-    case 'measurement': return t('dashboard.editor.sections.sensor_measurement');
-    default: return t('dashboard.editor.sections.sensor_status');
-  }
-}
-
-export function formatSensorValue(value: number, decimals = false): string {
-  return formatMeasurement(value, decimals ? 2 : 0);
-}
-
-function SensorPresentationHero({ reading, t, decimals = false }: {
-  reading: SensorReading;
-  t: (key: string) => string;
-  decimals?: boolean;
-}) {
-  const available = reading.value !== null;
-  const isPercentage = available && reading.presentation === 'percentage';
-  const number = numericValue(reading.value);
-  const value = reading.binaryState
-    ? t(`dashboard.editor.sections.sensor_${reading.binaryState}`)
-    : number !== null ? formatSensorValue(number, decimals) : displayValue(reading.value, t);
-  const unit = isPercentage ? '%' : reading.unit;
-  const readingWidth = value.length * 0.62;
-  const readingScale = value.length > 6 ? Math.min(12, 70 / readingWidth) : 12;
-  const isState = available && (reading.presentation === 'binary' || reading.presentation === 'categorical');
-
-  return (
-    <>
-      {isState ? <span aria-hidden="true" className={cn('sensor-state-symbol', reading.binaryState === 'off' && 'sensor-state-symbol-idle')}><CategoryIcon category={reading.category} percentage={reading.percentage} /></span> : null}
-      <span className="sensor-reading-value" style={{ '--sensor-reading-scale': `${readingScale}cqi` } as CSSProperties}>
-        <span className={cn('sensor-reading-number tabular-nums tracking-tight', !available && 'text-muted-foreground', isState && 'sensor-reading-state', available && numericValue(reading.value) !== null && value.length > 6 && 'sensor-reading-plain')}>
-          {value}
-        </span>
-        {available && unit ? <span className="sensor-reading-unit font-medium text-muted-foreground">{unit}</span> : null}
-        {!available && <span className="text-xs text-muted-foreground">{t('dashboard.editor.sections.sensor_unavailable')}</span>}
-      </span>
-    </>
-  );
-}
-
-export function resolveSensorVisualStyle(style: SensorVisualStyle, deviceClass: string, unit: string | null): Exclude<SensorVisualStyle, 'auto'> {
-  if (style !== 'auto') return style;
-  if (deviceClass === 'temperature' || temperatureUnits.has(unit?.toLowerCase() ?? '')) return 'thermometer';
-  if (deviceClass === 'battery') return 'battery';
-  if (['humidity', 'pressure', 'power', 'voltage', 'current'].includes(deviceClass)) return 'gauge';
-  if (['water_level', 'tank_level', 'fuel_level'].includes(deviceClass) || unit === '%') return 'level';
-  return 'gauge';
 }
 
 export function SensorMetricCard({ device, title, isPreview = false, icon, roomName, sensorScale, sensorDecimals = false, visualStyle }: SensorMetricCardProps) {
@@ -309,6 +61,7 @@ export function SensorMetricCard({ device, title, isPreview = false, icon, roomN
   const statusLabel = !hasStatus ? null : reading.category === 'memory' && (severity === 'low' || severity === 'critical')
     ? t(`dashboard.editor.sections.sensor_memory_${severity}`)
     : t(`dashboard.editor.sections.sensor_${severity}`);
+  const heroDecimals = sensorDecimals || device?.integrationSource === 'modbus-tcp';
 
   return (
     <div
@@ -328,13 +81,7 @@ export function SensorMetricCard({ device, title, isPreview = false, icon, roomN
         </div>
       </div>
       <div className={cn('sensor-reading-layout', analog && 'sensor-analog-layout')}>
-        {binarySensor ? <div data-sensor-visualizer="switch" className="sensor-binary-instrument flex min-h-0 flex-1 flex-col items-center justify-center gap-2 py-2">
-          <div role="img" aria-label={reading.binaryState ? t(`dashboard.editor.sections.sensor_${reading.binaryState}`) : t('dashboard.editor.sections.sensor_unavailable')}
-            className={cn('sensor-binary-track flex h-12 w-24 max-w-full items-center rounded-full border p-1', reading.binaryState === 'on' ? 'justify-end border-success/60 bg-success/15 text-success' : reading.binaryState === 'off' ? 'justify-start border-danger/60 bg-danger/15 text-danger' : 'justify-center border-border bg-muted text-muted-foreground')}>
-            <span className="sensor-binary-thumb grid size-9 place-items-center rounded-full bg-current"><span className="text-xs font-bold text-background">{reading.binaryState === 'on' ? 'ON' : reading.binaryState === 'off' ? 'OFF' : '—'}</span></span>
-          </div>
-          <span className={cn('sensor-binary-caption text-caption font-semibold', !reading.binaryState && 'sensor-binary-caption-unavailable')}>{reading.binaryState ? t(`dashboard.editor.sections.sensor_${reading.binaryState}`) : t('dashboard.editor.sections.sensor_unavailable')}</span>
-        </div> : analog ? <div className="sensor-analog-instrument"
+        {binarySensor ? <SensorBinaryInstrument reading={reading} t={t} /> : analog ? <div className="sensor-analog-instrument"
           role={scale && number !== null ? 'meter' : undefined}
           aria-label={scale ? displayTitle : undefined}
           aria-valuemin={number !== null ? scale?.min : undefined} aria-valuemax={number !== null ? scale?.max : undefined}
@@ -342,17 +89,15 @@ export function SensorMetricCard({ device, title, isPreview = false, icon, roomN
           aria-valuetext={scale && number !== null ? `${reading.value}${isPercentage ? '%' : reading.unit ? ` ${reading.unit}` : ''}` : undefined}
         >
           <Visualizer value={number} scale={scale} charging={attributes.is_charging === true || attributes.charging === true || state.charging === true} />
-          <div className="sensor-analog-readout"><SensorPresentationHero reading={reading} t={t} decimals={sensorDecimals || device?.integrationSource === 'modbus-tcp'} /></div>
-        </div> : <SensorPresentationHero reading={reading} t={t} decimals={sensorDecimals || device?.integrationSource === 'modbus-tcp'} />}
+          <div className="sensor-analog-readout"><SensorPresentationHero reading={reading} t={t} decimals={heroDecimals} /></div>
+        </div> : <SensorPresentationHero reading={reading} t={t} decimals={heroDecimals} />}
       </div>
       {hasStatus && <div className="sensor-reading-footer">
         <div className="sensor-reading-status text-muted-foreground">
-          {hasStatus ? (
           <span className="sensor-status-badge">
             <span className={cn('sensor-status-dot', severity === 'critical' ? 'bg-danger' : 'bg-warning')} aria-hidden="true" />
             <span className="min-w-0">{statusLabel}</span>
           </span>
-          ) : null}
         </div>
       </div>}
     </div>

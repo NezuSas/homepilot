@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Camera, Edit2, Trash2 } from 'lucide-react';
+import { Card } from './ui/Card';
+import { Heading } from './ui/Heading';
 import { IconButton } from './ui/IconButton';
 import { StatusPill } from './ui/StatusPill';
 import type { NativeCamera } from '../views/nativeCameras/types';
@@ -12,13 +14,13 @@ interface Props {
 /** Configuration summary, not a live stream. Operations remain in Espacios/Dashboard. */
 export function NativeCameraSettingsCard({ camera, onEdit, onDelete }: Props) {
   const { t } = useTranslation();
-  return <article className="min-w-0 space-y-3 rounded-card border border-border bg-card p-3" aria-label={camera.name}>
+  return <Card variant="flat" as="article" className="space-y-3 p-3" aria-label={camera.name}>
     <div className="flex min-w-0 flex-wrap items-start gap-3">
       <div className="flex size-10 shrink-0 items-center justify-center rounded-control bg-primary/10 text-primary">
         <Camera aria-hidden className="size-5" />
       </div>
       <div className="min-w-0 flex-1">
-        <h3 className="break-words text-body font-semibold">{camera.name}</h3>
+        <Heading variant="card">{camera.name}</Heading>
         <p className="text-caption text-muted-foreground">{t(`native_cameras.source_types.${camera.sourceType || 'onvif-ptz'}`)}</p>
       </div>
       <StatusPill variant={camera.enabled ? 'success' : 'neutral'}>
@@ -38,5 +40,5 @@ export function NativeCameraSettingsCard({ camera, onEdit, onDelete }: Props) {
       <IconButton size="lg" icon={Trash2} label={`${t('common.delete')}: ${camera.name}`} onClick={() => onDelete(camera.deviceId)}
         variant="ghost" className="text-muted-foreground hover:bg-danger/10 hover:text-danger" />
     </div>
-  </article>;
+  </Card>;
 }

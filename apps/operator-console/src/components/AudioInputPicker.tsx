@@ -2,13 +2,15 @@ import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 
 import { Check, ChevronUp, SlidersHorizontal } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/Button';
+import { Card } from './ui/Card';
+import { SurfaceButton } from './ui/SurfaceButton';
 
 export interface AudioInputOption {
   id: string;
   label: string;
 }
 
-interface AudioInputPickerProps {
+interface AudioInputPickerProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange'> {
   devices: AudioInputOption[];
   selectedDeviceId: string;
   label: string;
@@ -33,7 +35,9 @@ export const AudioInputPicker: React.FC<AudioInputPickerProps> = ({
   selectedDeviceId,
   label,
   disabled = false,
-  onChange
+  onChange,
+  className,
+  ...rootProps
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [focusedOptionIndex, setFocusedOptionIndex] = useState<number | null>(null);
@@ -109,7 +113,7 @@ export const AudioInputPicker: React.FC<AudioInputPickerProps> = ({
   }
 
   return (
-    <div ref={containerRef} className="relative block min-w-0 max-w-full shrink-0">
+    <div {...rootProps} ref={containerRef} className={cn('relative block min-w-0 max-w-full shrink-0', className)}>
       <Button
         ref={triggerRef}
         variant="secondary"
@@ -135,19 +139,19 @@ export const AudioInputPicker: React.FC<AudioInputPickerProps> = ({
           setIsOpen(true);
         }}
         className={cn(
-          'h-10 max-w-full w-audio-picker-sm justify-start rounded-xl border-transparent bg-background/55 px-3 shadow-sm hover:border-primary/35 hover:bg-background/80',
+          'max-w-full w-audio-picker-sm justify-start',
           'sm:w-audio-picker-md md:w-audio-picker-lg'
         )}
       >
         <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-primary" />
-        <span className="min-w-0 flex-1 truncate text-left text-micro font-bold uppercase tracking-wider">
+        <span className="min-w-0 flex-1 truncate text-left">
           {selectedLabel}
         </span>
         <ChevronUp className={cn('h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform', isOpen && 'rotate-180')} />
       </Button>
 
       {isOpen && (
-        <div className="absolute bottom-full right-0 z-[80] mb-2 w-popover-responsive max-w-[calc(100vw-1.5rem)] origin-bottom-right overflow-hidden rounded-panel border border-border/70 bg-popover/95 shadow-depth-3 backdrop-blur-xl">
+        <Card variant="elevated" radius="panel" className="absolute bottom-full right-0 z-[80] mb-2 w-popover-responsive max-w-[calc(100vw-1.5rem)] origin-bottom-right">
           <div className="border-b border-border/50 px-3 py-2 text-micro font-bold uppercase tracking-widest text-muted-foreground/80">
             {label}
           </div>
@@ -158,7 +162,7 @@ export const AudioInputPicker: React.FC<AudioInputPickerProps> = ({
               const deviceIndex = devices.findIndex(candidate => candidate.id === device.id);
 
               return (
-                <Button
+                <SurfaceButton
                   key={device.id}
                   ref={element => {
                     if (element) {
@@ -167,8 +171,6 @@ export const AudioInputPicker: React.FC<AudioInputPickerProps> = ({
                       optionRefs.current.delete(device.id);
                     }
                   }}
-                  variant="ghost"
-                  size="sm"
                   role="option"
                   aria-selected={isSelected}
                   title={device.label}
@@ -203,11 +205,11 @@ export const AudioInputPicker: React.FC<AudioInputPickerProps> = ({
                 >
                   <span className="min-w-0 flex-1 break-words text-left leading-snug">{deviceLabel}</span>
                   {isSelected && <Check className="h-3.5 w-3.5 shrink-0" />}
-                </Button>
+                </SurfaceButton>
               );
             })}
           </div>
-        </div>
+        </Card>
       )}
     </div>
   );

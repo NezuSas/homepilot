@@ -1,42 +1,16 @@
 import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core';
 import { useState } from 'react';
-import { createPortal } from 'react-dom';
-import { cn } from '../../lib/utils';
 import type { DashboardWidget, DashboardWidgetConfig } from './types';
-import { useTranslation } from 'react-i18next';
-import {
-  Pencil,
-  MoreVertical,
-  Copy,
-  GripVertical,
-  Trash2
-} from 'lucide-react';
 import { useDeviceSnapshotStore } from '../../stores/useDeviceSnapshotStore';
-import { IconButton } from '../../components/ui/IconButton';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
-import { SearchableSelectField } from '../../components/ui/SearchableSelectField';
-import { Modal } from '../../components/ui/Modal';
-import { ActionMenu } from '../../components/ui/ActionMenu';
-import { getAvailableSectionWidths, getSectionSpan } from './dashboardUtils';
+import { getSectionSpan } from './dashboardUtils';
 import { fitCardsToSectionWidth } from './widgets/cardGridResize';
-import { IconPicker, getDashboardIconComponent } from './components/IconPicker';
-
-// Sub-widgets
-import { DeviceWidget } from './widgets/DeviceWidget';
-import { ActionButtonWidget } from './widgets/ActionButtonWidget';
-import { RoomWidget } from './widgets/RoomWidget';
-import { SceneShortcutWidget } from './widgets/SceneShortcutWidget';
-import { ActivityFeedWidget } from './widgets/ActivityFeedWidget';
-import { AssistantInsightWidget } from './widgets/AssistantInsightWidget';
-import { SystemStatusWidget } from './widgets/SystemStatusWidget';
-import { EnergySnapshotWidget } from './widgets/EnergySnapshotWidget';
-import { ClockWidget } from './widgets/ClockWidget';
 import { getClockGridOptions } from './widgets/clock/clockRegistry';
-import { getCardGridHeight, getCardGridWidth } from './widgets/cardGridResize';
-import { CardGridSizePicker } from './widgets/CardGridSizePicker';
-import { CardPreviewFrame } from './widgets/CardPreviewFrame';
-import { SectionWidget } from './widgets/SectionWidget'; import { DashboardTitleWidget } from './widgets/DashboardTitleWidget';
+import { WidgetContent } from './DashboardWidgetContent';
+import { ClockSizeModal, SectionEditorModal } from './DashboardWidgetModals';
+import { TitleEditControls, WidgetEditToolbar } from './DashboardWidgetControls';
+import { getWidgetAccentStyle, getWidgetContentStyle, getWidgetFrameClass, getWidgetRootStyle } from './dashboardWidgetPresentation';
+
+export { WidgetContent };
 
 interface DashboardWidgetNodeProps {
   widget: DashboardWidget;
@@ -59,63 +33,6 @@ interface DashboardWidgetNodeProps {
   onSelectTab?: (tabId: string) => void;
 }
 
-/** Pure content renderer: no DnD hooks, safe to use inside DragOverlay. */
-export function WidgetContent({ widget, isEditing, isSelected = false, onClick, onConfigChange, titleBadgeTabs, currentTabId, onSelectTab, titleEditorRequest, onTitleEditorOpenChange }: { widget: DashboardWidget; isEditing: boolean; isSelected?: boolean; onClick: () => void; onConfigChange?: (id: string, config: Partial<DashboardWidgetConfig>) => void; titleBadgeTabs?: Array<{ id: string; title: string; icon?: string }>; currentTabId?: string; onSelectTab?: (tabId: string) => void; titleEditorRequest?: number; onTitleEditorOpenChange?: (isOpen: boolean) => void }) {
-  const { t } = useTranslation();
-
-  switch (widget.type) {
-    case 'device_control':
-      return <DeviceWidget config={widget.config} isEditing={isEditing} onConfigure={onClick} />;
-    case 'action_button':
-      return <ActionButtonWidget config={widget.config} isEditing={isEditing} onConfigure={onClick} />;
-    case 'room_overview':
-    case 'room_summary':
-      return <RoomWidget config={widget.config} isEditing={isEditing} onConfigure={onClick} />;
-    case 'scene_shortcut':
-      return <SceneShortcutWidget config={widget.config} isEditing={isEditing} onConfigure={onClick} />;
-    case 'activity_feed':
-      return <ActivityFeedWidget config={widget.config} isEditing={isEditing} onConfigure={onClick} />;
-    case 'assistant_insight':
-      return <AssistantInsightWidget config={widget.config} />;
-    case 'system_status':
-      return <SystemStatusWidget config={widget.config} isEditing={isEditing} onConfigure={onClick} />;
-    case 'energy_snapshot':
-      return <EnergySnapshotWidget config={widget.config} isEditing={isEditing} onConfigure={onClick} />;
-    case 'clock_display':
-      return <ClockWidget config={widget.config} />;
-    case 'dashboard_title':
-      return (
-        <DashboardTitleWidget
-          config={widget.config}
-          isEditing={isEditing}
-          isSelected={isSelected}
-          editRequest={titleEditorRequest}
-          onEditorOpenChange={onTitleEditorOpenChange}
-          onUpdate={(config) => onConfigChange?.(widget.id, config)}
-          tabs={titleBadgeTabs}
-          currentTabId={currentTabId}
-          onSelectTab={onSelectTab}
-        />
-      );
-    case 'section':
-      return (
-        <SectionWidget
-          sectionId={widget.id}
-          config={widget.config}
-          isEditing={isEditing}
-          onUpdate={(patch) => onConfigChange?.(widget.id, patch)}
-        />
-      );
-    default:
-      return (
-        <div className="flex flex-col items-center justify-center h-full p-4 text-center opacity-40 grayscale">
-          <span className="text-micro font-black uppercase tracking-widest">{widget.type}</span>
-          <span className="text-nano mt-1">{t('common.coming_soon')}</span>
-        </div>
-      );
-  }
-}
-
 export function DashboardWidgetNode({
   widget,
   isEditing,
@@ -133,7 +50,6 @@ export function DashboardWidgetNode({
   currentTabId,
   onSelectTab,
 }: DashboardWidgetNodeProps) {
-  const { t } = useTranslation();
   const [isSectionEditorOpen, setIsSectionEditorOpen] = useState(false);
   const [sectionDraftTitle, setSectionDraftTitle] = useState('');
   const [sectionDraftIcon, setSectionDraftIcon] = useState('');
@@ -148,88 +64,55 @@ export function DashboardWidgetNode({
   const isCamera = widget.type === 'device_control' && (boundDevice?.type === 'camera' || boundDevice?.semanticType === 'camera');
   const isDevice = (widget.type === 'device_control' || widget.type === 'action_button') && !isCamera;
   const isSection = widget.type === 'section'; const isTitleWidget = widget.type === 'dashboard_title';
-  const canConfigureWidget = true;
   const [clockEditorOpen, setClockEditorOpen] = useState(false);
   const [clockDraft, setClockDraft] = useState(getClockGridOptions);
   const [clockSectionWidth, setClockSectionWidth] = useState(300);
   const clockGrid = widget.type === 'clock_display' ? getClockGridOptions({ columns: widget.config.layout.w, rows: widget.config.layout.h }) : null;
   const hasClockEditTools = Boolean(clockGrid) && isEditing && !isOverlay;
-  const SectionDraftIcon = sectionDraftIcon ? getDashboardIconComponent(sectionDraftIcon) : null;
   const openTitleEditor = () => {
     setIsTitleEditorOpen(true);
     onClick();
     setTitleEditorRequest((request) => request + 1);
   };
-
+  const openSectionEditor = () => {
+    setSectionDraftTitle(widget.config.appearance?.title ?? '');
+    setSectionDraftIcon(widget.config.appearance?.icon ?? '');
+    setSectionDraftSpan(widget.config.extra?.sectionGridVersion === 2 ? widget.config.layout.span ?? 1 : 1);
+    setIsSectionEditorOpen(true);
+  };
+  const saveSectionEditor = () => {
+    onConfigChange?.(widget.id, {
+      appearance: { ...widget.config.appearance, title: sectionDraftTitle.trim(), icon: sectionDraftIcon.trim() || undefined },
+      layout: { ...widget.config.layout, span: Math.min(sectionDraftSpan, columns) },
+      extra: { ...widget.config.extra, sectionGridVersion: 2, ...(widget.config.extra?.cards ? { cards: fitCardsToSectionWidth(widget.config.extra.cards, getSectionSpan(widget), Math.min(sectionDraftSpan, columns)) } : {}) },
+    });
+    setIsSectionEditorOpen(false);
+  };
 
   const accentColor = widget.config.appearance?.accentColor;
-  const accentStyle = accentColor
-    ? {
-        borderColor: accentColor,
-        backgroundColor: `${accentColor}12`, // 7% opacity tint
-        borderWidth: '2px',
-        borderStyle: 'solid' as const,
-      }
-    : {};
 
   return (
     <div
       onClick={(e) => { e.stopPropagation(); if (!isSection) onClick(); }}
-      style={{ ...accentStyle, containerType: clockGrid && !hasClockEditTools ? 'size' : 'inline-size', ...(clockGrid ? { containerName: hasClockEditTools ? undefined : 'clock-card', borderWidth: 0, width: `calc(${Number(clockGrid.columns) / 12 * 100}% - ${8 - Number(clockGrid.columns) / 12 * 8}px)`, height: hasClockEditTools ? 'auto' : getCardGridHeight(clockGrid.rows), minHeight: 0, ...(hasClockEditTools ? { backgroundColor: 'transparent' } : {}) } : {}) }}
-      className={cn(
-        "homepilot-dashboard-widget relative h-full w-full min-h-0 overflow-visible transition-[transform,box-shadow,background-color,border-color] duration-300 group @container touch-manipulation",
-        hasClockEditTools && "flex flex-col gap-2",
-        // Editing restores the section boundary without changing its inner card grid.
-        isSection
-          ? (isEditing
-            ? "homepilot-dashboard-section rounded-section outline outline-2 outline-dashed outline-offset-[-2px] outline-border/70 hover:outline-primary/70"
-            : "homepilot-dashboard-section rounded-2xl border-transparent")
-          : isCamera
-            ? "rounded-2xl border-transparent bg-transparent shadow-none"
-            : "rounded-section sm:rounded-panel",
-
-        // --- Variant Application (non-section, non-camera) ---
-        !isSection && !isCamera && !accentColor && isDevice && "bg-card border border-border/60 shadow-xl",
-        !isSection && !isCamera && !accentColor && !isDevice && widget.config.appearance?.variant === 'glass' && "bg-background/40 backdrop-blur-3xl border border-white/5 shadow-xl",
-        !isSection && !isCamera && !accentColor && !isDevice && (widget.config.appearance?.variant === 'solid' || !widget.config.appearance?.variant) && "bg-card border border-border/60",
-        !isSection && !isCamera && !accentColor && widget.config.appearance?.variant === 'radiant' && "bg-gradient-to-br from-card to-primary/5 border border-primary/20 shadow-lg shadow-primary/5",
-        !isSection && !isCamera && !accentColor && widget.config.appearance?.variant === 'outline' && "bg-transparent border-2 border-border/60",
-        !isSection && !isCamera && !accentColor && widget.config.appearance?.variant === 'flat' && "bg-muted/30 border-transparent",
-        // ---------------------------
-
-        isEditing && !isSection && "ring-2 ring-transparent hover:ring-primary/20",
-        isEditing && isSelected && !isSection && "ring-primary shadow-xl shadow-primary/10 scale-[1.005]",
-        isEditing && isSection && isSelected && "outline-primary bg-primary/5 shadow-primary-ring",
-        !isEditing && !isSection && "hover:shadow-lg hover:border-primary/20"
-      )}
+      style={getWidgetRootStyle(getWidgetAccentStyle(accentColor), clockGrid, hasClockEditTools)}
+      className={getWidgetFrameClass({ isSection, isCamera, isDevice, isEditing, isSelected, hasClockEditTools, accentColor, variant: widget.config.appearance?.variant })}
     >
       {/* Content */}
-      {widget.type === 'clock_display' && <Modal isOpen={clockEditorOpen} onClose={() => setClockEditorOpen(false)} title={t('common.edit')}
-        className="max-w-5xl" headerAlign="start" footerClassName="justify-end gap-2 p-5 sm:p-6"
-        footer={<>
-          <Button variant="secondary" onClick={() => setClockEditorOpen(false)}>{t('common.cancel')}</Button>
-          <Button onClick={() => {
-            const size = getClockGridOptions(clockDraft);
+      {widget.type === 'clock_display' && (
+        <ClockSizeModal
+          isOpen={clockEditorOpen}
+          config={widget.config}
+          draft={clockDraft}
+          sectionWidth={clockSectionWidth}
+          onDraftChange={setClockDraft}
+          onSave={(size) => {
             onConfigChange?.(widget.id, { layout: { ...widget.config.layout, w: Number(size.columns), h: Number(size.rows) } });
             setClockEditorOpen(false);
-          }}>{t('common.save')}</Button>
-        </>}>
-        <div className="grid min-w-0 gap-6 md:grid-cols-2">
-          <CardGridSizePicker value={clockDraft} allowAutomatic={false} onChange={next => setClockDraft(getClockGridOptions(next))} />
-          <div className="homepilot-dashboard-screen min-w-0">
-            <h3 className="mb-3 text-body-compact font-semibold">{t('dashboards.edit_session.preview')}</h3>
-            <CardPreviewFrame fitCard sectionWidth={clockSectionWidth} label={t('dashboards.edit_session.preview')}>
-              <div className="rounded-section sm:rounded-panel" style={{ containerType: 'size', containerName: 'clock-card', width: getCardGridWidth(clockSectionWidth, clockDraft.columns), height: getCardGridHeight(clockDraft.rows) }}>
-                <ClockWidget config={widget.config} />
-              </div>
-            </CardPreviewFrame>
-          </div>
-        </div>
-      </Modal>}
-      <div className="h-full w-full min-h-0" style={clockGrid ? {
-        borderRadius: 'inherit',
-        ...(hasClockEditTools ? { containerType: 'size', containerName: 'clock-card', height: getCardGridHeight(clockGrid.rows), flexShrink: 0 } : {}),
-      } : undefined}>
+          }}
+          onClose={() => setClockEditorOpen(false)}
+        />
+      )}
+      <div className="h-full w-full min-h-0" style={getWidgetContentStyle(clockGrid, hasClockEditTools)}>
         <WidgetContent
           widget={widget}
           isEditing={isEditing}
@@ -244,210 +127,54 @@ export function DashboardWidgetNode({
         />
       </div>
       {isSection ? (
-        <Modal
+        <SectionEditorModal
           isOpen={isSectionEditorOpen}
+          columns={columns}
+          draftTitle={sectionDraftTitle}
+          draftIcon={sectionDraftIcon}
+          draftSpan={sectionDraftSpan}
+          onTitleChange={setSectionDraftTitle}
+          onIconChange={setSectionDraftIcon}
+          onSpanChange={setSectionDraftSpan}
+          onSave={saveSectionEditor}
           onClose={() => setIsSectionEditorOpen(false)}
-          title={t('dashboard.editor.sections.edit_section_title')}
-          headerAlign="start"
-          className="max-w-md"
-          footer={(
-            <div className="flex w-full justify-end gap-3 p-5 sm:p-6">
-              <Button type="button" variant="outline" size="md" onClick={() => setIsSectionEditorOpen(false)}>
-                {t('dashboard.editor.sections.cancel')}
-              </Button>
-              <Button
-                type="button"
-                variant="primary"
-                size="md"
-                onClick={() => {
-                  onConfigChange?.(widget.id, {
-                    appearance: { ...widget.config.appearance, title: sectionDraftTitle.trim(), icon: sectionDraftIcon.trim() || undefined },
-                    layout: { ...widget.config.layout, span: Math.min(sectionDraftSpan, columns) },
-                    extra: { ...widget.config.extra, sectionGridVersion: 2, ...(widget.config.extra?.cards ? { cards: fitCardsToSectionWidth(widget.config.extra.cards, getSectionSpan(widget), Math.min(sectionDraftSpan, columns)) } : {}) },
-                  });
-                  setIsSectionEditorOpen(false);
-                }}
-              >
-                {t('dashboard.editor.sections.save')}
-              </Button>
-            </div>
-          )}
-        >
-          <div className="space-y-5">
-            <SearchableSelectField label={t('dashboards.edit_session.section_width')} value={String(Math.min(sectionDraftSpan, columns))} options={getAvailableSectionWidths(columns).map(value => ({ value: String(value), label: String(value) }))} onChange={value => setSectionDraftSpan(Number(value))} />
-            <Input
-              autoFocus
-              label={t('dashboard.editor.sections.section_title')}
-              value={sectionDraftTitle}
-              placeholder={t('dashboard.editor.sections.section_title_placeholder')}
-              onChange={(event) => setSectionDraftTitle(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Escape') setIsSectionEditorOpen(false);
-              }}
-            />
-            <div className="space-y-2">
-              <IconPicker value={sectionDraftIcon} onChange={setSectionDraftIcon} />
-              {sectionDraftIcon && (
-                <Button type="button" variant="ghost" size="sm" onClick={() => setSectionDraftIcon('')}>
-                  {t('dashboard.editor.sections.remove_section_icon')}
-                </Button>
-              )}
-            </div>
-            <div role="group" aria-label={t('dashboard.editor.sections.section_preview')} className="rounded-xl border border-border/50 bg-background/40 p-3">
-              <div className="flex items-center gap-2 text-dashboard-section-title-fluid font-black tracking-tight text-foreground">
-                {SectionDraftIcon && <SectionDraftIcon className="h-5 w-5 shrink-0 text-primary" />}
-                <span className="min-w-0 truncate">{sectionDraftTitle.trim() || t('dashboard.editor.sections.new_section')}</span>
-              </div>
-            </div>
-          </div>
-        </Modal>
+        />
       ) : null}
       {isEditing && !isOverlay && isTitleWidget && !isTitleEditorOpen && (
-        <>
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 z-20 rounded-section bg-background/45 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
-          />
-          <div className="pointer-events-none absolute inset-0 z-30 grid place-items-center opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
-            <IconButton
-              icon={Pencil}
-              label={t('common.edit')}
-              onPointerDown={(event) => event.stopPropagation()}
-              onClick={(event) => {
-                event.stopPropagation();
-                openTitleEditor();
-              }}
-              variant="default"
-              size="md"
-              className="pointer-events-auto rounded-full bg-background/95 shadow-lg backdrop-blur-md hover:text-primary"
-            />
-          </div>
-          <div className="pointer-events-none absolute right-2 top-2 z-30 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
-            <IconButton
-              icon={MoreVertical}
-              label={t('dashboard.editor.sections.card_actions')}
-              aria-haspopup="menu"
-              aria-expanded={isTitleMenuOpen}
-              onPointerDown={(event) => event.stopPropagation()}
-              onClick={(event) => {
-                event.stopPropagation();
-                const rect = event.currentTarget.getBoundingClientRect();
-                setTitleMenuPosition({ top: rect.bottom + 8, right: Math.max(8, window.innerWidth - rect.right) });
-                setIsTitleMenuOpen((isOpen) => !isOpen);
-              }}
-              variant="default"
-              size="md"
-              className="rounded-full bg-background/95 shadow-lg backdrop-blur-md hover:text-primary"
-            />
-          </div>
-          {isTitleMenuOpen && titleMenuPosition && createPortal(
-            <>
-              <div className="fixed inset-0 z-40" aria-hidden="true" onPointerDown={() => setIsTitleMenuOpen(false)} />
-              <div
-                role="menu"
-                aria-label={t('dashboard.editor.sections.card_actions')}
-                style={titleMenuPosition}
-                onPointerDown={(event) => event.stopPropagation()}
-                className="fixed z-50 min-w-36 rounded-panel border border-border/70 bg-card p-1.5 shadow-depth-3"
-              >
-                <Button
-                  role="menuitem"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setIsTitleMenuOpen(false);
-                    openTitleEditor();
-                  }}
-                  className="w-full justify-start font-semibold"
-                >
-                  <Pencil className="h-4 w-4" aria-hidden="true" />
-                  {t('common.edit')}
-                </Button>
-                <div role="separator" className="my-1 border-t border-border/65" />
-                <Button
-                  role="menuitem"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setIsTitleMenuOpen(false);
-                    onDelete?.(widget.id);
-                  }}
-                  className="w-full justify-start font-semibold text-danger hover:bg-danger/10 hover:text-danger"
-                >
-                  <Trash2 className="h-4 w-4" aria-hidden="true" />
-                  {t('common.delete')}
-                </Button>
-              </div>
-            </>,
-            document.body,
-          )}
-        </>
+        <TitleEditControls
+          isMenuOpen={isTitleMenuOpen}
+          menuPosition={titleMenuPosition}
+          onEdit={openTitleEditor}
+          onToggleMenu={(event) => {
+            const rect = event.currentTarget.getBoundingClientRect();
+            setTitleMenuPosition({ top: rect.bottom + 8, right: Math.max(8, window.innerWidth - rect.right) });
+            setIsTitleMenuOpen((isOpen) => !isOpen);
+          }}
+          onCloseMenu={() => setIsTitleMenuOpen(false)}
+          onDelete={() => onDelete?.(widget.id)}
+        />
       )}
       {/* Edit Mode Controls */}
       {isEditing && !isOverlay && !isTitleWidget && (
-        <>
-          {/* A selected section exposes only its direct manipulation tools. */}
-          <div data-clock-edit-tools={hasClockEditTools ? '' : undefined} className={cn("pointer-events-auto z-30 flex items-center", hasClockEditTools ? "relative order-first justify-end" : "absolute", !hasClockEditTools && (isSection ? "-top-5 right-3" : "right-2 top-2"))}>
-            <div className={cn("flex items-center gap-1 rounded-xl border border-border/50 bg-background/95 p-1 shadow-lg backdrop-blur-md", hasClockEditTools && "max-w-full flex-wrap justify-end")}>
-              {isSection && <ActionMenu compact label={t('dashboards.edit_session.section_actions')} items={[
-                { label: t('common.edit'), icon: Pencil, onSelect: () => {
-                    setSectionDraftTitle(widget.config.appearance?.title ?? ''); setSectionDraftIcon(widget.config.appearance?.icon ?? '');
-                    setSectionDraftSpan(widget.config.extra?.sectionGridVersion === 2 ? widget.config.layout.span ?? 1 : 1); setIsSectionEditorOpen(true);
-                } },
-                { label: t('dashboards.edit_session.duplicate'), icon: Copy, onSelect: () => onDuplicate?.(widget.id), disabled: !onDuplicate },
-                { label: t('common.delete'), icon: Trash2, onSelect: () => onDelete?.(widget.id), disabled: !onDelete, danger: true },
-              ]} />}
-              {/* The grip reorders the section without capturing its card controls. */}
-              {!isTitleWidget && !isSection && canDrag && (
-                <IconButton
-                  icon={GripVertical}
-                  label={t('common.reorder')}
-                  variant="ghost"
-                  size="sm"
-                  {...dragHandleAttributes}
-                  {...dragHandleListeners}
-                  className="h-9 w-7 touch-none cursor-grab text-muted-foreground/50 active:cursor-grabbing hover:text-primary"
-                />
-              )}
-              {!isTitleWidget && !isSection && canDrag && (canConfigureWidget || Boolean(onDelete)) && <div className="mx-0.5 h-4 w-px bg-border/40" />}
-              {canConfigureWidget && !isSection && (
-                <IconButton
-                  icon={Pencil}
-                  label={isSection ? t('dashboard.editor.sections.edit_section_title') : t('common.configure')}
-                  variant="ghost"
-                  size="sm"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    if (isSection) {
-                      setSectionDraftTitle(widget.config.appearance?.title ?? '');
-                      setSectionDraftIcon(widget.config.appearance?.icon ?? '');
-                      setSectionDraftSpan(widget.config.extra?.sectionGridVersion === 2 ? widget.config.layout.span ?? 1 : 1);
-                      setIsSectionEditorOpen(true);
-                    } else if (clockGrid) {
-                      setClockDraft(clockGrid);
-                      setClockSectionWidth(event.currentTarget.closest('.homepilot-dashboard-widget')?.parentElement?.clientWidth ?? 300);
-                      setClockEditorOpen(true);
-                    } else {
-                      onClick();
-                    }
-                  }}
-                  className="hover:bg-primary/10 hover:text-primary"
-                />
-              )}
-              {canConfigureWidget && !isTitleWidget && !isSection && onDelete && <div className="mx-0.5 h-4 w-px bg-border/40" />}
-              {!isTitleWidget && !isSection && onDelete && (
-                <IconButton
-                  icon={Trash2}
-                  label={t('common.delete')}
-                  variant="ghost"
-                  size="sm"
-                  onClick={(event) => { event.stopPropagation(); onDelete(widget.id); }}
-                  className="text-danger hover:bg-danger/10 hover:text-danger"
-                />
-              )}
-            </div>
-          </div>
-        </>
+        <WidgetEditToolbar
+          isSection={isSection}
+          hasClockEditTools={hasClockEditTools}
+          canDrag={canDrag}
+          dragHandleAttributes={dragHandleAttributes}
+          dragHandleListeners={dragHandleListeners}
+          onEditSection={openSectionEditor}
+          onConfigure={(event) => {
+            if (clockGrid) {
+              setClockDraft(clockGrid);
+              setClockSectionWidth(event.currentTarget.closest('.homepilot-dashboard-widget')?.parentElement?.clientWidth ?? 300);
+              setClockEditorOpen(true);
+            } else {
+              onClick();
+            }
+          }}
+          onDuplicate={onDuplicate ? () => onDuplicate(widget.id) : undefined}
+          onDelete={onDelete ? () => onDelete(widget.id) : undefined}
+        />
       )}
     </div>
   );

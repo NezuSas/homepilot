@@ -1,8 +1,9 @@
+import type { HTMLAttributes } from 'react';
 import { cn } from '../../lib/utils';
 
 export type DashboardCardSkeletonVariant = 'control' | 'sensor' | 'camera' | 'media' | 'climate' | 'energy' | 'display' | 'generic';
 
-interface DashboardCardSkeletonProps {
+interface DashboardCardSkeletonProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
   variant: DashboardCardSkeletonVariant;
   className?: string;
   mediaOnly?: boolean;
@@ -14,9 +15,10 @@ export function DashboardSkeletonBar({ className }: { className: string }) {
 }
 
 /** Presentation only: the outer card/grid cell owns its dimensions and interactions. */
-export function DashboardCardSkeleton({ variant, className, mediaOnly = false, visible = true }: DashboardCardSkeletonProps) {
+export function DashboardCardSkeleton({ variant, className, mediaOnly = false, visible = true, ...rootProps }: DashboardCardSkeletonProps) {
   return (
     <div
+      {...rootProps}
       data-dashboard-skeleton={visible ? variant : undefined}
       aria-hidden="true"
       style={variant === 'sensor' ? { containerName: 'sensor-card' } : undefined}

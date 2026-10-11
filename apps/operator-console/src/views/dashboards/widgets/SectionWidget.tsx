@@ -1,34 +1,27 @@
-import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import { DndContext, KeyboardSensor, MouseSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
-import { SectionCardDragContext, sectionCardDragId, resolvePlacedCardRows } from '../sectionCardDrag';
-import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { EditableInformationCard, InformationCard } from './InformationCard';
+import { SectionCardDragContext, sectionCardDragId } from '../sectionCardDrag';
+import { SortableContext, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { SectionAddCardButton, SectionBadgeRow, SectionCardGrid, SectionHeading } from './SectionChrome';
 import ConfirmModal from '../../../components/ConfirmModal';
-import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { getClockGridOptions } from './clock/clockRegistry';
 import { cn } from '../../../lib/utils';
-import { API_BASE_URL } from '../../../config';
-import { fetchDiagnosticResource } from '../../../lib/diagnosticResourceRequests';
-import { apiFetch } from '../../../lib/apiClient';
 import { useDeviceSnapshotStore } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig } from '../types';
-import { normalizeSensorScale, type SensorScale } from './sectionCardCatalog';
-import { cardKinds, createId, getCatalogCategory, getCatalogDescriptionKey, getCatalogLabelKey, getDefaultIcon, getDefaultSpan, getEffectiveCardSpan, getRecommendedSectionHeight, getWidgetType, isClockKind, normalizeCards, normalizeKind, normalizeMediaVariant, type AssignableAutomation, type AssignableDisplayAction, type AssignableScene, type CardDraft, type MediaVariant, type NormalizedSectionCardItem, type NormalizedSectionCardKind, type SectionCardCategory, type SectionCardIcon, type SectionCardKind, type SectionCardSpan } from './sectionCardCatalog';
-import { getAssignableDevicesForSectionCard, isDeviceActive } from '../dashboardUtils';
-import { Button } from '../../../components/ui/Button';
+import { getCatalogDescriptionKey, getCatalogLabelKey, getRecommendedSectionHeight, normalizeCards, normalizeKind, normalizeSensorScale, type CardDraft, type NormalizedSectionCardItem, type SectionCardCategory, type SectionCardKind } from './sectionCardCatalog';
 import { useMasonryRowSpans } from './useMasonryRowSpans';
-import { getAssignableRooms, isAutomationEntityId, normalizeAssignableAutomation, normalizeAssignableDisplayAction, normalizeAssignableScene, stripAutomationEntityPrefix, toDeviceActionEntityId } from './sectionCardAssignments';
-import { SectionCardContent } from './SectionCardContent';
+import { getAssignableRooms } from './sectionCardAssignments';
+import { buildSectionCatalogItems, reorderSectionCards, resolveAssignableDevices, resolveSectionPlacedRows, resolveSelectedDraftEntities } from './sectionWidgetModel';
 import { SectionCardItem } from './SectionCardItem';
 import { SectionCardCatalogModal } from './SectionCardCatalogModal';
 import { SectionCardEditorModal } from './SectionCardEditorModal';
 import { useSectionCardActions } from './useSectionCardActions';
-import { isMomentaryPlcCommand } from '../../../lib/plcUi';
 import { getDashboardIconComponent } from '../components/dashboardIconRegistry';
 import { isDeviceOperational } from '../../../lib/deviceOperationalEligibility';
-import type { CardGridOptions } from '../types';
-import { getCardFrameClass, getCardGridHeight, getCardGridWidth, getCardPresentationStyle } from './cardGridResize';
+import { renderSectionCatalogPreview, type SectionCatalogPreviewArgs } from './SectionCatalogPreview';
+import { applyDraftToCard, createCardFromCatalogItem, createDraftFromCard, createDraftFromNewCard, filterCatalogItems, getBoundRoutineIcon, type SectionCatalogItem } from './sectionCardEditing';
+import { useAssignableSources } from './useAssignableSources';
+import { useSectionGridWidth } from './useSectionGridWidth';
 
 interface SectionWidgetProps {
   sectionId?: string;
@@ -37,38 +30,14 @@ interface SectionWidgetProps {
   onUpdate?: (config: Partial<DashboardWidgetConfig>) => void;
 }
 
-function getBoundRoutineIcon(entityId: string | undefined, scenes: AssignableScene[], automations: AssignableAutomation[]): string | undefined {
-  if (!entityId) return undefined;
-  if (isAutomationEntityId(entityId)) {
-    const automation = automations.find((item) => item.id === stripAutomationEntityPrefix(entityId));
-    return automation ? automation.icon ?? 'mdi:robot' : undefined;
-  }
-  const scene = scenes.find((item) => item.id === entityId);
-  return scene ? scene.icon ?? 'mdi:auto-fix' : undefined;
-}
-
 export function SectionWidget({ config, isEditing, onUpdate, sectionId }: SectionWidgetProps) {
   const badgeRow = config.extra?.badgeRow === true;
-  const sectionGridRef = useRef<HTMLDivElement>(null);
-  const [sectionGridWidth, setSectionGridWidth] = useState(0);
-  useEffect(() => {
-    const grid = sectionGridRef.current;
-    if (!grid) return;
-    const style = getComputedStyle(grid);
-    setSectionGridWidth(grid.getBoundingClientRect().width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight));
-    if (typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(([entry]) => {
-      if (entry) setSectionGridWidth(entry.contentRect.width);
-    });
-    observer.observe(grid);
-    return () => observer.disconnect();
-  }, []);
+  const { sectionGridRef, sectionGridWidth } = useSectionGridWidth();
   const { t } = useTranslation();
   const dragIdentities = useContext(SectionCardDragContext);
   const sharedDrag = Boolean(dragIdentities) && Boolean(sectionId);
 
   const catalogLabel = (kind: SectionCardKind) => t(getCatalogLabelKey(kind));
-
   const catalogDescription = (kind: SectionCardKind) => t(getCatalogDescriptionKey(kind));
 
   const devices = useDeviceSnapshotStore((state) => state.devices);
@@ -88,34 +57,14 @@ export function SectionWidget({ config, isEditing, onUpdate, sectionId }: Sectio
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
   const [cardDraft, setCardDraft] = useState<CardDraft>({ title: '', kind: 'device', entityId: '', span: 'small', icon: 'lightbulb', mediaVariant: 'premium' });
-  const [scenes, setScenes] = useState<AssignableScene[]>([]);
-  const [automations, setAutomations] = useState<AssignableAutomation[]>([]);
-  const [displayActions, setDisplayActions] = useState<AssignableDisplayAction[]>([]);
   const { processingCardId, actionFeedback, handleCardAction, handleMediaCardAction, executeSectionDeviceCommand } =
     useSectionCardActions({ devices, isEditing, upsertDevice });
 
   const assignableDevices = useMemo(() => {
     const available = devices.filter(device => isDeviceOperational(device, Object.values(roomsByHome).flat()));
-    const kind = normalizeKind(cardDraft.kind);
-    if (kind !== 'light' && kind !== 'action') return getAssignableDevicesForSectionCard(kind, available);
-    const targets = new Map(
-      [...getAssignableDevicesForSectionCard('light', available), ...getAssignableDevicesForSectionCard('action', available)]
-        .map((device) => [device.id, device] as const),
-    );
-    return [...targets.values()].sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }));
+    return resolveAssignableDevices(cardDraft.kind, available);
   }, [cardDraft.kind, devices, roomsByHome]);
   const assignableRooms = useMemo(() => getAssignableRooms(roomsByHome), [roomsByHome]);
-  const selectedDevice = cardDraft.entityId ? devices.find((device) => device.id === cardDraft.entityId) : undefined;
-  const selectedScene = cardDraft.entityId && !isAutomationEntityId(cardDraft.entityId)
-    ? scenes.find((scene) => scene.id === cardDraft.entityId)
-    : undefined;
-  const selectedAutomation = cardDraft.entityId && isAutomationEntityId(cardDraft.entityId)
-    ? automations.find((automation) => automation.id === stripAutomationEntityPrefix(cardDraft.entityId))
-    : undefined;
-  const selectedDisplayAction = displayActions.find((action) =>
-    toDeviceActionEntityId(action.deviceId, action.actionKey) === cardDraft.entityId);
-  const selectedRoom = cardDraft.entityId ? assignableRooms.find((room) => room.id === cardDraft.entityId) : undefined;
-
 
   const rawTitle = config.appearance?.title?.trim();
   const title = rawTitle || t('dashboard.editor.sections.new_section');
@@ -126,99 +75,22 @@ export function SectionWidget({ config, isEditing, onUpdate, sectionId }: Sectio
   const SectionIcon = sectionIcon ? getDashboardIconComponent(sectionIcon) : null;
   const editingCard = editingCardId ? cards.find((card) => card.id === editingCardId) : undefined;
 
-  useEffect(() => {
-    if (badgeRow) return;
-    if (!hasRoutineAction && !isCatalogOpen && (!editingCardId || (normalizeKind(cardDraft.kind) !== 'scene' && normalizeKind(cardDraft.kind) !== 'action' && normalizeKind(cardDraft.kind) !== 'light'))) return;
-
-    const controller = new AbortController();
-    void fetchDiagnosticResource(`${API_BASE_URL}/api/v1/scenes`, controller.signal)
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`SCENES_${response.status}`);
-        const payload: unknown = await response.json();
-        if (!Array.isArray(payload)) return [];
-        return payload
-          .map(normalizeAssignableScene)
-          .filter((scene): scene is AssignableScene => Boolean(scene))
-          .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }));
-      })
-      .then((nextScenes) => {
-        if (!controller.signal.aborted) setScenes(nextScenes);
-      })
-      .catch((error: unknown) => {
-        if (!controller.signal.aborted) {
-          console.error('[SectionWidget] Failed to load scenes:', error);
-          setScenes([]);
-        }
-      });
-
-    return () => {
-      controller.abort();
-    };
-  }, [cardDraft.kind, editingCardId, hasRoutineAction, isCatalogOpen, badgeRow]);
-
-  useEffect(() => {
-    if (badgeRow) return;
-    if (!editingCardId || (normalizeKind(cardDraft.kind) !== 'action' && normalizeKind(cardDraft.kind) !== 'light')) return;
-    const controller = new AbortController();
-    void apiFetch(`${API_BASE_URL}/api/v1/dashboard-action-targets`, { signal: controller.signal })
-      .then(async (response) => {
-        if (!response.ok) throw new Error('DASHBOARD_ACTION_TARGETS_UNAVAILABLE');
-        const payload: unknown = await response.json();
-        return Array.isArray(payload)
-          ? payload.map(normalizeAssignableDisplayAction).filter((action): action is AssignableDisplayAction => action !== null)
-          : [];
-      }).then((actions) => { if (!controller.signal.aborted) setDisplayActions(actions); })
-      .catch(() => { if (!controller.signal.aborted) setDisplayActions([]); });
-    return () => controller.abort();
-  }, [cardDraft.kind, editingCardId, badgeRow]);
-
-  useEffect(() => {
-    if (!hasRoutineAction && !isCatalogOpen && (!editingCardId || (normalizeKind(cardDraft.kind) !== 'scene' && normalizeKind(cardDraft.kind) !== 'action' && normalizeKind(cardDraft.kind) !== 'light'))) return;
-
-    const controller = new AbortController();
-    void fetchDiagnosticResource(`${API_BASE_URL}/api/v1/automations`, controller.signal)
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`AUTOMATIONS_${response.status}`);
-        const payload: unknown = await response.json();
-        if (!Array.isArray(payload)) return [];
-        return payload
-          .map(normalizeAssignableAutomation)
-          .filter((automation): automation is AssignableAutomation => Boolean(automation))
-          .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }));
-      })
-      .then((nextAutomations) => {
-        if (!controller.signal.aborted) setAutomations(nextAutomations);
-      })
-      .catch((error: unknown) => {
-        if (!controller.signal.aborted) {
-          console.error('[SectionWidget] Failed to load automations:', error);
-          setAutomations([]);
-        }
-      });
-
-    return () => {
-      controller.abort();
-    };
-  }, [cardDraft.kind, editingCardId, hasRoutineAction, isCatalogOpen]);
-
-  const catalogItems = (badgeRow ? ['info_time', 'info_weather', 'info_sensor'] as const : cardKinds.filter(kind => !kind.startsWith('info_'))).map((kind) => ({
-    kind,
-    title: badgeRow ? t(`dashboard.editor.sections.${kind}`) : catalogLabel(kind),
-    description: catalogDescription(kind),
-    widgetType: getWidgetType(kind),
-    span: getDefaultSpan(kind),
-    icon: getDefaultIcon(kind),
-  }));
-
-  const filteredCatalog = catalogItems.filter((item) => {
-    if (catalogCategoryFilter && getCatalogCategory(item.kind) !== catalogCategoryFilter) return false;
-
-    const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return true;
-    return `${item.title} ${item.description}`.toLowerCase().includes(normalizedQuery);
+  const { scenes, automations, displayActions } = useAssignableSources({
+    badgeRow,
+    draftKind: cardDraft.kind,
+    editingCardId,
+    hasRoutineAction,
+    isCatalogOpen,
   });
 
-const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
+  const { device: selectedDevice, scene: selectedScene, automation: selectedAutomation, displayAction: selectedDisplayAction, room: selectedRoom } =
+    resolveSelectedDraftEntities({ entityId: cardDraft.entityId, devices, scenes, automations, displayActions, rooms: assignableRooms });
+
+  const catalogItems = buildSectionCatalogItems(badgeRow, (kind) => badgeRow ? t(`dashboard.editor.sections.${kind}`) : catalogLabel(kind), catalogDescription);
+
+  const filteredCatalog = filterCatalogItems(catalogItems, catalogCategoryFilter, query);
+
+  const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     onUpdate?.({
       layout: {
         ...config.layout,
@@ -231,21 +103,8 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     });
   };
 
-  const addCard = (item: typeof catalogItems[number]) => {
-    const nextCard: NormalizedSectionCardItem = {
-      id: createId(),
-      kind: item.kind,
-      title: item.title,
-      description: item.description,
-      widgetType: item.widgetType,
-      span: item.span,
-      icon: item.icon,
-      ...(!isClockKind(item.kind) && item.kind !== 'media' && item.kind !== 'camera'
-        ? { gridOptions: { columns: (item.span === 'small' ? 3 : item.span === 'medium' ? 6 : 12) as CardGridOptions['columns'], rows: 2 } }
-        : {}),
-      ...(item.kind === 'media' ? { mediaVariant: 'premium' as const } : {}),
-      ...(item.kind === 'sensor' ? { visualStyle: 'auto' as const } : {}),
-    };
+  const addCard = (item: SectionCatalogItem) => {
+    const nextCard = createCardFromCatalogItem(item);
 
     updateCards([...cards, nextCard]);
     setIsCatalogOpen(false);
@@ -253,171 +112,37 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     setCatalogCategoryFilter(null);
 
     setEditingCardId(nextCard.id);
-    const nextIcon = nextCard.icon ?? getDefaultIcon(nextCard.kind);
-    setCardDraft({
-      title: nextCard.title,
-      kind: nextCard.kind,
-      entityId: '',
-      span: nextCard.span ?? getDefaultSpan(nextCard.kind),
-      icon: nextIcon,
-      mediaVariant: normalizeMediaVariant(nextCard.mediaVariant),
-      visualStyle: nextCard.visualStyle,
-      gridOptions: nextCard.gridOptions,
-    });
+    setCardDraft(createDraftFromNewCard(nextCard));
   };
 
   const openCardEditor = (card: NormalizedSectionCardItem) => {
-
     setEditingCardId(card.id);
-    const nextIcon = card.icon ?? getDefaultIcon(card.kind);
-    setCardDraft({
-      title: card.title,
-      kind: card.kind,
-      entityId: card.entityId || '',
-      span: getEffectiveCardSpan(card.kind, card.span ?? getDefaultSpan(card.kind)),
-      icon: nextIcon,
-      mediaVariant: normalizeMediaVariant(card.mediaVariant),
-      sensorMin: card.sensorScale?.min,
-      sensorMax: card.sensorScale?.max,
-      sensorDecimals: card.sensorDecimals === true,
-      visualStyle: card.visualStyle ?? 'gauge',
-      gridOptions: card.gridOptions,
-      hidden: card.hidden,
-    });
+    setCardDraft(createDraftFromCard(card));
   };
 
   const saveCardEditor = () => {
     if (!editingCard) return;
     const sensorScale = normalizeSensorScale({ min: cardDraft.sensorMin, max: cardDraft.sensorMax });
     if (cardDraft.kind === 'sensor' && (cardDraft.sensorMin !== undefined || cardDraft.sensorMax !== undefined) && !sensorScale) return;
-    const sizeMinimum = 4;
-    const nextCards = cards.map((card) => {
-      if (card.id !== editingCard.id) return card;
-
-      const updatedCard: NormalizedSectionCardItem = {
-        ...card,
-        kind: cardDraft.kind,
-        title: cardDraft.title.trim() || selectedDisplayAction?.displayName || selectedScene?.name || selectedAutomation?.name || selectedRoom?.name || selectedDevice?.name || catalogLabel(cardDraft.kind),
-        description: catalogDescription(cardDraft.kind),
-        widgetType: getWidgetType(cardDraft.kind),
-        entityId: cardDraft.entityId || undefined,
-        entityName: selectedDisplayAction?.deviceName || selectedScene?.name || selectedAutomation?.name || selectedRoom?.name || selectedDevice?.name,
-        span: isClockKind(cardDraft.kind) ? 'full' : getEffectiveCardSpan(cardDraft.kind, cardDraft.span),
-        icon: cardDraft.icon,
-        gridOptions: isClockKind(cardDraft.kind) ? getClockGridOptions(cardDraft.gridOptions) : cardDraft.kind === 'sensor' && cardDraft.gridOptions ? { ...cardDraft.gridOptions, columns: typeof cardDraft.gridOptions.columns === 'number' ? Math.max(sizeMinimum, cardDraft.gridOptions.columns) as CardGridOptions['columns'] : 'full', rows: typeof cardDraft.gridOptions.rows === 'number' ? Math.max(sizeMinimum, cardDraft.gridOptions.rows) : 'auto', minColumns: sizeMinimum, minRows: sizeMinimum } : cardDraft.gridOptions,
-        hidden: cardDraft.hidden,
-      };
-      if (cardDraft.kind === 'media') updatedCard.mediaVariant = cardDraft.mediaVariant;
-      else delete updatedCard.mediaVariant;
-      if (cardDraft.kind === 'sensor' && sensorScale) updatedCard.sensorScale = sensorScale;
-      else delete updatedCard.sensorScale;
-      if (cardDraft.kind === 'sensor' && cardDraft.sensorDecimals) updatedCard.sensorDecimals = true;
-      else delete updatedCard.sensorDecimals;
-      if (cardDraft.kind === 'sensor') updatedCard.visualStyle = cardDraft.visualStyle ?? 'gauge';
-      else delete updatedCard.visualStyle;
-      return updatedCard;
-    });
-
-    updateCards(nextCards);
+    const labels = {
+      fallbackTitle: selectedDisplayAction?.displayName || selectedScene?.name || selectedAutomation?.name || selectedRoom?.name || selectedDevice?.name || catalogLabel(cardDraft.kind),
+      description: catalogDescription(cardDraft.kind),
+      entityName: selectedDisplayAction?.deviceName || selectedScene?.name || selectedAutomation?.name || selectedRoom?.name || selectedDevice?.name,
+    };
+    updateCards(cards.map((card) => card.id === editingCard.id ? applyDraftToCard(card, cardDraft, sensorScale, labels) : card));
     setEditingCardId(null);
-  };
-
-  const removeCard = (id: string) => {
-    updateCards(cards.filter((card) => card.id !== id));
-  };
-
-  const reorderCards = (sourceId: string, targetId: string) => {
-    if (sourceId === targetId) return;
-
-    const sourceIndex = cards.findIndex((card) => card.id === sourceId);
-    const targetIndex = cards.findIndex((card) => card.id === targetId);
-    if (sourceIndex < 0 || targetIndex < 0) return;
-
-    updateCards(arrayMove(cards, sourceIndex, targetIndex));
   };
 
   const handleCardDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    reorderCards(String(active.id), String(over.id));
+    const reordered = reorderSectionCards(cards, String(active.id), String(over.id));
+    if (reordered) updateCards(reordered);
   };
 
-  const renderCatalogPreview = (
-    kind: NormalizedSectionCardKind,
-    titleOverride?: string,
-    spanOverride?: SectionCardSpan,
-    iconOverride?: SectionCardIcon,
-    deviceIdOverride?: string,
-    isEditorPreview = false,
-    mediaVariantOverride?: MediaVariant,
-    sensorScaleOverride?: SensorScale,
-    sensorDecimalsOverride?: boolean,
-    visualStyleOverride?: import('./sectionCardCatalog').SensorVisualStyle,
-    gridOptionsOverride?: CardGridOptions,
-  ) => {
-    const title = titleOverride || catalogLabel(kind);
-    const span = gridOptionsOverride
-      ? gridOptionsOverride.columns === 'full' || gridOptionsOverride.columns > 6 ? 'full' : gridOptionsOverride.columns <= 3 ? 'small' : 'medium'
-      : getEffectiveCardSpan(kind, spanOverride ?? getDefaultSpan(kind));
-    const normalizedPreviewKind = normalizeKind(kind);
-    const isCameraPreview = normalizedPreviewKind === 'camera';
-    const isClockPreview = isClockKind(normalizedPreviewKind);
-    if (isClockPreview) gridOptionsOverride = getClockGridOptions(gridOptionsOverride);
-    const isScenePreview = normalizedPreviewKind === 'scene';
-    const isRoomPreview = normalizedPreviewKind === 'room';
-    const isCoverPreview = normalizedPreviewKind === 'cover';
-    const roomDevices = isRoomPreview && deviceIdOverride
-      ? devices.filter((device) => device.roomId === deviceIdOverride)
-      : [];
-    const previewDevice = deviceIdOverride
-      ? devices.find((device) => device.id === deviceIdOverride)
-      : undefined;
-    const previewRoomName = previewDevice?.roomId
-      ? assignableRooms.find((room) => room.id === previewDevice.roomId)?.name
-      : undefined;
-
-    if (badgeRow && (normalizedPreviewKind === 'info_time' || normalizedPreviewKind === 'info_weather' || normalizedPreviewKind === 'info_sensor')) {
-      return <div className="w-max max-w-full"><InformationCard pill source={normalizedPreviewKind} title={title} icon={iconOverride ?? getDefaultIcon(kind)} device={previewDevice} /></div>;
-    }
-
-    return (
-      <div style={isEditorPreview ? {
-        ...getCardPresentationStyle(gridOptionsOverride?.rows),
-        ...(isClockKind(kind) ? { containerName: 'clock-card' } : {}),
-        width: sectionGridWidth > 0 ? getCardGridWidth(sectionGridWidth, gridOptionsOverride?.columns ?? (span === 'small' ? 3 : span === 'medium' ? 6 : 12)) : undefined,
-        minHeight: getCardGridHeight(gridOptionsOverride?.rows),
-        ...((normalizedPreviewKind === 'sensor' || isClockKind(kind)) && typeof gridOptionsOverride?.rows === 'number' ? { height: getCardGridHeight(gridOptionsOverride.rows), minHeight: 0, ...(isClockKind(kind) ? { containerType: 'size' as const, containerName: 'clock-card' } : {}) } : {}),
-      } : isClockPreview ? { height: getCardGridHeight(gridOptionsOverride?.rows), containerType: 'size', containerName: 'clock-card' } : undefined} className={isEditorPreview || normalizedPreviewKind.startsWith('info_') ? cn('homepilot-sized-card relative grid shrink-0 min-w-0 overflow-hidden shadow-sm', normalizedPreviewKind === 'sensor' && typeof gridOptionsOverride?.rows === 'number' && 'homepilot-bounded-sensor', getCardFrameClass(normalizedPreviewKind, span, previewDevice && !isMomentaryPlcCommand(previewDevice) ? isDeviceActive(previewDevice) : false)) : cn(
-        "grid overflow-hidden rounded-section transition-[height,width,max-width] duration-200",
-        !isClockPreview && "bg-background/40",
-        isClockPreview && (isEditorPreview ? 'homepilot-clock-preview-host homepilot-clock-preview-host--editor' : 'homepilot-clock-preview-host homepilot-clock-preview-host--catalog'),
-        span === 'small' && (normalizedPreviewKind === 'device' || normalizedPreviewKind === 'light' || normalizedPreviewKind === 'action' ? "h-device-card-compact w-device-card-compact justify-self-center" : "h-section-card-sm w-full max-w-[12rem] justify-self-center"),
-        span === 'medium' && !isCoverPreview && "h-section-card-md w-full max-w-form-md",
-        span === 'medium' && isCoverPreview && "h-curtain-card w-full max-w-form-md justify-self-center",
-        span === 'full' && "w-full",
-        isCameraPreview ? 'min-h-60' : isClockPreview ? '' : isRoomPreview ? 'h-52' : isScenePreview ? 'h-44' : isCoverPreview && span === 'full' ? 'h-curtain-card-lg' : normalizedPreviewKind === 'media' ? 'h-media-card-preview' : span === 'full' ? 'h-40' : ''
-      )}>
-        <div className={isEditorPreview ? 'grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)]' : 'contents'}><SectionCardContent
-          kind={kind}
-          title={title}
-          subtitle={isEditorPreview ? isCameraPreview ? previewRoomName : editingCard?.entityName || editingCard?.description : normalizedPreviewKind === 'cover' ? previewRoomName || catalogDescription(kind) : catalogDescription(kind)}
-          span={span}
-          icon={(normalizedPreviewKind === 'action' ? getBoundRoutineIcon(deviceIdOverride, scenes, automations) : undefined) ?? iconOverride ?? getDefaultIcon(kind)}
-          isAssigned={Boolean(deviceIdOverride)}
-        isActive={previewDevice && !isMomentaryPlcCommand(previewDevice) ? isDeviceActive(previewDevice) : false}
-          device={previewDevice}
-          mediaVariant={mediaVariantOverride}
-          sensorScale={sensorScaleOverride}
-          sensorDecimals={sensorDecimalsOverride}
-          visualStyle={visualStyleOverride}
-          isPreview={isEditorPreview ? false : normalizedPreviewKind === 'sensor' ? !deviceIdOverride : true}
-          isEditorPreview={isEditorPreview}
-          roomDeviceCount={roomDevices.length}
-          roomActiveCount={roomDevices.filter(isDeviceActive).length}
-        /></div>
-      </div>
-    );
-  };
+  const previewContext = { badgeRow, devices, assignableRooms, scenes, automations, sectionGridWidth, editingCard, catalogLabel, catalogDescription };
+  const renderCatalogPreview = (...args: SectionCatalogPreviewArgs) =>
+    renderSectionCatalogPreview(previewContext, ...args);
 
   const catalogModal = isCatalogOpen ? (
     <SectionCardCatalogModal
@@ -452,11 +177,7 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     />
   ) : null;
 
-  const placedRows = resolvePlacedCardRows(cards.filter(card => (isEditing || !card.hidden) && card.gridOptions?.rowStart !== undefined).map(card => ({
-    id: card.id, column: card.gridOptions!.columnStart!, row: card.gridOptions!.rowStart!,
-    columns: card.gridOptions!.columns === 'full' ? 12 : card.gridOptions!.columns,
-    rows: Math.max(rowSpans[card.id] ?? 1, typeof card.gridOptions!.rows === 'number' ? card.gridOptions!.rows : 1),
-  })));
+  const placedRows = resolveSectionPlacedRows(cards, isEditing, rowSpans);
   const sortableCards = (
     <SortableContext items={cards.map((card) => sharedDrag ? sectionCardDragId(sectionId!, card.id, dragIdentities) : card.id)} strategy={sharedDrag ? () => null : rectSortingStrategy}>
       {cards.filter(card => isEditing || !card.hidden).map((card) => (
@@ -485,24 +206,22 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
     </SortableContext>
   );
   const sectionGrid = (
-    <div
-      ref={sectionGridRef}
-      data-section-card-grid="true"
-      onClick={(event) => event.stopPropagation()}
-      className="grid min-h-0 min-w-0 flex-1 grid-cols-12 content-start items-start gap-2 overflow-visible pr-1 auto-rows-[minmax(20px,auto)] grid-flow-row-dense"
-    >
+    <SectionCardGrid gridRef={sectionGridRef}>
       {sharedDrag ? sortableCards : <DndContext sensors={cardDragSensors} onDragEnd={handleCardDragEnd}>{sortableCards}</DndContext>}
-    </div>
+    </SectionCardGrid>
   );
+  const confirmDelete = () => {
+    if (pendingDeleteId) updateCards(cards.filter((card) => card.id !== pendingDeleteId));
+    setPendingDeleteId(null);
+    setEditingCardId(null);
+  };
 
-  if (badgeRow) return <div data-dashboard-badge-row className="flex min-w-0 flex-wrap items-center gap-2">
-    {cards.filter(card => isEditing || !card.hidden).map(card => <EditableInformationCard key={card.id} isEditing={isEditing} onEdit={() => openCardEditor(card)}>
-      <InformationCard pill source={card.kind === 'info_time' ? 'info_time' : card.kind === 'info_weather' ? 'info_weather' : 'info_sensor'} title={card.title} icon={card.icon} device={devices.find(device => device.id === card.entityId && device.roomId !== null)} />
-    </EditableInformationCard>)}
-    {isEditing && <Button variant="ghost" className="min-h-11 gap-2 border border-dashed border-border text-muted-foreground" onClick={() => setIsCatalogOpen(true)}><Plus className="size-4" aria-hidden="true" />{t('dashboard.editor.sections.add_labels')}</Button>}
-    {catalogModal}{editorModal}
-    <ConfirmModal isOpen={pendingDeleteId !== null} title={t('common.delete')} description={t('common.delete')} onClose={() => setPendingDeleteId(null)} onConfirm={() => { if (pendingDeleteId) removeCard(pendingDeleteId); setPendingDeleteId(null); setEditingCardId(null); }} />
-  </div>;
+  if (badgeRow) return (
+    <SectionBadgeRow cards={cards} devices={devices} isEditing={isEditing} onEditCard={openCardEditor} onAdd={() => setIsCatalogOpen(true)}>
+      {catalogModal}{editorModal}
+      <ConfirmModal isOpen={pendingDeleteId !== null} title={t('common.delete')} description={t('common.delete')} onClose={() => setPendingDeleteId(null)} onConfirm={confirmDelete} />
+    </SectionBadgeRow>
+  );
 
   return (
     <section
@@ -513,41 +232,15 @@ const updateCards = (nextCards: NormalizedSectionCardItem[]) => {
         isEditing && "group/section relative text-left",
       )}
     >
-      {showTitle ? (
-        <h2 className="homepilot-dashboard-section-heading flex w-fit max-w-full items-center gap-2 truncate rounded-lg px-2 py-1 text-dashboard-section-title-fluid font-black tracking-tight">
-          {SectionIcon && <SectionIcon className="homepilot-dashboard-section-heading-icon h-5 w-5 shrink-0" />}
-          <span className="truncate">{title}</span>
-        </h2>
-      ) : isEditing ? (
-        <span className="pointer-events-none absolute -top-5 left-1 text-body font-semibold text-muted-foreground">
-          {t('dashboard.editor.sections.untitled_section')}
-        </span>
-      ) : null}
+      <SectionHeading title={title} showTitle={showTitle} isEditing={isEditing} Icon={SectionIcon} />
 
       {sectionGrid}
 
-      {isEditing ? (
-        <div className="absolute -top-5 left-3 z-30">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            aria-label={t('dashboard.editor.sections.add_card')}
-            onClick={(event) => {
-              event.stopPropagation();
-              setIsCatalogOpen(true);
-            }}
-            title={t('dashboard.editor.sections.add_card')}
-            className="h-11 w-11 rounded-control border border-border/50 bg-background text-primary shadow-depth-1 hover:bg-primary/10"
-          >
-            <Plus aria-hidden="true" className="h-5 w-5" />
-          </Button>
-        </div>
-      ) : null}
+      {isEditing ? <SectionAddCardButton onAdd={() => setIsCatalogOpen(true)} /> : null}
 
       {catalogModal}
       {editorModal}
-      <ConfirmModal isOpen={pendingDeleteId !== null} title={t('common.delete')} description={t('common.delete')} confirmText={t('common.delete')} onClose={() => setPendingDeleteId(null)} onConfirm={() => { if (pendingDeleteId) removeCard(pendingDeleteId); setPendingDeleteId(null); setEditingCardId(null); }} />
+      <ConfirmModal isOpen={pendingDeleteId !== null} title={t('common.delete')} description={t('common.delete')} confirmText={t('common.delete')} onClose={() => setPendingDeleteId(null)} onConfirm={confirmDelete} />
     </section>
   );
 }

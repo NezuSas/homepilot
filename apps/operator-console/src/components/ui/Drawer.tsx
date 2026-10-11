@@ -1,13 +1,13 @@
 import React, { useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { IconButton } from './IconButton';
 import { useOverlayAccessibility } from './useOverlayAccessibility';
 import { useVisualViewportBounds } from './useVisualViewportBounds';
+import { useUiLabels } from './uiLabels';
 
-export interface DrawerProps {
+export interface DrawerProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title' | 'children'> {
   isOpen: boolean;
   onClose?: () => void;
   children: React.ReactNode;
@@ -35,8 +35,9 @@ export const Drawer: React.FC<DrawerProps> = ({
   closeLabel,
   hideCloseButton = false,
   dismissible = false,
+  ...dialogProps
 }) => {
-  const { t } = useTranslation();
+  const labels = useUiLabels();
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const descriptionId = useId();
@@ -57,12 +58,13 @@ export const Drawer: React.FC<DrawerProps> = ({
         onClick={dismissible ? onClose : undefined}
       />
       <div
+        {...dialogProps}
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
         aria-describedby={description ? descriptionId : undefined}
-        aria-label={!title ? ariaLabel ?? closeLabel ?? t('common.close') : undefined}
+        aria-label={!title ? ariaLabel ?? closeLabel ?? labels.close : undefined}
         tabIndex={-1}
         onKeyDown={handleOverlayKeyDown}
         className={cn(
@@ -76,10 +78,10 @@ export const Drawer: React.FC<DrawerProps> = ({
         {!hideCloseButton && onClose && (
           <IconButton
             icon={X}
-            label={closeLabel ?? t('common.close')}
+            label={closeLabel ?? labels.close}
             onClick={onClose}
             variant="ghost"
-            className="absolute right-4 top-4 z-10 rounded-pill sm:right-6 sm:top-6"
+            className="absolute right-4 top-4 z-10 sm:right-6 sm:top-6"
           />
         )}
       </div>

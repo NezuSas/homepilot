@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { StatusPill } from '../../../components/ui/StatusPill';
 import { getDashboardIconComponent } from '../components/IconPicker';
 import { getDefaultIcon, normalizeKind, type SectionCardIcon, type SectionCardKind } from './sectionCardCatalog';
 
@@ -16,7 +17,7 @@ export function SectionAssistantCard({ kind, title, icon }: SectionAssistantCard
     <div className="homepilot-dashboard-large-card relative flex h-full min-h-0 flex-col overflow-hidden rounded-section border border-border/45 bg-room-card-quiet p-4">
       <div className="flex items-start justify-between gap-3">
         <span className="grid h-11 w-11 place-items-center rounded-2xl bg-primary/15 text-primary shadow-inner"><Icon className="h-5 w-5" /></span>
-        <span className="rounded-full border border-border/45 bg-background/45 px-2 py-1 text-micro font-black uppercase tracking-control text-muted-foreground">{t('dashboard.editor.sections.assistant_badge')}</span>
+        <StatusPill uppercase>{t('dashboard.editor.sections.assistant_badge')}</StatusPill>
       </div>
       <div className="mt-auto min-w-0">
         <span className="block line-clamp-2 text-body font-black leading-tight text-foreground">{title}</span>

@@ -7,6 +7,9 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { SectionHeader } from '../components/ui/SectionHeader';
+import { Heading } from '../components/ui/Heading';
+import { StatusPill } from '../components/ui/StatusPill';
+import { EmptyState } from '../components/ui/EmptyState';
 import { DeviceInspector } from '../components/DeviceInspector';
 import { HomeAssistantDiscoverySection } from '../components/HomeAssistantDiscoverySection';
 import { InboxDeviceTile } from '../components/InboxDeviceTile';
@@ -174,15 +177,15 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
         {Array.isArray(Object.entries(grouped)) && Object.entries(grouped).map(([id, group]) => (
           <section key={id} className="flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 group/header">
-              <h3 className="text-body font-black uppercase tracking-widest flex items-center gap-3">
+              <Heading variant="item" as="h3" className="flex items-center gap-3">
                 <div className="w-1.5 h-6 bg-primary rounded-full shadow-primary-pill" />
                 {group.name}
-              </h3>
+              </Heading>
               <div className="flex items-center gap-3">
                 <div className="h-px flex-1 bg-border/30 hidden sm:block min-w-5" />
-                <span className="px-3 py-1 bg-muted rounded-full text-micro font-black border border-border opacity-50 whitespace-nowrap">
+                <StatusPill variant="neutral" className="whitespace-nowrap">
                   {t('inbox.rooms.device_count', { count: group.devices.length })}
-                </span>
+                </StatusPill>
               </div>
             </div>
 
@@ -217,15 +220,12 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
         ))}
 
         {Object.keys(grouped).length === 0 && (
-          <div className="py-12 border border-dashed border-border/40 rounded-card flex flex-col items-center justify-center text-center bg-card/5">
-             <Zap className="w-12 h-12 mb-4 text-primary opacity-20" />
-             <h3 className="text-panel-title font-black mb-2 tracking-tight">
-               {mode === 'discovery' ? t('inbox.discovery.no_entities') : t('inbox.empty_state')}
-             </h3>
-             <p className="text-micro font-black uppercase tracking-label-hero opacity-40">
-               {mode === 'discovery' ? t('nav.system_inbox') : t('nav.system_devices')}
-             </p>
-          </div>
+          <EmptyState
+            variant="dashed"
+            icon={Zap}
+            title={mode === 'discovery' ? t('inbox.discovery.no_entities') : t('inbox.empty_state')}
+            description={mode === 'discovery' ? t('nav.system_inbox') : t('nav.system_devices')}
+          />
         )}
       </div>
     </div>

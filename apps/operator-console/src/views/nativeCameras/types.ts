@@ -49,3 +49,8 @@ export const sourceTypeDefaults: Record<NativeCameraSourceType, { rtspPort: numb
   'rtsp-dvr': { rtspPort: 554, onvifPort: 80, rtspPath: '' },
   'sonoff-rtsp': { rtspPort: 554, onvifPort: 80, rtspPath: '/av_stream/ch0' },
 };
+
+export interface NativeCameraNotice {
+  variant: 'success' | 'warning' | 'danger';
+  message: string;
+}

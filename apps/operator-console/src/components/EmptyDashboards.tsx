@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LayoutDashboard } from 'lucide-react';
 import { Button } from './ui/Button';
+import { Heading } from './ui/Heading';
 
 interface EmptyDashboardsProps {
   onRetry: () => void;
@@ -19,10 +20,10 @@ export const EmptyDashboards: React.FC<EmptyDashboardsProps> = ({ onRetry }) => 
         <div className="absolute inset-0 rounded-dashboard bg-primary/5 blur-2xl -z-10 scale-150" />
       </div>
       <div className="space-y-3 max-w-sm">
-        <h3 className="text-view-title font-black text-foreground tracking-tight">{t('dashboards.error_load')}</h3>
+        <Heading as="h3" variant="view">{t('dashboards.error_load')}</Heading>
         <p className="text-body text-muted-foreground leading-relaxed">{t('dashboards.own_dashboard_retry_hint')}</p>
       </div>
-      <Button variant="primary" onClick={onRetry} className="px-8 py-3 text-body">{t('common.retry')}</Button>
+      <Button variant="primary" onClick={onRetry}>{t('common.retry')}</Button>
     </div>
   );
 };

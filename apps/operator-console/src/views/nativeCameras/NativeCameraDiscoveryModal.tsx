@@ -55,7 +55,6 @@ export function NativeCameraDiscoveryModal({
                       setSelectedSourceType(sourceType);
                       setSelectedDiscoveredCamera('manual');
                   }}
-                  className="items-start p-3"
                 />
               ))}
             </div>
@@ -92,7 +91,6 @@ export function NativeCameraDiscoveryModal({
                       description={selectedSourceType === 'onvif-ptz'
                         ? `${cam.host}:${cam.onvifPort}`
                         : `${cam.host} · ${t('native_cameras.discovery.detected_by_onvif')}`}
-                      descriptionClassName="font-mono text-muted-foreground/80"
                       onClick={() => setSelectedDiscoveredCamera(cam.urn)}
                     />
                   ))}

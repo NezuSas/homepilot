@@ -2,7 +2,11 @@ import React from 'react';
 import { cn } from '../../lib/utils';
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'elevated' | 'glass' | 'error' | 'active';
+  variant?: 'default' | 'elevated' | 'glass' | 'flat' | 'error' | 'active';
+  /** Corner radius token of the catalog. */
+  radius?: 'card' | 'section' | 'panel';
+  /** Native element to render, so landmarks keep their semantics (article, section, aside). */
+  as?: 'div' | 'article' | 'section' | 'aside';
 }
 
 const variantStyles: Record<NonNullable<CardProps['variant']>, string> = {
@@ -10,6 +14,8 @@ const variantStyles: Record<NonNullable<CardProps['variant']>, string> = {
     'bg-card/85 border-border/70 shadow-depth-1 hover:border-border hover:shadow-depth-2',
   elevated:
     'bg-popover border-border/50 shadow-depth-2 hover:shadow-depth-3',
+  flat:
+    'bg-card border-border',
   glass:
     'bg-card/35 backdrop-blur-xl border-border/45 shadow-depth-1',
   error:
@@ -18,12 +24,19 @@ const variantStyles: Record<NonNullable<CardProps['variant']>, string> = {
     'device-state-on',
 };
 
+const radiusStyles: Record<NonNullable<CardProps['radius']>, string> = {
+  card: 'rounded-card',
+  section: 'rounded-section',
+  panel: 'rounded-panel',
+};
+
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ className, variant = 'default', ...props }, ref) => (
-    <div
+  ({ className, variant = 'default', radius = 'card', as: Element = 'div', ...props }, ref) => (
+    <Element
       ref={ref}
       className={cn(
-        'surface-transition min-w-0 overflow-hidden rounded-card border',
+        'surface-transition min-w-0 overflow-hidden border',
+        radiusStyles[radius],
         variantStyles[variant],
         className
       )}

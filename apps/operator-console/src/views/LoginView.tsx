@@ -3,7 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { Cpu, Lock } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import type { UserContext } from '../lib/useSession';
+import { AlertBanner } from '../components/ui/AlertBanner';
 import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { Heading } from '../components/ui/Heading';
 import { Input } from '../components/ui/Input';
 
 interface LoginViewProps {
@@ -53,28 +56,23 @@ export function LoginView({ onLoginSuccess, ssoLinkToken = null, ssoError = fals
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
-      <div className="max-w-md w-full p-8 border rounded-2xl bg-card shadow-sm space-y-8">
+      <Card variant="flat" radius="panel" className="max-w-md w-full p-8 shadow-sm space-y-8">
         <div className="flex flex-col items-center justify-center space-y-3 text-center">
           <div className="h-12 w-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center">
             <Cpu className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-view-title font-bold tracking-tight">{t('login.title')}</h1>
+            <Heading variant="view" as="h1">{t('login.title')}</Heading>
             <p className="text-body text-muted-foreground mt-1">{t('login.subtitle')}</p>
           </div>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4 pt-4">
           {ssoError && (
-            <div role="alert" className="rounded-lg border border-danger/50 bg-danger/10 p-3 text-body text-danger">
-              {t('login.sso_error')}
-            </div>
+            <AlertBanner variant="danger" size="sm" message={t('login.sso_error')} />
           )}
           {error && (
-            <div role="alert" aria-live="assertive" className="p-3 bg-danger/10 border border-danger/50 rounded-lg text-body font-medium text-danger flex items-center gap-2">
-              <Lock className="w-4 h-4" />
-              {error}
-            </div>
+            <AlertBanner variant="danger" size="sm" icon={Lock} message={error} />
           )}
 
           <Input
@@ -84,7 +82,6 @@ export function LoginView({ onLoginSuccess, ssoLinkToken = null, ssoError = fals
               disabled={loading}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="rounded-md"
               placeholder="admin"
             />
 
@@ -95,19 +92,18 @@ export function LoginView({ onLoginSuccess, ssoLinkToken = null, ssoError = fals
               disabled={loading}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="rounded-md"
               placeholder="••••••••••••"
             />
 
           <Button
             type="submit" 
             isLoading={loading}
-            className="mt-4 w-full rounded-md text-body font-medium"
+            className="mt-4 w-full"
           >
             {t('login.button')}
           </Button>
         </form>
-      </div>
+      </Card>
     </div>
   );
 }

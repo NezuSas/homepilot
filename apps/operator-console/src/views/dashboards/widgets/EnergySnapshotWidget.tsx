@@ -4,6 +4,8 @@ import { cn } from '../../../lib/utils';
 import type { DashboardWidgetConfig } from '../types';
 import { Zap, Activity, Battery, AlertCircle, RefreshCw } from 'lucide-react';
 import { useEnergyStore } from '../../../stores/useEnergyStore';
+import { Card } from '../../../components/ui/Card';
+import { Heading } from '../../../components/ui/Heading';
 import { DormantWidgetPlaceholder } from '../components/DormantWidgetPlaceholder';
 import { DashboardCardSkeleton } from '../../../components/ui/DashboardCardSkeleton';
 import { needsInitialDashboardSkeleton, useDelayedSkeleton } from '../../../components/ui/useDashboardDelayedSkeleton';
@@ -56,13 +58,16 @@ export function EnergySnapshotWidget({ config, isEditing, onConfigure }: EnergyS
   }
 
   return (
-    <div className={cn(
-      "relative w-full h-full min-h-0 rounded-section @md:rounded-dashboard overflow-hidden p-4 @md:p-6 transition-all duration-700",
-      config.appearance.variant === 'glass' && "bg-card/40 backdrop-blur-2xl border border-border/40",
-      config.appearance.variant === 'solid' && "bg-background border border-border/20",
-      config.appearance.variant === 'outline' && "border-2 border-primary/20",
-      config.appearance.variant === 'flat' && "bg-muted/30"
-    )}>
+    <Card
+      variant={config.appearance.variant === 'glass' ? 'glass' : 'flat'}
+      radius="section"
+      className={cn(
+        "relative w-full h-full min-h-0 @md:rounded-dashboard p-4 @md:p-6 transition-all duration-700",
+        config.appearance.variant === 'solid' && "bg-background border-border/20",
+        config.appearance.variant === 'outline' && "border-2 border-primary/20 bg-transparent",
+        config.appearance.variant === 'flat' && "border-transparent bg-muted/30"
+      )}
+    >
       <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-energy -translate-y-1/2 translate-x-1/2 animate-pulse" />
 
       <div className="flex items-center justify-between mb-4 @md:mb-6 relative z-10">
@@ -72,9 +77,9 @@ export function EnergySnapshotWidget({ config, isEditing, onConfigure }: EnergyS
           </div>
           <div>
             {config.appearance.showTitle && (
-              <h3 className="text-micro font-black uppercase tracking-label text-foreground/80">
+              <Heading as="h3" variant="label">
                 {config.appearance.title || t('dashboards.widgets.energy_insight.label')}
-              </h3>
+              </Heading>
             )}
             <div className="hp-type-label flex items-center gap-1.5 text-muted-foreground/60">
               <Activity className="w-3 h-3" />
@@ -123,6 +128,6 @@ export function EnergySnapshotWidget({ config, isEditing, onConfigure }: EnergyS
            </div>
          ))}
       </div>
-    </div>
+    </Card>
   );
 }

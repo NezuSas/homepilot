@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Minus, Plus } from 'lucide-react';
 import { Button } from './ui/Button';
+import { Heading } from './ui/Heading';
 import { SearchInput } from './ui/Input';
 import { SearchableSelectField } from './ui/SearchableSelectField';
 import { SegmentedControl } from './ui/SegmentedControl';
@@ -61,7 +62,7 @@ export function SceneDeviceSelector({ devices, rooms, roomId, actions, onToggle,
     const canToggle = !!action || commands.length > 0;
     return (
       <div key={device.id} className="flex min-w-0 flex-col gap-2 border-b border-border/40 py-2 last:border-0 sm:flex-row sm:items-center">
-        <Button type="button" variant="ghost" size="lg" className="min-w-0 flex-1 justify-start gap-3 px-2 text-left" aria-pressed={!!action} aria-disabled={!canToggle} disabled={!canToggle} onClick={() => onToggle(device.id)}>
+        <Button type="button" variant="ghost" size="lg" className="min-w-0 flex-1 justify-start text-left" aria-pressed={!!action} aria-disabled={!canToggle} disabled={!canToggle} onClick={() => onToggle(device.id)}>
           {action ? <Minus aria-hidden="true" className="size-5 shrink-0 text-primary" /> : <Plus aria-hidden="true" className="size-5 shrink-0 text-muted-foreground" />}
           <span className="min-w-0 flex-1">
             <span className="block break-words text-body-compact font-semibold">{humanize(device.id, device.name)}</span>
@@ -79,7 +80,6 @@ export function SceneDeviceSelector({ devices, rooms, roomId, actions, onToggle,
               options={commands.map(command => ({ value: command, label: t(`automations.builder.commands.${command}`) }))}
               label={t('automations.form.action_type')}
               tone="primary"
-              optionClassName="min-h-11 px-2 text-caption normal-case tracking-normal [&>span]:whitespace-nowrap [&>span]:break-normal"
             />
           </div>
         ))}
@@ -89,15 +89,15 @@ export function SceneDeviceSelector({ devices, rooms, roomId, actions, onToggle,
   return (
     <div className="space-y-5">
       <section aria-label={t('scenes.builder.selected')}>
-        <h3 className="text-body-compact font-semibold">{t('scenes.builder.selected')} <span className="text-muted-foreground">({actions.length})</span></h3>
+        <Heading variant="item">{t('scenes.builder.selected')} <span className="text-muted-foreground">({actions.length})</span></Heading>
         {actions.some(action => !devices.some(device => device.id === action.deviceId && isDeviceOperational(device, rooms))) &&
           <p role="status" className="mt-2 text-caption text-muted-foreground">{t('scenes.builder.saved_unassigned_hint')}</p>}
         {result.selected.length ? result.selected.map(row) : <p className="mt-2 text-caption text-muted-foreground">{t('scenes.builder.selected_empty')}</p>}
       </section>
       <section aria-label={t('scenes.builder.available')} className="space-y-3 border-t border-border/60 pt-4">
-        <h3 className="text-body-compact font-semibold">{t('scenes.builder.available')}</h3>
+        <Heading variant="item">{t('scenes.builder.available')}</Heading>
         <div className="grid min-w-0 gap-2 sm:grid-cols-2">
-          <SearchInput type="search" aria-label={t('scenes.builder.search_devices')} placeholder={t('scenes.builder.search_devices')} value={search} onChange={event => setSearch(event.target.value)} className="h-11" />
+          <SearchInput type="search" aria-label={t('scenes.builder.search_devices')} placeholder={t('scenes.builder.search_devices')} value={search} onChange={event => setSearch(event.target.value)} />
           <SearchableSelectField value={spaceFilter} onChange={setSpaceFilter} placeholder={t('scenes.builder.all_spaces')} options={[
             { value: '', label: t('scenes.builder.all_spaces') },
             ...rooms.filter(room => !roomId || room.id === roomId).map(room => ({ value: room.id, label: room.name })),

@@ -5,7 +5,9 @@ import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { Button } from '../components/ui/Button';
 import { HomeAssistantSettingsSkeleton } from '../components/ui/ComponentSkeletons';
+import { AlertBanner } from '../components/ui/AlertBanner';
 import { Card } from '../components/ui/Card';
+import { Heading } from '../components/ui/Heading';
 import { Input } from '../components/ui/Input';
 import { SectionHeader } from '../components/ui/SectionHeader';
 
@@ -110,7 +112,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
         <AlertCircle className="w-8 h-8 text-danger" />
       </div>
       <div className="text-center">
-        <h3 className="font-semibold text-foreground">{t('ha_settings.status_card.error_title')}</h3>
+        <Heading variant="item" as="h3">{t('ha_settings.status_card.error_title')}</Heading>
         <p className="text-body text-muted-foreground mb-4">{error}</p>
         <Button
           onClick={fetchStatus}
@@ -134,7 +136,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
               <div>
-                <h3 className="font-semibold text-foreground">{t('ha_settings.status_card.title')}</h3>
+                <Heading variant="item" as="h3">{t('ha_settings.status_card.title')}</Heading>
                 <p className="text-caption text-muted-foreground">{t('ha_settings.status_card.subtitle')}</p>
               </div>
             </div>
@@ -170,7 +172,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
       {/* Form Section */}
       <Card className="rounded-2xl">
         <header className="border-b border-border p-4">
-          <h3 className="font-semibold">{t('ha_settings.config.title')}</h3>
+          <Heading variant="item" as="h3">{t('ha_settings.config.title')}</Heading>
           <p className="text-caption text-muted-foreground">{t('ha_settings.config.subtitle')}</p>
         </header>
 
@@ -206,19 +208,20 @@ export const HomeAssistantSettingsView: React.FC = () => {
           </div>
 
           {testResult && (
-            <div role="status" className={`flex gap-3 rounded-xl border p-3 text-foreground ${testResult.success ? 'bg-success/5 border-success/20' : 'bg-danger/5 border-danger/20'}`}>
-              {testResult.success ? <CheckCircle2 className="w-5 h-5 shrink-0 text-success" /> : <XCircle className="w-5 h-5 shrink-0 text-danger" />}
-              <div className="min-w-0 break-words text-body-compact">
-                <p className="font-bold">{testResult.success ? t('ha_settings.test.success') : t('ha_settings.test.failure')}</p>
-                <p className="opacity-90">{testResult.message || (testResult.success ? t('ha_settings.test.success_msg') : t('ha_settings.test.failure_msg'))}</p>
-              </div>
-            </div>
+            <AlertBanner
+              size="sm"
+              variant={testResult.success ? 'success' : 'danger'}
+              title={testResult.success ? t('ha_settings.test.success') : t('ha_settings.test.failure')}
+              message={testResult.message || (testResult.success ? t('ha_settings.test.success_msg') : t('ha_settings.test.failure_msg'))}
+            />
           )}
 
           {message && (
-             <div role="status" className={`rounded-xl border p-3 text-body-compact text-foreground ${message.type === 'success' ? 'bg-success/10 border-success/20' : 'bg-danger/10 border-danger/20'}`}>
-                {message.text}
-             </div>
+            <AlertBanner
+              size="sm"
+              variant={message.type === 'success' ? 'success' : 'danger'}
+              message={message.text}
+            />
           )}
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
@@ -227,7 +230,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
               onClick={handleTest}
               disabled={testing || !baseUrl}
               variant="outline"
-              className="gap-2 whitespace-normal"
+              className="whitespace-normal"
             >
               <RefreshCw className={`w-4 h-4 ${testing ? 'animate-spin' : ''}`} />
               {testing ? t('ha_settings.status_card.testing') : t('ha_settings.status_card.test_button')}
@@ -236,7 +239,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
             <Button
               type="submit"
               disabled={loading || !baseUrl}
-              className="gap-2 whitespace-normal"
+              className="whitespace-normal"
             >
               <Save className="w-4 h-4" />
               {t('ha_settings.status_card.save_button')}

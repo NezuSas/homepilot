@@ -4,6 +4,8 @@ import { ChevronDown, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
 import { Button } from '../../../components/ui/Button';
+import { Card } from '../../../components/ui/Card';
+import { SurfaceButton } from '../../../components/ui/SurfaceButton';
 import { Input } from '../../../components/ui/Input';
 import { IconPickerSkeleton } from '../../../components/ui/ComponentSkeletons';
 import {
@@ -130,13 +132,15 @@ export function IconPicker({ value = '', onChange, placeholder, label, className
   }, [open, position]);
 
   const popup = open && position && typeof document !== 'undefined' ? createPortal(
-    <div
+    <Card
       ref={popupRef}
       id={listboxId}
       role="dialog"
       aria-label={resolvedLabel}
       tabIndex={-1}
-      className="fixed z-[100000] flex flex-col overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl"
+      variant="elevated"
+      radius="section"
+      className="fixed z-[100000] flex flex-col"
       style={position}
     >
       <div className="sticky top-0 z-10 shrink-0 border-b border-border bg-popover px-4 pb-3 pt-4">
@@ -166,10 +170,9 @@ export function IconPicker({ value = '', onChange, placeholder, label, className
         ) : visibleIcons.length ? (
           <div role="listbox" aria-label={resolvedLabel} className="grid grid-cols-3 gap-2 min-[420px]:grid-cols-4 sm:grid-cols-5 lg:grid-cols-6">
             {visibleIcons.map(({ name, path }) => (
-              <Button
+              <SurfaceButton
                 key={name}
                 type="button"
-                variant="ghost"
                 role="option"
                 aria-selected={name === value}
                 title={name}
@@ -185,7 +188,7 @@ export function IconPicker({ value = '', onChange, placeholder, label, className
               >
                 <DashboardMdiIcon path={path} className="h-7 w-7 shrink-0" />
                 <span className="max-w-full truncate text-micro font-medium">{name.slice(4)}</span>
-              </Button>
+              </SurfaceButton>
             ))}
           </div>
         ) : (
@@ -208,7 +211,7 @@ export function IconPicker({ value = '', onChange, placeholder, label, className
           </p>
         )}
       </div>
-    </div>, document.body) : null;
+    </Card>, document.body) : null;
 
   return <div className={cn('space-y-2', className)}>
     <span id={`${listboxId}-label`} className="ml-1 block text-micro font-black uppercase tracking-widest text-muted-foreground">
@@ -228,7 +231,7 @@ export function IconPicker({ value = '', onChange, placeholder, label, className
         focusInitializedRef.current = false;
         setQuery(''); setVisibleLimit(INITIAL_ICON_COUNT); setOpen((current) => !current);
       }}
-      className="w-full justify-start rounded-xl bg-card text-left"
+      className="w-full justify-start bg-card text-left"
     >
       <SelectedIcon className="h-5 w-5 shrink-0" />
       <span className="min-w-0 flex-1 truncate">{value || resolvedLabel}</span>

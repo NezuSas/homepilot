@@ -6,6 +6,8 @@ import { useEnergyStore } from '../stores/useEnergyStore';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import { getAssignedEnergyPresentation } from '../lib/assignedEnergyPresentation';
 import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { Heading } from '../components/ui/Heading';
 import { EmptyState } from '../components/ui/EmptyState';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { useInitialLoading } from '../components/ui/useInitialLoading';
@@ -36,7 +38,8 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
         <RefreshCw aria-hidden className="size-4" />{t('energy.refresh')}
       </Button>} />
     {initialLoading ? <EnergyDataSkeleton label={t('common.loading')} /> : data.readings.length ? <>
-      <dl className="grid grid-cols-2 divide-x divide-border rounded-card border border-border bg-card">
+      <Card variant="flat">
+      <dl className="grid grid-cols-2 divide-x divide-border">
         {[{ label: 'energy.total_power', value: data.totalPower, unit: 'W' }, { label: 'energy.total_energy', value: data.totalEnergy, unit: 'kWh' }].map(metric =>
           <div key={metric.unit} className="min-w-0 px-4 py-3 sm:px-5">
             <dt className="text-caption text-muted-foreground">{t(metric.label)}</dt>
@@ -45,17 +48,18 @@ export const EnergyView: React.FC<EnergyViewProps> = ({ onNavigate }) => {
             </dd>
           </div>)}
       </dl>
+      </Card>
       <section aria-label={t('energy.live_consumption')} className="space-y-4">
-        <h2 className="text-section-title font-semibold">{t('energy.live_consumption')}</h2>
-        {data.groups.map(group => <section key={group.id} aria-label={group.name} className="overflow-hidden rounded-card border border-border bg-card">
-          <h3 className="border-b border-border bg-muted/20 px-4 py-2 text-body-compact font-semibold">{group.name}</h3>
+        <Heading variant="section" as="h2">{t('energy.live_consumption')}</Heading>
+        {data.groups.map(group => <Card key={group.id} as="section" aria-label={group.name} variant="flat">
+          <Heading variant="item" as="h3" className="border-b border-border bg-muted/20 px-4 py-2">{group.name}</Heading>
           <ul className="divide-y divide-border/60">
             {group.readings.map(reading => <li key={reading.entity_id} className="flex items-center justify-between gap-4 px-4 py-3">
               <span className="min-w-0 break-words text-body-compact">{reading.name}</span>
               <span className="shrink-0 text-body font-semibold tabular-nums text-foreground">{format.format(reading.state)} <span className="text-caption font-normal text-muted-foreground">{reading.unit}</span></span>
             </li>)}
           </ul>
-        </section>)}
+        </Card>)}
       </section>
     </> : <EmptyState icon={Zap} title={t('energy.empty_title')} description={t('energy.assigned_readings_hint')} />}
     {onNavigate && <Button variant="ghost" onClick={() => onNavigate('assistant')}>{t('energy.go_to_assistant')}</Button>}

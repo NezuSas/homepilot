@@ -19,7 +19,6 @@ interface AppGlobalOverlaysProps {
   user: UserContext | null;
   globalWakeNotice: GlobalWakeNoticeModel | null;
   isGlobalWakeProcessing: boolean;
-  isGlobalWakeSpeaking: boolean;
   onNavigate: (view: View) => void;
   onClosePasswordModal: () => void;
   onPasswordChanged: () => void;
@@ -35,7 +34,7 @@ export function AppGlobalOverlays(props: AppGlobalOverlaysProps) {
     <ChangePasswordModal isOpen={props.showPasswordModal} onClose={props.onClosePasswordModal} onSuccess={props.onPasswordChanged} />
     <DemoGuideOverlay onNavigate={props.onNavigate} />
     {props.globalWakeNotice && <GlobalWakeNotice notice={props.globalWakeNotice} isProcessing={props.isGlobalWakeProcessing} />}
-    <GlobalWakeListener enabled={isGlobalWakeListenerEnabled(props.authenticated, props.loadingSetup, props.requiresOnboarding)} interruptOnly={props.isGlobalWakeProcessing || props.isGlobalWakeSpeaking} onCommand={props.onWakeCommand} onWakeInterrupt={props.onWakeInterrupt} onStatusChange={props.onWakeStatusChange} />
+    <GlobalWakeListener enabled={isGlobalWakeListenerEnabled(props.authenticated, props.loadingSetup, props.requiresOnboarding)} onCommand={props.onWakeCommand} onWakeInterrupt={props.onWakeInterrupt} onStatusChange={props.onWakeStatusChange} />
     {props.showProfileModal && props.user && <UserProfileModal user={props.user} onClose={props.onCloseProfileModal} onSaved={props.onProfileSaved} />}
   </>;
 }

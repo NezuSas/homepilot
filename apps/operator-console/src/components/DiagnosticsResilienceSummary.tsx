@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Cpu, Server, ShieldCheck, Zap } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { Card } from './ui/Card';
 
 interface DiagnosticDevice {
   id: string;
@@ -79,7 +80,7 @@ export const DiagnosticsResilienceSummary: React.FC<DiagnosticsResilienceSummary
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-4 duration-1000">
       {stats.map((stat) => (
-        <div key={stat.label} className="bg-card border border-border/60 rounded-2xl p-4 flex items-center justify-between group hover:border-primary/40 transition-all shadow-sm">
+        <Card key={stat.label} variant="flat" radius="section" className="group flex items-center justify-between p-4 hover:border-primary/40">
           <div className="space-y-1">
             <p className="text-micro font-black uppercase tracking-widest text-muted-foreground opacity-50">{stat.label}</p>
             <div className="flex items-baseline gap-2">
@@ -90,7 +91,7 @@ export const DiagnosticsResilienceSummary: React.FC<DiagnosticsResilienceSummary
           <div className={cn('p-3 rounded-xl bg-muted/50 group-hover:scale-110 transition-transform', stat.color)}>
             <stat.icon className="w-5 h-5" />
           </div>
-        </div>
+        </Card>
       ))}
     </div>
   );

@@ -1,55 +1,41 @@
 import React from 'react';
-import { Loader2, type LucideIcon } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { Button, type ButtonProps } from './Button';
 
 export interface IconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   icon: LucideIcon;
   label: string;
   variant?: 'default' | 'ghost' | 'primary' | 'danger';
+  /** Compatibility aliases: every icon action uses the same 44px target. */
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
 }
 
-const variantStyles: Record<NonNullable<IconButtonProps['variant']>, string> = {
-  default: 'bg-muted/50 text-muted-foreground border border-border/50 hover:bg-muted hover:text-foreground',
-  ghost: 'bg-transparent text-muted-foreground border border-transparent hover:bg-muted/60 hover:text-foreground',
-  primary: 'bg-primary text-primary-foreground border border-transparent hover:bg-primary/90 shadow-sm shadow-primary/20',
-  danger: 'bg-danger/10 text-danger border border-danger/20 hover:bg-danger/20',
-};
-
-const sizeStyles: Record<NonNullable<IconButtonProps['size']>, string> = {
-  sm: 'h-8 w-8',
-  md: 'h-9 w-9',
-  lg: 'h-11 w-11',
-};
-
-const iconSizeStyles: Record<NonNullable<IconButtonProps['size']>, string> = {
-  sm: 'h-3.5 w-3.5',
-  md: 'h-4 w-4',
-  lg: 'h-5 w-5',
+const variants: Record<NonNullable<IconButtonProps['variant']>, NonNullable<ButtonProps['variant']>> = {
+  default: 'secondary',
+  ghost: 'ghost',
+  primary: 'primary',
+  danger: 'danger',
 };
 
 export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
   ({ icon: Icon, label, variant = 'default', size = 'md', isLoading = false, className, disabled, title, ...props }, ref) => (
-    <button
+    <Button
       ref={ref}
       type="button"
       aria-label={label}
       title={title || label}
-      disabled={disabled || isLoading}
-      aria-busy={isLoading || undefined}
-      className={cn(
-        'control-transition interactive-lift inline-flex shrink-0 touch-manipulation items-center justify-center rounded-control',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
-        'disabled:pointer-events-none disabled:opacity-45 disabled:translate-y-0 disabled:scale-100',
-        variantStyles[variant],
-        sizeStyles[size],
-        className
-      )}
+      disabled={disabled}
+      isLoading={isLoading}
+      variant={variants[variant]}
+      size="icon"
+      data-legacy-size={size}
+      className={cn(className)}
       {...props}
     >
-      {isLoading ? <Loader2 aria-hidden="true" className={cn('animate-spin', iconSizeStyles[size])} /> : <Icon className={iconSizeStyles[size]} />}
-    </button>
+      {!isLoading && <Icon aria-hidden="true" focusable="false" className="h-4 w-4" />}
+    </Button>
   )
 );
 IconButton.displayName = 'IconButton';

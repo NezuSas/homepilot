@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  /* Input and Textarea share the approved field surface and type hierarchy. */
+  .hp-field-label {
+    @apply block break-words text-body-compact font-medium leading-5 text-foreground;
+  }
+  .hp-field-message {
+    @apply break-words text-caption font-medium leading-5;
+  }
+  .hp-text-field {
+    @apply surface-transition min-w-0 w-full rounded-control border border-border bg-background px-3 py-2 text-body text-foreground shadow-none;
+    @apply placeholder:text-muted-foreground;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary;
+    @apply disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted/50;
+  }
+}
+
 /* Native dates keep the same surface/ink in body and portal overlays. */
 .homepilot-date-field { color-scheme: dark; }
 .light .homepilot-date-field { color-scheme: light; }
@@ -11,23 +27,22 @@
 
 /* ── Brand typography ────────────────────────────────────────────
  * Local files keep the operator console independent from remote font CDNs.
- * Rubik is the readable resident-facing family; Disket Mono is reserved for
+ * Inter is the readable resident-facing family; Disket Mono is reserved for
  * technical metadata, compact labels and operational status.
  */
+/* Inter (SIL OFL 1.1, see assets/fonts/Inter-OFL.txt): Latin subset covers Spanish and English. */
 @font-face {
-  font-family: "Rubik";
-  src: url("./assets/fonts/Rubik-VariableFont_wght.ttf") format("truetype");
+  font-family: "Inter";
+  src: url("./assets/fonts/Inter-Latin-VariableFont_wght.woff2") format("woff2");
   font-style: normal;
-  font-weight: 300 900;
+  font-weight: 100 900;
   font-display: swap;
-}
-
-@font-face {
-  font-family: "Rubik";
-  src: url("./assets/fonts/Rubik-Italic-VariableFont_wght.ttf") format("truetype");
-  font-style: italic;
-  font-weight: 300 900;
-  font-display: swap;
+  /* Preserve the vertical metrics the layout contracts were calibrated against,
+   * so line boxes pinned by the responsive suite stay stable. */
+  ascent-override: 93.5%;
+  descent-override: 25%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
@@ -98,7 +113,7 @@
      * (for example, "EC") on some desktop browsers.
      */
     --font-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Android Emoji", sans-serif;
-    --font-sans: "Rubik", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Android Emoji", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-sans: "Inter", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Android Emoji", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     --font-mono: "Disket Mono", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Android Emoji", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
     /* ── Core Surfaces (elevation ladder) ─────────────────── */
@@ -156,6 +171,15 @@
     --radius-modal: 2rem;
     --radius-pill: 9999px;
 
+    /* Shared action-button palette approved in Figma. */
+    --button-primary: #F08D3D;
+    --button-on-primary: #221A11;
+    --button-secondary: #302924;
+    --button-foreground: #F8F5F2;
+    --button-outline: #C1B6AE;
+    --button-danger: #DE454A;
+    --button-on-danger: #FAFAFA;
+
     /* ── Motion tokens ──────────────────────────────────────── */
     --duration-fast:   150ms;
     --duration-base:   250ms;
@@ -173,9 +197,35 @@
     /* Device tile specific */
     --device-on-glow:    0 12px 32px -22px hsl(var(--primary) / 0.72), inset 0 1px 0 hsl(var(--foreground) / 0.04);
     --device-off-shadow: 0 8px 24px -18px hsl(220 28% 1% / 0.9), inset 0 1px 0 hsl(218 22% 100% / 0.03);
+
+    /* ── Lit tile: active devices read as an illuminated matte surface ── */
+    --tile-lit:           38 42% 84%;
+    --tile-lit-ink:       20 12% 10%;
+    --tile-lit-ink-muted: 28 16% 27%;
+    --tile-chip:          27 86% 59%;
+    --tile-chip-ink:      25 70% 9%;
+
+    /* ── Room scene (night): illustration tokens, no logic in JS ── */
+    --scene-wall-a: 24 20% 15%;  --scene-wall-b: 22 22% 9%;
+    --scene-floor-a: 22 25% 8%;  --scene-floor-b: 20 30% 5%;  --scene-base: 24 25% 18%;
+    --scene-sky-a: 214 42% 31%;  --scene-sky-b: 216 42% 11%;  --scene-orb: 41 54% 87%;  --scene-stars: 1;
+    --scene-frame: 28 22% 24%;   --scene-rod: 28 24% 34%;
+    --scene-curtain-a: 20 17% 21%; --scene-curtain-b: 20 17% 29%; --scene-fold: 22 25% 13%;
+    --scene-sofa-back: 24 20% 23%; --scene-sofa-seat: 22 22% 19%; --scene-sofa-arm: 22 25% 16%; --scene-cushion: 24 18% 25%;
+    --scene-art-frame: 24 25% 14%; --scene-art-line: 25 24% 29%;
+    --scene-shade-on: 36 86% 78%; --scene-shade-off: 34 14% 48%; --scene-pole: 28 24% 34%; --scene-glow: 27 86% 59%; --scene-glow-strength: 0.62;
+    --scene-plant-a: 145 24% 22%; --scene-plant-b: 145 22% 28%; --scene-plant-c: 145 26% 18%; --scene-pot: 22 22% 19%;
+    --scene-shadow: 20 40% 4%;   --scene-veil: 20 40% 3%;     --scene-veil-strength: 0.4;
   }
 
   .light {
+    --button-primary: #B85232;
+    --button-on-primary: #FFFFFF;
+    --button-secondary: #E2DED9;
+    --button-foreground: #1F252D;
+    --button-outline: #4A525E;
+    --button-danger: #B15243;
+    --button-on-danger: #FFFFFF;
     --eco: 70 43% 42%;
     --dashboard-canvas: 34 16% 90%;
     --dashboard-surface: 35 18% 93%;
@@ -250,6 +300,22 @@
 
     --device-on-glow:    0 10px 28px -14px hsl(var(--primary) / 0.36), inset 0 1px 0 hsl(var(--accent) / 0.12);
     --device-off-shadow: 0 12px 30px -22px hsl(26 12% 24% / 0.32), inset 0 1px 0 hsl(var(--popover) / 0.7);
+
+    --tile-lit:           20 12% 10%;
+    --tile-lit-ink:       36 30% 96%;
+    --tile-lit-ink-muted: 32 12% 76%;
+
+    /* Room scene (day) */
+    --scene-wall-a: 36 24% 80%;  --scene-wall-b: 34 22% 70%;
+    --scene-floor-a: 32 18% 62%; --scene-floor-b: 30 18% 54%; --scene-base: 32 18% 50%;
+    --scene-sky-a: 204 56% 82%;  --scene-sky-b: 38 70% 88%;  --scene-orb: 40 90% 70%;  --scene-stars: 0;
+    --scene-frame: 30 22% 40%;   --scene-rod: 30 20% 38%;
+    --scene-curtain-a: 30 22% 66%; --scene-curtain-b: 30 22% 76%; --scene-fold: 30 20% 54%;
+    --scene-sofa-back: 26 24% 44%; --scene-sofa-seat: 24 24% 38%; --scene-sofa-arm: 24 24% 33%; --scene-cushion: 28 22% 50%;
+    --scene-art-frame: 30 20% 62%; --scene-art-line: 30 20% 46%;
+    --scene-shade-on: 36 86% 80%; --scene-shade-off: 34 20% 78%; --scene-pole: 30 20% 40%; --scene-glow-strength: 0.3;
+    --scene-plant-a: 140 22% 32%; --scene-plant-b: 140 22% 40%; --scene-plant-c: 140 22% 26%; --scene-pot: 24 24% 38%;
+    --scene-shadow: 30 30% 20%;  --scene-veil-strength: 0;
   }
 }
 
@@ -310,16 +376,6 @@
   @keyframes pulse-slow {
     0%, 100% { opacity: 1;   transform: scale(1);    }
     50%       { opacity: 0.4; transform: scale(0.95); }
-  }
-
-  @keyframes pulse-beacon {
-    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 hsl(var(--success) / 0.5); }
-    50%       { opacity: 0.7; box-shadow: 0 0 0 5px hsl(var(--success) / 0); }
-  }
-
-  @keyframes shimmer {
-    from { background-position: 200% 0; }
-    to   { background-position: -200% 0; }
   }
 
   @keyframes premium-pulse {
@@ -391,7 +447,6 @@
 
   /* ── Animation classes ────────────────────────────────────── */
   .animate-luxury-ripple  { animation: luxury-ripple 1.5s var(--ease-out) forwards; }
-  .animate-pulse-slow     { animation: pulse-slow 3s var(--ease-in-out) infinite; }
   @keyframes homepilot-dashboard-skeleton-breathe {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.84; }
@@ -402,7 +457,6 @@
   @media (prefers-reduced-motion: reduce) {
     .homepilot-dashboard-skeleton-motion { animation: none; }
   }
-  .animate-pulse-beacon   { animation: pulse-beacon 2s ease-in-out infinite; }
   .animate-slide-up-fade  { animation: slide-up-fade var(--duration-slow) var(--ease-out) both; }
   .animate-weather-cloud-a  { animation: weather-cloud-drift-a 6s ease-in-out infinite; }
   .animate-weather-cloud-b  { animation: weather-cloud-drift-b 7s ease-in-out infinite; }
@@ -418,14 +472,6 @@
   .animate-weather-fog { animation: weather-fog-drift 8s ease-in-out infinite; }
 
   /* ── Status dots ──────────────────────────────────────────── */
-  .status-dot-synced {
-    display: inline-block;
-    width: 0.5rem; height: 0.5rem;
-    border-radius: 9999px;
-    background-color: hsl(var(--success));
-    box-shadow: 0 0 0 0 hsl(var(--success) / 0.5);
-    animation: pulse-beacon 2.4s ease-in-out infinite;
-  }
   .status-dot-warning {
     display: inline-block;
     width: 0.5rem; height: 0.5rem;
@@ -434,56 +480,10 @@
     box-shadow: 0 0 6px hsl(var(--warning) / 0.45);
     animation: pulse-slow 2s var(--ease-in-out) infinite;
   }
-  .status-dot-error {
-    display: inline-block;
-    width: 0.5rem; height: 0.5rem;
-    border-radius: 9999px;
-    background-color: hsl(var(--danger));
-    box-shadow: 0 0 6px hsl(var(--danger) / 0.35);
-  }
-  .status-dot-offline {
-    display: inline-block;
-    width: 0.5rem; height: 0.5rem;
-    border-radius: 9999px;
-    background-color: hsl(var(--muted-foreground) / 0.35);
-  }
   /* Legacy alias */
   .status-dot-updating { @apply status-dot-warning; }
 
-  /* ── Shared card style ────────────────────────────────────── */
-  .premium-card {
-    @apply relative overflow-hidden bg-card/50 border border-border/60 rounded-panel transition-all duration-300;
-    box-shadow: 0 1px 3px hsl(210 30% 2% / 0.35), 0 1px 0 hsl(210 30% 100% / 0.03) inset;
-  }
-  .light .premium-card {
-    box-shadow: 0 14px 34px -28px hsl(26 12% 24% / 0.38), 0 1px 0 hsl(var(--popover) / 0.72) inset;
-    @apply bg-card;
-  }
-  
-  .premium-card:hover {
-    border-color: hsl(var(--primary) / 0.25);
-    box-shadow: 0 4px 16px hsl(210 30% 2% / 0.5), 0 1px 0 hsl(210 30% 100% / 0.05) inset;
-    transform: translateY(-1px);
-  }
-  
-  .light .premium-card:hover {
-    box-shadow: 0 18px 42px -30px hsl(26 12% 24% / 0.44), 0 1px 0 hsl(var(--popover) / 0.75) inset;
-  }
-
-
-  .system-blur-bar {
-    @apply bg-background/60 backdrop-blur-xl border-t border-border/40;
-  }
-
   /* ── Typography system ───────────────────────────────────── */
-  .hp-type-display {
-    @apply text-display-title font-black leading-none tracking-tight text-foreground sm:text-hero-title;
-  }
-
-  .hp-type-modal-title {
-    @apply text-view-title font-black leading-none tracking-tight text-foreground sm:text-display-title;
-  }
-
   .hp-type-card-title {
     @apply text-card-title font-semibold leading-tight tracking-tight text-foreground;
   }
@@ -502,10 +502,6 @@
 
   .hp-type-control {
     @apply text-caption font-semibold normal-case leading-none tracking-normal;
-  }
-
-  .hp-type-field {
-    @apply text-body-lg font-bold leading-none tracking-tight text-foreground;
   }
 
   /* ── Legacy typography guardrail ───────────────────────────
@@ -657,7 +653,6 @@
     background: linear-gradient(145deg, hsl(var(--light-active) / 0.24), hsl(var(--card)) 88%);
     box-shadow: inset 0 1px 0 hsl(var(--popover) / 0.92), 0 14px 28px -24px hsl(var(--light-active) / 0.52);
   }
-
   /* Tinted status chips use readable surface text, not the ink reserved for
    * solid primary buttons. Light tinted chips use the darker primary hue. */
   .light .device-state-on:not(.device-tone-light) .device-toggle-icon {
@@ -806,18 +801,6 @@
     .sidebar-collapsed-rail > * {
       flex: none;
     }
-  }
-
-  /* ── View header decoration ───────────────────────────────── */
-  .view-header-accent {
-    position: relative;
-  }
-  .view-header-accent::after {
-    content: '';
-    position: absolute;
-    bottom: 0; left: 0;
-    width: 100%; height: 1px;
-    background: linear-gradient(90deg, hsl(var(--primary) / 0.2) 0%, transparent 60%);
   }
 
   /* ── Scrollbar ───────────────────────────────────────────── */
@@ -1047,27 +1030,6 @@
     background: hsl(var(--dashboard-surface-raised));
   }
 
-  .homepilot-sensor-reading .sensor-reading-digit {
-    position: relative;
-    display: inline-block;
-    min-width: 0.68em;
-    padding: 0.12em 0.04em;
-    line-height: 1.1;
-    text-align: center;
-    border-radius: 0.18em;
-    background: linear-gradient(to bottom, hsl(var(--dashboard-surface-raised)), hsl(var(--dashboard-surface)));
-    border: 1px solid hsl(var(--dashboard-edge) / 0.55);
-    box-shadow: 0 4px 7px -5px hsl(var(--foreground) / 0.2);
-  }
-
-  .homepilot-sensor-reading .sensor-reading-digit::after {
-    content: '';
-    position: absolute;
-    inset: 50% 0 auto;
-    border-top: 1px solid hsl(var(--dashboard-edge) / 0.3);
-    pointer-events: none;
-  }
-
   .homepilot-sensor-reading .sensor-reading-footer {
     display: grid;
     flex-shrink: 0;
@@ -1108,9 +1070,6 @@
     .sensor-reading-layout .sensor-state-symbol { display: none; }
   }
   .section-card-editor { max-width: 64rem; height: auto; }
-  .section-card-editor .card-editor-tabs { border: 0; border-radius: 0; background: transparent; padding: 0; border-bottom: 1px solid hsl(var(--border)); }
-  .section-card-editor .card-editor-tabs button { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
-  .section-card-editor .card-editor-tabs button[aria-checked=true] { border-bottom: 2px solid hsl(var(--primary)); color: hsl(var(--primary)); }
   .section-card-editor-layout { display: grid; min-height: 0; min-width: 0; gap: 1rem; grid-template-rows: auto minmax(0, 1fr); }
   .section-card-editor-preview { min-height: 0; min-width: 0; }
   .section-card-editor-controls { min-height: 0; min-width: 0; overflow-y: auto; max-height: min(32rem, 50dvh); }
@@ -1128,7 +1087,7 @@
   .sensor-liquid-bulb { fill: hsl(var(--primary)); stroke: hsl(var(--border)); stroke-width: 2; }
   .sensor-liquid-surface { fill: hsl(var(--accent)); stroke: hsl(var(--primary)); stroke-width: 2; transition: transform 400ms ease-out; }
   .sensor-tank-rim { fill: none; stroke: hsl(var(--border)); stroke-width: 2; }
-  .sensor-liquid-tick { fill: hsl(var(--muted-foreground)); font: 14px Rubik, sans-serif; }
+  .sensor-liquid-tick { fill: hsl(var(--muted-foreground)); font: 14px Inter, sans-serif; }
   .sensor-liquid-tick path { stroke: hsl(var(--border)); }
   @media (prefers-reduced-motion: reduce) { .sensor-liquid, .sensor-liquid-surface { transition: none; transition-duration: 0s !important; } }
   .sensor-analog-readout { position: relative; margin: -8% 0 0; display: grid; justify-items: center; gap: 0.25rem; }
@@ -1146,27 +1105,11 @@
   .homepilot-sized-card .homepilot-dashboard-large-card > span > svg { width: 80%; height: 80%; }
   .homepilot-sized-card :is(.homepilot-section-tile-inactive, .homepilot-section-light-tile-surface, .homepilot-section-device-tile-active) > svg { width: clamp(1rem, 24cqi, 2.25rem); height: clamp(1rem, 24cqi, 2.25rem); }
 
-  .light .homepilot-toggle-switch[data-state="unchecked"] { background-color: hsl(var(--muted-foreground)); border-color: hsl(var(--muted-foreground)); }
+  .light .homepilot-toggle-switch[data-state="unchecked"] .homepilot-toggle-track { background-color: hsl(var(--muted-foreground)); border-color: hsl(var(--muted-foreground)); }
   .light .homepilot-toggle-switch[data-state="unchecked"] .homepilot-toggle-thumb { background-color: hsl(var(--background)); }
   .sensor-status-badge { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.7rem; border-radius: 999px; background: hsl(var(--muted) / 0.65); font-size: clamp(0.75rem, 4.5cqi, 0.9375rem); line-height: 1.25; }
   .sensor-status-dot { width: 0.6rem; height: 0.6rem; flex-shrink: 0; border-radius: 50%; }
   .sensor-analog-skeleton { width: 100%; aspect-ratio: 320 / 265; border: clamp(0.4rem, 4cqi, 0.75rem) solid hsl(var(--muted)); border-radius: 50%; border-bottom-color: transparent; background: hsl(var(--muted) / 0.25); }
-
-  .homepilot-sensor-reading .sensor-percentage-meter {
-    display: block;
-    width: 100%;
-    height: 0.5rem;
-    flex-shrink: 0;
-    border-radius: 999px;
-    background: hsl(var(--dashboard-edge) / 0.55);
-  }
-
-  .homepilot-sensor-reading .sensor-percentage-fill {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: hsl(var(--primary));
-  }
 
   @container sensor-card (max-width: 11rem) {
     .homepilot-sensor-reading .sensor-premium-header {
@@ -1451,8 +1394,7 @@
   .homepilot-dashboard-screen .homepilot-clock-reference-weekday,
   .homepilot-dashboard-screen .homepilot-clock-reference-date,
   .homepilot-dashboard-screen .homepilot-clock-reference-location,
-  .homepilot-dashboard-screen .homepilot-clock-reference-condition,
-  .homepilot-dashboard-screen .homepilot-clock-reference-quote p {
+  .homepilot-dashboard-screen .homepilot-clock-reference-condition {
     font-weight: 400;
   }
 
@@ -1529,44 +1471,8 @@
     color: var(--hp-clock-muted);
   }
 
-  .homepilot-dashboard-screen .homepilot-clock-reference-quote {
-    display: flex;
-    align-items: center;
-    gap: clamp(0.65rem, 4cqi, 1.2rem);
-    min-height: clamp(3.35rem, 16.5cqi, 4.3rem);
-    padding: clamp(0.6rem, 2.1cqi, 0.9rem) clamp(0.85rem, 5cqi, 1.35rem);
-    border: 1px solid var(--hp-clock-rule);
-    border-radius: clamp(0.75rem, 3cqi, 1rem);
-    background: linear-gradient(125deg, var(--hp-clock-quote-start), var(--hp-clock-quote-end));
-    box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.025);
-  }
-
-  .homepilot-dashboard-screen .homepilot-clock-reference-quote-mark {
-    flex: none;
-    align-self: center;
-    height: 1.4rem;
-    color: var(--hp-clock-accent);
-    font-family: Georgia, serif;
-    font-size: clamp(2rem, 6cqi, 2.8rem);
-    font-weight: 700;
-    line-height: 1;
-    transform: scale(1.6);
-    transform-origin: center;
-  }
-
-  .homepilot-dashboard-screen .homepilot-clock-reference-quote p {
-    margin: 0;
-    font-size: clamp(0.68rem, 3.3cqi, 0.95rem);
-    line-height: 1.35;
-    color: var(--hp-clock-muted);
-  }
-
   .dark:not(.light) .homepilot-dashboard-screen .homepilot-clock-reference-dial-frame {
     box-shadow: 0 13px 25px -18px rgb(9 8 7 / 0.72), 0 0 12px rgb(255 154 82 / 0.09);
-  }
-
-  .dark:not(.light) .homepilot-dashboard-screen .homepilot-clock-reference-quote-mark {
-    color: rgb(255 154 82 / 0.72);
   }
 
   @container (max-width: 350px) {
@@ -1579,10 +1485,6 @@
       column-gap: 0.35rem;
     }
 
-    .homepilot-dashboard-screen .homepilot-clock-reference-quote {
-      gap: 0.65rem;
-      padding-inline: 0.85rem;
-    }
   }
 
   .dark:not(.light) .homepilot-dashboard-screen [data-media-player="homepilot-premium"] {
@@ -1667,10 +1569,6 @@
 
   .dark:not(.light) .homepilot-dashboard-screen .homepilot-sensor-reading {
     background: radial-gradient(circle at 24% 72%, rgb(var(--dashboard-premium-accent) / 0.06), transparent 42%), linear-gradient(145deg, rgb(var(--dashboard-premium-card) / 0.94), rgb(var(--dashboard-premium-section) / 0.95));
-  }
-
-  .dark:not(.light) .homepilot-dashboard-screen .homepilot-sensor-reading .sensor-percentage-meter {
-    background: rgb(var(--dashboard-premium-edge) / 0.14);
   }
 
   .homepilot-home {
@@ -2057,28 +1955,10 @@
 
   /* ── Glow utilities ───────────────────────────────────────── */
   .premium-glow         { box-shadow: var(--premium-glow); }
-  .premium-glow-success { box-shadow: var(--premium-glow-success); }
-  .premium-glow-danger  { box-shadow: var(--premium-glow-danger); }
-  .premium-glow-warning { box-shadow: var(--premium-glow-warning); }
 
   /* ── Motion utilities ────────────────────────────────────── */
-  .transition-fast { transition-duration: var(--duration-fast); }
-  .transition-base { transition-duration: var(--duration-base); }
-  .transition-slow { transition-duration: var(--duration-slow); }
-
   .animate-premium-pulse {
     animation: premium-pulse 2s var(--ease-in-out) infinite;
-  }
-
-  .premium-shimmer {
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      hsl(var(--foreground) / 0.05) 50%,
-      transparent 100%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 2.2s infinite linear;
   }
 
   /* ── Ripple interaction ───────────────────────────────────── */
@@ -2515,3 +2395,53 @@
 }
 .home-conversation-cancel-request { color: hsl(var(--primary)); }
 @media (max-width: 40rem) { .home-conversation-thread { padding-block: 1rem 1.5rem; } .home-conversation-empty-state { min-height: min(28rem, calc(100dvh - 13rem)); align-items: start; padding-block: 3.25rem 1.5rem; } .home-conversation-empty-title { font-size: 1.75rem; } .home-conversation-empty-description { max-width: 31ch; } .home-conversation-suggestions { align-items: stretch; flex-direction: column; width: 100%; } .home-conversation-suggestion { justify-content: flex-start; width: 100%; } .home-conversation-message--assistant { padding-left: 0.5rem; } .home-conversation-thread-actions { width: 100%; margin-top: 0; padding-top: 0.625rem; } .home-conversation-new-thread { width: 100%; } .home-conversation-composer-meta { align-items: center; } .home-conversation-composer-meta #home-conversation-input-hint { display: none; } }
+
+/* ── Lit tile ───────────────────────────────────────────────────────────
+ * Active devices become an illuminated matte surface (sand in dark, graphite
+ * in light) with the icon on a brand-orange disc. These rules are unlayered
+ * and doubled on the state class: older dashboard cascades are unlayered too
+ * (up to 0,4,0), so this block must come last and match their specificity.
+ * Geometry (size, radius, padding) is deliberately left to the components. */
+:root :is(.homepilot-room-devices, .homepilot-home-routines, .homepilot-dashboard-screen) .homepilot-section-light-tile-active.homepilot-section-light-tile-active {
+  border-color: hsl(var(--tile-lit));
+  background-color: hsl(var(--tile-lit));
+  background-image: linear-gradient(hsl(var(--tile-lit)), hsl(var(--tile-lit)));
+  box-shadow: 0 12px 24px -14px rgb(0 0 0 / 0.55);
+}
+
+:root :is(.homepilot-room-devices, .homepilot-home-routines, .homepilot-dashboard-screen) .homepilot-section-light-tile-active.homepilot-section-light-tile-active :is(span, p) {
+  color: hsl(var(--tile-lit-ink));
+}
+
+:root :is(.homepilot-room-devices, .homepilot-home-routines, .homepilot-dashboard-screen) .homepilot-section-light-tile-active.homepilot-section-light-tile-active .text-muted-foreground {
+  color: hsl(var(--tile-lit-ink-muted));
+}
+
+:root :is(.homepilot-room-devices, .homepilot-home-routines, .homepilot-dashboard-screen) .homepilot-section-light-tile-active.homepilot-section-light-tile-active svg {
+  color: hsl(var(--tile-chip-ink));
+  background-color: hsl(var(--tile-chip));
+  border-radius: 9999px;
+  box-shadow: 0 0 0 0.3rem hsl(var(--tile-chip));
+}
+
+:root .device-toggle-control.device-state-on.device-state-on {
+  border-color: transparent;
+  background: hsl(var(--tile-lit));
+  color: hsl(var(--tile-lit-ink));
+  box-shadow: 0 12px 24px -14px rgb(0 0 0 / 0.55);
+}
+
+:root .device-toggle-control.device-state-on.device-state-on .text-muted-foreground {
+  color: hsl(var(--tile-lit-ink-muted));
+}
+
+:root .device-toggle-control.device-state-on.device-state-on .device-toggle-icon {
+  background-color: hsl(var(--tile-chip));
+  color: hsl(var(--tile-chip-ink));
+  border-radius: 9999px;
+}
+
+:root .device-toggle-control.device-state-on.device-state-on .device-toggle-status {
+  background-color: hsl(var(--tile-lit-ink) / 0.1);
+  color: hsl(var(--tile-lit-ink));
+}

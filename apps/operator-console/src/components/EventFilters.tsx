@@ -13,9 +13,9 @@ export function EventFiltersSkeleton() {
 
 export function EventFilters({ value, onChange }: { value: EventFilterValues; onChange: (value: EventFilterValues) => void }) {
   const { t } = useTranslation();
-  return <div className="grid min-w-0 items-end gap-3 sm:grid-cols-3 [&_label]:m-0 [&_label]:block [&_label]:text-micro [&_label]:leading-5">
-    <DateField label={t('diagnostics.filters.date')} value={value.date} onChange={event => onChange({ ...value, date: event.target.value })} />
+  return <div className="grid min-w-0 items-end gap-3 sm:grid-cols-3">
+    <DateField label={t('diagnostics.filters.date')} placeholderLabel={t('diagnostics.filters.choose_date')} value={value.date} onChange={event => onChange({ ...value, date: event.target.value })} />
     <SearchableSelectField label={t('diagnostics.filters.action')} value={value.action} onChange={action => onChange({ ...value, action })} options={['all', 'scene', 'command', 'automation'].map(action => ({ value: action, label: t(`diagnostics.filters.${action}`) }))} className="space-y-1.5" />
-    <SearchInput label={t('diagnostics.filters.name')} placeholder={t('diagnostics.filters.search_name')} value={value.name} onChange={event => onChange({ ...value, name: event.target.value })} className="h-11" />
+    <SearchInput label={t('diagnostics.filters.name')} placeholder={t('diagnostics.filters.search_name')} value={value.name} onChange={event => onChange({ ...value, name: event.target.value })} />
   </div>;
 }

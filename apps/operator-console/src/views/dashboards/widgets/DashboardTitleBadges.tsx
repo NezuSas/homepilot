@@ -59,7 +59,7 @@ function TabBadgeContent({ tab, onSelectTab }: { tab: DashboardTitleTabRef; onSe
       aria-label={tab.title}
       variant="ghost"
       size="sm"
-      className={`${badgePillClass} h-auto min-h-0`}
+      className="shrink-0"
     >
       {Icon ? <Icon className="h-4 w-4" /> : null}
       <span className="max-w-24 truncate normal-case">{tab.title}</span>
@@ -95,7 +95,7 @@ export function TitleBadgeRow({
         if (badge.kind === 'tab' && !tab) return null;
 
         return (
-          <span key={badge.id} className="relative inline-flex">
+          <span key={badge.id} className="inline-flex max-w-full items-center gap-1.5">
             {badge.kind === 'weather' ? <WeatherBadgeContent /> : null}
             {badge.kind === 'time' ? <TimeBadgeContent /> : null}
             {badge.kind === 'tab' && tab ? <TabBadgeContent tab={tab} onSelectTab={onSelectTab} /> : null}
@@ -106,7 +106,7 @@ export function TitleBadgeRow({
                 label={t('common.delete')}
                 variant="danger"
                 size="sm"
-                className="absolute -right-1.5 -top-1.5 h-4 w-4 rounded-full p-0 shadow"
+                className="shrink-0"
               />
             ) : null}
           </span>

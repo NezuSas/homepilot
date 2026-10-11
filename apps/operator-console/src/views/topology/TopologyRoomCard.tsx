@@ -1,6 +1,6 @@
 import { CheckCircle2, Lightbulb } from 'lucide-react';
 import type { TFunction } from 'i18next';
-import { Button } from '../../components/ui/Button';
+import { SurfaceButton } from '../../components/ui/SurfaceButton';
 import { cn } from '../../lib/utils';
 import type { TopologyDevice, TopologyRoom } from './topologyPresentation';
 import { isActiveTopologyDevice, isTopologyLight } from './topologyPresentation';
@@ -18,10 +18,8 @@ export function TopologyRoomCard({ room, devices, selected, t, onSelect }: Topol
   const roomDevices = devices.filter(device => device.roomId === room.id && device.status === 'ASSIGNED');
   const hasActiveLight = roomDevices.some(device => isTopologyLight(device) && isActiveTopologyDevice(device));
 
-  return <Button
+  return <SurfaceButton
     type="button"
-    variant="ghost"
-    size="sm"
     onClick={onSelect}
     aria-pressed={selected}
     className={cn(
@@ -44,5 +42,5 @@ export function TopologyRoomCard({ room, devices, selected, t, onSelect }: Topol
       </div>
       {selected && <CheckCircle2 className="h-4 w-4 text-primary" />}
     </div>
-  </Button>;
+  </SurfaceButton>;
 }

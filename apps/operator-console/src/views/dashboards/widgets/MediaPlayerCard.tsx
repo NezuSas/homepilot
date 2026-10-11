@@ -87,7 +87,7 @@ function PremiumMediaPlayerCard({ title, compact, model }: { title: string; comp
           onClick={(event) => { event.stopPropagation(); invoke(powerCommand); }}
           variant="ghost"
           size="md"
-          className="h-9 w-9 rounded-full text-muted-foreground hover:bg-foreground/10 hover:text-primary"
+          className="text-muted-foreground hover:bg-foreground/10 hover:text-primary"
         />
         {hasPrevious && (
           <IconButton
@@ -97,7 +97,7 @@ function PremiumMediaPlayerCard({ title, compact, model }: { title: string; comp
             onClick={(event) => { event.stopPropagation(); invoke('media_previous_track'); }}
             variant="ghost"
             size="md"
-            className="h-9 w-9 rounded-full text-foreground hover:bg-foreground/10 hover:text-primary"
+            className="text-foreground hover:bg-foreground/10 hover:text-primary"
           />
         )}
         <IconButton
@@ -107,7 +107,7 @@ function PremiumMediaPlayerCard({ title, compact, model }: { title: string; comp
           onClick={(event) => { event.stopPropagation(); invoke(playPauseCommand); }}
           variant="primary"
           size="md"
-          className="homepilot-media-play-control h-11 w-11 rounded-full border border-primary/40 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary"
+          className="homepilot-media-play-control border border-primary/40 bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary"
         />
         {hasNext && (
           <IconButton
@@ -117,7 +117,7 @@ function PremiumMediaPlayerCard({ title, compact, model }: { title: string; comp
             onClick={(event) => { event.stopPropagation(); invoke('media_next_track'); }}
             variant="ghost"
             size="md"
-            className="h-9 w-9 rounded-full text-foreground hover:bg-foreground/10 hover:text-primary"
+            className="text-foreground hover:bg-foreground/10 hover:text-primary"
           />
         )}
       </div>
@@ -132,7 +132,7 @@ function PremiumMediaPlayerCard({ title, compact, model }: { title: string; comp
             onClick={(event) => { event.stopPropagation(); changeVolume(-MEDIA_VOLUME_STEP); }}
             variant="ghost"
             size="sm"
-            className="h-8 w-8 rounded-lg text-foreground/80 hover:text-primary"
+            className="text-foreground/80 hover:text-primary"
           />
           <MediaVolumeSlider value={currentVolume} disabled={!canActVolume} onCommit={model.setVolume} />
           <IconButton
@@ -142,7 +142,7 @@ function PremiumMediaPlayerCard({ title, compact, model }: { title: string; comp
             onClick={(event) => { event.stopPropagation(); changeVolume(MEDIA_VOLUME_STEP); }}
             variant="ghost"
             size="sm"
-            className="h-8 w-8 rounded-lg text-foreground/80 hover:text-primary"
+            className="text-foreground/80 hover:text-primary"
           />
         </div>
       )}

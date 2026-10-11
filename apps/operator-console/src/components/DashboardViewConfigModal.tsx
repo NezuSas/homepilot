@@ -1,47 +1,28 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { Eye, Image, SlidersHorizontal, Trash2, Loader2, type LucideIcon } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Eye, Image, SlidersHorizontal, Trash2, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { API_BASE_URL } from '../config';
-import { apiFetch } from '../lib/apiClient';
-import { dashboardBackgroundPresets, getDashboardBackgroundSource } from '../lib/dashboardBackgroundPresets';
-import { IconPicker } from '../views/dashboards/components/IconPicker';
 import { Button } from './ui/Button';
-import { Input } from './ui/Input';
 import { SegmentedControl } from './ui/SegmentedControl';
-import { ToggleSwitch } from './ui/ToggleSwitch';
-import { RangeInput } from './ui/RangeInput';
 import { Modal } from './ui/Modal';
-import { SearchableSelectField } from './ui/SearchableSelectField';
-
-
-const MAX_BG_PX = 1920;
-const BG_QUALITY = 0.8;
-const AMBER_RESIDENCE_SOURCE = dashboardBackgroundPresets.find((preset) => preset.id === 'homepilot-amber-residence')?.src;
-
-type ConfigTab = 'settings' | 'background' | 'visibility';
+import { DashboardViewSettingsTab } from './dashboardViewConfig/DashboardViewSettingsTab';
+import { DashboardViewBackgroundTab } from './dashboardViewConfig/DashboardViewBackgroundTab';
+import { DashboardViewVisibilityTab } from './dashboardViewConfig/DashboardViewVisibilityTab';
+import { useViewConfigDraft } from './dashboardViewConfig/useViewConfigDraft';
+import { useViewConfigUsers } from './dashboardViewConfig/useViewConfigUsers';
+import { useAmberResidenceAvailable } from './dashboardViewConfig/useAmberResidenceAvailable';
+import {
+  buildRouteSlug,
+  type DashboardViewConfigSaveFields,
+  type DashboardViewConfigTabData,
+  type ViewConfigTab,
+} from './dashboardViewConfig/viewConfigModel';
 
 interface DashboardViewConfigModalProps {
   isOpen: boolean;
   defaultTabOwnerTitle?: string;
-  tab: {
-    maxColumns?: 1 | 2 | 3 | 4;
-    title: string;
-    icon?: string;
-    background?: string;
-    backgroundOpacity?: number;
-    visibility?: { users: string[] };
-    isDefault?: boolean;
-  };
+  tab: DashboardViewConfigTabData;
   onClose: () => void;
-  onSave: (fields: {
-    maxColumns?: 1 | 2 | 3 | 4;
-    title: string;
-    icon?: string;
-    background?: string | null;
-    backgroundOpacity?: number;
-    visibility?: { users: string[] };
-    isDefault?: boolean;
-  }) => void;
+  onSave: (fields: DashboardViewConfigSaveFields) => void;
   onDelete: () => void;
 }
 
@@ -54,126 +35,43 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
   onDelete,
 }) => {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<ConfigTab>('settings');
-  const [draftTitle, setDraftTitle] = useState(tab.title);
-  const [maxColumns, setMaxColumns] = useState<1 | 2 | 3 | 4>(tab.maxColumns ?? 4);
-  const [backgroundOpacity, setBackgroundOpacity] = useState(tab.backgroundOpacity ?? 50);
-  const [backgroundImg, setBackgroundImg] = useState<string | null>(tab.background || null);
-  const [amberResidenceAvailable, setAmberResidenceAvailable] = useState(false);
-  const [allowedUsers, setAllowedUsers] = useState<string[]>(tab.visibility?.users || []);
+  const draft = useViewConfigDraft(isOpen, tab);
+  const { users, loadingUsers } = useViewConfigUsers(isOpen, tab);
+  const amberResidenceAvailable = useAmberResidenceAvailable(isOpen);
 
-  const [users, setUsers] = useState<Array<{ id: string; username: string; displayName?: string | null }>>([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
-
-  const [iconQuery, setIconQuery] = useState(tab.icon || '');
-  const [isDefaultTab, setIsDefaultTab] = useState(tab.isDefault ?? false);
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!isOpen || !AMBER_RESIDENCE_SOURCE) return;
-    const image = new window.Image();
-    let active = true;
-    image.onload = () => { if (active) setAmberResidenceAvailable(true); };
-    image.onerror = () => { if (active) setAmberResidenceAvailable(false); };
-    image.src = AMBER_RESIDENCE_SOURCE;
-    return () => { active = false; };
-  }, [isOpen]);
-
-  // Sync state with props when modal opens or tab changes
-  useEffect(() => {
-    if (!isOpen) return;
-    setDraftTitle(tab.title);
-    setMaxColumns(tab.maxColumns ?? 4);
-    setBackgroundOpacity(tab.backgroundOpacity ?? 50);
-    setBackgroundImg(tab.background || null);
-    setAllowedUsers(tab.visibility?.users || []);
-    setIconQuery(tab.icon || '');
-    setIsDefaultTab(tab.isDefault ?? false);
-    setActiveTab('settings');
-
-    // Fetch users for visibility tab
-    setLoadingUsers(true);
-    apiFetch(`${API_BASE_URL}/api/v1/admin/users`)
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setUsers(data);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoadingUsers(false));
-  }, [isOpen, tab]);
-
-  const routeSlug = useMemo(() => {
-    const source = draftTitle.trim() || tab.title || 'view';
-    return source
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '') || 'view';
-  }, [draftTitle, tab.title]);
+  const { draftTitle, setAllowedUsers } = draft;
+  const routeSlug = useMemo(() => buildRouteSlug(draftTitle, tab.title), [draftTitle, tab.title]);
 
   if (!isOpen) return null;
 
-  const tabs: Array<{ id: ConfigTab; label: string; icon: LucideIcon }> = [
+  const tabs: Array<{ id: ViewConfigTab; label: string; icon: LucideIcon }> = [
     { id: 'settings', label: t('dashboards.view_config.settings'), icon: SlidersHorizontal },
     { id: 'background', label: t('dashboards.view_config.background'), icon: Image },
     { id: 'visibility', label: t('dashboards.view_config.visibility'), icon: Eye },
   ];
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new window.Image();
-      img.onload = () => {
-        // Resize to at most MAX_BG_PX on the longest side
-        let { width, height } = img;
-        if (width > MAX_BG_PX || height > MAX_BG_PX) {
-          if (width > height) {
-            height = Math.round((height / width) * MAX_BG_PX);
-            width = MAX_BG_PX;
-          } else {
-            width = Math.round((width / height) * MAX_BG_PX);
-            height = MAX_BG_PX;
-          }
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d')!;
-        ctx.drawImage(img, 0, 0, width, height);
-        const compressed = canvas.toDataURL('image/jpeg', BG_QUALITY);
-        setBackgroundImg(compressed);
-      };
-      img.src = event.target?.result as string;
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
-  };
-
   const handleSave = () => {
-    const trimmedTitle = draftTitle.trim();
+    const trimmedTitle = draft.draftTitle.trim();
     if (trimmedTitle.length === 0) return;
 
     onSave({
-      maxColumns,
+      maxColumns: draft.maxColumns,
       title: trimmedTitle,
-      icon: iconQuery.trim() || undefined,
-      background: backgroundImg,
-      backgroundOpacity,
-      visibility: { users: allowedUsers },
-      isDefault: isDefaultTab,
+      icon: draft.iconQuery.trim() || undefined,
+      background: draft.backgroundImg,
+      backgroundOpacity: draft.backgroundOpacity,
+      visibility: { users: draft.allowedUsers },
+      isDefault: draft.isDefaultTab,
     });
   };
 
-  const backgroundPreviewSource = backgroundImg
-    ? getDashboardBackgroundSource(backgroundImg, API_BASE_URL)
-    : null;
+  const handleUserToggle = (userId: string, checked: boolean) => {
+    if (checked) {
+      setAllowedUsers(prev => [...prev, userId]);
+    } else {
+      setAllowedUsers(prev => prev.filter(id => id !== userId));
+    }
+  };
 
   return (
     <Modal
@@ -188,7 +86,7 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
       contentClassName="p-0"
       footer={(
         <>
-          <Button type="button" variant="ghost" size="sm" onClick={onDelete} className="px-0 text-danger hover:bg-transparent hover:text-danger">
+          <Button type="button" variant="danger" size="sm" onClick={onDelete}>
             <Trash2 className="h-4 w-4" />
             {t('dashboards.view_config.delete_view')}
           </Button>
@@ -201,185 +99,49 @@ export const DashboardViewConfigModal: React.FC<DashboardViewConfigModalProps> =
     >
         <nav className="shrink-0 border-b border-border/60 px-3 py-3 sm:px-5">
           <SegmentedControl
-            value={activeTab}
+            value={draft.activeTab}
             options={tabs.map(({ id, label, icon }) => ({ value: id, label, icon }))}
-            onChange={setActiveTab}
+            onChange={draft.setActiveTab}
             label={t('dashboards.view_config.title', { title: tab.title })}
             layout="wrap"
             className="w-full"
-            optionClassName="min-h-11 px-3 text-nano max-sm:[&>span]:sr-only sm:min-h-10 sm:px-2 sm:text-micro"
           />
         </nav>
 
         <div className="min-w-0 p-3 sm:p-6">
-          {activeTab === 'settings' && (
-            <div className="space-y-5">
-              <SearchableSelectField label={t('dashboards.edit_session.max_columns')} value={String(maxColumns)} options={[1, 2, 3, 4].map(value => ({ value: String(value), label: String(value) }))} onChange={value => setMaxColumns(Number(value) as 1 | 2 | 3 | 4)} />
-              <Input
-                label={t('dashboards.view_config.view_title')}
-                value={draftTitle}
-                onChange={event => setDraftTitle(event.target.value)}
-                containerClassName="rounded-xl bg-muted/45 px-4 py-3"
-                className="h-auto border-0 bg-transparent p-0 text-body-lg font-bold shadow-none focus-visible:border-transparent focus-visible:ring-0 focus-visible:shadow-none"
-              />
-
-              <div className="rounded-xl bg-muted/45 px-4 py-3">
-                {/* Shared picker: Home Assistant Material Design Icons + Lucide,
-                    same catalog and resolver used by dashboard cards. */}
-                <IconPicker
-                  value={iconQuery}
-                  onChange={setIconQuery}
-                  label={t('dashboards.view_config.icon')}
-                  placeholder={t('dashboards.view_config.icon_placeholder')}
-                />
-              </div>
-
-              <Input
-                label={t('dashboards.view_config.route_label')}
-                value={routeSlug}
-                readOnly
-                helperText={t('dashboards.view_config.url_hint')}
-                containerClassName="rounded-xl bg-muted/45 px-4 py-3"
-                className="h-auto cursor-default border-0 bg-transparent p-0 text-body-lg font-semibold shadow-none focus-visible:border-transparent focus-visible:ring-0 focus-visible:shadow-none"
-              />
-
-              <div className="flex w-full items-center justify-between gap-3 rounded-xl bg-muted/45 px-4 py-3">
-                <span className="min-w-0">
-                  <span className="block text-body font-bold text-foreground">{t('dashboards.view_config.default_view')}</span>
-                  <span className="mt-0.5 block text-caption text-muted-foreground">{t('dashboards.view_config.default_view_hint')}</span>
-                  {defaultTabOwnerTitle && !tab.isDefault && <span id="dashboard-default-tab-owner" className="mt-1 block text-caption text-muted-foreground">{t('dashboards.view_config.default_view_taken', { title: defaultTabOwnerTitle })}</span>}
-                </span>
-                <ToggleSwitch
-                  checked={isDefaultTab}
-                  onCheckedChange={setIsDefaultTab}
-                  label={t('dashboards.view_config.default_view')}
-                  disabled={Boolean(defaultTabOwnerTitle && !tab.isDefault)}
-                  aria-describedby={defaultTabOwnerTitle && !tab.isDefault ? 'dashboard-default-tab-owner' : undefined}
-                  size="sm"
-                />
-              </div>
-            </div>
+          {draft.activeTab === 'settings' && (
+            <DashboardViewSettingsTab
+              maxColumns={draft.maxColumns}
+              draftTitle={draft.draftTitle}
+              iconQuery={draft.iconQuery}
+              routeSlug={routeSlug}
+              isDefaultTab={draft.isDefaultTab}
+              defaultTabOwnerTitle={defaultTabOwnerTitle}
+              isCurrentDefault={tab.isDefault}
+              onMaxColumnsChange={draft.setMaxColumns}
+              onTitleChange={draft.setDraftTitle}
+              onIconChange={draft.setIconQuery}
+              onDefaultChange={draft.setIsDefaultTab}
+            />
           )}
 
-          {activeTab === 'background' && (
-            <div className="space-y-5">
-              <div className="min-w-0 rounded-xl bg-muted/35 p-3 text-center sm:p-4">
-                {backgroundImg ? (
-                  <img
-                    src={backgroundPreviewSource ?? backgroundImg}
-                    alt="Background Preview"
-                    className="mx-auto aspect-video w-full max-w-md rounded-lg border border-border/40 object-cover shadow-inner"
-                  />
-                ) : (
-                  <div className="mx-auto flex aspect-video w-full max-w-md items-center justify-center rounded-lg border-2 border-dashed border-border/60 bg-gradient-to-br from-muted via-card to-primary/10 text-caption font-semibold text-muted-foreground/45 opacity-70">
-                    {t('dashboards.view_config.no_image')}
-                  </div>
-                )}
-                <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-                  <Button size="sm" onClick={() => fileRef.current?.click()}>
-                    {t('dashboards.view_config.upload_image')}
-                  </Button>
-                  {backgroundImg && (
-                    <Button variant="danger" size="sm" onClick={() => setBackgroundImg(null)}>
-                      {t('dashboards.view_config.clear_image')}
-                    </Button>
-                  )}
-                </div>
-                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-              </div>
-
-              <section aria-labelledby="dashboard-background-presets" className="rounded-xl border border-border/70 bg-muted/20 p-4">
-                <div className="mb-3">
-                  <h3 id="dashboard-background-presets" className="text-body font-semibold text-foreground">
-                    {t('dashboards.view_config.background_presets.title')}
-                  </h3>
-                  <p className="mt-1 text-caption text-muted-foreground">
-                    {t('dashboards.view_config.background_presets.description')}
-                  </p>
-                </div>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" role="list">
-                  {dashboardBackgroundPresets.filter((preset) => preset.id !== 'homepilot-amber-residence' || amberResidenceAvailable).map((preset) => {
-                    const isSelected = backgroundImg === preset.src;
-                    return (
-                      <Button
-                        key={preset.id}
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        aria-pressed={isSelected}
-                        onClick={() => setBackgroundImg(preset.src)}
-                        className={[
-                          'group relative aspect-video h-auto w-full overflow-hidden rounded-control border p-0 shadow-sm',
-                          isSelected
-                            ? 'border-primary ring-2 ring-primary/45 ring-offset-2 ring-offset-card'
-                            : 'border-border/65 hover:border-primary/60',
-                        ].join(' ')}
-                      >
-                        <img src={preset.src} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" decoding="async" />
-                        <span className="absolute inset-x-0 bottom-0 bg-background/78 px-2 py-1 text-left text-nano font-semibold text-foreground backdrop-blur-sm">
-                          {t(preset.labelKey)}
-                        </span>
-                        <span className="sr-only">{t(preset.descriptionKey)}</span>
-                      </Button>
-                    );
-                  })}
-                </div>
-              </section>
-
-              <section className="rounded-xl border border-border/70 p-4">
-                <p className="mb-5 text-body font-semibold">{t('dashboards.view_config.background_settings')}</p>
-                <label className="grid gap-3 text-body">
-                  <span>{t('dashboards.view_config.background_opacity')}</span>
-                  <div className="flex items-center gap-4">
-                    <RangeInput
-                      aria-label={t('dashboards.view_config.background_opacity')}
-                      min={0}
-                      max={100}
-                      value={backgroundOpacity}
-                      onValueChange={setBackgroundOpacity}
-                      className="min-w-0 flex-1"
-                    />
-                    <span className="w-14 rounded-lg bg-muted px-3 py-2 text-center text-body">{backgroundOpacity}</span>
-                  </div>
-                </label>
-              </section>
-            </div>
+          {draft.activeTab === 'background' && (
+            <DashboardViewBackgroundTab
+              backgroundImg={draft.backgroundImg}
+              backgroundOpacity={draft.backgroundOpacity}
+              amberResidenceAvailable={amberResidenceAvailable}
+              onBackgroundChange={draft.setBackgroundImg}
+              onOpacityChange={draft.setBackgroundOpacity}
+            />
           )}
 
-          {activeTab === 'visibility' && (
-            <div className="space-y-4">
-              <p className="text-body text-foreground">{t('dashboards.editor.visibility_hint')}</p>
-              {loadingUsers ? (
-                <div className="flex justify-center py-4"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
-              ) : (
-                <div className="space-y-1.5 max-h-60 overflow-y-auto no-scrollbar pr-1">
-                  {users.map(user => {
-                    const isChecked = allowedUsers.includes(user.id);
-                    const userLabel = user.displayName || user.username;
-                    return (
-                      <div key={user.id} className="flex items-center justify-between rounded-xl border border-border/10 bg-muted/10 px-3 py-2.5 transition-colors hover:bg-muted/35">
-                        <span className="text-body font-bold">{userLabel}</span>
-                        <ToggleSwitch
-                          checked={isChecked}
-                          onCheckedChange={checked => {
-                            if (checked) {
-                              setAllowedUsers(prev => [...prev, user.id]);
-                            } else {
-                              setAllowedUsers(prev => prev.filter(id => id !== user.id));
-                            }
-                          }}
-                          label={userLabel}
-                          size="sm"
-                        />
-                      </div>
-                    );
-                  })}
-                  {users.length === 0 && (
-                    <div className="text-center py-8 text-caption text-muted-foreground">{t('dashboards.view_config.no_other_users')}</div>
-                  )}
-                </div>
-              )}
-            </div>
+          {draft.activeTab === 'visibility' && (
+            <DashboardViewVisibilityTab
+              users={users}
+              loadingUsers={loadingUsers}
+              allowedUsers={draft.allowedUsers}
+              onUserToggle={handleUserToggle}
+            />
           )}
         </div>
     </Modal>

@@ -110,7 +110,7 @@ export function ModbusReadProbe({ homeId, initial, onClose, onCreate }: {
       {!bit && <>
         <NumberInput label={t('modbus.scale')} step="any" value={scale} onValueChange={setScale} onEmpty={() => setScale(NaN)} />
         <NumberInput label={t('modbus.offset')} step="any" value={offset} onValueChange={setOffset} onEmpty={() => setOffset(NaN)} />
-        <MeasurementUnitSelect label={t('modbus.unit')} value={unit} onChange={setUnit} />
+        <MeasurementUnitSelect label={t('modbus.unit')} noUnitLabel={t('modbus.no_unit')} value={unit} onChange={setUnit} />
         {modbusWordCount(dataType) === 2 && <SearchableSelectField label={t('modbus.wordOrder')} value={wordOrder} options={modbusWordOrders.map(value => ({ value, label: t(`modbus.${value}`) }))} onChange={value => setWordOrder(value as ModbusVariable['wordOrder'])} />}
       </>}
     </div>

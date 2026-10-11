@@ -6,7 +6,8 @@ import { PlaySquare, Loader2, Sparkles, CheckCircle2 } from 'lucide-react';
 import { apiFetch } from '../../../lib/apiClient';
 import { API_BASE_URL } from '../../../config';
 import { DormantWidgetPlaceholder } from '../components/DormantWidgetPlaceholder';
-import { Button } from '../../../components/ui/Button';
+import { SurfaceButton } from '../../../components/ui/SurfaceButton';
+import { Heading } from '../../../components/ui/Heading';
 
 const API = `${API_BASE_URL}/api/v1`;
 
@@ -71,18 +72,16 @@ export function SceneShortcutWidget({ config, isEditing, onConfigure }: { config
         <p className="text-micro font-black uppercase tracking-label text-primary/50 mb-1">
           {t('dashboards.widgets.scenes_shortcut.label')}
         </p>
-        <h4 className="text-caption @md:text-body font-black tracking-tight text-foreground line-clamp-2 text-center leading-tight">{sceneName}</h4>
+        <Heading as="h4" variant="card" className="line-clamp-2 text-center leading-tight">{sceneName}</Heading>
       </div>
 
       <Sparkles className="absolute top-4 left-4 w-3 h-3 text-primary/20" />
       
-      <Button
+      <SurfaceButton
         type="button"
         onClick={handleTrigger}
         disabled={status !== 'idle'}
         aria-label={sceneName}
-        variant="ghost"
-        size="md"
         className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
       />
     </div>

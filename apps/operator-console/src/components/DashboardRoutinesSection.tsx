@@ -2,6 +2,8 @@ import { Settings2, Star } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { SectionActionCard } from '../views/dashboards/widgets/SectionActionCard';
 import { Button } from './ui/Button';
+import { EmptyState } from './ui/EmptyState';
+import { Heading } from './ui/Heading';
 
 interface RoutineScene {
   id: string;
@@ -58,24 +60,27 @@ export function DashboardRoutinesSection({
     <section className="homepilot-home-routines animate-in fade-in slide-in-from-bottom-4 duration-500" data-demo="dashboard-routines">
       <div className="mb-3 flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
         <div>
-          <h2 className="text-body font-semibold tracking-tight text-foreground">{t('dashboard.favorite_routines')}</h2>
+          <Heading variant="item" as="h2">{t('dashboard.favorite_routines')}</Heading>
           <p className="text-caption text-muted-foreground">{t('dashboard.favorite_routines_hint')}</p>
         </div>
-        <Button variant="ghost" onClick={onManage} className="h-auto gap-2 self-start px-0 text-caption font-semibold text-primary min-[420px]:self-auto">
+        <Button variant="ghost" onClick={onManage} className="self-start min-[420px]:self-auto">
           <Settings2 className="h-3.5 w-3.5" />
           {t('dashboard.manage_routines')}
         </Button>
       </div>
 
       {routines.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-panel border border-dashed border-border/60 bg-card/35 px-6 py-10 text-center">
-          <Star className="mb-3 h-8 w-8 text-primary/40" />
-          <p className="text-body font-semibold text-foreground">{t('dashboard.no_favorite_routines')}</p>
-          <p className="mt-1 max-w-md text-caption text-muted-foreground">{t('dashboard.no_favorite_routines_hint')}</p>
-          <Button variant="ghost" size="sm" onClick={onManage} className="mt-3 text-caption font-semibold text-primary">
-            {t('dashboard.manage_routines')}
-          </Button>
-        </div>
+        <EmptyState
+          variant="dashed"
+          icon={Star}
+          title={t('dashboard.no_favorite_routines')}
+          description={t('dashboard.no_favorite_routines_hint')}
+          action={(
+            <Button variant="ghost" size="sm" onClick={onManage}>
+              {t('dashboard.manage_routines')}
+            </Button>
+          )}
+        />
       ) : (
         <div className="flex flex-wrap gap-3" data-testid="favorite-routine-grid">
           {routines.map((routine) => {

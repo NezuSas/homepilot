@@ -1,17 +1,21 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type ComponentPropsWithoutRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, ChevronDown, Search } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { ChevronDown } from 'lucide-react';
+import { useUiLabels } from './uiLabels';
 import { cn } from '../../lib/utils';
+import { SearchableSelectPanel } from './searchableSelect/SearchableSelectPanel';
+import {
+  computeDropdownPosition,
+  filterOptions,
+  groupOptions,
+  readViewportBox,
+  type DropdownPosition,
+  type SearchableSelectOption,
+} from './searchableSelect/searchableSelectModel';
 
-export interface SearchableSelectOption {
-  value: string;
-  label: string;
-  description?: string;
-  group?: string;
-}
+export type { SearchableSelectOption };
 
-export interface SearchableSelectFieldProps {
+export interface SearchableSelectFieldProps extends Omit<ComponentPropsWithoutRef<'button'>, 'id' | 'value' | 'onChange' | 'title' | 'disabled' | 'className' | 'placeholder'> {
   id?: string;
   label?: string;
   value: string;
@@ -27,13 +31,6 @@ export interface SearchableSelectFieldProps {
   title?: string;
   placement?: 'auto' | 'down';
   className?: string;
-}
-
-interface DropdownPosition {
-  left: number;
-  top: number;
-  width: number;
-  maxHeight: number;
 }
 
 /**
@@ -58,8 +55,9 @@ export function SearchableSelectField({
   title,
   placement = 'auto',
   className,
+  ...triggerProps
 }: SearchableSelectFieldProps) {
-  const { t } = useTranslation();
+  const labels = useUiLabels();
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -71,38 +69,13 @@ export function SearchableSelectField({
 
   const selected = options.find((option) => option.value === value);
   const isOpen = dropdownPosition !== null;
-  const resolvedPlaceholder = placeholder ?? t('common.select_option');
+  const resolvedPlaceholder = placeholder ?? labels.selectOption;
 
   const updateDropdownPosition = useCallback(() => {
     const rect = triggerRef.current?.getBoundingClientRect();
     if (!rect) return;
 
-    const viewportPadding = 16;
-    const preferredMaxHeight = 288;
-    const visualViewport = window.visualViewport;
-    const viewportLeft = visualViewport?.offsetLeft ?? 0;
-    const viewportTop = visualViewport?.offsetTop ?? 0;
-    const viewportWidth = visualViewport?.width ?? window.innerWidth;
-    const viewportBottom = viewportTop + (visualViewport?.height ?? window.innerHeight);
-    const spaceBelow = viewportBottom - rect.bottom - viewportPadding;
-    const spaceAbove = rect.top - viewportTop - viewportPadding;
-    const opensUp = placement === 'auto' && spaceBelow < 180 && spaceAbove > spaceBelow;
-    const availableHeight = opensUp ? spaceAbove : spaceBelow;
-    const maxHeight = Math.max(0, Math.min(preferredMaxHeight, availableHeight - 8, (visualViewport?.height ?? window.innerHeight) - viewportPadding * 2));
-    const width = Math.min(rect.width, viewportWidth - viewportPadding * 2);
-    const left = Math.min(Math.max(viewportLeft + viewportPadding, rect.left), viewportLeft + viewportWidth - width - viewportPadding);
-    const preferredTop = opensUp ? rect.top - maxHeight - 8 : rect.bottom + 8;
-    const top = Math.min(
-      Math.max(viewportTop + viewportPadding, preferredTop),
-      viewportBottom - maxHeight - viewportPadding,
-    );
-
-    setDropdownPosition({
-      left,
-      top,
-      width,
-      maxHeight,
-    });
+    setDropdownPosition(computeDropdownPosition(rect, placement, readViewportBox()));
   }, [placement]);
 
   useEffect(() => {
@@ -138,40 +111,17 @@ export function SearchableSelectField({
     };
   }, [isOpen, updateDropdownPosition]);
 
-  const filteredOptions = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase();
-    if (!normalizedQuery) return options;
-
-    return options.filter((option) => (
-      option.label.toLocaleLowerCase().includes(normalizedQuery)
-      || option.description?.toLocaleLowerCase().includes(normalizedQuery)
-      || option.group?.toLocaleLowerCase().includes(normalizedQuery)
-    ));
-  }, [options, query]);
-  const groups = useMemo(() => {
-    const result: { label: string; options: SearchableSelectOption[] }[] = [];
-    for (const option of filteredOptions) {
-      const group = option.group ?? '';
-      const previous = result[result.length - 1];
-      if (previous?.label === group) previous.options.push(option);
-      else result.push({ label: group, options: [option] });
-    }
-    return result;
-  }, [filteredOptions]);
+  const filteredOptions = useMemo(() => filterOptions(options, query), [options, query]);
+  const groups = useMemo(() => groupOptions(filteredOptions), [filteredOptions]);
 
   const closeDropdown = () => {
     setDropdownPosition(null);
     setQuery('');
   };
 
-  const focusOption = (index: number) => {
-    if (filteredOptions.length === 0) {
-      return;
-    }
-
-    const normalizedIndex = (index + filteredOptions.length) % filteredOptions.length;
-    const option = filteredOptions[normalizedIndex];
-    optionRefs.current.get(option.value)?.focus();
+  const closeAndFocusTrigger = () => {
+    closeDropdown();
+    triggerRef.current?.focus();
   };
 
   const openDropdown = () => {
@@ -196,110 +146,27 @@ export function SearchableSelectField({
 
   const dropdown = isOpen && dropdownPosition && typeof document !== 'undefined'
     ? createPortal(
-        <div
-          ref={dropdownRef}
-          id={popupId}
-          role="dialog"
-          aria-label={label ?? resolvedPlaceholder}
-          className="fixed z-[100000] flex min-w-0 flex-col overflow-hidden rounded-panel border border-border/60 bg-popover/95 p-1.5 shadow-depth-3 backdrop-blur-xl"
-          style={{
-            left: dropdownPosition.left,
-            top: dropdownPosition.top,
-            width: dropdownPosition.width,
-            maxHeight: dropdownPosition.maxHeight,
+        <SearchableSelectPanel
+          popupId={popupId}
+          listboxId={listboxId}
+          ariaLabel={label ?? resolvedPlaceholder}
+          position={dropdownPosition}
+          query={query}
+          onQueryChange={setQuery}
+          searchPlaceholder={labels.search}
+          noResultsLabel={labels.noResults}
+          filteredOptions={filteredOptions}
+          groups={groups}
+          value={value}
+          onSelect={(nextValue) => {
+            onChange(nextValue);
+            closeAndFocusTrigger();
           }}
-        >
-          <div className="relative min-w-0 border-b border-border/50 p-1.5">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <input
-              ref={searchInputRef}
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'ArrowDown') {
-                  event.preventDefault();
-                  focusOption(0);
-                } else if (event.key === 'ArrowUp') {
-                  event.preventDefault();
-                  focusOption(filteredOptions.length - 1);
-                } else if (event.key === 'Escape') {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  closeDropdown();
-                  triggerRef.current?.focus();
-                }
-              }}
-              placeholder={t('common.search')}
-              className="h-9 min-w-0 w-full rounded-control bg-muted/50 py-2 pl-8 pr-3 text-caption font-medium text-foreground outline-none transition focus:ring-2 focus:ring-primary/35"
-            />
-          </div>
-
-          <div id={listboxId} role="listbox" aria-label={label ?? resolvedPlaceholder} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1">
-            {filteredOptions.length > 0 ? groups.map((group, index) => <div key={`${group.label}:${index}`} role={group.label ? 'group' : undefined} aria-label={group.label || undefined}>
-              {group.label && <p className="px-3 pb-1 pt-3 text-caption font-semibold text-muted-foreground">{group.label}</p>}
-              {group.options.map((option) => {
-              const isSelected = option.value === value;
-
-              return (
-                <button
-                  key={option.value}
-                  ref={(element) => {
-                    if (element) {
-                      optionRefs.current.set(option.value, element);
-                    } else {
-                      optionRefs.current.delete(option.value);
-                    }
-                  }}
-                  type="button"
-                  role="option"
-                  aria-selected={isSelected}
-                  onClick={() => {
-                    onChange(option.value);
-                    closeDropdown();
-                    triggerRef.current?.focus();
-                  }}
-                  onKeyDown={(event) => {
-                    const optionIndex = filteredOptions.findIndex((candidate) => candidate.value === option.value);
-
-                    if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Home' || event.key === 'End') {
-                      event.preventDefault();
-                      const nextIndex = event.key === 'ArrowDown'
-                        ? optionIndex + 1
-                        : event.key === 'ArrowUp'
-                          ? optionIndex - 1
-                          : event.key === 'Home'
-                            ? 0
-                            : filteredOptions.length - 1;
-                      focusOption(nextIndex);
-                    } else if (event.key === 'Escape') {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      closeDropdown();
-                      triggerRef.current?.focus();
-                    }
-                  }}
-                  className={cn(
-                    'flex w-full items-center justify-between gap-3 rounded-control px-3 py-2.5 text-left transition',
-                    isSelected
-                      ? 'bg-primary/15 text-primary'
-                      : 'text-foreground hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none',
-                  )}
-                >
-                  <span className="min-w-0">
-                    <span className="block break-words text-body font-semibold leading-snug">{option.label}</span>
-                    {option.description ? (
-                      <span className="mt-0.5 block break-words text-label leading-snug text-muted-foreground">{option.description}</span>
-                    ) : null}
-                  </span>
-                  {isSelected ? <Check className="h-4 w-4 shrink-0" /> : null}
-                </button>
-              );
-            })}</div>) : (
-              <p className="px-3 py-6 text-center text-caption text-muted-foreground">{t('common.no_results')}</p>
-            )}
-          </div>
-        </div>,
+          onEscape={closeAndFocusTrigger}
+          panelRef={dropdownRef}
+          searchInputRef={searchInputRef}
+          optionRefs={optionRefs}
+        />,
         document.body,
       )
     : null;
@@ -307,12 +174,13 @@ export function SearchableSelectField({
   return (
     <div className={cn('min-w-0 space-y-2', !fullWidth && 'w-auto', className)}>
       {label ? (
-        <label htmlFor={id} className="block break-words text-caption font-black uppercase tracking-label text-muted-foreground">
+        <label htmlFor={id} className="hp-field-label">
           {label}{required ? <span aria-hidden="true"> *</span> : null}
         </label>
       ) : null}
 
       <button
+        {...triggerProps}
         ref={triggerRef}
         id={id}
         type="button"

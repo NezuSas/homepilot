@@ -1,43 +1,30 @@
-import {
-  DndContext,
-  KeyboardSensor,
-  MouseSensor,
-  TouchSensor,
-  pointerWithin,
-  closestCenter,
-  rectIntersection,
-  useSensor,
-  useSensors,
-  DragOverlay,
-  defaultDropAnimationSideEffects,
-  useDroppable,
-} from '@dnd-kit/core';
-import type { CollisionDetection, DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
-import { SectionCardDragContext, moveSectionCard, placeSectionCard, sectionCardDragId, DASHBOARD_DRAG_TRANSITION, type SectionCardPlacement } from './sectionCardDrag';
-import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { useState, useMemo, useRef, useEffect, useLayoutEffect, isValidElement } from 'react';
-import { createPortal } from 'react-dom';
+import { DndContext } from '@dnd-kit/core';
+import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
+import { useState } from 'react';
 import { Plus } from 'lucide-react';
-import type { CSSProperties, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
-import { availableSectionSlot, moveSectionSlot, resolveSectionSlots, sectionLayoutKey, type SectionLayout } from './sectionSlots';
+import { SectionCardDragContext } from './sectionCardDrag';
+import { availableSectionSlot, type SectionLayout } from './sectionSlots';
 import { Button } from '../../components/ui/Button';
+import { SurfaceButton } from '../../components/ui/SurfaceButton';
 import { generateId } from '../../utils/generateId';
 import { createDefaultWidgetConfig } from './dashboardMutations';
 import { SectionWidget } from './widgets/SectionWidget';
-import { readCanvasSections, projectCanvasSections } from './dashboardSectionsAdapter';
 import ConfirmModal from '../../components/ConfirmModal';
 import type { DashboardWidget, DashboardWidgetConfig } from './types';
-import { DashboardWidgetNode, WidgetContent } from './DashboardWidget';
-import {
-  clampSectionSpan,
-  getDashboardSectionColumnsForViewport,
-  getSectionSpan,
-  isPortraitKioskViewport,
-  sanitizeWidget,
-} from './dashboardUtils';
+import { DashboardWidgetNode } from './DashboardWidget';
+import { CANVAS_ROW_UNIT, duplicateSectionWidgets } from './canvas/canvasLayout';
+import { canvasCollisionDetection } from './canvas/canvasCollision';
+import { CanvasDragOverlay } from './canvas/CanvasDragOverlay';
+import { CanvasFlowItem } from './canvas/CanvasFlowItem';
+import { SectionDropSlot } from './canvas/SectionDropSlot';
+import { SortableCanvasWidget } from './canvas/SortableCanvasWidget';
+import { useCanvasDragHandlers } from './canvas/useCanvasDragHandlers';
+import { useCanvasDragState } from './canvas/useCanvasDragState';
+import { useCanvasModel } from './canvas/useCanvasModel';
+import { useCanvasSensors } from './canvas/useCanvasSensors';
+import { useCanvasViewport } from './canvas/useCanvasViewport';
 
 interface DashboardCanvasProps {
   maxColumns?: number;
@@ -56,156 +43,6 @@ interface DashboardCanvasProps {
   onSelectTab?: (tabId: string) => void;
 }
 
-// Fine row unit used to measure each zone's real height (Home Assistant style
-// masonry: every item declares its own row-span instead of stretching to the
-// tallest sibling in its row).
-const CANVAS_ROW_UNIT = 8;
-
-function getCanvasGap(columns: number): number {
-  return columns === 1 ? 16 : 20;
-}
-
-/** Measures an element's rendered height and derives a grid row-span from it. */
-function useMeasuredRowSpan(gap: number) {
-  const [rowSpan, setRowSpan] = useState(1);
-  const nodeRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    const el = nodeRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver((entries) => {
-      const height = entries[0]?.contentRect.height ?? 0;
-      if (height > 0) {
-        setRowSpan(Math.max(1, Math.ceil((height + gap) / (CANVAS_ROW_UNIT + gap))));
-      }
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [gap]);
-
-  return { nodeRef, rowSpan };
-}
-
-/** Non-reorderable flow item (title widget, add-title/add-section placeholders). */
-function CanvasFlowItem({
-  span,
-  gap,
-  className,
-  style,
-  children,
-}: {
-  span: number;
-  gap: number;
-  className?: string;
-  style?: CSSProperties;
-  children: ReactNode;
-}) {
-  const { nodeRef, rowSpan } = useMeasuredRowSpan(gap);
-
-  return (
-    <div
-      ref={(node) => { nodeRef.current = node; }}
-      style={{ gridColumn: `span ${span}`, gridRow: `span ${rowSpan}`, ...style }}
-      className={cn("min-w-0", className)}
-    >
-      {children}
-    </div>
-  );
-}
-
-/** Reorderable zone: reordering drags the whole widget, sizing comes from its measured height. */
-function SortableCanvasWidget({
-  widget,
-  columns,
-  gap,
-  isEditing,
-  canDrag,
-  isSelected,
-  onClick,
-  onConfigChange,
-  onDelete,
-  onDuplicate,
-  slotMode = false,
-}: {
-  widget: DashboardWidget;
-  columns: number;
-  gap: number;
-  isEditing: boolean;
-  canDrag: boolean;
-  isSelected: boolean;
-  onClick: (id: string) => void;
-  onConfigChange?: (id: string, config: Partial<DashboardWidgetConfig>) => void;
-  onDelete?: (id: string) => void;
-  onDuplicate?: (id: string) => void;
-  slotMode?: boolean;
-}) {
-  const { nodeRef, rowSpan } = useMeasuredRowSpan(gap);
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } = useSortable({
-    id: widget.id,
-    data: { kind: widget.type === 'section' ? 'section' : 'widget', sectionId: widget.id, cardCount: Array.isArray(widget.config.extra?.cards) ? widget.config.extra.cards.length : 0, getPreviewRect: () => nodeRef.current?.getBoundingClientRect(), getPreviewNode: () => nodeRef.current },
-    disabled: !canDrag,
-    transition: DASHBOARD_DRAG_TRANSITION,
-  });
-  const span = clampSectionSpan(getSectionSpan(widget), columns);
-  const { t } = useTranslation();
-  const sectionDrag = canDrag && widget.type === 'section';
-  const dragSurface = (target: EventTarget | null, surface: HTMLElement) => {
-    if (!(target instanceof Element)) return false;
-    const control = target.closest('[data-dashboard-card-id], button, summary, input, select, textarea, a, [role="button"], [role="slider"]');
-    return !control || control === surface;
-  };
-
-  return (
-    <div
-      ref={(node) => { setNodeRef(node); nodeRef.current = node; }}
-      data-dashboard-drag-origin={isDragging ? 'true' : undefined}
-      data-dashboard-section-id={widget.type === 'section' ? widget.id : undefined}
-      data-dashboard-drop-target={canDrag && isOver && !isDragging ? 'true' : undefined}
-      {...(sectionDrag ? { ...attributes, 'aria-label': `${t('common.reorder')}: ${widget.config.appearance?.title || t('dashboard.editor.sections.untitled_section')}` } : {})}
-      onMouseDown={sectionDrag ? event => { if (dragSurface(event.target, event.currentTarget)) listeners?.onMouseDown?.(event); } : undefined}
-      onTouchStart={sectionDrag ? event => { if (dragSurface(event.target, event.currentTarget)) listeners?.onTouchStart?.(event); } : undefined}
-      onKeyDown={sectionDrag ? event => { if (event.target === event.currentTarget) listeners?.onKeyDown?.(event); } : undefined}
-      style={{
-        gridColumn: slotMode ? undefined : `span ${span}`,
-        gridRow: slotMode ? undefined : `span ${rowSpan}`,
-        transform: CSS.Translate.toString(transform),
-        transition: transition ?? undefined,
-        opacity: isDragging ? 0.4 : 1,
-      }}
-      className={cn(
-        "min-w-0 min-h-0 select-none relative rounded-section sm:rounded-panel lg:rounded-dashboard",
-        sectionDrag && 'touch-pan-y cursor-grab active:cursor-grabbing focus-visible:outline focus-visible:outline-primary',
-        isSelected && isEditing && widget.type !== 'section' && "z-10 ring-4 ring-primary ring-offset-4 ring-offset-background shadow-primary-ring"
-      )}
-    >
-      <DashboardWidgetNode
-        widget={widget}
-        isEditing={isEditing}
-        canDrag={canDrag}
-        isSelected={isEditing && isSelected}
-        onClick={() => { if (isEditing) onClick(widget.id); }}
-        onConfigChange={onConfigChange}
-        onDelete={onDelete}
-        onDuplicate={onDuplicate}
-        dragHandleAttributes={attributes}
-        dragHandleListeners={listeners}
-        columns={columns}
-      />
-    </div>
-  );
-}
-
-function SectionDropSlot({ index, columns, gap, editing, hasContent, children }: { index: number; columns: number; gap: number; editing: boolean; hasContent: boolean; children?: ReactNode }) {
-  const { setNodeRef, isOver } = useDroppable({ id: `section-slot-${index}`, disabled: !editing });
-  const { nodeRef, rowSpan } = useMeasuredRowSpan(gap);
-  return <div
-    ref={(node) => { setNodeRef(node); nodeRef.current = node; }}
-    style={{ gridColumn: (index % columns) + 1, gridRow: `span ${rowSpan}` }}
-    data-section-slot={index}
-      className={cn('min-w-0', !hasContent && 'min-h-36', isOver && editing && 'rounded-panel outline outline-2 outline-primary/75 bg-primary/10')}
-  >{children}</div>;
-}
-
 export function DashboardCanvas({
   maxColumns = 4,
   widgets,
@@ -215,389 +52,42 @@ export function DashboardCanvas({
   onLayoutChange, sectionLayout, onWidgetConfigChange, onAddSectionClick, onAddTitleClick,
   tabs, currentTabId, onSelectTab }: DashboardCanvasProps) {
   const { t } = useTranslation();
-  const [activeWidget, setActiveWidget] = useState<DashboardWidget | null>(null);
-  const [cardDragIdentities, setCardDragIdentities] = useState<Record<string, string>>({});
-  // Temporary layout follows the pointer; persistence happens only on drop.
-  const [dragLayout, setDragLayout] = useState<{ widgets: DashboardWidget[]; layout?: SectionLayout } | null>(null);
-  const dragSession = useRef<{ widgets: DashboardWidget[]; layout?: SectionLayout; sourceSectionId?: string; lastTarget?: string; identities: Record<string, string> } | null>(null);
-  const previousSectionRects = useRef(new Map<string, DOMRect>());
-  const sectionAnimations = useRef<Animation[]>([]);
-  useLayoutEffect(() => {
-    const previous = previousSectionRects.current;
-    previousSectionRects.current = new Map();
-    if (!previous.size || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const animations: Animation[] = [];
-    containerRef.current?.querySelectorAll<HTMLElement>('[data-dashboard-section-id], [data-dashboard-card-id]').forEach(node => {
-      const section = node.closest<HTMLElement>('[data-dashboard-section-id]');
-      const key = node.dataset.dashboardCardId ? sectionCardDragId(section?.dataset.dashboardSectionId ?? '', node.dataset.dashboardCardId) : node.dataset.dashboardSectionId!;
-      const before = previous.get(key);
-      if (!before || node.dataset.dashboardDragOrigin === 'true') return;
-      const after = node.getBoundingClientRect();
-      const parentBefore = node.dataset.dashboardCardId && section?.dataset.dashboardDragOrigin !== 'true' ? previous.get(section?.dataset.dashboardSectionId ?? '') : undefined;
-      const parentAfter = parentBefore ? section?.getBoundingClientRect() : undefined;
-      const x = before.left - after.left - (parentBefore && parentAfter ? parentBefore.left - parentAfter.left : 0);
-      const y = before.top - after.top - (parentBefore && parentAfter ? parentBefore.top - parentAfter.top : 0);
-      if (x || y) animations.push(node.animate([{ transform: `translate(${x}px, ${y}px)` }, { transform: 'translate(0, 0)' }], DASHBOARD_DRAG_TRANSITION));
-    });
-    sectionAnimations.current = animations;
-    return () => animations.forEach(animation => animation.cancel());
-  }, [dragLayout]);
-  const [dragPreview, setDragPreview] = useState<{ content?: ReactNode; node?: HTMLElement; radius?: string; width: number; height: number } | null>(null);
   const [pendingDeleteWidgetId, setPendingDeleteWidgetId] = useState<string | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(0);
-  const [viewportSize, setViewportSize] = useState(() => ({
-    width: window.innerWidth,
-    height: window.innerHeight,
-  }));
-  const columns = useMemo(
-    () => Math.min(maxColumns, getDashboardSectionColumnsForViewport(containerWidth, viewportSize.width, viewportSize.height)),
-    [maxColumns, containerWidth, viewportSize.height, viewportSize.width],
-  );
-  const isPortraitKiosk = isPortraitKioskViewport(viewportSize.width, viewportSize.height);
-  const gap = getCanvasGap(columns);
+  const { containerRef, columns, gap, isPortraitKiosk } = useCanvasViewport(maxColumns);
   // Editing (reorder + span) is available at every breakpoint: the flow model
   // no longer needs a desktop-only coordinate system to stay coherent.
   const canEditLayout = isEditing;
+  const drag = useCanvasDragState(containerRef);
+  const { activeWidget, cardDragIdentities, dragLayout, dragPreview, dragSession } = drag;
+  const model = useCanvasModel({
+    widgets, dragLayout, sectionLayout, columns, currentTabId, isEditing,
+    isDraggingSection: activeWidget?.type === 'section',
+  });
+  const { badgeWidget, titleWidget, flowWidgets, flowWidgetIds, sectionSlots, useSectionSlots, slotCount, sectionById } = model;
 
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver((entries) => {
-      const width = entries[0]?.contentRect.width ?? 0;
-      if (width > 0) setContainerWidth(width);
-    });
-    observer.observe(el);
-    setContainerWidth(el.getBoundingClientRect().width);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    const updateViewportSize = () => {
-      setViewportSize({ width: window.innerWidth, height: window.innerHeight });
-    };
-
-    window.addEventListener('resize', updateViewportSize);
-    return () => window.removeEventListener('resize', updateViewportSize);
-  }, []);
-
-  const sanitizedWidgets = useMemo(() => {
-    const baseWidgets = (dragLayout?.widgets ?? widgets).map(sanitizeWidget);
-
-    const isBrokenSectionTitle = (value: unknown) =>
-      typeof value === 'string' && /[ÃÂâÆ€]/.test(value);
-
-    return baseWidgets.map((widget) => {
-      if (widget.type !== 'section') return widget;
-      if (!isBrokenSectionTitle(widget.config.appearance?.title)) return widget;
-
-      return {
-        ...widget,
-        config: {
-          ...widget.config,
-          appearance: {
-            ...widget.config.appearance,
-            title: t('dashboard.editor.sections.new_section'),
-          },
-        },
-      };
-    });
-  }, [dragLayout?.widgets, widgets, t]);
-
-  const badgeWidget = sanitizedWidgets.find(widget => widget.type === 'section' && widget.config.extra?.badgeRow === true);
   const createBadgeRow = () => {
     const config = createDefaultWidgetConfig('section', undefined, { titleArea: '', newSection: '', titlePlaceholder: '', subtitlePlaceholder: '' });
     onLayoutChange([...widgets, { id: generateId(), type: 'section', config: { ...config, appearance: { ...config.appearance, showTitle: false }, extra: { ...config.extra, badgeRow: true, cards: [] } } }], sectionLayout);
   };
-  const titleWidget = sanitizedWidgets.find((widget) => widget.type === 'dashboard_title') ?? null;
-  const sectionModel = useMemo(() => readCanvasSections(sanitizedWidgets, currentTabId ?? 'preview'), [sanitizedWidgets, currentTabId]);
-  // Everything that isn't the pinned title flows and reorders together,
-  // Home Assistant "Sections" style: order in this array is visual order.
-  const flowWidgets = useMemo(
-    () => projectCanvasSections(sanitizedWidgets, sectionModel).filter((widget) => widget.type !== 'dashboard_title' && widget.config.extra?.badgeRow !== true),
-    [sanitizedWidgets, sectionModel],
-  );
-  const flowWidgetIds = useMemo(() => flowWidgets.map((widget) => widget.id), [flowWidgets]);
-  const sectionWidgets = useMemo(() => flowWidgets.filter((widget) => widget.type === 'section'), [flowWidgets]);
-  const visibleSectionLayout = dragLayout?.layout ?? sectionLayout;
-  const sectionSlots = useMemo(() => resolveSectionSlots(flowWidgets, visibleSectionLayout, columns), [flowWidgets, visibleSectionLayout, columns]);
-  // All Sections render in one slot, including historical multitrack data.
-  // Keep the sparse slot map authoritative wherever a profile was saved.
-  const useSectionSlots = sectionWidgets.length > 0
-    && sectionWidgets.every((widget) => getSectionSpan(widget) === 1);
-  const slotCount = useSectionSlots
-    ? Math.ceil(Math.max(sectionSlots.length, isEditing ? availableSectionSlot(sectionSlots) + 1 : 0) / columns) * columns + (activeWidget?.type === 'section' ? columns : 0)
-    : 0;
-  const sectionById = useMemo(() => new Map(sectionWidgets.map((widget) => [widget.id, widget])), [sectionWidgets]);
   const duplicateSection = (id: string) => {
-    const source = widgets.find(widget => widget.id === id && widget.type === 'section');
-    if (!source) return;
-    const duplicate = structuredClone(source);
-    duplicate.id = generateId();
-    if (duplicate.config.binding.entityType === 'system' && duplicate.config.binding.entityId === source.id) duplicate.config.binding.entityId = duplicate.id;
-    const cards = duplicate.config.extra?.cards;
-    if (Array.isArray(cards)) duplicate.config.extra = { ...duplicate.config.extra, cards: cards.map((card: unknown) => card && typeof card === 'object' ? { ...card, id: generateId() } : card) };
-    const index = widgets.findIndex(widget => widget.id === id);
-    onLayoutChange([...widgets.slice(0, index + 1), duplicate, ...widgets.slice(index + 1)]);
+    const duplicated = duplicateSectionWidgets(widgets, id, generateId);
+    if (duplicated) onLayoutChange(duplicated);
   };
 
-  const sensorOptions = useMemo(() => ({
-    activationConstraint: {
-      distance: 8,
-    },
-  }), []);
-
-  const sensors = useSensors(
-    useSensor(MouseSensor, sensorOptions),
-    useSensor(TouchSensor, { activationConstraint: { delay: 500, tolerance: 8 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: (event, args) => {
-        // Cards navigate between cards/empty Sections. Sections that use the
-        // sparse slot model navigate only through slot droppables; otherwise
-        // overlapping Section and slot rectangles make keyboard movement
-        // collapse the order instead of preserving intentional gaps.
-        const activeKind = args.context.active?.data.current?.kind;
-        const isCard = activeKind === 'section-card';
-        const isSectionSlotDrag = activeKind === 'section' && useSectionSlots;
-        const droppableRects = new Map(args.context.droppableRects);
-
-        for (const container of args.context.droppableContainers.getEnabled()) {
-          const data = container.data.current;
-          const id = String(container.id);
-
-          const eligible = isCard
-            ? data?.kind === 'section-card' || (data?.kind === 'section' && data.cardCount === 0)
-            : isSectionSlotDrag
-              ? id.startsWith('section-slot-')
-              : data?.kind !== 'section-card';
-
-          if (!eligible) droppableRects.delete(container.id);
-        }
-
-        return sortableKeyboardCoordinates(event, {
-          ...args,
-          context: { ...args.context, droppableRects },
-        });
-      },
-    }),
-  );
-
-  const handleDragStart = (event: DragStartEvent) => {
-    if (!canEditLayout) return;
-    dragSession.current = { widgets, layout: sectionLayout, sourceSectionId: event.active.data.current?.sectionId, identities: cardDragIdentities };
-    const widget = flowWidgets.find((w) => w.id === event.active.id);
-    if (widget) setActiveWidget(widget);
-    const getPreviewRect = event.active.data.current?.getPreviewRect;
-    const rect = event.active.rect.current.initial ?? (typeof getPreviewRect === 'function' ? getPreviewRect() : null);
-    const getPreviewNode = event.active.data.current?.getPreviewNode;
-    const original = typeof getPreviewNode === 'function' ? getPreviewNode() : null;
-    const clone = original instanceof HTMLElement ? original.cloneNode(true) as HTMLElement : undefined;
-    if (clone && original instanceof HTMLElement) {
-      // Snapshot the actual surface, not a second presenter with view-mode
-      // padding/controls. Canvas instruments must keep their painted pixels.
-      const canvases = clone.querySelectorAll('canvas');
-      original.querySelectorAll('canvas').forEach((canvas, index) => canvases[index]?.getContext('2d')?.drawImage(canvas, 0, 0));
-      const ids = new Map<string, string>();
-      clone.querySelectorAll('[id]').forEach((node, index) => {
-        const id = node.getAttribute('id');
-        if (id) ids.set(id, `dashboard-drag-preview-${index}`);
-      });
-      for (const node of [clone, ...clone.querySelectorAll('*')]) {
-        for (const attribute of [...node.attributes]) {
-          let value = attribute.value;
-          for (const [originalId, previewId] of ids) value = value.replaceAll(`url(#${originalId})`, `url(#${previewId})`);
-          if (attribute.name === 'id') value = ids.get(value) ?? value;
-          if ((attribute.name === 'href' || attribute.name === 'xlink:href') && ids.has(value.slice(1))) value = `#${ids.get(value.slice(1))}`;
-          if (value !== attribute.value) node.setAttribute(attribute.name, value);
-        }
-        for (const name of ['aria-describedby', 'data-dashboard-card-id', 'data-dashboard-section-id', 'data-dashboard-drag-origin', 'data-dashboard-drop-target']) node.removeAttribute(name);
-      }
-      Object.assign(clone.style, { width: '100%', height: '100%', gridRow: 'auto', gridColumn: 'auto', transform: 'none', transition: 'none', opacity: '1' });
-    }
-    if (rect) setDragPreview({ width: rect.width, height: rect.height,
-      node: clone, radius: original instanceof HTMLElement ? getComputedStyle(original).borderRadius : undefined,
-      content: isValidElement(event.active.data.current?.preview) ? event.active.data.current.preview : undefined });
-  };
-
-  const handleDragOver = ({ active, over }: DragOverEvent) => {
-    const session = dragSession.current;
-    if (!session || !over || active.id === over.id || session.lastTarget === String(over.id)) return;
-    const source = active.data.current;
-    const destination = over.data.current;
-    if (source?.kind === 'section-card' && typeof source.cardId === 'string' && session.sourceSectionId
-      && typeof destination?.sectionId === 'string'
-      && (destination.sectionId !== session.sourceSectionId || destination.kind === 'section-card')) {
-      const moved = moveSectionCard(session.widgets, session.sourceSectionId, source.cardId, destination.sectionId, destination.kind === 'section-card' ? destination.cardId : undefined);
-      if (moved === session.widgets) return;
-      const sourceKey = sectionCardDragId(session.sourceSectionId, source.cardId);
-      const targetKey = sectionCardDragId(destination.sectionId, source.cardId);
-      if (destination.sectionId !== session.sourceSectionId) setCardDragIdentities(current => {
-        const next = { ...current, [targetKey]: current[sourceKey] ?? String(active.id) };
-        delete next[sourceKey];
-        return next;
-      });
-      session.widgets = moved;
-      session.sourceSectionId = destination.sectionId;
-    } else if (source?.kind === 'section' && useSectionSlots) {
-      // Each preview starts from the saved slot map, not previous hover swaps.
-      const slots = resolveSectionSlots(widgets, sectionLayout, columns);
-      const target = String(over.id);
-      const targetIndex = target.startsWith('section-slot-') ? Number(target.slice('section-slot-'.length)) : slots.indexOf(target);
-      const moved = moveSectionSlot(slots, String(active.id), targetIndex);
-      if (moved === slots) return;
-      session.layout = { ...session.layout, [sectionLayoutKey(columns)]: moved };
-    } else if (source?.kind === 'section' && over.data.current?.kind === 'section') {
-      const from = widgets.findIndex(widget => widget.id === active.id);
-      const to = widgets.findIndex(widget => widget.id === over.id);
-      if (from < 0 || to < 0 || from === to) return;
-      session.widgets = arrayMove(widgets, from, to);
-      const reordered = session.widgets.filter(widget => widget.type === 'section').map(widget => widget.id);
-      let index = 0;
-      const oldSlots = resolveSectionSlots(widgets, sectionLayout, columns);
-      session.layout = { ...session.layout, [sectionLayoutKey(columns)]: oldSlots.map(id => id === null ? null : reordered[index++] ?? null) };
-    } else return;
-    session.lastTarget = String(over.id);
-    previousSectionRects.current = new Map();
-    containerRef.current?.querySelectorAll<HTMLElement>('[data-dashboard-section-id], [data-dashboard-card-id]').forEach(node => {
-      const sectionId = node.closest<HTMLElement>('[data-dashboard-section-id]')?.dataset.dashboardSectionId ?? '';
-      const key = node.dataset.dashboardCardId ? sectionCardDragId(sectionId, node.dataset.dashboardCardId) : node.dataset.dashboardSectionId!;
-      previousSectionRects.current.set(key, node.getBoundingClientRect());
-    });
-    sectionAnimations.current.forEach(animation => animation.cancel());
-    setDragLayout({ widgets: session.widgets, layout: session.layout });
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    setActiveWidget(null);
-    setDragPreview(null);
-    const session = dragSession.current;
-    dragSession.current = null;
-    setDragLayout(null);
-    if (!canEditLayout) return;
-
-    const { active, over } = event;
-    if (!over) {
-      if (session) setCardDragIdentities(session.identities);
-      return;
-    }
-    if (active.data.current?.kind === 'section-card' && (over.data.current?.kind === 'section' || over.data.current?.kind === 'section-card')) {
-      const sourceId = session?.sourceSectionId ?? active.data.current.sectionId;
-      const targetId = over.data.current.sectionId;
-      const cardId = active.data.current.cardId;
-      const dragged = active.rect.current.translated;
-      const placements: Record<string, SectionCardPlacement[]> = {};
-      let destination: { column: number; row: number } | undefined;
-      containerRef.current?.querySelectorAll<HTMLElement>('[data-dashboard-section-id]').forEach(section => {
-        const id = section.dataset.dashboardSectionId;
-        const grid = section.querySelector<HTMLElement>('[data-section-card-grid]');
-        if (!id || !grid) return;
-        const bounds = grid.getBoundingClientRect();
-        const step = (bounds.width + 8) / 12;
-        const tracks = getComputedStyle(grid).gridTemplateRows.split(' ').map(Number.parseFloat).filter(Number.isFinite);
-        const rowAt = (y: number) => {
-          let offset = 0;
-          for (let index = 0; index < tracks.length; index++) {
-            if (y < offset + tracks[index] + 4) return index + 1;
-            offset += tracks[index] + 8;
-          }
-          return tracks.length + Math.max(1, Math.floor((y - offset) / 28) + 1);
-        };
-        placements[id] = Array.from(grid.querySelectorAll<HTMLElement>('[data-dashboard-card-id]')).map(node => {
-          const rect = node.getBoundingClientRect();
-          const row = rowAt(rect.top - bounds.top);
-          return { id: node.dataset.dashboardCardId!, column: Math.max(1, Math.round((rect.left - bounds.left) / step) + 1), row,
-            columns: Math.max(1, Math.min(12, Math.round((rect.width + 8) / step))), rows: Math.max(1, rowAt(rect.bottom - bounds.top - 1) - row + 1) };
-        });
-        if (id === targetId && dragged) destination = { column: Math.round((dragged.left - bounds.left) / step) + 1, row: rowAt(dragged.top - bounds.top) };
-      });
-      if (typeof sourceId === 'string' && typeof targetId === 'string' && typeof cardId === 'string' && destination) {
-        const placed = placeSectionCard(session?.widgets ?? widgets, sourceId, cardId, targetId, destination.column, destination.row, placements);
-        onLayoutChange(placed, session?.layout ?? sectionLayout);
-        return;
-      }
-    }
-    // A cross-section/slot preview is already at its destination. Do not swap
-    // it back when the pointer ends over the relocated ghost itself.
-    if (session?.lastTarget) {
-      onLayoutChange(session.widgets, session.layout);
-      return;
-    }
-    if (active.id === over.id) return;
-    const source = active.data.current;
-    const destination = over.data.current;
-    if (source?.kind === 'section-card') {
-      if (typeof source.sectionId !== 'string' || typeof source.cardId !== 'string' || typeof destination?.sectionId !== 'string') return;
-      const moved = moveSectionCard(widgets, source.sectionId, source.cardId, destination.sectionId, destination.kind === 'section-card' ? destination.cardId : undefined);
-      if (moved !== widgets) {
-        if (source.sectionId !== destination.sectionId) {
-          const sourceKey = sectionCardDragId(source.sectionId, source.cardId);
-          const targetKey = sectionCardDragId(destination.sectionId, source.cardId);
-          // Preserve the active registration at its new node for drop motion.
-          setCardDragIdentities(current => {
-            const next = { ...current, [targetKey]: current[sourceKey] ?? sourceKey };
-            delete next[sourceKey];
-            return next;
-          });
-        }
-        onLayoutChange(moved, sectionLayout);
-      }
-      return;
-    }
-
-    if (useSectionSlots && sectionById.has(String(active.id))) {
-      const target = String(over.id);
-      const targetIndex = target.startsWith('section-slot-')
-        ? Number(target.slice('section-slot-'.length))
-        : sectionSlots.indexOf(target);
-      if (!Number.isInteger(targetIndex) || targetIndex < 0) return;
-      const moved = moveSectionSlot(sectionSlots, String(active.id), targetIndex);
-      if (moved === sectionSlots) return;
-      onLayoutChange(widgets, { ...sectionLayout, [sectionLayoutKey(columns)]: moved });
-      return;
-    }
-
-    const oldIndex = flowWidgets.findIndex((w) => w.id === active.id);
-    const newIndex = flowWidgets.findIndex((w) => w.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-
-    const reorderedFlow = arrayMove(flowWidgets, oldIndex, newIndex);
-    const reordered = titleWidget ? [titleWidget, ...reorderedFlow] : reorderedFlow;
-    onLayoutChange(reordered);
-  };
-
-  const handleDragCancel = () => {
-    setActiveWidget(null);
-    setDragPreview(null);
-    if (dragSession.current) setCardDragIdentities(dragSession.current.identities);
-    dragSession.current = null;
-    setDragLayout(null);
-  };
-
-  const collisionDetection: CollisionDetection = (args) => {
-    const isCard = args.active.data.current?.kind === 'section-card';
-    const droppableContainers = args.droppableContainers.filter((container) => isCard
-      ? container.data.current?.kind === 'section-card' || container.data.current?.kind === 'section'
-      : container.data.current?.kind !== 'section-card');
-    if (!isCard) {
-      const hits = pointerWithin({ ...args, droppableContainers });
-      const slot = hits.find(hit => String(hit.id).startsWith('section-slot-'));
-      return slot ? [slot] : hits.length ? hits : rectIntersection({ ...args, droppableContainers });
-    }
-    const hits = pointerWithin({ ...args, droppableContainers });
-    const cardHits = hits.filter((hit) => droppableContainers.find((container) => container.id === hit.id)?.data.current?.kind === 'section-card');
-    return cardHits.length ? cardHits : hits.length ? hits : args.pointerCoordinates ? [] : closestCenter({ ...args, droppableContainers });
-  };
-
+  const sensors = useCanvasSensors(useSectionSlots);
+  const { handleDragStart, handleDragOver, handleDragEnd, handleDragCancel } = useCanvasDragHandlers({
+    canEditLayout, widgets, sectionLayout, columns, containerRef, drag, model, onLayoutChange,
+  });
 
   const pendingDeleteWidget = pendingDeleteWidgetId
     ? widgets.find((widget) => widget.id === pendingDeleteWidgetId) ?? null
     : null;
 
-  const addSectionControl = canEditLayout ? <Button
-    type="button" variant="ghost" size="md" onClick={onAddSectionClick}
+  const addSectionControl = canEditLayout ? <SurfaceButton
+    type="button" onClick={onAddSectionClick}
     aria-label={t('dashboard.editor.sections.add_section')}
     className="min-h-36 w-full rounded-field border-2 border-dashed border-border/70 bg-background/10 text-primary hover:border-primary/70 hover:bg-primary/5"
-  ><span aria-hidden="true" className="text-panel-title font-light">+</span></Button> : null;
+  ><span aria-hidden="true" className="text-panel-title font-light">+</span></SurfaceButton> : null;
 
   return (
     <DndContext
@@ -614,7 +104,7 @@ export function DashboardCanvas({
         },
       } }}
       sensors={sensors}
-      collisionDetection={collisionDetection}
+      collisionDetection={canvasCollisionDetection}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onDragOver={handleDragOver}
@@ -661,7 +151,7 @@ export function DashboardCanvas({
         </CanvasFlowItem> : null}
 
         {badgeWidget ? <CanvasFlowItem span={columns} gap={gap}><SectionWidget sectionId={badgeWidget.id} config={badgeWidget.config} isEditing={isEditing} onUpdate={config => onWidgetConfigChange?.(badgeWidget.id, config)} /></CanvasFlowItem>
-          : canEditLayout ? <CanvasFlowItem span={columns} gap={gap}><Button variant="ghost" className="min-h-11 border border-dashed border-border text-muted-foreground" onClick={createBadgeRow}><Plus className="size-4" aria-hidden="true" />{t('dashboard.editor.sections.add_labels')}</Button></CanvasFlowItem> : null}
+          : canEditLayout ? <CanvasFlowItem span={columns} gap={gap}><Button variant="ghost" className="border border-dashed border-border text-muted-foreground" onClick={createBadgeRow}><Plus className="size-4" aria-hidden="true" />{t('dashboard.editor.sections.add_labels')}</Button></CanvasFlowItem> : null}
 
         {useSectionSlots && <CanvasFlowItem span={columns} gap={gap}>
           <SortableContext items={sectionSlots.filter((id): id is string => id !== null)} strategy={rectSortingStrategy}>
@@ -726,35 +216,7 @@ export function DashboardCanvas({
           cancelText={t('common.cancel')}
           variant="danger"
         />
-        {createPortal(<DragOverlay zIndex={60} style={{ pointerEvents: 'none' }} dropAnimation={window.matchMedia('(prefers-reduced-motion: reduce)').matches ? null : {
-          duration: DASHBOARD_DRAG_TRANSITION.duration,
-          easing: DASHBOARD_DRAG_TRANSITION.easing,
-          sideEffects: defaultDropAnimationSideEffects({
-            styles: {
-              active: {
-                opacity: '0.4',
-              },
-            },
-          }),
-        }}>
-          {canEditLayout && dragPreview ? (
-            <div
-              aria-hidden="true"
-              inert
-              data-dashboard-drag-preview="true"
-              className="pointer-events-none grid cursor-grabbing shadow-depth-3"
-              style={{
-                width: dragPreview.width, height: dragPreview.height, borderRadius: dragPreview.radius, containerType: 'inline-size',
-              }}
-            >
-              {dragPreview.node ? <div className="h-full min-h-0" ref={node => { if (node && dragPreview.node) node.replaceChildren(dragPreview.node); }} /> : dragPreview.content ?? (activeWidget && <SectionCardDragContext.Provider value={false}><WidgetContent
-                widget={activeWidget}
-                isEditing={false}
-                onClick={() => {}}
-              /></SectionCardDragContext.Provider>)}
-            </div>
-          ) : null}
-        </DragOverlay>, document.body)}
+        <CanvasDragOverlay canEditLayout={canEditLayout} dragPreview={dragPreview} activeWidget={activeWidget} />
       </div>
       </SectionCardDragContext.Provider>
     </DndContext>

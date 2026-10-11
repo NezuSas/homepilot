@@ -8,6 +8,7 @@ import { HomeHeroImageSkeleton, HomePersonalizationSkeleton } from '../component
 import ConfirmModal from '../components/ConfirmModal';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { Card } from '../components/ui/Card';
+import { Heading } from '../components/ui/Heading';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { Textarea } from '../components/ui/Textarea';
 import { API_BASE_URL } from '../config';
@@ -145,7 +146,7 @@ export function HomePersonalizationView() {
       <SearchableSelectField label={t('home_personalization.dashboard_return')} value={keepDashboard ? 'stay' : 'return'} onChange={value => setKeepDashboard(value === 'stay')}
         options={[{ value: 'return', label: t('home_personalization.dashboard_return_auto') }, { value: 'stay', label: t('home_personalization.dashboard_return_stay') }]} className="w-full sm:max-w-sm" />
       <Card className="flex flex-col gap-4 p-4">
-        <h2 className="text-card-title font-semibold">{t('home_personalization.phrases')}</h2>
+        <Heading variant="card" as="h2">{t('home_personalization.phrases')}</Heading>
         <div className="grid gap-3 md:grid-cols-3">{PHRASE_KEYS.map((key) => <div key={key} className="flex min-w-0 flex-col gap-2">
           <div className="flex flex-wrap items-center justify-between gap-1"><label htmlFor={`home-${key}`} className="text-body-compact font-medium">{t(`home_personalization.${key}`)}</label>
           <span id={`home-${key}-count`} className="text-caption text-muted-foreground">{settings[key].length} / 1000</span></div>
@@ -170,7 +171,7 @@ export function HomePersonalizationView() {
       </Card>
       <Card className="flex flex-col gap-3 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-card-title font-semibold">{t('home_personalization.images')}</h2>
+          <Heading variant="card" as="h2">{t('home_personalization.images')}</Heading>
           <span className="text-caption text-muted-foreground">{settings.heroImages.length} / 5</span>
         </div>
         <p className="text-caption text-muted-foreground">{t('home_personalization.image_help')}</p>

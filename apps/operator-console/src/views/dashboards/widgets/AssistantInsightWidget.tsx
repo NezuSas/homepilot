@@ -1,9 +1,11 @@
 import { useTranslation } from 'react-i18next';
-import { cn } from '../../../lib/utils';
 import type { DashboardWidgetConfig } from '../types';
-import { Sparkles, AlertCircle, CheckCircle2, ChevronRight } from 'lucide-react';
+import { Sparkles, AlertCircle, CheckCircle2, ChevronRight, Loader2 } from 'lucide-react';
 import { useAssistantStore } from '../../../stores/useAssistantStore';
 import { Button } from '../../../components/ui/Button';
+import { Card } from '../../../components/ui/Card';
+import { Heading } from '../../../components/ui/Heading';
+import { StatusPill } from '../../../components/ui/StatusPill';
 import { useDeviceSnapshotStore } from '../../../stores/useDeviceSnapshotStore';
 import { isFindingOperational } from '../../../lib/deviceOperationalEligibility';
 
@@ -17,31 +19,31 @@ export function AssistantInsightWidget({ config }: { config: DashboardWidgetConf
   const topFinding = findings.filter(f => f.status === 'open' && isFindingOperational(f, devices, Object.values(roomsByHome).flat()))
     .sort((a, b) => (b.score || 0) - (a.score || 0))[0];
 
-  const getSeverityStyles = (severity: string) => {
+  const getSeverityVariant = (severity: string) => {
     switch (severity) {
-      case 'high': return 'text-danger border-danger/20 bg-danger/5';
-      case 'medium': return 'text-warning border-warning/20 bg-warning/5';
-      case 'low': return 'text-primary border-primary/20 bg-primary/5';
-      default: return 'text-muted-foreground border-border bg-muted/5';
+      case 'high': return 'danger';
+      case 'medium': return 'warning';
+      case 'low': return 'primary';
+      default: return 'neutral';
     }
   };
 
   return (
-    <div className={cn(
-      "flex flex-col h-full min-h-0 rounded-2xl @md:rounded-3xl p-4 @md:p-5 transition-all duration-500",
-      config.appearance.variant === 'glass' ? "bg-card/40 backdrop-blur-md border border-border/40" : "bg-card border border-border"
-    )}>
+    <Card
+      variant={config.appearance.variant === 'glass' ? 'glass' : 'flat'}
+      className="flex flex-col h-full min-h-0 p-4 @md:p-5 transition-all duration-500"
+    >
       <div className="flex items-center justify-between gap-2 mb-3 @md:mb-4">
         <div className="flex items-center gap-2">
-          <div className="p-2 rounded-xl bg-primary/10 text-primary border border-primary/20">
+          <StatusPill variant="primary" className="p-2">
             <Sparkles className="w-4 h-4" />
-          </div>
-          <h3 className="text-caption @md:text-body font-black text-foreground tracking-tight truncate">
+          </StatusPill>
+          <Heading as="h3" variant="card" className="truncate">
             {config.appearance.title || t('dashboards.widgets.assistant_insights.label')}
-          </h3>
+          </Heading>
         </div>
         {isLoading && (
-          <div className="w-3 h-3 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <Loader2 aria-hidden="true" className="w-3 h-3 text-primary animate-spin" />
         )}
       </div>
 
@@ -58,24 +60,24 @@ export function AssistantInsightWidget({ config }: { config: DashboardWidgetConf
           </div>
         ) : (
           <div className="w-full space-y-4 animate-in slide-in-from-bottom-2 duration-500">
-            <div className={cn("inline-flex items-center gap-2 px-2.5 py-1 rounded-full border text-micro font-black uppercase tracking-widest", getSeverityStyles(topFinding.severity))}>
+            <StatusPill variant={getSeverityVariant(topFinding.severity)} uppercase>
               <AlertCircle className="w-3 h-3" />
               {t(`assistant.severities.${topFinding.severity}`)}
-            </div>
-            
+            </StatusPill>
+
             <div className="space-y-1">
-              <h4 className="text-caption sm:text-body font-black text-foreground leading-tight tracking-tight px-2 line-clamp-1">{topFinding.title}</h4>
+              <Heading as="h4" variant="item" className="px-2 line-clamp-1">{topFinding.title}</Heading>
               <p className="text-micro text-muted-foreground leading-relaxed line-clamp-2 px-2 @md:px-4 italic opacity-80">{topFinding.description}</p>
             </div>
 
             <div className="pt-2">
-              <Button size="sm" variant="primary" className="w-full text-micro font-black uppercase tracking-widest gap-2 transition-all duration-300">
+              <Button size="sm" variant="primary" className="w-full transition-all duration-300">
                 {t('dashboards.widgets.assistant_insights.view_details')} <ChevronRight className="w-3 h-3" />
               </Button>
             </div>
           </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

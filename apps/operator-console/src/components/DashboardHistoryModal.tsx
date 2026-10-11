@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from './ui/Button';
 import { DashboardHistorySkeleton } from './ui/ComponentSkeletons';
+import { EmptyState } from './ui/EmptyState';
 import { Modal } from './ui/Modal';
 
 export interface DashboardRevisionSummary {
@@ -48,11 +49,12 @@ export function DashboardHistoryModal({
       {isLoading ? (
         <DashboardHistorySkeleton label={t('dashboards.history.loading')} />
       ) : revisions.length === 0 ? (
-        <div className="rounded-panel border border-dashed border-border/70 bg-muted/20 p-6 text-center">
-          <History className="mx-auto h-6 w-6 text-muted-foreground" aria-hidden="true" />
-          <p className="mt-3 text-body font-semibold text-foreground">{t('dashboards.history.empty_title')}</p>
-          <p className="mt-1 text-caption text-muted-foreground">{t('dashboards.history.empty_description')}</p>
-        </div>
+        <EmptyState
+          variant="dashed"
+          icon={History}
+          title={t('dashboards.history.empty_title')}
+          description={t('dashboards.history.empty_description')}
+        />
       ) : (
         <ul className="space-y-2" aria-label={t('dashboards.history.title')}>
           {revisions.map((revision) => (

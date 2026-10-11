@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertCircle, ArrowRight, Terminal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { AlertBanner } from './ui/AlertBanner';
 import { SegmentedControl } from './ui/SegmentedControl';
 import { SearchableSelectField } from './ui/SearchableSelectField';
 import { AutomationDeviceSelect } from './AutomationDeviceSelect';
@@ -86,10 +87,7 @@ export const AutomationBuilderActionSection: React.FC<AutomationBuilderActionSec
               placeholder={t('automations.form.select_scene')}
             />
           </div>
-          <div className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/10 p-4">
-            <AlertCircle className="h-4 w-4 shrink-0 text-primary" />
-            <p className="hp-type-body text-primary">{t('automations.builder.scene_info')}</p>
-          </div>
+          <AlertBanner variant="info" size="sm" icon={AlertCircle} message={t('automations.builder.scene_info')} />
         </div>
       )}
     </div>

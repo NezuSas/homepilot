@@ -6,6 +6,8 @@ import { apiFetch } from '../lib/apiClient';
 import { isDeviceUnavailable } from '../lib/deviceAvailability';
 import type { SnapshotDevice as Device, SnapshotRoom as Room } from '../stores/useDeviceSnapshotStore';
 import { Button } from './ui/Button';
+import { Card } from './ui/Card';
+import { Heading } from './ui/Heading';
 import { IconButton } from './ui/IconButton';
 import { SearchableSelectField } from './ui/SearchableSelectField';
 
@@ -39,9 +41,9 @@ export function InboxDeviceTile({ device, rooms, onUpdate, onInspect }: InboxDev
       setIsProcessing(false);
     }
   };
-  return <article className="min-w-0 space-y-3 rounded-control border border-border bg-card p-3">
+  return <Card variant="flat" as="article" className="space-y-3 p-3">
     <div className="flex items-center gap-3">
-      <h4 className="min-w-0 flex-1 break-words text-body-compact font-semibold">{device.name}</h4>
+      <Heading as="h4" variant="item" className="flex-1">{device.name}</Heading>
       {onInspect && <IconButton icon={Settings2} size="lg" label={`${t('inbox.manage_device')}: ${device.name}`} onClick={onInspect} />}
     </div>
     <div className="flex min-w-0 items-center gap-2">
@@ -54,5 +56,5 @@ export function InboxDeviceTile({ device, rooms, onUpdate, onInspect }: InboxDev
       </Button>
     </div>
     {error && <p role="alert" className="text-caption text-danger">{error}</p>}
-  </article>;
+  </Card>;
 }

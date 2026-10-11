@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
+import { Heading } from './Heading';
 import type { LucideIcon } from 'lucide-react';
 
 export interface SectionHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -50,13 +51,7 @@ export const SectionHeader = React.forwardRef<HTMLDivElement, SectionHeaderProps
             </span>
           )}
 
-          {level === 'view' ? (
-            <h1 className="min-w-0 break-words text-view-title font-bold tracking-tight text-foreground">{title}</h1>
-          ) : level === 'section' ? (
-            <h2 className="min-w-0 break-words text-section-title font-bold tracking-tight text-foreground/85">{title}</h2>
-          ) : (
-            <span className="min-w-0 break-words text-label font-black uppercase tracking-label text-muted-foreground/55">{title}</span>
-          )}
+          <Heading variant={level === 'group' ? 'label' : level}>{title}</Heading>
         </div>
 
         {subtitle && (

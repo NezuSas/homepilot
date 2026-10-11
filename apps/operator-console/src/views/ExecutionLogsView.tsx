@@ -79,7 +79,7 @@ export const ExecutionLogsView: React.FC = () => {
         description={t('execution_logs.empty_description')}
         className="min-h-glow-orb"
         action={
-          <Button variant="outline" size="sm" onClick={fetchRecords} className="gap-2 text-micro uppercase tracking-widest">
+          <Button variant="outline" size="sm" onClick={fetchRecords}>
             <RefreshCw className="h-3.5 w-3.5" />
             {t('execution_logs.scan_logs')}
           </Button>
@@ -95,7 +95,7 @@ export const ExecutionLogsView: React.FC = () => {
         icon={Activity}
         title={t('nav.system_executions')}
         action={
-          <Button variant="secondary" size="sm" onClick={fetchRecords} className="gap-2">
+          <Button variant="secondary" size="sm" onClick={fetchRecords}>
             <RefreshCw className="h-4 w-4" />
             {t('execution_logs.sync_now')}
           </Button>

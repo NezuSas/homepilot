@@ -255,7 +255,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
           {isLive && <Maximize2 className="mb-0.5 h-4 w-4 shrink-0 text-white/85 transition-transform group-hover:scale-110" aria-hidden="true" />}
           {ptzSupported && isLive && <MoveDiagonal className="mb-0.5 h-4 w-4 shrink-0 text-white/85" aria-label={t('camera.ptz.badge')} />}
           {(hasFeedError || unavailable) && (
-            <Button size="icon" variant="outline" onClick={retry} aria-label={t('camera.retry')} className="shrink-0 rounded-pill">
+            <Button size="icon" variant="outline" onClick={retry} aria-label={t('camera.retry')} className="shrink-0">
               <RefreshCw className="h-4 w-4" />
             </Button>
           )}

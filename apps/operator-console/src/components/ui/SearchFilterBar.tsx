@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
+import { useUiLabels } from './uiLabels';
 import { X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { SearchInput } from './Input';
@@ -11,7 +11,7 @@ export interface FilterOption {
   label: string;
 }
 
-export interface SearchFilterBarProps {
+export interface SearchFilterBarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange'> {
   searchQuery: string;
   onSearchChange: (val: string) => void;
   searchPlaceholder?: string;
@@ -32,25 +32,26 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
   activeFilter,
   onFilterChange,
   filterLabel,
-  className
+  className,
+  ...rootProps
 }) => {
-  const { t } = useTranslation();
+  const labels = useUiLabels();
 
   return (
-    <div className={cn("flex min-w-0 w-full flex-col items-stretch gap-3 lg:flex-row lg:items-center", className)}>
+    <div {...rootProps} className={cn("flex min-w-0 w-full flex-col items-stretch gap-3 lg:flex-row lg:items-center", className)}>
       <div className="min-w-0 w-full shrink-0 lg:w-search-panel">
         <SearchInput 
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder={searchPlaceholder ?? t('common.search')}
+          placeholder={searchPlaceholder ?? labels.search}
           endAdornment={searchQuery ? (
             <IconButton
               icon={X}
-              label={t('common.clear_search')}
+              label={labels.clearSearch}
               onClick={() => onSearchChange('')}
               size="sm"
               variant="ghost"
-              className="h-7 w-7"
+
             />
           ) : undefined}
         />
@@ -61,9 +62,9 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
           value={activeFilter || options[0]?.value || ''}
           options={options}
           onChange={onFilterChange}
-          label={filterLabel ?? searchPlaceholder ?? t('common.search')}
-          className="w-full min-w-0 flex-1 overflow-x-auto no-scrollbar"
-          optionClassName="whitespace-nowrap flex-none"
+          label={filterLabel ?? searchPlaceholder ?? labels.search}
+          layout="scroll"
+          className="w-full min-w-0 flex-1"
         />
       )}
     </div>

@@ -9,6 +9,8 @@ import { API_BASE_URL } from '../../../config';
 import { isDeviceActive, getDevicesInRoom } from '../dashboardUtils';
 import { DormantWidgetPlaceholder } from '../components/DormantWidgetPlaceholder';
 import { Button } from '../../../components/ui/Button';
+import { Heading } from '../../../components/ui/Heading';
+import { StatusPill } from '../../../components/ui/StatusPill';
 import ConfirmModal from '../../../components/ConfirmModal';
 
 const API = `${API_BASE_URL}/api/v1`;
@@ -82,13 +84,13 @@ export function RoomWidget({ config, isEditing, onConfigure }: { config: Dashboa
         </div>
         
         <div className="flex items-center gap-2">
-           <span className="relative rounded-full border border-border/65 bg-background/85 px-2.5 py-1 text-micro font-black uppercase tracking-label text-muted-foreground shadow-sm dark:bg-background/45">{t('topology.room_select')}</span>
+           <StatusPill uppercase className="relative shadow-sm">{t('topology.room_select')}</StatusPill>
         </div>
       </div>
 
       <div className="relative flex-1 min-h-0 space-y-3 @md:space-y-4">
         <div>
-          <h4 className="text-body-lg @md:text-panel-title font-black tracking-tight text-foreground truncate">{config.appearance.title || room.name}</h4>
+          <Heading as="h4" variant="card" className="truncate">{config.appearance.title || room.name}</Heading>
           <div className="flex items-center gap-2 mt-1">
              <span className={onCount > 0 ? "hp-type-label-accent" : "hp-type-label"}>
                {onCount > 0
@@ -120,7 +122,7 @@ export function RoomWidget({ config, isEditing, onConfigure }: { config: Dashboa
           onClick={requestToggleAll}
           isLoading={isProcessing}
           variant="danger"
-          className="relative mt-6 w-full rounded-card border border-danger/20 bg-danger/5 py-3 text-micro font-black uppercase tracking-label text-danger hover:border-transparent hover:bg-danger hover:text-danger-foreground"
+          className="relative mt-6 w-full border border-danger/20 bg-danger/5 text-danger hover:border-transparent hover:bg-danger hover:text-danger-foreground"
         >
           {!isProcessing && <Power className="w-4 h-4" />}
           {t('dashboards.widgets.room_summary.turn_off_all')}

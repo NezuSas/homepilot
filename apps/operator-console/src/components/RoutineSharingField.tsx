@@ -28,7 +28,7 @@ export function RoutineSharingField({ value, onChange }: { value: string[]; onCh
     <legend className="text-body-compact font-medium">{t('routine_sharing.scope')}</legend>
     <p className="text-caption text-muted-foreground">{t(value.length ? 'routine_sharing.shared' : 'routine_sharing.private')}</p>
     {loading ? <RoutineSharingSkeleton /> : error ? <p role="alert" className="text-caption text-danger">{error}</p> : <>
-      <SearchInput label={t('routine_sharing.users')} value={query} onChange={event => setQuery(event.target.value)} className="h-11" />
+      <SearchInput label={t('routine_sharing.users')} value={query} onChange={event => setQuery(event.target.value)} />
       <div className="max-h-44 overflow-y-auto">
         {users.filter(user => user.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())).map(user => <label key={user.id} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-control px-2 text-caption hover:bg-muted/40">
           <input type="checkbox" checked={value.includes(user.id)} onChange={event => onChange(event.target.checked ? [...value, user.id] : value.filter(id => id !== user.id))} className="size-5 shrink-0 accent-primary" />

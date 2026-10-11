@@ -6,6 +6,7 @@ import { apiFetch } from '../../lib/apiClient';
 import { isDeviceUnavailable } from '../../lib/deviceAvailability';
 import { cn } from '../../lib/utils';
 import { Button } from '../../components/ui/Button';
+import { Heading } from '../../components/ui/Heading';
 import { Input } from '../../components/ui/Input';
 import { useDisplayControlCatalog } from '../../components/useDisplayControlCatalog';
 import type { DisplayCatalogCommand, DisplayControlCatalog } from '../../components/SmartDisplayControls';
@@ -60,7 +61,7 @@ export function RoomDisplayControls({ device }: { device: SnapshotDevice }) {
   const { t } = useTranslation();
   const { catalog, loading, loadError, retry } = useDisplayControlCatalog(device.id);
   return <section aria-label={device.name} className="col-span-full min-w-0 space-y-4 rounded-section border border-border bg-card p-4">
-    <div className="flex items-center gap-3"><Monitor className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" /><h3 className="break-words text-card-title font-semibold">{device.name}</h3></div>
+    <div className="flex items-center gap-3"><Monitor className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" /><Heading variant="card">{device.name}</Heading></div>
     {loadError ? <div role="alert" className="space-y-2"><p>{t('inbox.smart_display.load_error')}</p><Button variant="outline" onClick={retry}>{t('inbox.smart_display.retry')}</Button></div>
       : catalog ? <RoomDisplayCatalog device={device} catalog={catalog} />
         : loading ? <DisplayControlsSkeleton label={t('inbox.smart_display.loading')} /> : null}

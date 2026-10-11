@@ -4,6 +4,7 @@ import { cn } from '../lib/utils';
 import type { Dashboard } from '../views/dashboards/types';
 import { InlineTabCreator } from './InlineTabCreator';
 import { Button } from './ui/Button';
+import { SurfaceButton } from './ui/SurfaceButton';
 import { IconButton } from './ui/IconButton';
 import { getDashboardIconComponent } from '../views/dashboards/components/IconPicker';
 
@@ -72,21 +73,19 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
     <div className="homepilot-dashboard-tabs min-w-0">
       <div className="flex min-h-12 min-w-0 items-center gap-0 overflow-x-auto px-3 no-scrollbar">
         {onOpenMobileMenu && (
-          <IconButton icon={Menu} label={t('shell.toggle_sidebar')} onClick={onOpenMobileMenu} variant="default" size="md" className="mr-1 rounded-full bg-card/90 shadow-depth-1 backdrop-blur-md xl:hidden" />
+          <IconButton icon={Menu} label={t('shell.toggle_sidebar')} onClick={onOpenMobileMenu} variant="default" size="md" className="mr-1 xl:hidden" />
         )}
         {tabs.map((tab, index) => {
           const Icon = getTabIcon(tab, index);
           const isActive = activeTabIdx === index;
           return (
             <div key={tab.id} className={cn('group flex shrink-0 items-center', isEditing && 'gap-1')}>
-                <Button
+                <SurfaceButton
                   type="button"
                   onClick={() => onSelectTab(index)}
                   aria-current={isActive ? 'page' : undefined}
                   aria-label={tab.title}
                   title={tab.title}
-                  variant="ghost"
-                  size="md"
                   className={cn(
                     "h-14 min-w-20 justify-center gap-2 rounded-none border px-3 text-caption font-semibold sm:min-w-28",
                     isActive
@@ -96,7 +95,7 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
                 >
                   <Icon className="h-4 w-4 shrink-0" />
                   <span className="max-w-28 truncate sm:max-w-44">{tab.title}</span>
-                </Button>
+                </SurfaceButton>
               {isEditing && (
                 <IconButton
                   icon={Pencil}
@@ -107,7 +106,6 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
                   }}
                   variant="ghost"
                   size="md"
-                  className={cn("rounded-full", isActive && "bg-primary/15 text-primary")}
                 />
               )}
             </div>
@@ -122,7 +120,7 @@ export const DashboardTabsNav: React.FC<DashboardTabsNavProps> = ({
             onClick={onStartAddingTab}
             variant={isEditing ? 'primary' : 'secondary'}
             size="sm"
-            className="ml-1 shrink-0 rounded-full"
+            className="ml-1 shrink-0"
             title={addLabel}
             aria-label={addLabel}
           >

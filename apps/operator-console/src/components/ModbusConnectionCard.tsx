@@ -3,6 +3,8 @@ import { ArrowDownToLine, ArrowUpFromLine, Cable, Settings, Variable, Terminal, 
 import { useTranslation } from 'react-i18next';
 import type { ModbusConnection, ModbusVariable, ModbusDiagnostic } from '../../../../packages/integrations/modbus/domain/Modbus';
 import { Button } from './ui/Button';
+import { Card } from './ui/Card';
+import { Heading } from './ui/Heading';
 import { LoadingState } from './ui/LoadingState';
 import { DashboardSkeletonBar as Bar } from './ui/DashboardCardSkeleton';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
@@ -45,10 +47,10 @@ export function ModbusConnectionCard({ connection, onEdit, onAdd, onVariable, on
   const visibleGroups = variableGroups.filter(group => activeGroup === 'all' || activeGroup === group.id);
   const matches = (variable: ModbusVariable & { diagnostic?: ModbusDiagnostic }) => (!onlyErrors || !!variable.diagnostic?.error || ['variable_error', 'error', 'unavailable'].includes(variable.diagnostic?.status ?? '')) && (!query || [variable.name, variable.deviceId, variable.symbolicAddress, String(variable.address), variable.plc?.command?.symbolicAddress, variable.plc?.physical?.symbolicAddress, variable.plc?.logical?.symbolicAddress, ...(variable.plc?.relatedPhysicalOutputs?.map(point => point.symbolicAddress) ?? [])].some(value => value?.toLocaleLowerCase(i18n?.language).includes(query)));
   const date = (value?: string) => value && Number.isFinite(Date.parse(value)) ? new Intl.DateTimeFormat(i18n?.language ?? 'es', { dateStyle: 'short', timeStyle: 'medium' }).format(new Date(value)) : '—';
-  return <section aria-label={connection.name} className="min-w-0 rounded-section border border-border bg-card p-4 text-card-foreground">
+  return <Card as="section" aria-label={connection.name} variant="flat" radius="section" className="p-4 text-card-foreground">
     <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
       <div className="flex min-w-0 items-center gap-3"><Cable aria-hidden="true" className="size-5 shrink-0 text-primary" />
-        <div className="min-w-0"><h2 className="break-words font-semibold">{connection.name}</h2><p className="break-words text-caption text-muted-foreground">{connection.host}:{connection.port} · {t('modbus.unitId')} {connection.unitId}</p>{profile && <p className="text-caption text-muted-foreground">{profile.manufacturer} {profile.model}</p>}</div>
+        <div className="min-w-0"><Heading as="h2" variant="item">{connection.name}</Heading><p className="break-words text-caption text-muted-foreground">{connection.host}:{connection.port} · {t('modbus.unitId')} {connection.unitId}</p>{profile && <p className="text-caption text-muted-foreground">{profile.manufacturer} {profile.model}</p>}</div>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3"><div className="text-caption text-muted-foreground">{connection.enabled ? <p role="status"><span className="font-medium text-foreground">{t(plcConnectionKey(connection))}</span> · {t('plc.enabled')}</p> : <p>{t('modbus.disabled')}</p>}</div>
         <Button variant="secondary" size="lg" onClick={onEdit}><Settings aria-hidden="true" className="size-4" />{t('modbus.configure')}</Button>
@@ -59,14 +61,14 @@ export function ModbusConnectionCard({ connection, onEdit, onAdd, onVariable, on
     {!onOpen && <>
     <details className="mt-2 border-t border-border text-caption text-muted-foreground"><summary className="flex min-h-11 cursor-pointer items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{t('plc.connection_diagnostics')}</summary><dl className="grid gap-x-4 gap-y-2 pb-2 sm:grid-cols-2"><div><dt>{t('plc.last_communication')}</dt><dd>{date(connection.diagnostic?.lastReadAt)}</dd></div><div><dt>{t('plc.latency')}</dt><dd>{connection.diagnostic?.latencyMs ?? '—'} ms</dd></div>{connection.diagnostic?.retryAt && <div><dt>{t('plc.retry_at')}</dt><dd>{date(connection.diagnostic.retryAt)}</dd></div>}{connection.diagnostic?.error && <div><dt>{t('plc.last_error')}</dt><dd role="status">{t(plcErrorKey(connection.diagnostic.error))}</dd></div>}</dl></details>
     <div data-modbus-filters className="flex flex-wrap items-center gap-2 border-t border-border py-2">
-      <SegmentedControl className="w-full p-1 xl:w-auto" label={t('plc.title')} value={activeGroup} onChange={setSelectedGroup} layout="wrap" optionClassName="min-h-11 flex-none normal-case text-caption tracking-normal" options={[{ value: 'all', label: `${t('modbus.all_variables')} (${connection.variables.length})` }, ...variableGroups.filter(group => connection.variables.some(variable => getModbusVariableGroup(variable) === group.id)).map(group => ({ value: group.id, icon: group.icon, label: `${t(group.label)} (${connection.variables.filter(variable => getModbusVariableGroup(variable) === group.id).length})` }))]} />
+      <SegmentedControl className="w-full xl:w-auto" label={t('plc.title')} value={activeGroup} onChange={setSelectedGroup} layout="wrap" options={[{ value: 'all', label: `${t('modbus.all_variables')} (${connection.variables.length})` }, ...variableGroups.filter(group => connection.variables.some(variable => getModbusVariableGroup(variable) === group.id)).map(group => ({ value: group.id, icon: group.icon, label: `${t(group.label)} (${connection.variables.filter(variable => getModbusVariableGroup(variable) === group.id).length})` }))]} />
       <div className="min-w-0 flex-1 basis-48"><Input aria-label={t('modbus.search_variables')} placeholder={t('modbus.search_variables')} value={search} onChange={event => setSearch(event.target.value)} type="search" /></div><Button variant={onlyErrors ? 'secondary' : 'outline'} size="lg" aria-pressed={onlyErrors} onClick={() => setOnlyErrors(!onlyErrors)}>{t('plc.variables_error')} ({errors})</Button>
     </div>
     {connection.variables.length ? <div aria-label={t('plc.title')} className="mt-2 space-y-4">{visibleGroups.map(group => {
       const variables = connection.variables.filter(variable => getModbusVariableGroup(variable) === group.id && matches(variable)).sort((a, b) => (a.plc?.physical?.symbolicAddress ?? a.symbolicAddress ?? a.name).localeCompare(b.plc?.physical?.symbolicAddress ?? b.symbolicAddress ?? b.name, i18n?.language, { numeric: true, sensitivity: 'base' }));
       if (!variables.length) return null;
       return <section key={group.id} aria-label={t(group.label)} data-modbus-variable-group={group.id}>
-      <div className="mb-2 flex items-center gap-2"><group.icon className="size-4 shrink-0 text-primary" aria-hidden="true" /><h3 className="text-caption font-semibold">{t(group.label)}</h3><span className="text-caption tabular-nums text-muted-foreground">({variables.length})</span></div>
+      <div className="mb-2 flex items-center gap-2"><group.icon className="size-4 shrink-0 text-primary" aria-hidden="true" /><Heading as="h3" variant="item">{t(group.label)}</Heading><span className="text-caption tabular-nums text-muted-foreground">({variables.length})</span></div>
       <ul data-modbus-variable-grid className="grid items-start gap-2 md:grid-cols-2">{variables.map(variable => {
         const state = devices.find(device => device.id === variable.deviceId)?.lastKnownState;
         const value = variable.diagnostic?.value ?? state?.value;
@@ -79,7 +81,7 @@ export function ModbusConnectionCard({ connection, onEdit, onAdd, onVariable, on
         const readsPhysicalOutput = variable.plc?.role === 'output' && !!variable.plc.physical && variable.plc.feedbackPolicy === 'none';
         const readLabel = readsPhysicalOutput ? 'plc.physical_read_state' : hasRelatedOutputs && variable.plc?.feedbackPolicy === 'none' ? 'plc.command_read_state' : hasCommand ? 'plc.read_state' : undefined;
         return <li key={variable.deviceId} data-modbus-variable-id={variable.deviceId} className="min-w-0 rounded-panel border border-border bg-background/40 px-3 py-2">
-          <div className="flex min-w-0 items-center gap-2"><group.icon aria-hidden="true" className="size-4 shrink-0 text-primary" /><p className="min-w-0 flex-1 break-words text-body-compact font-semibold">{variable.name}</p><Button variant="ghost" size="icon" className="size-11 shrink-0 xl:w-auto xl:px-2" aria-label={t('modbus.edit_variable', { name: variable.name })} title={t('modbus.configure')} onClick={() => onVariable(variable)}><Settings aria-hidden="true" className="size-4" /><span className="hidden xl:inline">{t('modbus.configure')}</span></Button></div>
+          <div className="flex min-w-0 items-center gap-2"><group.icon aria-hidden="true" className="size-4 shrink-0 text-primary" /><p className="min-w-0 flex-1 break-words text-body-compact font-semibold">{variable.name}</p><Button variant="ghost" size="icon" className="size-11 shrink-0 xl:w-auto" aria-label={t('modbus.edit_variable', { name: variable.name })} title={t('modbus.configure')} onClick={() => onVariable(variable)}><Settings aria-hidden="true" className="size-4" /><span className="hidden xl:inline">{t('modbus.configure')}</span></Button></div>
           <div className="min-w-0">
             <p className="break-words text-caption text-muted-foreground">{!variable.plc && <>{t('plc.legacy')} · </>}{variable.symbolicAddress ?? `${t(`modbus.${variable.area}`)} ${variable.address}`} · {t(variable.writable ? 'modbus.write_allowed' : 'modbus.read_only')}</p>
             {variable.plc && <p className="break-words text-caption text-muted-foreground">{[variable.plc.command && `${t('plc.command')}: ${variable.plc.command.symbolicAddress}`, variable.plc.physical && `${t(plcRelatedPointLabel(variable.plc.physical.symbolicAddress))}: ${variable.plc.physical.symbolicAddress}`, variable.plc.logical && `${t('plc.logical')}: ${variable.plc.logical.symbolicAddress}`, ['output', 'output_command'].includes(variable.plc.role) && `${t('plc.feedback')}: ${variable.plc.feedback?.symbolicAddress ?? t('plc.not_configured')}`].filter(Boolean).join(' · ')}</p>}
@@ -102,18 +104,18 @@ export function ModbusConnectionCard({ connection, onEdit, onAdd, onVariable, on
     })}</div> : <p className="my-3 text-caption text-muted-foreground">{t('modbus.no_variables')}</p>}
     {!!connection.variables.length && !connection.variables.some(variable => (activeGroup === 'all' || getModbusVariableGroup(variable) === activeGroup) && matches(variable)) && <p role="status" className="py-4 text-body-compact text-muted-foreground">{t('common.no_results')}</p>}
     </>}
-  </section>;
+  </Card>;
 }
 export function ModbusConnectionCardSkeleton({ summary = false }: { summary?: boolean }) {
-  if (summary) return <div aria-hidden="true" className="min-w-0 rounded-section border border-border bg-card p-4"><div className="grid gap-3 sm:grid-cols-[1fr_auto]"><div className="flex min-w-0 items-center gap-3"><Bar className="size-5 shrink-0" /><div className="min-w-0 flex-1 space-y-2"><Bar className="h-5 w-40 max-w-full" /><Bar className="h-4 w-48 max-w-full" /><Bar className="h-4 w-32 max-w-full" /></div></div><div className="flex items-center justify-between gap-3"><Bar className="h-4 w-20" /><Bar className="h-11 w-24" /></div></div><div className="mt-3 flex flex-wrap items-center justify-between gap-3"><Bar className="h-4 w-56 max-w-full" /><Bar className="h-11 w-28" /></div></div>;
-  return <div aria-hidden="true" className="min-w-0 rounded-section border border-border bg-card p-4">
+  if (summary) return <Card aria-hidden="true" variant="flat" radius="section" className="p-4"><div className="grid gap-3 sm:grid-cols-[1fr_auto]"><div className="flex min-w-0 items-center gap-3"><Bar className="size-5 shrink-0" /><div className="min-w-0 flex-1 space-y-2"><Bar className="h-5 w-40 max-w-full" /><Bar className="h-4 w-48 max-w-full" /><Bar className="h-4 w-32 max-w-full" /></div></div><div className="flex items-center justify-between gap-3"><Bar className="h-4 w-20" /><Bar className="h-11 w-24" /></div></div><div className="mt-3 flex flex-wrap items-center justify-between gap-3"><Bar className="h-4 w-56 max-w-full" /><Bar className="h-11 w-28" /></div></Card>;
+  return <Card aria-hidden="true" variant="flat" radius="section" className="p-4">
     <div className="grid gap-3 sm:grid-cols-[1fr_auto]"><div className="flex min-w-0 items-center gap-3"><Bar className="size-5 shrink-0" /><div className="min-w-0 space-y-2"><Bar className="h-5 w-40 max-w-full" /><Bar className="h-4 w-48 max-w-full" /></div></div><div className="flex flex-wrap items-center justify-between gap-3"><Bar className="h-4 w-24" /><Bar className="h-11 w-28" /><Bar className="h-11 w-32" /></div></div>
     <div className="mt-2"><Bar className="h-4 w-56 max-w-full" /></div>
     <Bar className="my-3 h-11 w-48 max-w-full" />
     <div className="flex flex-wrap gap-2 border-t border-border py-2">{variableGroups.map(group => <div key={group.id} data-modbus-group-skeleton={group.id}><Bar className="h-11 w-24" /></div>)}<Bar className="h-11 min-w-0 flex-1 basis-48" /><Bar className="h-11 w-24" /></div>
     <Bar className="my-2 h-4 w-24" />
     <div data-modbus-variable-grid className="grid items-start gap-2 md:grid-cols-2">{[0, 1, 2, 3].map(index => <div key={index} className="min-w-0 rounded-panel border border-border px-3 py-2"><div className="flex items-center gap-2"><Bar className="size-4 shrink-0" /><Bar className="h-5 min-w-0 flex-1" /><Bar className="size-11 shrink-0" /></div><div className="space-y-1"><Bar className="h-4 w-40 max-w-full" /><Bar className="h-4 w-56 max-w-full" /><Bar className="h-5 w-28" /><Bar className="h-11 w-32" /></div></div>)}</div>
-  </div>;
+  </Card>;
 }
 export function ModbusSettingsSkeleton({ label, className }: { label: string; className?: string }) {
   return <LoadingState label={label} className={className}><Bar className="h-8 w-48" /><div className="grid gap-4 lg:grid-cols-2"><ModbusConnectionCardSkeleton summary /><ModbusConnectionCardSkeleton summary /></div></LoadingState>;

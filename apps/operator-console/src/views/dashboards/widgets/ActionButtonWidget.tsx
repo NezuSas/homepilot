@@ -7,7 +7,8 @@ import { isMomentaryPlcCommand, plcErrorKey, plcResponseError } from '../../../l
 import { isDeviceUnavailable } from '../../../lib/deviceAvailability';
 import { cn } from '../../../lib/utils';
 import { API_BASE_URL } from '../../../config';
-import { Button } from '../../../components/ui/Button';
+import { SurfaceButton } from '../../../components/ui/SurfaceButton';
+import { Heading } from '../../../components/ui/Heading';
 import { useDeviceSnapshotStore, type SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
 import type { DashboardWidgetConfig } from '../types';
 import { DormantWidgetPlaceholder } from '../components/DormantWidgetPlaceholder';
@@ -94,7 +95,7 @@ export function ActionButtonWidget({ config, isEditing, onConfigure }: {
   };
 
   return (
-    <Button
+    <SurfaceButton
       type="button"
       onClick={handlePress}
       disabled={isEditing || status === 'pending' || !canPress}
@@ -103,7 +104,6 @@ export function ActionButtonWidget({ config, isEditing, onConfigure }: {
       data-action-state={status}
       aria-label={t('dashboards.widgets.action_button.aria', { name: title })}
       title={!canPress ? t('dashboards.widgets.action_button.unavailable') : undefined}
-      variant="ghost"
       className={cn(
         'dashboard-action-button relative flex h-full w-full min-h-0 min-w-0 flex-col justify-between overflow-hidden rounded-[inherit] border p-3 text-left transition-[background-color,border-color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-default disabled:opacity-65 @md:p-4',
         `dashboard-action-button--${status}`,
@@ -119,12 +119,12 @@ export function ActionButtonWidget({ config, isEditing, onConfigure }: {
       </div>
 
       <div className="w-full min-w-0 pt-3">
-        <h4 className="line-clamp-2 text-widget-body-lg-fluid font-black leading-tight tracking-tight text-foreground">{title}</h4>
+        <Heading as="h4" variant="card" className="line-clamp-2 text-widget-body-lg-fluid font-black leading-tight">{title}</Heading>
         <p className="mt-1 line-clamp-2 text-widget-meta-fluid text-muted-foreground">
           {t('dashboards.widgets.action_button.description')}
         </p>
         {actionError && <p role="alert" className="mt-1 break-words text-widget-meta-fluid text-danger">{t(actionError)}</p>}
       </div>
-    </Button>
+    </SurfaceButton>
   );
 }

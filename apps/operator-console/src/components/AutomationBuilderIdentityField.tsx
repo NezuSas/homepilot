@@ -21,7 +21,6 @@ export const AutomationBuilderIdentityField: React.FC<AutomationBuilderIdentityF
       value={value}
       onChange={event => onChange(event.target.value)}
       placeholder={placeholder}
-      className="hp-type-field h-14 rounded-field border-border/60 bg-background/80 px-5 placeholder:text-muted-foreground/45 focus:border-primary/55 focus:bg-card focus:shadow-primary-focus"
       autoFocus
     />
   </div>

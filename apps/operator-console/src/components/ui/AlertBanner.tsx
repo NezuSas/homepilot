@@ -8,6 +8,8 @@ export interface AlertBannerProps extends React.HTMLAttributes<HTMLDivElement> {
   title?: string;
   message: string;
   action?: React.ReactNode;
+  /** md is the full banner; sm is an inline message with a small icon. */
+  size?: 'md' | 'sm';
   icon?: LucideIcon;
 }
 
@@ -39,6 +41,7 @@ const variantConfig: Record<
 
 export const AlertBanner: React.FC<AlertBannerProps> = ({
   variant = 'info',
+  size = 'md',
   title,
   message,
   action,
@@ -54,7 +57,8 @@ export const AlertBanner: React.FC<AlertBannerProps> = ({
   return (
     <div
       className={cn(
-        'flex min-w-0 flex-col items-stretch gap-4 rounded-panel border p-4 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:p-5',
+        'flex min-w-0 flex-col items-stretch border',
+        size === 'sm' ? 'gap-3 rounded-control p-3 sm:flex-row sm:items-center sm:justify-between' : 'gap-4 rounded-panel p-4 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:p-5',
         config.className,
         className
       )}
@@ -64,8 +68,8 @@ export const AlertBanner: React.FC<AlertBannerProps> = ({
       {...props}
     >
       <div className="flex min-w-0 items-start gap-3">
-        <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-control', config.iconClassName)}>
-          <Icon aria-hidden="true" className="h-5 w-5" />
+        <div className={cn('flex shrink-0 items-center justify-center rounded-control', size === 'sm' ? 'h-8 w-8' : 'h-10 w-10', config.iconClassName)}>
+          <Icon aria-hidden="true" className={size === 'sm' ? 'h-4 w-4' : 'h-5 w-5'} />
         </div>
         <div className="min-w-0">
           {title && <p id={titleId} className="break-words text-body font-black text-foreground">{title}</p>}

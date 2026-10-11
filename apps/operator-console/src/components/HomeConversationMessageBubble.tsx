@@ -148,8 +148,8 @@ export const HomeConversationMessageBubble: React.FC<HomeConversationMessageBubb
                         size="sm"
                         onClick={() => onOptionClick(option.id, option.label)}
                         className={cn(
-                          'min-h-10 rounded-xl bg-background/60',
-                          isConfirm && 'shadow-primary/15',
+                          'bg-background/60',
+                          isConfirm && '',
                           isCancel && 'text-muted-foreground hover:text-foreground'
                         )}
                       >

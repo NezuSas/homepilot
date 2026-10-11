@@ -45,8 +45,7 @@ export default function RoutinesView({
             label={t('routines.title')}
             tone="primary"
             layout="scroll"
-            className="h-11 w-fit max-w-full shrink-0 items-center gap-1 overflow-y-hidden border-border/60 bg-card p-1"
-            optionClassName="h-9 min-h-0 gap-1.5 px-3 py-0 text-caption font-semibold leading-none tracking-normal [&>svg]:h-3.5 [&>svg]:w-3.5"
+            className="w-fit max-w-full shrink-0"
           />
         }
       />

@@ -2,6 +2,7 @@ import type { TFunction } from 'i18next';
 import { DashboardTabsNav } from '../../components/DashboardTabsNav';
 import { DashboardTitleBar } from '../../components/DashboardTitleBar';
 import { Button } from '../../components/ui/Button';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { DashboardCanvas } from './DashboardCanvas';
 import type { Dashboard, DashboardTab, DashboardWidget, DashboardWidgetConfig, WidgetType } from './types';
 import type { SectionLayout } from './sectionSlots';
@@ -122,11 +123,13 @@ export function DashboardActiveWorkspace({
     {activeTab ? (
       <div className="homepilot-dashboard-content relative flex w-full min-w-0 flex-col gap-5 px-2 py-4 sm:px-3 sm:py-6 md:px-4">
         {activeTab.widgets.length === 0 && !(isEditing && isOwner) ? (
-          <div className="flex min-h-64 flex-col items-center justify-center rounded-panel border border-dashed border-primary/25 bg-primary/[0.03] p-8 text-center">
-            <p className="text-section-title font-semibold text-foreground">{t('dashboards.widgets_empty')}</p>
-            <p className="mt-2 max-w-lg text-caption text-muted-foreground">{t('dashboards.widgets_empty_hint')}</p>
-            {isOwner && <Button className="mt-5" onClick={onToggleEditing}>{t('dashboards.add_first_widget')}</Button>}
-          </div>
+          <EmptyState
+            variant="dashed"
+            className="min-h-64"
+            title={t('dashboards.widgets_empty')}
+            description={t('dashboards.widgets_empty_hint')}
+            action={isOwner ? <Button onClick={onToggleEditing}>{t('dashboards.add_first_widget')}</Button> : undefined}
+          />
         ) : (
           <DashboardCanvas
             maxColumns={activeTab.maxColumns}
@@ -148,9 +151,7 @@ export function DashboardActiveWorkspace({
         )}
       </div>
     ) : (
-      <div className="flex min-h-64 flex-col items-center justify-center rounded-panel border border-dashed border-primary/25 bg-primary/[0.03] p-8 text-center">
-        <p className="text-section-title font-semibold text-foreground">{t('common.no_content_yet')}</p>
-      </div>
+      <EmptyState variant="dashed" className="min-h-64" title={t('common.no_content_yet')} />
     )}
   </div>;
 }

@@ -1,5 +1,7 @@
 import { Activity, CheckCircle2, Loader2, ShieldAlert } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { Card } from './ui/Card';
+import { StatusPill } from './ui/StatusPill';
 import { useTranslation } from 'react-i18next';
 
 export type GlobalWakeNoticeTone = 'info' | 'success' | 'warning' | 'error';
@@ -42,11 +44,13 @@ export function GlobalWakeNotice({ notice, isProcessing }: GlobalWakeNoticeProps
               : 'response';
 
   return (
-    <div
+    <Card
       role="status"
       aria-live="polite"
+      variant="elevated"
+      radius="section"
       className={cn(
-        'fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] left-1/2 z-[70] w-[calc(100%-1.5rem)] max-w-toast-responsive -translate-x-1/2 rounded-section border bg-card/95 p-3.5 text-card-foreground shadow-2xl shadow-black/10 backdrop-blur-xl transition-colors sm:bottom-6 sm:w-toast-responsive sm:p-4',
+        'fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] left-1/2 z-[70] w-[calc(100%-1.5rem)] max-w-toast-responsive -translate-x-1/2 p-3.5 text-card-foreground sm:bottom-6 sm:w-toast-responsive sm:p-4',
         notice.tone === 'success' && 'border-primary/35',
         notice.tone === 'warning' && 'border-warning/40',
         notice.tone === 'error' && 'border-danger/40',
@@ -57,17 +61,12 @@ export function GlobalWakeNotice({ notice, isProcessing }: GlobalWakeNoticeProps
         <span className="text-micro font-black uppercase tracking-label text-muted-foreground">
           {t('assistant.voice_notice.label')}
         </span>
-        <span
-          className={cn(
-            'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-micro font-black uppercase tracking-status',
-            isProcessing ? 'border-warning/40 text-warning' : 'border-primary/30 text-primary'
-          )}
-        >
+        <StatusPill variant={isProcessing ? 'warning' : 'primary'} uppercase>
           <StatusIcon className={cn('h-3 w-3', (isProcessing || notice.status === 'transcribing' || notice.status === 'capturing') && 'animate-spin')} />
           {t(`assistant.voice_notice.${statusKey}`)}
-        </span>
+        </StatusPill>
       </div>
       <p className="text-body font-semibold leading-6 text-foreground">{notice.message}</p>
-    </div>
+    </Card>
   );
 }

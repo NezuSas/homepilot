@@ -15,6 +15,8 @@ import {
   Zap,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { Card } from './ui/Card';
+import { Heading } from './ui/Heading';
 import { IconButton } from './ui/IconButton';
 import { Button } from './ui/Button';
 import { getDashboardIconComponent } from '../views/dashboards/components/IconPicker';
@@ -74,10 +76,13 @@ export const SceneCard: React.FC<SceneCardProps> = ({
   const Icon = scene.icon ? getDashboardIconComponent(scene.icon) : getSceneIcon(scene.name);
 
   return (
-    <article
+    <Card
+      as="article"
       aria-labelledby={titleId}
+      variant="flat"
+      radius="section"
       className={cn(
-        'flex min-w-0 flex-col gap-3 rounded-section border bg-card p-3 surface-transition',
+        'flex flex-col gap-3 p-3',
         isSuccessful ? 'border-primary/50' : 'border-border/60'
       )}
     >
@@ -89,7 +94,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({
           <Icon aria-hidden="true" className="size-5" />
         </div>
         <div className="min-w-0 flex-1">
-          <h4 id={titleId} title={scene.name} className="truncate text-body-compact font-semibold text-foreground">{scene.name}</h4>
+          <Heading as="h4" variant="item" id={titleId} title={scene.name} className="truncate">{scene.name}</Heading>
           <p className="mt-0.5 truncate text-caption text-muted-foreground" title={roomName || undefined}>
             {roomName ? `${roomName} · ` : ''}{t('scenes.action_count', { count: scene.actions.length })}
           </p>
@@ -135,6 +140,6 @@ export const SceneCard: React.FC<SceneCardProps> = ({
           className="hover:text-danger"
         />}
       </div>
-    </article>
+    </Card>
   );
 };

@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, X } from 'lucide-react';
+import { cn } from '../lib/utils';
 import { IconButton } from './ui/IconButton';
 import { Input } from './ui/Input';
 
-interface InlineTabCreatorProps {
+interface InlineTabCreatorProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange'> {
   onConfirm: (title: string) => void;
   onCancel: () => void;
   placeholder: string;
@@ -19,6 +20,8 @@ export const InlineTabCreator: React.FC<InlineTabCreatorProps> = ({
   confirmLabel,
   cancelLabel,
   initialValue = '',
+  className,
+  ...rootProps
 }) => {
   const [value, setValue] = useState(initialValue);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -34,7 +37,7 @@ export const InlineTabCreator: React.FC<InlineTabCreatorProps> = ({
   };
 
   return (
-    <div className="flex min-w-0 max-w-full items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-2 py-1.5 animate-in zoom-in-95 duration-150">
+    <div {...rootProps} className={cn('flex min-w-56 max-w-full shrink-0 items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-2 py-1.5 animate-in zoom-in-95 duration-150', className)}>
       <Input
         ref={inputRef}
         value={value}
@@ -46,10 +49,9 @@ export const InlineTabCreator: React.FC<InlineTabCreatorProps> = ({
         placeholder={placeholder}
         aria-label={placeholder}
         containerClassName="min-w-0 flex-1 sm:w-36 sm:flex-none"
-        className="h-7 rounded-md border-0 bg-transparent px-0 py-0 text-caption font-bold shadow-none placeholder:text-muted-foreground/50 focus-visible:border-0 focus-visible:ring-0 focus-visible:shadow-none"
       />
-      <IconButton icon={Check} label={confirmLabel} onClick={handleConfirm} disabled={!value.trim()} variant="ghost" size="sm" className="h-7 w-7 text-primary hover:text-primary" />
-      <IconButton icon={X} label={cancelLabel} onClick={onCancel} variant="ghost" size="sm" className="h-7 w-7" />
+      <IconButton icon={Check} label={confirmLabel} onClick={handleConfirm} disabled={!value.trim()} variant="ghost" size="sm" className="text-primary hover:text-primary" />
+      <IconButton icon={X} label={cancelLabel} onClick={onCancel} variant="ghost" size="sm" />
     </div>
   );
 };

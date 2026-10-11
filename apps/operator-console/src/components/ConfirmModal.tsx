@@ -1,9 +1,10 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
+import { cn } from '../lib/utils';
 import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
+import { useUiLabels } from './ui/uiLabels';
 
-interface ConfirmModalProps {
+interface ConfirmModalProps extends Omit<React.ComponentProps<typeof Modal>, 'isOpen' | 'onClose' | 'title' | 'description' | 'variant' | 'footer' | 'children' | 'hideCloseButton'> {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
@@ -25,17 +26,19 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   cancelText,
   variant = 'danger',
   isSubmitting = false,
+  className,
+  ...modalProps
 }) => {
-  const { t } = useTranslation();
-  const displayConfirm = confirmText || t('common.confirm');
-  const displayCancel = cancelText || t('common.cancel');
+  const labels = useUiLabels();
+  const displayConfirm = confirmText || labels.confirm;
+  const displayCancel = cancelText || labels.cancel;
 
   if (!isOpen) return null;
 
-  const variantColors: Record<NonNullable<ConfirmModalProps['variant']>, string> = {
-    danger: 'bg-danger text-danger-foreground hover:bg-danger/90 shadow-danger/20',
-    warning: 'bg-warning text-warning-foreground hover:bg-warning/90 shadow-warning/20',
-    info: 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/20',
+  const buttonVariants: Record<NonNullable<ConfirmModalProps['variant']>, NonNullable<React.ComponentProps<typeof Button>['variant']>> = {
+    danger: 'danger',
+    warning: 'warning',
+    info: 'primary',
   };
 
   const modalVariants: Record<NonNullable<ConfirmModalProps['variant']>, NonNullable<React.ComponentProps<typeof Modal>['variant']>> = {
@@ -46,12 +49,13 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
   return (
     <Modal
+      {...modalProps}
       isOpen={isOpen}
       onClose={isSubmitting ? undefined : onClose}
       title={title}
       description={description}
       variant={modalVariants[variant]}
-      className="max-w-sm"
+      className={cn('max-w-sm', className)}
       hideCloseButton={isSubmitting}
       footer={(
         <div className="grid w-full grid-cols-1 gap-3 p-5 min-[380px]:grid-cols-2 sm:p-8">
@@ -59,14 +63,15 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
             disabled={isSubmitting}
             onClick={onClose}
             variant="outline"
-            className="w-full rounded-xl px-5 py-3 text-body font-bold text-foreground/60"
+            className="w-full"
           >
             {displayCancel}
           </Button>
           <Button
             onClick={onConfirm}
             isLoading={isSubmitting}
-            className={`w-full rounded-xl px-5 py-3 text-body font-bold shadow-lg ${variantColors[variant]}`}
+            variant={buttonVariants[variant]}
+            className="w-full"
           >
             {displayConfirm}
           </Button>

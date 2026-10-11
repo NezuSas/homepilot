@@ -5,11 +5,14 @@ import { Button } from '../../components/ui/Button';
 import { IconButton } from '../../components/ui/IconButton';
 import { Input, SearchInput } from '../../components/ui/Input';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { Heading } from '../../components/ui/Heading';
 import { cn } from '../../lib/utils';
 import type { TopologyRoom } from './topologyPresentation';
 import type { SnapshotDevice } from '../../stores/useDeviceSnapshotStore';
 import { TopologyDeviceTile } from './TopologyDeviceTile';
 import { getRoomDeviceGroup, type RoomDeviceGroup } from './topologyDeviceControl';
+import { RoomScene } from './RoomScene';
+import { buildRoomSceneState } from './roomSceneModel';
 
 interface TopologyRoomDetailPanelProps {
   room: TopologyRoom;
@@ -48,10 +51,14 @@ export function TopologyRoomDetailPanel({
     group.push(device);
     deviceGroups.set(kind, group);
   }
+  const scene = buildRoomSceneState(devices);
   const groupLabel = (kind: RoomDeviceGroup) => t(kind === 'media_player' ? 'device_types.media_player'
     : kind === 'other' ? 'device_types.none' : `inbox.filters.${kind}`);
   return (
     <aside aria-label={t('topology.room_details')} className="min-w-0 self-start rounded-xl border border-border bg-card p-4 sm:p-5">
+      <div className="-mx-4 -mt-4 mb-4 overflow-hidden rounded-t-[0.7rem] sm:-mx-5 sm:-mt-5 sm:mb-5">
+        <RoomScene lightsOn={scene.lightsOn} curtainOpen={scene.curtainOpen} />
+      </div>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1 basis-40">
           {editing ? (
@@ -59,7 +66,6 @@ export function TopologyRoomDetailPanel({
               <Input
                 autoFocus
                 containerClassName="min-w-0 flex-1"
-                className="rounded-xl border-primary/40 px-3 py-2 text-body font-bold ring-2 ring-primary/10"
                 maxLength={80}
                 value={draft}
                 onChange={(event) => onDraftChange(event.target.value)}
@@ -72,7 +78,7 @@ export function TopologyRoomDetailPanel({
                 disabled={isRenaming || !draft.trim()}
                 variant="primary"
                 size="md"
-                className={cn('h-10 w-10', isRenaming && '[&_svg]:animate-spin')}
+                className={cn('', isRenaming && '[&_svg]:animate-spin')}
               />
               <IconButton
                 icon={X}
@@ -81,14 +87,14 @@ export function TopologyRoomDetailPanel({
                 disabled={isRenaming}
                 variant="default"
                 size="md"
-                className="h-10 w-10"
+
               />
             </form>
           ) : (
             <div className="mt-1 flex items-center gap-2">
-              <h4 className="min-w-0 break-words text-section-title font-black tracking-tight text-foreground">
+              <Heading variant="section" as="h4" className="text-foreground">
                 {room.name}
-              </h4>
+              </Heading>
               {canManage && (
                 <IconButton
                   icon={Pencil}
@@ -96,7 +102,7 @@ export function TopologyRoomDetailPanel({
                   onClick={onStartRename}
                   variant="default"
                   size="sm"
-                  className="h-8 w-8 rounded-lg hover:border-primary/30 hover:text-primary"
+                  className="hover:border-primary/30 hover:text-primary"
                 />
               )}
             </div>
@@ -113,7 +119,7 @@ export function TopologyRoomDetailPanel({
             onClick={onClose}
             variant="default"
             size="md"
-            className="h-9 w-9 rounded-xl hover:text-foreground"
+            className="hover:text-foreground"
           />
         </div>
       </div>

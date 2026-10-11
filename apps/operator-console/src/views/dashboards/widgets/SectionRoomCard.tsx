@@ -1,5 +1,6 @@
 import { Home } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { StatusPill } from '../../../components/ui/StatusPill';
 
 interface SectionRoomCardProps {
   title: string;
@@ -15,7 +16,7 @@ export function SectionRoomCard({ title, roomDeviceCount, roomActiveCount }: Sec
       <div className="pointer-events-none absolute inset-0 bg-room-card-aura opacity-80 dark:opacity-100" />
       <div className="flex items-start justify-between gap-3">
         <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-primary/20 bg-primary/10 text-primary shadow-sm ring-1 ring-primary/10 sm:h-11 sm:w-11"><Home className="h-room-icon w-room-icon sm:h-5 sm:w-5" /></span>
-        <span className="relative rounded-full border border-border/65 bg-background/90 px-2.5 py-1 text-micro font-black uppercase tracking-control text-muted-foreground shadow-sm dark:bg-background/45 sm:text-micro">{t('dashboard.editor.sections.room_label')}</span>
+        <StatusPill uppercase className="relative shadow-sm">{t('dashboard.editor.sections.room_label')}</StatusPill>
       </div>
       <div className="relative min-w-0 py-2">
         <span className="block line-clamp-2 text-card-title font-black leading-tight text-foreground">{title}</span>

@@ -16,7 +16,7 @@ export const UsersHeader: React.FC<UsersHeaderProps> = ({ title, addLabel, onAdd
     icon={Users}
     title={title}
     action={
-      <Button onClick={onAdd} size="sm" className="gap-2">
+      <Button onClick={onAdd} size="sm">
         <Plus className="w-4 h-4" />
         {addLabel}
       </Button>

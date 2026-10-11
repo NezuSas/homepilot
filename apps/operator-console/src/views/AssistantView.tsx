@@ -12,6 +12,8 @@ import { AssistantSkeleton } from '../components/ui/ComponentSkeletons';
 import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { Heading } from '../components/ui/Heading';
 import { useAssistantStore } from '../stores/useAssistantStore';
 import type { View } from '../types';
 import type { AssistantFinding as Finding, AssistantFindingAction } from '../stores/useAssistantStore';
@@ -242,13 +244,13 @@ export const AssistantView: React.FC<{
               return (
                 <div key={sectionKey} className="space-y-4">
                   <div className="flex items-center gap-3 px-2">
-                    <h2 className="text-micro font-black uppercase tracking-label text-muted-foreground/60">
+                    <Heading variant="label" as="h2">
                       {t(`assistant.sections.${sectionKey}`)}
-                    </h2>
+                    </Heading>
                     <div className="h-px flex-1 bg-gradient-to-r from-muted to-transparent"></div>
                   </div>
 
-                  <div className="divide-y divide-border/60 rounded-card border border-border bg-card">
+                  <Card variant="flat" className="divide-y divide-border/60">
                     {sectionItems.map((item: ProcessedItem) => {
                       if ('isGroup' in item && item.isGroup) {
                         return (
@@ -274,7 +276,7 @@ export const AssistantView: React.FC<{
                         />
                       );
                     })}
-                  </div>
+                  </Card>
                 </div>
               );
             });

@@ -1,6 +1,7 @@
-import { useId, useLayoutEffect, useRef, useState } from 'react';
+import { useId, useLayoutEffect, useRef, useState, type ComponentPropsWithoutRef } from 'react';
 import { createPortal } from 'react-dom';
 import { MoreVertical, type LucideIcon } from 'lucide-react';
+import { cn } from '../../lib/utils';
 import { Button } from './Button';
 import { IconButton } from './IconButton';
 import { useVisualViewportBounds } from './useVisualViewportBounds';
@@ -25,7 +26,15 @@ export function getActionMenuPosition(anchor: { top: number; bottom: number; rig
 
 /** Shared dashboard/Section actions: portal, outside dismissal and keyboard.
  * This is a non-modal popup: it never locks scrolling or traps page focus. */
-export function ActionMenu({ label, items, compact = false }: { label: string; items: ActionMenuItem[]; compact?: boolean }) {
+export interface ActionMenuProps extends Omit<ComponentPropsWithoutRef<typeof IconButton>, 'icon' | 'label' | 'variant' | 'size' | 'className'> {
+  label: string;
+  items: ActionMenuItem[];
+  compact?: boolean;
+  /** Class names for the floating menu panel. */
+  className?: string;
+}
+
+export function ActionMenu({ label, items, compact = false, className, ...triggerProps }: ActionMenuProps) {
   const id = useId();
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0, width: 224, maxHeight: 320 });
@@ -78,7 +87,7 @@ export function ActionMenu({ label, items, compact = false }: { label: string; i
   }, [isOpen]);
 
   return <>
-    <IconButton ref={trigger} icon={MoreVertical} label={label} variant="ghost" size="lg"
+    <IconButton {...triggerProps} ref={trigger} icon={MoreVertical} label={label} variant="ghost" size="lg"
       aria-haspopup="menu" aria-expanded={isOpen} aria-controls={isOpen ? id : undefined}
       onPointerDown={event => event.stopPropagation()}
       onMouseDown={event => event.stopPropagation()} onTouchStart={event => event.stopPropagation()}
@@ -88,7 +97,7 @@ export function ActionMenu({ label, items, compact = false }: { label: string; i
         if (event.key === 'Escape') { event.stopPropagation(); close(true); }
       }} />
     {isOpen && createPortal(<div id={id} ref={popup} role="menu" aria-label={label} style={{ ...position, ...(compact ? { width: 'max-content', maxWidth: position.width } : {}) }}
-      className={`fixed z-[100] overflow-y-auto rounded-panel border border-border/70 bg-card p-1.5 text-foreground shadow-depth-3${compact ? ' grid grid-cols-1' : ''}`}
+      className={cn("fixed z-[100] overflow-y-auto rounded-panel border border-border/70 bg-card p-1.5 text-foreground shadow-depth-3", compact && "grid grid-cols-1", className)}
       onPointerDown={event => event.stopPropagation()} onClick={event => event.stopPropagation()}
       onKeyDown={event => {
         event.stopPropagation();
@@ -100,8 +109,8 @@ export function ActionMenu({ label, items, compact = false }: { label: string; i
           : event.key === 'ArrowDown' ? (current + 1) % controls.length : event.key === 'ArrowUp' ? (current - 1 + controls.length) % controls.length : undefined;
         if (next !== undefined && controls[next]) { event.preventDefault(); controls[next].focus(); }
       }}>
-      {items.map((item, index) => <Button key={index} role="menuitem" variant="ghost" size="md" disabled={item.disabled}
-        className={`min-h-11 whitespace-nowrap justify-start ${compact ? 'w-max max-w-none !px-2' : 'w-full'}${item.danger ? ' text-danger' : ''}`}
+      {items.map((item, index) => <Button key={index} role="menuitem" variant={item.danger ? 'danger' : 'ghost'} size="md" disabled={item.disabled}
+        className={`whitespace-nowrap justify-start ${compact ? 'w-max max-w-none' : 'w-full'}`}
         onClick={() => { close(true); item.onSelect(); }}>
         <item.icon className="h-4 w-4" aria-hidden="true" />{item.label}
       </Button>)}

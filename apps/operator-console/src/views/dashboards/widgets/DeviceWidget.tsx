@@ -12,7 +12,8 @@ import { isDeviceActive } from '../dashboardUtils';
 import { DormantWidgetPlaceholder } from '../components/DormantWidgetPlaceholder';
 import { CameraDeviceTile } from '../../../components/CameraDeviceTile';
 import { getDashboardIconComponent } from '../components/IconPicker';
-import { Button } from '../../../components/ui/Button';
+import { SurfaceButton } from '../../../components/ui/SurfaceButton';
+import { Heading } from '../../../components/ui/Heading';
 import { getDeviceTileStateClasses } from '../../../components/ui/DeviceTileShell';
 import { createDeviceTogglePlan, executeDeviceToggle } from './deviceToggle';
 import { DashboardCardSkeleton } from '../../../components/ui/DashboardCardSkeleton';
@@ -96,7 +97,7 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
   };
 
   return (
-    <Button
+    <SurfaceButton
       type="button"
       className={cn(
         'device-toggle-control relative h-full w-full min-h-0 min-w-0 overflow-hidden rounded-[inherit] text-left transition-[background-color,border-color,box-shadow,transform] duration-300 ease-out',
@@ -114,7 +115,6 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
       aria-busy={isProcessing || undefined}
       aria-label={t('dashboards.widgets.selected_device.toggle_label', { name: displayName, state: stateLabel })}
       title={!canToggle ? t('dashboards.widgets.selected_device.toggle_unavailable') : undefined}
-      variant="outline"
     >
       <div className={cn('flex min-w-0 items-center', isCompact ? 'flex-1 gap-3' : 'w-full justify-between gap-3')}>
         <span
@@ -128,7 +128,7 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
         </span>
         {isCompact && (
           <div className="min-w-0 flex-1">
-            <h4 className="truncate text-widget-body-fluid font-semibold leading-tight tracking-tight">{displayName}</h4>
+            <Heading as="h4" variant="item" className="truncate text-widget-body-fluid leading-tight tracking-tight">{displayName}</Heading>
             <p className="mt-0.5 text-widget-meta-fluid text-muted-foreground">{stateLabel}</p>
           </div>
         )}
@@ -139,7 +139,7 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
 
       {!isCompact && (
         <div className="min-w-0 pr-1">
-          <h4 className="truncate text-widget-body-lg-fluid font-semibold leading-tight tracking-tight">{displayName}</h4>
+          <Heading as="h4" variant="item" className="truncate text-widget-body-lg-fluid leading-tight tracking-tight">{displayName}</Heading>
           <p className="mt-1 text-widget-meta-fluid text-muted-foreground">
             {t('dashboards.widgets.selected_device.toggle_hint', { state: stateLabel })}
           </p>
@@ -157,7 +157,7 @@ export function DeviceWidget({ config, isEditing, onConfigure }: { config: Dashb
           <Loader2 className="h-5 w-5 animate-spin text-primary" />
         </span>
       )}
-    </Button>
+    </SurfaceButton>
   );
 }
 

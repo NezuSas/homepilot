@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Camera, Plus, ShieldAlert, AlertTriangle } from 'lucide-react';
+import { Camera, Plus, ShieldAlert } from 'lucide-react';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { EmptyState } from '../components/ui/EmptyState';
 import { NativeCameraSettingsCard } from '../components/NativeCameraSettingsCard';
@@ -8,285 +8,42 @@ import { Button } from '../components/ui/Button';
 import { NativeCameraSettingsSkeleton } from '../components/ui/ComponentSkeletons';
 import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { AlertBanner } from '../components/ui/AlertBanner';
-import { API_BASE_URL } from '../config';
-import { apiFetch } from '../lib/apiClient';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import ConfirmModal from '../components/ConfirmModal';
-import { sourceTypeDefaults, type DiscoveredCamera, type NativeCamera, type NativeCameraFormData, type NativeCameraPayload, type NativeCameraSourceType } from './nativeCameras/types';
+import type { NativeCameraNotice } from './nativeCameras/types';
+import { formDataFromDiscovery } from './nativeCameras/nativeCameraForm';
 import { NativeCameraDiscoveryModal } from './nativeCameras/NativeCameraDiscoveryModal';
 import { NativeCameraFormModal } from './nativeCameras/NativeCameraFormModal';
+import { NativeCameraNoticeToast } from './nativeCameras/NativeCameraNoticeToast';
+import { useNativeCameraList } from './nativeCameras/useNativeCameraList';
+import { useNativeCameraDelete } from './nativeCameras/useNativeCameraDelete';
+import { useNativeCameraDiscovery } from './nativeCameras/useNativeCameraDiscovery';
+import { useNativeCameraForm } from './nativeCameras/useNativeCameraForm';
 
 export const NativeCamerasView: React.FC = () => {
   const { t } = useTranslation();
   const homes = useDeviceSnapshotStore((state) => state.homes);
-  const refreshSnapshot = useDeviceSnapshotStore((state) => state.refreshSnapshot);
-  
-  const [cameras, setCameras] = useState<NativeCamera[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const initialLoading = useInitialLoading(isLoading);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Discovery State
-  const [isDiscoveryModalOpen, setIsDiscoveryModalOpen] = useState(false);
-  const [isDiscovering, setIsDiscovering] = useState(false);
-  const [discoveredCameras, setDiscoveredCameras] = useState<DiscoveredCamera[]>([]);
-  const [selectedDiscoveredCamera, setSelectedDiscoveredCamera] = useState<string>('');
-  const [selectedSourceType, setSelectedSourceType] = useState<NativeCameraSourceType>('onvif-ptz');
-  
-  const [editingDevice, setEditingDevice] = useState<string | null>(null);
-  
-  // Form state
-  const [formData, setFormData] = useState<NativeCameraFormData>({
-    sourceType: 'onvif-ptz',
-    name: '',
-    host: '',
-    rtspPort: 554,
-    onvifPort: 8000,
-    username: '',
-    password: '',
-    rtspPath: '',
-    homeId: homes[0]?.id || ''
-  });
-
-  const [formError, setFormError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<{ variant: 'success' | 'warning' | 'danger'; message: string } | null>(null);
-
-  useEffect(() => {
-    if (homes.length > 0 && !formData.homeId) {
-      setFormData(prev => ({ ...prev, homeId: homes[0].id }));
-    }
-  }, [homes, formData.homeId]);
-
   const activeHomeId = homes[0]?.id ?? null;
 
-  const loadCameras = useCallback(async (showSpinner = true) => {
-    if (!activeHomeId) return;
+  const [notice, setNotice] = useState<NativeCameraNotice | null>(null);
 
-    if (showSpinner) setIsLoading(true);
-    try {
-      const res = await apiFetch(`${API_BASE_URL}/api/v1/native-cameras?homeId=${encodeURIComponent(activeHomeId)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setCameras(data.cameras || []);
-      }
-    } catch (err) {
-      console.error('Failed to load cameras', err);
-    } finally {
-      if (showSpinner) setIsLoading(false);
-    }
-  }, [activeHomeId]);
-
-  useEffect(() => {
-    let active = true;
-    void refreshSnapshot().finally(() => {
-      if (active && useDeviceSnapshotStore.getState().homes.length === 0) setIsLoading(false);
-    });
-    return () => { active = false; };
-  }, [refreshSnapshot]);
-
-  useEffect(() => {
-    if (!activeHomeId) return;
-    void loadCameras();
-  }, [activeHomeId, loadCameras]);
-
-  const handleOpenDiscoveryModal = async () => {
-    setIsDiscoveryModalOpen(true);
-    setIsDiscovering(true);
-    setSelectedSourceType('onvif-ptz');
-    setSelectedDiscoveredCamera('manual');
-    try {
-      const res = await apiFetch(`${API_BASE_URL}/api/v1/native-cameras/discover`);
-      if (res.ok) {
-        const data = await res.json();
-        setDiscoveredCameras(data.devices || []);
-      } else {
-        setDiscoveredCameras([]);
-      }
-    } catch (err) {
-      console.error(err);
-      setDiscoveredCameras([]);
-    } finally {
-      setIsDiscovering(false);
-    }
-  };
+  const { cameras, setCameras, isLoading, loadCameras } = useNativeCameraList(activeHomeId);
+  const initialLoading = useInitialLoading(isLoading);
+  const discovery = useNativeCameraDiscovery();
+  const form = useNativeCameraForm(homes, loadCameras, setNotice);
+  const { deviceToDelete, setDeviceToDelete, confirmDelete } = useNativeCameraDelete(setCameras, setNotice);
 
   const handleDiscoverySubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsDiscoveryModalOpen(false);
+    discovery.setIsDiscoveryModalOpen(false);
 
-    setEditingDevice(null);
-    setFormError(null);
-
-    const selectedCamera = discoveredCameras.find(camera => camera.urn === selectedDiscoveredCamera);
-
-    if (selectedSourceType !== 'onvif-ptz') {
-      const defaults = sourceTypeDefaults[selectedSourceType];
-      setFormData({
-        name: selectedCamera?.name || '',
-        sourceType: selectedSourceType,
-        host: selectedCamera?.host || '',
-        rtspPort: defaults.rtspPort,
-        onvifPort: selectedCamera?.onvifPort || defaults.onvifPort,
-        username: '',
-        password: '',
-        rtspPath: defaults.rtspPath,
-        homeId: homes[0]?.id || ''
-      });
-    } else if (selectedDiscoveredCamera === 'manual' || !selectedDiscoveredCamera) {
-      setFormData({
-        name: '',
-        sourceType: 'onvif-ptz',
-        host: '',
-        rtspPort: 554,
-        onvifPort: 8000,
-        username: '',
-        password: '',
-        rtspPath: '',
-        homeId: homes[0]?.id || ''
-      });
-    } else {
-      if (selectedCamera) {
-        setFormData({
-          name: selectedCamera.name,
-          sourceType: 'onvif-ptz',
-          host: selectedCamera.host,
-          rtspPort: 554, // usually ONVIF profile provides RTSP, but we set default
-          onvifPort: selectedCamera.onvifPort,
-          username: '',
-          password: '',
-          rtspPath: '',
-          homeId: homes[0]?.id || ''
-        });
-      }
-    }
-    
-    setIsModalOpen(true);
-  };
-
-  const handleOpenEditModal = (camera: NativeCamera) => {
-    setEditingDevice(camera.deviceId);
-    setFormData({
-      name: camera.name,
-      sourceType: camera.sourceType || 'onvif-ptz',
-      host: camera.host,
-      rtspPort: camera.rtspPort,
-      onvifPort: camera.onvifPort,
-      username: '', // Deliberately blank for security
-      password: '', // Deliberately blank for security
-      rtspPath: camera.rtspPath,
-      homeId: camera.homeId
-    });
-    setFormError(null);
-    setIsModalOpen(true);
-  };
-
-  const handleSourceTypeChange = (sourceType: string) => {
-    if (!['onvif-ptz', 'rtsp-dvr', 'sonoff-rtsp'].includes(sourceType)) return;
-    const typedSource = sourceType as NativeCameraSourceType;
-    const defaults = sourceTypeDefaults[typedSource];
-    setFormData(prev => ({
-      ...prev,
-      sourceType: typedSource,
-      rtspPort: defaults.rtspPort,
-      onvifPort: defaults.onvifPort,
-      rtspPath: prev.rtspPath || defaults.rtspPath,
-    }));
-  };
-
-  const [deviceToDelete, setDeviceToDelete] = useState<string | null>(null);
-
-  const handleDelete = (deviceId: string) => {
-    setDeviceToDelete(deviceId);
-  };
-
-  const confirmDelete = async () => {
-    if (!deviceToDelete) return;
-
-    try {
-      const res = await apiFetch(`${API_BASE_URL}/api/v1/native-cameras/${deviceToDelete}`, {
-        method: 'DELETE'
-      });
-      
-      if (res.ok) {
-        setCameras(prev => prev.filter(c => c.deviceId !== deviceToDelete));
-      } else {
-        setNotice({ variant: 'danger', message: t('native_cameras.messages.delete_failed') });
-      }
-    } catch (err) {
-      console.error(err);
-      setNotice({ variant: 'danger', message: t('native_cameras.messages.delete_failed') });
-    } finally {
-      setDeviceToDelete(null);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError(null);
-    setNotice(null);
-    
-    // Basic validation
-    if (!formData.name.trim()) return setFormError(t('native_cameras.form.errors.name_required'));
-    if (!formData.host.trim()) return setFormError(t('native_cameras.form.errors.host_required'));
-    if (!editingDevice && !formData.username) return setFormError(t('native_cameras.form.errors.username_required'));
-    if (!editingDevice && !formData.password) return setFormError(t('native_cameras.form.errors.password_required'));
-    if (formData.sourceType !== 'onvif-ptz' && !formData.rtspPath.trim()) {
-      return setFormError(t('native_cameras.form.errors.rtsp_path_required'));
-    }
-    
-    const rtspPortNum = Number(formData.rtspPort);
-    const onvifPortNum = Number(formData.onvifPort);
-    
-    if (isNaN(rtspPortNum) || rtspPortNum < 1 || rtspPortNum > 65535) {
-      return setFormError(t('native_cameras.form.errors.port_invalid'));
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const payload: NativeCameraPayload = {
-        sourceType: formData.sourceType,
-        name: formData.name,
-        host: formData.host,
-        rtspPort: rtspPortNum,
-        onvifPort: onvifPortNum,
-        rtspPath: formData.rtspPath
-      };
-
-      if (formData.username) payload.username = formData.username;
-      if (formData.password) payload.password = formData.password;
-      
-      const url = editingDevice 
-        ? `${API_BASE_URL}/api/v1/native-cameras/${editingDevice}`
-        : `${API_BASE_URL}/api/v1/native-cameras`;
-        
-      if (!editingDevice) {
-        payload.homeId = formData.homeId;
-      }
-
-      const res = await apiFetch(url, {
-        method: editingDevice ? 'PUT' : 'POST',
-        body: JSON.stringify(payload)
-      });
-
-      if (res.ok) {
-        setIsModalOpen(false);
-        await loadCameras();
-      } else {
-        const errData = await res.json().catch(() => ({}));
-        const errorMsg = errData?.error?.message || errData?.message || t('native_cameras.form.errors.save_failed');
-        if (errData?.error?.code === 'NATIVE_CAMERA_ALREADY_EXISTS') {
-          setNotice({ variant: 'warning', message: errorMsg || t('native_cameras.messages.already_exists') });
-        }
-        setFormError(errorMsg);
-      }
-    } catch (err) {
-      console.error(err);
-      setFormError(t('native_cameras.form.errors.save_failed'));
-    } finally {
-      setIsSubmitting(false);
-    }
+    const selectedCamera = discovery.discoveredCameras.find(camera => camera.urn === discovery.selectedDiscoveredCamera);
+    form.openCreateModal(formDataFromDiscovery(
+      selectedCamera,
+      discovery.selectedDiscoveredCamera,
+      discovery.selectedSourceType,
+      homes[0]?.id || '',
+    ));
   };
 
   return (
@@ -299,7 +56,7 @@ export const NativeCamerasView: React.FC = () => {
         action={
           <Button
             variant="primary"
-            onClick={handleOpenDiscoveryModal}
+            onClick={discovery.handleOpenDiscoveryModal}
             disabled={homes.length === 0}
           >
             <Plus size={16} /> {t('native_cameras.add_camera')}
@@ -315,26 +72,7 @@ export const NativeCamerasView: React.FC = () => {
         className="text-caption"
       />
 
-      {notice && (
-        <div className="fixed left-3 right-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-[140] w-auto sm:left-auto sm:right-6 sm:top-6 sm:w-native-camera-toast">
-          <AlertBanner
-            variant={notice.variant}
-            icon={AlertTriangle}
-            message={notice.message}
-            action={(
-              <Button
-                type="button"
-                variant="outline"
-                size="xs"
-                className="border-current/20 text-current hover:bg-current/10"
-                onClick={() => setNotice(null)}
-              >
-                {t('common.close', 'Cerrar')}
-              </Button>
-            )}
-          />
-        </div>
-      )}
+      {notice && <NativeCameraNoticeToast notice={notice} onDismiss={() => setNotice(null)} />}
 
       {initialLoading ? (
         <NativeCameraSettingsSkeleton label={t('common.loading')} />
@@ -343,33 +81,33 @@ export const NativeCamerasView: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           {cameras.map(camera => <NativeCameraSettingsCard key={camera.deviceId} camera={camera}
-            onEdit={handleOpenEditModal} onDelete={handleDelete} />)}
+            onEdit={form.handleOpenEditModal} onDelete={setDeviceToDelete} />)}
         </div>
       )}
 
       <NativeCameraDiscoveryModal
-        isDiscoveryModalOpen={isDiscoveryModalOpen}
-        isDiscovering={isDiscovering}
-        discoveredCameras={discoveredCameras}
-        selectedDiscoveredCamera={selectedDiscoveredCamera}
-        selectedSourceType={selectedSourceType}
-        setIsDiscoveryModalOpen={setIsDiscoveryModalOpen}
-        setSelectedDiscoveredCamera={setSelectedDiscoveredCamera}
-        setSelectedSourceType={setSelectedSourceType}
+        isDiscoveryModalOpen={discovery.isDiscoveryModalOpen}
+        isDiscovering={discovery.isDiscovering}
+        discoveredCameras={discovery.discoveredCameras}
+        selectedDiscoveredCamera={discovery.selectedDiscoveredCamera}
+        selectedSourceType={discovery.selectedSourceType}
+        setIsDiscoveryModalOpen={discovery.setIsDiscoveryModalOpen}
+        setSelectedDiscoveredCamera={discovery.setSelectedDiscoveredCamera}
+        setSelectedSourceType={discovery.setSelectedSourceType}
         handleDiscoverySubmit={handleDiscoverySubmit}
       />
 
       <NativeCameraFormModal
-        isModalOpen={isModalOpen}
-        isSubmitting={isSubmitting}
-        editingDevice={editingDevice}
-        formError={formError}
-        formData={formData}
-        setFormData={setFormData}
+        isModalOpen={form.isModalOpen}
+        isSubmitting={form.isSubmitting}
+        editingDevice={form.editingDevice}
+        formError={form.formError}
+        formData={form.formData}
+        setFormData={form.setFormData}
         homes={homes}
-        handleSourceTypeChange={handleSourceTypeChange}
-        handleSubmit={handleSubmit}
-        setIsModalOpen={setIsModalOpen}
+        handleSourceTypeChange={form.handleSourceTypeChange}
+        handleSubmit={form.handleSubmit}
+        setIsModalOpen={form.setIsModalOpen}
       />
 
       <ConfirmModal

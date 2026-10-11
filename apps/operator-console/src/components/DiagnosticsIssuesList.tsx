@@ -1,7 +1,7 @@
 import React from 'react';
-import { AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { cn } from '../lib/utils';
+import { AlertBanner } from './ui/AlertBanner';
+import { Heading } from './ui/Heading';
 
 interface DiagnosticsIssue {
   code: string;
@@ -20,18 +20,15 @@ export const DiagnosticsIssuesList: React.FC<DiagnosticsIssuesListProps> = ({ is
 
   return (
     <div className="space-y-3">
-      <h3 className="text-micro font-black tracking-widest uppercase text-muted-foreground opacity-50">{t('diagnostics.active_issues')}</h3>
+      <Heading variant="label" as="h3">{t('diagnostics.active_issues')}</Heading>
       {issues.map((issue, index) => (
-        <div key={`${issue.code}-${index}`} className={cn(
-          "flex items-start gap-4 p-4 rounded-xl border",
-          issue.severity === 'critical' ? "border-danger/50 bg-danger/5 text-danger" : "border-warning/50 bg-warning/5 text-warning"
-        )}>
-          <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
-          <div className="flex flex-col gap-1">
-            <span className="uppercase font-mono text-label tracking-widest font-bold">{t(`diagnostics.issues.${issue.code}`, { defaultValue: issue.code }) as string}</span>
-            <span className="text-body">{t(issue.message)}</span>
-          </div>
-        </div>
+        <AlertBanner
+          key={`${issue.code}-${index}`}
+          variant={issue.severity === 'critical' ? 'danger' : 'warning'}
+          size="sm"
+          title={t(`diagnostics.issues.${issue.code}`, { defaultValue: issue.code }) as string}
+          message={t(issue.message)}
+        />
       ))}
     </div>
   );

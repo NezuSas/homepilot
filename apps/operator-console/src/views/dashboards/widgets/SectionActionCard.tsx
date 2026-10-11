@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Button } from '../../../components/ui/Button';
+import { SurfaceButton } from '../../../components/ui/SurfaceButton';
 import { cn } from '../../../lib/utils';
 import { getDashboardIconComponent } from '../components/IconPicker';
 import { getDefaultIcon, normalizeKind, type SectionCardIcon, type SectionCardKind } from './sectionCardCatalog';
@@ -47,7 +47,7 @@ export function SectionActionCard({
   const isInteractiveAction = !isPresentationOnly && !unavailable;
 
   return (
-    <Button
+    <SurfaceButton
       type="button"
       onClick={(event) => { event.stopPropagation(); onAction?.(); }}
       disabled={!isPresentationOnly && (unavailable || isBlocked || actionFeedback === 'pending')}
@@ -58,7 +58,6 @@ export function SectionActionCard({
       data-plc-momentary={momentaryCommand || undefined}
       data-action-state={momentaryCommand ? actionFeedback === 'pending' ? 'pending' : 'idle' : actionFeedback ?? 'idle'}
       title={actionError ?? (actionFeedback === 'error' ? t('dashboard.editor.sections.action_button_error') : unavailable ? t('dashboard.editor.sections.action_button_unavailable') : subtitle)}
-      variant="ghost"
       className={cn(
         SECTION_BUTTON_TILE_CLASSES,
         getLightTileSurfaceClasses(Boolean(isActive)),
@@ -74,6 +73,6 @@ export function SectionActionCard({
       {momentaryCommand && actionFeedback === 'error' && <span role="alert" className="line-clamp-2 min-w-0 text-micro text-danger">{actionError ?? t('dashboard.editor.sections.action_button_error')}</span>}
       {actionFeedback === 'success' && <span role="status" className="sr-only">{t('dashboard.editor.sections.action_button_success')}</span>}
       {!momentaryCommand && actionFeedback === 'error' && <span role="alert" className="sr-only">{t('dashboard.editor.sections.action_button_error')}</span>}
-    </Button>
+    </SurfaceButton>
   );
 }

@@ -3,6 +3,8 @@ import { RefreshCw, Server, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import { mapDiagnosticsStatus } from '../lib/i18n-mapping-utils';
+import { Card } from './ui/Card';
+import { Heading } from './ui/Heading';
 
 interface DiagnosticsCounters {
   recentReconnects: number;
@@ -72,13 +74,13 @@ export const DiagnosticsProbeGrid: React.FC<DiagnosticsProbeGridProps> = ({
 
   return (
     <>
-      <h3 className="text-micro font-black tracking-widest uppercase text-muted-foreground opacity-50 mt-8 mb-4">{t('diagnostics.probes.title')}</h3>
+      <Heading variant="label" as="h3" className="mt-8 mb-4">{t('diagnostics.probes.title')}</Heading>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-6">
+        <Card variant="flat" radius="section" className="flex flex-col gap-6 p-5">
           <div className="flex items-start justify-between">
-            <h4 className="font-bold flex items-center gap-2">
+            <Heading variant="item" as="h4" className="flex items-center gap-2">
               <Server className="w-4 h-4 text-primary" /> {t('ha_settings.title')}
-            </h4>
+            </Heading>
             <StatusBadge status={haConnectionStatus} />
           </div>
           <div className="flex flex-col gap-3">
@@ -95,13 +97,13 @@ export const DiagnosticsProbeGrid: React.FC<DiagnosticsProbeGridProps> = ({
               <span className="font-mono">{formatTime(lastReconnectAt)}</span>
             </div>
           </div>
-        </div>
+        </Card>
 
-        <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-6">
+        <Card variant="flat" radius="section" className="flex flex-col gap-6 p-5">
           <div className="flex items-start justify-between">
-            <h4 className="font-bold flex items-center gap-2">
+            <Heading variant="item" as="h4" className="flex items-center gap-2">
               <Zap className="w-4 h-4 text-primary" /> {t('dashboard.logic_engine')}
-            </h4>
+            </Heading>
             <StatusBadge status={automationEngineStatus} />
           </div>
           <div className="flex flex-col gap-3">
@@ -122,13 +124,13 @@ export const DiagnosticsProbeGrid: React.FC<DiagnosticsProbeGridProps> = ({
               <span className="font-mono">{formatTime(lastAutomationExecutionAt)}</span>
             </div>
           </div>
-        </div>
+        </Card>
 
-        <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-6">
+        <Card variant="flat" radius="section" className="flex flex-col gap-6 p-5">
           <div className="flex items-start justify-between">
-            <h4 className="font-bold flex items-center gap-2">
+            <Heading variant="item" as="h4" className="flex items-center gap-2">
               <RefreshCw className="w-4 h-4 text-primary" /> {t('diagnostics.probes.state_delta')}
-            </h4>
+            </Heading>
             <StatusBadge status={reconciliationStatus} />
           </div>
           <div className="flex flex-col gap-3">
@@ -147,7 +149,7 @@ export const DiagnosticsProbeGrid: React.FC<DiagnosticsProbeGridProps> = ({
               <span className="font-mono">{formatTime(lastReconciliationAt)}</span>
             </div>
           </div>
-        </div>
+        </Card>
       </div>
     </>
   );

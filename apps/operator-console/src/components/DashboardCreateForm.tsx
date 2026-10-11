@@ -30,7 +30,7 @@ export const DashboardCreateForm: React.FC<DashboardCreateFormProps> = ({
       <Input
         autoFocus
         containerClassName="flex-1"
-        className="rounded-2xl border-border/80 px-5 py-3 font-bold shadow-inner"
+        aria-label={title}
         placeholder={placeholder}
         value={value}
         onChange={event => onValueChange(event.target.value)}
@@ -41,8 +41,8 @@ export const DashboardCreateForm: React.FC<DashboardCreateFormProps> = ({
         }}
       />
       <div className="flex items-center gap-3">
-        <Button variant="primary" onClick={onConfirm} isLoading={isSubmitting} disabled={!value.trim()} className="flex-1 font-black uppercase tracking-widest text-micro px-8">{confirmLabel}</Button>
-        <Button variant="secondary" onClick={onCancel} disabled={isSubmitting} className="p-3"><X className="w-4 h-4" /></Button>
+        <Button variant="primary" onClick={onConfirm} isLoading={isSubmitting} disabled={!value.trim()} className="flex-1">{confirmLabel}</Button>
+        <Button variant="secondary" size="icon" onClick={onCancel} disabled={isSubmitting}><X className="w-4 h-4" /></Button>
       </div>
     </div>
   </div>

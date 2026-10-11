@@ -43,9 +43,9 @@ describe('Feature: Compact system presentation (AC59)', () => {
     expect(html).not.toContain('hardware_autonomy');
   });
   it('keeps a labelled native date control and visible empty guidance', () => {
-    const html = renderToStaticMarkup(<DateField label="Fecha" value="" onChange={noop} />);
+    const html = renderToStaticMarkup(<DateField label="Fecha" placeholderLabel="Elige una fecha" value="" onChange={noop} />);
     expect(html).toContain('type="date"');
-    expect(html).toContain('diagnostics.filters.choose_date');
-    expect(renderToStaticMarkup(<DateField label="Fecha" value="2026-10-01" onChange={noop} />)).not.toContain('diagnostics.filters.choose_date');
+    expect(html).toContain('Elige una fecha');
+    expect(renderToStaticMarkup(<DateField label="Fecha" placeholderLabel="Elige una fecha" value="2026-10-01" onChange={noop} />)).not.toContain('Elige una fecha');
   });
 });

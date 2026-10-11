@@ -251,7 +251,7 @@ export function SectionCardItem({
                 }}
                 variant="default"
                 size="lg"
-                className="pointer-events-auto rounded-full bg-background/95 shadow-lg backdrop-blur-md hover:text-primary"
+                className="pointer-events-auto bg-background/95 backdrop-blur-md hover:text-primary"
               />
             </div>
           )}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
@@ -11,92 +11,20 @@ import { DiagnosticsResilienceSummary } from '../components/DiagnosticsResilienc
 import { DiagnosticsTimeline } from '../components/DiagnosticsTimeline';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
-import { DatabaseBackupsCard, type DatabaseBackupSummary } from '../components/DatabaseBackupsCard';
+import { DatabaseBackupsCard } from '../components/DatabaseBackupsCard';
 import { fetchDiagnosticResource, isCancelledRequest, startSequentialPolling } from '../lib/diagnosticResourceRequests';
-
-interface DiagnosticsCounters {
-  recentReconnects: number;
-  recentAutomationSuccess: number;
-  recentAutomationFailures: number;
-  recentReconciliations: number;
-}
-
-interface SystemIssue {
-  code: string;
-  severity: 'warning' | 'critical';
-  message: string;
-}
-
-interface DiagnosticsSnapshot {
-  overallStatus: 'healthy' | 'degraded' | 'offline';
-  haConnectionStatus: string;
-  websocketStatus: string;
-  automationEngineStatus: string;
-  reconciliationStatus: string;
-  lastEventAt: string | null;
-  lastReconnectAt: string | null;
-  lastReconciliationAt: string | null;
-  lastAutomationExecutionAt: string | null;
-  systemTime: string;
-  systemTimeLocal: string;
-  systemTimezone: string;
-  counters: DiagnosticsCounters;
-  issues: SystemIssue[];
-}
-
-interface DiagnosticEvent {
-  occurredAt: string;
-  category: 'resilience' | 'automation' | 'auth' | 'command';
-  eventType: string;
-  description: string;
-  data: Record<string, unknown>;
-  correlationId?: string;
-}
-
-interface DiagnosticScene {
-  id?: string;
-  actions?: { deviceId: string }[];
-}
-
-interface DiagnosticAutomation {
-  trigger?: {
-    type?: string;
-    deviceId?: string;
-  };
-  action?: {
-    type?: string;
-    targetDeviceId?: string;
-    sceneId?: string;
-  };
-}
-
-const TIMEZONE_VALUES = [
-  'America/Guayaquil',
-  'America/Bogota',
-  'America/Mexico_City',
-  'America/New_York',
-  'America/Chicago',
-  'America/Denver',
-  'America/Los_Angeles',
-  'America/Santiago',
-  'America/Buenos_Aires',
-  'America/Lima',
-  'America/Caracas',
-  'Europe/London',
-  'Europe/Madrid',
-  'Europe/Paris',
-  'Europe/Berlin',
-  'Europe/Rome',
-  'Asia/Dubai',
-  'Asia/Singapore',
-  'Asia/Tokyo',
-  'Australia/Sydney',
-  'Pacific/Auckland',
-  'UTC'
-];
+import { useDatabaseBackups } from '../lib/useDatabaseBackups';
+import {
+  TIMEZONE_VALUES,
+  isAdminUserContext,
+  type DiagnosticAutomation,
+  type DiagnosticEvent,
+  type DiagnosticScene,
+  type DiagnosticsSnapshot,
+} from './diagnosticsModel';
 
 export function DiagnosticsView() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [snapshot, setSnapshot] = useState<DiagnosticsSnapshot | null>(null);
   const [events, setEvents] = useState<DiagnosticEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,48 +33,13 @@ export function DiagnosticsView() {
   const [scenes, setScenes] = useState<DiagnosticScene[]>([]);
   const [automations, setAutomations] = useState<DiagnosticAutomation[]>([]);
   const [updatingTz, setUpdatingTz] = useState(false);
-  const [backups, setBackups] = useState<DatabaseBackupSummary[]>([]);
-  const [backupsLoading, setBackupsLoading] = useState(false);
-  const [backupsCreating, setBackupsCreating] = useState(false);
-  const [backupsError, setBackupsError] = useState(false);
-  
+
   const devices = useDeviceSnapshotStore(state => state.devices);
   const refreshSnapshot = useDeviceSnapshotStore(state => state.refreshSnapshot);
 
-  const user = JSON.parse(localStorage.getItem('hp_user_ctx') || '{}');
-  const isAdmin = user.role === 'admin';
-  const [backupsSettled, setBackupsSettled] = useState(false);
+  const isAdmin = isAdminUserContext(localStorage.getItem('hp_user_ctx'));
+  const { backups, loading: backupsLoading, creating: backupsCreating, hasError: backupsError, settled: backupsSettled, load: loadBackups, create: createBackup } = useDatabaseBackups(isAdmin);
   const initialLoading = useInitialLoading(loading || (isAdmin && !backupsSettled));
-
-  const loadBackups = useCallback(async () => {
-    setBackupsLoading(true);
-    try {
-      const response = await apiFetch(`${API_BASE_URL}/api/v1/system/backups`);
-      if (!response.ok) throw new Error('BACKUP_LIST_ERROR');
-      setBackups(await response.json() as DatabaseBackupSummary[]);
-      setBackupsError(false);
-    } catch {
-      setBackupsError(true);
-    } finally {
-      setBackupsLoading(false);
-      setBackupsSettled(true);
-    }
-  }, []);
-
-  const createBackup = useCallback(async () => {
-    setBackupsCreating(true);
-    try {
-      const response = await apiFetch(`${API_BASE_URL}/api/v1/system/backups`, { method: 'POST' });
-      if (!response.ok) throw new Error('BACKUP_CREATE_ERROR');
-      const created = await response.json() as DatabaseBackupSummary;
-      setBackups(previous => [created, ...previous.filter(backup => backup.filename !== created.filename)]);
-      setBackupsError(false);
-    } catch {
-      setBackupsError(true);
-    } finally {
-      setBackupsCreating(false);
-    }
-  }, []);
 
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => {
@@ -169,7 +62,7 @@ export function DiagnosticsView() {
       });
 
       if (!res.ok) throw new Error(t('diagnostics.update_failed'));
-      
+
       setRefreshVersion((version) => version + 1);
     } catch (err: unknown) {
       console.error('Timezone update failed:', err);
@@ -210,11 +103,6 @@ export function DiagnosticsView() {
     }, 5000);
   }, [refreshSnapshot, refreshVersion, t]);
 
-  useEffect(() => {
-    if (!isAdmin) return;
-    void loadBackups();
-  }, [isAdmin, loadBackups]);
-
   if (initialLoading) {
     return <DiagnosticsSkeleton label={t('diagnostics.loading')} isAdmin={isAdmin} />;
   }
@@ -236,7 +124,7 @@ export function DiagnosticsView() {
         scenes={scenes}
         automations={automations}
       />
-      
+
       <DiagnosticsHealthBanner
         status={snapshot.overallStatus}
         issueCount={snapshot.issues.length}
@@ -272,6 +160,20 @@ export function DiagnosticsView() {
           hasError={backupsError}
           onCreate={() => void createBackup()}
           onRefresh={() => void loadBackups()}
+          locale={i18n.language}
+          labels={{
+            title: t('diagnostics.backups.title'),
+            description: t('diagnostics.backups.description'),
+            refresh: t('diagnostics.backups.refresh'),
+            available: t('diagnostics.backups.available'),
+            latest: t('diagnostics.backups.latest'),
+            never: t('common.never'),
+            loadFailed: t('diagnostics.backups.load_failed'),
+            empty: t('diagnostics.backups.empty'),
+            create: t('diagnostics.backups.create'),
+            creating: t('diagnostics.backups.creating'),
+            note: t('diagnostics.backups.note'),
+          }}
         />
       )}
 

@@ -2,6 +2,8 @@ import { Settings2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 import { disambiguate, humanize } from '../lib/naming-utils';
+import { Card } from './ui/Card';
+import { Heading } from './ui/Heading';
 import { IconButton } from './ui/IconButton';
 
 interface ManagedDeviceTileProps {
@@ -19,9 +21,9 @@ export const ManagedDeviceTile: React.FC<ManagedDeviceTileProps> = ({
   const name = humanize(device.id, device.name);
 
   return (
-    <article className="flex min-w-0 items-center gap-3 rounded-control border border-border bg-card p-3">
+    <Card variant="flat" as="article" className="flex items-center gap-3 p-3">
       <div className="min-w-0 flex-1">
-        <h3 className="break-words text-body-compact font-semibold">{isDuplicateName ? disambiguate(name, device.externalId || device.id) : name}</h3>
+        <Heading variant="item">{isDuplicateName ? disambiguate(name, device.externalId || device.id) : name}</Heading>
       </div>
       <IconButton
         icon={Settings2}
@@ -29,6 +31,6 @@ export const ManagedDeviceTile: React.FC<ManagedDeviceTileProps> = ({
         onClick={onInspect}
         size="lg"
       />
-    </article>
+    </Card>
   );
 };

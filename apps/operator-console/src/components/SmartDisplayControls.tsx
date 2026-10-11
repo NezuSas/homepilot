@@ -4,6 +4,7 @@ import { useDisplayControlCatalog } from './useDisplayControlCatalog';
 import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
 import { Button } from './ui/Button';
 import { Drawer } from './ui/Drawer';
+import { Heading } from './ui/Heading';
 import { DisplayCatalogSkeleton } from './ui/ComponentSkeletons';
 
 import type { DisplayCatalogCommand, DisplayControlCatalog } from './displayControlCatalog';
@@ -26,7 +27,7 @@ export function SmartDisplayCatalogContent({ catalog }: { catalog: DisplayContro
 
   return <div className="space-y-8">
     <section aria-labelledby="display-plan-title">
-      <h4 id="display-plan-title" className="text-sm font-semibold text-muted-foreground">{t('inbox.smart_display.current_plan')}</h4>
+      <Heading as="h4" variant="label" id="display-plan-title">{t('inbox.smart_display.current_plan')}</Heading>
       <p className="mt-2 break-words text-lg font-bold text-foreground">
         {catalog.plan.name || t('inbox.smart_display.plan_fallback', { id: catalog.plan.id })}
       </p>
@@ -35,7 +36,7 @@ export function SmartDisplayCatalogContent({ catalog }: { catalog: DisplayContro
       </p>
     </section>
     <section aria-labelledby="display-included-controls">
-      <h4 id="display-included-controls" className="text-base font-bold">{t('inbox.smart_display.included_controls')}</h4>
+      <Heading as="h4" variant="section" id="display-included-controls">{t('inbox.smart_display.included_controls')}</Heading>
       {visibleCommands.length ? <ul className="mt-2">{visibleCommands.map(renderCommand)}</ul>
         : <p className="mt-2 text-sm text-muted-foreground">{t('inbox.smart_display.no_actions')}</p>}
     </section>
@@ -52,7 +53,7 @@ export function SmartDisplayControls({ device, onClose }: { device: SnapshotDevi
       <div className="flex items-center gap-3">
         <Monitor className="h-6 w-6 shrink-0 text-primary" aria-hidden="true" />
         <div className="min-w-0">
-          <h3 className="break-words text-xl font-bold">{device.name}</h3>
+          <Heading variant="card">{device.name}</Heading>
           <p className="text-sm text-muted-foreground">
             {t('inbox.smart_display.type')} · {t(connectionState === 'online' ? 'inbox.smart_display.online'
               : connectionState === 'offline' ? 'inbox.smart_display.offline' : 'inbox.smart_display.unknown')}

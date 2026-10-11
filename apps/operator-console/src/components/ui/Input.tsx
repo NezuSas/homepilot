@@ -21,13 +21,13 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className={cn("flex min-w-0 w-full flex-col gap-2", containerClassName)}>
         {label && (
-          <label htmlFor={inputId} className={cn("block break-words text-caption font-black uppercase tracking-label", error ? "text-danger" : "text-muted-foreground", disabled && "opacity-50")}>
+          <label htmlFor={inputId} className={cn("hp-field-label", error && "text-danger", disabled && "opacity-50")}>
             {label}
           </label>
         )}
         <div className="relative flex min-w-0 items-center">
           {icon && (
-            <div className={cn("pointer-events-none absolute left-3 text-muted-foreground surface-transition", disabled && "opacity-50")}>
+            <div aria-hidden="true" className={cn("pointer-events-none absolute left-3 text-muted-foreground surface-transition", disabled && "opacity-50")}>
               {icon}
             </div>
           )}
@@ -38,25 +38,22 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             aria-describedby={describedBy}
             aria-invalid={error ? true : ariaInvalid}
             className={cn(
-              "surface-transition flex h-11 min-w-0 w-full rounded-xl border bg-background px-3 py-2 text-body shadow-sm",
-              "border-border placeholder:text-muted-foreground/40",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary/40 focus-visible:shadow-depth-1",
-              "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted/50",
+              "hp-text-field flex h-11",
               error && "border-danger/50 focus-visible:ring-danger/40 focus-visible:border-danger bg-danger/5",
               icon && "pl-10",
-              endAdornment && "pr-10",
+              endAdornment && "pr-14",
               className
             )}
             {...props}
           />
-          {endAdornment && <div className="absolute right-1 flex items-center">{endAdornment}</div>}
+          {endAdornment && <div className="absolute right-0 flex items-center">{endAdornment}</div>}
         </div>
         {(error || helperText) && (
           <p
             id={messageId}
             role={error ? 'alert' : undefined}
             aria-live={error ? 'assertive' : 'polite'}
-            className={cn("ml-1 break-words text-micro font-medium", error ? "text-danger animate-shake" : "text-muted-foreground opacity-70")}
+            className={cn("hp-field-message", error ? "text-danger" : "text-muted-foreground")}
           >
             {error || helperText}
           </p>

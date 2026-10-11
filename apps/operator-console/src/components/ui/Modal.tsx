@@ -1,13 +1,13 @@
 import React, { useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 import { X, AlertTriangle, Info, CheckCircle } from 'lucide-react';
 import { IconButton } from './IconButton';
 import { useOverlayAccessibility } from './useOverlayAccessibility';
 import { useVisualViewportBounds } from './useVisualViewportBounds';
+import { useUiLabels } from './uiLabels';
 
-export interface ModalProps {
+export interface ModalProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title' | 'className' | 'children' | 'content'> {
   isOpen: boolean;
   onClose?: () => void;
   title?: string;
@@ -52,9 +52,10 @@ export const Modal: React.FC<ModalProps> = ({
   headerAlign = 'center',
   closeLabel,
   hideCloseButton = false,
-  dismissible = false
+  dismissible = false,
+  ...dialogProps
 }) => {
-  const { t } = useTranslation();
+  const labels = useUiLabels();
   const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const descriptionId = useId();
@@ -79,12 +80,13 @@ export const Modal: React.FC<ModalProps> = ({
       
       {/* Modal */}
       <div
+        {...dialogProps}
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
         aria-describedby={description ? descriptionId : undefined}
-        aria-label={!title ? description ?? closeLabel ?? t('common.close') : undefined}
+        aria-label={!title ? description ?? closeLabel ?? labels.close : undefined}
         tabIndex={-1}
         onKeyDown={handleOverlayKeyDown}
         className={cn(
@@ -126,10 +128,10 @@ export const Modal: React.FC<ModalProps> = ({
         {!hideCloseButton && onClose && (
           <IconButton
             icon={X}
-            label={closeLabel ?? t('common.close')}
+            label={closeLabel ?? labels.close}
             onClick={onClose}
             variant="ghost"
-            className="absolute right-4 top-4 z-10 rounded-pill sm:right-6 sm:top-6"
+            className="absolute right-4 top-4 z-10 sm:right-6 sm:top-6"
           />
         )}
       </div>

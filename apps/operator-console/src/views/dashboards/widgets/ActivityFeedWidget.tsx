@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { cn } from '../../../lib/utils';
+import { Card } from '../../../components/ui/Card';
+import { Heading } from '../../../components/ui/Heading';
+import { LoadingState } from '../../../components/ui/LoadingState';
+import { StatusPill } from '../../../components/ui/StatusPill';
 import type { DashboardWidgetConfig } from '../types';
 import { Activity, Clock, Shield, Cpu, Zap } from 'lucide-react';
 import { API_BASE_URL } from '../../../config';
@@ -56,18 +59,18 @@ export function ActivityFeedWidget({ config, isEditing, onConfigure }: { config:
   };
 
   return (
-    <div className={cn(
-      "flex flex-col h-full min-h-0 rounded-card p-4 @md:p-5 overflow-hidden transition-all duration-500",
-      config.appearance.variant === 'glass' ? "bg-card/40 backdrop-blur-md border border-border/40" : "bg-card border border-border"
-    )}>
+    <Card
+      variant={config.appearance.variant === 'glass' ? 'glass' : 'flat'}
+      className="flex flex-col h-full min-h-0 p-4 @md:p-5 transition-all duration-500"
+    >
       <div className="flex items-center justify-between gap-2 mb-3 @md:mb-4 shrink-0">
         <div className="flex items-center gap-2">
-          <div className="p-2 rounded-xl bg-primary/10 text-primary border border-primary/20">
+          <StatusPill variant="primary" className="p-2">
             <Activity className="w-4 h-4" />
-          </div>
-          <h3 className="text-caption @md:text-body font-black text-foreground tracking-tight truncate">
+          </StatusPill>
+          <Heading as="h3" variant="card" className="truncate">
             {config.appearance.title || t('dashboards.widgets.activity_feed.label')}
-          </h3>
+          </Heading>
         </div>
         {!loading && (
           <span className="hp-type-label text-muted-foreground/50">{t('shell.status.live')}</span>
@@ -76,11 +79,11 @@ export function ActivityFeedWidget({ config, isEditing, onConfigure }: { config:
 
       <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar space-y-2 @md:space-y-3">
         {loading ? (
-          <div className="flex flex-col gap-3">
+          <LoadingState label={t('common.loading')} className="space-y-0">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-10 w-full bg-muted/40 rounded-xl animate-pulse" />
+              <div key={i} className="h-10 w-full rounded-xl bg-muted/40" />
             ))}
-          </div>
+          </LoadingState>
         ) : events.length === 0 ? (
           <DormantWidgetPlaceholder
             title={t('dashboards.widgets.activity_feed.label')}
@@ -111,6 +114,6 @@ export function ActivityFeedWidget({ config, isEditing, onConfigure }: { config:
           ))
         )}
       </div>
-    </div>
+    </Card>
   );
 }

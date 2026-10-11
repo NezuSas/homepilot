@@ -3,7 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { ArrowRight, RadioTower, RefreshCw } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
+import { AlertBanner } from './ui/AlertBanner';
 import { Button } from './ui/Button';
+import { Card } from './ui/Card';
+import { EmptyState } from './ui/EmptyState';
+import { Heading } from './ui/Heading';
 import { HaDiscoverySkeleton } from './ui/ComponentSkeletons';
 import { SearchInput } from './ui/Input';
 import { SearchableSelectField } from './ui/SearchableSelectField';
@@ -149,14 +153,14 @@ export const HomeAssistantDiscoverySection: React.FC<HomeAssistantDiscoverySecti
   return (
     <section className="flex flex-col gap-3" aria-labelledby="ha-discovery-title">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h3 id="ha-discovery-title" className="flex items-center gap-2 text-micro font-semibold uppercase tracking-control text-muted-foreground">
+        <Heading as="h3" variant="label" id="ha-discovery-title" className="flex items-center gap-2">
           <RadioTower className="h-4 w-4" /> {t('inbox.discovery.bridge_title')}
-        </h3>
+        </Heading>
         <Button
           variant="secondary"
           onClick={toggleDiscovery}
           size="sm"
-          className="w-full uppercase tracking-label sm:w-auto"
+          className="w-full sm:w-auto"
         >
           <RefreshCw className={loading ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'} />
           {showDiscovery ? t('inbox.discovery.close_button') : t('inbox.discovery.discover_button')}
@@ -176,7 +180,7 @@ export const HomeAssistantDiscoverySection: React.FC<HomeAssistantDiscoverySecti
 
               <div className="flex flex-wrap items-center justify-between gap-2 text-caption text-muted-foreground">
                 <span>{t('inbox.discovery.result_count', { visible: visibleEntities.length, total: filteredEntities.length })}</span>
-                <Button variant="ghost" size="sm" onClick={() => { void fetchCandidates(); }} disabled={loading} className="gap-2">
+                <Button variant="ghost" size="sm" onClick={() => { void fetchCandidates(); }} disabled={loading}>
                   <RefreshCw className={loading ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'} />
                   {t('inbox.discovery.refresh_results')}
                 </Button>
@@ -184,7 +188,7 @@ export const HomeAssistantDiscoverySection: React.FC<HomeAssistantDiscoverySecti
 
               <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,17rem),1fr))] gap-3">
                 {visibleEntities.map((entity) => (
-                  <article key={entity.entityId} className="flex min-w-0 flex-col gap-3 rounded-control border border-border bg-card p-4">
+                  <Card key={entity.entityId} variant="flat" as="article" className="flex flex-col gap-3 p-4">
                     <div className="flex min-w-0 flex-col gap-1">
                       <span className="break-words text-card-title font-semibold">{entity.friendlyName}</span>
                       <span className="break-all text-caption text-muted-foreground">{entity.entityId}</span>
@@ -205,13 +209,13 @@ export const HomeAssistantDiscoverySection: React.FC<HomeAssistantDiscoverySecti
                         variant="ghost"
                         size="lg"
                         isLoading={importingId === entity.entityId}
-                        className="gap-1 bg-primary/10 uppercase tracking-control text-primary hover:bg-primary/20"
+                        className="bg-primary/10 text-primary hover:bg-primary/20"
                       >
                         <ArrowRight className="h-4 w-4" aria-hidden="true" />
                         {t('common.import')}
                       </Button>
                     </div>
-                  </article>
+                  </Card>
                 ))}
               </div>
 
@@ -226,15 +230,13 @@ export const HomeAssistantDiscoverySection: React.FC<HomeAssistantDiscoverySecti
               )}
 
               {filteredEntities.length === 0 && (
-                <div className="rounded-xl border-2 border-dashed border-border/60 py-8 text-center text-caption text-muted-foreground">
-                  {t('inbox.discovery.no_entities')}
-                </div>
+                <EmptyState variant="dashed" title={t('inbox.discovery.no_entities')} />
               )}
             </>
           )}
         </div>
       )}
-      {error && <p className="rounded-lg border border-danger/20 bg-danger/5 p-3 text-center text-caption font-bold text-danger">{error}</p>}
+      {error && <AlertBanner variant="danger" size="sm" message={error} />}
     </section>
   );
 };

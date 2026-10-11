@@ -3,38 +3,39 @@ import { cn } from '../../lib/utils';
 import { Loader2 } from 'lucide-react';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'warning';
+  /** Legacy text sizes are aliases for the single standard size. */
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'icon';
   isLoading?: boolean;
 }
 
 const variantStyles: Record<NonNullable<ButtonProps['variant']>, string> = {
   primary:
-    'bg-primary text-primary-foreground border border-transparent ' +
-    'hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/25 ' +
-    'shadow-sm shadow-primary/20',
+    '!bg-[var(--button-primary)] !text-[var(--button-on-primary)] border border-transparent ' +
+    'hover:!brightness-110 active:!brightness-95',
   secondary:
-    'bg-muted/60 text-foreground border border-border/60 ' +
-    'hover:bg-muted hover:border-border hover:shadow-sm',
+    '!bg-[var(--button-secondary)] !text-[var(--button-foreground)] border border-transparent ' +
+    'hover:!brightness-110 active:!brightness-95',
   outline:
-    'bg-transparent text-foreground border border-border ' +
-    'hover:bg-muted/50 hover:border-border/80',
+    '!bg-transparent !text-[var(--button-foreground)] border !border-[var(--button-outline)] ' +
+    'hover:!bg-[var(--button-secondary)]',
   ghost:
-    'bg-transparent text-foreground border border-transparent ' +
-    'hover:bg-muted/60',
+    '!bg-transparent !text-[var(--button-foreground)] border border-transparent ' +
+    'hover:!bg-[var(--button-secondary)]',
   danger:
-    'bg-danger text-danger-foreground border border-transparent ' +
-    'hover:bg-danger/90 hover:shadow-lg hover:shadow-danger/20 ' +
-    'shadow-sm shadow-danger/15',
+    '!bg-[var(--button-danger)] !text-[var(--button-on-danger)] border border-transparent ' +
+    'hover:!brightness-110 active:!brightness-95',
+  warning:
+    '!bg-warning !text-warning-foreground border border-transparent ' +
+    'hover:!brightness-110 active:!brightness-95',
 };
 
-const sizeStyles: Record<NonNullable<ButtonProps['size']>, string> = {
-  xs:   'min-h-7 px-2.5 py-1 text-caption rounded-lg gap-1.5',
-  sm:   'min-h-9 px-3 py-1.5 text-caption rounded-control gap-1.5',
-  md:   'min-h-10 px-4 py-2 text-body-compact rounded-control gap-2',
-  lg:   'min-h-11 px-5 py-2.5 text-body-compact rounded-panel gap-2',
-  icon: 'p-2 rounded-control flex items-center justify-center',
-};
+// Consumers control placement and width, not the design of an action button.
+// Important utilities take precedence over historical responsive overrides.
+const standardStyles =
+  '!min-h-11 !h-auto !max-h-none !rounded-control !gap-2 ' +
+  '!font-sans !text-body-compact !font-semibold !leading-5 !tracking-normal !normal-case ' +
+  '!shadow-none hover:!shadow-none [&>svg]:!h-4 [&>svg]:!w-4 [&>svg]:!shrink-0';
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', isLoading = false, children, disabled, ...props }, ref) => (
@@ -44,18 +45,19 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       aria-busy={isLoading || undefined}
       className={cn(
         // Base
-        'control-transition interactive-lift inline-flex min-w-0 max-w-full items-center justify-center break-words text-center font-semibold leading-tight',
+        'homepilot-button control-transition inline-flex min-w-0 max-w-full touch-manipulation items-center justify-center break-words text-center',
         // Focus
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-primary)] focus-visible:ring-offset-1 focus-visible:ring-offset-background',
         // Disabled
         'disabled:opacity-45 disabled:pointer-events-none disabled:translate-y-0 disabled:scale-100 disabled:shadow-none',
         variantStyles[variant],
-        sizeStyles[size],
-        className
+        className,
+        standardStyles,
+        size === 'icon' ? '!h-11 !w-11 !min-w-11 !shrink-0 !p-2.5' : '!px-4 !py-2.5'
       )}
       {...props}
     >
-      {isLoading && <Loader2 aria-hidden="true" className="w-3.5 h-3.5 animate-spin shrink-0" />}
+      {isLoading && <Loader2 aria-hidden="true" className="w-4 h-4 animate-spin shrink-0 motion-reduce:animate-none" />}
       {children}
     </button>
   )

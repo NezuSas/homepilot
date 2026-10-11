@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useDemoGuideStore } from '../stores/useDemoGuideStore';
 import { cn } from '../lib/utils';
 import { Button } from './ui/Button';
+import { Card } from './ui/Card';
+import { Heading } from './ui/Heading';
 import { IconButton } from './ui/IconButton';
 import { X, ChevronRight } from 'lucide-react';
 import type { View } from '../types';
@@ -163,7 +165,7 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
   const layout = getLayout();
 
   const guideContent = (
-    <div className="bg-card/95 border border-primary/20 rounded-card p-5 shadow-2xl backdrop-blur-3xl relative overflow-hidden transition-all">
+    <Card variant="elevated" className="relative p-5 backdrop-blur-3xl">
       <div className="absolute top-0 left-0 h-0.5 bg-primary/20 transition-all duration-1000" style={{ width: `${((currentStepIndex + 1) / steps.length) * 100}%` }} />
 
       <div className="flex items-center justify-between mb-3 mt-0.5">
@@ -180,7 +182,7 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
         />
       </div>
 
-      <h3 id={titleId} className="text-body-lg font-black tracking-tight mb-2 leading-tight text-foreground/90">{t(currentStep.titleKey)}</h3>
+      <Heading id={titleId} variant="card" as="h3" className="mb-2">{t(currentStep.titleKey)}</Heading>
       <p id={descriptionId} className="text-caption text-muted-foreground leading-relaxed mb-4 opacity-85 font-medium">
         {t(currentStep.descriptionKey)}
       </p>
@@ -189,7 +191,7 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
         <Button
           onClick={nextStep}
           size="sm"
-          className="h-10 min-w-demo-button rounded-xl px-4 text-micro font-black uppercase tracking-widest gap-2 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
+          className="min-w-demo-button bg-primary hover:bg-primary/90"
         >
           {currentStepIndex === steps.length - 1 ? t('demo.controls.finish') : t('demo.controls.continue')}
           <ChevronRight className="w-3 h-3" />
@@ -198,12 +200,12 @@ export const DemoGuideOverlay: React.FC<DemoGuideOverlayProps> = ({ onNavigate }
           onClick={endDemo}
           variant="ghost"
           size="xs"
-          className="px-1 text-micro font-black uppercase tracking-widest text-muted-foreground/50 hover:text-muted-foreground"
+          className="text-muted-foreground/50 hover:text-muted-foreground"
         >
           {t('demo.controls.skip')}
         </Button>
       </div>
-    </div>
+    </Card>
   );
 
   return createPortal(

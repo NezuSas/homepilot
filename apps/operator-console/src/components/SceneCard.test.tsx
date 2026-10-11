@@ -36,7 +36,7 @@ describe('Feature: Compact scene cards (AC47)', () => {
   });
   it('renders a named non-button article and four independent named controls', () => {
     const html = renderToStaticMarkup(<SceneCard {...props} />);
-    expect(html).toMatch(/^<article aria-labelledby=/);
+    expect(html).toMatch(/^<article [^>]*aria-labelledby=/);
     expect(html).toContain('Trabajo');
     expect(html).toContain('1 acción');
     expect(html.match(/<button /g)).toHaveLength(4);

@@ -112,7 +112,7 @@ export const CameraViewerModal: React.FC<CameraViewerModalProps> = ({
             {t('camera.live')}
           </div>
         )}
-        <IconButton icon={X} label={t('camera.close_viewer')} onClick={onClose} variant="ghost" size="lg" className="absolute right-3 top-3 rounded-pill border border-white/20 bg-black/60 text-white hover:bg-black/80 hover:text-white sm:right-5 sm:top-5" />
+        <IconButton icon={X} label={t('camera.close_viewer')} onClick={onClose} variant="ghost" size="lg" className="absolute right-3 top-3 border border-white/20 bg-black/60 text-white hover:bg-black/80 hover:text-white sm:right-5 sm:top-5" />
         <div className="absolute bottom-4 left-4 min-w-0 max-w-[calc(100%-5rem)] text-white sm:bottom-6 sm:left-6">
           <h2 className="line-clamp-2 text-section-title font-bold leading-tight drop-shadow">{name}</h2>
           {roomName && <p className="mt-1 truncate text-caption font-semibold text-white/80">{roomName}</p>}

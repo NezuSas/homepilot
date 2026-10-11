@@ -6,6 +6,7 @@ import { API_BASE_URL } from '../config';
 import { fetchDiagnosticResource } from '../lib/diagnosticResourceRequests';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import { Card } from '../components/ui/Card';
+import { Heading } from '../components/ui/Heading';
 import { SectionHeader } from '../components/ui/SectionHeader';
 import { StatusPill } from '../components/ui/StatusPill';
 import { SystemStatusSkeleton } from '../components/ui/ComponentSkeletons';
@@ -75,10 +76,10 @@ export const ResilienceShowcaseView: React.FC = () => {
         title={t('system_status.title')}
         subtitle={t('system_status.description')}
         action={
-          <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-card px-3 py-2 text-caption text-muted-foreground">
+          <Card variant="flat" className="flex items-center gap-3 px-3 py-2 text-caption text-muted-foreground">
             <StatusPill variant={isConnected ? 'success' : 'warning'}>{isConnected ? t('system_status.system_ready') : t('system_status.verification_in_progress')}</StatusPill>
             <span>{checkedAt ? t('system_status.last_checked', { time: checkedAt }) : t('system_status.not_checked')}</span>
-          </div>
+          </Card>
         }
       />
 
@@ -90,7 +91,7 @@ export const ResilienceShowcaseView: React.FC = () => {
               <StatusPill variant={tone}>{value}</StatusPill>
             </div>
             <div>
-              <h2 className="text-section-title font-semibold tracking-tight text-foreground">{label}</h2>
+              <Heading variant="card" as="h2">{label}</Heading>
               <p className="mt-1 text-caption leading-relaxed text-muted-foreground">{description}</p>
             </div>
           </Card>
@@ -98,7 +99,7 @@ export const ResilienceShowcaseView: React.FC = () => {
       </section>
 
       <Card className="p-5 sm:p-6">
-        <h2 className="text-section-title font-semibold tracking-tight text-foreground">{t('system_status.privacy_title')}</h2>
+        <Heading variant="section" className="text-foreground">{t('system_status.privacy_title')}</Heading>
         <p className="mt-2 max-w-3xl text-caption leading-relaxed text-muted-foreground">{t('system_status.privacy_description')}</p>
         <Link to="/system/diagnostics" className="mt-2 inline-flex min-h-11 items-center text-caption font-medium text-primary underline underline-offset-4">{t('nav.system_diagnostics')}</Link>
       </Card>

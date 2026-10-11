@@ -102,7 +102,7 @@ export function SensorAnalogGauge({ value, scale }: { value: number | null; scal
       ctx.globalAlpha = 1;
       if (min !== undefined && max !== undefined) {
         ctx.fillStyle = ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.font = `400 ${Math.max(14, 10 * 320 / width)}px Rubik, sans-serif`;
+        ctx.font = `400 ${Math.max(14, 10 * 320 / width)}px Inter, sans-serif`;
         const divisions = 5;
         for (let index = 0; index <= divisions; index += 1) {
           const p = point(index / divisions, 101);

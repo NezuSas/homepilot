@@ -2,7 +2,10 @@ import { useState } from 'react';
 import { CheckCircle2, Cpu, KeyRound, ShieldCheck, UserRound } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_ENDPOINTS } from '../config';
+import { AlertBanner } from '../components/ui/AlertBanner';
 import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { Heading } from '../components/ui/Heading';
 import { Input } from '../components/ui/Input';
 
 interface FirstAdminUser {
@@ -82,7 +85,7 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8 text-foreground">
-      <div className="grid w-full max-w-5xl overflow-hidden rounded-panel border border-border/70 bg-card shadow-2xl lg:grid-cols-[1fr_26rem]">
+      <Card variant="flat" radius="panel" className="grid w-full max-w-5xl shadow-2xl lg:grid-cols-[1fr_26rem]">
         <section className="space-y-8 p-6 sm:p-10">
           <div className="flex items-start gap-4">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
@@ -90,7 +93,7 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
             </div>
             <div>
               <p className="text-micro font-black uppercase tracking-label-wider text-primary">{t('first_admin_setup.eyebrow')}</p>
-              <h1 className="mt-2 text-display-title font-black tracking-tight sm:text-hero-title">{t('first_admin_setup.title')}</h1>
+              <Heading variant="view" as="h1" className="mt-2">{t('first_admin_setup.title')}</Heading>
               <p className="mt-3 max-w-2xl text-body font-semibold leading-6 text-muted-foreground">
                 {t('first_admin_setup.description')}
               </p>
@@ -99,9 +102,7 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
 
           <form onSubmit={handleSubmit} className="grid gap-4">
             {error && (
-              <div className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-body font-bold text-danger">
-                {error}
-              </div>
+              <AlertBanner variant="danger" size="sm" message={error} />
             )}
 
             <Input
@@ -110,7 +111,6 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
               value={displayName}
               onChange={(event) => setDisplayName(event.target.value)}
               disabled={loading}
-              className="h-12 rounded-xl pl-11 pr-4 font-semibold"
               placeholder="Oscar"
             />
 
@@ -123,7 +123,6 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
               required
               minLength={3}
               pattern="[a-zA-Z0-9._-]+"
-              className="h-12 rounded-xl pl-11 pr-4 font-semibold"
               placeholder="admin"
               helperText={t('first_admin_setup.username_hint')}
             />
@@ -138,7 +137,6 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
                 disabled={loading}
                 required
                 minLength={10}
-                className="h-12 rounded-xl pl-11 pr-4 font-semibold"
                 placeholder={t('first_admin_setup.password_placeholder')}
               />
 
@@ -151,7 +149,6 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
                 disabled={loading}
                 required
                 minLength={10}
-                className="h-12 rounded-xl pl-11 pr-4 font-semibold"
                 placeholder={t('first_admin_setup.confirm_password_placeholder')}
               />
             </div>
@@ -164,7 +161,7 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
               type="submit"
               disabled={!canSubmit}
               isLoading={loading}
-              className="mt-2 h-12 rounded-xl px-6 text-caption font-black uppercase tracking-widest shadow-lg"
+              className="mt-2"
             >
               {!loading && <ShieldCheck className="h-4 w-4" />}
               {t('first_admin_setup.submit')}
@@ -181,14 +178,14 @@ export function FirstAdminSetupView({ onCompleted }: FirstAdminSetupViewProps) {
               t('first_admin_setup.flow.first_account'),
               t('first_admin_setup.flow.ha_onboarding')
             ].map(item => (
-              <div key={item} className="flex items-start gap-3 rounded-xl border border-border/60 bg-card/70 p-4">
+              <Card key={item} variant="flat" className="flex items-start gap-3 p-4">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                 <span className="text-body font-bold leading-5 text-muted-foreground">{item}</span>
-              </div>
+              </Card>
             ))}
           </div>
         </aside>
-      </div>
+      </Card>
     </div>
   );
 }

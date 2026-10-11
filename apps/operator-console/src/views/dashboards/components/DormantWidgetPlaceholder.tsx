@@ -3,6 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 import { Settings2, AlertCircle } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { Button } from '../../../components/ui/Button';
+import { Heading } from '../../../components/ui/Heading';
 
 interface DormantWidgetPlaceholderProps {
   title: string;
@@ -46,7 +47,7 @@ export function DormantWidgetPlaceholder({
       </div>
 
       <div className="space-y-2 max-w-copy-lg">
-        <h4 className="text-body font-black uppercase tracking-widest text-foreground/40">{title}</h4>
+        <Heading as="h4" variant="label">{title}</Heading>
         <p className="text-micro text-muted-foreground/40 leading-relaxed font-bold italic">
           {message}
         </p>
@@ -57,7 +58,7 @@ export function DormantWidgetPlaceholder({
           variant="secondary"
           size="sm"
           onClick={onConfigure}
-          className="mt-6 rounded-control border-primary/20 hover:bg-primary/10 hover:text-primary transition-all group active:scale-95"
+          className="mt-6 border-primary/20 hover:bg-primary/10 hover:text-primary transition-all group"
         >
           <Settings2 className="w-3.5 h-3.5 mr-2 group-hover:rotate-90 transition-transform" />
           <span className="text-micro font-black uppercase tracking-widest leading-none">

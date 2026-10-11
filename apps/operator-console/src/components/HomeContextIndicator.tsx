@@ -29,6 +29,6 @@ export function HomeContextIndicator({ icon: Icon, children, className, primaryI
   </>;
 
   return onClick
-    ? <Button type="button" variant="ghost" size="lg" className={cn('justify-start font-normal leading-normal hover:bg-card/80 hover:translate-y-0 active:scale-100', styles)} onClick={onClick} aria-label={actionLabel}>{content}</Button>
+    ? <Button type="button" variant="ghost" size="lg" className={cn('justify-start hover:bg-card/80', styles)} onClick={onClick} aria-label={actionLabel}>{content}</Button>
     : <div className={styles}>{content}</div>;
 }

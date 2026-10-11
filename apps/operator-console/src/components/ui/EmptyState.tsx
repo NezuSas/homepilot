@@ -7,7 +7,7 @@ export interface EmptyStateProps extends React.HTMLAttributes<HTMLDivElement> {
   title: string;
   description?: string;
   action?: React.ReactNode;
-  variant?: 'default' | 'collection';
+  variant?: 'default' | 'collection' | 'dashed';
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
@@ -31,6 +31,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       className={cn(
         'flex min-w-0 flex-col items-center justify-center rounded-panel border border-border/45 bg-card/35 px-4 py-10 text-center shadow-depth-1 backdrop-blur-md sm:px-6 sm:py-16',
         variant === 'collection' && 'rounded-section bg-card px-5 py-8 shadow-none sm:py-10',
+        variant === 'dashed' && 'border-dashed border-border/70 bg-muted/20 px-5 py-8 shadow-none backdrop-blur-none sm:py-10',
         className
       )}
       {...props}

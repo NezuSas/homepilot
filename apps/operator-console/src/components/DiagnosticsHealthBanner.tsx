@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, CheckCircle2, RefreshCw, XCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { Heading } from './ui/Heading';
 import { SearchableSelectField } from './ui/SearchableSelectField';
 
 interface DiagnosticsHealthBannerProps {
@@ -43,7 +44,7 @@ export const DiagnosticsHealthBanner: React.FC<DiagnosticsHealthBannerProps> = (
           : status === 'degraded' ? <AlertTriangle className="w-10 h-10 text-warning" />
           : <XCircle className="w-10 h-10 text-danger" />}
         <div>
-          <h2 className="text-view-title font-bold tracking-tight capitalize">{t('diagnostics.system_status', { status: t(`diagnostics.status.${status}`) })}</h2>
+          <Heading variant="view" as="h2" className="capitalize">{t('diagnostics.system_status', { status: t(`diagnostics.status.${status}`) })}</Heading>
           <p className="text-body text-foreground/60 mt-1">
             {status === 'healthy'
               ? t('diagnostics.messages.healthy')

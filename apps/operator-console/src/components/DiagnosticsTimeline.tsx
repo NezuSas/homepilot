@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { Activity } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
+import { Card } from './ui/Card';
+import { Heading } from './ui/Heading';
+import { StatusPill } from './ui/StatusPill';
 import { EventFilters, EMPTY_EVENT_FILTERS } from './EventFilters';
 import { eventNames, matchesEventName } from '../lib/eventFiltering';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
@@ -146,10 +149,10 @@ export const DiagnosticsTimeline: React.FC<DiagnosticsTimelineProps> = ({ events
 
   return (
     <div className="space-y-4 pt-4">
-      <h3 className="text-micro font-black tracking-widest uppercase text-muted-foreground opacity-50">{t('diagnostics.timeline')}</h3>
+      <Heading variant="label" as="h3">{t('diagnostics.timeline')}</Heading>
       <EventFilters value={filters} onChange={setFilters} />
       <p className="text-caption text-muted-foreground">{t('diagnostics.filters.recent_only')}</p>
-      <div className="border border-border bg-card rounded-2xl overflow-hidden">
+      <Card variant="flat" radius="section">
         <div className="divide-y divide-border/50 max-h-timeline overflow-y-auto custom-scrollbar">
           {groups.length === 0 ? (
             <div className="p-10 text-center flex flex-col items-center justify-center opacity-40">
@@ -183,9 +186,9 @@ export const DiagnosticsTimeline: React.FC<DiagnosticsTimelineProps> = ({ events
                           {t(`common.events.${data.command && data.isAutomation === false ? 'COMMAND_DISPATCHED' : event.eventType}`, { defaultValue: event.eventType })}
                         </span>
                         {(hasChildren || hasData) && (
-                          <span className="rounded-full border px-1.5 py-0.5 text-nano font-semibold uppercase tracking-control text-muted-foreground">
+                          <StatusPill variant="neutral" size="sm" uppercase>
                             {isExpanded ? t('diagnostics.hide_details') : t('diagnostics.view_details')}
-                          </span>
+                          </StatusPill>
                         )}
                       </div>
                       <p className="text-caption leading-relaxed text-foreground/70">{getMainEventMessage(event, t)}</p>
@@ -195,12 +198,12 @@ export const DiagnosticsTimeline: React.FC<DiagnosticsTimelineProps> = ({ events
                   {isExpanded && (hasData || hasChildren) && (
                     <div className="ml-0 mt-2 flex flex-col gap-4 border-l-2 border-border/50 pl-3 sm:ml-28 sm:pl-4">
                       {hasData && (
-                        <div className="overflow-x-auto rounded-control border border-border/70 bg-card p-3 text-micro font-mono leading-relaxed text-foreground shadow-inner">
+                        <Card variant="flat" className="overflow-x-auto p-3 text-micro font-mono leading-relaxed text-foreground">
                           <span className="mb-2 block text-nano font-semibold uppercase tracking-control text-muted-foreground">{t('diagnostics.payload')}</span>
                           {Object.entries(data).map(([key, value]) => (
                             <div key={key}><span className="opacity-50">{key}:</span> {typeof value === 'object' ? JSON.stringify(value) : String(value)}</div>
                           ))}
-                        </div>
+                        </Card>
                       )}
 
                       {hasChildren && (
@@ -230,7 +233,7 @@ export const DiagnosticsTimeline: React.FC<DiagnosticsTimelineProps> = ({ events
             })
           )}
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

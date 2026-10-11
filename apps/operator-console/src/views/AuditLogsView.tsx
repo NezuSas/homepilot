@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ShieldAlert, Clock, Zap, RefreshCw } from 'lucide-react';
-import { cn } from '../lib/utils';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { mapActivityType } from '../lib/i18n-mapping-utils';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { StatusPill } from '../components/ui/StatusPill';
 import { EmptyState } from '../components/ui/EmptyState';
 import { AuditLogsSkeleton } from '../components/ui/ComponentSkeletons';
 import { useInitialLoading } from '../components/ui/useInitialLoading';
@@ -137,7 +138,7 @@ export const AuditLogsView: React.FC = () => {
         description={t('audit_logs.empty_description')}
         className="min-h-glow-orb"
         action={
-          <Button variant="outline" size="sm" onClick={fetchLogs} className="gap-2 text-micro uppercase tracking-widest">
+          <Button variant="outline" size="sm" onClick={fetchLogs}>
             <RefreshCw className="h-3.5 w-3.5" />
             {t('audit_logs.refresh')}
           </Button>
@@ -153,7 +154,7 @@ export const AuditLogsView: React.FC = () => {
         icon={ShieldAlert}
         title={t('nav.system_audit')}
         action={
-          <Button variant="secondary" size="sm" onClick={fetchLogs} className="gap-2">
+          <Button variant="secondary" size="sm" onClick={fetchLogs}>
             <RefreshCw className="h-4 w-4" />
             {t('audit_logs.refresh')}
           </Button>
@@ -165,19 +166,16 @@ export const AuditLogsView: React.FC = () => {
       {!displayLogs.length && <p role="status" className="text-caption text-muted-foreground">{t('diagnostics.filters.no_matches')}</p>}
       <div className="grid min-w-0 gap-3">
         {displayLogs.map((log, i) => (
-          <div key={`${log.timestamp}-${i}`} className="group flex flex-col md:flex-row border border-border/50 bg-card hover:border-primary/30 transition-all rounded-2xl overflow-hidden shadow-sm">
+          <Card key={`${log.timestamp}-${i}`} variant="flat" radius="section" className="group flex flex-col md:flex-row hover:border-primary/30 shadow-sm">
             {/* Metadata Col */}
             <div className="w-full md:w-56 p-5 bg-muted/20 border-b md:border-b-0 md:border-r border-border/30 flex flex-col justify-center gap-2">
                <div className="flex items-center gap-2 text-muted-foreground mb-1">
                   <Clock className="w-3.5 h-3.5" />
                   <span className="text-label font-mono font-bold">{new Date(log.timestamp).toLocaleTimeString()}</span>
                </div>
-               <div className={cn(
-                 "rounded-control border px-1.5 py-0.5 text-nano font-medium uppercase leading-none tracking-micro self-start",
-                 log.type.includes('FAILED') ? "bg-danger/10 text-danger border-danger/20" : "bg-primary/5 text-primary border-primary/10"
-               )}>
+               <StatusPill size="sm" uppercase variant={log.type.includes('FAILED') ? 'danger' : 'primary'} className="self-start">
                  {mapActivityType(log.type, t)}
-               </div>
+               </StatusPill>
                <span className="text-micro font-mono text-muted-foreground italic mt-1">{new Date(log.timestamp).toLocaleDateString()}</span>
             </div>
 
@@ -284,7 +282,7 @@ export const AuditLogsView: React.FC = () => {
                  </details>
               </div>
             )}
-          </div>
+          </Card>
         ))}
       </div>
     </div>

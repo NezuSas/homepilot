@@ -14,9 +14,9 @@ export const HomeDashboardButton: React.FC<HomeDashboardButtonProps> = ({
 }) => (
   <Button
     type="button"
-    variant="ghost"
+    variant="secondary"
     size="icon"
-    className="homepilot-home-dashboard-button relative z-20 self-end border-primary/[0.78] bg-card/[0.96] font-bold leading-normal hover:border-primary hover:bg-popover/[0.98] disabled:pointer-events-auto disabled:opacity-100"
+    className="homepilot-home-dashboard-button relative z-20 self-end border-primary/[0.78] hover:border-primary disabled:pointer-events-auto disabled:opacity-100"
     style={{ minHeight: '3.25rem', padding: '0.65rem 1.1rem', gap: '0.7rem', borderRadius: '999px' }}
     disabled={disabled}
     aria-label={accessibleLabel}

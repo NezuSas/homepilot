@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertCircle, ArrowRight, CheckCircle2, Play, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { AlertBanner } from './ui/AlertBanner';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { SearchableSelectField } from './ui/SearchableSelectField';
@@ -91,14 +92,12 @@ export const AutomationWorkbenchForm: React.FC<AutomationWorkbenchFormProps> = (
                 required
                 value={formData.stateKey}
                 onChange={event => onChange({ ...formData, stateKey: event.target.value })}
-                className="font-mono"
               />
               <Input
                 label={t('automations.form.value_label')}
                 required
                 value={formData.expectedValue}
                 onChange={event => onChange({ ...formData, expectedValue: event.target.value })}
-                className="font-mono"
               />
             </div>
           </div>
@@ -134,16 +133,13 @@ export const AutomationWorkbenchForm: React.FC<AutomationWorkbenchFormProps> = (
 
           <div className="flex flex-col gap-4 mt-auto">
             {createError && (
-              <div className="bg-danger/10 border border-danger/20 text-danger text-micro font-bold p-4 rounded-2xl flex items-center gap-3 animate-shake">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                {createError}
-              </div>
+              <AlertBanner variant="danger" size="sm" icon={AlertCircle} className="animate-shake" message={createError} />
             )}
             <Button
               disabled={submitting}
               type="submit"
               size="lg"
-              className="w-full text-caption font-black uppercase tracking-label-wider flex items-center justify-center gap-4 group"
+              className="w-full flex items-center justify-center group"
               isLoading={submitting}
             >
               <>

@@ -40,7 +40,7 @@ export const lightColors = colors;
  */
 export const typography = {
   /** Resident-facing interface, copy, controls and headings. */
-  sans: 'Rubik',
+  sans: 'Inter',
   /** Technical IDs, timestamps, operational states and compact labels. */
   mono: 'Disket Mono',
 } as const;

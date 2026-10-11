@@ -2,8 +2,9 @@ import React from 'react';
 import { Clock, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
+import { Card } from './ui/Card';
 import { Input } from './ui/Input';
-import { Button } from './ui/Button';
+import { SurfaceButton } from './ui/SurfaceButton';
 import { SearchableSelectField } from './ui/SearchableSelectField';
 import { SegmentedControl } from './ui/SegmentedControl';
 import { AutomationDeviceSelect } from './AutomationDeviceSelect';
@@ -32,7 +33,7 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
   const selectedTime = triggerConfig.timeLocal || triggerConfig.time || '12:00';
 
   return (
-    <div className="relative space-y-5 rounded-card border border-border/55 bg-card/80 p-5 shadow-surface-soft ring-1 ring-background/45 sm:p-6">
+    <Card className="relative space-y-5 overflow-visible p-5 sm:p-6">
       <div className="flex items-center gap-3 mb-2">
         <div className="flex h-8 min-w-8 shrink-0 items-center justify-center rounded-full border border-border/60 bg-background/90 px-3 shadow-sm">
           <span className="hp-type-control normal-case tracking-normal text-foreground">{t('automations.summary.if')}</span>
@@ -82,7 +83,6 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
                 value={triggerConfig.expectedValue || ''}
                 onChange={(event) => onTriggerConfigChange({ ...triggerConfig, expectedValue: event.target.value })}
                 placeholder={t('automations.builder.placeholders.expected_value')}
-                className="hp-type-field rounded-xl border-border/55 bg-background/80 px-4 focus-visible:border-primary/55 focus-visible:bg-card focus-visible:shadow-primary-focus"
               />
             </div>
           </div>
@@ -120,31 +120,29 @@ export const AutomationBuilderTriggerSection: React.FC<AutomationBuilderTriggerS
                 const selectedDays = triggerConfig.days || [0, 1, 2, 3, 4, 5, 6];
                 const isSelected = selectedDays.includes(index);
                 return (
-                  <Button
+                  <SurfaceButton
                     type="button"
                     key={index}
-                    variant={isSelected ? 'primary' : 'outline'}
-                    size="md"
                     aria-pressed={isSelected}
                     onClick={() => {
                       const next = isSelected ? selectedDays.filter(dayIndex => dayIndex !== index) : [...selectedDays, index];
                       onTriggerConfigChange({ ...triggerConfig, days: next });
                     }}
                     className={cn(
-                      "hp-type-control flex aspect-square w-full items-center justify-center rounded-xl",
+                      "hp-type-control flex min-h-11 w-full items-center justify-center rounded-control border px-1",
                       isSelected
-                        ? "shadow-primary-soft"
+                        ? "border-primary bg-primary text-primary-foreground"
                         : "border-border/55 bg-background/70 text-muted-foreground hover:bg-muted/70 hover:text-foreground"
                     )}
                   >
                     {day}
-                  </Button>
+                  </SurfaceButton>
                 );
               })}
             </div>
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 };

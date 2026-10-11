@@ -19,7 +19,7 @@ describe('Feature: Compact automation cards (AC50)', () => {
   });
   it('renders an article with separate execution, scheduling and management controls', () => {
     const html = renderToStaticMarkup(<AutomationRuleCard {...props} />);
-    expect(html).toMatch(/^<article aria-labelledby=/);
+    expect(html).toMatch(/^<article [^>]*aria-labelledby=/);
     expect(html.match(/<button /g)).toHaveLength(5);
     expect(html).toContain('automations.execute_now');
     expect(html).toContain('aria-label="automations.toggle_schedule"');

@@ -9,7 +9,7 @@ export interface SegmentedControlOption<T extends string> {
   disabled?: boolean;
 }
 
-export interface SegmentedControlProps<T extends string> {
+export interface SegmentedControlProps<T extends string> extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange' | 'children'> {
   value: T;
   options: SegmentedControlOption<T>[];
   onChange: (value: T) => void;
@@ -35,8 +35,11 @@ export function SegmentedControl<T extends string>({
   optionClassName,
   tone = 'neutral',
   layout = 'wrap',
+  ...rootProps
 }: SegmentedControlProps<T>) {
   const optionRefs = React.useRef<Array<HTMLButtonElement | null>>([]);
+  const selectedEnabledIndex = options.findIndex(option => option.value === value && !option.disabled);
+  const tabStopIndex = selectedEnabledIndex >= 0 ? selectedEnabledIndex : options.findIndex(option => !option.disabled);
 
   const moveFocus = (currentIndex: number, direction: 1 | -1) => {
     if (options.length === 0) return;
@@ -70,10 +73,11 @@ export function SegmentedControl<T extends string>({
 
   return (
     <div
+      {...rootProps}
       role="radiogroup"
       aria-label={label}
       className={cn(
-        'flex min-w-0 items-stretch gap-1.5 rounded-panel border p-1.5',
+        'flex min-w-0 items-stretch gap-1.5 rounded-control border p-1.5',
         layout === 'scroll'
           ? 'flex-nowrap overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
           : 'flex-wrap',
@@ -98,7 +102,7 @@ export function SegmentedControl<T extends string>({
             disabled={option.disabled}
             onClick={() => onChange(option.value)}
             aria-checked={active}
-            tabIndex={active ? 0 : -1}
+            tabIndex={optionIndex === tabStopIndex ? 0 : -1}
             onKeyDown={(event) => {
               if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
                 event.preventDefault();
@@ -121,12 +125,12 @@ export function SegmentedControl<T extends string>({
               }
             }}
             className={cn(
-              'flex min-h-10 min-w-0 touch-manipulation items-center justify-center gap-1.5 rounded-control px-2 py-2 text-micro font-semibold uppercase leading-tight tracking-control transition-all',
-              layout === 'scroll' ? 'flex-none' : 'flex-1',
+              'flex min-h-11 min-w-0 touch-manipulation items-center justify-center gap-1.5 rounded-control px-2 py-2 text-body-compact font-medium leading-5 control-transition',
+              layout === 'scroll' ? 'flex-none' : 'flex-1 basis-24',
               active
                 ? tone === 'primary'
-                  ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
-                  : 'bg-background text-primary shadow-sm border border-border'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-background text-primary border border-border'
                 : tone === 'primary'
                   ? 'text-muted-foreground hover:bg-primary/10 hover:text-primary'
                   : 'text-muted-foreground hover:bg-background/30 hover:text-foreground',
@@ -135,7 +139,7 @@ export function SegmentedControl<T extends string>({
               optionClassName
             )}
           >
-            {Icon && <Icon className="h-4 w-4 shrink-0" />}
+            {Icon && <Icon aria-hidden="true" focusable="false" className="h-4 w-4 shrink-0" />}
             <span
               className={cn(
                 'min-w-0 text-center',

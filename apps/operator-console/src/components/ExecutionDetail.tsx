@@ -6,6 +6,9 @@ import { CheckCircle2, XCircle, Slash, RefreshCcw } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { Button } from './ui/Button';
+import { Card } from './ui/Card';
+import { Heading } from './ui/Heading';
+import { StatusPill } from './ui/StatusPill';
 
 interface ExecutionDetailProps {
   executionId: string;
@@ -47,14 +50,15 @@ export const ExecutionDetail: React.FC<ExecutionDetailProps> = ({ executionId, a
 
   return (
     <div className="flex flex-col gap-2 mt-4 p-4 bg-background/50 rounded-section border border-border/40 animate-in slide-in-from-top-2 duration-300">
-      <h4 className="text-micro font-black uppercase tracking-widest text-muted-foreground/60 mb-2 px-1">
+      <Heading as="h4" variant="label" className="mb-2 px-1">
         {t('execution_logs.action_details')}
-      </h4>
+      </Heading>
       <div className="grid gap-2">
         {actions.map((action, idx) => (
-          <div 
+          <Card
             key={`${action.deviceId}-${idx}`}
-            className="flex items-center justify-between p-3 bg-card/40 rounded-xl border border-border/30 hover:border-primary/20 transition-colors"
+            variant="default"
+            className="flex items-center justify-between p-3"
           >
             <div className="flex items-center gap-3">
               <div className={cn(
@@ -110,23 +114,22 @@ export const ExecutionDetail: React.FC<ExecutionDetailProps> = ({ executionId, a
                   variant="outline"
                   size="xs"
                   isLoading={retryingIdx === idx}
-                  className="border-primary/20 bg-primary/5 text-micro font-black uppercase tracking-widest text-primary hover:bg-primary/10"
+                  className="border-primary/20 bg-primary/5 text-primary hover:bg-primary/10"
                 >
                   {retryingIdx !== idx && <RefreshCcw className="w-3 h-3" />}
                   {t('common.retry')}
                 </Button>
               )}
               
-              <div className={cn(
-                "text-micro font-black uppercase tracking-tighter px-1.5 py-0.5 rounded border",
-                action.status === 'success' ? "text-success border-success/20 bg-success/5" :
-                action.status === 'failed' ? "text-danger border-danger/20 bg-danger/5" :
-                "text-muted-foreground border-border bg-muted/5"
-              )}>
+              <StatusPill
+                size="sm"
+                uppercase
+                variant={action.status === 'success' ? 'success' : action.status === 'failed' ? 'danger' : 'neutral'}
+              >
                 {action.status}
-              </div>
+              </StatusPill>
             </div>
-          </div>
+          </Card>
         ))}
       </div>
     </div>

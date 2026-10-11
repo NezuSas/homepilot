@@ -4,6 +4,8 @@ import type { ExecutionRecord } from '../types/executions';
 import { cn } from '../lib/utils';
 import { Clock, Zap, ChevronDown, ChevronUp, Play, Cog, Fingerprint } from 'lucide-react';
 import { ExecutionDetail } from './ExecutionDetail';
+import { Card } from './ui/Card';
+import { Heading } from './ui/Heading';
 import { IconButton } from './ui/IconButton';
 
 interface ExecutionCardProps {
@@ -30,9 +32,8 @@ export const ExecutionCard: React.FC<ExecutionCardProps> = ({ record, onRetrySuc
   const SourceIcon = sourceTypeIcons[record.sourceType] || Zap;
 
   return (
-    <div className={cn(
-      "group relative min-w-0 overflow-hidden rounded-card border bg-card",
-      "p-3",
+    <Card variant="flat" className={cn(
+      "group relative p-3",
       statusColors[record.status],
       "text-foreground"
     )}>
@@ -53,9 +54,9 @@ export const ExecutionCard: React.FC<ExecutionCardProps> = ({ record, onRetrySuc
                 {record.sourceId}
               </span>
             </div>
-            <h3 className="text-body font-black tracking-tight text-foreground/90 truncate">
+            <Heading variant="card" className="truncate">
               {record.summary || t('execution_logs.execution_fallback', { id: record.id.slice(0, 8) })}
-            </h3>
+            </Heading>
           </div>
         </div>
 
@@ -116,7 +117,7 @@ export const ExecutionCard: React.FC<ExecutionCardProps> = ({ record, onRetrySuc
           label={isExpanded ? t('execution_logs.collapse_details') : t('execution_logs.expand_details')}
           variant="ghost"
           size="md"
-          className="ml-2 rounded-2xl hover:border-border/40"
+          className="ml-2 hover:border-border/40"
         />
       </div>
 
@@ -128,6 +129,6 @@ export const ExecutionCard: React.FC<ExecutionCardProps> = ({ record, onRetrySuc
           onRetrySuccess={onRetrySuccess} 
         />
       )}
-    </div>
+    </Card>
   );
 };

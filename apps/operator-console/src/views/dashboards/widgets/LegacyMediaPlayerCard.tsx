@@ -110,7 +110,7 @@ export function LegacyMediaPlayerCard({ title, compact = false, model }: { title
           }}
           variant="ghost"
           size="md"
-          className={cn('rounded-lg text-foreground/85 hover:bg-foreground/10 hover:text-primary', compact ? 'h-8 w-full' : 'h-9 w-9')}
+          className="text-foreground/85 hover:bg-foreground/10 hover:text-primary"
         />
         {hasPrevious && (
           <IconButton
@@ -120,7 +120,7 @@ export function LegacyMediaPlayerCard({ title, compact = false, model }: { title
             onClick={(event) => { event.stopPropagation(); invoke('media_previous_track'); }}
             variant="ghost"
             size="md"
-            className={cn('rounded-lg text-foreground/85 hover:bg-foreground/10 hover:text-primary', compact ? 'h-8 w-full' : 'h-9 w-9')}
+            className="text-foreground/85 hover:bg-foreground/10 hover:text-primary"
           />
         )}
         <IconButton
@@ -133,7 +133,7 @@ export function LegacyMediaPlayerCard({ title, compact = false, model }: { title
           }}
           variant="ghost"
           size="md"
-          className={cn('rounded-lg text-foreground hover:bg-foreground/10 hover:text-primary', compact ? 'h-8 w-full' : 'h-9 w-9')}
+          className="text-foreground hover:bg-foreground/10 hover:text-primary"
         />
         {hasNext && (
           <IconButton
@@ -143,7 +143,7 @@ export function LegacyMediaPlayerCard({ title, compact = false, model }: { title
             onClick={(event) => { event.stopPropagation(); invoke('media_next_track'); }}
             variant="ghost"
             size="md"
-            className={cn('rounded-lg text-foreground/85 hover:bg-foreground/10 hover:text-primary', compact ? 'h-8 w-full' : 'h-9 w-9')}
+            className="text-foreground/85 hover:bg-foreground/10 hover:text-primary"
           />
         )}
       </div>
@@ -160,7 +160,7 @@ export function LegacyMediaPlayerCard({ title, compact = false, model }: { title
             onClick={(event) => { event.stopPropagation(); changeVolume(-MEDIA_VOLUME_STEP); }}
             variant="ghost"
             size="md"
-            className={cn('rounded-lg text-foreground/85 hover:bg-foreground/10 hover:text-primary', compact ? 'h-8 w-8' : 'h-9 w-9')}
+            className="text-foreground/85 hover:bg-foreground/10 hover:text-primary"
           />
           <MediaVolumeSlider value={currentVolume} disabled={!canActVolume} onCommit={model.setVolume} />
           <IconButton
@@ -170,7 +170,7 @@ export function LegacyMediaPlayerCard({ title, compact = false, model }: { title
             onClick={(event) => { event.stopPropagation(); changeVolume(MEDIA_VOLUME_STEP); }}
             variant="ghost"
             size="md"
-            className={cn('rounded-lg text-foreground/85 hover:bg-foreground/10 hover:text-primary', compact ? 'h-8 w-8' : 'h-9 w-9')}
+            className="text-foreground/85 hover:bg-foreground/10 hover:text-primary"
           />
         </div>
       )}

@@ -1,5 +1,6 @@
 import React, { type Dispatch, type SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AlertBanner } from '../../components/ui/AlertBanner';
 import { Modal } from '../../components/ui/Modal';
 import { Input } from '../../components/ui/Input';
 import { SearchableSelectField } from '../../components/ui/SearchableSelectField';
@@ -39,9 +40,7 @@ export function NativeCameraFormModal({
       >
         <form onSubmit={handleSubmit} className="grid gap-3 sm:grid-cols-2">
           {formError && (
-            <div className="sm:col-span-2 p-3 bg-danger/10 border border-danger/20 text-danger rounded-lg text-body">
-              {formError}
-            </div>
+            <AlertBanner variant="danger" size="sm" className="sm:col-span-2" message={formError} />
           )}
 
           {!editingDevice && (

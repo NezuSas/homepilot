@@ -1,5 +1,4 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 import type { LucideIcon } from 'lucide-react';
 
@@ -13,11 +12,12 @@ export interface AssistantCardProps extends React.HTMLAttributes<HTMLDivElement>
   actions?: React.ReactNode;
   children?: React.ReactNode;
   isDismissed?: boolean;
+  /** Translated severity text; falls back to the severity key. */
+  severityLabel?: string;
 }
 
 export const AssistantCard = React.forwardRef<HTMLDivElement, AssistantCardProps>(
-  ({ className, icon: Icon, iconClassName, category, title, description, severity, actions, children, isDismissed = false, ...props }, ref) => {
-    const { t } = useTranslation();
+  ({ className, icon: Icon, iconClassName, category, title, description, severity, severityLabel, actions, children, isDismissed = false, ...props }, ref) => {
     const titleId = React.useId();
     const descriptionId = React.useId();
     const severityClasses = {
@@ -57,7 +57,7 @@ export const AssistantCard = React.forwardRef<HTMLDivElement, AssistantCardProps
 
           {severity && (
             <span className={cn('shrink-0 rounded-full border px-2 py-0.5 text-[0.5625rem] font-semibold uppercase leading-none tracking-label', severityClasses[severity])}>
-              {t(`common.severity_${severity}`, { defaultValue: severity })}
+              {severityLabel ?? severity}
             </span>
           )}
         </div>

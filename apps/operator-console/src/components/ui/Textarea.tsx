@@ -16,13 +16,13 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
     const describedBy = [ariaDescribedBy, (error || helperText) && messageId].filter(Boolean).join(' ') || undefined;
 
     return (
-      <div className={cn('flex min-w-0 w-full flex-col gap-1.5', containerClassName)}>
+      <div className={cn('flex min-w-0 w-full flex-col gap-2', containerClassName)}>
         {label && (
           <label
             htmlFor={textareaId}
             className={cn(
-              'ml-1 break-words text-micro font-black uppercase tracking-widest',
-              error ? 'text-danger' : 'text-muted-foreground',
+              'hp-field-label',
+              error && 'text-danger',
               disabled && 'opacity-50',
             )}
           >
@@ -36,10 +36,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           aria-describedby={describedBy}
           aria-invalid={error ? true : ariaInvalid}
           className={cn(
-            'surface-transition min-h-24 min-w-0 w-full resize-y rounded-xl border border-border bg-background px-3 py-2 text-body shadow-sm',
-            'placeholder:text-muted-foreground/40',
-            'focus-visible:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:shadow-depth-1',
-            'disabled:cursor-not-allowed disabled:bg-muted/50 disabled:opacity-50',
+            'hp-text-field min-h-24 resize-y',
             error && 'border-danger/50 bg-danger/5 focus-visible:border-danger focus-visible:ring-danger/40',
             className,
           )}
@@ -50,7 +47,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
             id={messageId}
             role={error ? 'alert' : undefined}
             aria-live={error ? 'assertive' : 'polite'}
-            className={cn('ml-1 break-words text-micro font-medium', error ? 'animate-shake text-danger' : 'text-muted-foreground opacity-70')}
+            className={cn('hp-field-message', error ? 'text-danger' : 'text-muted-foreground')}
           >
             {error || helperText}
           </p>

@@ -108,7 +108,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
       <div className="space-y-5">
         {error && <p role="alert" className="rounded-control bg-danger/10 p-3 text-caption text-danger">{error}</p>}
         <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
-          <Input label={t('routine_sharing.name')} value={name} onChange={event => setName(event.target.value)} placeholder={t('scenes.builder.placeholders.name')} className="h-11" autoFocus />
+          <Input label={t('routine_sharing.name')} value={name} onChange={event => setName(event.target.value)} placeholder={t('scenes.builder.placeholders.name')} autoFocus />
           <div className="space-y-1.5">
             <p className="text-micro font-semibold text-muted-foreground">{t('routine_sharing.space')}</p>
             <SearchableSelectField value={roomId || ''} onChange={value => { setRoomId(value || null); setActions([]); }} options={[
@@ -117,7 +117,7 @@ export const SceneBuilderModal: React.FC<SceneBuilderModalProps> = ({ onClose, o
             ]} placeholder={t('dashboard.scene_global')} />
           </div>
         </div>
-        <Input label={t('routine_sharing.description')} value={description} onChange={event => setDescription(event.target.value)} placeholder={t('scenes.builder.placeholders.description')} className="h-11" />
+        <Input label={t('routine_sharing.description')} value={description} onChange={event => setDescription(event.target.value)} placeholder={t('scenes.builder.placeholders.description')} />
         <RoutineSharingField value={sharedUserIds} onChange={setSharedUserIds} />
         <IconPicker value={icon} onChange={setIcon} />
         <SceneDeviceSelector key={roomId ?? 'global'} devices={devices} rooms={rooms} roomId={roomId} actions={actions} onToggle={toggleDevice} onCommand={setCommand} />

@@ -2,6 +2,7 @@ import React from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { SceneCard, type SceneCardScene } from './SceneCard';
 import { RoutineCardGrid } from './RoutineCardGrid';
+import { Heading } from './ui/Heading';
 
 interface Room {
   id: string;
@@ -47,7 +48,7 @@ export const ScenesGroup = <TScene extends SceneCardScene & { roomId: string | n
     <div className="flex flex-col gap-3">
       {title && <div className="flex items-center gap-2">
         {Icon && <Icon className={iconClassName} />}
-        <h3 className="text-caption font-semibold text-muted-foreground">{title}</h3>
+        <Heading as="h3" variant="label">{title}</Heading>
       </div>}
       <RoutineCardGrid>
         {scenes.map((scene) => {

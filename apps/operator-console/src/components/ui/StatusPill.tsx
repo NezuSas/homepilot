@@ -3,6 +3,10 @@ import { cn } from '../../lib/utils';
 
 export interface StatusPillProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant?: 'success' | 'warning' | 'danger' | 'primary' | 'neutral' | 'offline';
+  /** Text size of the catalog: sm for dense rows, md default, lg for prominent status. */
+  size?: 'sm' | 'md' | 'lg';
+  /** Label style: uppercase with wide tracking, for status tags. */
+  uppercase?: boolean;
   pulse?: boolean;
   /** Show as a compact dot-only pill (no text) */
   dot?: boolean;
@@ -40,8 +44,14 @@ const variantConfig: Record<
   },
 };
 
+const sizeStyles: Record<NonNullable<StatusPillProps['size']>, string> = {
+  sm: 'px-2 py-0.5 text-nano',
+  md: 'px-2 py-0.5 text-micro',
+  lg: 'px-3 py-1 text-caption',
+};
+
 export const StatusPill = React.forwardRef<HTMLSpanElement, StatusPillProps>(
-  ({ className, variant = 'neutral', pulse = false, dot = false, dotLabel, children, ...props }, ref) => {
+  ({ className, variant = 'neutral', size = 'md', uppercase = false, pulse = false, dot = false, dotLabel, children, ...props }, ref) => {
     const cfg = variantConfig[variant];
 
     if (dot) {
@@ -68,7 +78,9 @@ export const StatusPill = React.forwardRef<HTMLSpanElement, StatusPillProps>(
       <span
         ref={ref}
         className={cn(
-          'inline-flex max-w-full items-center gap-1.5 rounded-full border px-2 py-0.5 text-micro font-semibold normal-case tracking-normal',
+          'inline-flex max-w-full items-center gap-1.5 rounded-full border font-semibold',
+          sizeStyles[size],
+          uppercase ? 'font-black uppercase tracking-label' : 'normal-case tracking-normal',
           cfg.pill,
           className
         )}

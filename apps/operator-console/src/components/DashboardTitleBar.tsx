@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { Download, History, PenLine, Upload } from 'lucide-react';
 import { Button } from './ui/Button';
+import { Heading } from './ui/Heading';
 import { Input } from './ui/Input';
 import { ActionMenu } from './ui/ActionMenu';
 
@@ -54,7 +55,6 @@ export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
         <Input
           aria-label={renameLabel}
           containerClassName="min-w-0 flex-1"
-          className="h-auto rounded-none border-0 border-b-2 border-primary bg-transparent px-0 py-1 text-panel-title font-semibold text-foreground shadow-none focus-visible:border-primary focus-visible:ring-0 focus-visible:shadow-none sm:text-view-title"
           value={draftTitle}
           onChange={event => onDraftTitleChange(event.target.value)}
           onKeyDown={event => {
@@ -64,7 +64,7 @@ export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
       </div>
     ) : (
       <div className="group flex min-w-0 flex-1 items-center gap-2">
-        <h3 className="truncate text-section-title font-semibold tracking-tight text-foreground sm:text-panel-title">{title}</h3>
+        <Heading variant="section" as="h3" className="truncate sm:text-panel-title">{title}</Heading>
       </div>
     )}
     <div className="flex shrink-0 items-center gap-1 sm:gap-2">
@@ -81,7 +81,7 @@ export const DashboardTitleBar: React.FC<DashboardTitleBarProps> = ({
         }}
       />
       {isEditingDashboard ? (
-        <Button type="button" onClick={onToggleEditing} variant="primary" size="lg" className="rounded-full">{doneLabel}</Button>
+        <Button type="button" onClick={onToggleEditing} variant="primary" size="lg">{doneLabel}</Button>
       ) : null}
       <ActionMenu label={moreLabel} items={[
         ...(!isEditingDashboard ? [{ label: editLabel, icon: PenLine, onSelect: onToggleEditing }] : []),
