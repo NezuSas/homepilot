@@ -97,6 +97,8 @@ export class DeviceReadRoutes extends ApiRoutes {
 
     const historyMatch = method === 'GET' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/history$/);
     if (historyMatch) {
+      // Activity history names users and routine runs: administrator territory.
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         const history = await getDeviceActivityHistoryUseCase(historyMatch[1], req.user!.id, 50, {
           deviceRepository: container.repositories.deviceRepository,
@@ -112,6 +114,7 @@ export class DeviceReadRoutes extends ApiRoutes {
     // GET /api/v1/devices/:id/activity-logs
     const deviceLogsMatch = method === 'GET' && pathname.match(/^\/api\/v1\/devices\/([^\/]+)\/activity-logs$/);
     if (deviceLogsMatch) {
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         const deviceId = deviceLogsMatch[1];
         const device = await container.repositories.deviceRepository.findDeviceById(deviceId);

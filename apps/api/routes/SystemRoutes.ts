@@ -166,7 +166,7 @@ export class SystemRoutes extends ApiRoutes {
     if (method === 'GET' && pathname === '/api/v1/system/diagnostics') {
       const isProtected = await container.guards.authGuard.protect(req, res, true);
       if (!isProtected) return true;
-      if (!container.guards.authGuard.requireRole(req, res, 'operator')) return true;
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
 
       try {
         const snapshot = await container.services.diagnosticsService.getSnapshot();
@@ -181,7 +181,7 @@ export class SystemRoutes extends ApiRoutes {
     if (method === 'GET' && pathname === '/api/v1/system/diagnostics/events') {
       const isProtected = await container.guards.authGuard.protect(req, res, true);
       if (!isProtected) return true;
-      if (!container.guards.authGuard.requireRole(req, res, 'operator')) return true;
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
 
       try {
         const events = await container.services.diagnosticsService.getRecentEvents(50);

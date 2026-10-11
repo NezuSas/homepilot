@@ -46,6 +46,7 @@ export class AssistantRoutes extends ApiRoutes {
 
     // GET /api/v1/assistant/findings
     if (method === 'GET' && pathname === '/api/v1/assistant/findings') {
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         const findings = await container.services.assistantService.listOpen(authorizedHomeIds);
         this.sendJson(res, findings);
@@ -57,6 +58,7 @@ export class AssistantRoutes extends ApiRoutes {
 
     // GET /api/v1/assistant/summary
     if (method === 'GET' && pathname === '/api/v1/assistant/summary') {
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         const summary = await container.services.assistantService.getSummary(authorizedHomeIds);
         this.sendJson(res, summary);
@@ -68,6 +70,7 @@ export class AssistantRoutes extends ApiRoutes {
 
     // POST /api/v1/assistant/scan
     if (method === 'POST' && pathname === '/api/v1/assistant/scan') {
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         await Promise.all(authorizedHomeIds.map((homeId) => (
           container.services.assistantService.scan(homeId, 'manual_trigger')
@@ -82,6 +85,7 @@ export class AssistantRoutes extends ApiRoutes {
     // POST /api/v1/assistant/findings/:id/dismiss
     const dismissMatch = method === 'POST' && pathname.match(/^\/api\/v1\/assistant\/findings\/([^\/]+)\/dismiss$/);
     if (dismissMatch) {
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         await container.services.assistantService.dismiss(dismissMatch[1], authorizedHomeIds);
         this.sendJson(res, { success: true });
@@ -94,6 +98,7 @@ export class AssistantRoutes extends ApiRoutes {
     // POST /api/v1/assistant/findings/:id/resolve
     const resolveMatch = method === 'POST' && pathname.match(/^\/api\/v1\/assistant\/findings\/([^\/]+)\/resolve$/);
     if (resolveMatch) {
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         await container.services.assistantService.resolve(resolveMatch[1], authorizedHomeIds);
         this.sendJson(res, { success: true });
@@ -105,7 +110,7 @@ export class AssistantRoutes extends ApiRoutes {
 
     // POST /api/v1/assistant/actions
     if (method === 'POST' && pathname === '/api/v1/assistant/actions') {
-      if (!container.guards.authGuard.requireRole(req, res, 'parent')) return true;
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         const body = await this.parseBody<{ findingId: string; actionType: string; payload?: unknown }>(req);
         if (!body.findingId || !body.actionType) {

@@ -22,7 +22,7 @@ Implement a robust, localized authentication and basic Role-Based Access Control
 | Endpoint Area / Action | Role: Operator | Role: Admin |
 | :--- | :---: | :---: |
 | **`GET /api/v1/auth/me` & `POST /api/v1/auth/logout`** | ✅ | ✅ |
-| **`GET /api/v1/system/diagnostics/*`** | ✅ | ✅ |
+| **`GET /api/v1/system/diagnostics/*`** | ❌ | ✅ |
 | **`GET /api/v1/devices/*` & `/api/v1/homes/*`**| ✅ | ✅ |
 | **`POST /api/v1/devices/:id/command`** | ✅ | ✅ |
 | **`GET /api/v1/automation-rules`** | ✅ | ✅ |
@@ -33,11 +33,11 @@ Implement a robust, localized authentication and basic Role-Based Access Control
 | **`GET / POST /api/v1/settings/*` (Settings Read/Write)** | ❌ | ✅ |
 | **`POST /api/v1/auth/change-password`** | ✅ | ✅ |
 
-*Infrastructure and history*: native camera discovery, creation, update and removal, and the Home Assistant connection test require `admin`; the native camera list and the execution history (including retrying a failed action) require `operator` or higher. Machine-to-machine integration routes (`/api/v1/integrations/*`) authenticate only with their integration key and are never answered with a user-session error by another route group. Media artwork tokens are signed with `MEDIA_ARTWORK_SIGNING_SECRET` or a random per-process secret, never with the Home Assistant token or a published constant.
+*Infrastructure and history*: native camera discovery, creation, update and removal, and the Home Assistant connection test require `admin`; the native camera list, the execution history (including retrying a failed action), the per-device history and activity logs, and the assistant insights (findings, summary, scan, dismiss, resolve and actions) are administrator-only as well. Machine-to-machine integration routes (`/api/v1/integrations/*`) authenticate only with their integration key and are never answered with a user-session error by another route group. Media artwork tokens are signed with `MEDIA_ARTWORK_SIGNING_SECRET` or a random per-process secret, never with the Home Assistant token or a published constant.
 
 *Input rules*: a user created by an administrator has a name of at most 40 characters without slashes or control characters (it names a folder under `/media/users`); the profile avatar is either a new image upload or the user's own stored avatar path, never an arbitrary URL. The assistant chat never shows internal error codes or messages: the detail goes to the log and the user reads a plain sentence.
 
-*Diagnostics*: the snapshot and the event timeline require the `operator` role or higher; `parent`, `child` and `guest` sessions receive 403 `INSUFFICIENT_ROLE`, matching the console, where only `admin` and `operator` reach the system area.
+*Principle*: system information is for the administrator; every other role (`operator`, `parent`, `child`, `guest`) only uses the home — device control, dashboards, scenes and the conversation with the home. The diagnostics snapshot and event timeline therefore require `admin`; other sessions receive 403 `INSUFFICIENT_ROLE`, and the console shows the system area and the assistant insights page to administrators only (other roles are sent to the dashboard and never request those endpoints). Device state events over the WebSocket stay available to every signed-in role because they are what lets the dashboards show the current state.
 
 *Note*: Admin actions strictly require the `admin` role. `Operator` has expansive read permission and can execute live telemetry operations (commands), but cannot modify infrastructure arrays or sensitive credentials.
 

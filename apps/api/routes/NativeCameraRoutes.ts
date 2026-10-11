@@ -110,7 +110,7 @@ export class NativeCameraRoutes extends ApiRoutes {
   ): Promise<void> {
     const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return;
-    if (!container.guards.authGuard.requireRole(req, res, 'operator')) return;
+    if (!container.guards.authGuard.requireRole(req, res, 'admin')) return;
 
     try {
       const url = new URL(req.url || '/api/v1/native-cameras', 'http://localhost');

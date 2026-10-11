@@ -1,7 +1,9 @@
 const BASIC_HOME_ROLES = new Set(['admin', 'operator', 'parent', 'child', 'guest']);
 const FAMILY_CONTROL_ROLES = new Set(['admin', 'operator', 'parent', 'child']);
 const ADMIN_CONTROL_ROLES = new Set(['admin', 'operator', 'parent']);
-const SYSTEM_ROLES = new Set(['admin', 'operator']);
+// System information (diagnostics, history, cameras setup, assistant insights) is for the administrator;
+// everyone else only uses the home.
+const SYSTEM_ROLES = new Set(['admin']);
 
 export interface AppAccessControl {
   canAccessBasicHomeViews: boolean;

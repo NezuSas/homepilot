@@ -12,11 +12,11 @@ export interface InstalledFeatures {
 export const DEFAULT_INSTALLED_FEATURES: InstalledFeatures = { homeChat: true, voice: true };
 
 /**
- * A view the installation does not include, or the system area for a role that cannot use it,
- * is shown as the home dashboard. `canAccessSystem` is only enforced once the role is known.
+ * A view the installation does not include, or the system area (and the assistant insights page) for a role
+ * that cannot use it, is shown as the home dashboard. `canAccessSystem` is only enforced once the role is known.
  */
 export function resolveVisibleView(view: View, features: InstalledFeatures, canAccessSystem = true): View {
   if (view === 'home-conversation' && !features.homeChat) return 'dashboard';
-  if (isSystemView(view) && !canAccessSystem) return 'dashboard';
+  if ((isSystemView(view) || view === 'assistant') && !canAccessSystem) return 'dashboard';
   return view;
 }

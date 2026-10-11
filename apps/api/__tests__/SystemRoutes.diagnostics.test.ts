@@ -101,14 +101,14 @@ describe('Feature: system diagnostics API', () => {
     expect(container.services.diagnosticsService.getRecentEvents).toHaveBeenCalledWith(50);
   });
 
-  it('Scenario: Given a signed-in user below the operator role When diagnostics or its timeline is requested Then the services are not exposed', async () => {
+  it('Scenario: Given a signed-in user below the admin role When diagnostics or its timeline is requested Then the services are not exposed', async () => {
     const routes = new SystemRoutes();
     const container = createContainer(true, false);
 
     await routes.handle(createRequest(), new MockResponse() as unknown as http.ServerResponse, '/api/v1/system/diagnostics', 'GET', container);
     await routes.handle(createRequest(), new MockResponse() as unknown as http.ServerResponse, '/api/v1/system/diagnostics/events', 'GET', container);
 
-    expect(container.guards.authGuard.requireRole).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'operator');
+    expect(container.guards.authGuard.requireRole).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'admin');
     expect(container.services.diagnosticsService.getSnapshot).not.toHaveBeenCalled();
     expect(container.services.diagnosticsService.getRecentEvents).not.toHaveBeenCalled();
   });

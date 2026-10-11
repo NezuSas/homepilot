@@ -8,7 +8,7 @@ export const primarySidebarNavigation: SidebarNavigationItem[] = [
   { view: 'spaces', labelKey: 'nav.spaces', icon: LayoutDashboard },
   { view: 'routines', labelKey: 'nav.routines', icon: Zap, requires: 'family' },
   { view: 'home-conversation', labelKey: 'nav.talk_to_home', icon: MessageSquare },
-  { view: 'assistant', labelKey: 'nav.assistant', icon: Sparkles, requires: 'family' },
+  { view: 'assistant', labelKey: 'nav.assistant', icon: Sparkles, requires: 'system' },
   { view: 'energy', labelKey: 'nav.energy', icon: Zap, requires: 'admin' },
 ];
 

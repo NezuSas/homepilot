@@ -32,7 +32,7 @@ export class ExecutionRoutes extends ApiRoutes {
     const isProtected = await container.guards.authGuard.protect(req, res, true);
     if (!isProtected) return true;
     // Histories show every user's scene and automation runs, and a retry re-sends a device command.
-    if (!container.guards.authGuard.requireRole(req, res, 'operator')) return true;
+    if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
 
     // GET /api/v1/executions/recent?limit=50
     if (method === 'GET' && pathname === '/api/v1/executions/recent') {

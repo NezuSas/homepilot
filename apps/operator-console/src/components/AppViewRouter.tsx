@@ -19,6 +19,8 @@ interface AppViewRouterProps {
   user: UserContext | null;
   displayName: string | null;
   canManageAutomations: boolean;
+  /** Assistant findings belong to the administrator; other roles never request them. */
+  canViewInsights: boolean;
   dashboardId: string | null;
   tabId: string | null;
   setupStatus: SetupStatus | null;
@@ -40,7 +42,7 @@ export function AppViewRouter(props: AppViewRouterProps) {
   const layout = getAppViewRouterLayout(props.currentView);
   const fallback = <ViewSkeleton view={props.currentView} section={getRoutineSection(props.currentPath, props.canManageAutomations)} label={t('common.loading')} className="min-h-screen-half" />;
   return <PageFrame immersive={layout.immersive} className={layout.pageClassName}><Suspense fallback={fallback}>
-    {props.currentView === 'dashboard' && <DashboardView onActionExecute={props.onDeviceAction} onNavigate={props.onNavigate} displayName={props.displayName} currentUserId={props.user?.id ?? null} onOpenOwnDashboardTab={props.onOpenOwnDashboardTab} canManageAutomations={props.canManageAutomations} />}
+    {props.currentView === 'dashboard' && <DashboardView onActionExecute={props.onDeviceAction} onNavigate={props.onNavigate} displayName={props.displayName} currentUserId={props.user?.id ?? null} onOpenOwnDashboardTab={props.onOpenOwnDashboardTab} canManageAutomations={props.canManageAutomations} canViewInsights={props.canViewInsights} />}
     {props.currentView === 'spaces' && <TopologyView currentUser={props.user} />}
     {props.currentView === 'routines' && <RoutinesView section={getRoutineSection(props.currentPath, props.canManageAutomations)} canManageAutomations={props.canManageAutomations} onSectionChange={props.onRoutineSectionChange} onSceneActionExecute={props.onDeviceAction} currentUserId={props.user?.id ?? null} />}
     {props.currentView === 'assistant' && <AssistantView onNavigate={props.onNavigate} />}

@@ -89,7 +89,7 @@ describe('Feature: Native camera configuration', () => {
 
   it.each([
     ['GET', '/api/v1/native-cameras/discover', 'admin'],
-    ['GET', '/api/v1/native-cameras?homeId=home-1', 'operator'],
+    ['GET', '/api/v1/native-cameras?homeId=home-1', 'admin'],
     ['POST', '/api/v1/native-cameras', 'admin'],
     ['PUT', '/api/v1/native-cameras/camera-1', 'admin'],
     ['DELETE', '/api/v1/native-cameras/camera-1', 'admin'],

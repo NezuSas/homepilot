@@ -103,7 +103,8 @@ function App() {
 
   const { status, user, handleLoginSuccess, handleLogout, clearSession, validateSession } = useSession(onSessionCleared);
   const installedFeatures = useInstalledFeatures(status === 'authenticated');
-  const currentView = resolveVisibleView(requestedView, installedFeatures, status !== 'authenticated' || getAppAccessControl(user?.role).canAccessSystem);
+  const accessControl = getAppAccessControl(user?.role);
+  const currentView = resolveVisibleView(requestedView, installedFeatures, status !== 'authenticated' || accessControl.canAccessSystem);
   const demoSteps = useMemo(() => getAppDemoSteps(installedFeatures.homeChat), [installedFeatures.homeChat]);
   // A bookmarked or shared link to a view this installation or this role does not have lands on the home dashboard.
   useEffect(() => {
@@ -132,7 +133,7 @@ function App() {
   const { setupStatus, loadingSetup, isBackendOffline, markOnboardingCompleted } = useSetupStatus(status);
 
   // ─── Data kept fresh while signed in ──────────────────────────────────
-  useRealtimeRefresh(status);
+  useRealtimeRefresh(status, accessControl.canAccessSystem);
   const assistantSummary = useAppShellStore((state) => state.assistantSummary);
   const refreshAssistantSummary = useAppShellStore((state) => state.refreshAssistantSummary);
   const pulseSyncStatus = useAppShellStore((state) => state.pulseSyncStatus);
@@ -144,7 +145,7 @@ function App() {
     canAccessAdminControl,
     canAccessDashboards,
     canAccessSystem,
-  } = getAppAccessControl(user?.role);
+  } = accessControl;
 
   const {
     dashboards: sidebarDashboards,
@@ -160,10 +161,10 @@ function App() {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      refreshAssistantSummary();
+      if (canAccessSystem) refreshAssistantSummary();
       void refreshSidebarDashboards();
     }
-  }, [status, refreshAssistantSummary, refreshSidebarDashboards]);
+  }, [status, canAccessSystem, refreshAssistantSummary, refreshSidebarDashboards]);
 
   // Sync localProfile with session user when it changes (e.g. after validation)
   useEffect(() => {
@@ -340,6 +341,7 @@ function App() {
             user={user}
             displayName={localProfile.displayName || user?.username || null}
             canManageAutomations={canAccessAdminControl}
+            canViewInsights={canAccessSystem}
             dashboardId={urlDashboardId}
             tabId={urlTabId}
             setupStatus={setupStatus}

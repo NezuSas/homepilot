@@ -31,7 +31,7 @@ const rules = [
   ['assistant-v1.md', /(?:packages\/assistant|Assistant|HomeConversation|AudioInput|GlobalWake|wakeAcknowledgement)/i],
   ['scene-lifecycle-v1.md', /(?:SceneRoutes|SceneBuilder|SceneCard|ScenesView|ScenesGroup|ScenesHeader|SceneExecution|SceneRepository|\/Scene\.|scene_)/i],
   ['automation-rules-engine-v1.md', /(?:packages\/automation|Automation)/i],
-  ['auth-rbac-v1-local-edge-security.md', /(?:packages\/auth|AuthRoutes|AdminRoutes|LoginView|UsersView|User[A-Z]|useSession|ChangePassword|ResetUserPassword)/i],
+  ['auth-rbac-v1-local-edge-security.md', /(?:packages\/auth|AuthRoutes|AdminRoutes|LoginView|UsersView|User[A-Z]|useSession|ChangePassword|ResetUserPassword|AdminOnlyReads|accessControl)/i],
   ['home-room-management.md', /(?:packages\/topology|Topology|HomeController|RoomController|HomeClimate)/i],
   ['device-command-execution.md', /(?:packages\/devices|DeviceRoutes|apps\/api\/routes\/device\/|Device[A-Z]|Inbox|Curtain|CoverPosition|ManagedDevice|DashDevice|device[A-Z])/i],
   ['edge-platform-foundations-v1.md', /(?:apps\/api\/(?:ApiGateway|RouteHandler|OperatorConsoleServer)|apps\/api\/__tests__\/ApiGateway|apps\/api\/routes\/ApiRoutes|packages\/shared)/i],

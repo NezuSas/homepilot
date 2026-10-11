@@ -53,14 +53,14 @@ describe('Feature: execution history routes', () => {
     ['GET', '/api/v1/executions/recent'],
     ['GET', '/api/v1/executions/scene/scene-1'],
     ['POST', '/api/v1/executions/exec-1/actions/0/retry'],
-  ])('Scenario: Given a role below operator When %s %s is requested Then no history is read and nothing is retried', async (method, path) => {
+  ])('Scenario: Given a role below admin When %s %s is requested Then no history is read and nothing is retried', async (method, path) => {
     const route = new ExecutionRoutes();
     const container = createContainer();
     (container.guards.authGuard.requireRole as jest.Mock).mockReturnValue(false);
 
     await route.handle(createRequest(path), new MockResponse() as unknown as http.ServerResponse, path, method, container);
 
-    expect(container.guards.authGuard.requireRole).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'operator');
+    expect(container.guards.authGuard.requireRole).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'admin');
     expect(container.repositories.executionRecordRepository.findRecent).not.toHaveBeenCalled();
     expect(container.repositories.executionRecordRepository.findBySource).not.toHaveBeenCalled();
     expect(container.repositories.executionRecordRepository.findById).not.toHaveBeenCalled();

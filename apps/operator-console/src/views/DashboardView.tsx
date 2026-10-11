@@ -55,9 +55,10 @@ interface DashboardViewProps {
   currentUserId: string | null;
   onOpenOwnDashboardTab: (dashboardId: string, tabId: string) => void;
   canManageAutomations: boolean;
+  canViewInsights: boolean;
 }
 
-export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, onNavigate, displayName, currentUserId, onOpenOwnDashboardTab, canManageAutomations }) => {
+export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, onNavigate, displayName, currentUserId, onOpenOwnDashboardTab, canManageAutomations, canViewInsights }) => {
   const { t } = useTranslation();
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [automations, setAutomations] = useState<DashboardRoutineAutomation[]>([]);
@@ -85,7 +86,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
     const controller = new AbortController();
     dataRequest.current = controller;
     try {
-      await Promise.allSettled([refreshSnapshot(), refreshFindings()]);
+      await Promise.allSettled([refreshSnapshot(), canViewInsights ? refreshFindings() : Promise.resolve()]);
       if (controller.signal.aborted) return;
 
       const [scenesResponse, automationsResponse] = await Promise.all([
@@ -111,7 +112,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
       if (!controller.signal.aborted) setCatalogSettled(true);
       if (dataRequest.current === controller) dataRequest.current = null;
     }
-  }, [canManageAutomations, refreshFindings, refreshSnapshot]);
+  }, [canManageAutomations, canViewInsights, refreshFindings, refreshSnapshot]);
 
   useEffect(() => {
     void fetchData();

@@ -8,10 +8,10 @@ import { REALTIME_REFRESH_DEBOUNCE_MS, REFRESH_TRIGGER_EVENTS } from './realtime
 
 
 /**
- * Keeps the snapshot and assistant findings fresh: realtime events (debounced so a
+ * Keeps the snapshot (and, for the administrator, the assistant findings) fresh: realtime events (debounced so a
  * dispatch + state-updated burst becomes one refresh) and tab visibility/focus.
  */
-export function useRealtimeRefresh(status: SessionStatus): void {
+export function useRealtimeRefresh(status: SessionStatus, refreshInsights = true): void {
   const { lastEvent } = useRealtimeEvents(status === 'authenticated');
   const pulseSyncStatus = useAppShellStore((state) => state.pulseSyncStatus);
   const refreshAssistantFindings = useAssistantStore((state) => state.refreshFindings);
@@ -32,9 +32,9 @@ export function useRealtimeRefresh(status: SessionStatus): void {
     burstTimerRef.current = window.setTimeout(() => {
       burstTimerRef.current = null;
       void refreshDeviceSnapshot({ force: true });
-      refreshAssistantFindings();
+      if (refreshInsights) refreshAssistantFindings();
     }, REALTIME_REFRESH_DEBOUNCE_MS);
-  }, [status, lastEvent, pulseSyncStatus, refreshAssistantFindings, refreshDeviceSnapshot]);
+  }, [status, lastEvent, pulseSyncStatus, refreshAssistantFindings, refreshDeviceSnapshot, refreshInsights]);
 
   useEffect(() => () => {
     if (burstTimerRef.current !== null) window.clearTimeout(burstTimerRef.current);

@@ -76,7 +76,7 @@ export class AssistantConfirmationPolicy implements AssistantConfirmationPolicyP
       return finalize({
         prompt: intent.prompt,
         intentType: 'multi_command',
-        requiresConfirmation: false, // Always require confirmation for multi-commands
+        requiresConfirmation: false, // Explicit multi-device requests run immediately (see assistant-confirmation-tickets-v1 status note)
         summary: isEn
           ? `I will execute ${estimatedActionCount} actions.`
           : `Voy a ejecutar ${estimatedActionCount} acciones.`,

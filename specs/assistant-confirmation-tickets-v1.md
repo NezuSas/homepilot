@@ -4,6 +4,8 @@
 **Autor:** HomePilot Engineering
 **Fecha:** 2026-08-13
 
+> **Nota de estado (2026-10-11):** hoy los comandos masivos y de varios objetivos ("apaga todo", por estancia, "menos la sala") se ejecutan de inmediato, sin ticket: así lo fija la suite del asistente (`apaga todo: executes directly`). Este documento describe el mecanismo de tickets y su revalidación para cuando una confirmación persistida exista; la decisión de volver a exigir confirmación en comandos masivos requiere una spec nueva aprobada.
+
 ## Problema
 
 Las acciones masivas del asistente ("apaga todo", bulk por estancia, guardia multi-objetivo del
