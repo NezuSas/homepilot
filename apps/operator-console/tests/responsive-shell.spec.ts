@@ -493,6 +493,21 @@ for (const viewport of [...viewports, { name: 'portrait kiosk', ...portraitKiosk
         overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
       };
     });
+    // Row spans follow a ResizeObserver, so on a loaded machine the canvas needs a few frames to settle.
+    // The contract is skeleton versus loaded geometry, not the first frames of the initial layout.
+    const settleLayout = () => page.evaluate(() => new Promise<void>((resolve) => {
+      const canvas = document.querySelector('.homepilot-dashboard-content');
+      let last = -1;
+      let stableFrames = 0;
+      const tick = () => {
+        const height = canvas?.getBoundingClientRect().height ?? 0;
+        stableFrames = height === last ? stableFrames + 1 : 0;
+        last = height;
+        if (stableFrames >= 5) resolve(); else requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }));
+    await settleLayout();
     const before = await geometry();
     expect(before.card).not.toBeNull();
     expect(before.section).not.toBeNull();
@@ -503,6 +518,7 @@ for (const viewport of [...viewports, { name: 'portrait kiosk', ...portraitKiosk
     releaseDevices?.();
     await expect(card.locator('.sensor-metric-card')).toBeVisible();
     await expect(card.locator('[data-dashboard-skeleton]')).toHaveCount(0);
+    await settleLayout();
     const after = await geometry();
     const weatherBefore = before.items.find((item) => item.id === 'responsive-weather');
     const weatherAfter = after.items.find((item) => item.id === 'responsive-weather');
