@@ -36,6 +36,18 @@ describe('IntentInterpreterService Integration', () => {
 
   afterEach(() => {
     delete process.env.OLLAMA_ENABLED;
+    delete process.env.ASSISTANT_LEGACY_LLM_INTERPRETER;
+  });
+
+  it('skips the legacy model call when a profile turns it off, keeping a single call per turn', async () => {
+    process.env.OLLAMA_ENABLED = 'true';
+    process.env.ASSISTANT_LEGACY_LLM_INTERPRETER = 'false';
+    mockSceneRepo.findAll.mockResolvedValue([]);
+
+    const intent = await service.interpret('apaga todo');
+
+    expect(mockLlmInterpreter.interpret).not.toHaveBeenCalled();
+    expect(intent.type).toBe('unknown');
   });
 
   it('should use deterministic logic when LLM is disabled', async () => {

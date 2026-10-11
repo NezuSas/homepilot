@@ -6,6 +6,7 @@ import type { LlmCircuitBreaker } from '../LlmCircuitBreaker';
 import type { PlannerAction } from '../ports/AssistantPlannerV2';
 import type { AssistantMemoryState } from '../ports/AssistantMemoryPort';
 import { getPromptSkipReason, isPronounPrompt } from './promptSkipPolicy';
+import { classifyInterpretError } from './shadowComparison';
 import type { HybridExecutionResult, PlannerPromptMode } from './shadowTypes';
 
 export interface HybridExecutionConfig {
@@ -58,11 +59,16 @@ export class PlannerV2HybridExecutionGate {
       const result = await this.llmInterpreter.interpretV2(prompt, userId, {
         promptMode: this.config.promptMode,
         timeoutMs: this.config.executionTimeoutMs,
-        model: this.config.shadowModel
+        model: this.config.shadowModel,
+        // A pretty-printed plan runs past the 96 tokens that suit shadow sampling; cutting it
+        // mid-object leaves invalid JSON and the whole turn falls back.
+        numPredict: 320
       });
       if (result.error) {
         this.circuitBreaker.recordFailure();
-        return skip('llm_error');
+        // Only the failure class and a short head of the message: enough to tell a timeout from a
+        // malformed answer without ever logging the prompt.
+        return skip('llm_error', { error_type: classifyInterpretError(result.error.message).type, error_head: result.error.message.slice(0, 60) });
       }
       if (!result.plan) {
         this.circuitBreaker.recordFailure();

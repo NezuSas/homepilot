@@ -16,6 +16,16 @@ export function isPendingIntentConfirmationActive(pendingIntent: NonNullable<Ass
   return elapsed >= 0 && elapsed < PENDING_INTENT_CONFIRMATION_TTL_MS;
 }
 
+const DALE_COURTESY = new Set(['gracias', 'por favor', 'porfa', 'nomas', 'no mas', 'pues', 'ya', 'ahora', 'ahora mismo', 'listo', 'hazlo', 'adelante']);
+
+/** True when the utterance starts with the trigger as a reply; "dale" followed by an object is a request, not a reply. */
+function startsWithReply(normalized: string, trigger: string): boolean {
+  if (normalized === trigger) return true;
+  if (!normalized.startsWith(trigger + ' ')) return false;
+  if (trigger !== 'dale') return true;
+  return DALE_COURTESY.has(normalized.slice(trigger.length + 1).trim());
+}
+
 export function isConfirmation(normalized: string): boolean {
   const triggers = [
     'si', 'dale', 'confirmo', 'adelante', 'procede', 'ok', 'vale', 'confirmar', 'ejecutar',
@@ -23,7 +33,7 @@ export function isConfirmation(normalized: string): boolean {
     'no', 'cancela', 'cancelar', 'abortar', 'noup', 'negativo',
     'cancel', 'abort', 'nope', 'negative'
   ];
-  return triggers.some(t => normalized === t || normalized.startsWith(t + ' '));
+  return triggers.some(t => startsWithReply(normalized, t));
 }
 
 export function isPositiveConfirmation(normalized: string): boolean {
@@ -31,7 +41,7 @@ export function isPositiveConfirmation(normalized: string): boolean {
     'si', 'dale', 'confirmo', 'adelante', 'procede', 'ok', 'vale', 'confirmar', 'ejecutar',
     'yes', 'go ahead', 'confirm', 'proceed', 'execute', 'do it', 'sure'
   ];
-  return positives.some(t => normalized === t || normalized.startsWith(t + ' '));
+  return positives.some(t => startsWithReply(normalized, t));
 }
 
 export function isNegativeConfirmation(normalized: string): boolean {

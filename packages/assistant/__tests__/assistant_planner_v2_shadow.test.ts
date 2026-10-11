@@ -533,6 +533,26 @@ describe('Assistant Planner V2 Shadow Mode', () => {
       expect(result).toEqual({ deviceId: 'dev-1', command: 'turn_on', confidence: 0.9, contextSource: 'semantic_match' });
     });
 
+    it('gives a live plan enough tokens to finish instead of the small shadow budget', async () => {
+      shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+      await shadowService.attemptHybridExecution('prende la luz de cocina', 'u1');
+      expect(llmInterpreter.interpretV2).toHaveBeenCalledWith('prende la luz de cocina', 'u1', expect.objectContaining({ numPredict: 320 }));
+    });
+
+    it('logs the class of a model failure without the prompt and falls back', async () => {
+      (llmInterpreter.interpretV2 as jest.Mock).mockResolvedValueOnce({ plan: null, metadata: { promptChars: 0, devicesCount: 0 }, error: new Error('Ollama request timed out after 4000ms') });
+      const spy = jest.spyOn(console, 'info').mockImplementation();
+      shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);
+
+      const result = await shadowService.attemptHybridExecution('enciéndeme la sala secreta', 'u1');
+
+      expect(result).toBeNull();
+      const logged = spy.mock.calls.map(call => String(call[0])).find(line => line.includes('"reason":"llm_error"')) ?? '';
+      expect(logged).toContain('"error_type":"timeout"');
+      expect(logged).not.toContain('sala secreta');
+      spy.mockRestore();
+    });
+
     it('should NOT execute if feature flag is false, avoiding zero LLM call', async () => {
       process.env.ASSISTANT_PLANNER_V2_EXECUTION = 'false';
       shadowService = new AssistantPlannerV2ShadowService(llmInterpreter, validator, resolver);

@@ -440,6 +440,12 @@ describe('Assistant Alias Management V1', () => {
   });
   it('32. confirmation, selection and command helpers keep multilingual decisions deterministic', () => {
     expect(isConfirmation('procede ahora')).toBe(true);
+    // "dale" confirms only on its own or with a courtesy; with an object it is a request.
+    expect(isConfirmation('dale')).toBe(true);
+    expect(isConfirmation('dale gracias')).toBe(true);
+    expect(isPositiveConfirmation('dale por favor')).toBe(true);
+    expect(isConfirmation('dale luz a sala 3')).toBe(false);
+    expect(isPositiveConfirmation('dale play a la musica')).toBe(false);
     expect(isPositiveConfirmation('go ahead please')).toBe(true);
     expect(isNegativeConfirmation('cancel now')).toBe(true);
     expect(isPositiveConfirmation('cancel now')).toBe(false);

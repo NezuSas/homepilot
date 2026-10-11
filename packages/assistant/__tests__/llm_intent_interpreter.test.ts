@@ -55,7 +55,7 @@ describe('LlmIntentInterpreter', () => {
 
     const intent = await interpreter.interpret('activate scene 1', 'user-1');
     expect(intent).toEqual({ type: 'scene', target: 's1', prompt: 'activate scene 1' });
-    expect(mockOllama.generateJson).toHaveBeenCalledWith(expect.any(String), { numPredict: 96 });
+    expect(mockOllama.generateJson).toHaveBeenCalledWith(expect.any(String), { numPredict: 192 });
   });
 
   it('should return null if scene does not exist', async () => {

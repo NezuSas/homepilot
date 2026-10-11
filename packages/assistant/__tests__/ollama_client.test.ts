@@ -44,6 +44,31 @@ describe('OllamaClient', () => {
     expect(body.options).toEqual({ temperature: 0, num_predict: 256, num_ctx: 1024, top_k: 20, top_p: 0.9 });
   });
 
+  it('turns thinking off so reasoning models do not return an empty answer', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({ response: JSON.stringify({ ok: true }) }),
+    });
+
+    await client.generateJson('test prompt');
+
+    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+    expect(body.think).toBe(false);
+  });
+
+  it('uses the configured context window', async () => {
+    const roomy = new OllamaClient(baseUrl, model, timeoutMs, 4096);
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({ response: JSON.stringify({ ok: true }) }),
+    });
+
+    await roomy.generateJson('test prompt');
+
+    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+    expect(body.options.num_ctx).toBe(4096);
+  });
+
   it('should use a caller-provided JSON Schema as the format instead of plain "json"', async () => {
     const mockResponse = { response: JSON.stringify({ ok: true }) };
     (global.fetch as jest.Mock).mockResolvedValue({

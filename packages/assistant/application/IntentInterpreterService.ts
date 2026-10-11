@@ -74,7 +74,9 @@ export class IntentInterpreterService implements IntentInterpreterPort {
     }
 
     // 2. Fallback to LLM if enabled and deterministic failed
-    const isLlmEnabled = process.env.OLLAMA_ENABLED === 'true';
+    // The legacy whole-inventory interpreter is a second model call per turn. Planner V2 already
+    // covers paraphrases, so a profile that enables it can switch this one off to keep a single call.
+    const isLlmEnabled = process.env.OLLAMA_ENABLED === 'true' && process.env.ASSISTANT_LEGACY_LLM_INTERPRETER !== 'false';
     if (isLlmEnabled && this.llmInterpreter) {
       const t_llm = Date.now();
       try {

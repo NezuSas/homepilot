@@ -61,6 +61,10 @@ describe('Conversation intent predicates', () => {
       expect(isDomesticRecommendationPrompt('cual recomiendas')).toBe(true);
       expect(isLikelyHomeControlPrompt('prende la luz')).toBe(true);
       expect(isLikelyHomeControlPrompt('dime un chiste')).toBe(false);
+      // Subjunctive and infinitive requests are still about the home.
+      expect(isLikelyHomeControlPrompt('quiero que se prenda la sala 3')).toBe(true);
+      expect(isLikelyHomeControlPrompt('que se apague la sala 3')).toBe(true);
+      expect(isLikelyHomeControlPrompt('necesito encender la luz')).toBe(true);
     });
   });
 

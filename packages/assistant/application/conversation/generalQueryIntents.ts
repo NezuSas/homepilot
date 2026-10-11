@@ -156,7 +156,7 @@ export function isLikelyHomeControlPrompt(normalized: string): boolean {
   }
 
   const triggers = [
-    'prende', 'apaga', 'enciende', 'activa', 'desactiva', 'abre', 'cierra', 'sube', 'baja', 'toggle', 'turn on', 'turn off', 'open', 'close',
+    'prende', 'apaga', 'enciende', 'prenda', 'prendas', 'apague', 'apagues', 'encienda', 'enciendas', 'prender', 'apagar', 'encender', 'quita la', 'activa', 'desactiva', 'abre', 'cierra', 'sube', 'baja', 'toggle', 'turn on', 'turn off', 'open', 'close',
     'deten', 'detener', 'deja', 'posicion', 'por ciento',
     'encendido', 'apagado', 'prendido', 'on', 'off', 'luz', 'luces', 'light', 'lights', 'cortina', 'cortinas', 'dispositivos', 'estado', 'modo',
     'esa', 'eso', 'esas', 'esos', 'that', 'those', 'them',

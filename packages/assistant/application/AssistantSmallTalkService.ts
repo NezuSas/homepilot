@@ -10,8 +10,13 @@ import { normalizeAssistantPrompt } from './AssistantPromptNormalizer';
  * useful answer promptly even when its CPU-only model is busy, so this budget
  * is deliberately shorter than command and diagnostic budgets.
  */
-const INTERACTIVE_OLLAMA_TIMEOUT_MS = 800;
-const INTERACTIVE_OLLAMA_MAX_TOKENS = 20;
+function budgetFromEnv(name: string, fallback: number): number {
+  const parsed = Number.parseInt(process.env[name] ?? '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+const INTERACTIVE_OLLAMA_TIMEOUT_MS = budgetFromEnv('ASSISTANT_SMALLTALK_TIMEOUT_MS', 800);
+const INTERACTIVE_OLLAMA_MAX_TOKENS = budgetFromEnv('ASSISTANT_SMALLTALK_MAX_TOKENS', 20);
 const INTERACTIVE_CONTEXT_MAX_CHARS = 120;
 
 const SMALL_TALK_RESPONSE_SCHEMA = {

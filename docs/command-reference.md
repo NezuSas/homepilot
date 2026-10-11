@@ -78,6 +78,15 @@ Windows Docker Desktop, Home Assistant companion profile:
 docker compose -f docker-compose.yml -f docker-compose.ha-companion.desktop.yml up -d --build
 ```
 
+Optional local assistant model (Windows Docker Desktop with a GPU). The default profiles answer deterministically; this overlay adds a local model that only proposes plans for phrasings the deterministic assistant does not understand:
+
+```powershell
+ollama pull qwen3:8b
+docker compose -f docker-compose.yml -f docker-compose.ha-companion.desktop.yml -f docker-compose.assistant-llm.yml up -d --build --no-deps homepilot-api
+```
+
+Set `HOMEPILOT_LLM_MODEL` to use another Ollama model. Remove the last `-f` and redeploy to return to the deterministic assistant. See `specs/assistant-local-llm-opt-in-v1.md`.
+
 ## Runtime Inspection
 
 ```bash

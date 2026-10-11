@@ -297,7 +297,14 @@ export class DeviceFastPathHandler extends ConversationCollaborator {
     const v2Result = await this.deps.shadowService.attemptHybridExecution(activePrompt, userId, memory);
     if (!v2Result) return null;
 
-    if ((v2Result.resolvedIds && v2Result.resolvedIds.length > 1) || v2Result.resolvedType === 'category') {
+    if (v2Result.resolvedType === 'category') {
+      // One action that the model read as "a whole category" is never executed on its own: the
+      // deterministic flow decides whether to ask which one or to run a bulk it understands.
+      console.info(`[PLANNER_V2_EXECUTION_SKIPPED] ${JSON.stringify({ reason: 'category_requires_deterministic_flow', targets: v2Result.resolvedIds?.length ?? 0 })}`);
+      return null;
+    }
+
+    if (v2Result.resolvedIds && v2Result.resolvedIds.length > 1) {
       const resolvedIds = v2Result.resolvedIds || [];
       const devices = (await this.deps.permissionGate.getAuthorizedDevices(userId)).filter((device) =>
         resolvedIds.includes(device.id)

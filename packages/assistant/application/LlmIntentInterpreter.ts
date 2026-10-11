@@ -79,8 +79,9 @@ User command: "${prompt.replace(/"/g, '\"')}"`;
     try {
       const response = await this.ollamaClient.generateJson(systemPrompt, {
         // Intents are intentionally compact. Keeping this bounded prevents a local
-        // model from spending the request budget on unused prose.
-        numPredict: 96
+        // model from spending the request budget on unused prose, but it must still
+        // hold a pretty-printed intent that carries a device id.
+        numPredict: 192
       });
       return await this.validateAndMap(response, prompt, userId);
     } catch (error: unknown) {

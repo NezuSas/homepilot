@@ -29,6 +29,8 @@ This specification removes language-model services and configuration from every 
 - [x] **AC4:** Deployment validation prevents a language-model runtime from being reintroduced.
 - [x] **AC5:** Type checking, all tests, backend build, operator console build, and Docker runtime validation pass without an Ollama container.
 
+Note: this specification governs every default profile. `assistant-local-llm-opt-in-v1` adds an explicit opt-in overlay for installations with a GPU; nothing here changes unless that overlay is added.
+
 ## Non-Goals
 
 - Changing existing deterministic commands, state queries, safety confirmation, permissions, or UI contracts.

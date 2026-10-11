@@ -7,7 +7,9 @@ export class OllamaClient implements OllamaClientPort {
   constructor(
     private readonly baseUrl: string,
     private readonly model: string,
-    private readonly timeoutMs: number = 8000
+    private readonly timeoutMs: number = 8000,
+    /** Context window in tokens. The default fits short prompts; larger homes need more. */
+    private readonly numCtx: number = 1024
   ) {}
 
   /**
@@ -56,11 +58,14 @@ export class OllamaClient implements OllamaClientPort {
           prompt,
           stream: false,
           format: options?.format ?? 'json',
+          // Reasoning models (qwen3 and similar) spend the whole token budget "thinking" and answer
+          // with an empty string unless thinking is off. Models without it accept the flag.
+          think: false,
           keep_alive: '30m',
           options: {
             temperature: options?.temperature ?? 0,
             num_predict: options?.numPredict ?? 256,
-            num_ctx: 1024,
+            num_ctx: this.numCtx,
             top_k: 20,
             top_p: 0.9
           }
