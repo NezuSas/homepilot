@@ -1,0 +1,95 @@
+{
+  "apps/operator-console/src/components/AutomationWorkbenchForm.tsx": {
+    "card": 1
+  },
+  "apps/operator-console/src/components/CameraDeviceTile.tsx": {
+    "card": 1
+  },
+  "apps/operator-console/src/components/CameraViewerModal.tsx": {
+    "heading": 1
+  },
+  "apps/operator-console/src/components/CurtainDeviceTile.tsx": {
+    "banner": 1,
+    "heading": 1
+  },
+  "apps/operator-console/src/components/CurtainTileParts.tsx": {
+    "heading": 1
+  },
+  "apps/operator-console/src/components/dashboardViewConfig/DashboardViewBackgroundTab.tsx": {
+    "empty-state": 1
+  },
+  "apps/operator-console/src/components/DiagnosticsHealthBanner.tsx": {
+    "banner": 1
+  },
+  "apps/operator-console/src/components/HomeConversationEmptyState.tsx": {
+    "heading": 1
+  },
+  "apps/operator-console/src/components/InlineTabCreator.tsx": {
+    "banner": 1
+  },
+  "apps/operator-console/src/components/MobileSidebarBackdrop.tsx": {
+    "overlay": 1
+  },
+  "apps/operator-console/src/components/RoutineSharingField.tsx": {
+    "skeleton": 3
+  },
+  "apps/operator-console/src/views/dashboards/components/DormantWidgetPlaceholder.tsx": {
+    "empty-state": 1,
+    "skeleton": 1
+  },
+  "apps/operator-console/src/views/dashboards/DashboardWidgetControls.tsx": {
+    "overlay": 1
+  },
+  "apps/operator-console/src/views/dashboards/widgets/clock/designs/ClockSummaries.tsx": {
+    "card": 2
+  },
+  "apps/operator-console/src/views/dashboards/widgets/DashboardTitleWidget.tsx": {
+    "empty-state": 2
+  },
+  "apps/operator-console/src/views/dashboards/widgets/InformationCard.tsx": {
+    "skeleton": 2
+  },
+  "apps/operator-console/src/views/dashboards/widgets/LegacyMediaPlayerCard.tsx": {
+    "card": 1
+  },
+  "apps/operator-console/src/views/dashboards/widgets/MediaPlayerCard.tsx": {
+    "card": 1
+  },
+  "apps/operator-console/src/views/dashboards/widgets/SectionCameraPreview.tsx": {
+    "card": 1
+  },
+  "apps/operator-console/src/views/dashboards/widgets/SectionCardCatalogModal.tsx": {
+    "overlay": 1
+  },
+  "apps/operator-console/src/views/dashboards/widgets/SectionDeviceCard.tsx": {
+    "card": 1,
+    "banner": 1
+  },
+  "apps/operator-console/src/views/dashboards/widgets/SectionEnergyCard.tsx": {
+    "card": 1
+  },
+  "apps/operator-console/src/views/dashboards/widgets/SectionRoomCard.tsx": {
+    "banner": 1
+  },
+  "apps/operator-console/src/views/dashboards/widgets/SensorBinaryInstrument.tsx": {
+    "banner": 1
+  },
+  "apps/operator-console/src/views/DashboardView.tsx": {
+    "heading": 1
+  },
+  "apps/operator-console/src/views/OnboardingConnectionStep.tsx": {
+    "banner": 1
+  },
+  "apps/operator-console/src/views/OnboardingHeader.tsx": {
+    "banner": 1
+  },
+  "apps/operator-console/src/views/topology/RoomDisplayControls.tsx": {
+    "card": 1
+  },
+  "apps/operator-console/src/views/topology/TopologyRoomDetailPanel.tsx": {
+    "card": 1
+  },
+  "apps/operator-console/src/views/TopologyView.tsx": {
+    "card": 1
+  }
+}

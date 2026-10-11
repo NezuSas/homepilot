@@ -49,14 +49,41 @@ adapter. Integrations must not be imported by the Operator Console.
 6. Cross-context calls use explicit ports, events, or service contracts rather
    than database or implementation reach-through.
 
+## Module Structure
+
+Large orchestrators are composed from cohesive modules. The original file stays
+as the entry point and keeps its exports; the parts live in a contiguous folder.
+
+| Entry point | Parts |
+|---|---|
+| `packages/assistant/application/AssistantConversationService.ts` | `conversation/`: one collaborator per flow (preamble, pending confirmations, routing, planning, device and room fast paths, state queries, drafts, management, safety gate) plus pure modules for intent detection, parsing and response messages. |
+| `packages/assistant/application/AssistantPlannerV2ShadowService.ts` | `planner/`: shadow configuration, comparison, reporting and the hybrid execution gate. |
+| `packages/assistant/application/AssistantMultiCommandParser.ts` | `multicommand/`: text rules, scope, target resolution, compound and exclusion parsing. |
+| `packages/integrations/home-assistant/application/HomeAssistantRealtimeSyncManager.ts` | `sync/`: reconnect policy, state event processing, reconciliation, resilience logging. |
+| `packages/automation/application/AutomationEngine.ts` | `engine/`: trigger matching, action policy, activity logging. |
+| `apps/api/routes/DeviceRoutes.ts`, `CameraRoutes.ts` | `device/` and `camera/`: one route group per concern plus pure helpers (error mapping, serialization, proxy tokens, HLS manifests). |
+| `bootstrap.ts` | `infrastructure/assemblers/`: one assembler per area (database, cloud gateway, assistant runtime, container). |
+| `apps/operator-console/src/App.tsx` | `lib/use*` hooks (session, setup status, realtime refresh, idle return, SSO handoff, sidebar dashboards, global wake) and `components/App*` screens. |
+
+Rules that keep this structure from decaying:
+
+- A new file with several responsibilities is split before it is merged; the
+  working limit is about 400 lines for backend files and 300 for console files.
+- Pure logic lives in plain modules with their own tests; stateful
+  collaborators receive their dependencies explicitly.
+- The console shared components are checked automatically: `check:modular-components`,
+  `check:ui-primitives`, `check:ui-patterns`, `check:design-catalog` and
+  `check:design-book-coverage` (see `docs/command-reference.md`).
+- Specs: `specs/backend-modularization-v1.md`,
+  `specs/operator-console-modularization-v1.md`,
+  `specs/operator-console-modular-contract-v1.md`.
+
 ## Audited Exceptions
 
-| Surface | Reason for size | Protection |
+| Surface | Reason | Protection |
 |---|---|---|
-| `AssistantConversationService` | Coordinates natural-language routes, safety gates, confirmations, memory, and execution. | Dedicated resolvers, validators, policies, and broad test coverage. |
-| `App.tsx` | Owns authenticated application shell, realtime event orchestration, and responsive navigation. | Store boundaries, extracted views/components, and responsive tests. |
-| Dashboard widget composition | Supports persisted, heterogeneous widget types. | Widget-level components and spec-governed normalization. |
+| `packages/assistant/application/response/AssistantResponseCatalog.ts` (669 lines) | It is a data catalogue of response keys, not logic. | `check:assistant-response-catalog` verifies keys and that no literal message bypasses it. |
+| Console pattern exceptions (`scripts/ui-pattern-exceptions.json`) | Spec-pinned geometry, overlays on video and panels that are not messages. | `check:ui-patterns` fails if one grows or loses its reason. |
 
-These are tracked as refactoring candidates, not documentation defects. Any
-behavior-changing decomposition requires its own approved spec and regression
-suite.
+Any behavior-changing decomposition requires its own approved spec and
+regression suite.

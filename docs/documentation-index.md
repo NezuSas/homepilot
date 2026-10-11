@@ -21,7 +21,10 @@ remain the normative source for functional requirements and acceptance criteria.
 | `docs/pc-integration-deployment-guide.md` | Technician guide for Wake-on-LAN, Windows HASS.Agent, MQTT, and computer integration boundaries. |
 | `docs/design-system.md` | Design tokens, UI primitives, and visual rules. |
 | `docs/operator-console-frontend.md` | Frontend module boundaries and React/Zustand rules. |
-| `docs/operator-console-component-catalog.md` | Reusable component catalogue. |
+| `docs/operator-console-component-catalog.md` | Which shared component to use for each need, with composition rules. |
+| `docs/components/` | One page per shared component: purpose, contract, usage, states. Required by `check:spec-coverage`. |
+| `docs/design-system-catalog.md` | Generated from the code: colour and shape tokens, type scale, every shared component and its variants. Feeds Figma. Do not edit by hand: `npm run docs:design-catalog`. |
+| `docs/design-book.md` | How to open the component gallery and generate the printable design book (PDF of every component on phone, tablet, kiosk and desktop, dark and light). |
 | `docs/dashboard-architecture-reference.md` | Dashboard hierarchy, cards, edit UX, and personalization, mapped against Home Assistant's Lovelace model. |
 | `docs/local-windows-runtime.md` | Docker Desktop runtime profile. |
 | `docs/local-wsl-workflow.md` | Windows-to-WSL deployment workflow. |
@@ -71,3 +74,17 @@ npm run test
 - Do not mark a spec task complete without evidence for its acceptance criteria.
 - Add a spec before introducing a new functional surface.
 - Record behavior-changing refactors separately from documentation or audit work.
+
+## Historical Records
+
+These documents describe a past delivery or audit. They are kept as evidence and
+are not maintained as current guidance; the current behavior is in the specs and
+the references above.
+
+| Document | What it records |
+|---|---|
+| `docs/codebase-audit-v1.md` | The first SDD/SOLID audit of the repository. |
+| `docs/release-readiness-v1.md` | Release readiness review for the first release. |
+| `docs/modbus-plc-io-closeout.md`, `docs/modbus-plc-ui-closeout.md` | Closeout of the Modbus/PLC I/O and UI work. |
+| `docs/clock-size-contract-review.md` | Review evidence for the Clock size contract. |
+| `docs/quality/design-qa-log.md` | Visual QA log of local design corrections. |

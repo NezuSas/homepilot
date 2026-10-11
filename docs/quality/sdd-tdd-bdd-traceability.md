@@ -1,6 +1,6 @@
 # SDD / TDD / BDD Traceability Matrix
 
-Modbus TCP local V1: AC1/AC2/AC4/AC5/AC6 → `packages/integrations/modbus/__tests__/ModbusService.test.ts`; AC3/AC4 → `ModbusTcpClient.test.ts` (PLC TCP simulado); AC2 → `apps/api/__tests__/ModbusRoutes.test.ts`; AC7 → escenarios `Native Modbus configuration` en `responsive-shell.spec.ts`. Integración física no ejecutada; sin equivalencias automáticas Xinje.
+Modbus TCP local V1: AC1/AC2/AC4/AC5/AC6 → `packages/integrations/modbus/__tests__/ModbusService.test.ts`; AC3/AC4 → `ModbusTcpClient.test.ts` (PLC TCP simulado); AC2 → `apps/api/__tests__/ModbusRoutes.test.ts`; AC7 → escenarios `Native Modbus configuration` en `modbus-plc.spec.ts`. Integración física no ejecutada; sin equivalencias automáticas Xinje.
 
 | Bounded context | Primary spec | TDD suite | Executable BDD evidence |
 |---|---|---|---|

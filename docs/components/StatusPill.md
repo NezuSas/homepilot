@@ -24,3 +24,9 @@ action.
 Maintains short text, sufficient contrast, no compact-card overflow, and a
 non-color-exclusive state signal. Long labels wrap within available width
 without expanding the container or interfering with nearby icons or actions.
+
+## Catalog variants (pattern adoption V1)
+
+`size` is `sm` (dense rows), `md` (default) or `lg` (prominent status), and `uppercase`
+renders the status-tag style (black weight, uppercase, label tracking). Use them instead of
+rebuilding a chip with `rounded-full border px-*` classes.

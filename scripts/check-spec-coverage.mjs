@@ -1,18 +1,13 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
+import { documentedModularComponents } from './modular-components.mjs';
 
 const root = process.cwd();
 const sourceRoots = ['apps/api', 'apps/operator-console/src', 'packages'];
 const sourceExtensions = new Set(['.ts', '.tsx']);
 const coverageMatrixPath = join(root, 'docs', 'spec-coverage-matrix.md');
-const modularComponentDocs = [
-  'AlertBanner', 'AssistantCard', 'Button', 'Card', 'DeviceTileBase', 'DeviceTileShell',
-  'EmptyState', 'IconButton', 'Input', 'Textarea', 'Modal', 'PageFrame', 'SearchFilterBar',
-  'SectionHeader', 'SegmentedControl', 'SearchableSelectField', 'SidebarItem', 'StatusPill',
-  'ConfirmModal', 'CoverPositionControl', 'AudioInputPicker', 'InlineTabCreator', 'RangeInput',
-  'LoadingState', 'SelectableOptionCard',
-  'OverlayAccessibility', 'DatabaseBackupsCard',
-];
+const modularComponentDocs = documentedModularComponents;
+
 
 const rules = [
   ['modbus-tcp-local-integration-v1.md', /(?:Modbus|integrations\/modbus)/i],
@@ -22,7 +17,7 @@ const rules = [
   ['smart-display-control-catalog-v1.md', /(?:DeviceControlCatalogProvider|SmartDisplayControls|sectionCardAssignments|CommandTokenCache|IntentFlowCommandClient|IntentFlowCommandExecutionService)/i],
   ['homepilot-android-display-effective-actions-ui-v1.md', /(?:DeviceRoutes\.effective-actions)/i],
   ['android-display-integration-v1.md', /(?:AndroidDisplay|integrations\/android-display)/i],
-  ['home-assistant-camera-streaming-v1.md', /(?:CameraRoutes|CameraMedia|CameraViewer|CameraDevice)/i],
+  ['home-assistant-camera-streaming-v1.md', /(?:CameraRoutes|CameraMedia|CameraViewer|CameraDevice|apps\/api\/routes\/camera\/)/i],
   ['operator-console-v1.md', /HomePersonalizationRoutes/i],
   ['home-assistant-settings-connection-management-v1.md', /(?:home-assistant|HomeAssistant|SettingsRoutes|HomeAssistantDiscovery)/i],
   ['sonoff-local-integration-v1.md', /Sonoff/i],
@@ -38,7 +33,7 @@ const rules = [
   ['automation-rules-engine-v1.md', /(?:packages\/automation|Automation)/i],
   ['auth-rbac-v1-local-edge-security.md', /(?:packages\/auth|AuthRoutes|AdminRoutes|LoginView|UsersView|User[A-Z]|useSession|ChangePassword|ResetUserPassword)/i],
   ['home-room-management.md', /(?:packages\/topology|Topology|HomeController|RoomController|HomeClimate)/i],
-  ['device-command-execution.md', /(?:packages\/devices|DeviceRoutes|Device[A-Z]|Inbox|Curtain|CoverPosition|ManagedDevice|DashDevice|device[A-Z])/i],
+  ['device-command-execution.md', /(?:packages\/devices|DeviceRoutes|apps\/api\/routes\/device\/|Device[A-Z]|Inbox|Curtain|CoverPosition|ManagedDevice|DashDevice|device[A-Z])/i],
   ['edge-platform-foundations-v1.md', /(?:apps\/api\/(?:ApiGateway|RouteHandler|OperatorConsoleServer)|apps\/api\/__tests__\/ApiGateway|apps\/api\/routes\/ApiRoutes|packages\/shared)/i],
   ['release-hardening-v1.md', /(?:ApiRoutes\.error-sanitization|release-hardening)/i],
   ['homepilot-effective-actions-v1.md', /(?:BoardManifestV1|EffectiveActionsResolver)/i],

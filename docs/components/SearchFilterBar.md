@@ -15,8 +15,8 @@ Business filtering and remote loading remain in the view.
 
 ## Usage
 
-Use for devices, spaces, scenes, or long lists. Placeholder and labels come
-from i18n.
+Use for devices, spaces, scenes, or long lists. Placeholder and built-in texts come
+from the props or, by default, from `UiLabelsContext` (the primitive never imports i18n).
 
 ## States and Acceptance
 

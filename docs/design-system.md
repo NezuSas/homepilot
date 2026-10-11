@@ -51,7 +51,7 @@ controls use dark espresso text in Dark for contrast; Light keeps white over cop
 
 ## Typography and Scale
 
-`Rubik` is the UI family and `Disket Mono` is reserved for technical metadata,
+`Inter` is the UI family and `Disket Mono` is reserved for technical metadata,
 identifiers, timestamps, and operational values. Components use the exposed
 font tokens instead of declaring font families directly.
 

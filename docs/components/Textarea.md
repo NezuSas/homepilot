@@ -27,3 +27,14 @@ long-text support without horizontal overflow. Container and editable area may
 shrink within grids or flexible rows; label, help, and error wrap to available
 width. Help or error is referenced through `aria-describedby`; error also
 exposes `aria-invalid`.
+
+## Shared field design (AC79)
+
+Reuses Input's `hp-text-field`, `hp-field-label` and `hp-field-message` rules:
+tokenized 12px radius, normal-case medium label, 8px spacing and readable
+placeholder/help without opacity attenuation. The default minimum remains 96px
+and vertical resizing/native rows, values, events and ref stay compatible.
+
+Review `/tests/ui/button-review.html?component=textarea` with the Vite
+development server active. This is a separate Light/Dark sheet with synthetic
+empty, edited, error, disabled and read-only states, not a production route.

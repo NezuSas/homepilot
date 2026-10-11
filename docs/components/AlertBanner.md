@@ -27,3 +27,8 @@ wrap, and the direct action uses the available width; from tablet upward it
 returns to natural width. Warnings and errors announce `role="alert"`;
 information and success use `role="status"`. The message is always exposed as
 the state description and the title is associated when present.
+
+## Catalog variants (pattern adoption V1)
+
+`size="sm"` is the inline message: smaller icon tile, control radius and padding. Use it for
+form errors and result messages instead of a hand-built tinted box.

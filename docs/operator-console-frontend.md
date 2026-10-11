@@ -45,12 +45,32 @@ apps/operator-console/src/
 - `stores/`: request de-duplication, current UI data, session state, and
   bounded cross-view client state.
 
-## Known Controlled Complexity
+## Shared Components and Design System
 
-`App.tsx`, dashboard section composition, and conversation screens coordinate
-multiple UI concerns. They are protected by extracted collaborators and tests.
-Any further split must preserve realtime sequencing and should be governed by a
-feature spec.
+- Every visual building block is a component of `components/ui` that follows the
+  modular contract: it accepts `className` (merged with `cn`), spreads native
+  element attributes, has no store, fetch or i18n dependency, has its own test and
+  a page in `docs/components/`, and is exported from `components/ui/index.ts`.
+- Text that a primitive shows by itself (close, search, no results) comes from
+  `UiLabelsContext`; `UiLabelsBridge` translates it once at the app root and an
+  explicit prop always wins.
+- Titles use `Heading` (variants `view`, `section`, `card`, `item`, `label`);
+  cards, status chips, banners, empty states, skeletons and overlays use `Card`,
+  `StatusPill`, `AlertBanner`, `EmptyState`, `LoadingState` and `Modal`/`Drawer`.
+  Rebuilding one by hand fails `check:ui-patterns`.
+- The font is Inter. Colours, radii and the type scale are tokens; the generated
+  `docs/design-system-catalog.md` lists them with every component variant and is
+  the source Figma is reconciled against.
+- `docs/design-book.md` explains how to render every component on phone, tablet,
+  kiosk and desktop in dark and light mode (gallery and printable PDF).
+
+## Structure of Large Views
+
+`App.tsx` and the large views are compositions: state and effects live in `lib/use*`
+hooks or `views/<area>/use*` hooks, pure calculations in plain modules with tests,
+and rendering in small components next to the view. Hooks keep stable dependency
+arrays and never write refs during render. See
+`docs/modular-architecture-reference.md`.
 
 ## Validation
 

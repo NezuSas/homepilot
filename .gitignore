@@ -176,3 +176,6 @@ image1.png
 
 # GitHub Actions runner installation and credentials
 actions-runner/
+
+# Generated design book (npm run docs:design-book)
+docs/design-book/

@@ -13,7 +13,7 @@ create a new backup.
 
 Receives safe metadata (`filename`, `sizeBytes`, `createdAt`), loading and
 creation state, and separate refresh and create callbacks. It makes no HTTP
-request and knows no filesystem path.
+request and knows no filesystem path. All texts arrive in `labels` (already translated) and dates are formatted with the `locale` prop; it never imports i18n. Accepts `className` and native `div` attributes.
 
 ## Usage
 

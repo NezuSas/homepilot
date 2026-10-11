@@ -49,7 +49,7 @@ Inventario de las piezas editadas durante este alcance, no auditoría del workin
 - `apps/operator-console/src/views/AutomationBuilderModal.tsx`
 - `apps/operator-console/src/locales/en/common.json`
 - `apps/operator-console/src/locales/es/common.json`
-- `apps/operator-console/tests/responsive-shell.spec.ts`
+- `apps/operator-console/tests/modbus-plc.spec.ts`
 - `specs/modbus-tcp-local-integration-v1.md`
 - `specs/modbus-tcp-local-integration-v1.tasks.md`
 - `specs/automation-rules-engine-v1.md`

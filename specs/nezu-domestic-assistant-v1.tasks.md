@@ -44,7 +44,7 @@ Primary specification: [nezu-domestic-assistant-v1.md](./nezu-domestic-assistant
 - [x] Persist a per-user local preference for concise, standard, or detailed responses without changing actions, confirmations, or permissions.
 - [x] Preserve natural Spanish and English phrasing for unambiguous single-entity follow-ups without bypassing safety. Evidence: `assistant-natural-follow-up-resolution-v1.md`.
 - [ ] Confirm complete Spanish and English translation, including TTS.
-- [x] Verify the chat and voice composer on desktop, tablet, mobile, and virtual keyboard. Evidence: `responsive-shell.spec.ts` covers desktop, tablet, mobile, and a reduced `visualViewport` for the mobile virtual keyboard; manual and wake-word capture scenarios cover the local voice controls.
+- [x] Verify the chat and voice composer on desktop, tablet, mobile, and virtual keyboard. Evidence: `assistant-conversation.spec.ts` covers desktop, tablet, mobile, and a reduced `visualViewport` for the mobile virtual keyboard; manual and wake-word capture scenarios cover the local voice controls.
 - [x] Validate state synchronization across every relevant surface. Evidence: `HomeConversationView` forces the shared device snapshot after non-failed execution; Home, Spaces, Dashboards, and device widgets consume that store; `useDeviceSnapshotStore.test.ts` proves that an in-flight pre-command refresh produces exactly one post-command refresh and that reset prevents a queued request after logout.
 
 ## Phase E — Providers and voice quality

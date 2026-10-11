@@ -21,8 +21,8 @@ children, variant, and close control. `headerAlign`, `headerClassName`, and
 `contentClassName` adapt broad form composition without duplicating overlay,
 focus, scroll, or close button. `footer` and `footerClassName` keep critical
 actions fixed outside the scrolling area. `layerClassName` adjusts portal layer
-precedence when a flow requires it. `closeLabel` resolves through consumer i18n
-or uses `common.close`. It locks body scroll while open.
+precedence when a flow requires it. `closeLabel` wins; otherwise the close text comes
+from `UiLabelsContext` (English default, translated by `UiLabelsBridge` at the app root). It locks body scroll while open.
 
 ## Usage
 

@@ -127,7 +127,7 @@ Ejemplos del reloj de sección, sin borde exterior adicional:
 - `DashboardWidget.tsx`: contenedor clock-card, dimensiones acotadas y editor independiente con preview.
 - `dashboardMutations.ts`: creación independiente con default compartido.
 - `index.css`: niveles por container queries, esfera circular y tipografía legible; elimina topes anteriores de 110/170 px.
-- `cardGridResize.test.ts`, `responsive-shell.spec.ts`: contrato y geometría real de los tres caminos de render, límites por teclado y edición independiente.
+- `cardGridResize.test.ts`, `clock-contract.spec.ts`: contrato y geometría real de los tres caminos de render, límites por teclado y edición independiente.
 - Spec/tareas de dashboard y matriz de cobertura: trazabilidad AC56 y actualización por el nuevo archivo de prueba.
 
 ## Alcance de verificación

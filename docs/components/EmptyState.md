@@ -25,3 +25,8 @@ The message is translatable, announced atomically, does not block scrolling,
 and its action retains visible focus. On mobile it reduces vertical space,
 wraps long titles and descriptions without overflow, and forces direct action
 to available width; from tablet onward it retains natural centered size.
+
+## Catalog variants (pattern adoption V1)
+
+`variant="dashed"` is the in-page empty area: dashed border, muted background, no shadow or
+blur. Use it for empty lists inside a section instead of a hand-built dashed box.

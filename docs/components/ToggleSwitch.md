@@ -11,7 +11,7 @@ and off state without exposing domain contracts.
 ## Contract
 
 Receives `checked`, `onCheckedChange`, and a required accessible `label`. It
-supports `sm` and `md` sizes, compatible native button attributes, and
+supports historical `sm` and `md` aliases, compatible native button attributes, and
 `isLoading` for asynchronous persistence. An additional `onClick` can observe
 or cancel the change with `preventDefault` without replacing the controlled
 contract.
@@ -28,3 +28,9 @@ Exposes `role="switch"`, `aria-checked`, and `data-state` as `checked` or
 and replaces thumb content with an equally-scaled decorative indicator. It
 retains fixed touch dimensions, visible focus, and `touch-manipulation`, so it
 does not shrink or overflow responsive rows.
+
+The single target is 56×44px; a centered 56×32px track keeps the approved
+visual footprint while increasing touch height. Both size aliases use it.
+Light/Dark off styles apply to the track, not the transparent touch area.
+Reduced motion disables the loading spinner animation.
+Review `/tests/ui/button-review.html?component=switches` (Vite development only).

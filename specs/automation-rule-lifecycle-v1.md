@@ -154,7 +154,7 @@ No se introducen nuevos modelos. Se reutiliza íntegramente la entidad `Automati
 - AC1–AC3, AC8–AC9: `packages/devices/__tests__/automation/automation_lifecycle.test.ts` y `automation_api.test.ts` cubren toggle, idempotencia, ownership y regla inexistente.
 - AC1–AC2: `packages/devices/__tests__/automation/automation_engine.test.ts` verifica que el motor omite reglas deshabilitadas y las vuelve a ejecutar al reactivarlas.
 - AC4–AC6: `packages/devices/__tests__/automation/automation_domain.test.ts` y `automation_lifecycle.test.ts` cubren patch parcial, pertenencia del dispositivo y prevención de bucles.
-- AC7: `apps/operator-console/tests/responsive-shell.spec.ts` verifica que la creación horaria con valores predeterminados envía `timeLocal: "12:00"`, zona IANA no vacía y los siete días.
+- AC7: `apps/operator-console/tests/scenes-automations.spec.ts` verifica que la creación horaria con valores predeterminados envía `timeLocal: "12:00"`, zona IANA no vacía y los siete días.
 
 ---
 ## 9. Notas Técnicas y Arquitectura

@@ -120,12 +120,55 @@ npm run check:no-production-any
 npm run check:bdd-traceability
 npm run check:module-test-coverage
 npm run check:docker-profiles
+npm run check:modular-components
+npm run check:ui-primitives
+npm run check:ui-patterns
+npm run check:design-catalog
+npm run check:design-book-coverage
 npm run test:responsive
 npm run typecheck
 npm run test
 npm run build
 npm run build --prefix apps/operator-console
 ```
+
+### Responsive validation: three ways to run it
+
+```bash
+# Complete suite: release gate and CI. Includes the production Clock contract.
+npm run test:responsive
+
+# Fast local iteration: everything except the Clock contract phase.
+npm run test:responsive:fast
+
+# Targeted by area (a few minutes). Arguments are forwarded to Playwright.
+npm run test:responsive -- -g "Room devices|Unified control tile|Sensor clarity"
+```
+
+Use the fast or targeted forms while iterating and run the complete suite before
+publishing. `HOMEPILOT_SKIP_CLOCK=1` is equivalent to `--skip-clock`.
+
+The Clock contract sweep runs its batches in parallel with 4 workers by default
+(about 2 minutes for 51 tests, versus 7.9 minutes serial) and the application
+suite uses 5 workers. Pass `--workers=N` to change either. Spec:
+`specs/responsive-validation-speed-v1.md`.
+
+### Design system and component library
+
+What each check enforces and how to refresh the generated documents:
+
+| Command | Purpose |
+|---|---|
+| `npm run check:modular-components` | Every shared component in `components/ui` follows the modular contract: `className` with `cn`, native element contract, no i18n/store/fetch, own test, documentation, barrel export. |
+| `npm run check:ui-primitives` | Buttons, text fields, selects, textareas and native dialogs are only built through the shared primitives. |
+| `npm run check:ui-patterns` | Headings, cards, chips, banners, empty states, skeletons and overlays are not rebuilt by hand; counts may only go down (`scripts/ui-pattern-baseline.json`), and each remaining case needs a reason in `scripts/ui-pattern-exceptions.json`. |
+| `npm run docs:design-catalog` / `npm run check:design-catalog` | Regenerate / verify `docs/design-system-catalog.md` from the code. |
+| `npm run check:design-book-coverage` | Every shared component has a demo in the gallery. |
+| `npm run docs:design-book` | Generate the printable design book in `docs/design-book/` (git-ignored). See `docs/design-book.md`. |
+
+Specs: `specs/operator-console-modular-contract-v1.md`,
+`specs/operator-console-pattern-adoption-v1.md`,
+`specs/operator-console-design-book-v1.md`.
 
 ## Database and Diagnostics
 

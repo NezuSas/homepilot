@@ -40,7 +40,7 @@ El pie conserva la política existente: batería/señal baja o crítica, memoria
 
 ## Typography
 
-Rubik es la familia residente de HomePilot y también la familia de las marcas Canvas. El nombre tiene peso medio (500), tamaño adaptable al contenedor y saltos naturales. La lectura analógica tiene peso (550), dígitos tabulares y un tamaño común para valores de hasta seis caracteres, incluidos signos y decimales. Solo lecturas excepcionalmente largas se reducen para no desbordar. La unidad se sitúa junto al número, sobre la misma línea y alineada a su baseline. El pie y la escala tienen jerarquía secundaria y admiten saltos.
+Inter es la familia residente de HomePilot y también la familia de las marcas Canvas. El nombre tiene peso medio (500), tamaño adaptable al contenedor y saltos naturales. La lectura analógica tiene peso (550), dígitos tabulares y un tamaño común para valores de hasta seis caracteres, incluidos signos y decimales. Solo lecturas excepcionalmente largas se reducen para no desbordar. La unidad se sitúa junto al número, sobre la misma línea y alineada a su baseline. El pie y la escala tienen jerarquía secundaria y admiten saltos.
 
 Las marcas usan `formatSensorGaugeTick`: cuatro cifras significativas, sufijo `k` desde magnitudes de 10 000 y `M` desde 1 000 000. Así, 150 000 y 75 000 se dibujan como `150k` y `75k`. Esta compactación afecta exclusivamente las marcas; no modifica límites, lectura real ni texto completo de escala del pie.
 

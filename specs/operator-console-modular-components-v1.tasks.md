@@ -1,16 +1,40 @@
 # Tareas: Operator Console Modular Components V1
 
 - [x] AC79/AC80: NumberInput borrable, medidas comunes y cierre explícito de overlays; pruebas focalizadas.
+- [x] Confirmación del bloque 05/07/09/11 (2026-10-09): 53/53 Jest en 4 suites; 12 escenarios Playwright únicos PASS (6 campos + 6 selección, a 360/768/1440px; selección confirmada nuevamente tras corregir fragmentación). Capturas móvil/escritorio revisadas. Typecheck raíz/consola, lint, builds raíz/consola, spec 984 archivos, BDD 23 flujos, cobertura modular 10 módulos, i18n 2074 claves y UI primitives 394 archivos PASS. Detector sin hallazgos; diff check sin errores, únicamente avisos LF/CRLF. No se ejecutaron suites globales, Docker, commit, push, deploy ni operaciones de datos/PLC.
+- [x] AC79 (2026-10-09): Switches/segmentados alineados con estándar único. Switch: pista 56×32 centrada en target 56×44, aliases sm/md; segmentado: texto 14px normal, target mínimo 44, basis 96px para fluir sin fragmentar etiquetas cortas, tab stop habilitado sin normalizar selección. Hojas aisladas switches/segments Light/Dark. 53/53 Jest focalizados PASS. Primera pasada Playwright 6/6 PASS; revisión visual detectó palabras fragmentadas a 360px, corregidas y cubiertas por una aserción adicional. No se modifica persistencia ni ejecución de dispositivos. Suite global/responsive completa, Docker y release pendientes; no aprobación de publicación.
+- [x] AC79 (2026-10-09): Input/Textarea alineados con páginas 05/07 de Figma mediante reglas CSS compartidas; placeholder/ayuda sin opacidad adicional, etiquetas normales, radio tokenizado y espacio para acción final 44px. Hojas locales separadas `component=fields`/`component=textarea`. 46/46 Jest focalizados y 6/6 Playwright a 360/768/1440px PASS (edición, error asociado, readonly, disabled, foco y limpieza de búsqueda sin API). No se certifica adopción de todos los overrides históricos ni publicación; suite global/responsive completa y Docker no ejecutados.
   - Evidencia (2026-10-02): validación conjunta, 324/324 Jest y 21/21 responsive focalizados PASS; typecheck, lint y builds raíz/consola PASS. Spec coverage, BDD, módulos, i18n, arquitectura y no-production-any PASS. `check:ui-primitives` sigue señalando botones existentes en HomeContextIndicator y HomeDashboardButton, no modificados en este alcance; no se declara ese control verde. Sin suite completa, Git ni deploy.
 
 ## Implementado
+
+- [ ] Estandarizar acciones Button/IconButton según Figma y separar superficies
+  interactivas sin cambiar comandos. **Criterio:** AC79. Implementación local;
+  completar pruebas, tipado, lint, build y validación responsive antes de cierre.
+  - Evidencia local: 68/68 Jest en ocho suites y 7/7 escenarios Playwright
+    (3 de botones Light/Dark, 2 de selector de iconos en tablet, 1 de multimedia
+    clásica y 1 de creación de automatización) PASS. Typecheck raíz/consola,
+    lint y builds backend/frontend PASS. UI primitives, spec, BDD, i18n y
+    cobertura modular PASS. Detector acotado sin hallazgos; diff sin errores.
+    Se retiraron estilos geométricos/tipográficos literales de los consumidores
+    y se añadió guard preventivo. Suite completa y Docker no ejecutados:
+    quedan a cargo del usuario; no se certifica regresión global ni publicación.
+  - Regresión global recibida: 3910 PASS / 2 FAIL (InventoryPresentation).
+    El control conserva disabled; las dos aserciones dependían del orden HTML
+    de atributos tras reutilizar Button desde IconButton. Se comprueba ahora
+    el botón identificado por su nombre, independientemente del orden, y se
+    cubren sesiones activas/inactivas para usuario actual y ajeno. No cambia
+    código de producción ni protección de contraseñas. Validación de la corrección:
+    44/44 Jest en cuatro suites, typecheck, lint y build frontend PASS; controles
+    spec/BDD/módulos PASS. Revalidación global pendiente; se añaden dos casos,
+    no se elimina ninguna prueba.
 
 - [x] InformationCard con tres fuentes de solo lectura, skeleton propio y test; CardPreviewFrame a escala uniforme del presenter real sin cambiar datos.
 
 - [x] ActionMenu compartido tablero/Section: portal, viewport visible, cierre exterior y teclado; test propio. CardPreviewFrame estable y selección de tamaños mínima 2 × 2 con compatibilidad histórica.
 
 - [x] Catálogo de primitivos, navegación, feedback, contenedores y dispositivos comunes.
-- [x] Integración de tipografía de marca local: Rubik para interfaz y Disket Mono para metadatos técnicos, centralizadas en tokens CSS y Tailwind.
+- [x] Integración de tipografía de marca local: Inter (antes Rubik) para interfaz y Disket Mono para metadatos técnicos, centralizadas en tokens CSS y Tailwind.
 - [x] Cobertura responsive automatizada con Playwright para la pantalla de acceso en móvil, tablet y escritorio, integrada al pipeline de CI.
 - [x] Contratos de responsive, accesibilidad, i18n, loading y tokens.
 - [x] Sistema cromático residencial de modo claro: piedra arquitectónica para canvas, arena para tarjetas, caliza para superficies elevadas, tinta carbón para lectura, cobre bruñido para interacción, oliva profundo para correcto, ámbar templado para atención y terracota para error; fondos activos se velan y la navegación seleccionada combina tono, borde y elevación.
@@ -37,7 +61,7 @@
 - [x] Ajuste de controles continuos y booleanos: RangeInput confirma al final de la interacción y ToggleSwitch preserva su transición controlada ante handlers externos.
 - [x] Ajuste de SectionHeader: acciones directas a ancho táctil móvil y subtítulos de grupo alineados únicamente cuando existe icono.
 - [x] Ajuste de CardFooter: botones directos a ancho táctil móvil y ancho natural desde tablet, sin alterar la composición de contenido especializado.
-- [x] Ajuste de AssistantCard y DeviceTileBase: acciones directas a ancho táctil móvil y activación por teclado segura para tarjetas interactivas.
+- [x] Ajuste de AssistantCard (la parte de `DeviceTileBase` quedó retirada: componente eliminado, ver operator-console-modularization-v1): acciones directas a ancho táctil móvil y activación por teclado segura para tarjetas interactivas.
 - [x] Ajuste de SearchFilterBar: controles apilados en móvil y composición horizontal desde tablet para aprovechar el ancho disponible.
 - [x] Ajuste de IconButton: iconografía proporcional a las áreas táctiles compacta, estándar y amplia.
 - [x] Refuerzo de Input y Textarea: ayudas y errores asociados mediante `aria-describedby`, con `aria-invalid` para errores visibles.
@@ -111,7 +135,7 @@
 - [x] Refuerzo responsive de `Button`: ancho flexible y etiquetas largas ajustables sin alterar variantes, loading ni áreas táctiles compartidas.
 - [x] Consolidación y documentación de `ToggleSwitch`: semántica de estado explícita, interacción táctil y contrato modular para preferencias booleanas.
 - [x] Refuerzo responsive de `SearchFilterBar`: búsqueda y filtros pueden reducirse dentro de paneles angostos sin alterar filtrado, foco ni navegación de opciones.
-- [x] Refuerzo responsive de `DeviceTileBase`: padding adaptativo, textos largos ajustables y acciones contextuales disponibles también en dispositivos táctiles.
+- [x] (Retirada: `DeviceTileBase` se eliminó sin consumidores) Refuerzo responsive de `DeviceTileBase`: padding adaptativo, textos largos ajustables y acciones contextuales disponibles también en dispositivos táctiles.
 - [x] Refuerzo responsive de `DeviceTileShell` y `AssistantCard`: reducción segura en grids, semántica accesible, padding adaptativo y acciones largas envolventes.
 - [x] Refuerzo de interacción responsiva de `SegmentedControl`, `IconButton` y `Modal`: selección anunciada, respuesta táctil y composición segura para textos, cierre y acciones largas; las etiquetas de navegación pueden desplazarse dentro del control sin truncarse.
 - [x] Refuerzo responsive de creación rápida y selector de audio: campos, trigger y menú ajustados al viewport, conservando teclado, selección y cierre existentes.
@@ -160,6 +184,21 @@
 
 - [x] Alinear visualmente el rail plegado con el sidebar abierto: ítems de la misma altura, iconos centrados y avatar final sin bloque ni divisor independiente.
 
+- [x] AC79 / REQ-51: Alinear SelectableOptionCard con la página 13 de Figma; conservar contrato de radio y añadir revisión Light/Dark aislada y pruebas de geometría, contexto y selección.
+- [x] AC79 / REQ-51: Migrar la tarjeta local de estancia del asistente y retirar overrides de cámaras; proteger adopción con escaneo AST de consumidores, sin alterar handlers ni payloads.
+- [x] AC79: Consolidar los selectores de Rutinas y SearchFilterBar sin estilos de opción locales; proteger ambos consumidores con prueba AST.
+- [x] AC79: Consolidar Input en identidad, disparador y formulario workbench de automatizaciones; conservar eventos/validaciones y proteger los consumidores mediante AST.
+- [x] AC79: Consolidar campos de título y pestaña del dashboard y el formulario legado de creación; preservar teclado/guardado y añadir protección AST y geometría responsive.
+- [ ] AC79: Migrar individualmente los overrides restantes de Input/Textarea y otros consumidores de SegmentedControl, con validación de cada pantalla; limpieza masiva no aplicada.
+  - **Evidencia del lote (2026-10-09):** 15 consumidores de producción consolidados y retirada del CSS externo de pestañas del editor. 56/56 tests Jest focalizados y 39 escenarios Playwright distintos PASS en Chromium; incluyen edición, cancelación, payloads simulados, teclado y geometría. Capturas Light/Dark de móvil/escritorio revisadas. Typecheck raíz/consola, lint, builds raíz/consola, spec, BDD, cobertura modular, i18n y UI primitives PASS. No se repitieron la suite Jest global, responsive completo, Firefox/WebKit ni Docker. Sin publicación ni contacto con dispositivos.
+  - **Pendientes explícitos:** editor inline DashboardTitleWidget (restricciones de espacio), Textarea autoajustable de HomePersonalizationView, URL técnica de HomeAssistantSettingsView y composición de DateField; requieren preservar sus comportamientos específicos. La protección AST de este lote cubre consumidores enumerados, no certifica todos los consumidores del sistema. Renombrado del asistente protegido por AST, sin flujo de navegador específico en este lote.
+- [x] AC79: Consolidar campo/selector del inspector y selector de filtros Modbus; conservar contratos y permitir envoltura externa de acciones de renombrado.
+- [x] AC79: Consolidar campos/búsquedas de escenas, compartir y filtros de eventos, y selector de comando de escena; retirar override descendiente de etiquetas y proteger adopción AST.
+- [x] AC79: Consolidar Input y SegmentedControl en catálogo/editor de tarjetas y retirar CSS externo card-editor-tabs; proteger adopción en AST sin cambiar contratos del dashboard.
+- [x] AC79: Consolidar los campos de TopologyView, añadir nombre accesible al alta y proteger cancelación/creación/renombrado en navegador con API simulada.
+- [x] AC79: Unificar los seis campos de LoginView y FirstAdminSetupView con Input; preservar autenticación y constraints, proteger consumidores con AST y verificar geometría/teclado/validación en navegador sin crear cuentas reales.
+- [x] AC79: Retirar skins locales de campos en configuración de vistas, perfil, renombrado del asistente y detalle de estancia; preservar props y callbacks. Configuración usa SegmentedControl sin ocultar etiquetas móviles; protección AST y pruebas de navegador con datos simulados.
+
 - [x] Simplificar el estado plegado del sidebar: ocultar por completo la navegación y conservar exclusivamente el control de marca y el avatar de perfil, sin cambiar el sidebar abierto.
 
 - [x] Corregir la interpretación del modo plegado: conservar todos los iconos y estados de navegación del sidebar abierto, ocultando solo sus etiquetas y el contenido textual del perfil.
@@ -169,6 +208,9 @@
 - [x] Preservar la jerarquía visual en el rail plegado: subopciones con sangría y separador; únicamente la vista concreta activa se resalta para evitar ambigüedad entre iconos similares.
 
 - [x] Evitar solapamiento de clics en el rail plegado: las etiquetas se retiran del flujo visual y una prueba Playwright confirma rutas y estado activo correctos para iconos consecutivos.
+
+- [x] AC79: Añadir una revisión aislada de Button/IconButton en Light/Dark, sin autenticación, API ni dispositivos. **Evidencia:** `tests/button-review.spec.ts`, 3/3 escenarios Playwright PASS a 360, 768 y 1440px; geometría compartida, pending deshabilitado, retorno a listo y cero solicitudes API. Capturas revisadas. Lint, spec, BDD, cobertura modular y detector PASS. Esta evidencia no sustituye la validación completa de adopción global ni autoriza publicación.
+- [x] AC79: Hoja separada de IconButton mediante `?component=icons`, cuatro intenciones existentes, sin combinaciones de tamaños. SVG decorativo no enfocable; se conservan atributos y eventos nativos. **Evidencia 2026-10-09:** 41/41 Jest focalizados; 6/6 Playwright (3 iconos + 3 botones, 360/768/1440px), centrado 16px/44px, radio 12px, foco visible, Enter/Espacio, salto de disabled, loading sin cambio de tamaño y cero API/errores de página. Capturas móvil/escritorio revisadas. Typecheck raíz/consola, lint, spec, BDD, cobertura modular, UI primitives y detector PASS. Figma página 02 inspeccionada: sus medidas/paleta históricas no sustituyen el estándar único posterior aprobado. Suite global/responsive completa no repetida; Docker/release/deploy no ejecutados.
 
 - [x] Permitir contraer y expandir las subopciones de Sistema en el rail plegado, conservando su visibilidad inicial y el comportamiento equivalente al sidebar abierto.
 

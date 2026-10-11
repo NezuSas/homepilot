@@ -199,7 +199,7 @@ Fase 1 (Dominio) → Fase 2 (Infraestructura) → Fase 3 (Aplicación) → Fase 
 ### Prueba de aceptación de consola
 
 - [x] **T16: Verificar creación horaria predeterminada desde la consola**
-  - Archivo: `apps/operator-console/tests/responsive-shell.spec.ts`
+  - Archivo: `apps/operator-console/tests/scenes-automations.spec.ts`
   - Escenario BDD: al crear una regla horaria y conservar los valores por defecto, el payload contiene `timeLocal: "12:00"`, zona IANA y los siete días.
   - _Dependencias:_ T09.
 

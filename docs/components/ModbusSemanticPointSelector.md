@@ -67,7 +67,7 @@ Modificados en esta fase (11):
 - `apps/operator-console/src/views/ModbusView.tsx`
 - `apps/operator-console/src/locales/es/common.json`
 - `apps/operator-console/src/locales/en/common.json`
-- `apps/operator-console/tests/responsive-shell.spec.ts`
+- `apps/operator-console/tests/modbus-plc.spec.ts`
 - `docs/components/ModbusAddressFields.md`
 - `docs/spec-coverage-matrix.md`
 - `specs/modbus-tcp-local-integration-v1.md`

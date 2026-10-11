@@ -17,7 +17,11 @@ choices and does not define business rules.
 | Critical confirmation | `ConfirmModal` | `window.confirm` |
 | Application dialog | `ui/Modal` | a global overlay outside the shell |
 | Compact semantic status | `ui/StatusPill` | unstructured status text |
-| No results | `ui/EmptyState` | an unexplained empty container |
+| No results | `ui/EmptyState` (`dashed` for in-page areas) | an unexplained empty container |
+| Titles | `ui/Heading` (`view`, `section`, `card`, `item`, `label`) or `ui/SectionHeader` | raw `h1`–`h4` with text classes |
+| Grouping surface | `ui/Card` (`flat`, `elevated`, `glass`, `error`, `active`; `as` for landmarks) | hand-built `rounded border bg-card` boxes |
+| Messages | `ui/AlertBanner` (`size="sm"` for inline) | hand-tinted notice boxes |
+| Initial loading | `ui/LoadingState`, `ui/ComponentSkeletons`, `ui/DashboardCardSkeleton` | spinners that compete with skeletons |
 | Sidebar navigation | `ui/SidebarItem` | manually styled navigation links |
 
 ## Individual Documentation
@@ -30,7 +34,7 @@ component document is missing.
 
 1. A view owns data and permission orchestration; a visual component does not
    query an integration directly.
-2. Device entities use `DeviceTileBase` or `DeviceTileShell` and expose only
+2. Device entities use `DeviceTileShell` and expose only
    capability-enabled actions.
 3. Camera, media, scene, sensor, room, and dashboard cards also follow their
    domain specification.

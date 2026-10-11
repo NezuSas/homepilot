@@ -5,7 +5,11 @@ const port = 4173;
 const baseUrl = `http://${host}:${port}`;
 const uiDirectory = 'apps/operator-console';
 const clockContractPattern = 'Clock size contract';
-const forwardedArgs = process.argv.slice(2);
+const rawArgs = process.argv.slice(2);
+// --skip-clock (or HOMEPILOT_SKIP_CLOCK=1) omits the production Clock contract
+// phase for fast local iteration. The full suite remains the release gate.
+const skipClock = rawArgs.includes('--skip-clock') || process.env.HOMEPILOT_SKIP_CLOCK === '1';
+const forwardedArgs = rawArgs.filter((argument) => argument !== '--skip-clock');
 
 function run(command, args, options = {}) {
   return spawn(command, args, {
@@ -316,7 +320,14 @@ async function resolveResponsiveSelection() {
   };
 }
 
-async function runClockContractPhase(playwrightArgs) {
+const hasWorkersArgument = (args) => args.some(
+  (argument) => argument === '--workers' || argument.startsWith('--workers=') || argument === '-j',
+);
+
+async function runClockContractPhase(requestedArgs) {
+  // The geometry sweep batches run in parallel; 4 workers is the measured sweet spot
+  // (16 workers starved the CPU and timed tests out). An explicit --workers wins.
+  const playwrightArgs = hasWorkersArgument(requestedArgs) ? requestedArgs : [...requestedArgs, '--workers', '4'];
   console.log('');
   console.log('=== Responsive tests: production Clock contract ===');
   console.log('');
@@ -388,7 +399,10 @@ async function runClockContractPhase(playwrightArgs) {
   }
 }
 
-async function runDevelopmentPhase(playwrightArgs) {
+async function runDevelopmentPhase(requestedArgs) {
+  // The application specs share one Vite dev server; 9 parallel workers made layout-measuring
+  // tests race under CPU load, so cap the default. An explicit --workers wins.
+  const playwrightArgs = hasWorkersArgument(requestedArgs) ? requestedArgs : [...requestedArgs, '--workers', '5'];
   console.log('');
   console.log('=== Responsive tests: development application suite ===');
   console.log('');
@@ -413,6 +427,21 @@ let exitCode = 1;
 
 try {
   const selection = await resolveResponsiveSelection();
+
+  if (skipClock) {
+    selection.runClock = false;
+
+    if (!selection.runDevelopment) {
+      throw new Error(
+        '--skip-clock left no responsive tests to run: the selection only matched the Clock contract.',
+      );
+    }
+
+    console.log('');
+    console.log(
+      'Clock contract omitted by --skip-clock. Run the complete suite (npm run test:responsive) before publishing.',
+    );
+  }
 
   let clockExitCode = 0;
 

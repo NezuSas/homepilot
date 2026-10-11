@@ -22,7 +22,7 @@ Modificados:
 - `apps/operator-console/src/views/dashboards/widgets/SensorMetricCard.test.tsx`
 - `apps/operator-console/src/locales/en/common.json`
 - `apps/operator-console/src/locales/es/common.json`
-- `apps/operator-console/tests/responsive-shell.spec.ts`
+- `apps/operator-console/tests/modbus-plc.spec.ts`
 - `specs/modbus-tcp-local-integration-v1.md`
 - `specs/modbus-tcp-local-integration-v1.tasks.md`
 - `docs/spec-coverage-matrix.md`

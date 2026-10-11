@@ -5,6 +5,83 @@
 
 ## Refinamiento autorizado de edición segura
 
+- AC79, inspector y filtros Modbus: DeviceInspector delega su campo y selector
+  a las primitivas; el contenedor de edición permite envolver acciones sin
+  forzar un ancho fijo. ModbusConnectionCard mantiene únicamente anchos externos
+  en el selector; no modifica filtrado, estado ni bindings. El renombrado se
+  verifica con endpoint interceptado, nunca con dispositivos reales.
+
+- AC79, escenas y filtros: SceneBuilderModal, SceneDeviceSelector,
+  RoutineSharingField y EventFilters delegan campos/búsquedas a Input y SearchInput;
+  SceneDeviceSelector utiliza opciones de SegmentedControl sin skin local.
+  EventFilters no sustituye etiquetas mediante selectores CSS descendientes.
+  Se conservan búsqueda, scope, selección, comandos ofrecidos y payloads;
+  la migración no ejecuta escenas ni cambia reglas de negocio.
+
+- AC79, editores de tarjetas: SectionCardCatalogModal y SectionCardEditorModal
+  consumen Input sin skins propios. El catálogo usa nombre accesible traducido.
+  La navegación del editor consume SegmentedControl con scroll interno; se retira
+  el CSS externo card-editor-tabs que sustituía su radio, color y selección.
+  No se cambian drafts, tamaños de tarjetas, bindings ni contratos de guardado.
+
+- AC79, campos de Espacios: TopologyView delega edición de hogar y alta de
+  estancia a Input, conserva layout externo, permisos, trimming y Enter.
+  El alta expone nombre accesible con el texto traducido existente. No cambia
+  modelos ni endpoints. Pruebas protegen creación, cancelación y edición
+  mediante datos simulados, sin acciones reales sobre dispositivos.
+
+- AC79, campos de acceso y alta inicial: LoginView y FirstAdminSetupView
+  consumen Input sin radios, alturas, padding o tipografías propios. Se mantienen
+  required, tipos password, constraints, estados disabled, flujo de teclado,
+  errores y contratos de autenticación existentes. Esta adopción es únicamente
+  visual; pruebas usan credenciales ficticias y respuestas interceptadas.
+
+- AC79, adopción de modales y estancias: DashboardViewConfigModal,
+  UserProfileModal, AssistantActionModal y TopologyRoomDetailPanel delegan la
+  apariencia del campo a Input sin alterar eventos, validación ni payloads.
+  La ruta de vista permanece readonly. El selector de configuración conserva
+  etiquetas visibles y geometría central en móvil, tablet y escritorio;
+  no utiliza una apariencia de opción local. Pruebas AST protegen los cuatro
+  consumidores; navegador verifica geometría y guardado con API simulada.
+
+- AC79, campos de dashboard: DashboardTitleBar, InlineTabCreator y el componente
+  legado DashboardCreateForm delegan apariencia a Input; conservan layout,
+  valores, disabled y handlers de teclado/guardado. El formulario legado declara
+  nombre accesible; no se conecta a un flujo nuevo. Tests de consumidores y
+  navegador protegen edición y creación de pestañas con datos simulados.
+  El creador inline reserva mínimo 224px (campo y dos acciones táctiles), sin
+  compresión por pestañas vecinas; conserva el scroll horizontal de la barra.
+
+- AC79, campos de automatización: AutomationBuilderIdentityField,
+  AutomationBuilderTriggerSection y AutomationWorkbenchForm consumen Input
+  sin estilos locales de altura, radio, fuente, superficie o foco. Conservan
+  valores, required, autofocus, handlers y contratos de datos. Pruebas AST
+  protegen esos consumidores; el editor se valida con geometría real y payloads
+  simulados, sin ejecutar automatizaciones ni comandos físicos.
+
+- AC79, adopción incremental: RoutinesView y SearchFilterBar delegan geometría,
+  tipografía y estados de selección a SegmentedControl; solo conservan layout
+  externo. Los filtros horizontales usan `layout="scroll"`. Una prueba AST
+  protege esos consumidores. Otros overrides de campos/selectores quedan
+  pendientes de migración individual, sin declarar estandarización global.
+
+- AC79, switches y selección: ToggleSwitch usa una sola pista 56×32px centrada
+  en área 56×44px; sm/md son alias compatibles. Conserva checked, callbacks,
+  preventDefault, disabled/busy y estilo Light/Dark de pista. SegmentedControl
+  usa opciones de mínimo 44px y texto normal 14px; flechas/Home/End omiten disabled.
+  Cuando no hay selección habilitada, la primera opción habilitada recibe el
+  tab stop sin seleccionar ni guardar automáticamente. Hojas aisladas switches
+  y segments; no se modifican controles de dispositivos ni significado de pulse.
+
+- AC79, alineación Figma páginas 05/07: Input y Textarea comparten superficie,
+  radio de control, etiqueta normal de peso medio y mensaje asociado. Placeholder
+  y ayuda conservan color semántico sin atenuación adicional. Input mantiene 44px;
+  Textarea conserva mínimo 96px y resize vertical. Adorno final reserva 56px para
+  IconButton de 44px. Props nativas, ref, eventos, ids y aria-describedby/invalid
+  permanecen compatibles; no se cambian validación de negocio ni datos.
+  Revisión aislada: `button-review.html?component=fields` o `component=textarea`,
+  Light/Dark, sin App/login/API; tests de edición, error, readonly y disabled.
+
 - AC79: Inputs estándar y selector normal comparten altura 44px. `NumberInput` permite borrado y reemplazo temporal sin forzar cero; valida mediante constraints y solo comunica números finitos. Campos opcionales notifican borrado explícito. No altera el contrato de Input existente.
 - AC80: Modal/Drawer modulares permanecen abiertos por defecto ante fondo/Escape; Cancelar/cerrar explícito mantiene foco restaurado y Tab trap. Un overlay informativo puede optar por dismissal; desplegables/listboxes siguen cerrándose normalmente. No se desactiva globalmente el focus trap. Unidad reutiliza selector buscable y preserva unidad histórica desconocida.
 
@@ -46,7 +123,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-12:** Las acciones convencionales de la consola deben usar `Button` o `IconButton`; los elementos HTML nativos solo pueden residir dentro de los primitivos UI o corresponder a una semántica especializada documentada.
 - **REQ-13:** Los campos generales de texto, contraseña, correo, búsqueda y texto multilínea deben usar `Input` o `Textarea`; las selecciones de negocio deben usar `SearchableSelectField`; archivo, radio y el compositor conversacional mantienen su control nativo especializado.
 - **REQ-14:** La tipografía de vistas y componentes debe usar escalas con nombre del design system; las utilidades Tailwind arbitrarias `text-[…]` no se permiten fuera de `components/ui`.
-- **REQ-59:** La interfaz debe cargar familias locales desde el repositorio: `Rubik` para lectura y controles, y `Disket Mono` únicamente para datos técnicos, labels y estados. Los componentes consumen `font-sans` o `font-mono`; no declaran familias directamente.
+- **REQ-59:** La interfaz debe cargar familias locales desde el repositorio: `Inter` para lectura y controles, y `Disket Mono` únicamente para datos técnicos, labels y estados. Los componentes consumen `font-sans` o `font-mono`; no declaran familias directamente.
 - **REQ-60:** La CI debe ejecutar una comprobación responsive automatizada de la consola en móvil, tablet y escritorio, verificando ausencia de overflow horizontal y la carga de las familias tipográficas de marca.
 - **REQ-15:** Las confirmaciones y errores visibles deben usar `ConfirmModal`, `AlertBanner` u otro componente modular de feedback; no se permiten diálogos nativos del navegador en la consola.
 - **REQ-16:** Los rangos especializados de la consola deben usar `RangeInput`, manteniendo el callback continuo, la confirmación diferida cuando aplique y un foco/estado deshabilitado consistente.
@@ -67,8 +144,8 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - **REQ-31:** `Button` debe conservar su altura y área táctil tokenizadas, permitiendo que etiquetas largas se ajusten dentro del ancho disponible sin estirar filas, tarjetas o modales. Durante carga debe quedar deshabilitado y comunicar `aria-busy`.
 - **REQ-32:** `ToggleSwitch` debe conservar su dimensión táctil, foco y semántica booleana dentro de filas responsivas, exponiendo su estado para estilos consistentes sin conocer la regla de negocio.
 - **REQ-33:** `SearchFilterBar` debe permitir que búsqueda y filtros se reduzcan dentro de paneles responsivos, conservando las opciones navegables sin provocar overflow horizontal de la vista. En móvil mantiene controles apilados y desde tablet adopta una fila compacta. La búsqueda activa debe poder limpiarse con una acción localizada integrada al campo, sin cambiar su geometría.
-- **REQ-34:** `DeviceTileBase` debe conservar el contenido, estados y acciones de una tarjeta de dispositivo en móvil, tablet y escritorio; textos largos se ajustan y las acciones contextuales siguen disponibles sin depender exclusivamente de hover.
-- **REQ-35:** `DeviceTileShell`, `DeviceTileBase` y `AssistantCard` deben reducirse con seguridad dentro de grids y paneles responsivos, preservando estados accesibles, jerarquía visual y acciones largas en móvil, tablet y escritorio. Las tarjetas interactivas deben poder activarse con Enter o Espacio sin duplicar controles internos. Un hallazgo descartado no debe conservar contexto para tecnologías asistivas.
+- **REQ-34:** Retirado: `DeviceTileBase` no tuvo consumidores de producción y se eliminó; ver `operator-console-modularization-v1`. La numeración se conserva.
+- **REQ-35:** `DeviceTileShell` y `AssistantCard` deben reducirse con seguridad dentro de grids y paneles responsivos, preservando estados accesibles, jerarquía visual y acciones largas en móvil, tablet y escritorio. Las tarjetas interactivas deben poder activarse con Enter o Espacio sin duplicar controles internos. Un hallazgo descartado no debe conservar contexto para tecnologías asistivas.
 - **REQ-36:** `SegmentedControl`, `IconButton`, `ToggleSwitch` y `Modal` deben conservar interacción táctil, estado accesible y composición segura dentro del viewport, sin competir entre controles, textos y acciones en pantallas angostas. `IconButton` y `ToggleSwitch` pueden comunicar carga con `aria-busy` sin alterar sus dimensiones.
 - **REQ-37:** Los flujos modulares de creación rápida y selección de audio deben limitar campo, trigger y menú al ancho disponible, manteniendo teclado, cierre y selección accesibles sin alterar sus contratos.
 - **REQ-38:** La navegación de pestañas y el compositor de conversación deben adaptarse al viewport con títulos largos, acciones móviles y área segura, manteniendo visibles las acciones esenciales durante la interacción.
@@ -116,7 +193,7 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 | Contenedores | `ui/Card.tsx`, `ui/Modal.tsx`, `ui/Drawer.tsx`, `ui/PageFrame.tsx` | Jerarquía, contenido y viewport | normal, scroll interno, modal/cajón abierto, error/empty slot |
 | Retroalimentación | `ui/AlertBanner.tsx`, `ui/EmptyState.tsx`, `ui/LoadingState.tsx`, `ui/StatusPill.tsx` | Comunicar estado sin bloquear datos | info, success, warning, error, loading, empty |
 | Navegación | `ui/SidebarItem.tsx`, `ui/SegmentedControl.tsx`, `ui/SectionHeader.tsx` | Navegar y filtrar superficie activa | normal, activo, expandido, colapsado, keyboard focus |
-| Dispositivos comunes | `ui/DeviceTileBase.tsx`, `ui/DeviceTileShell.tsx`, `ConfirmModal.tsx`, `CoverPositionControl.tsx` | Presentar acciones permitidas sin conocer el driver | disponible, activo, offline, unsupported, pending |
+| Dispositivos comunes | `ui/DeviceTileShell.tsx`, `ConfirmModal.tsx`, `CoverPositionControl.tsx` | Presentar acciones permitidas sin conocer el driver | disponible, activo, offline, unsupported, pending |
 | Resiliencia local | `DatabaseBackupsCard.tsx` | Consultar y crear copias locales sin revelar paths internos | loading, empty, error, latest backup, creating |
 | Tokens | `design-system/tokens.ts`, `index.css` | Escala visual única y responsive | light, dark, compact, touch |
 
@@ -182,8 +259,8 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC57: RangeInput confirma al finalizar un gesto, al perder foco o con Enter, y ToggleSwitch permite observación o cancelación explícita sin que un onClick externo sustituya su transición controlada.
 - [x] AC58: SectionHeader presenta acciones directas a ancho completo en móvil y elimina sangría residual del subtítulo de grupo cuando no existe icono.
 - [x] AC59: SegmentedControl permite seleccionar y enfocar opciones disponibles con flechas, Inicio y Fin, sin incluir opciones deshabilitadas.
-- [x] AC60: Rubik y Disket Mono se cargan localmente y se exponen mediante tokens de familia compartidos, sin dependencia de CDN ni declaraciones de familia por componente.
-- [x] AC61: La pantalla de acceso se valida automáticamente a 320px, tablet y escritorio; no produce overflow horizontal y mantiene cargadas Rubik y Disket Mono.
+- [x] AC60: Inter y Disket Mono se cargan localmente y se exponen mediante tokens de familia compartidos, sin dependencia de CDN ni declaraciones de familia por componente.
+- [x] AC61: La pantalla de acceso se valida automáticamente a 320px, tablet y escritorio; no produce overflow horizontal y mantiene cargadas Inter y Disket Mono.
 - [x] AC62: La pantalla de acceso valida automáticamente el orden de foco por teclado, la activación por Enter, el área táctil mínima del envío y el anuncio semántico de error en móvil, tablet y escritorio.
 - [x] AC63: Un tablero autenticado se valida automáticamente a 320px, tablet y escritorio; conserva su título visible y no genera overflow horizontal.
 - [x] AC64: `npm run verify:quality` y CI ejecutan el mismo control de calidad para traducciones, primitives, specs, responsividad, lint, pruebas, tipado y compilaciones. La prueba responsive se ejecuta desde el workspace `operator-console` para usar una única instancia de Playwright y su configuración local.
@@ -207,6 +284,62 @@ La consola contiene componentes reutilizables para interacción, navegación, es
 - [x] AC78: Todas las superficies de la consola ocultan la barra visual de desplazamiento, sin cambiar overflow ni impedir rueda, tacto o teclado. Los selectores y overlays mantienen scroll hasta sus controles finales y foco visible.
 
 ## 8. Notas Técnicas y Arquitectura
+
+### Tarjetas de opción — Figma página 13 (AC79 / REQ-51)
+
+SelectableOptionCard conserva una geometría Light/Dark: mínimo 48px, radio
+`rounded-card`, título 15px semibold y descripción 14px regular. El texto se
+envuelve sin invadir la marca de selección de 16px. El consumidor conserva
+grupo, selección, eventos y navegación; no cambia persistencia ni comandos.
+La revisión aislada cubre selección, foco, disabled y contexto largo en
+360/768/1440px, sin autenticación ni API.
+La selección de estancia del asistente y el descubrimiento de cámaras consumen
+la tarjeta sin estilos locales. Una prueba AST recorre los consumidores y
+detecta overrides de tarjeta e implementaciones de radio fuera de primitivas.
+Presets con imagen, selección múltiple y control de dispositivos son familias
+distintas: no se sustituyen por tarjetas de opción textual.
+
+### Estándar único de botones (AC79)
+
+`Button` centraliza una geometría: mínimo 44px, radio `--radius-control` (12px),
+Inter semibold de 14px, línea de 20px, gap de 8px, iconos directos de 16px y
+padding horizontal de 16px / vertical de 10px. Etiquetas largas pueden envolver.
+Los tamaños históricos `xs`, `sm`, `md` y `lg` son alias del mismo diseño.
+`IconButton` reutiliza `Button` con un área cuadrada de 44px; no mantiene un
+segundo contrato de tamaño. Variantes funcionales: primary, secondary, outline,
+ghost, danger y warning. Colores Light/Dark de botones: tokens `--button-*` de
+Figma, sin cambiar los colores operativos de dispositivos.
+
+Las superficies de tarjetas, opciones y navegación compuesta utilizan
+`SurfaceButton`, sin imponerles la geometría de un botón convencional. Eventos,
+refs, accesibilidad y estados de comandos permanecen en sus consumidores.
+No cambia datos persistidos, bindings ni transporte.
+
+La revisión local `/tests/ui/button-review.html` carga Button/IconButton reales
+en Light/Dark y prueba estados con datos sintéticos, sin iniciar App, login,
+stores ni conexiones API. Es una entrada exclusiva de desarrollo, no una ruta
+de producción ni una excepción de autenticación. `button-review.spec.ts`
+comprueba geometría, carga y ausencia de solicitudes API a 360/768/1440px.
+El parámetro `?component=icons` muestra una hoja separada para IconButton:
+cuatro intenciones existentes y estados disabled/loading, sin matriz de tamaños.
+El SVG decorativo no recibe foco propio. La prueba verifica centrado, foco visible,
+Enter/Espacio y salto del disabled, sin modificar handlers de consumidores.
+La página 02 de Figma conserva medidas/colores históricos; prevalece el estándar
+único aprobado de Button, no se declara paridad con esos ejemplos antiguos.
+
+Los consumidores convencionales no declaran radios, alturas, padding,
+tipografía ni sombras propios. Conservan clases de ubicación/ancho y sus
+variantes funcionales; las superficies seleccionables (salas, días, opciones
+de iconos y área para agregar secciones) conservan contratos de layout propios
+mediante SurfaceButton. Los controles de borrado de etiquetas se disponen junto
+a su contenido, no superpuestos. `__tests__/button-standardization.test.ts`
+audita las clases literales de Button/IconButton mediante el AST de TypeScript;
+no reemplaza las pruebas de geometría real ni certifica clases dinámicas externas.
+
+- [ ] AC79: Button e IconButton comparten geometría, tipografía y estados;
+  loading bloquea la interacción. Las tarjetas conservan su layout y semántica.
+  Validación de migración y responsive pendiente; no se declara adopción global.
+
 
 - `CardGridSizePicker` (`views/dashboards/widgets/CardGridSizePicker.tsx`): cuadrícula de 12 columnas × 8 filas, selección por clic/toque o flechas, mínimo nuevo 2 × 2 y límites propios; sin arrastre ni inputs. Conserva datos históricos y no persiste por sí mismo.
 - `CardPreviewFrame` (`views/dashboards/widgets/CardPreviewFrame.tsx`): región de preview estable de ocho filas, presenter arriba con tamaño real; scroll de la región únicamente cuando sea necesario.
