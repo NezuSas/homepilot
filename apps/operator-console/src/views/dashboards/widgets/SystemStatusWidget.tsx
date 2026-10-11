@@ -8,6 +8,7 @@ import type { DashboardWidgetConfig } from '../types';
 import { Cpu, Zap, Timer, HardDrive, AlertCircle } from 'lucide-react';
 import { API_BASE_URL } from '../../../config';
 import { fetchDiagnosticResource, startSequentialPolling } from '../../../lib/diagnosticResourceRequests';
+import { DormantWidgetPlaceholder } from '../components/DormantWidgetPlaceholder';
 
 const API = `${API_BASE_URL}/api/v1`;
 
