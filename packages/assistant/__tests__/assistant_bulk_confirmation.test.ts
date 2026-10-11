@@ -338,6 +338,39 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
       expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
     });
 
+    it('explains that a player without power features cannot be turned off, and never includes it in "apaga todo"', async () => {
+      const pc = createTestDevice({
+        id: 'pc1', name: 'OSCAR', type: 'media_player',
+        lastKnownState: { state: 'paused', attributes: { supported_features: 153151 } },
+      });
+      const lamp = createTestDevice({ id: 'l1', name: 'Luz 1', type: 'light', lastKnownState: { on: true } });
+      mockDeviceRepo.findAll.mockResolvedValue([pc, lamp]);
+      mockMemory.getShortTermMemory.mockResolvedValue(null);
+
+      const single = await service.converse({ prompt: 'apaga OSCAR', userId: 'u1' }, 'es');
+      expect(single.type).toBe('answer');
+      expect(single.message).toContain('OSCAR no permite');
+      expect(mockSceneExecutionService.execute).not.toHaveBeenCalled();
+
+      await service.converse({ prompt: 'apaga todo', userId: 'u1' }, 'es');
+      const targeted = mockSceneExecutionService.execute.mock.calls.flatMap((call: unknown[]) => JSON.stringify(call));
+      expect(targeted.join(' ')).toContain('l1');
+      expect(targeted.join(' ')).not.toContain('pc1');
+    });
+
+    it('says everything is already in the requested state instead of claiming no lights exist', async () => {
+      mockDeviceRepo.findAll.mockResolvedValue([
+        createTestDevice({ id: 'l1', name: 'Luz 1', type: 'light', lastKnownState: { on: false } })
+      ]);
+      mockMemory.getShortTermMemory.mockResolvedValue(null);
+
+      const res = await service.converse({ prompt: 'apaga todas las luces', userId: 'u1' }, 'es');
+
+      expect(res.type).toBe('answer');
+      expect(res.message).toBe('Las luces ya están apagadas.');
+      expect(mockSceneExecutionService.execute).not.toHaveBeenCalled();
+    });
+
     it('returns safe answer if no lights are found', async () => {
       mockDeviceRepo.findAll.mockResolvedValue([]);
       mockMemory.getShortTermMemory.mockResolvedValue(null);

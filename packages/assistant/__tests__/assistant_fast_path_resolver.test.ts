@@ -179,6 +179,28 @@ describe('AssistantFastPathResolver', () => {
     }
   });
 
+  it.each([
+    ['abre la cortina de sala al 50%', 50],
+    ['pon la cortina sala al 30 por ciento', 30],
+    ['cierra la cortina sala al 0', 0],
+    ['set cortina sala curtain to 75', 75],
+  ])('turns "%s" into a covering position of %i', (prompt, position) => {
+    const result = resolver.resolve(prompt, mockDevices);
+
+    expect(result).toEqual({
+      deviceId: 'd5',
+      deviceName: 'Cortina Sala Curtain',
+      command: 'set_position',
+      confidence: expect.any(Number),
+      params: { position },
+    });
+  });
+
+  it('ignores a position above 100 and a percentage on something that is not a covering', () => {
+    expect(resolver.resolve('abre la cortina sala al 150', mockDevices)?.command).not.toBe('set_position');
+    expect(resolver.resolve('pon luz sala al 50', mockDevices)?.command).not.toBe('set_position');
+  });
+
   it('resolves an explicit climate setpoint with its numeric parameter', () => {
     const result = resolver.resolve('pon aire sala a 22 grados', [
       { id: 'climate-1', name: 'Aire Sala', type: 'climate', roomId: 'r2', status: 'ASSIGNED' } as Device,

@@ -83,6 +83,7 @@ export type AssistantResponseCatalogParameters = {
   'confirmation.multi_action_yes': Record<never, never>;
   'confirmation.multi_action_no': Record<never, never>;
   'intent.not_recognized': Record<never, never>;
+  'command.seconds_delay_unsupported': Record<never, never>;
   'fuzzy.suggestion': { targetPhrase: string; deviceName: string };
   'fuzzy.question': { deviceName: string };
   'fuzzy.not_found': { targetPhrase: string };
@@ -469,6 +470,10 @@ const responseCatalog: AssistantResponseCatalog = {
   'confirmation.multi_action_no': {
     es: () => 'No, cancelar',
     en: () => 'No, cancel',
+  },
+  'command.seconds_delay_unsupported': {
+    es: () => 'No puedo programar esperas en segundos; mi temporizador más corto es de 1 minuto. No ejecuté nada. Dime "en 1 minuto" o pídemelo ahora.',
+    en: () => "I can't schedule waits in seconds; my shortest timer is 1 minute. I didn't run anything. Say \"in 1 minute\" or ask me to do it now.",
   },
   'intent.not_recognized': {
     es: () => 'Tipo de instrucción no reconocido. Quedo atento a una orden más clara.',

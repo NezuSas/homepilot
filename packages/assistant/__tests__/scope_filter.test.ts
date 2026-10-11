@@ -31,6 +31,31 @@ describe('ScopeFilter', () => {
     expect(scopeFilter.supportsCommand(cover, 'turn_on')).toBe(false);
   });
 
+  describe('media players that cannot be powered', () => {
+    // Home Assistant MediaPlayerEntityFeature: TURN_ON = 128, TURN_OFF = 256.
+    const player = (supportedFeatures: unknown) => createTestDevice({
+      type: 'media_player',
+      lastKnownState: { state: 'paused', attributes: { supported_features: supportedFeatures } },
+    });
+
+    it('does not offer turn_on or turn_off to a player whose features lack them (a PC agent)', () => {
+      const pc = player(153151);
+      expect(scopeFilter.supportsCommand(pc, 'turn_off')).toBe(false);
+      expect(scopeFilter.supportsCommand(pc, 'turn_on')).toBe(false);
+      expect(scopeFilter.isControllableForBulk(pc, 'turn_off', 'all')).toBe(false);
+    });
+
+    it('keeps power control for a player that declares both power features', () => {
+      const tv = player(128 | 256 | 1);
+      expect(scopeFilter.supportsCommand(tv, 'turn_off')).toBe(true);
+      expect(scopeFilter.supportsCommand(tv, 'turn_on')).toBe(true);
+    });
+
+    it('does not block a player whose features are unknown', () => {
+      expect(scopeFilter.supportsCommand(player(undefined), 'turn_off')).toBe(true);
+    });
+  });
+
   it('classifies lights by semanticType, capability, hardware type, and name fallback', () => {
     expect(scopeFilter.isLightEntity(createTestDevice({ type: 'switch', semanticType: 'light' }))).toBe(true);
     expect(scopeFilter.isLightEntity(createTestDevice({ type: 'switch', semanticType: 'switch' }))).toBe(false);

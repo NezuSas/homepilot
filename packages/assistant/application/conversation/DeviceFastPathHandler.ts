@@ -117,6 +117,10 @@ export class DeviceFastPathHandler extends ConversationCollaborator {
 
     const device = devices.find((d) => d.id === result.deviceId);
     if (!device) return null;
+    // A named player that cannot be powered gets an explanation instead of a failed call or silence.
+    if (this.deps.scopeFilter.lacksDeclaredPowerFeature(device, result.command)) {
+      return { type: 'answer', message: getAssistantResponseText('media.operation_not_supported', language, { deviceName: device.name, action: result.command }) };
+    }
     if (!this.deps.scopeFilter.isControllableDevice(device, result.command, result.params)) return null;
 
     const execResult = await this.modules.commands.executeAuthorizedCommand(userId, result.deviceId, result.command, activePrompt, `fastpath-${Date.now()}`, result.params);

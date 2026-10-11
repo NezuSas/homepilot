@@ -23,7 +23,23 @@ export class ScopeFilter {
     return device.lastKnownState?.state !== 'unavailable';
   }
 
+  /**
+   * A media player only powers on or off when Home Assistant says it can
+   * (MediaPlayerEntityFeature.TURN_ON = 128, TURN_OFF = 256). Players that expose
+   * playback only, such as a PC agent, answer a power command with an error, so
+   * they are not offered one. Unknown features never block a command.
+   */
+  public lacksDeclaredPowerFeature(device: Device, command: DeviceCommandV1): boolean {
+    if (device.type.toLowerCase() !== 'media_player') return false;
+    const required = command === 'turn_on' ? 128 : command === 'turn_off' ? 256 : 0;
+    if (required === 0) return false;
+    const features = (device.lastKnownState?.attributes as { supported_features?: unknown } | undefined)?.supported_features;
+    return typeof features === 'number' && (features & required) === 0;
+  }
+
   public supportsCommand(device: Device, command: DeviceCommandV1, params: Record<string, unknown> = {}): boolean {
+    if (this.lacksDeclaredPowerFeature(device, command)) return false;
+
     // A. Priority: Capability Validation
     const validation = validateDeviceCommand(device, { name: command, params });
     if (validation.valid) return true;

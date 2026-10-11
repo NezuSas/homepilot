@@ -2,6 +2,8 @@ import { AssistantQuickResponseService } from '../AssistantQuickResponseService'
 import type { AssistantConversationResponse, ConverseContext } from './conversationTypes';
 import { isNameQuery, isHelpQuery, isPresentation, isScopeQuery, isDateTimeQuery, isHomeSummaryQuery, isAttentionQuery, isRecentActivityQuery, isConversationContextQuery, isGreeting, isWellnessQuery, isCompanyQuery } from './generalQueryIntents';
 import { isDraftCreation } from './draftRequestParsing';
+import { asksForSecondsDelay } from './unsupportedQualifiers';
+import { getAssistantResponseText } from '../response/AssistantResponseCatalog';
 import { isRoomQuery, isRoomCreationIntent, isRoomCreationFollowUp, isRoomRenameIntent, isRoomDeletionIntent } from './roomIntents';
 import { isRoomBulkFastPath, isRoomSingularLightFastPath, isRoomCoverFastPath, isBulkFastPath } from './fastPathMatching';
 import { handleConversationContext, handleCompanyInfoQuery } from './responseMessages';
@@ -39,6 +41,9 @@ export class ConversationRouter extends ConversationCollaborator {
     if (conditionalRoutineResponse) return conditionalRoutineResponse;
     const relativeTimerResponse = await this.modules.drafts.handleRelativeTimerRequest(normalized, language, userId, prompt);
     if (relativeTimerResponse) return relativeTimerResponse;
+    if (asksForSecondsDelay(normalized)) {
+      return { type: 'answer', message: getAssistantResponseText('command.seconds_delay_unsupported', language, {}) };
+    }
 
     const mediaPlayerResponse = await this.modules.mediaPlayer.handleMediaPlayerRequest(normalized, userId, language, prompt, memory);
     if (mediaPlayerResponse) return mediaPlayerResponse;

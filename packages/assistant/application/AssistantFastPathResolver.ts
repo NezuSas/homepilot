@@ -216,6 +216,19 @@ export class AssistantFastPathResolver {
 
     return { targetPhrase: match[1].trim(), temperature };
   }
+  /**
+   * "abre la cortina de sala al 50", "pon la cortina al 30 por ciento": an explicit
+   * percentage for a covering becomes a position instead of a plain open or close.
+   * Only phrases naming a covering qualify, so "pon sala a 22" stays a setpoint.
+   */
+  private findPositionMatch(normPrompt: string): { targetPhrase: string; position: number } | null {
+    const match = /^(?:abre|abrir|cierra|cerrar|pon|poner|ajusta|establece|configura|coloca|set|open|close)\s+(.+?)\s+(?:a|al|en|to|at)\s+(\d{1,3})(?:\s*(?:por\s*ciento|percent))?$/u.exec(normPrompt);
+    if (!match || !/\b(?:cortina|persiana|blind|curtain|shutter|cover)\b/u.test(match[1])) return null;
+    const position = Number(match[2]);
+    if (!Number.isInteger(position) || position < 0 || position > 100) return null;
+    return { targetPhrase: match[1].trim(), position };
+  }
+
   public resolve(prompt: string, devices: Device[]): FastPathResult | null {
     const skip = (reason: string) => {
       if (process.env.NODE_ENV === 'development') {
@@ -232,11 +245,16 @@ export class AssistantFastPathResolver {
     // 1. Extract a typed command from the already normalized conversational prompt.
     // A setpoint requires an explicit named target and numeric value; all other
     // requests continue through the existing command-word resolver unchanged.
-    const temperatureMatch = this.findTemperatureMatch(normPrompt);
-    const commandMatch = temperatureMatch
-      ? { command: 'set_temperature' as const, targetPhrase: temperatureMatch.targetPhrase }
-      : this.findCommandMatch(normPrompt);
-    const commandParams = temperatureMatch ? { temperature: temperatureMatch.temperature } : undefined;
+    const positionMatch = this.findPositionMatch(normPrompt);
+    const temperatureMatch = positionMatch ? null : this.findTemperatureMatch(normPrompt);
+    const commandMatch = positionMatch
+      ? { command: 'set_position' as const, targetPhrase: positionMatch.targetPhrase }
+      : temperatureMatch
+        ? { command: 'set_temperature' as const, targetPhrase: temperatureMatch.targetPhrase }
+        : this.findCommandMatch(normPrompt);
+    const commandParams = positionMatch
+      ? { position: positionMatch.position }
+      : temperatureMatch ? { temperature: temperatureMatch.temperature } : undefined;
 
     if (!commandMatch) return skip('no_command_verb_found');
     if (!commandMatch.targetPhrase) return skip('no_target_phrase');
@@ -263,7 +281,7 @@ export class AssistantFastPathResolver {
 
         const type = device.type.toLowerCase();
         if (['blind', 'cortina', 'curtain', 'cover', 'persiana'].includes(cleanedTarget)) {
-          return type === 'cover' && ['open', 'close'].includes(commandMatch.command);
+          return type === 'cover' && ['open', 'close', 'set_position'].includes(commandMatch.command);
         }
         return false;
       });

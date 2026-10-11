@@ -4,6 +4,18 @@ import { resolveRoomAlias } from './roomAliasResolution';
 import { ConversationCollaborator } from './ConversationCollaborator';
 
 /** Room-qualified and global bulk fast paths. */
+/** Tells the user a bulk command had nothing to do because everything is already in the requested state. */
+function alreadyInStateMessage(language: string, command: 'turn_on' | 'turn_off', bulkType: 'all' | 'lights', roomName?: string): string {
+  const off = command === 'turn_off';
+  if (language === 'en') {
+    const noun = bulkType === 'lights' ? 'lights are' : 'devices are';
+    return `The ${roomName ? `${roomName} ` : ''}${noun} already ${off ? 'off' : 'on'}.`;
+  }
+  const noun = bulkType === 'lights' ? (off ? 'Las luces' : 'Las luces') : 'Los dispositivos';
+  const state = bulkType === 'lights' ? (off ? 'apagadas' : 'encendidas') : (off ? 'apagados' : 'encendidos');
+  return `${noun}${roomName ? ` de ${roomName}` : ''} ya están ${state}.`;
+}
+
 export class RoomFastPathHandler extends ConversationCollaborator {
   public async handleRoomCoverFastPath(
     userId: string,
@@ -143,13 +155,16 @@ export class RoomFastPathHandler extends ConversationCollaborator {
     const targetRoomIds = matchingRooms.map(r => r.id);
     const displayRoomName = matchingRooms[0].name;
 
-    const matchingDevices = devices.filter(d => {
-      const isInRoom = d.roomId && targetRoomIds.includes(d.roomId);
-      if (!isInRoom) return false;
-      // Same "only devices that actually need the change" filter as the global
-      // bulk fast-path, so "apaga todo en la sala" and "apaga todo" behave consistently.
-      return this.deps.scopeFilter.isControllableForBulk(d, command, bulkType) && this.deps.scopeFilter.requiresBulkStateChange(d, command);
-    });
+    const roomCandidates = devices.filter(d =>
+      d.roomId && targetRoomIds.includes(d.roomId) && this.deps.scopeFilter.isControllableForBulk(d, command, bulkType)
+    );
+    // Same "only devices that actually need the change" filter as the global
+    // bulk fast-path, so "apaga todo en la sala" and "apaga todo" behave consistently.
+    const matchingDevices = roomCandidates.filter(d => this.deps.scopeFilter.requiresBulkStateChange(d, command));
+
+    if (matchingDevices.length === 0 && roomCandidates.length > 0) {
+      return { type: 'answer', message: alreadyInStateMessage(language, command, bulkType, displayRoomName) };
+    }
 
     if (matchingDevices.length === 0) {
       const deviceTerm = bulkType === 'lights'
@@ -169,9 +184,12 @@ export class RoomFastPathHandler extends ConversationCollaborator {
   public async handleBulkFastPath(normalized: string, bulkType: 'all' | 'lights', command: 'turn_on' | 'turn_off', language: string, userId: string): Promise<AssistantConversationResponse | null> {
     const allDevices = await this.deps.permissionGate.getAuthorizedDevices(userId);
 
-    const targetDevices = allDevices.filter(d => {
-      return this.deps.scopeFilter.isControllableForBulk(d, command, bulkType) && this.deps.scopeFilter.requiresBulkStateChange(d, command);
-    });
+    const candidates = allDevices.filter(d => this.deps.scopeFilter.isControllableForBulk(d, command, bulkType));
+    const targetDevices = candidates.filter(d => this.deps.scopeFilter.requiresBulkStateChange(d, command));
+
+    if (targetDevices.length === 0 && candidates.length > 0) {
+      return { type: 'answer', message: alreadyInStateMessage(language, command, bulkType) };
+    }
 
     if (targetDevices.length === 0) {
       const deviceTerm = bulkType === 'lights'

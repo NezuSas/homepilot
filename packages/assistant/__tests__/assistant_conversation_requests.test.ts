@@ -130,6 +130,11 @@ describe('Conversation request parsing', () => {
       expect(isRoomCoverFastPath('abre la persiana de la sala')).toEqual({ command: 'open', roomName: 'sala' });
       expect(isRoomCoverFastPath('close the blinds in office')).toEqual({ command: 'close', roomName: 'office' });
       expect(isRoomCoverFastPath('abre la puerta')).toBeNull();
+      // A percentage is a position, so the open/close room path must not claim it.
+      expect(isRoomCoverFastPath('cierra la cortina del cuarto master al 50')).toBeNull();
+      expect(isRoomCoverFastPath('cierra la cortina del cuarto master al 50%')).toBeNull();
+      expect(isRoomCoverFastPath('abre la cortina de sala al 30 por ciento')).toBeNull();
+      expect(isRoomCoverFastPath('set the curtain in office to 40')).toBeNull();
     });
 
     it('parses global bulk requests and vague light commands', () => {

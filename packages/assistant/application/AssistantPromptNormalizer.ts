@@ -40,6 +40,9 @@ export function normalizeAssistantPrompt(prompt: string): string {
       .replace(/\bsierra\b/g, "cierra")
       .replace(/\bsierras\b/g, "cierra")
       .replace(/\bcortinas?\b/g, "cortina")
+      .replace(/\b(sube|subir|levanta|levantar)\s+(la\s+|las\s+|el\s+)?cortina\b/g, "abre la cortina")
+      .replace(/\b(baja|bajar)\s+(la\s+|las\s+|el\s+)?cortina\b/g, "cierra la cortina")
+      .replace(/\bencende\b/g, "enciende")
       .replace(/\babras\b/g, "abre");
 
     const wakeCommand = extractNezuWakeCommand(normalized);
