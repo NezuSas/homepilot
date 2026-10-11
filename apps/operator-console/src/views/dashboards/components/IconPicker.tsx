@@ -234,7 +234,7 @@ export function IconPicker({ value = '', onChange, placeholder, label, className
       className="w-full justify-start bg-card text-left"
     >
       <SelectedIcon className="h-5 w-5 shrink-0" />
-      <span className="min-w-0 flex-1 truncate">{value || resolvedLabel}</span>
+      <span className="min-w-0 flex-1 truncate">{value ? value.replace(/^mdi:/, "").replace(/-/g, " ") : resolvedLabel}</span>
       <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
     </Button>
     {value && selectedExists === false && (

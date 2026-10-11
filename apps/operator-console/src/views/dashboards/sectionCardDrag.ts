@@ -40,6 +40,15 @@ export function moveSectionCard(widgets: DashboardWidget[], sourceId: string, ca
     return cards ? { ...widget, config: { ...widget.config, extra: { ...widget.config.extra, cards: cards.map(card => { const next = { ...card }; delete next.order; return next; }) } } } : widget;
   });
 }
+/** True when any card of the section sits at an explicit grid position instead of flowing in order. */
+export function sectionHasPinnedCards(widgets: DashboardWidget[], sectionId: unknown): boolean {
+  const section = widgets.find((widget) => widget.id === sectionId && widget.type === 'section');
+  return Boolean(section) && storedCards(section as DashboardWidget).some((card) => {
+    const options = card.gridOptions as Record<string, unknown> | undefined;
+    return typeof options?.columnStart === 'number' || typeof options?.rowStart === 'number';
+  });
+}
+
 export const DASHBOARD_DRAG_TRANSITION = { duration: 150, easing: 'ease' };
 
 export interface SectionCardPlacement { id: string; column: number; row: number; columns: number; rows: number }

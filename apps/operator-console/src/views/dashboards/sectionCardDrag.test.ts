@@ -1,8 +1,18 @@
-import { moveSectionCard, placeSectionCard, resolvePlacedCardRows, sectionCardDragId } from './sectionCardDrag';
+import { moveSectionCard, placeSectionCard, resolvePlacedCardRows, sectionCardDragId, sectionHasPinnedCards } from './sectionCardDrag';
 import type { DashboardWidget } from './types';
 
 const section = (id: string, cards: Array<Record<string, unknown>>): DashboardWidget => ({
   id, type: 'section', config: { layout: { x: 0, y: 0, w: 1, h: 4 }, binding: { entityId: id, entityType: 'system' }, visibility: { rules: [], defaultState: 'show' }, appearance: {}, extra: { marker: id, cards } },
+});
+
+describe('sections that pin their cards to grid positions', () => {
+  it('tells flowing sections from pinned ones', () => {
+    const flowing = section('flowing', [{ id: 'a', kind: 'light' }, { id: 'b', kind: 'light', gridOptions: { columns: 3, rows: 'auto' } }]);
+    const pinned = section('pinned', [{ id: 'a', kind: 'light' }, { id: 'b', kind: 'light', gridOptions: { columns: 3, columnStart: 4, rowStart: 2 } }]);
+    expect(sectionHasPinnedCards([flowing, pinned], 'flowing')).toBe(false);
+    expect(sectionHasPinnedCards([flowing, pinned], 'pinned')).toBe(true);
+    expect(sectionHasPinnedCards([flowing, pinned], 'missing')).toBe(false);
+  });
 });
 
 describe('moving cards within one tab', () => {

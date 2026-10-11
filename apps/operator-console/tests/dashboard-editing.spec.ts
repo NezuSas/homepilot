@@ -519,7 +519,7 @@ test('Feature: Dashboard unified editing — Scenario: Touch hold moves a card i
     await page.clock.pauseAt(new Date('2026-10-02T12:00:01Z'));
     const session = await context.newCDPSession(page);
     await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: source.x + source.width / 2, y: source.y + source.height / 2 }] });
-    await page.clock.runFor(450);
+    await page.clock.runFor(250);
     await expect(card).not.toHaveAttribute('aria-pressed', 'true');
     await page.clock.runFor(100);
     await expect(card).toHaveAttribute('aria-pressed', 'true');
@@ -664,7 +664,7 @@ test('Feature: Dashboard unified editing — Scenario: Keyboard transfers a card
   await expect(page.getByRole('region', { name: 'Patio', exact: true }).locator('[data-dashboard-card-id="keyboard-card"]')).toBeVisible();
   expect(writes).toBe(0);
   await page.keyboard.press('Space');
-  await expect.poll(() => saved.tabs[0].widgets.find(widget => widget.id === 'patio')?.config.extra.cards.map(card => card.id)).toEqual(['target-card', 'keyboard-card']);
+  await expect.poll(() => saved.tabs[0].widgets.find(widget => widget.id === 'patio')?.config.extra.cards.map(card => card.id)).toEqual(['keyboard-card', 'target-card']);
   await expect(page.locator('[data-dashboard-drag-preview="true"]')).toHaveCount(0);
   // The transferred node registers its sortable listeners in a layout effect.
   await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
@@ -1802,4 +1802,50 @@ test('Feature: Dashboard title editing — Scenario: An owner edits title conten
   await editor.locator('xpath=ancestor::form').getByRole('button', { name: /^(Save|Guardar)$/i }).click();
   await expect(editor).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Título renovado' })).toBeVisible();
+});
+
+test('Feature: Dashboard drag discovery — Scenario: Sections show a grip only while editing and the grip moves them', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const template = responsiveDashboard.tabs[0].widgets[1];
+  const makeSection = (id: string, title: string) => ({ ...template, id, config: { ...template.config, layout: { ...template.config.layout, span: 1 }, appearance: { title, showTitle: true }, extra: { cards: [] } } });
+  let saved = { ...responsiveDashboard, tabs: [{ ...responsiveDashboard.tabs[0], widgets: [makeSection('alpha', 'Alpha'), makeSection('beta', 'Beta')], sectionLayout: { columns3: ['alpha', 'beta', null] as Array<string | null> } }] };
+  await prepareAuthenticatedDashboard(page, saved);
+  await page.route('**/api/v1/dashboards', route => route.fulfill({ json: [saved] }));
+  await page.route('**/api/v1/dashboards/responsive-dashboard', route => {
+    if (route.request().method() === 'PATCH') saved = { ...saved, ...route.request().postDataJSON() };
+    return route.fulfill({ json: saved });
+  });
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  await expect(page.locator('[data-dashboard-section-id="alpha"]')).toBeVisible();
+  await expect(page.locator('[data-dashboard-section-grip]')).toHaveCount(0);
+  await enterDashboardEdit(page);
+  await expect(page.locator('[data-dashboard-section-grip]')).toHaveCount(2);
+  const grip = await page.locator('[data-dashboard-section-id="alpha"] [data-dashboard-section-grip]').boundingBox();
+  const target = await page.locator('[data-dashboard-section-id="beta"]').boundingBox();
+  if (!grip || !target) throw new Error('Missing grip drag bounds');
+  await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(grip.x + 30, grip.y + 10, { steps: 4 });
+  await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 16 });
+  await page.mouse.up();
+  await expect.poll(() => saved.tabs[0].sectionLayout?.columns3?.slice(0, 2)).toEqual(['beta', 'alpha']);
+});
+
+test('Feature: Dashboard drag discovery — Scenario: Touch screens get a one-time hint that does not return', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  const page = await context.newPage();
+  try {
+    await prepareAuthenticatedDashboard(page);
+    await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+    await enterDashboardEdit(page, true);
+    const hint = page.locator('[data-dashboard-touch-hint]');
+    await expect(hint).toBeVisible();
+    await expect(hint).toHaveAttribute('role', 'status');
+    await page.getByRole('button', { name: /^(Done|Listo)$/i }).tap();
+    await enterDashboardEdit(page, true);
+    await expect(page.locator('[data-dashboard-section-grip]').first()).toBeVisible();
+    await expect(hint).toHaveCount(0);
+  } finally {
+    await context.close();
+  }
 });

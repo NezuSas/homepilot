@@ -42,14 +42,15 @@ export function SortableCanvasWidget({
   slotMode?: boolean;
 }) {
   const { nodeRef, rowSpan } = useMeasuredRowSpan(gap);
+  const { t } = useTranslation();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } = useSortable({
     id: widget.id,
     data: { kind: widget.type === 'section' ? 'section' : 'widget', sectionId: widget.id, cardCount: Array.isArray(widget.config.extra?.cards) ? widget.config.extra.cards.length : 0, getPreviewRect: () => nodeRef.current?.getBoundingClientRect(), getPreviewNode: () => nodeRef.current },
     disabled: !canDrag,
     transition: DASHBOARD_DRAG_TRANSITION,
+    attributes: { roleDescription: t('common.reorder_role') },
   });
   const span = clampSectionSpan(getSectionSpan(widget), columns);
-  const { t } = useTranslation();
   const sectionDrag = canDrag && widget.type === 'section';
 
   return (

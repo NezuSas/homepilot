@@ -5,6 +5,8 @@ import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 import { SectionCardDragContext } from './sectionCardDrag';
+import { buildDragAnnouncements } from './canvas/dragAnnouncements';
+import { TouchDragHint } from './canvas/TouchDragHint';
 import { availableSectionSlot, type SectionLayout } from './sectionSlots';
 import { Button } from '../../components/ui/Button';
 import { SurfaceButton } from '../../components/ui/SurfaceButton';
@@ -58,7 +60,7 @@ export function DashboardCanvas({
   // no longer needs a desktop-only coordinate system to stay coherent.
   const canEditLayout = isEditing;
   const drag = useCanvasDragState(containerRef);
-  const { activeWidget, cardDragIdentities, dragLayout, dragPreview, dragSession } = drag;
+  const { activeWidget, cardDragIdentities, dragLayout, dragPreview } = drag;
   const model = useCanvasModel({
     widgets, dragLayout, sectionLayout, columns, currentTabId, isEditing,
     isDraggingSection: activeWidget?.type === 'section',
@@ -91,18 +93,7 @@ export function DashboardCanvas({
 
   return (
     <DndContext
-      accessibility={{ announcements: {
-        onDragStart: () => t('common.reorder'),
-        onDragEnd: () => t('common.done'),
-        onDragCancel: () => t('common.cancel'),
-        onDragOver: ({ active, over }) => {
-          if (!over) return;
-          const sectionId = active.data.current?.kind === 'section-card'
-            ? dragSession.current?.sourceSectionId : over.data.current?.sectionId;
-          const section = widgets.find(widget => widget.id === sectionId);
-          return `${t('common.reorder')}: ${section?.config.appearance?.title || String(over.id)}`;
-        },
-      } }}
+      accessibility={{ announcements: buildDragAnnouncements(widgets, t), screenReaderInstructions: { draggable: t('common.reorder_instructions') } }}
       sensors={sensors}
       collisionDetection={canvasCollisionDetection}
       onDragStart={handleDragStart}
@@ -110,6 +101,7 @@ export function DashboardCanvas({
       onDragOver={handleDragOver}
       onDragCancel={handleDragCancel}
     >
+      <TouchDragHint editing={isEditing} dragging={activeWidget !== null} />
       <SectionCardDragContext.Provider value={cardDragIdentities}>
       <div
         ref={containerRef}

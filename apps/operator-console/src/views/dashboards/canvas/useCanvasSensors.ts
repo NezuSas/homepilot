@@ -13,7 +13,7 @@ export function useCanvasSensors(useSectionSlots: boolean) {
 
   return useSensors(
     useSensor(MouseSensor, sensorOptions),
-    useSensor(TouchSensor, { activationConstraint: { delay: 500, tolerance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 300, tolerance: 8 } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: (event, args) => {
         const activeKind = args.context.active?.data.current?.kind;

@@ -131,7 +131,7 @@ export const Modal: React.FC<ModalProps> = ({
             label={closeLabel ?? labels.close}
             onClick={onClose}
             variant="ghost"
-            className="absolute right-4 top-4 z-10 sm:right-6 sm:top-6"
+            className="absolute right-4 top-4 z-10 bg-card/95 ring-1 ring-border/40 backdrop-blur-md sm:right-6 sm:top-6"
           />
         )}
       </div>

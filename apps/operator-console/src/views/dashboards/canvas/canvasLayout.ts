@@ -64,7 +64,7 @@ export function computeSlotCount(input: {
   return Math.ceil(Math.max(input.slotsLength, input.editingFloor) / input.columns) * input.columns + (input.draggingSection ? input.columns : 0);
 }
 
-const SECTION_SLOT_PREFIX = 'section-slot-';
+export const SECTION_SLOT_PREFIX = 'section-slot-';
 
 export function sectionSlotDroppableId(index: number): string {
   return `${SECTION_SLOT_PREFIX}${index}`;

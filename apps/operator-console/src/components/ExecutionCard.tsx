@@ -6,6 +6,7 @@ import { Clock, Zap, ChevronDown, ChevronUp, Play, Cog, Fingerprint } from 'luci
 import { ExecutionDetail } from './ExecutionDetail';
 import { Card } from './ui/Card';
 import { Heading } from './ui/Heading';
+import { localizeExecutionSummary } from '../lib/executionSummary';
 import { IconButton } from './ui/IconButton';
 
 interface ExecutionCardProps {
@@ -54,8 +55,8 @@ export const ExecutionCard: React.FC<ExecutionCardProps> = ({ record, onRetrySuc
                 {record.sourceId}
               </span>
             </div>
-            <Heading variant="card" className="truncate">
-              {record.summary || t('execution_logs.execution_fallback', { id: record.id.slice(0, 8) })}
+            <Heading variant="card" className="line-clamp-2 break-words">
+              {record.summary ? localizeExecutionSummary(record.summary, t) : t('execution_logs.execution_fallback', { id: record.id.slice(0, 8) })}
             </Heading>
           </div>
         </div>

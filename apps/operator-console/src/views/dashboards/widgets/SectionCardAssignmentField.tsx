@@ -37,7 +37,7 @@ export function SectionCardAssignmentField({
   }));
   const deviceOptions = assignableDevices.map((device) => ({
     value: device.id,
-    label: `${device.name} · ${device.type || device.semanticType || 'device'}`,
+    label: `${device.name} · ${device.semanticType || device.type || 'device'}`,
   }));
 
   return (

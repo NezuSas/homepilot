@@ -2,7 +2,7 @@ import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/
 import type { MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { Pencil, MoreVertical, Copy, GripVertical, Trash2 } from 'lucide-react';
+import { Pencil, MoreVertical, Copy, GripHorizontal, GripVertical, Trash2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { IconButton } from '../../components/ui/IconButton';
 import { Button } from '../../components/ui/Button';
@@ -124,6 +124,12 @@ export function WidgetEditToolbar({ isSection, hasClockEditTools, canDrag, dragH
       {/* A selected section exposes only its direct manipulation tools. */}
       <div data-clock-edit-tools={hasClockEditTools ? '' : undefined} className={cn("pointer-events-auto z-30 flex items-center", hasClockEditTools ? "relative order-first justify-end" : "absolute", !hasClockEditTools && (isSection ? "-top-5 right-3" : "right-2 top-2"))}>
         <div className={cn("flex items-center gap-1 rounded-xl border border-border/50 bg-background/95 p-1 shadow-lg backdrop-blur-md", hasClockEditTools && "max-w-full flex-wrap justify-end")}>
+          {/* Visible affordance: presses on the grip bubble to the section's own drag listeners. */}
+          {isSection && canDrag && (
+            <span aria-hidden="true" data-dashboard-section-grip="true" className="touch-none flex h-8 w-8 cursor-grab items-center justify-center rounded-lg text-muted-foreground hover:text-primary active:cursor-grabbing">
+              <GripHorizontal className="h-5 w-5" />
+            </span>
+          )}
           {isSection && <ActionMenu compact label={t('dashboards.edit_session.section_actions')} items={[
             { label: t('common.edit'), icon: Pencil, onSelect: onEditSection },
             { label: t('dashboards.edit_session.duplicate'), icon: Copy, onSelect: () => onDuplicate?.(), disabled: !onDuplicate },

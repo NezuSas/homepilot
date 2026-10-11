@@ -143,7 +143,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
             </div>
           ) : null}
           {(primaryCoverCommand || canStop) && (
-            <div className="curtain-tile-primary-action flex items-center gap-1.5 rounded-2xl border border-border/20 bg-muted/40 p-1 shadow-inner backdrop-blur-md">
+            <div className="curtain-tile-primary-action flex flex-wrap items-center gap-1.5 rounded-2xl border border-border/20 bg-muted/40 p-1 shadow-inner backdrop-blur-md">
               {primaryCoverCommand && (
                 <Button
                   type="button"
@@ -152,7 +152,7 @@ export const CurtainDeviceTile: React.FC<CurtainDeviceTileProps> = ({
                   onClick={(e) => { e.stopPropagation(); handleCommand(primaryCoverCommand); }}
                   disabled={!!isProcessing || isMoving}
                   className={cn(
-                    "min-w-0 flex-1",
+                    "min-w-[5.5rem] flex-1",
                     isOpen && "bg-background"
                   )}
                 >

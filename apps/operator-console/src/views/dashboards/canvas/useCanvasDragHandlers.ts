@@ -2,7 +2,7 @@ import { isValidElement } from 'react';
 import type { RefObject } from 'react';
 import type { DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
-import { moveSectionCard, placeSectionCard, sectionCardDragId } from '../sectionCardDrag';
+import { moveSectionCard, placeSectionCard, sectionCardDragId, sectionHasPinnedCards } from '../sectionCardDrag';
 import { moveSectionSlot, resolveSectionSlots, sectionLayoutKey, type SectionLayout } from '../sectionSlots';
 import type { DashboardWidget } from '../types';
 import { resolveSlotTargetIndex } from './canvasLayout';
@@ -30,6 +30,7 @@ export function useCanvasDragHandlers({ canEditLayout, widgets, sectionLayout, c
 
   const handleDragStart = (event: DragStartEvent) => {
     if (!canEditLayout) return;
+    if (typeof navigator !== 'undefined') navigator.vibrate?.(10);
     dragSession.current = { widgets, layout: sectionLayout, sourceSectionId: event.active.data.current?.sectionId, identities: cardDragIdentities };
     const widget = flowWidgets.find((w) => w.id === event.active.id);
     if (widget) setActiveWidget(widget);
@@ -96,9 +97,15 @@ export function useCanvasDragHandlers({ canEditLayout, widgets, sectionLayout, c
       if (session) setCardDragIdentities(session.identities);
       return;
     }
-    if (active.data.current?.kind === 'section-card' && (over.data.current?.kind === 'section' || over.data.current?.kind === 'section-card')) {
+    const overData = over.data.current;
+    const overCard = overData?.kind === 'section-card';
+    // A card dropped on another card keeps exactly the order shown during the drag, unless that
+    // section pins its cards to grid positions, where the pointer position decides.
+    const keepsPreviewedOrder = overCard && Boolean(session?.lastTarget)
+      && !sectionHasPinnedCards(session?.widgets ?? widgets, overData?.sectionId);
+    if (!keepsPreviewedOrder && overData && active.data.current?.kind === 'section-card' && (overData.kind === 'section' || overCard)) {
       const sourceId = session?.sourceSectionId ?? active.data.current.sectionId;
-      const targetId = over.data.current.sectionId;
+      const targetId = overData.sectionId;
       const cardId = active.data.current.cardId;
       const { placements, destination } = measureCardPlacements(containerRef.current, targetId, active.rect.current.translated);
       if (typeof sourceId === 'string' && typeof targetId === 'string' && typeof cardId === 'string' && destination) {

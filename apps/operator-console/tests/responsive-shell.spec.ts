@@ -211,7 +211,7 @@ for (const input of ['mouse', 'touch'] as const) {
         await page.clock.pauseAt(new Date('2026-10-02T12:00:01Z'));
         const session = await context.newCDPSession(page);
         await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [start] });
-        await page.clock.runFor(450);
+        await page.clock.runFor(250);
         await expect(source).not.toHaveAttribute('aria-pressed', 'true');
         await page.clock.runFor(100);
         await expect(source).toHaveAttribute('aria-pressed', 'true');

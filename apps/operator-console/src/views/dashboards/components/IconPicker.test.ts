@@ -64,7 +64,7 @@ describe('Dashboard MDI icons', () => {
     expect(stored).toBe('mdi:missing-old-icon');
     const editor = renderToStaticMarkup(createElement(IconPicker, { value: stored, onChange }));
     expect(editor.match(/Icon unavailable/g)).toHaveLength(1);
-    expect(editor).toContain(stored);
+    expect(editor).toContain('missing old icon');
   });
 
   it('keeps an unknown legacy string visible without changing its value', () => {

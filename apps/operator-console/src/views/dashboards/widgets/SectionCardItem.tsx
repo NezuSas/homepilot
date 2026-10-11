@@ -150,6 +150,7 @@ export function SectionCardItem({
     data: { kind: 'section-card', sectionId, cardId: card.id, preview: cardContent, getPreviewRect: () => previewNode.current?.getBoundingClientRect(), getPreviewNode: () => previewNode.current },
     disabled: !isEditing,
     transition: DASHBOARD_DRAG_TRANSITION,
+    attributes: { roleDescription: t('common.reorder_role') },
   });
   const interactionAttributes = isEditing ? attributes
     : isActionable && normalizedKind !== 'action'
