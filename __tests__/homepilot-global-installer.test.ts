@@ -18,7 +18,7 @@ const simulatedSystem = `
   hp_install_docker() { printf 'DOCKER_OK\\n'; }
   hp_verify_tpm() { printf 'TPM_OK\\n'; }
   hp_prepare_mqtt() { printf 'MQTT_PREPARE:%s\\n' "$hp_mqtt"; }
-  hp_deploy() { printf 'DEPLOY:%s:%s:%s:%s:%s\\n' "$hp_profile" "$hp_cameras" "$hp_android" "$hp_mqtt" "$hp_voice"; }
+  hp_deploy() { printf 'DEPLOY:%s:%s:%s:%s:%s\\nCHAT:%s\\n' "$hp_profile" "$hp_cameras" "$hp_android" "$hp_mqtt" "$hp_voice" "$hp_chat"; }
   hp_configure_cloudflared() { printf 'TUNNEL:%s\\n' "$hp_remote"; }
   hp_pair_directory() { printf 'PAIR:%s\\n' "$hp_remote"; }
   hp_bind_identity() { printf 'BIND:%s\\n' "$hp_remote"; }
@@ -175,9 +175,9 @@ describe('HomePilot global installation wizard without system operations', () =>
   });
 
   it.each([
-    ['existing Home Assistant', '1\nn\nn\nn\nn\ns\nn\ns\n', 'bridge_ha'],
-    ['managed Home Assistant', '2\nn\nn\nn\ns\nn\ns\n', 'ha_companion'],
-    ['no Home Assistant', '3\nn\nn\nn\ns\nn\ns\n', 'native_only'],
+    ['existing Home Assistant', '1\nn\nn\nn\nn\ns\ns\nn\ns\n', 'bridge_ha'],
+    ['managed Home Assistant', '2\nn\nn\nn\ns\ns\nn\ns\n', 'ha_companion'],
+    ['no Home Assistant', '3\nn\nn\nn\ns\ns\nn\ns\n', 'native_only'],
   ])('maps %s to its existing installation profile', (_label, architectureInput, profile) => {
     const input = `Cliente Prueba\nCasa Prueba\nhomepilot-test\nn\n${architectureInput}`;
     const result = runShell(simulatedSystem, input);
@@ -190,6 +190,24 @@ describe('HomePilot global installation wizard without system operations', () =>
     expect(result.stdout).toContain('COMPROBACIÓN INICIAL');
     expect(result.stdout).toContain('REVISAR CONFIGURACIÓN');
     expect(result.stdout).not.toMatch(/\x1b\[/);
+  });
+
+  it('keeps "Conversar con mi casa" on by default and asks about voice only when it is on', () => {
+    const input = 'Cliente Prueba\nCasa Prueba\nhomepilot-test\nn\n3\nn\nn\nn\ns\ns\nn\ns\n';
+    const result = runShell(simulatedSystem, input);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('CHAT:true');
+    expect(result.stdout).toContain('DEPLOY:native_only:false:false:false:true');
+    expect(result.stdout).toContain('Conversar con mi casa');
+  });
+
+  it('turns voice off and skips its question when the installer leaves "Conversar con mi casa" out', () => {
+    const input = 'Cliente Prueba\nCasa Prueba\nhomepilot-test\nn\n3\nn\nn\nn\nn\nn\ns\n';
+    const result = runShell(simulatedSystem, input);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('CHAT:false');
+    expect(result.stdout).toContain('DEPLOY:native_only:false:false:false:false');
+    expect(result.stdout).not.toContain('¿Habilitar voz local HomePilot');
   });
 
   it('centers the same branded text at 80, 100 and 120 columns', () => {
@@ -222,7 +240,7 @@ describe('HomePilot global installation wizard without system operations', () =>
   });
 
   it('selects native cameras, Android, MQTT and disables voice without probing unselected services', () => {
-    const input = 'Cliente Prueba\nCasa Prueba\nhomepilot-test\nn\n3\ns\ns\n192.168.1.0/24\ns\n192.168.1.10\nhomeassistant\nn\nn\ns\n';
+    const input = 'Cliente Prueba\nCasa Prueba\nhomepilot-test\nn\n3\ns\ns\n192.168.1.0/24\ns\n192.168.1.10\nhomeassistant\ns\nn\nn\ns\n';
     const result = runShell(simulatedSystem, input);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('DEPLOY:native_only:true:true:true:false');
@@ -234,14 +252,14 @@ describe('HomePilot global installation wizard without system operations', () =>
 
   it('passes modular choices to the historical installer instead of starting a parallel deployment', () => {
     const result = runShell(`
-      hp_profile=bridge_ha hp_cameras=false hp_android=false hp_mqtt=false hp_voice=false
+      hp_profile=bridge_ha hp_cameras=false hp_android=false hp_mqtt=false hp_chat=false hp_voice=false
       hp_client='Cliente Prueba' hp_installation='Casa Prueba' hp_community=false
-      bash() { printf 'DELEGATE:%s\\nCAMERA:%s VOICE:%s MQTT:%s TPM:%s REV:%s\\n' "$*" "$HOMEPILOT_INSTALL_CAMERA_ENABLED" "$HOMEPILOT_INSTALL_VOICE_ENABLED" "$HOMEPILOT_INSTALL_MQTT_ENABLED" "$HOMEPILOT_INSTALL_TPM_ENABLED" "$HOMEPILOT_BUILD_REVISION"; }
+      bash() { printf 'DELEGATE:%s\\nCHAT:%s CAMERA:%s VOICE:%s MQTT:%s TPM:%s REV:%s\\n' "$*" "$HOMEPILOT_INSTALL_CHAT_ENABLED" "$HOMEPILOT_INSTALL_CAMERA_ENABLED" "$HOMEPILOT_INSTALL_VOICE_ENABLED" "$HOMEPILOT_INSTALL_MQTT_ENABLED" "$HOMEPILOT_INSTALL_TPM_ENABLED" "$HOMEPILOT_BUILD_REVISION"; }
       hp_deploy
     `);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('DELEGATE:scripts/install-edge-office.sh --profile bridge_ha --start --yes');
-    expect(result.stdout).toContain('CAMERA:false VOICE:false MQTT:false TPM:true REV:installer-v1');
+    expect(result.stdout).toContain('CHAT:false CAMERA:false VOICE:false MQTT:false TPM:true REV:installer-v1');
   });
 
   it('fails a new production installation when the TPM device is absent', () => {

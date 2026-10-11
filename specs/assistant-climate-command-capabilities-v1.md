@@ -18,7 +18,6 @@ Enable safe, capability-validated climate control from HomePilot assistant paths
 
 - Generic sensor write commands.
 - Per-device HVAC mode or fan-mode discovery; Home Assistant remains the authority for accepted values.
-- Planner V2 execution-default promotion, which is governed by `assistant-planner-v2-production-rollout-v1`.
 
 ## Functional requirements
 

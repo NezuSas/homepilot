@@ -51,12 +51,13 @@ hp_admin_operation() {
       hp_ui_block "$HP_PRIMARY$HP_BOLD" 'Configuración conservada'
       local key label value
       for key in HOMEPILOT_INSTALLATION_PROFILE HOMEPILOT_CAMERA_ENABLED \
-        HOMEPILOT_ANDROID_DISPLAY_ENABLED HOMEPILOT_MQTT_ENABLED HOMEPILOT_VOICE_ENABLED HOMEPILOT_TPM_ENABLED; do
+        HOMEPILOT_ANDROID_DISPLAY_ENABLED HOMEPILOT_MQTT_ENABLED HOMEPILOT_HOME_CHAT_ENABLED HOMEPILOT_VOICE_ENABLED HOMEPILOT_TPM_ENABLED; do
         case "$key" in
           HOMEPILOT_INSTALLATION_PROFILE) label='Perfil' ;;
           HOMEPILOT_CAMERA_ENABLED) label='Cámaras' ;;
           HOMEPILOT_ANDROID_DISPLAY_ENABLED) label='Android Display' ;;
           HOMEPILOT_MQTT_ENABLED) label='MQTT' ;;
+          HOMEPILOT_HOME_CHAT_ENABLED) label='Conversar con mi casa' ;;
           HOMEPILOT_VOICE_ENABLED) label='Voz' ;;
           HOMEPILOT_TPM_ENABLED) label='TPM declarado' ;;
         esac

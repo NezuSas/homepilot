@@ -60,7 +60,6 @@ export class SelectionHandler extends ConversationCollaborator {
           entities: scene.actions.map(a => ({ id: a.deviceId, name: 'device', type: 'device', roomId: null })),
           timestamp: new Date().toISOString()
         });
-        console.info(`[PLANNER_V2_MEMORY_SAVED] ${JSON.stringify({ source: 'selection', sceneId: scene.id, sceneName: scene.name })}`);
       }
 
       return {
@@ -105,10 +104,6 @@ export class SelectionHandler extends ConversationCollaborator {
           entities: device ? [{ id: device.id, name: device.name, type: device.type, roomId: device.roomId }] : [],
           timestamp: new Date().toISOString()
         });
-
-        if (device) {
-          console.info(`[PLANNER_V2_MEMORY_SAVED] ${JSON.stringify({ source: 'selection', deviceId: device.id, deviceName: device.name })}`);
-        }
 
         const logSource = request.selectedOptionId ? 'ui_option' : 'text_selection';
         console.info(`[ASSISTANT_SELECTION_EXECUTED] ${JSON.stringify({

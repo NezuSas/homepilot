@@ -32,6 +32,7 @@ android_display_choice="${HOMEPILOT_INSTALL_ANDROID_CHOICE:-}"
 android_display_desktop=false
 global_install="${HOMEPILOT_GLOBAL_INSTALL:-false}"
 camera_enabled="${HOMEPILOT_INSTALL_CAMERA_ENABLED:-true}"
+home_chat_enabled="${HOMEPILOT_INSTALL_CHAT_ENABLED:-true}"
 voice_enabled="${HOMEPILOT_INSTALL_VOICE_ENABLED:-true}"
 mqtt_enabled="${HOMEPILOT_INSTALL_MQTT_ENABLED:-false}"
 tpm_enabled="${HOMEPILOT_INSTALL_TPM_ENABLED:-false}"
@@ -761,6 +762,7 @@ else
 fi
 if [[ -f "$ENV_FILE" ]]; then
   if [[ "$global_install" != true ]]; then
+    home_chat_enabled="$(env_value HOMEPILOT_HOME_CHAT_ENABLED true)"
     voice_enabled="$(env_value HOMEPILOT_VOICE_ENABLED true)"
     camera_enabled="$(env_value HOMEPILOT_CAMERA_ENABLED true)"
     mqtt_enabled="$(env_value HOMEPILOT_MQTT_ENABLED false)"
@@ -894,6 +896,9 @@ if [[ "$global_install" == true ]]; then
   set_env_value HOMEPILOT_CLIENT_NAME "${HOMEPILOT_INSTALL_CLIENT_NAME:-}"
   set_env_value HOMEPILOT_INSTALLATION_NAME "${HOMEPILOT_INSTALL_NAME:-}"
   set_env_value HOMEPILOT_CAMERA_ENABLED "$camera_enabled"
+  # Voice only exists to talk to the home; without the chat there is nothing to speak to.
+  [[ "$home_chat_enabled" == true ]] || voice_enabled=false
+  set_env_value HOMEPILOT_HOME_CHAT_ENABLED "$home_chat_enabled"
   set_env_value HOMEPILOT_VOICE_ENABLED "$voice_enabled"
   set_env_value HOMEPILOT_MQTT_ENABLED "$mqtt_enabled"
   if [[ "$mqtt_enabled" == true ]]; then

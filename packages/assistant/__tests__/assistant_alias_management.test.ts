@@ -18,7 +18,6 @@ import {
   createMockSmartEntityResolver,
   createMockAssistantSuggestionService,
   createMockExecutionRecordRepository,
-  createMockAssistantPlannerV2ShadowService,
   createMockSystemVariableService
 } from './test_helpers';
 import { inferCommandFromPrompt, isConfirmation, isNegativeConfirmation, isPositiveConfirmation, resolveSelectionFromMemory } from '../application/conversation/confirmationReplies';
@@ -31,10 +30,8 @@ describe('Assistant Alias Management V1', () => {
   let mockSceneRepo: any;
   let mockAutomationRepo: any;
   let mockLearning: any;
-  let mockShadow: any;
 
   let mockFollowUp: any;
-  let mockHybridSpy: jest.SpyInstance;
 
   beforeEach(() => {
     mockMemory = createMockAssistantMemory();
@@ -43,7 +40,6 @@ describe('Assistant Alias Management V1', () => {
     mockSceneRepo = createMockSceneRepository();
     mockAutomationRepo = createMockAutomationRuleRepository();
     mockLearning = createMockAssistantLearningService();
-    mockShadow = createMockAssistantPlannerV2ShadowService();
     mockFollowUp = createMockFollowUpResolver();
 
     service = new AssistantConversationService(
@@ -63,12 +59,9 @@ describe('Assistant Alias Management V1', () => {
       createMockSmartEntityResolver(),
       createMockAssistantSuggestionService(),
       createMockExecutionRecordRepository(),
-      createMockSystemVariableService(),
-      mockShadow
+      createMockSystemVariableService()
     );
 
-    mockHybridSpy = jest.spyOn(service as any, 'attemptV2HybridExecution');
-    mockShadow.runShadow.mockClear();
   });
 
   it('1. list aliases resolves target names', async () => {
@@ -82,14 +75,12 @@ describe('Assistant Alias Management V1', () => {
     const res = await service.converse({ prompt: 'qué aliases tengo', userId: 'u1' }, 'es');
     expect(res.message).toContain('mi oficina → Cuarto Master');
     expect(res.message).toContain('luz lectura → Luz Seccion Escritorio');
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('2. list aliases empty', async () => {
     mockMemory.getAliases.mockResolvedValue({});
     const res = await service.converse({ prompt: 'what aliases do i have', userId: 'u1' }, 'en');
     expect(res.message).toBe("You haven't created any aliases yet.");
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('3. alias meaning found', async () => {
@@ -98,14 +89,12 @@ describe('Assistant Alias Management V1', () => {
     
     const res = await service.converse({ prompt: 'qué significa mi oficina', userId: 'u1' }, 'es');
     expect(res.message).toBe("'mi oficina' se refiere a Cuarto Master.");
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('4. alias meaning not found', async () => {
     mockMemory.getAliases.mockResolvedValue({});
     const res = await service.converse({ prompt: 'qué significa mi oficina', userId: 'u1' }, 'es');
     expect(res.message).toBe("No encontré ese alias.");
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('5. delete request creates pendingAliasDelete and does not delete immediately', async () => {
@@ -124,7 +113,6 @@ describe('Assistant Alias Management V1', () => {
       })
     }));
     expect(mockMemory.deleteAlias).not.toHaveBeenCalled();
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('6. delete confirm deletes alias', async () => {
@@ -140,7 +128,6 @@ describe('Assistant Alias Management V1', () => {
     expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('u1', expect.objectContaining({
       pendingAliasDelete: undefined
     }));
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('7. delete reject keeps alias', async () => {
@@ -152,12 +139,6 @@ describe('Assistant Alias Management V1', () => {
     
     expect(res.message).toBe("Acción cancelada.");
     expect(mockMemory.deleteAlias).not.toHaveBeenCalled();
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
-  });
-
-  it('8. delete paths do not call shadowService.runShadow', async () => {
-    // Already checked in 5, 6, 7
-    expect(true).toBe(true);
   });
 
   it('9. creation collision with room name is rejected', async () => {
@@ -168,7 +149,6 @@ describe('Assistant Alias Management V1', () => {
     
     expect(res.message).toContain("Ya existe una estancia o dispositivo llamado 'Cocina'");
     expect(mockMemory.setAlias).not.toHaveBeenCalled();
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('10. creation collision with device name is rejected', async () => {
@@ -179,7 +159,6 @@ describe('Assistant Alias Management V1', () => {
     
     expect(res.message).toContain("Ya existe una estancia o dispositivo llamado 'Luz Entrada'");
     expect(mockMemory.setAlias).not.toHaveBeenCalled();
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('11. existing alias creation still works', async () => {
@@ -190,7 +169,6 @@ describe('Assistant Alias Management V1', () => {
     
     expect(res.message).toBe("Perfecto, ahora 'oficinita' se refiere a Cuarto Master.");
     expect(mockMemory.setAlias).toHaveBeenCalledWith('u1', 'oficinita', 'r1');
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('12. room bulk still resolves user alias after these changes', async () => {
@@ -209,7 +187,6 @@ describe('Assistant Alias Management V1', () => {
     
     const res = await service.converse({ prompt: 'qué significa mi oficina porfa', userId: 'u1' }, 'es');
     expect(res.message).toBe("'mi oficina' se refiere a Cuarto Master.");
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('14. natural phrase delete request works', async () => {
@@ -227,7 +204,6 @@ describe('Assistant Alias Management V1', () => {
         targetName: 'Cuarto Master'
       })
     }));
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('15. multiple aliases same length returns ambiguity', async () => {
@@ -246,7 +222,6 @@ describe('Assistant Alias Management V1', () => {
     expect(res.message).toContain("Encontré varios aliases posibles:");
     expect(res.message).toContain("mi sala");
     expect(res.message).toContain("la sala");
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('16. delete not found logs not found', async () => {
@@ -256,7 +231,6 @@ describe('Assistant Alias Management V1', () => {
     
     expect(res.type).toBe('answer');
     expect(res.message).toBe("No encontré ese alias.");
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
   it('17. device alias fast path success', async () => {
     mockRoomRepo.findAll.mockResolvedValue([]);
@@ -271,7 +245,6 @@ describe('Assistant Alias Management V1', () => {
     expect(res.type).toBe('execution');
     expect(res.message).toBe("He encendido luz de lectura.");
     expect(execMock).toHaveBeenCalledWith('d1', 'turn_on', 'prende luz de lectura', expect.any(String));
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
     expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('u1', expect.objectContaining({
       lastQueryType: 'command',
       entities: [expect.objectContaining({ id: 'd1' })]
@@ -292,7 +265,6 @@ describe('Assistant Alias Management V1', () => {
     const res = await service.converse({ prompt: 'prende mi luz la luz', userId: 'u1' }, 'es');
     expect(res.type).toBe('answer');
     expect(res.message).toMatch(/varios aliases posibles/);
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('19. device alias fast path invalid target falls back', async () => {
@@ -306,7 +278,6 @@ describe('Assistant Alias Management V1', () => {
     // Safety Gate V2 blocks unknown target — returns not-found answer, does NOT call shadow
     expect(res.type).toBe('answer');
     expect(res.message).toContain('luz de lectura');
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('20. room alias ignored in device fast path', async () => {
@@ -319,7 +290,6 @@ describe('Assistant Alias Management V1', () => {
     // Safety Gate V2 blocks unknown target — returns not-found answer, does NOT call shadow
     expect(res.type).toBe('answer');
     expect(res.message).toContain('luz de lectura');
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('21. exact real device name wins over alias', async () => {
@@ -349,7 +319,6 @@ describe('Assistant Alias Management V1', () => {
     // Safety Gate V2 blocks — returns not-found answer, does NOT call shadow
     expect(res.type).toBe('answer');
     expect(res.message).toContain('luz de lectura');
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('23. pronoun follow-up apágala executes and bypasses shadow', async () => {
@@ -365,8 +334,6 @@ describe('Assistant Alias Management V1', () => {
     const res = await service.converse({ prompt: 'apágala', userId: 'u1' }, 'es');
     
     expect(res.type).toBe('execution');
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
-    expect(mockHybridSpy).not.toHaveBeenCalled();
     // Verify execution was called with d1
     expect(execMock).toHaveBeenCalledWith('d1', 'turn_off', 'apagala', expect.any(String));
   });
@@ -386,48 +353,40 @@ describe('Assistant Alias Management V1', () => {
     
     // FollowUpResolver should NOT be called for a direct alias match
     expect(mockFollowUp.resolve).not.toHaveBeenCalled();
-    expect(mockHybridSpy).not.toHaveBeenCalled();
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('25. company info query bypasses shadow', async () => {
     const res = await service.converse({ prompt: 'qué es nezu', userId: 'u1' }, 'es');
     expect(res.type).toBe('answer');
     expect(res.message).toContain('NEZU S.A.S.');
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('26. greeting query bypasses shadow', async () => {
     const res = await service.converse({ prompt: 'hola', userId: 'u1' }, 'es');
     expect(res.type).toBe('answer');
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('27. company info query bypasses shadow', async () => {
     const res = await service.converse({ prompt: 'qué es nezu', userId: 'u1' }, 'es');
     expect(res.type).toBe('answer');
     expect(res.message).toContain('NEZU S.A.S.');
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('28. presentation query bypasses shadow', async () => {
     const res = await service.converse({ prompt: 'qué puedes hacer', userId: 'u1' }, 'es');
     expect(res.type).toBe('answer');
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('29. time query bypasses shadow and uses correct format', async () => {
     const res = await service.converse({ prompt: 'qué hora es', userId: 'u1' }, 'es');
     expect(res.type).toBe('answer');
     expect(res.message).toMatch(/(Es la|Son las) .+ de la (madrugada|mañana|tarde|noche)/);
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('30. date query bypasses shadow and uses correct format', async () => {
     const res = await service.converse({ prompt: 'qué fecha es hoy', userId: 'u1' }, 'es');
     expect(res.type).toBe('answer');
     expect(res.message).toContain('Hoy es');
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('31. ambiguous home-control prompt is blocked by Safety Gate V2 with room clarification', async () => {
@@ -436,7 +395,6 @@ describe('Assistant Alias Management V1', () => {
     expect(['clarification', 'execution']).toContain(res.type);
     expect(res.message).toContain('estancia');
     // Shadow must NOT be called for safety-blocked prompts
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
   it('32. confirmation, selection and command helpers keep multilingual decisions deterministic', () => {
     expect(isConfirmation('procede ahora')).toBe(true);

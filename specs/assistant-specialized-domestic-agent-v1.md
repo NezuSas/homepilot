@@ -2,9 +2,11 @@
 
 **Status:** Implemented
 
+> Note (2026-10-11): the optional Planner V2 and language-model paths mentioned below were removed from the repository (`assistant-interactive-llm-latency-budget-v1`, REQ-07). The domestic skills are deterministic.
+
 - Date: 2026-08-20
 - Owner: HomePilot
-- Related specifications: `nezu-domestic-assistant-v1.md`, `assistant-planner-v2-production-rollout-v1.md`, `assistant-home-isolation-and-bulk-parity-v1.md`
+- Related specifications: `nezu-domestic-assistant-v1.md`, `assistant-home-isolation-and-bulk-parity-v1.md`
 
 ## 1. Problem
 

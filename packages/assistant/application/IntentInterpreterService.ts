@@ -1,6 +1,5 @@
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
-import { LlmIntentInterpreterPort } from './ports/LlmIntentInterpreterPort';
 import { AssistantMemoryPort } from './ports/AssistantMemoryPort';
 import { IntentInterpreterPort, Intent, AssistantMultiCommandResult } from './ports/IntentInterpreterPort';
 import { AssistantMultiCommandParser } from './AssistantMultiCommandParser';
@@ -21,7 +20,6 @@ export class IntentInterpreterService implements IntentInterpreterPort {
     private readonly sceneRepository: SceneRepository,
     private readonly roomRepository: RoomRepository,
     private readonly multiCommandParser: AssistantMultiCommandParser,
-    private readonly llmInterpreter?: LlmIntentInterpreterPort,
     private readonly memoryService?: AssistantMemoryPort,
     private readonly homeRepository?: HomeRepository
   ) {}
@@ -67,31 +65,6 @@ export class IntentInterpreterService implements IntentInterpreterPort {
     const deterministicResult = await this.interpretDeterministic(prompt, userId);
     if (isDiagnosticLoggingEnabled()) {
       console.debug(`[IntentInterpreter] deterministic path: ${Date.now() - t_det}ms → ${deterministicResult.type}`);
-    }
-
-    if (deterministicResult.type !== 'unknown') {
-      return deterministicResult;
-    }
-
-    // 2. Fallback to LLM if enabled and deterministic failed
-    // The legacy whole-inventory interpreter is a second model call per turn. Planner V2 already
-    // covers paraphrases, so a profile that enables it can switch this one off to keep a single call.
-    const isLlmEnabled = process.env.OLLAMA_ENABLED === 'true' && process.env.ASSISTANT_LEGACY_LLM_INTERPRETER !== 'false';
-    if (isLlmEnabled && this.llmInterpreter) {
-      const t_llm = Date.now();
-      try {
-        const intent = await this.llmInterpreter.interpret(prompt, userId);
-        if (intent && intent.type !== 'unknown') {
-          if (isDiagnosticLoggingEnabled()) {
-            console.debug(`[IntentInterpreter] LLM path: ${Date.now() - t_llm}ms → ${intent.type}`);
-          }
-          return intent;
-        }
-      } catch (error) {
-        if (isDiagnosticLoggingEnabled()) {
-          console.warn('[Assistant] LLM interpretation failed:', error instanceof Error ? error.message : String(error));
-        }
-      }
     }
 
     return deterministicResult;

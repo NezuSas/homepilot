@@ -24,6 +24,7 @@ assume_yes=false
 truncate_logs=false
 runtime_failures=0
 global_installer_v1=false
+home_chat_enabled=true
 voice_enabled=true
 camera_enabled=true
 mqtt_enabled=false
@@ -91,10 +92,11 @@ load_installer_capabilities() {
   [[ -f .env ]] || return 0
   if [[ "$(env_value HOMEPILOT_GLOBAL_INSTALLER_VERSION '')" == v1 ]]; then
     global_installer_v1=true
+    home_chat_enabled="$(env_value HOMEPILOT_HOME_CHAT_ENABLED true)"
     voice_enabled="$(env_value HOMEPILOT_VOICE_ENABLED true)"
     camera_enabled="$(env_value HOMEPILOT_CAMERA_ENABLED true)"
     mqtt_enabled="$(env_value HOMEPILOT_MQTT_ENABLED false)"
-    for value in "$voice_enabled" "$camera_enabled" "$mqtt_enabled" "$tpm_enabled"; do
+    for value in "$home_chat_enabled" "$voice_enabled" "$camera_enabled" "$mqtt_enabled" "$tpm_enabled"; do
       [[ "$value" == true || "$value" == false ]] || fail 'Capacidad del instalador inválida en .env.'
     done
   fi

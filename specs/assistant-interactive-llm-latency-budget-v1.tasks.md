@@ -8,6 +8,7 @@ Primary specification: assistant-interactive-llm-latency-budget-v1.md
 - [x] Remove Ollama checks from supported installation and maintenance scripts, remove stale Compose services during deployment, and clear the unused HomePilot Ollama image.
 - [x] Remove model settings from the environment templates and effective local environment.
 - [x] Preserve deterministic assistant, safety, and voice behavior without a model container.
+- [x] Remove every remaining language-model class, port, endpoint, script, test and document from the repository.
 
 ## Verification
 

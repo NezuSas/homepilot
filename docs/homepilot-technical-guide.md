@@ -641,7 +641,7 @@ Migrations are stored in migrations and recorded in _migrations. Do not edit the
 | Assistant | assistant_findings, assistant_feedback_events, assistant_drafts, assistant_memory, assistant_learning_events | Persists suggestions, feedback, memory, and learning |
 ## Relevant environment variables
 
-These are the safe production rollout defaults for Planner V2. A local operator may override them in an untracked environment file for controlled testing; never commit real secrets.
+These are the relevant environment defaults. A local operator may override them in an untracked environment file for controlled testing; never commit real secrets.
 
 ~~~bash
 HOMEPILOT_DEV_BOOTSTRAP=true
@@ -672,6 +672,7 @@ WHISPER_MAX_AUDIO_BYTES=9000000
 | Variable | Safe production rollout default | Description |
 |---|---|---|
 | HOMEPILOT_DEV_BOOTSTRAP | true | Creates admin/admin only when the database is empty; local development only |
+| HOMEPILOT_HOME_CHAT_ENABLED | true | Set by the installer. `false` hides "Conversar con mi casa" (menu, route, wake word and demo step) and makes the API refuse chat, text-to-speech and speech-to-text requests with `FEATURE_DISABLED`; the rest of the assistant is unaffected |
 | HOMEPILOT_DB_PATH | ./data/homepilot.db | SQLite path outside Docker/inside local WSL; containers normally use /app/data/homepilot.db |
 | HOMEPILOT_SQLITE_JOURNAL_MODE | WAL | Use WAL on the Linux mini PC; use DELETE only when Docker mounts data from Windows | Bundled HomePilot synthetic voice identity; `male` is also available |
 | TTS_PROVIDER | kokoro | Primary local voice engine with Piper fallback |
@@ -852,7 +853,7 @@ El modo resumido no guarda ni reproduce logs crudos, que podrían incluir URLs p
 
 #### Requisitos por capa
 
-El punto de entrada para una MiniPC nueva es `sudo bash scripts/homepilot-install.sh`. Requiere el checkout disponible, Ubuntu LTS x86_64 con systemd, TPM real, espacio libre y acceso a los repositorios externos. Solo prepara paquetes después de la confirmación; reutiliza paquetes ya instalados. No se garantiza una instalación sin fallos de red, repositorios, hardware, puertos ocupados o credenciales incorrectas.
+El instalador pregunta, entre las capacidades opcionales, si se habilita «Conversar con mi casa» (por defecto sí); solo si se habilita pregunta por la voz local, y si no, no instala STT ni TTS. La elección se guarda como `HOMEPILOT_HOME_CHAT_ENABLED` y aparece en el resumen, en el menú de componentes y en el diagnóstico. El punto de entrada para una MiniPC nueva es `sudo bash scripts/homepilot-install.sh`. Requiere el checkout disponible, Ubuntu LTS x86_64 con systemd, TPM real, espacio libre y acceso a los repositorios externos. Solo prepara paquetes después de la confirmación; reutiliza paquetes ya instalados. No se garantiza una instalación sin fallos de red, repositorios, hardware, puertos ocupados o credenciales incorrectas.
 
 | Script / biblioteca | Responsabilidad y dependencias |
 | --- | --- |

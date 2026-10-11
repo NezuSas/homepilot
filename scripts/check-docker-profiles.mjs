@@ -23,7 +23,6 @@ const requiredFiles = [
   '.dockerignore',
   '.env.office.example',
   '.env.native.example',
-  'docker-compose.assistant-llm.yml',
 ];
 
 const failures = [];
@@ -156,20 +155,6 @@ if (failures.length === 0) {
   if (modelRuntimePattern.test(maintenance)) {
     failures.push('Maintenance runtime checks must not require a language-model service');
   }
-  // The only place a model may be configured is the explicit opt-in overlay, and it must stay
-  // local, bounded and subordinate to the deterministic assistant.
-  const assistantLlmOverlay = read('docker-compose.assistant-llm.yml');
-  for (const required of [
-    'OLLAMA_ENABLED: "true"',
-    'ASSISTANT_PLANNER_V2_EXECUTION_TIMEOUT_MS',
-    'ASSISTANT_LEGACY_LLM_INTERPRETER: "false"',
-    'host.docker.internal',
-  ]) {
-    if (!assistantLlmOverlay.includes(required)) failures.push('The assistant LLM overlay must declare ' + required);
-  }
-  if (/CLOUDFLARE_AI_|ASSISTANT_CONVERSATIONAL_LLM_PROVIDER\s*:\s*"?cloudflare|^\s*ports\s*:|^\s*image\s*:/im.test(assistantLlmOverlay)) {
-    failures.push('The assistant LLM overlay must stay local: no cloud provider, no published port and no extra service image');
-  }
   if (!maintenance.includes('is_docker_desktop')
     || !maintenance.includes('docker-compose.desktop.yml')
     || !maintenance.includes('docker compose "${compose_options[@]}" build --builder "$HOMEPILOT_BUILDER_NAME"')
@@ -274,4 +259,4 @@ if (failures.length > 0) {
   process.exit(1);
 }
 
-console.log('Docker profile validation passed: canonical SQLite path, model-free default profiles with an opt-in local model overlay, Desktop override, and same-origin proxies are present.');
+console.log('Docker profile validation passed: canonical SQLite path, model-free deterministic assistant runtime, Desktop override, and same-origin proxies are present.');

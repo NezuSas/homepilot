@@ -27,7 +27,6 @@ describe('Fast Path Integration in AssistantConversationService', () => {
   let mockDispatcher: any;
   let mockDeviceRepo: any;
   let mockRoomRepo: any;
-  let mockShadowService: any;
   let mockIntentInterpreter: any;
   let mockSceneExecution: any;
   let mockSmallTalk: any;
@@ -40,11 +39,6 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     mockRoomRepo = createMockRoomRepository();
     mockSceneExecution = createMockSceneExecutionService();
     mockSmallTalk = createMockAssistantSmallTalk();
-    mockShadowService = {
-      runShadow: jest.fn().mockResolvedValue(undefined),
-      attemptHybridExecution: jest.fn().mockResolvedValue(null)
-    };
-
     service = new AssistantConversationService(
       mockIntentInterpreter, // 1
       createMockAssistantConfirmationPolicy(), // 2
@@ -62,20 +56,10 @@ describe('Fast Path Integration in AssistantConversationService', () => {
       createMockSmartEntityResolver(), // 14
       createMockAssistantSuggestionService(), // 15
       createMockExecutionRecordRepository(), // 16
-      createMockSystemVariableService(), // 17 (added)
-      mockShadowService // 18 (shadow service)
+      createMockSystemVariableService() // 17 (added)
     );
   });
 
-  it('does not queue Planner V2 shadow work after a small-talk model attempt', async () => {
-    mockSmallTalk.handle.mockResolvedValue({ type: 'answer', message: 'No estoy seguro de lo que quieres hacer todavía.', llmAttempted: true });
-
-    const response = await service.converse({ prompt: 'dime algo interesante de mi casa', userId: 'u1' }, 'es');
-
-    expect(response.type).toBe('answer');
-    expect(mockSmallTalk.handle).toHaveBeenCalled();
-    expect(mockShadowService.runShadow).not.toHaveBeenCalled();
-  });
   it('executes via fast path and saves memory, allowing pronoun follow-up', async () => {
     // 1. Setup mock devices
     const testDevice = createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'light', roomId: 'r1' });
@@ -99,17 +83,6 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     }));
   });
 
-  it('bypasses shadow execution when fast path handles the request', async () => {
-    const testDevice = createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'light', roomId: 'r1' });
-    mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
-    mockDeviceRepo.findDeviceById.mockResolvedValue(testDevice);
-
-    await service.converse({ prompt: 'prende luz cocina', userId: 'u1' }, 'es');
-
-    // Fast path should succeed and NOT call shadow
-    expect(mockShadowService.runShadow).not.toHaveBeenCalled();
-  });
-
   it('handles natural phrases through fast path without exact wording', async () => {
     const testDevice = createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'light', roomId: 'r1' });
     mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
@@ -119,7 +92,6 @@ describe('Fast Path Integration in AssistantConversationService', () => {
 
     expect(response.type).toBe('execution');
     expect(mockIntentInterpreter.interpret).not.toHaveBeenCalled();
-    expect(mockShadowService.runShadow).not.toHaveBeenCalled();
   });
 
   it('opens a Home Assistant cover through the deterministic fast path', async () => {
@@ -183,7 +155,6 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     expect(response.type).toBe('execution');
     expect(response.message).toContain('Luz Sala');
     expect(mockIntentInterpreter.interpret).not.toHaveBeenCalled();
-    expect(mockShadowService.runShadow).not.toHaveBeenCalled();
   });
 
   it('returns fast unknown-target feedback for global wake commands with invalid targets', async () => {
@@ -197,7 +168,6 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     expect(response.type).toBe('answer');
     expect(response.message).toContain("No encontré un dispositivo llamado 'el territorio'");
     expect(mockIntentInterpreter.interpret).not.toHaveBeenCalled();
-    expect(mockShadowService.runShadow).not.toHaveBeenCalled();
   });
 
   it('lets exact device names win over room singular light routing', async () => {
@@ -211,7 +181,6 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     expect(response.type).toBe('execution');
     expect(response.message).toContain('Luz Sala');
     expect(mockIntentInterpreter.interpret).not.toHaveBeenCalled();
-    expect(mockShadowService.runShadow).not.toHaveBeenCalled();
   });
 
   it('handles imperfect speech transcription for an exact device command', async () => {
@@ -266,19 +235,9 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     expect(response.message).toContain('En qué estancia');
 
     // Shadow should NOT run for blocked safety gate cases
-    expect(mockShadowService.runShadow).not.toHaveBeenCalled();
   });
 
   describe('Deterministic Query Shadow Bypass', () => {
-    it('bypasses shadow for "qué luces están encendidas" (State Query)', async () => {
-      const testDevice = createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'light', lastKnownState: { on: true } });
-      mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
-
-      await service.converse({ prompt: 'qué luces están encendidas', userId: 'u1' }, 'es');
-
-      expect(mockShadowService.runShadow).not.toHaveBeenCalled();
-    });
-
     it('bypasses shadow for "qué luces están apagadas" (State Query)', async () => {
       const testDevice = createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'switch', lastKnownState: { state: 'off' } });
       mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
@@ -287,34 +246,6 @@ describe('Fast Path Integration in AssistantConversationService', () => {
 
       expect(response.message).toContain('Luz Cocina');
       expect(response.message).not.toContain('No hay luces apagadas');
-      expect(mockShadowService.runShadow).not.toHaveBeenCalled();
-    });
-
-    it('bypasses shadow for "esta encendida la luz de la cocina?" (Point State Query)', async () => {
-      const testDevice = createTestDevice({ id: 'd1', name: 'Luz Cocina', type: 'light', lastKnownState: { on: true } });
-      mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
-
-      await service.converse({ prompt: 'esta encendida la luz cocina', userId: 'u1' }, 'es');
-
-      expect(mockShadowService.runShadow).not.toHaveBeenCalled();
-    });
-
-    it('bypasses shadow for "que estancias conoces" (Room Query)', async () => {
-      mockDeviceRepo.findAll.mockResolvedValue([]);
-
-      await service.converse({ prompt: 'que estancias conoces', userId: 'u1' }, 'es');
-
-      expect(mockShadowService.runShadow).not.toHaveBeenCalled();
-    });
-
-    it('calls shadow for non-deterministic home-control prompt "ayúdame con la luz"', async () => {
-      const testDevice = createTestDevice({ id: 'd1', name: 'Luz Cocina' });
-      mockDeviceRepo.findAll.mockResolvedValue([testDevice]);
-      mockIntentInterpreter.interpret.mockResolvedValue({ type: 'unknown', prompt: 'ayúdame con la luz' });
-
-      await service.converse({ prompt: 'ayúdame con la luz', userId: 'u1' }, 'es');
-
-      expect(mockShadowService.runShadow).toHaveBeenCalled();
     });
 
     it('returns compact summary for broad query "estado de la casa" and bypasses shadow', async () => {
@@ -335,7 +266,6 @@ describe('Fast Path Integration in AssistantConversationService', () => {
       expect(res.message).toContain('Apagadas: 1');
       expect(res.message).toContain('Estancias con actividad: Cocina');
       expect(res.message).toContain('dame detalle');
-      expect(mockShadowService.runShadow).not.toHaveBeenCalled();
     });
 
     it('returns detailed answer for "dame detalle" after broad state query and bypasses shadow', async () => {
@@ -366,16 +296,6 @@ describe('Fast Path Integration in AssistantConversationService', () => {
       expect(res.message).toContain('• Luz Cocina (Cocina)');
       expect(res.message).toContain('Apagadas:');
       expect(res.message).toContain('• Luz Sala (Sala)');
-      expect(mockShadowService.runShadow).not.toHaveBeenCalled();
-    });
-
-    it('does not schedule shadow work for "dame detalle" if memory is missing', async () => {
-      mockMemory.getShortTermMemory.mockResolvedValue(null);
-      mockIntentInterpreter.interpret.mockResolvedValue({ type: 'unknown', prompt: 'dame detalle' });
-
-      await service.converse({ prompt: 'dame detalle', userId: 'u1' }, 'es');
-
-      expect(mockShadowService.runShadow).not.toHaveBeenCalled();
     });
 
     it('works with English "show detail"', async () => {
@@ -409,7 +329,6 @@ describe('Fast Path Integration in AssistantConversationService', () => {
     expect(response.type).toBe('answer');
     expect(response.message).toContain("I couldn't find a device called 'the spaceship'.");
     expect(mockIntentInterpreter.interpret).not.toHaveBeenCalled();
-    expect(mockShadowService.runShadow).not.toHaveBeenCalled();
   });
 
 });

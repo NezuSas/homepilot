@@ -25,6 +25,11 @@ export function getRuntimeTarget(value = process.env.HOMEPILOT_RUNTIME_TARGET): 
     : DEFAULT_RUNTIME_TARGET;
 }
 
+/** "Conversar con mi casa" (chat and voice with the assistant). On unless the installer turned it off. */
+export function isHomeChatEnabled(value = process.env.HOMEPILOT_HOME_CHAT_ENABLED): boolean {
+  return value !== 'false';
+}
+
 export function getSetupHttpUrl(value = process.env.HOMEPILOT_HOME_ASSISTANT_SETUP_URL): string | null {
   if (!value) return null;
 

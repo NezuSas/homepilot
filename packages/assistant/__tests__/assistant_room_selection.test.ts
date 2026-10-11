@@ -28,7 +28,6 @@ describe('Assistant Room Selection Resolution', () => {
   let mockDispatcher: any;
   let mockDeviceRepo: any;
   let mockRoomRepo: any;
-  let mockShadowService: any;
   let mockSmallTalk: any;
   let mockIntentInterpreter: any;
   let mockSceneExecutionService: any;
@@ -42,11 +41,6 @@ describe('Assistant Room Selection Resolution', () => {
     mockIntentInterpreter = createMockIntentInterpreterPort();
     mockSceneExecutionService = createMockSceneExecutionService();
     
-    mockShadowService = {
-      attemptHybridExecution: jest.fn(),
-      runShadow: jest.fn().mockResolvedValue(undefined)
-    };
-
     service = new AssistantConversationService(
       mockIntentInterpreter,
       createMockAssistantConfirmationPolicy(),
@@ -64,8 +58,7 @@ describe('Assistant Room Selection Resolution', () => {
       createMockSmartEntityResolver(),
       createMockAssistantSuggestionService(),
       createMockExecutionRecordRepository(),
-      createMockSystemVariableService(),
-      mockShadowService
+      createMockSystemVariableService()
     );
   });
 
@@ -84,7 +77,6 @@ describe('Assistant Room Selection Resolution', () => {
     expect(res.clarification?.options?.[0].kind).toBe('room');
     
     // Bypasses shadow and smalltalk
-    expect(mockShadowService.runShadow).not.toHaveBeenCalled();
     expect(mockSmallTalk.handle).not.toHaveBeenCalled();
     expect(mockIntentInterpreter.interpret).not.toHaveBeenCalled();
   });
@@ -157,7 +149,6 @@ describe('Assistant Room Selection Resolution', () => {
     );
 
     // Bypasses shadow and smalltalk
-    expect(mockShadowService.runShadow).not.toHaveBeenCalled();
     expect(mockSmallTalk.handle).not.toHaveBeenCalled();
     expect(mockIntentInterpreter.interpret).not.toHaveBeenCalled();
   });
@@ -254,6 +245,5 @@ describe('Assistant Room Selection Resolution', () => {
       expect.anything()
     );
     
-    expect(mockShadowService.runShadow).not.toHaveBeenCalled();
   });
 });

@@ -58,7 +58,6 @@ describe('Assistant Room Bulk Fast-Path', () => {
       undefined,
       undefined,
       undefined,
-      undefined,
       mockConfirmationTicketRepository
     );
   });

@@ -78,15 +78,6 @@ Windows Docker Desktop, Home Assistant companion profile:
 docker compose -f docker-compose.yml -f docker-compose.ha-companion.desktop.yml up -d --build
 ```
 
-Optional local assistant model (Windows Docker Desktop with a GPU). The default profiles answer deterministically; this overlay adds a local model that only proposes plans for phrasings the deterministic assistant does not understand:
-
-```powershell
-ollama pull qwen3:8b
-docker compose -f docker-compose.yml -f docker-compose.ha-companion.desktop.yml -f docker-compose.assistant-llm.yml up -d --build --no-deps homepilot-api
-```
-
-Set `HOMEPILOT_LLM_MODEL` to use another Ollama model. Remove the last `-f` and redeploy to return to the deterministic assistant. See `specs/assistant-local-llm-opt-in-v1.md`.
-
 ## Runtime Inspection
 
 ```bash
@@ -99,19 +90,6 @@ curl -fsS http://127.0.0.1:3000/health
 On Docker Desktop, the API is normally exposed on port `13000` and the UI on
 port `8080`.
 
-## Planner V2 Shadow Review
-
-Aggregate the secret-free Planner V2 shadow diagnostics on the appliance:
-
-```bash
-docker compose logs --no-log-prefix homepilot-api | npm run review:planner-v2-shadow
-```
-
-Use strict automated eligibility checks without enabling Planner V2 execution:
-
-```bash
-docker compose logs --no-log-prefix homepilot-api | npm run review:planner-v2-shadow:strict
-```
 ## Quality and Release Validation
 
 Run the complete engineering validation suite:

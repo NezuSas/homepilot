@@ -1,6 +1,6 @@
 import type { DemoStep } from '../stores/useDemoGuideStore';
 
-export const APP_DEMO_STEPS: DemoStep[] = [
+const ALL_APP_DEMO_STEPS: DemoStep[] = [
     {
       id: 'dashboard-nav',
       target: '[data-demo="nav-dashboard"]',
@@ -38,3 +38,7 @@ export const APP_DEMO_STEPS: DemoStep[] = [
     }
   ];
 
+/** The guided demo skips the conversation step when the installer left "Conversar con mi casa" out. */
+export function getAppDemoSteps(homeChatEnabled: boolean): DemoStep[] {
+  return homeChatEnabled ? ALL_APP_DEMO_STEPS : ALL_APP_DEMO_STEPS.filter((step) => step.id !== 'conversation');
+}

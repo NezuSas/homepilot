@@ -57,7 +57,7 @@ export class ConversationPlanner extends ConversationCollaborator {
 
     const domesticSkillResponse = await this.deps.domesticSkillResolver.resolve(activePrompt, userId, language);
     const domesticFollowUpResponse = await this.handleDomesticSkillFollowUp(resolvedNormalized, memory, userId, language);
-    if (domesticFollowUpResponse) return this.modules.session.returnWithShadow(activePrompt, userId, language, domesticFollowUpResponse, 'standard', false, false);
+    if (domesticFollowUpResponse) return this.modules.session.finalizeResponse(language, domesticFollowUpResponse, 'standard', false);
     if (domesticSkillResponse) {
       const roomEntity: AssistantMemoryEntity[] = domesticSkillResponse.context.room
         ? [{
@@ -74,13 +74,10 @@ export class ConversationPlanner extends ConversationCollaborator {
         entities: [...roomEntity, ...domesticSkillResponse.context.entities],
         timestamp: new Date().toISOString()
       });
-      return this.modules.session.returnWithShadow(
-        activePrompt,
-        userId,
+      return this.modules.session.finalizeResponse(
         language,
         { type: 'answer', message: domesticSkillResponse.message },
         'standard',
-        false,
         false
       );
     }
@@ -93,11 +90,8 @@ export class ConversationPlanner extends ConversationCollaborator {
           : (language === 'en' ? 'Understood. ' : 'Entendido. ');
         conversationalResponse.message = `${prefix}${conversationalResponse.message}`;
       }
-      return this.modules.session.returnWithShadow(activePrompt, userId, language, conversationalResponse, responsePreference, true, false);
+      return this.modules.session.finalizeResponse(language, conversationalResponse, responsePreference, true);
     }
-
-    const v2Response = await this.modules.hooks.attemptV2HybridExecution(activePrompt, userId, language, userName, memory);
-    if (v2Response) return this.modules.session.returnWithShadow(activePrompt, userId, language, v2Response);
 
     const intentResult = await this.deps.intentInterpreter.interpret(activePrompt, userId);
     if (intentResult && 'type' in intentResult) {
@@ -106,7 +100,7 @@ export class ConversationPlanner extends ConversationCollaborator {
         const inferredCommand = inferCommandFromPrompt(intentResult.originalSegment) || inferCommandFromPrompt(activePrompt) || 'turn_on';
         await this.deps.memoryService.saveShortTermMemory(userId, { lastQueryType: 'clarification', entities: [], timestamp: new Date().toISOString(), clarificationOptions: intentResult.options, originalPrompt: activePrompt, pendingIntent: { type: 'command', deviceId: '', command: inferredCommand as DeviceCommandV1, prompt: activePrompt, timestamp: new Date().toISOString() } });
         const options = intentResult.options.map(opt => ({ ...opt, kind: isClarificationKind(opt.kind) ? opt.kind : 'device' }));
-        return this.modules.session.returnWithShadow(activePrompt, userId, language, withJarvisStyle({ type: 'clarification', message: getAssistantResponseText('clarification.intent_multiple_matches', language, { segment: intentResult.originalSegment }), clarification: { question: getAssistantResponseText('clarification.which_one_do_you_mean', language, {}), options } }, {
+        return this.modules.session.finalizeResponse(language, withJarvisStyle({ type: 'clarification', message: getAssistantResponseText('clarification.intent_multiple_matches', language, { segment: intentResult.originalSegment }), clarification: { question: getAssistantResponseText('clarification.which_one_do_you_mean', language, {}), options } }, {
           status: 'clarification',
           suggestions: options.map(option => option.label),
           userName: userName || undefined
@@ -120,7 +114,7 @@ export class ConversationPlanner extends ConversationCollaborator {
     else intent = { type: 'unknown', prompt: activePrompt, reason: 'Invalid interpretation result' };
 
     if (intent && intent.type !== 'unknown' && (memory?.pendingIntent || memory?.pendingDraft)) await this.modules.session.clearPendingAction(userId);
-    return this.modules.session.returnWithShadow(activePrompt, userId, language, await this.modules.hooks.executeIntent(intent || { type: 'unknown', prompt: activePrompt }, request, language, userId, userName, activePrompt, memory));
+    return this.modules.session.finalizeResponse(language, await this.modules.hooks.executeIntent(intent || { type: 'unknown', prompt: activePrompt }, request, language, userId, userName, activePrompt, memory));
   }
 
   public async handleDomesticSkillFollowUp(

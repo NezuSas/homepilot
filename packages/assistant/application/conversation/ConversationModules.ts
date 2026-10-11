@@ -51,13 +51,6 @@ export interface ConversationHooks {
     params?: Record<string, unknown>,
     knownDevice?: Device
   ): Promise<SceneExecutionResult>;
-  attemptV2HybridExecution(
-    activePrompt: string,
-    userId: string,
-    language: 'es' | 'en',
-    userName: string | null,
-    memory: AssistantMemoryState | null
-  ): Promise<AssistantConversationResponse | null>;
   attemptFastPathExecution(
     activePrompt: string,
     userId: string,

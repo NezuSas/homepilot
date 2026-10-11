@@ -20,6 +20,7 @@ This specification removes language-model services and configuration from every 
 - **REQ-04:** Installation and maintenance scripts neither wait for nor report Ollama as a required service, and deployment removes services that became Compose orphans plus the unused HomePilot Ollama image.
 - **REQ-05:** Environment templates and the effective local environment contain no Ollama, conversational-provider, Cloudflare Workers AI, or Planner V2 model configuration.
 - **REQ-06:** Existing deterministic commands, queries, confirmations, domestic recommendations, speech-to-text, and text-to-speech retain their behavior.
+- **REQ-07:** The source tree contains no language-model code: no model client, intent interpreter, home-context builder for a model, Planner V2 planner, shadow service or circuit breaker, and no endpoint or script that reports on them. A new model integration needs its own approved specification.
 
 ## Acceptance Criteria
 
@@ -28,8 +29,7 @@ This specification removes language-model services and configuration from every 
 - [x] **AC3:** Environment templates have no Ollama, Cloudflare Workers AI, conversational-provider, or Planner V2 model variable.
 - [x] **AC4:** Deployment validation prevents a language-model runtime from being reintroduced.
 - [x] **AC5:** Type checking, all tests, backend build, operator console build, and Docker runtime validation pass without an Ollama container.
-
-Note: this specification governs every default profile. `assistant-local-llm-opt-in-v1` adds an explicit opt-in overlay for installations with a GPU; nothing here changes unless that overlay is added.
+- [x] **AC6:** On 2026-10-11 the remaining model code was removed from the repository: `OllamaClient`, `CloudflareWorkersAiClient`, `LlmIntentInterpreter`, `LlmCircuitBreaker`, `AssistantContextBuilder`, the Planner V2 shadow, validator, resolver and normalizer, the `planner/` modules, the `/assistant/shadow/*` endpoints and the shadow review script. Small talk and the intent interpreter answer deterministically.
 
 ## Non-Goals
 

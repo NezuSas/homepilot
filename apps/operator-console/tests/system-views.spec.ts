@@ -119,6 +119,7 @@ for (const viewport of [
     await page.route('**/api/v1/settings/home-personalization', route => route.fulfill({ json: settings }));
     await page.route('**/api/v1/settings/home-assistant', route => route.fulfill({ json: { baseUrl: 'http://192.0.2.1:8123', hasToken: true, maskedToken: '***', configurationStatus: 'configured', connectivityStatus: 'unknown', lastCheckedAt: null, activeSource: 'database' } }));
     await page.route('**/api/v1/settings/test-ha-connection', route => route.fulfill({ json: { success: true } }));
+    await page.route('**/api/v1/system/features', route => route.fulfill({ json: { homeChat: true } }));
     await page.route('**/api/v1/system/setup-status', route => route.fulfill({ json: { ...setupStatus, installationProfile: 'bridge_ha', requiresHomeAssistant: true, runtimeTarget: 'docker_desktop', homeAssistantBridgeUrl: 'http://host.docker.internal:8123', homeAssistantSetupUrl: 'http://localhost:8123' } }));
     for (const theme of ['dark', 'light']) {
       await page.goto('/system/home-personalization');

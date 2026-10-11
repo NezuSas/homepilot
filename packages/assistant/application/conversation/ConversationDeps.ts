@@ -12,7 +12,6 @@ import { AssistantDraftService } from '../AssistantDraftService';
 import { AssistantLearningService } from '../AssistantLearningService';
 import { SmartEntityResolver } from '../SmartEntityResolver';
 import { AssistantSuggestionService } from '../AssistantSuggestionService';
-import { AssistantPlannerV2ShadowService } from '../AssistantPlannerV2ShadowService';
 import { AssistantFastPathResolver } from '../AssistantFastPathResolver';
 import { AssistantMediaPlayerResolver } from '../AssistantMediaPlayerResolver';
 import { AssistantAliasManagementService } from '../AssistantAliasManagementService';
@@ -45,7 +44,6 @@ export interface ConversationDeps {
   readonly suggestionService: AssistantSuggestionService;
   readonly executionRecordRepository: ExecutionRecordRepository;
   readonly systemVariableService: SystemVariableService;
-  readonly shadowService?: AssistantPlannerV2ShadowService;
   readonly fastPathResolver: AssistantFastPathResolver;
   readonly homeRepository?: HomeRepository;
   readonly confirmationTicketRepository?: ConfirmationTicketRepository;

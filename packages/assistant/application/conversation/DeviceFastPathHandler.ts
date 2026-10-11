@@ -96,7 +96,6 @@ export class DeviceFastPathHandler extends ConversationCollaborator {
         entities: [{ id: targetDevice.id, name: targetDevice.name, type: targetDevice.type, roomId: targetDevice.roomId }],
         timestamp: new Date().toISOString()
       });
-      console.info(`[PLANNER_V2_MEMORY_SAVED] ${JSON.stringify({ source: 'device_alias', deviceId: targetDevice.id })}`);
 
       return await this.modules.session.attachSuggestionIfNeeded({
         type: 'execution',
@@ -132,7 +131,6 @@ export class DeviceFastPathHandler extends ConversationCollaborator {
         entities: [{ id: device.id, name: device.name, type: device.type, roomId: device.roomId }],
         timestamp: new Date().toISOString()
       });
-      console.info(`[PLANNER_V2_MEMORY_SAVED] ${JSON.stringify({ source: 'fast_path', deviceId: device.id, deviceName: device.name })}`);
 
       const isSpanish = language === 'es';
       let msg = '';
@@ -265,14 +263,6 @@ export class DeviceFastPathHandler extends ConversationCollaborator {
         reason: 'single_light'
       })}`);
 
-      console.info(`[PLANNER_V2_MEMORY_SAVED] ${JSON.stringify({
-        source: 'context_room',
-        deviceId: selectedLight.id,
-        deviceName: selectedLight.name,
-        roomId: targetRoom.id,
-        roomName: targetRoom.name
-      })}`);
-
       const msg = buildCommandSuccessMessage(vagueMatch.command, selectedLight.name, userName, language);
 
       return {
@@ -285,68 +275,4 @@ export class DeviceFastPathHandler extends ConversationCollaborator {
     return null;
   }
 
-  public async attemptV2HybridExecution(
-    activePrompt: string,
-    userId: string,
-    language: 'es' | 'en',
-    userName: string | null,
-    memory: AssistantMemoryState | null
-  ): Promise<AssistantConversationResponse | null> {
-    if (!this.deps.shadowService) return null;
-
-    const v2Result = await this.deps.shadowService.attemptHybridExecution(activePrompt, userId, memory);
-    if (!v2Result) return null;
-
-    if (v2Result.resolvedType === 'category') {
-      // One action that the model read as "a whole category" is never executed on its own: the
-      // deterministic flow decides whether to ask which one or to run a bulk it understands.
-      console.info(`[PLANNER_V2_EXECUTION_SKIPPED] ${JSON.stringify({ reason: 'category_requires_deterministic_flow', targets: v2Result.resolvedIds?.length ?? 0 })}`);
-      return null;
-    }
-
-    if (v2Result.resolvedIds && v2Result.resolvedIds.length > 1) {
-      const resolvedIds = v2Result.resolvedIds || [];
-      const devices = (await this.deps.permissionGate.getAuthorizedDevices(userId)).filter((device) =>
-        resolvedIds.includes(device.id)
-        && this.deps.scopeFilter.isControllableDevice(device, v2Result.command as DeviceCommandV1)
-      );
-      if (devices.length === 0) return null;
-
-      return this.modules.commands.executeBulkDevices(
-        userId,
-        language,
-        devices,
-        v2Result.command as DeviceCommandV1,
-        activePrompt,
-        'all'
-      );
-    }
-    if (!v2Result.deviceId) return null;
-
-    // Bypass V1 execution completely
-    const device = await this.deps.deviceRepository.findDeviceById(v2Result.deviceId);
-    const deviceName = device?.name ?? v2Result.deviceId;
-
-    const execResult = await this.modules.commands.executeAuthorizedCommand(userId, v2Result.deviceId, v2Result.command as DeviceCommandV1, activePrompt, `hybrid-${Date.now()}`);
-
-    if (execResult.status === 'success') {
-      await this.modules.session.clearPendingAction(userId);
-      await this.deps.memoryService.saveShortTermMemory(userId, {
-        lastQueryType: 'command',
-        entities: device ? [{ id: device.id, name: device.name, type: device.type, roomId: device.roomId }] : [],
-        timestamp: new Date().toISOString()
-      });
-      if (device) {
-        console.info(`[PLANNER_V2_MEMORY_SAVED] ${JSON.stringify({ deviceId: device.id, deviceName: device.name })}`);
-      }
-    }
-
-    return {
-      type: 'execution',
-      message: execResult.status === 'success'
-        ? buildCommandSuccessMessage(v2Result.command as DeviceCommandV1, deviceName, userName, language)
-        : getAssistantResponseText('execution.failed', language, {}),
-      execution: execResult
-    };
-  }
 }

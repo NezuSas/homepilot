@@ -19,8 +19,8 @@ export class ConversationPendingFlow extends ConversationCollaborator {
     if (memory?.pendingManagementAction) {
       const isAffirmative = request.selectedOptionId === 'confirm' || isPositiveConfirmation(normalized);
       const isNegative = request.selectedOptionId === 'cancel' || isNegativeConfirmation(normalized);
-      if (isAffirmative) return this.modules.session.returnWithShadow(activePrompt, userId, language, await this.modules.managementActions.executeManagementAction(memory.pendingManagementAction, userId, language));
-      if (isNegative) { await this.modules.session.clearPendingAction(userId); return this.modules.session.returnWithShadow(activePrompt, userId, language, { type: 'answer', message: getAssistantResponseText('action.cancelled', language, {}) }); }
+      if (isAffirmative) return this.modules.session.finalizeResponse(language, await this.modules.managementActions.executeManagementAction(memory.pendingManagementAction, userId, language));
+      if (isNegative) { await this.modules.session.clearPendingAction(userId); return this.modules.session.finalizeResponse(language, { type: 'answer', message: getAssistantResponseText('action.cancelled', language, {}) }); }
     }
 
     // B) Alias Delete Confirmation
@@ -46,10 +46,10 @@ export class ConversationPendingFlow extends ConversationCollaborator {
       const isAffirmative = request.selectedOptionId === 'confirm' || isPositiveConfirmation(normalized);
       const isNegative = request.selectedOptionId === 'cancel' || isNegativeConfirmation(normalized);
       if (isAffirmative) {
-        try { await this.deps.draftService.activateDraft(memory.pendingDraft.id, userId); await this.modules.session.clearPendingAction(userId); return this.modules.session.returnWithShadow(activePrompt, userId, language, { type: 'answer', message: getAssistantResponseText('draft.activated', language, { draftType: memory.pendingDraft.type === 'scene' ? 'scene' : 'routine' }) }); }
-        catch (err: unknown) { return this.modules.session.returnWithShadow(activePrompt, userId, language, { type: 'error', message: getAssistantResponseText('draft.activation_failed', language, {}) }); }
+        try { await this.deps.draftService.activateDraft(memory.pendingDraft.id, userId); await this.modules.session.clearPendingAction(userId); return this.modules.session.finalizeResponse(language, { type: 'answer', message: getAssistantResponseText('draft.activated', language, { draftType: memory.pendingDraft.type === 'scene' ? 'scene' : 'routine' }) }); }
+        catch (err: unknown) { return this.modules.session.finalizeResponse(language, { type: 'error', message: getAssistantResponseText('draft.activation_failed', language, {}) }); }
       }
-      if (isNegative) { await this.modules.session.clearPendingAction(userId); return this.modules.session.returnWithShadow(activePrompt, userId, language, { type: 'answer', message: getAssistantResponseText('draft.cancelled', language, { draftType: memory.pendingDraft.type === 'scene' ? 'scene' : 'routine' }) }); }
+      if (isNegative) { await this.modules.session.clearPendingAction(userId); return this.modules.session.finalizeResponse(language, { type: 'answer', message: getAssistantResponseText('draft.cancelled', language, { draftType: memory.pendingDraft.type === 'scene' ? 'scene' : 'routine' }) }); }
     }
 
     // E) Selected Option Flow (UI clicks)
@@ -65,8 +65,8 @@ export class ConversationPendingFlow extends ConversationCollaborator {
             message: getAssistantResponseText('confirmation.expired', language, {})
           };
         }
-        if (request.selectedOptionId === 'confirm') { request.confirmed = true; return this.modules.session.returnWithShadow(activePrompt, userId, language, await this.modules.hooks.executeIntent(memory.pendingIntent, request, language, userId, userName, memory.originalPrompt || prompt, memory)); }
-        else { await this.modules.session.clearPendingAction(userId); return this.modules.session.returnWithShadow(activePrompt, userId, language, { type: 'answer', message: getAssistantResponseText('action.cancelled', language, {}) }); }
+        if (request.selectedOptionId === 'confirm') { request.confirmed = true; return this.modules.session.finalizeResponse(language, await this.modules.hooks.executeIntent(memory.pendingIntent, request, language, userId, userName, memory.originalPrompt || prompt, memory)); }
+        else { await this.modules.session.clearPendingAction(userId); return this.modules.session.finalizeResponse(language, { type: 'answer', message: getAssistantResponseText('action.cancelled', language, {}) }); }
       }
       return await this.modules.selection.handleSelection(request, language);
     }

@@ -24,7 +24,9 @@ import { useAppShellStore } from './stores/useAppShellStore';
 import { useAssistantStore } from './stores/useAssistantStore';
 import { useDeviceSnapshotStore } from './stores/useDeviceSnapshotStore';
 import { useDemoGuideStore } from './stores/useDemoGuideStore';
-import { APP_DEMO_STEPS } from './config/appDemoSteps';
+import { getAppDemoSteps } from './config/appDemoSteps';
+import { useInstalledFeatures } from './lib/useInstalledFeatures';
+import { resolveVisibleView } from './lib/installedFeatures';
 import { AppSidebarFooter } from './components/AppSidebarFooter';
 import { AppSidebarBrand } from './components/AppSidebarBrand';
 import { MobileSidebarToggle } from './components/MobileSidebarToggle';
@@ -58,7 +60,7 @@ function App() {
   }, []);
   // The URL is the source of truth for navigation (reload/back/forward/share
   // all just work), instead of plain component state that resets on reload.
-  const currentView = useMemo(() => pathToView(location.pathname), [location.pathname]);
+  const requestedView = useMemo(() => pathToView(location.pathname), [location.pathname]);
   const { dashboardId: urlDashboardId, tabId: urlTabId, lastTabRef } = useDashboardRoute(location.pathname);
   const [showPwdModal, setShowPwdModal] = useState<boolean>(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -100,6 +102,13 @@ function App() {
   }, [resetAppShellState, resetAssistantState, resetSnapshotState]);
 
   const { status, user, handleLoginSuccess, handleLogout, clearSession, validateSession } = useSession(onSessionCleared);
+  const installedFeatures = useInstalledFeatures(status === 'authenticated');
+  const currentView = resolveVisibleView(requestedView, installedFeatures);
+  const demoSteps = useMemo(() => getAppDemoSteps(installedFeatures.homeChat), [installedFeatures.homeChat]);
+  // A bookmarked or shared link to a view this installation does not have lands on the home dashboard.
+  useEffect(() => {
+    if (requestedView !== currentView) navigate('/', { replace: true });
+  }, [requestedView, currentView, navigate]);
 
   useEffect(() => {
     if (status === 'checking') {
@@ -272,6 +281,7 @@ function App() {
             canAccessAdminControl={canAccessAdminControl}
             canAccessSystem={canAccessSystem}
             isAdmin={user?.role === 'admin'}
+            homeChatEnabled={installedFeatures.homeChat}
             assistantOpenCount={assistantSummary?.totalOpen ?? 0}
             translate={t}
             onNavigate={navigateFromSidebar}
@@ -290,8 +300,8 @@ function App() {
           user={user}
           profile={localProfile}
           theme={theme}
-          demoStepCount={APP_DEMO_STEPS.length}
-          onStartDemo={() => startDemo(APP_DEMO_STEPS)}
+          demoStepCount={demoSteps.length}
+          onStartDemo={() => startDemo(demoSteps)}
           onToggleTheme={() => {
             useAppShellStore.getState().setAutomaticTheme(false);
             setTheme(theme === 'dark' ? 'light' : 'dark');
@@ -362,6 +372,7 @@ function App() {
         onPasswordChanged={handlePasswordChanged}
         onCloseProfileModal={() => setShowProfileModal(false)}
         onProfileSaved={setLocalProfile}
+        homeChatEnabled={installedFeatures.homeChat}
         onWakeCommand={wake.onCommand}
         onWakeInterrupt={wake.onInterrupt}
         onWakeStatusChange={wake.onStatusChange}

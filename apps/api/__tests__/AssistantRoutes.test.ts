@@ -78,16 +78,6 @@ describe('Feature: Local assistant speech transport', () => {
     expect(mockRes.end).toHaveBeenCalledWith(expect.stringContaining('ASSISTANT_AUTHORIZATION_ERROR'));
   });
 
-  it('contains planner status failures behind the assistant error contract', async () => {
-    (mockContainer.services as any).assistantPlannerV2ShadowService = {
-      getStatus: jest.fn().mockImplementation(() => { throw new Error('planner unavailable'); }),
-    };
-
-    await routes.handle(mockReq as HomePilotRequest, mockRes as http.ServerResponse, '/api/v1/assistant/shadow/status', 'GET', mockContainer as BootstrapContainer);
-
-    expect(mockRes.writeHead).toHaveBeenCalledWith(500, { 'Content-Type': 'application/json' });
-    expect(mockRes.end).toHaveBeenCalledWith(expect.stringContaining('ASSISTANT_ERROR'));
-  });
   it('GET /api/v1/assistant/summary returns an explicit installation error when legacy homes are duplicated', async () => {
     (mockContainer.repositories as any).homeRepository.findHomesByUserId.mockRejectedValue(new SingleHomeInstallationError());
 
@@ -310,24 +300,6 @@ describe('Feature: Local assistant speech transport', () => {
     expect((mockContainer.services as any).assistantService.getSummary).not.toHaveBeenCalled();
   });
 
-  it('returns planner shadow status only to administrators', async () => {
-    (mockContainer.services as any).assistantPlannerV2ShadowService = { getStatus: jest.fn().mockReturnValue({ enabled: true }) };
-
-    await routes.handle(mockReq as HomePilotRequest, mockRes as http.ServerResponse, '/api/v1/assistant/shadow/status', 'GET', mockContainer as BootstrapContainer);
-
-    expect((mockContainer.services as any).assistantPlannerV2ShadowService.getStatus).toHaveBeenCalledTimes(1);
-    expect(mockRes.end).toHaveBeenCalledWith(JSON.stringify({ enabled: true }));
-  });
-
-  it('does not expose shadow metrics when the required role is denied', async () => {
-    mockAuthGuard.requireRole.mockReturnValue(false);
-    (mockContainer.services as any).assistantPlannerV2ShadowService = { getMetrics: jest.fn() };
-
-    await routes.handle(mockReq as HomePilotRequest, mockRes as http.ServerResponse, '/api/v1/assistant/shadow/metrics', 'GET', mockContainer as BootstrapContainer);
-
-    expect((mockContainer.services as any).assistantPlannerV2ShadowService.getMetrics).not.toHaveBeenCalled();
-  });
-
   it('dismisses and resolves findings only inside the authenticated homes', async () => {
     (mockContainer.services as any).assistantService.dismiss = jest.fn().mockResolvedValue(undefined);
     (mockContainer.services as any).assistantService.resolve = jest.fn().mockResolvedValue(undefined);
@@ -408,11 +380,7 @@ describe('Feature: Local assistant speech transport', () => {
     expect(mockRes.end).toHaveBeenLastCalledWith(expect.stringContaining('summary backend unavailable'));
   });
 
-  it('returns shadow metrics to an administrator and maps local STT unavailability', async () => {
-    (mockContainer.services as any).assistantPlannerV2ShadowService = { getMetrics: jest.fn().mockReturnValue({ total: 3 }) };
-    await routes.handle(mockReq as HomePilotRequest, mockRes as http.ServerResponse, '/api/v1/assistant/shadow/metrics', 'GET', mockContainer as BootstrapContainer);
-    expect(mockRes.end).toHaveBeenLastCalledWith(JSON.stringify({ total: 3 }));
-
+  it('maps local STT unavailability', async () => {
     mockAssistantSpeechToTextService.transcribe.mockRejectedValueOnce(new AssistantSpeechToTextUnavailableError('whisper offline'));
     (mockReq as any)._fastifyParsedBody = JSON.stringify({ audioBase64: 'YWJj', audioContentType: 'audio/webm' });
     await routes.handle(mockReq as HomePilotRequest, mockRes as http.ServerResponse, '/api/v1/assistant/stt', 'POST', mockContainer as BootstrapContainer);
@@ -434,7 +402,6 @@ describe('Feature: assistant route failure contracts', () => {
     repositories: { homeRepository: { findHomesByUserId: jest.fn().mockResolvedValue([{ id: 'home-1' }]) } },
     services: {
       assistantService: { listOpen: jest.fn().mockRejectedValue(new Error('store unavailable')), getSummary: jest.fn().mockRejectedValue(new Error('summary unavailable')) },
-      assistantPlannerV2ShadowService: { getMetrics: jest.fn().mockReturnValue({ decisions: 3 }) },
       assistantActionService: { handleAction: jest.fn().mockRejectedValue(new Error('action unavailable')) },
       assistantTextToSpeechService: { synthesize: jest.fn().mockRejectedValue(new Error('provider error')) },
       assistantSpeechToTextService: { transcribe: jest.fn().mockRejectedValue(new AssistantSpeechToTextUnavailableError('offline')) },
@@ -453,13 +420,9 @@ describe('Feature: assistant route failure contracts', () => {
     expect(findingsResponse.end).toHaveBeenCalledWith(expect.stringContaining('ASSISTANT_ERROR'));
   });
 
-  it('returns shadow metrics and maps action, TTS, and STT availability failures to stable contracts', async () => {
+  it('maps action, TTS, and STT availability failures to stable contracts', async () => {
     const routes = new AssistantRoutes();
     const container = createContainer();
-    const metricsResponse = createResponse();
-    await routes.handle(createRequest(), metricsResponse, '/api/v1/assistant/shadow/metrics', 'GET', container);
-    expect(metricsResponse.end).toHaveBeenCalledWith(JSON.stringify({ decisions: 3 }));
-
     const actionResponse = createResponse();
     await routes.handle(createRequest({ findingId: 'finding-1', actionType: 'apply' }), actionResponse, '/api/v1/assistant/actions', 'POST', container);
     expect(actionResponse.end).toHaveBeenCalledWith(expect.stringContaining('ASSISTANT_ACTION_ERROR'));

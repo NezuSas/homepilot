@@ -14,6 +14,7 @@ import {
 } from '../../../packages/assistant/application/AssistantSpeechToTextService';
 import { sanitizeAssistantResponse } from '../../../packages/assistant/application/AssistantResponseSanitizer';
 import { SingleHomeInstallationError } from '../../../packages/topology/domain/errors';
+import { isHomeChatEnabled } from '../../../packages/shared/config/getInstallationProfile';
 
 /**
  * Assistant routes: /api/v1/assistant/*
@@ -39,30 +40,6 @@ export class AssistantRoutes extends ApiRoutes {
         this.sendError(res, 409, 'SINGLE_HOME_INSTALLATION', error.message);
       } else {
         this.sendError(res, 500, 'ASSISTANT_AUTHORIZATION_ERROR', error instanceof Error ? error.message : String(error));
-      }
-      return true;
-    }
-
-    // GET /api/v1/assistant/shadow/status
-    if (method === 'GET' && pathname === '/api/v1/assistant/shadow/status') {
-      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
-      try {
-        const status = container.services.assistantPlannerV2ShadowService.getStatus();
-        this.sendJson(res, status);
-      } catch (e: unknown) {
-        this.sendAssistantError(res, e);
-      }
-      return true;
-    }
-
-    // GET /api/v1/assistant/shadow/metrics
-    if (method === 'GET' && pathname === '/api/v1/assistant/shadow/metrics') {
-      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
-      try {
-        const metrics = container.services.assistantPlannerV2ShadowService.getMetrics();
-        this.sendJson(res, metrics);
-      } catch (e: unknown) {
-        this.sendAssistantError(res, e);
       }
       return true;
     }
@@ -154,6 +131,12 @@ export class AssistantRoutes extends ApiRoutes {
         this.sendAssistantError(res, e, 'ASSISTANT_ACTION_ERROR');
       }
       return true;
+    }
+
+    // Chat and voice with the home are an installer option; the rest of the assistant (findings, actions) stays.
+    const isConversationRoute = method === 'POST' && ['/api/v1/assistant/converse', '/api/v1/assistant/tts', '/api/v1/assistant/stt'].includes(pathname);
+    if (isConversationRoute && !isHomeChatEnabled()) {
+      return this.sendError(res, 403, 'FEATURE_DISABLED', 'Home chat is disabled for this installation'), true;
     }
 
     // POST /api/v1/assistant/converse

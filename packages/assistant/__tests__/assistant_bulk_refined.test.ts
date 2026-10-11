@@ -58,7 +58,6 @@ describe('Assistant Bulk Refined Semantics', () => {
       undefined,
       undefined,
       undefined,
-      undefined,
       mockConfirmationTicketRepository
     );
   });

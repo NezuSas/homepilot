@@ -17,6 +17,7 @@ hp_android_cidrs=''
 hp_mqtt=false
 hp_mqtt_username=''
 hp_mqtt_bind_address=''
+hp_chat=true
 hp_voice=true
 hp_remote=true
 hp_community=false
@@ -108,7 +109,13 @@ hp_collect_architecture() {
       hp_ui_confirm_value "$hp_mqtt_username"
     fi
   fi
-  if ! hp_yes_no '¿Habilitar voz local HomePilot?' true; then hp_voice=false; fi
+  hp_ui_block "$HP_SECONDARY" '«Conversar con mi casa» es el chat con el asistente dentro de la consola.'
+  if ! hp_yes_no '¿Habilitar «Conversar con mi casa»?' true; then hp_chat=false; fi
+  if [[ "$hp_chat" == true ]]; then
+    if ! hp_yes_no '¿Habilitar voz local HomePilot (hablar y escuchar al asistente)?' true; then hp_voice=false; fi
+  else
+    hp_voice=false
+  fi
   hp_step 6 'ACCESO REMOTO Y DIRECTORY'
   if ! hp_yes_no '¿Configurar acceso remoto administrado por NEZU?' true; then hp_remote=false; fi
   if [[ "$hp_remote" == true ]]; then
@@ -141,6 +148,7 @@ hp_summary() {
   hp_ui_review_row 'Cámaras' "$(hp_ui_yes_label "$hp_cameras")"
   hp_ui_review_row 'Android Display' "$(hp_ui_yes_label "$hp_android")"
   hp_ui_review_row 'MQTT' "$(hp_ui_yes_label "$hp_mqtt")"
+  hp_ui_review_row 'Conversar con mi casa' "$(hp_ui_yes_label "$hp_chat")"
   hp_ui_review_row 'Voz' "$(hp_ui_yes_label "$hp_voice")"
   hp_ui_review_row 'Cloudflare' "$(hp_ui_yes_label "$hp_remote")"
   hp_ui_review_row 'TPM 2.0' 'Detectado'
@@ -276,6 +284,7 @@ hp_deploy() {
   export HOMEPILOT_INSTALL_ANDROID_CIDRS="$hp_android_cidrs" HOMEPILOT_INSTALL_MQTT_ENABLED="$hp_mqtt"
   export HOMEPILOT_INSTALL_MQTT_BIND_ADDRESS="$hp_mqtt_bind_address"
   if [[ "$hp_mqtt" == true ]]; then export HOMEPILOT_MQTT_BIND_ADDRESS="$hp_mqtt_bind_address"; fi
+  export HOMEPILOT_INSTALL_CHAT_ENABLED="$hp_chat"
   export HOMEPILOT_INSTALL_VOICE_ENABLED="$hp_voice" HOMEPILOT_INSTALL_CLIENT_NAME="$hp_client"
   export HOMEPILOT_INSTALL_NAME="$hp_installation" HOMEPILOT_BUILD_REVISION="${HOMEPILOT_BUILD_REVISION:-installer-v1}"
   local options=(--profile "$hp_profile" --start --yes)
@@ -364,9 +373,10 @@ hp_complete_pending_runtime() {
   hp_android_cidrs="$(hp_saved_value HOMEPILOT_DISPLAY_ADB_CIDRS '')"
   hp_mqtt="$(hp_saved_value HOMEPILOT_MQTT_ENABLED false)"
   hp_mqtt_bind_address="$(hp_saved_value HOMEPILOT_MQTT_BIND_ADDRESS '')"
+  hp_chat="$(hp_saved_value HOMEPILOT_HOME_CHAT_ENABLED true)"
   hp_voice="$(hp_saved_value HOMEPILOT_VOICE_ENABLED true)"
   local flag
-  for flag in "$hp_cameras" "$hp_android" "$hp_mqtt" "$hp_voice"; do
+  for flag in "$hp_cameras" "$hp_android" "$hp_mqtt" "$hp_chat" "$hp_voice"; do
     [[ "$flag" == true || "$flag" == false ]] || hp_fail 'El plan guardado contiene una capacidad inválida.'
   done
   [[ "$hp_android" != true ]] || android_display_validate_cidrs "$hp_android_cidrs" \
@@ -404,6 +414,7 @@ hp_finish() {
   hp_ui_review_row 'Cámaras nativas' "$(hp_ui_yes_label "$hp_cameras")"
   hp_ui_review_row 'Android Display' "$(hp_ui_yes_label "$hp_android")"
   hp_ui_review_row 'MQTT' "$(hp_ui_yes_label "$hp_mqtt")"
+  hp_ui_review_row 'Conversar con mi casa' "$(hp_ui_yes_label "$hp_chat")"
   hp_ui_review_row 'Voz' "$(hp_ui_yes_label "$hp_voice")"
   local ui_port=8080
   if [[ -f .env ]]; then ui_port="$(sed -n 's/^HOMEPILOT_UI_PORT=//p' .env | tail -n 1)"; ui_port="${ui_port:-8080}"; fi
@@ -447,10 +458,11 @@ hp_diag_failure() {
 }
 
 hp_global_diagnostic() {
-  local profile android voice mqtt ui_port code state binding
+  local profile android voice chat mqtt ui_port code state binding
   hp_diagnostic_failures=0
   profile="$(hp_saved_value HOMEPILOT_INSTALLATION_PROFILE '')"
   android="$(hp_saved_value HOMEPILOT_ANDROID_DISPLAY_ENABLED false)"
+  chat="$(hp_saved_value HOMEPILOT_HOME_CHAT_ENABLED true)"
   voice="$(hp_saved_value HOMEPILOT_VOICE_ENABLED true)"
   mqtt="$(hp_saved_value HOMEPILOT_MQTT_ENABLED false)"
   ui_port="$(hp_saved_value HOMEPILOT_UI_PORT 8080)"
@@ -492,6 +504,12 @@ hp_global_diagnostic() {
     esac
   else
     hp_ui_status '—' "$HP_SECONDARY" 'Android Display' 'Not installed'
+  fi
+
+  if [[ "$chat" == true ]]; then
+    hp_ui_status '✓' "$HP_GREEN" 'Conversar con mi casa' 'Enabled'
+  else
+    hp_ui_status '—' "$HP_SECONDARY" 'Conversar con mi casa' 'Disabled'
   fi
 
   if [[ "$voice" == true ]]; then

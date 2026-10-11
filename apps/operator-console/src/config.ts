@@ -15,6 +15,7 @@ export const API_ENDPOINTS = {
   },
   system: {
     setupStatus: `${API_BASE_URL}/api/v1/system/setup-status`,
+    features: `${API_BASE_URL}/api/v1/system/features`,
     bootstrapAdmin: `${API_BASE_URL}/api/v1/system/bootstrap-admin`,
     diagnostics: `${API_BASE_URL}/api/v1/system/diagnostics`,
     events: `${API_BASE_URL}/api/v1/system/diagnostics/events`,

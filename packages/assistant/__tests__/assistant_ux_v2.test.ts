@@ -78,7 +78,6 @@ describe('AssistantConversationService UX V2', () => {
       undefined,
       undefined,
       undefined,
-      undefined,
       confirmationTicketRepository
     );
   });
@@ -617,7 +616,7 @@ describe('AssistantConversationService UX V2', () => {
     expect(draftService.createSceneDraft).not.toHaveBeenCalled();
   });
 
-  it('room query + draft creation: no LLM/Ollama calls for either path', async () => {
+  it('room query + draft creation: no small talk for either path', async () => {
     // Room query path
     roomRepo.findAll.mockResolvedValue([{ id: 'r1', name: 'Cocina', homeId: 'h1' }]);
     await service.converse({ prompt: 'qué estancias conoces', userId: 'u1' });

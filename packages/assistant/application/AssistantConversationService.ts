@@ -21,7 +21,6 @@ import type { AssistantSmallTalkPort } from './ports/AssistantSmallTalkPort';
 import type { AssistantRoomManagementPort } from './ports/AssistantRoomManagementPort';
 import { AssistantMemoryPort, AssistantMemoryState } from './ports/AssistantMemoryPort';
 import { FollowUpResolverPort } from './ports/FollowUpResolverPort';
-import { AssistantPlannerV2ShadowService } from './AssistantPlannerV2ShadowService';
 import { AssistantFastPathResolver } from './AssistantFastPathResolver';
 import { AssistantMediaPlayerResolver } from './AssistantMediaPlayerResolver';
 import { AssistantAliasManagementService } from './AssistantAliasManagementService';
@@ -62,7 +61,6 @@ export class AssistantConversationService {
     private readonly suggestionService: AssistantSuggestionService,
     private readonly executionRecordRepository: ExecutionRecordRepository,
     private readonly systemVariableService: SystemVariableService,
-    private readonly shadowService?: AssistantPlannerV2ShadowService,
     private readonly fastPathResolver: AssistantFastPathResolver = new AssistantFastPathResolver(),
     aliasManagementService?: AssistantAliasManagementService,
     private readonly homeRepository?: HomeRepository,
@@ -93,7 +91,6 @@ export class AssistantConversationService {
       suggestionService,
       executionRecordRepository,
       systemVariableService,
-      shadowService,
       fastPathResolver,
       homeRepository,
       confirmationTicketRepository,
@@ -107,7 +104,6 @@ export class AssistantConversationService {
       // Rest arguments keep each call's arity identical to a direct method call.
       executeIntent: (...args) => this.executeIntent(...args),
       executeSingleCommand: (...args) => this.executeSingleCommand(...args),
-      attemptV2HybridExecution: (...args) => this.attemptV2HybridExecution(...args),
       attemptFastPathExecution: (...args) => this.attemptFastPathExecution(...args),
       attemptDeviceAliasFastPathExecution: (...args) => this.attemptDeviceAliasFastPathExecution(...args),
       attemptContextRoomFastPathExecution: (...args) => this.attemptContextRoomFastPathExecution(...args),
@@ -165,16 +161,6 @@ export class AssistantConversationService {
     knownDevice?: Device
   ): Promise<SceneExecutionResult> {
     return this.modules.commands.executeSingleCommand(deviceId, command, prompt, correlationId, params, knownDevice);
-  }
-
-  private attemptV2HybridExecution(
-    activePrompt: string,
-    userId: string,
-    language: 'es' | 'en',
-    userName: string | null,
-    memory: AssistantMemoryState | null
-  ): Promise<AssistantConversationResponse | null> {
-    return this.modules.deviceFastPaths.attemptV2HybridExecution(activePrompt, userId, language, userName, memory);
   }
 
   private attemptFastPathExecution(

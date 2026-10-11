@@ -52,7 +52,6 @@ describe('Assistant Bulk Response UX', () => {
       createMockAssistantSuggestionService(),
       createMockExecutionRecordRepository(),
       createMockSystemVariableService(),
-      {} as any,
       undefined,
       undefined,
       undefined,

@@ -81,7 +81,6 @@ describe('Assistant Management V1', () => {
       undefined,
       undefined,
       undefined,
-      undefined,
       roomManagement
     );
 

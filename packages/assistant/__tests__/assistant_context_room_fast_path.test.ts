@@ -18,8 +18,7 @@ import {
   createTestDevice,
   createTestRoom,
   createMockSceneExecutionService,
-  createMockSystemVariableService,
-  createMockAssistantPlannerV2ShadowService
+  createMockSystemVariableService
 } from './test_helpers';
 
 describe('Assistant Context-Aware Room Fast-Path', () => {
@@ -28,7 +27,6 @@ describe('Assistant Context-Aware Room Fast-Path', () => {
   let mockRoomRepo: any;
   let mockMemory: any;
   let mockIntentInterpreter: any;
-  let mockShadow: any;
   let mockFollowUp: any;
   let execMock: jest.SpyInstance;
 
@@ -38,7 +36,6 @@ describe('Assistant Context-Aware Room Fast-Path', () => {
     mockRoomRepo = createMockRoomRepository();
     mockMemory = createMockAssistantMemory();
     mockIntentInterpreter = createMockIntentInterpreterPort();
-    mockShadow = createMockAssistantPlannerV2ShadowService();
     mockFollowUp = createMockFollowUpResolver();
 
     service = new AssistantConversationService(
@@ -58,8 +55,7 @@ describe('Assistant Context-Aware Room Fast-Path', () => {
       createMockSmartEntityResolver(),
       createMockAssistantSuggestionService(),
       createMockExecutionRecordRepository(),
-      createMockSystemVariableService(),
-      mockShadow
+      createMockSystemVariableService()
     );
 
     execMock = jest.spyOn(service as unknown as Record<string, any>, 'executeSingleCommand').mockResolvedValue({ status: 'success', sceneId: 's1', actions: [] });
@@ -81,7 +77,6 @@ describe('Assistant Context-Aware Room Fast-Path', () => {
     expect(res.type).toBe('execution');
     expect(res.message).toContain('Encendí Luz Sala');
     expect(execMock).toHaveBeenCalledWith('d1', 'turn_on', 'prende la luz', expect.any(String));
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
     expect(mockIntentInterpreter.interpret).not.toHaveBeenCalled();
   });
 
@@ -257,22 +252,6 @@ describe('Assistant Context-Aware Room Fast-Path', () => {
     }));
   });
 
-  it('10. does not call shadowService.runShadow', async () => {
-    const room = createTestRoom({ id: 'r1', name: 'Sala' });
-    const device = createTestDevice({ id: 'd1', name: 'Luz Sala', type: 'light', roomId: 'r1' });
-    mockRoomRepo.findAll.mockResolvedValue([room]);
-    mockDeviceRepo.findAll.mockResolvedValue([device]);
-    mockMemory.getAliases.mockResolvedValue({});
-    mockMemory.getShortTermMemory.mockResolvedValue(null);
-    mockMemory.getUserPreference.mockResolvedValue(null);
-    
-    jest.spyOn(service as unknown as Record<string, any>, 'executeSingleCommand').mockResolvedValue({ status: 'success' });
-    
-    await service.converse({ prompt: 'prende la luz', userId: 'u1', sourceRoomId: 'r1' }, 'es');
-    
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
-  });
-
   it('11. does not call intentInterpreter.interpret on successful context execution', async () => {
     const room = createTestRoom({ id: 'r1', name: 'Sala' });
     const device = createTestDevice({ id: 'd1', name: 'Luz Sala', type: 'light', roomId: 'r1' });
@@ -314,7 +293,6 @@ describe('Assistant Context-Aware Room Fast-Path', () => {
     expect(res.type).toBe('execution');
     expect(res.message).toContain('Encendí Luz 1');
     expect(execMock).toHaveBeenCalledWith('d1', 'turn_on', 'prende la luz', expect.any(String));
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('12.5 clicking an option with pendingAction executes directly and bypasses shadow', async () => {
@@ -340,7 +318,6 @@ describe('Assistant Context-Aware Room Fast-Path', () => {
     expect(res.type).toBe('execution');
     expect(res.message).toContain('Encendí Luz 1');
     expect(execMock).toHaveBeenCalledWith('d1', 'turn_on', 'prende la luz', expect.any(String));
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
     // Verify log source
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[ASSISTANT_SELECTION_EXECUTED]'));
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('"source":"ui_option"'));
@@ -368,7 +345,6 @@ describe('Assistant Context-Aware Room Fast-Path', () => {
     expect(res.type).toBe('execution');
     expect(res.message).toContain('Encendí Luz 1');
     expect(execMock).toHaveBeenCalledWith('d1', 'turn_on', 'prende la luz', expect.any(String));
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('"source":"ui_option"'));
     consoleSpy.mockRestore();
   });
@@ -396,7 +372,6 @@ describe('Assistant Context-Aware Room Fast-Path', () => {
     expect(res.type).toBe('execution');
     expect(res.message).toContain('Encendí Luz Mesa');
     expect(execMock).toHaveBeenCalledWith('d1', 'turn_on', 'prende la luz', expect.any(String));
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('"source":"text_selection"'));
     consoleSpy.mockRestore();
   });

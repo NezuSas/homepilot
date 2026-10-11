@@ -20,7 +20,6 @@ import type { DatabaseBackupService } from '../../packages/shared/infrastructure
 import type { IntentInterpreterService } from '../../packages/assistant/application/IntentInterpreterService';
 import type { AssistantConfirmationPolicy } from '../../packages/assistant/application/AssistantConfirmationPolicy';
 import type { AssistantConversationService } from '../../packages/assistant/application/AssistantConversationService';
-import type { AssistantPlannerV2ShadowService } from '../../packages/assistant/application/AssistantPlannerV2ShadowService';
 import type { AssistantTextToSpeechService } from '../../packages/assistant/application/AssistantTextToSpeechService';
 import type { AssistantSpeechToTextService } from '../../packages/assistant/application/AssistantSpeechToTextService';
 import type { SQLiteDashboardRepository } from '../../packages/topology/infrastructure/repositories/SQLiteDashboardRepository';
@@ -107,7 +106,6 @@ export interface BootstrapContainer {
     intentInterpreterService: IntentInterpreterService;
     assistantConfirmationPolicy: AssistantConfirmationPolicy;
     assistantConversationService: AssistantConversationService;
-    assistantPlannerV2ShadowService: AssistantPlannerV2ShadowService;
     assistantTextToSpeechService: AssistantTextToSpeechService;
     assistantSpeechToTextService: AssistantSpeechToTextService;
     nativeCameraService: NativeCameraService;

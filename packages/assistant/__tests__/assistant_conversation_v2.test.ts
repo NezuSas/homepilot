@@ -247,7 +247,7 @@ describe('AssistantConversationService V2 (Memory & Context)', () => {
     expect(response.message).toContain('Sala');
   });
 
-  // ─── Problem A: Commands must NOT call SmallTalk/Ollama ──────────────────
+  // ─── Problem A: Commands must NOT call SmallTalk ──────────────────────────
 
   it('"apaga la primera" with valid memory resolves command without calling SmallTalk', async () => {
     const memoryState: AssistantMemoryState = {
@@ -309,7 +309,6 @@ describe('AssistantConversationService V2 (Memory & Context)', () => {
   // ─── V2 Pronoun Pre-Check Routing ─────────────────────────────────────────
 
   describe('V2 Pronoun Priority', () => {
-    let mockShadowService: { attemptHybridExecution: jest.Mock; runShadow: jest.Mock };
     let serviceWithV2: AssistantConversationService;
     let originalEnv: NodeJS.ProcessEnv;
 
@@ -323,12 +322,6 @@ describe('AssistantConversationService V2 (Memory & Context)', () => {
 
     beforeEach(() => {
       process.env = { ...originalEnv };
-      process.env.ASSISTANT_PLANNER_V2_EXECUTION = 'true';
-
-      mockShadowService = {
-        attemptHybridExecution: jest.fn(),
-        runShadow: jest.fn().mockResolvedValue(undefined)
-      };
 
       serviceWithV2 = new AssistantConversationService(
         mockInterpreter,
@@ -347,12 +340,11 @@ describe('AssistantConversationService V2 (Memory & Context)', () => {
         createRealSmartEntityResolver(mockDeviceRepo, mockRoomRepo, mockSceneRepo, createMockAutomationRuleRepository(), mockMemory, createMockAssistantLearningService()),
         createMockAssistantSuggestionService(),
         mockExecutionRepo,
-        createMockSystemVariableService(),
-        mockShadowService as any
+        createMockSystemVariableService()
       );
     });
 
-    it('deterministic pronoun resolver takes priority and skips V2 Hybrid', async () => {
+    it('deterministic pronoun resolver takes priority', async () => {
       // Memory has context
       mockMemory.getShortTermMemory.mockResolvedValue({
         lastQueryType: 'command',
@@ -366,43 +358,7 @@ describe('AssistantConversationService V2 (Memory & Context)', () => {
 
       expect(response.type).toBe('execution');
       // Should have resolved via memory and returned directly
-      expect(mockShadowService.attemptHybridExecution).not.toHaveBeenCalled();
-      expect(mockShadowService.runShadow).not.toHaveBeenCalled();
     });
 
-    it('if deterministic resolver fails (empty memory), it calls V2 Hybrid', async () => {
-      // Memory is empty
-      mockMemory.getShortTermMemory.mockResolvedValue(null);
-      mockShadowService.attemptHybridExecution.mockResolvedValue({
-        deviceId: 'dev-sala',
-        command: 'turn_on',
-        confidence: 0.92,
-        contextSource: 'v2_planner'
-      });
-      mockDeviceRepo.findDeviceById.mockResolvedValue(createTestDevice({ id: 'dev-sala', name: 'Luz Sala' }));
-      mockDispatcher.dispatch.mockResolvedValue(undefined);
-
-      const response = await serviceWithV2.converse({ prompt: 'enciéndela', userId: 'u1' }, 'es');
-
-      expect(response.type).toBe('execution');
-      expect(mockShadowService.attemptHybridExecution).toHaveBeenCalled();
-    });
-
-    it('non-pronoun prompt bypasses pronoun deterministic resolver and hits V2 Hybrid later', async () => {
-      mockMemory.getShortTermMemory.mockResolvedValue(null);
-      mockShadowService.attemptHybridExecution.mockResolvedValue({
-        deviceId: 'dev-cocina',
-        command: 'turn_on',
-        confidence: 0.95,
-        contextSource: 'v2_planner'
-      });
-      mockDeviceRepo.findDeviceById.mockResolvedValue(createTestDevice({ id: 'dev-cocina', name: 'Luz Cocina' }));
-
-      mockDeviceRepo.findAll.mockResolvedValue([createTestDevice({ id: 'dev-cocina', name: 'Luz Cocina' })]);
-      const response = await serviceWithV2.converse({ prompt: 'enciende la cocina', userId: 'u1' }, 'es');
-
-      expect(response.type).toBe('execution');
-      expect(mockShadowService.attemptHybridExecution).toHaveBeenCalledTimes(1);
-    });
   });
 });

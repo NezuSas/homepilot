@@ -19,9 +19,6 @@ import { AssistantSuggestionService } from '../application/AssistantSuggestionSe
 import { ExecutionRecordRepository } from '../../devices/domain/repositories/ExecutionRecordRepository';
 import { DeviceCommandDispatcherPort } from '../../devices/application/ports/DeviceCommandDispatcherPort';
 import { SceneExecutionService } from '../../devices/application/SceneExecutionService';
-import { OllamaClientPort } from '../application/ports/OllamaClientPort';
-import { AssistantContextBuilderPort } from '../application/ports/AssistantContextBuilderPort';
-import { LlmIntentInterpreterPort } from '../application/ports/LlmIntentInterpreterPort';
 
 import { AssistantDraftService } from '../application/AssistantDraftService';
 import { AssistantDraftRepository } from '../domain/repositories/AssistantDraftRepository';
@@ -299,41 +296,15 @@ export const createMockExecutionRecordRepository = (overrides?: Partial<jest.Moc
   ...overrides
 } as jest.Mocked<ExecutionRecordRepository>);
 
-export const createMockOllamaClient = (overrides?: Partial<jest.Mocked<OllamaClientPort>>): jest.Mocked<OllamaClientPort> => ({
-  chat: jest.fn().mockResolvedValue({ message: { content: 'LLM response' } }),
-  generateJson: jest.fn().mockResolvedValue({ text: 'LLM response' }),
-  ...overrides
-} as jest.Mocked<OllamaClientPort>);
-
-export const createMockAssistantContextBuilder = (overrides?: Partial<jest.Mocked<AssistantContextBuilderPort>>): jest.Mocked<AssistantContextBuilderPort> => ({
-  build: jest.fn().mockResolvedValue('Context'),
-  buildLlmHomeMap: jest.fn().mockResolvedValue('Context'),
-  buildLightLlmHomeMap: jest.fn().mockResolvedValue('Context'),
-  buildUltraLightLlmHomeMap: jest.fn().mockResolvedValue({ text: 'Context', devicesCount: 0 }),
-  ...overrides
-} as jest.Mocked<AssistantContextBuilderPort>);
-
 export const createMockIntentInterpreterPort = (overrides?: Partial<jest.Mocked<IntentInterpreterPort>>): jest.Mocked<IntentInterpreterPort> => ({
   interpret: jest.fn().mockResolvedValue({ type: 'unknown' }),
   ...overrides
 } as jest.Mocked<IntentInterpreterPort>);
 
-export const createMockLlmIntentInterpreter = (overrides?: Partial<jest.Mocked<LlmIntentInterpreterPort>>): jest.Mocked<LlmIntentInterpreterPort> => ({
-  interpret: jest.fn().mockResolvedValue({ type: 'unknown' }),
-  ...overrides
-} as jest.Mocked<LlmIntentInterpreterPort>);
-
 export const createMockSceneExecutionService = (overrides?: Partial<jest.Mocked<SceneExecutionService>>): jest.Mocked<SceneExecutionService> => ({
   execute: jest.fn().mockResolvedValue({ sceneId: 's1', status: 'success', actions: [] }),
   ...overrides
 } as unknown as jest.Mocked<SceneExecutionService>);
-
-export const createMockAssistantPlannerV2ShadowService = (): any => ({
-  runShadow: jest.fn().mockResolvedValue(undefined),
-  attemptHybridExecution: jest.fn().mockResolvedValue(null),
-  getStatus: jest.fn().mockReturnValue({ enabled: true }),
-  getMetrics: jest.fn().mockReturnValue({ total_runs: 0 })
-});
 
 export const createMockSystemVariableService = (overrides?: any): any => ({
   getSystemTimezone: jest.fn().mockResolvedValue('America/Guayaquil'),

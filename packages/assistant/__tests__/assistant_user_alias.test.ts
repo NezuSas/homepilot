@@ -18,7 +18,7 @@ import {
   createMockSmartEntityResolver,
   createMockAssistantSuggestionService,
   createMockExecutionRecordRepository,
-  createMockAssistantPlannerV2ShadowService
+  createMockSystemVariableService
 } from './test_helpers';
 
 describe('Assistant User Alias', () => {
@@ -29,7 +29,6 @@ describe('Assistant User Alias', () => {
   let mockSceneRepo: any;
   let mockAutomationRepo: any;
   let mockLearning: any;
-  let mockShadow: any;
 
   beforeEach(() => {
     mockMemory = createMockAssistantMemory();
@@ -38,7 +37,6 @@ describe('Assistant User Alias', () => {
     mockSceneRepo = createMockSceneRepository();
     mockAutomationRepo = createMockAutomationRuleRepository();
     mockLearning = createMockAssistantLearningService();
-    mockShadow = createMockAssistantPlannerV2ShadowService();
 
     service = new AssistantConversationService(
       createMockIntentInterpreterPort(),
@@ -57,7 +55,7 @@ describe('Assistant User Alias', () => {
       createMockSmartEntityResolver(),
       createMockAssistantSuggestionService(),
       createMockExecutionRecordRepository(),
-      mockShadow
+      createMockSystemVariableService()
     );
 
     jest.spyOn(service as any, 'executeSingleCommand').mockResolvedValue({ status: 'success' });
@@ -75,7 +73,6 @@ describe('Assistant User Alias', () => {
     expect(mockMemory.setAlias).toHaveBeenCalledWith('u1', 'mi oficina', 'r1');
     expect(res.message).toBe("Perfecto, ahora 'mi oficina' se refiere a Cuarto Master.");
     // Verify shadow was NOT called
-    expect(mockShadow.runShadow).not.toHaveBeenCalled();
   });
 
   it('resolves user alias in natural language phrase', async () => {

@@ -10,7 +10,6 @@ import type { AssistantConversationTone } from '../response/AssistantConversatio
 export interface AssistantConversationResponse {
   type: "answer" | "execution" | "clarification" | "error";
   message: string;
-  llmAttempted?: boolean;
   execution?: SceneExecutionResult;
   clarification?: {
     question: string;

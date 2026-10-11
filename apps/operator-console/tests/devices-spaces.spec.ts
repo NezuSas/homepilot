@@ -864,6 +864,7 @@ test('Espacios y Rutinas comparten la topología sin repetir sus lecturas al nav
 for (const width of [360, 768, 1440]) {
   test(`Feature: Modular first admin fields — Scenario: Shared fields preserve initial account validation at ${width}px (AC79)`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 960 });
+    await page.route('**/api/v1/system/features', route => route.fulfill({ json: { homeChat: true } }));
     await page.route('**/api/v1/system/setup-status', route => route.fulfill({ json: { ...setupStatus, hasAdminUser: false } }));
     let submissions = 0;
     await page.route('**/api/v1/system/bootstrap-admin', route => {

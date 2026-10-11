@@ -143,6 +143,7 @@ export const responsiveDashboard = {
 };
 
 export async function prepareLoginShell(page: import('@playwright/test').Page) {
+  await page.route('**/api/v1/system/features', route => route.fulfill({ json: { homeChat: true } }));
   await page.route('**/api/v1/system/setup-status', async (route) => {
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(setupStatus) });
   });
@@ -175,6 +176,7 @@ export async function prepareAuthenticatedDashboard(page: import('@playwright/te
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(user) });
   });
   await page.route('**/api/v1/scenes/share-users', route => route.fulfill({ json: [{ id: 'share-recipient', name: 'Ana' }, { id: 'share-recipient-2', name: 'Luis' }] }));
+  await page.route('**/api/v1/system/features', route => route.fulfill({ json: { homeChat: true } }));
   await page.route('**/api/v1/system/setup-status', async (route) => {
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(setupStatus) });
   });

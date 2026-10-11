@@ -1,5 +1,6 @@
 import * as http from 'http';
 import { IANAZone } from 'luxon';
+import { isHomeChatEnabled } from '../../../packages/shared/config/getInstallationProfile';
 import { BootstrapContainer } from '../../../bootstrap';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
@@ -119,6 +120,14 @@ export class SystemRoutes extends ApiRoutes {
         }
         this.sendError(res, 500, 'BOOTSTRAP_ADMIN_ERROR', msg);
       }
+      return true;
+    }
+
+    // GET /api/v1/system/features — what the installer enabled, for any signed-in user.
+    if (method === 'GET' && pathname === '/api/v1/system/features') {
+      const isProtected = await container.guards.authGuard.protect(req, res, true);
+      if (!isProtected) return true;
+      this.sendJson(res, { homeChat: isHomeChatEnabled() });
       return true;
     }
 

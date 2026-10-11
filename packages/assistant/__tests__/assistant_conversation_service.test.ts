@@ -27,8 +27,7 @@ import {
   createTestScene,
   createTestDevice,
   createTestRoom,
-  createMockSystemVariableService,
-  createMockAssistantPlannerV2ShadowService
+  createMockSystemVariableService
 } from './test_helpers';
 import type { AssistantSmallTalkPort } from '../application/ports/AssistantSmallTalkPort';
 import type { RoomRepository } from '../../topology/domain/repositories/RoomRepository';
@@ -58,7 +57,6 @@ describe('AssistantConversationService', () => {
   let mockFollowUp: jest.Mocked<FollowUpResolverPort>;
   let mockAutomationRepo: ReturnType<typeof createMockAutomationRuleRepository>;
   let mockDraftService: ReturnType<typeof createMockAssistantDraftService>;
-  let mockShadow: ReturnType<typeof createMockAssistantPlannerV2ShadowService>;
 
   afterEach(() => {
     jest.useRealTimers();
@@ -87,7 +85,6 @@ describe('AssistantConversationService', () => {
     mockFollowUp = createMockFollowUpResolver();
     mockAutomationRepo = createMockAutomationRuleRepository();
     mockDraftService = createMockAssistantDraftService();
-    mockShadow = createMockAssistantPlannerV2ShadowService();
 
     mockRoomRepo.findAll.mockResolvedValue([
       createTestRoom({ id: 'r1', name: 'Cuarto Master', homeId: 'h1' })
@@ -113,8 +110,7 @@ describe('AssistantConversationService', () => {
       createRealSmartEntityResolver(mockDeviceRepo, mockRoomRepo, mockSceneRepo, createMockAutomationRuleRepository(), mockMemory, createMockAssistantLearningService()),
       createMockAssistantSuggestionService(),
       mockExecutionRepo,
-      createMockSystemVariableService(),
-      mockShadow
+      createMockSystemVariableService()
     );
   });
 
@@ -1494,28 +1490,15 @@ describe('AssistantConversationService', () => {
       expect(mockDispatcher.dispatch).toHaveBeenCalled();
     });
 
-    it('does not schedule Planner V2 for a local conversational response', async () => {
-      mockSmallTalk.handle.mockResolvedValue({
-        type: 'answer',
-        message: 'Puedo ayudarte con tu casa.',
-        llmAttempted: false
-      });
-
-      await service.converse({ prompt: 'cuentame un chiste', userId: 'user-1' }, 'es');
-
-      expect(mockSmallTalk.handle).toHaveBeenCalled();
-      expect(mockShadow.runShadow).not.toHaveBeenCalled();
-    });
-
     it('should delegate unknown conversational prompts to SmallTalkService', async () => {
       mockSmallTalk.handle.mockResolvedValue({
         type: 'answer',
-        message: 'Ollama says hello'
+        message: 'Hello from small talk'
       });
 
       const response = await service.converse({ prompt: 'Tell me a joke' }, 'en');
       expect(response.type).toBe('answer');
-      expect(response.message).toBe('Ollama says hello');
+      expect(response.message).toBe('Hello from small talk');
       expect(mockSmallTalk.handle).toHaveBeenCalledWith('Tell me a joke', 'en', null, 'system');
       expect(mockDispatcher.dispatch).not.toHaveBeenCalled();
       expect(mockExecutionRepo.save).not.toHaveBeenCalled();
@@ -2304,13 +2287,11 @@ describe('Feature: interpreter ambiguity persistence', () => {
       attemptDeviceAliasFastPathExecution: (prompt: string, userId: string, language: string, aliases: unknown) => Promise<null>;
       attemptContextRoomFastPathExecution: (prompt: string, sourceRoomId: string | undefined, userId: string, userName: string | null, language: string, aliases: unknown) => Promise<null>;
       applySafetyGateV2: (prompt: string, userId: string, language: string, request: unknown) => Promise<null>;
-      attemptV2HybridExecution: (prompt: string, userId: string, language: string, userName: string | null, memory: unknown) => Promise<null>;
     };
     jest.spyOn(internals, 'attemptFastPathExecution').mockResolvedValue(null);
     jest.spyOn(internals, 'attemptDeviceAliasFastPathExecution').mockResolvedValue(null);
     jest.spyOn(internals, 'attemptContextRoomFastPathExecution').mockResolvedValue(null);
     jest.spyOn(internals, 'applySafetyGateV2').mockResolvedValue(null);
-    jest.spyOn(internals, 'attemptV2HybridExecution').mockResolvedValue(null);
     mockInterpreter.interpret.mockResolvedValue({
       type: 'clarificationRequired',
       originalSegment: 'iluminación principal',
@@ -2347,13 +2328,11 @@ describe('Feature: interpreter ambiguity persistence', () => {
       attemptDeviceAliasFastPathExecution: (prompt: string, userId: string, language: string, aliases: unknown) => Promise<null>;
       attemptContextRoomFastPathExecution: (prompt: string, sourceRoomId: string | undefined, userId: string, userName: string | null, language: string, aliases: unknown) => Promise<null>;
       applySafetyGateV2: (prompt: string, userId: string, language: string, request: unknown) => Promise<null>;
-      attemptV2HybridExecution: (prompt: string, userId: string, language: string, userName: string | null, memory: unknown) => Promise<null>;
     };
     jest.spyOn(internals, 'attemptFastPathExecution').mockResolvedValue(null);
     jest.spyOn(internals, 'attemptDeviceAliasFastPathExecution').mockResolvedValue(null);
     jest.spyOn(internals, 'attemptContextRoomFastPathExecution').mockResolvedValue(null);
     jest.spyOn(internals, 'applySafetyGateV2').mockResolvedValue(null);
-    jest.spyOn(internals, 'attemptV2HybridExecution').mockResolvedValue(null);
     mockInterpreter.interpret.mockResolvedValue({ type: 'failure', message: 'Semantic resolver unavailable' });
 
     await expect(service.converse({ prompt: 'controla iluminación principal', userId: 'failure-user' }, 'es')).resolves.toEqual({

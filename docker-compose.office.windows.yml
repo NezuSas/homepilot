@@ -5,7 +5,6 @@ services:
       - "${HOMEPILOT_API_PORT:-3000}:3000"
     environment:
       INTERNAL_HA_URL: ${INTERNAL_HA_URL:-http://homeassistant:8123}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
       TTS_BASE_URL: ${TTS_BASE_URL:-http://homepilot-tts:8088}
       STT_BASE_URL: ${STT_BASE_URL:-http://homepilot-stt:8090}
     extra_hosts:

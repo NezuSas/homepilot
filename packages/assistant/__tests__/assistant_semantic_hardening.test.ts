@@ -66,7 +66,6 @@ describe('Assistant Semantic Hardening', () => {
       undefined,
       undefined,
       undefined,
-      undefined,
       mockConfirmationTicketRepository
     );
   });

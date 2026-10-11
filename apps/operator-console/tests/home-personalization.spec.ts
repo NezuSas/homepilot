@@ -10,6 +10,7 @@ async function prepare(page: Page, images: Array<{ slot: number; url: string }> 
     localStorage.setItem('hp_user_ctx', JSON.stringify(value));
   }, sessionUser);
   await page.route('**/api/v1/auth/me', (route) => route.fulfill({ json: sessionUser }));
+  await page.route('**/api/v1/system/features', route => route.fulfill({ json: { homeChat: true } }));
   await page.route('**/api/v1/system/setup-status', (route) => route.fulfill({ json: {
     isInitialized: true, requiresOnboarding: false, hasAdminUser: true, hasHAConfig: false,
     haConnectionValid: false, installationProfile: 'native_only', requiresHomeAssistant: false,

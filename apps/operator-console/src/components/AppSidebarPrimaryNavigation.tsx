@@ -19,6 +19,7 @@ interface AppSidebarPrimaryNavigationProps {
   canAccessAdminControl: boolean;
   canAccessSystem: boolean;
   isAdmin: boolean;
+  homeChatEnabled: boolean;
   assistantOpenCount: number;
   translate: (key: string) => string;
   onNavigate: (view: View) => void;
@@ -32,6 +33,7 @@ interface AppSidebarPrimaryNavigationProps {
 }
 
 function canShowPrimaryItem(item: typeof primarySidebarNavigation[number], props: AppSidebarPrimaryNavigationProps) {
+  if (item.view === 'home-conversation' && !props.homeChatEnabled) return false;
   if (item.requires === 'family') return props.canAccessFamilyControl;
   if (item.requires === 'admin') return props.canAccessAdminControl;
   return true;

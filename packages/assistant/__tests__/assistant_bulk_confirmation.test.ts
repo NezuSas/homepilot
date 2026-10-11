@@ -26,7 +26,6 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
   let mockMemory: any;
   let mockDispatcher: any;
   let mockDeviceRepo: any;
-  let mockShadowService: any;
   let mockSceneExecutionService: any;
   let mockHomeRepository: any;
   let mockConfirmationTicketRepository: any;
@@ -39,11 +38,6 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
     mockSceneExecutionService.execute.mockResolvedValue({ status: 'success', actions: [{ status: 'success' }] });
     mockHomeRepository = { findHomesByUserId: jest.fn().mockResolvedValue([{ id: 'h1' }]) };
     mockConfirmationTicketRepository = createFakeConfirmationTicketRepository();
-
-    mockShadowService = {
-      attemptHybridExecution: jest.fn(),
-      runShadow: jest.fn().mockResolvedValue(undefined)
-    };
 
     service = new AssistantConversationService(
       createMockIntentInterpreterPort(),
@@ -63,18 +57,11 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
       createMockAssistantSuggestionService(),
       createMockExecutionRecordRepository(),
       createMockSystemVariableService(),
-      mockShadowService,
       undefined,
       undefined,
       mockHomeRepository,
       mockConfirmationTicketRepository
     );
-
-    process.env.ASSISTANT_PLANNER_V2_EXECUTION = 'true';
-  });
-
-  afterEach(() => {
-    delete process.env.ASSISTANT_PLANNER_V2_EXECUTION;
   });
 
   it('executes an infinitive bulk shortcut directly', async () => {
@@ -88,7 +75,6 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
     expect(res.type).toBe('execution');
     expect(mockSceneExecutionService.execute).toHaveBeenCalledTimes(1);
     expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
-    expect(mockShadowService.attemptHybridExecution).not.toHaveBeenCalled();
   });
   it('understands a conversational whole-house command, skips only lights confirmed already off, and includes unknown-state lights', async () => {
     mockMemory.getShortTermMemory.mockResolvedValue(null);
@@ -104,7 +90,6 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
     expect(mockSceneExecutionService.execute).toHaveBeenCalledTimes(2);
     expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
 
-    expect(mockShadowService.attemptHybridExecution).not.toHaveBeenCalled();
   });
   it('understands an invoked elliptical whole-house shutdown without waiting for the model', async () => {
     mockMemory.getShortTermMemory.mockResolvedValue(null);
@@ -119,73 +104,7 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
     expect(mockSceneExecutionService.execute).toHaveBeenCalledTimes(1);
     expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
 
-    expect(mockShadowService.attemptHybridExecution).not.toHaveBeenCalled();
   });
-  it('asks for clarification when multiple devices remain ambiguous', async () => {
-    mockShadowService.attemptHybridExecution.mockResolvedValue({
-      command: 'turn_on',
-      confidence: 0.9,
-      resolvedType: 'multiple',
-      resolvedIds: ['d1', 'd2', 'd3']
-    });
-
-    mockMemory.getShortTermMemory.mockResolvedValue(null);
-
-    const res = await service.converse({ prompt: 'prende las luces', userId: 'u1' }, 'es');
-
-    expect(res.type).toBe('clarification');
-    expect(res.message).toContain('En qué estancia quieres controlar la luz');
-    expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('u1', expect.objectContaining({
-      pendingIntent: expect.objectContaining({
-        type: 'command',
-        command: 'turn_on'
-      })
-    }));
-  });
-
-  it('executes a same-command multi-action semantic plan directly', async () => {
-    const devices = [
-      createTestDevice({ id: 'd1', name: 'Ventilador Pasillo', homeId: 'h1', type: 'switch', lastKnownState: { on: false } }),
-      createTestDevice({ id: 'd2', name: 'Persiana Estudio', homeId: 'h1', type: 'switch', lastKnownState: { on: false } })
-    ];
-    mockDeviceRepo.findAll.mockResolvedValue(devices);
-    mockDeviceRepo.findDeviceById.mockImplementation((id: string) => Promise.resolve(devices.find(d => d.id === id) || null));
-    mockShadowService.attemptHybridExecution.mockResolvedValue({
-      command: 'turn_on',
-      confidence: 0.9,
-      resolvedType: 'multiple',
-      resolvedIds: ['d1', 'd2']
-    });
-    mockMemory.getShortTermMemory.mockResolvedValue(null);
-
-    const res = await service.converse({ prompt: 'ejecuta la rutina combinada dos', userId: 'u1' }, 'es');
-
-    // Guard: this prompt must actually reach the semantic path, not be intercepted
-    // by an earlier deterministic fast path — otherwise this test would silently
-    // exercise the wrong code path (see the sibling tests above for that pitfall).
-    expect(mockShadowService.attemptHybridExecution).toHaveBeenCalled();
-    expect(res.type).toBe('execution');
-    expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
-    expect(mockSceneExecutionService.execute).toHaveBeenCalledTimes(2);
-
-  });
-
-  it('triggers confirmation when a category is resolved', async () => {
-    mockShadowService.attemptHybridExecution.mockResolvedValue({
-      command: 'turn_off',
-      confidence: 0.9,
-      resolvedType: 'category',
-      resolvedIds: ['d1']
-    });
-
-    mockMemory.getShortTermMemory.mockResolvedValue(null);
-
-    const res = await service.converse({ prompt: 'apaga luces', userId: 'u1' }, 'es');
-
-    expect(res.type).toBe('clarification');
-    expect(res.message).toContain('En qué estancia quieres controlar la luz');
-  });
-
   it('executes all devices when confirmed with "sí"', async () => {
     const devices = [
       createTestDevice({ id: 'd1', name: 'Luz 1', homeId: 'h1', type: 'light', lastKnownState: { on: false } }),
@@ -209,7 +128,6 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
     expect(res.type).toBe('execution');
     expect(mockSceneExecutionService.execute).toHaveBeenCalledTimes(2);
     // SHADOW CHECK: verify runShadow was NOT called (it's skipped for bulk actions)
-    expect(mockShadowService.runShadow).not.toHaveBeenCalled();
 
     expect(mockMemory.saveShortTermMemory).toHaveBeenCalledWith('u1', expect.objectContaining({
       lastQueryType: 'command',
@@ -262,7 +180,6 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
     // The ticket is consumed on rejection too, so it can never be replayed.
     expect(await mockConfirmationTicketRepository.findActiveByUserId('u1')).toBeNull();
     // SHADOW CHECK: verify runShadow was NOT called
-    expect(mockShadowService.runShadow).not.toHaveBeenCalled();
   });
 
   it('rejects invalid bulk command and clears memory', async () => {
@@ -318,7 +235,6 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
       const res = await service.converse({ prompt: 'enciende todas las luces', userId: 'u1' }, 'es');
 
       expect(res.type).toBe('execution');
-      expect(mockShadowService.attemptHybridExecution).not.toHaveBeenCalled();
       expect(mockSceneExecutionService.execute).toHaveBeenCalledTimes(2);
       expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
     });
@@ -333,7 +249,6 @@ describe('Assistant Multi-Target Confirmation Guard', () => {
       const res = await service.converse({ prompt: 'apaga todas las luces', userId: 'u1' }, 'es');
 
       expect(res.type).toBe('execution');
-      expect(mockShadowService.attemptHybridExecution).not.toHaveBeenCalled();
       expect(mockSceneExecutionService.execute).toHaveBeenCalledTimes(1);
       expect(mockConfirmationTicketRepository.create).not.toHaveBeenCalled();
     });

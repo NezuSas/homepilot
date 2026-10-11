@@ -69,7 +69,6 @@ describe('Assistant bulk/room-bulk parity (Fase 0b)', () => {
       undefined,
       undefined,
       undefined,
-      undefined,
       mockConfirmationTicketRepository
     );
   });

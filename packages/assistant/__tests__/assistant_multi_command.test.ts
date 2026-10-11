@@ -71,7 +71,6 @@ describe('AssistantConversationService - Multi-Command V1', () => {
       createMockSystemVariableService(),
       undefined,
       undefined,
-      undefined,
       { findHomesByUserId: jest.fn().mockResolvedValue([{ id: 'h1' }]) } as any
     );
   });

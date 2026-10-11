@@ -10,8 +10,8 @@ export function getAppSidebarShellClassName(isOpen: boolean, isDesktopOpen: bool
   );
 }
 
-export function isGlobalWakeListenerEnabled(authenticated: boolean, loadingSetup: boolean, requiresOnboarding: boolean) {
-  return authenticated && !loadingSetup && !requiresOnboarding;
+export function isGlobalWakeListenerEnabled(authenticated: boolean, loadingSetup: boolean, requiresOnboarding: boolean, homeChatEnabled = true) {
+  return authenticated && !loadingSetup && !requiresOnboarding && homeChatEnabled;
 }
 
 export function getAppViewRouterLayout(view: View) {

@@ -37,7 +37,6 @@ describe('Assistant home isolation (Fase 0)', () => {
   let mockDeviceRepo: any;
   let mockRoomRepo: any;
   let mockHomeRepository: any;
-  let mockShadowService: any;
   let mockConfirmationTicketRepository: any;
 
   const homeA = createTestHome({ id: 'home-a', ownerId: 'user-a' });
@@ -55,11 +54,6 @@ describe('Assistant home isolation (Fase 0)', () => {
     mockRoomRepo = createMockRoomRepository();
     mockHomeRepository = createMockHomeRepository();
     mockConfirmationTicketRepository = createFakeConfirmationTicketRepository();
-    mockShadowService = {
-      attemptHybridExecution: jest.fn().mockResolvedValue(null),
-      runShadow: jest.fn().mockResolvedValue(undefined)
-    };
-
     // Only user-a is authorized for home-a. findAllByHomeId/findRoomsByHomeId are
     // configured per-home explicitly (not derived from findAll()) so a leak would
     // only be caught if the production code actually calls the scoped repository
@@ -96,18 +90,11 @@ describe('Assistant home isolation (Fase 0)', () => {
       createMockAssistantSuggestionService(),
       createMockExecutionRecordRepository(),
       createMockSystemVariableService(),
-      mockShadowService,
       undefined,
       undefined,
       mockHomeRepository,
       mockConfirmationTicketRepository
     );
-
-    process.env.ASSISTANT_PLANNER_V2_EXECUTION = 'true';
-  });
-
-  afterEach(() => {
-    delete process.env.ASSISTANT_PLANNER_V2_EXECUTION;
   });
 
   it('home summary only counts devices from the caller\'s own home', async () => {

@@ -4,7 +4,7 @@ import { applyAssistantResponsePreference, type AssistantResponsePreference } fr
 import type { AssistantConversationResponse, SuggestionContext } from './conversationTypes';
 import { ConversationCollaborator } from './ConversationCollaborator';
 
-/** Pending-state cleanup, suggestion attachment, room lookups and shadow-aware response return. */
+/** Pending-state cleanup, suggestion attachment, room lookups and response finalization. */
 export class ConversationSession extends ConversationCollaborator {
   public async clearPendingAction(userId: string): Promise<void> {
     const memory = await this.deps.memoryService.getShortTermMemory(userId);
@@ -22,38 +22,29 @@ export class ConversationSession extends ConversationCollaborator {
     }
   }
 
-  public returnWithShadow(
-    prompt: string,
-    userId: string,
+  /** Executions, clarifications and answers that carry an execution return as they are; plain answers may be personalized. */
+  public finalizeResponse(
     language: string,
     response: AssistantConversationResponse,
     responsePreference: AssistantResponsePreference = 'standard',
-    allowResponsePersonalization = false,
-    scheduleShadow = true
+    allowResponsePersonalization = false
   ): AssistantConversationResponse {
-    const { llmAttempted, ...publicResponse } = response;
-
-    // Required: Any successful deterministic execution must return directly and bypass Planner V2 Shadow
-    if (publicResponse.type === 'execution' || publicResponse.type === 'clarification') {
-      return publicResponse;
+    if (response.type === 'execution' || response.type === 'clarification') {
+      return response;
     }
 
-    if (publicResponse.type === 'answer' && publicResponse.execution) {
-      return publicResponse;
+    if (response.type === 'answer' && response.execution) {
+      return response;
     }
 
-    if (scheduleShadow && !llmAttempted && this.deps.shadowService) {
-      this.deps.shadowService.runShadow(prompt, userId, language, publicResponse).catch(() => {});
-    }
-
-    if (!allowResponsePersonalization || publicResponse.type !== 'answer') {
-      return publicResponse;
+    if (!allowResponsePersonalization || response.type !== 'answer') {
+      return response;
     }
 
     return {
-      ...publicResponse,
+      ...response,
       message: applyAssistantResponsePreference(
-        publicResponse.message,
+        response.message,
         responsePreference,
         language === 'en' ? 'en' : 'es'
       )

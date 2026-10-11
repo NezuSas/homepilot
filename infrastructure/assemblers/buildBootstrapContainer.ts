@@ -81,7 +81,6 @@ export function buildBootstrapContainer(deps: BootstrapContainerDeps): Bootstrap
       intentInterpreterService: assistantRuntime.intentInterpreterService,
       assistantConfirmationPolicy: assistantRuntime.assistantConfirmationPolicy,
       assistantConversationService: assistantRuntime.assistantConversationService,
-      assistantPlannerV2ShadowService: assistantRuntime.shadowService,
       assistantTextToSpeechService: assistantRuntime.assistantTextToSpeechService,
       assistantSpeechToTextService: assistantRuntime.assistantSpeechToTextService,
       nativeCameraService: nativeCameraModule.nativeCameraService,

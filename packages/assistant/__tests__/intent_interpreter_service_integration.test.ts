@@ -3,20 +3,16 @@ import { AssistantMultiCommandParser } from '../application/AssistantMultiComman
 import { Intent } from '../application/ports/IntentInterpreterPort';
 import { DeviceRepository } from '../../devices/domain/repositories/DeviceRepository';
 import { SceneRepository } from '../../devices/domain/repositories/SceneRepository';
-import { LlmIntentInterpreterPort } from '../application/ports/LlmIntentInterpreterPort';
-import { createMockDeviceRepository, createMockSceneRepository, createMockLlmIntentInterpreter, createMockAssistantMemory } from './test_helpers';
+import { createMockDeviceRepository, createMockSceneRepository, createMockAssistantMemory } from './test_helpers';
 
 describe('IntentInterpreterService Integration', () => {
   let mockDeviceRepo: jest.Mocked<DeviceRepository>;
   let mockSceneRepo: jest.Mocked<SceneRepository>;
-  let mockLlmInterpreter: jest.Mocked<LlmIntentInterpreterPort>;
   let service: IntentInterpreterService;
 
   beforeEach(() => {
-    process.env.OLLAMA_ENABLED = 'false';
     mockDeviceRepo = createMockDeviceRepository();
     mockSceneRepo = createMockSceneRepository();
-    mockLlmInterpreter = createMockLlmIntentInterpreter();
 
     const mockRoomRepo = {
       saveRoom: jest.fn(),
@@ -30,60 +26,18 @@ describe('IntentInterpreterService Integration', () => {
       mockSceneRepo,
       mockRoomRepo,
       new AssistantMultiCommandParser(mockDeviceRepo, mockRoomRepo),
-      mockLlmInterpreter
     );
   });
 
-  afterEach(() => {
-    delete process.env.OLLAMA_ENABLED;
-    delete process.env.ASSISTANT_LEGACY_LLM_INTERPRETER;
-  });
-
-  it('skips the legacy model call when a profile turns it off, keeping a single call per turn', async () => {
-    process.env.OLLAMA_ENABLED = 'true';
-    process.env.ASSISTANT_LEGACY_LLM_INTERPRETER = 'false';
-    mockSceneRepo.findAll.mockResolvedValue([]);
-
-    const intent = await service.interpret('apaga todo');
-
-    expect(mockLlmInterpreter.interpret).not.toHaveBeenCalled();
-    expect(intent.type).toBe('unknown');
-  });
-
-  it('should use deterministic logic when LLM is disabled', async () => {
-    process.env.OLLAMA_ENABLED = 'false';
+  it('should use deterministic logic', async () => {
     mockSceneRepo.findAll.mockResolvedValue([]);
     
     const intent = await service.interpret('apaga todo');
     
-    expect(mockLlmInterpreter.interpret).not.toHaveBeenCalled();
     expect(intent.type).toBe('unknown');
   });
 
-  it('should use LLM when enabled and it returns a valid intent', async () => {
-    process.env.OLLAMA_ENABLED = 'true';
-    const expectedIntent: Intent = { type: 'scene', target: 's1', prompt: 'test' };
-    mockLlmInterpreter.interpret.mockResolvedValue(expectedIntent);
-
-    const intent = await service.interpret('test');
-
-    expect(intent).toEqual(expectedIntent);
-    expect(mockLlmInterpreter.interpret).toHaveBeenCalledWith('test', undefined);
-  });
-
-  it('should fallback to deterministic if LLM returns unknown', async () => {
-    process.env.OLLAMA_ENABLED = 'true';
-    mockLlmInterpreter.interpret.mockResolvedValue({ type: 'unknown', prompt: 'test', reason: 'unknown' });
-    mockSceneRepo.findAll.mockResolvedValue([]);
-
-    const intent = await service.interpret('apaga todo');
-
-    expect(intent.type).toBe('unknown');
-  });
-
-  it('should fallback to deterministic if LLM fails', async () => {
-    process.env.OLLAMA_ENABLED = 'true';
-    mockLlmInterpreter.interpret.mockRejectedValue(new Error('LLM Error'));
+  it('should resolve a scene deterministically', async () => {
     // Setup deterministic parser to succeed
     mockSceneRepo.findAll.mockResolvedValue([{
       id: 'scene-all-off', name: 'Apagar todo', homeId: 'h1', userId: 'user-1', roomId: 'r1', actions: [], createdAt: '', updatedAt: ''
@@ -98,14 +52,13 @@ describe('IntentInterpreterService Integration', () => {
   });
 
   it('should resolve pronoun command if there is a valid recent device context', async () => {
-    process.env.OLLAMA_ENABLED = 'false';
     const mockMemoryService = createMockAssistantMemory({
       getLastDeviceUsed: jest.fn().mockResolvedValue('device-123')
     });
     
     // Inject mock memory service for this specific test
     const mockRoomRepo = { findAll: jest.fn().mockResolvedValue([]) } as any;
-    const localService = new IntentInterpreterService(mockDeviceRepo, mockSceneRepo, mockRoomRepo, new AssistantMultiCommandParser(mockDeviceRepo, mockRoomRepo), mockLlmInterpreter, mockMemoryService);
+    const localService = new IntentInterpreterService(mockDeviceRepo, mockSceneRepo, mockRoomRepo, new AssistantMultiCommandParser(mockDeviceRepo, mockRoomRepo), mockMemoryService);
 
     const intent = await localService.interpret('apágala');
 
@@ -117,13 +70,12 @@ describe('IntentInterpreterService Integration', () => {
   });
 
   it('should return unknown for pronoun command if there is no recent device context', async () => {
-    process.env.OLLAMA_ENABLED = 'false';
     const mockMemoryService = createMockAssistantMemory({
       getLastDeviceUsed: jest.fn().mockResolvedValue(null)
     });
     
     const mockRoomRepo = { findAll: jest.fn().mockResolvedValue([]) } as any;
-    const localService = new IntentInterpreterService(mockDeviceRepo, mockSceneRepo, mockRoomRepo, new AssistantMultiCommandParser(mockDeviceRepo, mockRoomRepo), mockLlmInterpreter, mockMemoryService);
+    const localService = new IntentInterpreterService(mockDeviceRepo, mockSceneRepo, mockRoomRepo, new AssistantMultiCommandParser(mockDeviceRepo, mockRoomRepo), mockMemoryService);
 
     const intent = await localService.interpret('préndelo');
 
@@ -239,21 +191,6 @@ describe('IntentInterpreterService Integration', () => {
     });
   });
 
-  describe('LLM Intent Interpreter Prompt Verification', () => {
-    it('should include instructions for Spanish/English and typo tolerance in prompt', async () => {
-      process.env.OLLAMA_ENABLED = 'true';
-      const mockOllama = { generateJson: jest.fn().mockResolvedValue({ type: 'unknown' }) };
-      const mockContext = { build: jest.fn().mockResolvedValue('{}') };
-      const interpreter = new (require('../application/LlmIntentInterpreter').LlmIntentInterpreter)(mockOllama, mockContext, mockDeviceRepo, mockSceneRepo);
-      
-      await interpreter.interpret('test prompt');
-      
-      const sentPrompt = mockOllama.generateJson.mock.calls[0][0];
-      expect(sentPrompt).toContain('Spanish, English, or mixed');
-      expect(sentPrompt).toContain('Tolerate minor typos');
-      expect(sentPrompt).toContain('NEVER invent or hallucinate IDs');
-    });
-  });
   describe('home-scoped deterministic resolution', () => {
     it('does not fall back to global devices when an authorized user has no homes', async () => {
       const roomRepository = { findAll: jest.fn().mockResolvedValue([]) };
@@ -263,7 +200,6 @@ describe('IntentInterpreterService Integration', () => {
         mockSceneRepo,
         roomRepository as never,
         new AssistantMultiCommandParser(mockDeviceRepo, roomRepository as never),
-        mockLlmInterpreter,
         undefined,
         homeRepository as never,
       );
@@ -292,7 +228,6 @@ describe('IntentInterpreterService Integration', () => {
         mockSceneRepo,
         roomRepository as never,
         new AssistantMultiCommandParser(mockDeviceRepo, roomRepository as never),
-        mockLlmInterpreter,
         undefined,
         homeRepository as never,
       );
@@ -307,13 +242,12 @@ describe('IntentInterpreterService Integration', () => {
     });
   });
   describe('deterministic support intents and ambiguity', () => {
-    it('recognizes explainability and retry prompts without invoking the LLM', async () => {
+    it('recognizes explainability and retry prompts', async () => {
       const explain = await service.interpret('¿Qué pasó con la luz?');
       const retry = await service.interpret('prueba otra vez');
 
       expect(explain).toMatchObject({ type: 'explain', prompt: '¿Qué pasó con la luz?' });
       expect(retry).toMatchObject({ type: 'retry', prompt: 'prueba otra vez' });
-      expect(mockLlmInterpreter.interpret).not.toHaveBeenCalled();
     });
 
     it('keeps contradictory all-device and light commands explicit instead of guessing', async () => {

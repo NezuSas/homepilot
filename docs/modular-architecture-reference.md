@@ -57,7 +57,6 @@ as the entry point and keeps its exports; the parts live in a contiguous folder.
 | Entry point | Parts |
 |---|---|
 | `packages/assistant/application/AssistantConversationService.ts` | `conversation/`: one collaborator per flow (preamble, pending confirmations, routing, planning, device and room fast paths, state queries, drafts, management, safety gate) plus pure modules for intent detection, parsing and response messages. |
-| `packages/assistant/application/AssistantPlannerV2ShadowService.ts` | `planner/`: shadow configuration, comparison, reporting and the hybrid execution gate. |
 | `packages/assistant/application/AssistantMultiCommandParser.ts` | `multicommand/`: text rules, scope, target resolution, compound and exclusion parsing. |
 | `packages/integrations/home-assistant/application/HomeAssistantRealtimeSyncManager.ts` | `sync/`: reconnect policy, state event processing, reconciliation, resilience logging. |
 | `packages/automation/application/AutomationEngine.ts` | `engine/`: trigger matching, action policy, activity logging. |
