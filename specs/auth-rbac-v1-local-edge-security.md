@@ -33,6 +33,8 @@ Implement a robust, localized authentication and basic Role-Based Access Control
 | **`GET / POST /api/v1/settings/*` (Settings Read/Write)** | ❌ | ✅ |
 | **`POST /api/v1/auth/change-password`** | ✅ | ✅ |
 
+*Diagnostics*: the snapshot and the event timeline require the `operator` role or higher; `parent`, `child` and `guest` sessions receive 403 `INSUFFICIENT_ROLE`, matching the console, where only `admin` and `operator` reach the system area.
+
 *Note*: Admin actions strictly require the `admin` role. `Operator` has expansive read permission and can execute live telemetry operations (commands), but cannot modify infrastructure arrays or sensitive credentials.
 
 ## 4. Bootstrapping Strategy
