@@ -224,6 +224,18 @@ describe('TopologyRoutes - additional contracts', () => {
     expect(response.end).toHaveBeenCalledWith(expect.stringContaining('INVALID_COMMAND'));
   });
 
+  it('answers a quick action on a room that does not exist with 404 and dispatches nothing', async () => {
+    const container = createContainer();
+    (container.repositories.roomRepository.findRoomById as jest.Mock).mockResolvedValue(null);
+    const response = createResponse();
+
+    await routes.handle(createRequest({ action: 'turn_on' }), response, '/api/v1/rooms/ghost-room/action', 'POST', container);
+
+    expect(container.repositories.deviceRepository.findAll).not.toHaveBeenCalled();
+    expect(container.adapters.commandDispatcher.dispatch).not.toHaveBeenCalled();
+    expect(response.writeHead).toHaveBeenCalledWith(404, expect.any(Object));
+  });
+
   it('completes a room quick action with no controllable devices without dispatching anything', async () => {
     const container = createContainer();
     (container.repositories.deviceRepository.findAll as jest.Mock).mockResolvedValue([

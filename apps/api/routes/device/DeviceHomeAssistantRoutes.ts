@@ -146,7 +146,9 @@ export class DeviceHomeAssistantRoutes extends ApiRoutes {
       const msg = error instanceof Error ? error.message : 'Import Error';
       const { status, code } = mapHaImportError(msg);
 
-      container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
+      // Only an unexpected failure says anything about connectivity; a duplicate or
+      // unknown entity is a normal answer from a Home Assistant that responded.
+      if (status >= 500) container.services.homeAssistantSettingsService.updateStatusFromOperation('unreachable');
       this.sendError(res, status, code, msg);
     }
     return true;

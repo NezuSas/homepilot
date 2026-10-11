@@ -5,6 +5,7 @@ import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { Scene } from '../../../packages/devices/domain/Scene';
 import { canAccessRoutine, parseRoutineSharedUsers } from '../../../packages/devices/domain/routineAccess';
+import { isValidCommand } from '../../../packages/devices/domain/commands';
 
 /**
  * Scene routes: /api/v1/scenes/*
@@ -18,6 +19,20 @@ export class SceneRoutes extends ApiRoutes {
     }
     return ids;
   }
+
+  /** Returns why a scene action list cannot be saved, or null when every step is runnable. */
+  private async findInvalidSceneAction(actions: unknown[], homeId: string, container: BootstrapContainer): Promise<string | null> {
+    for (const action of actions) {
+      const step = action as { deviceId?: unknown; command?: unknown } | null;
+      if (!step || typeof step.deviceId !== 'string' || !step.deviceId) return 'Scene action needs a deviceId';
+      const commandName = typeof step.command === 'string' ? step.command : (step.command as { name?: unknown } | null)?.name;
+      if (typeof commandName !== 'string' || !isValidCommand(commandName)) return 'Scene action has an invalid command';
+      const device = await container.repositories.deviceRepository.findDeviceById(step.deviceId);
+      if (!device || device.homeId !== homeId) return 'Scene action references an unknown device';
+    }
+    return null;
+  }
+
   async handle(
     req: HomePilotRequest,
     res: http.ServerResponse,
@@ -135,6 +150,8 @@ export class SceneRoutes extends ApiRoutes {
         if (payload.actions.length === 0) {
           return this.sendError(res, 400, 'INVALID_INPUT', 'At least one scene action is required'), true;
         }
+        const invalidAction = await this.findInvalidSceneAction(payload.actions, payload.homeId, container);
+        if (invalidAction) return this.sendError(res, 400, 'INVALID_INPUT', invalidAction), true;
 
         const newScene: Scene = {
           id: crypto.randomUUID(),
@@ -178,6 +195,14 @@ export class SceneRoutes extends ApiRoutes {
         }>(req);
         if (payload.icon !== undefined && (typeof payload.icon !== 'string' || payload.icon.length > 128 || !/^mdi:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(payload.icon))) {
           return this.sendError(res, 400, 'INVALID_INPUT', 'Invalid scene icon'), true;
+        }
+
+        if (payload.actions !== undefined) {
+          if (!Array.isArray(payload.actions) || payload.actions.length === 0) {
+            return this.sendError(res, 400, 'INVALID_INPUT', 'At least one scene action is required'), true;
+          }
+          const invalidAction = await this.findInvalidSceneAction(payload.actions, scene.homeId, container);
+          if (invalidAction) return this.sendError(res, 400, 'INVALID_INPUT', invalidAction), true;
         }
 
         const updated: Scene = {

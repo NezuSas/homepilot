@@ -323,6 +323,17 @@ describe('Feature: Device read and update route contracts', () => {
     expect(res.end).toHaveBeenCalledWith(expect.stringContaining('DEVICE_NOT_FOUND'));
   });
 
+  it('keeps the global activity log from non-administrators', async () => {
+    const container = containerFor() as any;
+    container.guards.authGuard.requireRole = jest.fn().mockReturnValue(false);
+    container.repositories.activityLogRepository.findAllRecent = jest.fn().mockResolvedValue([{ id: 'activity-1' }]);
+
+    await routes.handle(request(), response(), '/api/v1/activity-logs', 'GET', container);
+
+    expect(container.guards.authGuard.requireRole).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'admin');
+    expect(container.repositories.activityLogRepository.findAllRecent).not.toHaveBeenCalled();
+  });
+
   it('returns activity records and maps activity repository failures to DB_ERROR', async () => {
     const successContainer = containerFor() as any;
     successContainer.repositories.activityLogRepository.findAllRecent = jest.fn().mockResolvedValue([{ id: 'activity-1' }]);
@@ -528,6 +539,11 @@ describe('Feature: Device activity and import failure contracts', () => {
     await routes.handle(request('/api/v1/ha/import', { entityId: 'light.missing' }), missingEntity, '/api/v1/ha/import', 'POST', container);
     expect(missingEntity.writeHead).toHaveBeenCalledWith(404, expect.any(Object));
     expect(missingEntity.end).toHaveBeenCalledWith(expect.stringContaining('HA_ENTITY_NOT_FOUND'));
+    // A 404 is an answer from a reachable Home Assistant, not a connectivity failure.
+    expect(container.services.homeAssistantSettingsService.updateStatusFromOperation).not.toHaveBeenCalled();
+
+    serviceDoubles.haImportService.importDevice.mockRejectedValue(new Error('socket hang up'));
+    await routes.handle(request('/api/v1/ha/import', { entityId: 'light.office' }), response(), '/api/v1/ha/import', 'POST', container);
     expect(container.services.homeAssistantSettingsService.updateStatusFromOperation).toHaveBeenCalledWith('unreachable');
 
     const invalid = response();

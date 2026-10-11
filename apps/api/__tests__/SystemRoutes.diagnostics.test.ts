@@ -38,6 +38,39 @@ function createContainer(isAuthenticated: boolean): BootstrapContainer {
   } as unknown as BootstrapContainer;
 }
 
+describe('Feature: system timezone validation', () => {
+  const timezoneRequest = (timezone: unknown): HomePilotRequest => {
+    const request = createRequest();
+    request.url = '/api/v1/system/timezone';
+    request._fastifyParsedBody = JSON.stringify({ timezone });
+    return request;
+  };
+  const timezoneContainer = () => ({
+    guards: { authGuard: { protect: jest.fn().mockResolvedValue(true), requireRole: jest.fn().mockReturnValue(true) } },
+    services: { systemVariableService: { set: jest.fn().mockResolvedValue(undefined) } },
+  }) as unknown as BootstrapContainer;
+
+  it('Scenario: Given an unknown zone When it is saved Then it is rejected and nothing is stored', async () => {
+    const container = timezoneContainer();
+    const response = new MockResponse();
+
+    await new SystemRoutes().handle(timezoneRequest('Not/AZone'), response as unknown as http.ServerResponse, '/api/v1/system/timezone', 'POST', container);
+
+    expect(response.writeHead).toHaveBeenCalledWith(400, expect.any(Object));
+    expect(container.services.systemVariableService.set).not.toHaveBeenCalled();
+  });
+
+  it('Scenario: Given an IANA zone When it is saved Then it is stored', async () => {
+    const container = timezoneContainer();
+    const response = new MockResponse();
+
+    await new SystemRoutes().handle(timezoneRequest('America/Guayaquil'), response as unknown as http.ServerResponse, '/api/v1/system/timezone', 'POST', container);
+
+    expect(response.writeHead).toHaveBeenCalledWith(200, expect.any(Object));
+    expect(container.services.systemVariableService.set).toHaveBeenCalledWith(expect.objectContaining({ value: 'America/Guayaquil' }));
+  });
+});
+
 describe('Feature: system diagnostics API', () => {
   it('Scenario: Given an unauthenticated request When diagnostics is requested Then the service is not exposed', async () => {
     const routes = new SystemRoutes();

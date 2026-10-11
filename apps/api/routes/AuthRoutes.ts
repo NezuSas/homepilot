@@ -96,6 +96,10 @@ export class AuthRoutes extends ApiRoutes {
         if (!payload.username || !payload.password) {
           return this.sendError(res, 400, 'INVALID_INPUT', 'Missing credentials'), true;
         }
+        if (typeof payload.username !== 'string' || typeof payload.password !== 'string'
+          || (payload.ssoLinkToken !== undefined && typeof payload.ssoLinkToken !== 'string')) {
+          return this.sendError(res, 400, 'INVALID_INPUT', 'Credentials must be strings'), true;
+        }
 
         const loginKey = this.createLoginAttemptKey(req, payload.username);
         const retryAfterSeconds = this.loginAttemptRateLimiter.getRetryAfterSeconds(loginKey);

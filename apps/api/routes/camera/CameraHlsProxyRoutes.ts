@@ -8,6 +8,7 @@ import { CameraHlsProxySession, CameraHlsSessionStore } from './CameraHlsSession
 import { CAMERA_PROXY_TOKEN_TTL_MS, verifyCameraProxyToken } from './cameraProxyToken';
 import { pathnameFallback } from './cameraEntity';
 import { rewriteHlsManifest } from './hlsManifest';
+import { isInsideDirectory } from './pathContainment';
 
 /**
  * GET /api/v1/devices/:id/camera/hls/(master.m3u8|resource/:resourceId) — token-authenticated
@@ -154,7 +155,7 @@ export class CameraHlsProxyRoutes extends ApiRoutes {
 
     const resolvedFilePath = path.resolve(filePath);
     const resolvedDirectory = path.resolve(session.nativeDirectory);
-    if (!resolvedFilePath.startsWith(resolvedDirectory) || !fs.existsSync(resolvedFilePath)) {
+    if (!isInsideDirectory(resolvedFilePath, resolvedDirectory) || !fs.existsSync(resolvedFilePath)) {
       this.sendError(res, 404, 'CAMERA_HLS_RESOURCE_NOT_FOUND', 'Camera HLS resource not found');
       return;
     }

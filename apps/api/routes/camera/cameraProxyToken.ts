@@ -8,10 +8,13 @@ export interface CameraProxyTokenPayload {
 
 export const CAMERA_PROXY_TOKEN_TTL_MS = 30 * 60 * 1000;
 
+// Without a configured secret, a random one lives only as long as the process. Tokens last
+// 30 minutes and are reissued per session, so a restart merely asks viewers to reopen the
+// camera. Neither the Home Assistant token nor a published constant ever signs them.
+const processSecret = crypto.randomBytes(32).toString('hex');
+
 function signCameraProxyPayload(encodedPayload: string): string {
-  const secret = process.env.CAMERA_PROXY_SIGNING_SECRET
-    || process.env.HOME_ASSISTANT_TOKEN
-    || 'homepilot-camera-proxy-development-secret';
+  const secret = process.env.CAMERA_PROXY_SIGNING_SECRET?.trim() || processSecret;
   return crypto.createHmac('sha256', secret).update(encodedPayload).digest('base64url');
 }
 

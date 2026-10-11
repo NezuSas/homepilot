@@ -49,6 +49,22 @@ describe('Feature: execution history routes', () => {
     expect(container.repositories.executionRecordRepository.findRecent).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['abc', 50],
+    ['0', 50],
+    ['-5', 50],
+    ['99999', 200],
+  ])('Scenario: Given limit=%s When recent history is requested Then the page size is %i', async (limit, expected) => {
+    const route = new ExecutionRoutes();
+    const container = createContainer();
+    const response = new MockResponse();
+
+    await route.handle(createRequest(`/api/v1/executions/recent?limit=${limit}`), response as unknown as http.ServerResponse, '/api/v1/executions/recent', 'GET', container);
+
+    expect(container.repositories.executionRecordRepository.findRecent).toHaveBeenCalledWith(expected);
+    expect(response.writeHead).toHaveBeenCalledWith(200, expect.any(Object));
+  });
+
   it('Scenario: Given an authenticated request When recent execution history is requested Then the route delegates the requested limit', async () => {
     const route = new ExecutionRoutes();
     const container = createContainer();

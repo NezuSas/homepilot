@@ -164,7 +164,7 @@ export class DashboardRoutes extends ApiRoutes {
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Failed to create dashboard';
         const status = message === 'DASHBOARD_TITLE_REQUIRED' ? 400 : message === 'DASHBOARD_OWNER_EXISTS' ? 409 : 500;
-        this.sendError(res, status, 'DASHBOARD_ERROR', message);
+        this.sendError(res, status, status === 409 ? 'DASHBOARD_OWNER_EXISTS' : 'DASHBOARD_ERROR', message);
       }
       return true;
     }

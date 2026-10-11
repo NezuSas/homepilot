@@ -50,6 +50,9 @@ export class AutomationEngine {
   // Time-guard: ruleId -> YYYY-MM-DD-HH-mm (Ensures time triggers fire only once per scheduled slot)
   private timeFireGuard = new Map<string, string>();
 
+  // Pending delayed actions. In-memory by design: they are lost on restart.
+  private readonly pendingDelays = new Set<ReturnType<typeof setTimeout>>();
+
   private readonly activityLogger: AutomationActivityLogger;
 
   constructor(
@@ -193,6 +196,11 @@ export class AutomationEngine {
         return;
       }
 
+      if (action.type === 'delay') {
+        this.scheduleDelayedAction(rule, action.then, action.delaySeconds, correlationId, eventId);
+        return;
+      }
+
       if (action.type === 'execute_scene') {
         const scene = await this.sceneRepository.findSceneById(action.sceneId);
         if (!scene || scene.homeId !== rule.homeId || !canAccessRoutine(scene, rule.userId)) {
@@ -216,6 +224,39 @@ export class AutomationEngine {
         eventId
       );
     }
+  }
+
+  private scheduleDelayedAction(
+    rule: AutomationRule,
+    next: AutomationAction,
+    delaySeconds: number,
+    correlationId: string,
+    eventId?: string
+  ): void {
+    const timer = setTimeout(() => {
+      this.pendingDelays.delete(timer);
+      void this.runDelayedAction(rule, next, correlationId, eventId);
+    }, delaySeconds * 1000);
+    timer.unref?.();
+    this.pendingDelays.add(timer);
+  }
+
+  private async runDelayedAction(
+    rule: AutomationRule,
+    next: AutomationAction,
+    correlationId: string,
+    eventId?: string
+  ): Promise<void> {
+    // The rule may have been disabled or deleted while the delay was pending.
+    const current = await this.ruleRepository.findById(rule.id);
+    if (!current?.enabled) return;
+    await this.executeRuleAction(current, next, correlationId, eventId);
+  }
+
+  /** Cancels every pending delayed action (shutdown and tests). */
+  public cancelPendingDelays(): void {
+    for (const timer of this.pendingDelays) clearTimeout(timer);
+    this.pendingDelays.clear();
   }
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────

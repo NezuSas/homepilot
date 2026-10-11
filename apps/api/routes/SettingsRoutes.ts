@@ -136,6 +136,7 @@ export class SettingsRoutes extends ApiRoutes {
 
     // GET /api/v1/settings/home-assistant
     if (method === 'GET' && pathname === '/api/v1/settings/home-assistant') {
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         const status = await container.services.homeAssistantSettingsService.getStatus();
         const { ...safeStatus } = status;

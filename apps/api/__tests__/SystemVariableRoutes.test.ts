@@ -80,6 +80,17 @@ describe('Feature: system variable administration', () => {
     expect(response.writeHead).toHaveBeenCalledWith(200, expect.any(Object));
   });
 
+  it('Scenario: Given a non-admin user When reading system variables Then nothing is read', async () => {
+    const routes = new SystemVariableRoutes();
+    const container = createContainer(false);
+
+    await routes.handle(createRequest(), new MockResponse() as unknown as http.ServerResponse, '/api/v1/system-variables', 'GET', container);
+    await routes.handle(createRequest(), new MockResponse() as unknown as http.ServerResponse, '/api/v1/system-variables/any', 'GET', container);
+
+    expect(container.services.systemVariableService.list).not.toHaveBeenCalled();
+    expect(container.services.systemVariableService.getById).not.toHaveBeenCalled();
+  });
+
   it('Scenario: Given a missing variable When reading it Then the route reports not found', async () => {
     const routes = new SystemVariableRoutes();
     const container = createContainer(true);

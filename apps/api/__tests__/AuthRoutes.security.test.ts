@@ -139,6 +139,20 @@ describe('Feature: protección de inicio de sesión', () => {
     expect(missingCredentialsResponse.end).toHaveBeenCalledWith(expect.stringContaining('Missing credentials'));
   });
 
+  it('Scenario: Given credentials that are not strings When logging in Then the request is rejected before authentication runs', async () => {
+    const routes = new AuthRoutes(new MediaService(), new LoginAttemptRateLimiter());
+    const login = jest.fn();
+    const container = { guards: { authGuard: { protect: jest.fn() } }, services: { authService: { login } } } as unknown as BootstrapContainer;
+    const response = new MockResponse();
+    const request = createRequest();
+    request._fastifyParsedBody = JSON.stringify({ username: { $ne: null }, password: { $ne: null } });
+
+    await routes.handle(request, response as unknown as http.ServerResponse, '/api/v1/auth/login', 'POST', container);
+
+    expect(login).not.toHaveBeenCalled();
+    expect(response.writeHead).toHaveBeenCalledWith(400, expect.any(Object));
+  });
+
   it('Scenario: Given authorization or validation failures in protected actions When requested Then the route preserves its error contracts', async () => {
     const routes = new AuthRoutes(new MediaService(), new LoginAttemptRateLimiter());
     const container = {

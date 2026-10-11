@@ -117,6 +117,49 @@ describe('Feature: automation rule execution', () => {
     }));
   });
 
+  describe('delayed actions', () => {
+    const delayRule = (overrides: Partial<AutomationRule> = {}) => createRule({
+      action: { type: 'delay', delaySeconds: 2, then: { type: 'device_command', targetDeviceId: 'target-device', command: 'turn_on' } },
+      ...overrides,
+    });
+
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    it('waits for the delay and then dispatches the wrapped command', async () => {
+      const harness = createHarness([delayRule()]);
+
+      await harness.engine.handleSystemEvent(matchingEvent());
+      expect(harness.dispatcher.dispatchCommand).not.toHaveBeenCalled();
+
+      await jest.advanceTimersByTimeAsync(2000);
+      expect(harness.dispatcher.dispatchCommand).toHaveBeenCalledWith(
+        'home-1', 'target-device', 'turn_on', expect.stringMatching(/^auto-evt-/), 'automation-1',
+      );
+    });
+
+    it('does not dispatch when the rule is disabled while the delay is pending', async () => {
+      const rule = delayRule();
+      const harness = createHarness([rule]);
+
+      await harness.engine.handleSystemEvent(matchingEvent());
+      (harness.ruleRepository.findById as jest.Mock).mockResolvedValue({ ...rule, enabled: false });
+      await jest.advanceTimersByTimeAsync(2000);
+
+      expect(harness.dispatcher.dispatchCommand).not.toHaveBeenCalled();
+    });
+
+    it('drops pending delays when they are cancelled', async () => {
+      const harness = createHarness([delayRule()]);
+
+      await harness.engine.handleSystemEvent(matchingEvent());
+      harness.engine.cancelPendingDelays();
+      await jest.advanceTimersByTimeAsync(5000);
+
+      expect(harness.dispatcher.dispatchCommand).not.toHaveBeenCalled();
+    });
+  });
+
   it('records unmatched rules without dispatching a command', async () => {
     const harness = createHarness([createRule({
       trigger: {

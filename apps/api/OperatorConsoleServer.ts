@@ -13,6 +13,7 @@ import { SceneRoutes } from './routes/SceneRoutes';
 import { AutomationRoutes } from './routes/AutomationRoutes';
 import { DeviceRoutes } from './routes/DeviceRoutes';
 import { DashboardRoutes } from './routes/DashboardRoutes';
+import { SystemVariableRoutes } from './routes/SystemVariableRoutes';
 
 import { MediaRoutes } from './routes/MediaRoutes';
 import { MediaService } from '../../packages/shared/infrastructure/MediaService';
@@ -47,6 +48,7 @@ export class OperatorConsoleServer {
         new AndroidDisplayRoutes(container.services.androidDisplayService),
         new CameraRoutes(container.repositories.nativeCameraSourceRepository, container.services.nativeCameraStreamingService),
         new SystemRoutes(),
+        new SystemVariableRoutes(),
         new AuthRoutes(mediaService, loginAttemptRateLimiter),
         new AdminRoutes(),
       new AssistantRoutes(),

@@ -31,6 +31,7 @@ export class SystemVariableRoutes extends ApiRoutes {
 
     // GET /api/v1/system-variables
     if (method === 'GET' && pathname === '/api/v1/system-variables') {
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         const urlParams = new URL(req.url!, `http://${req.headers.host}`).searchParams;
         const scope = urlParams.get('scope') as 'global' | 'home' | null;
@@ -51,6 +52,7 @@ export class SystemVariableRoutes extends ApiRoutes {
     // GET /api/v1/system-variables/:id
     const getMatch = method === 'GET' && pathname.match(/^\/api\/v1\/system-variables\/([^/]+)$/);
     if (getMatch) {
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         const variable = await container.services.systemVariableService.getById(getMatch[1]);
         if (!variable) return this.sendError(res, 404, 'NOT_FOUND', 'Variable not found'), true;

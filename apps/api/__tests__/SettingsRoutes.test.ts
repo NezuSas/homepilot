@@ -76,6 +76,15 @@ describe('Feature: Home Assistant connection settings API', () => {
     expect((response.end as jest.Mock).mock.calls[0][0]).not.toContain('accessToken');
   });
 
+  it('Scenario: Given a non-administrator When reading settings Then the connection details are not read', async () => {
+    const routes = new SettingsRoutes(new MediaService());
+    const container = createContainer(false);
+
+    await routes.handle(createRequest(), new MockResponse() as unknown as http.ServerResponse, '/api/v1/settings/home-assistant', 'GET', container);
+
+    expect(container.services.homeAssistantSettingsService.getStatus).not.toHaveBeenCalled();
+  });
+
   it('Scenario: Given a protected request without a session When settings are targeted Then it stops before services are called', async () => {
     const routes = new SettingsRoutes(new MediaService());
     const container = createContainer();

@@ -4,6 +4,16 @@ import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { Scene } from '../../../packages/devices/domain/Scene';
 
+const DEFAULT_EXECUTION_LIMIT = 50;
+const MAX_EXECUTION_LIMIT = 200;
+
+/** Falls back to the default for a missing or non-numeric limit and caps the page size. */
+function parseExecutionLimit(raw: string | null): number {
+  const parsed = Number.parseInt(raw ?? '', 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return DEFAULT_EXECUTION_LIMIT;
+  return Math.min(parsed, MAX_EXECUTION_LIMIT);
+}
+
 /**
  * Execution routes: /api/v1/executions/*
  * 
@@ -26,7 +36,7 @@ export class ExecutionRoutes extends ApiRoutes {
     if (method === 'GET' && pathname === '/api/v1/executions/recent') {
       try {
         const urlParams = new URL(req.url!, `http://${req.headers.host}`).searchParams;
-        const limit = parseInt(urlParams.get('limit') || '50', 10);
+        const limit = parseExecutionLimit(urlParams.get('limit'));
         
         const records = await container.repositories.executionRecordRepository.findRecent(limit);
         this.sendJson(res, records);
@@ -49,7 +59,7 @@ export class ExecutionRoutes extends ApiRoutes {
 
         const sourceType = sourceTypeRaw as 'scene' | 'automation' | 'manual';
         const urlParams = new URL(req.url!, `http://${req.headers.host}`).searchParams;
-        const limit = parseInt(urlParams.get('limit') || '50', 10);
+        const limit = parseExecutionLimit(urlParams.get('limit'));
 
         const records = await container.repositories.executionRecordRepository.findBySource(sourceType, sourceId, limit);
         this.sendJson(res, records);

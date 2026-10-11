@@ -268,7 +268,8 @@ export class TopologyRoutes extends ApiRoutes {
         }
 
         const room = await container.repositories.roomRepository.findRoomById(roomId);
-        const roomName = room?.name || 'Room';
+        if (!room) return this.sendError(res, 404, 'NOT_FOUND', 'Room not found'), true;
+        const roomName = room.name;
         const roomDevices = (await container.repositories.deviceRepository.findAll()).filter((device) => device.roomId === roomId);
         const targetDevices = roomDevices.filter((device) => ['light', 'switch'].includes(device.type));
 

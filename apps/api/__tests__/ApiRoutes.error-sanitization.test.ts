@@ -64,6 +64,15 @@ describe('Feature: Public API error sanitization', () => {
     expect(request.on).not.toHaveBeenCalled();
   });
 
+  it('answers a malformed JSON body with a 400 validation error whatever route reported it', () => {
+    const res = response();
+
+    routes.exposeSendError(res, 500, 'COMMAND_ERROR', 'INVALID_JSON');
+
+    expect(res.writeHead).toHaveBeenCalledWith(400, expect.any(Object));
+    expect(res.end).toHaveBeenCalledWith(expect.stringContaining('VALIDATION_ERROR'));
+  });
+
   it('parses stream payloads, serializes JSON responses, and normalizes non-Error failures', async () => {
     const listeners: Record<string, (value?: Buffer) => void> = {};
     const request = { on: jest.fn((event: string, callback: (value?: Buffer) => void) => { listeners[event] = callback; return request; }) } as unknown as HomePilotRequest;

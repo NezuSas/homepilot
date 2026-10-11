@@ -26,6 +26,9 @@ function createContainer(isAuthorized = true): BootstrapContainer {
         findHomesByUserId: jest.fn().mockResolvedValue([{ id: 'home-1' }]),
         findHomeById: jest.fn().mockResolvedValue({ id: 'home-1' }),
       },
+      deviceRepository: {
+        findDeviceById: jest.fn(async (id: string) => (id === 'light-1' ? { id, homeId: 'home-1' } : null)),
+      },
       sceneRepository: {
         findScenesByHomeId: jest.fn().mockResolvedValue([{ id: 'scene-1', homeId: 'home-1', userId: 'owner-1' }]),
         saveScene: jest.fn().mockResolvedValue(undefined),
@@ -128,6 +131,18 @@ describe('Feature: scene route contract', () => {
     expect(container.repositories.sceneRepository.saveScene).not.toHaveBeenCalled();
     expect(response.writeHead).toHaveBeenCalledWith(400, expect.any(Object));
     expect(response.end).toHaveBeenCalledWith(expect.stringContaining('INVALID_INPUT'));
+  });
+
+  it.each([
+    ['an unknown device', [{ deviceId: 'ghost', command: 'turn_on' }]],
+    ['an invalid command', [{ deviceId: 'light-1', command: 'fly' }]],
+    ['a step without a device', [{ command: 'turn_on' }]],
+  ])('rejects a scene with %s before saving it', async (_label, actions) => {
+    const container = createContainer();
+    const response = new MockResponse();
+    await new SceneRoutes().handle(createRequest({ homeId: 'home-1', name: 'Broken scene', actions }), response as unknown as http.ServerResponse, '/api/v1/scenes', 'POST', container);
+    expect(response.writeHead).toHaveBeenCalledWith(400, expect.any(Object));
+    expect(container.repositories.sceneRepository.saveScene).not.toHaveBeenCalled();
   });
 
   it('rejects malformed icon identifiers before saving a scene', async () => {

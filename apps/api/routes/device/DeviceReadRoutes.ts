@@ -19,6 +19,14 @@ export class DeviceReadRoutes extends ApiRoutes {
     this.sendError(res, status, code, message);
   }
 
+  /** Ownership and not-found answers keep their contracts; any other failure stays the historical DB_ERROR. */
+  private sendDeviceLookupError(res: http.ServerResponse, error: unknown): void {
+    const { name, message } = this.getErrorDetails(error);
+    const mapped = mapDeviceReadError(name);
+    if (mapped.status === 500) this.sendError(res, 500, 'DB_ERROR', message);
+    else this.sendError(res, mapped.status, mapped.code, message);
+  }
+
   async handle(
     req: HomePilotRequest,
     res: http.ServerResponse,
@@ -106,10 +114,13 @@ export class DeviceReadRoutes extends ApiRoutes {
     if (deviceLogsMatch) {
       try {
         const deviceId = deviceLogsMatch[1];
+        const device = await container.repositories.deviceRepository.findDeviceById(deviceId);
+        if (!device) return this.sendError(res, 404, 'DEVICE_NOT_FOUND', 'Device not found'), true;
+        await container.adapters.topologyReferencePort.validateHomeOwnership(device.homeId, req.user!.id);
         const logs = await container.repositories.activityLogRepository.findRecentByDeviceId(deviceId, 20);
         this.sendJson(res, logs);
       } catch (error: unknown) {
-        this.sendError(res, 500, 'DB_ERROR', error instanceof Error ? error.message : 'Unknown error');
+        this.sendDeviceLookupError(res, error);
       }
       return true;
     }
@@ -121,9 +132,10 @@ export class DeviceReadRoutes extends ApiRoutes {
         const deviceId = deviceDetailMatch[1];
         const device = await container.repositories.deviceRepository.findDeviceById(deviceId);
         if (!device) return this.sendError(res, 404, 'DEVICE_NOT_FOUND', 'Device not found'), true;
+        await container.adapters.topologyReferencePort.validateHomeOwnership(device.homeId, req.user!.id);
         this.sendJson(res, enrichDevice(device));
       } catch (error: unknown) {
-        this.sendError(res, 500, 'DB_ERROR', error instanceof Error ? error.message : 'Unknown error');
+        this.sendDeviceLookupError(res, error);
       }
       return true;
     }
@@ -131,8 +143,10 @@ export class DeviceReadRoutes extends ApiRoutes {
     // GET /api/v1/devices
     if (method === 'GET' && pathname === '/api/v1/devices') {
       try {
+        const homes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
+        const homeIds = new Set(homes.map((home) => home.id));
         const devices = await container.repositories.deviceRepository.findAllOrderedByStatus();
-        this.sendJson(res, devices.map(d => enrichDevice(d)));
+        this.sendJson(res, devices.filter((device) => homeIds.has(device.homeId)).map(d => enrichDevice(d)));
       } catch (error: unknown) {
         this.sendError(res, 500, 'DB_ERROR', error instanceof Error ? error.message : 'Unknown error');
       }
@@ -141,6 +155,8 @@ export class DeviceReadRoutes extends ApiRoutes {
 
     // GET /api/v1/activity-logs
     if (method === 'GET' && pathname === '/api/v1/activity-logs') {
+      // The global log lists what every user did, so only administrators read it.
+      if (!container.guards.authGuard.requireRole(req, res, 'admin')) return true;
       try {
         const logs = await container.repositories.activityLogRepository.findAllRecent(50);
         this.sendJson(res, logs);

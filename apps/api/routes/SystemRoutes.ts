@@ -1,4 +1,5 @@
 import * as http from 'http';
+import { IANAZone } from 'luxon';
 import { BootstrapContainer } from '../../../bootstrap';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
@@ -204,6 +205,8 @@ export class SystemRoutes extends ApiRoutes {
       try {
         const body = await this.parseBody<{ timezone: string }>(req);
         if (!body.timezone) throw new Error('MISSING_TIMEZONE');
+        // A bad zone would silently break every time-based automation.
+        if (typeof body.timezone !== 'string' || !IANAZone.isValidZone(body.timezone)) throw new Error('INVALID_TIMEZONE');
 
         await container.services.systemVariableService.set({
           scope: 'global',

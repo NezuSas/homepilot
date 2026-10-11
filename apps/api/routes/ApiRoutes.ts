@@ -76,6 +76,7 @@ const SAFE_MESSAGES: Record<string, string> = {
   'DASHBOARD_IMPORT_INVALID': 'El archivo de tablero no es válido.',
   'DASHBOARD_IMPORT_UNSUPPORTED_VERSION': 'La versión del archivo de tablero no es compatible.',
   'DASHBOARD_NOT_FOUND': 'El tablero no existe.',
+  'DASHBOARD_OWNER_EXISTS': 'Ya existe un tablero para este usuario.',
   'DASHBOARD_REVISION_NOT_FOUND': 'La versión del historial no existe.',
 };
 
@@ -94,6 +95,7 @@ const DEFAULT_STATUS_CODES: Record<string, number> = {
   'DASHBOARD_IMPORT_INVALID': 400,
   'DASHBOARD_IMPORT_UNSUPPORTED_VERSION': 400,
   'DASHBOARD_NOT_FOUND': 404,
+  'DASHBOARD_OWNER_EXISTS': 409,
   'DASHBOARD_REVISION_NOT_FOUND': 404,
   'SINGLE_HOME_INSTALLATION': 409,
 };
@@ -155,11 +157,14 @@ export abstract class ApiRoutes implements RouteHandler {
   protected sendError(
     res: http.ServerResponse,
     status: number,
-    code: string,
+    requestedCode: string,
     internalMessage?: string
   ): void {
+    // A body that is not valid JSON is a client error whatever route parsed it.
+    const malformedBody = internalMessage === 'INVALID_JSON';
+    const code = malformedBody ? 'VALIDATION_ERROR' : requestedCode;
     const safeMessage = SAFE_MESSAGES[code] || SAFE_MESSAGES['INTERNAL_ERROR'];
-    const finalStatus = status || DEFAULT_STATUS_CODES[code] || 500;
+    const finalStatus = malformedBody ? 400 : status || DEFAULT_STATUS_CODES[code] || 500;
 
     if (internalMessage) {
       logRuntimeDiagnostic('error', `[API-ERROR] [${code}] ${internalMessage}`);

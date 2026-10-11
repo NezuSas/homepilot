@@ -34,6 +34,7 @@ const mockAuthGuard = {
 
 describe('DeviceRoutes - Semantic Classification', () => {
   let routes: DeviceRoutes;
+  const mockTopologyPort = { validateHomeOwnership: jest.fn().mockResolvedValue(undefined) };
   let mockContainer: Partial<BootstrapContainer>;
   let mockReq: any;
   let mockRes: any;
@@ -50,6 +51,7 @@ describe('DeviceRoutes - Semantic Classification', () => {
         authGuard: mockAuthGuard as any,
       } as any,
       services: {} as any,
+      adapters: { topologyReferencePort: mockTopologyPort as any } as any,
     };
 
     routes = new DeviceRoutes();
@@ -262,4 +264,36 @@ describe('DeviceRoutes - Semantic Classification', () => {
     expect(detailResponse.end).toHaveBeenCalledWith(expect.stringContaining('"profile"'));
     expect(activityResponse.end).toHaveBeenCalledWith(expect.stringContaining('"log-1"'));
   });
+
+  it('refuses to read a device, or its activity, from a home the caller does not belong to', async () => {
+    const device = { id: 'dev-9', homeId: 'other-home', roomId: null, externalId: 'ha:light.x', name: 'X', type: 'light', status: 'ASSIGNED', lastKnownState: {}, entityVersion: 1, createdAt: '', updatedAt: '' } as Device;
+    mockDeviceRepository.findDeviceById.mockResolvedValue(device);
+    mockTopologyPort.validateHomeOwnership.mockRejectedValue(new (class ForbiddenOwnershipError extends Error {})('Forbidden'));
+    (mockContainer.repositories as any).activityLogRepository = { findRecentByDeviceId: jest.fn().mockResolvedValue([{ id: 'secret-log' }]) };
+    const detail = { writeHead: jest.fn().mockReturnThis(), end: jest.fn(), setHeader: jest.fn() };
+    const activity = { writeHead: jest.fn().mockReturnThis(), end: jest.fn(), setHeader: jest.fn() };
+
+    await routes.handle(mockReq as HomePilotRequest, detail as any, '/api/v1/devices/dev-9', 'GET', mockContainer as BootstrapContainer);
+    await routes.handle(mockReq as HomePilotRequest, activity as any, '/api/v1/devices/dev-9/activity-logs', 'GET', mockContainer as BootstrapContainer);
+
+    expect(detail.writeHead).toHaveBeenCalledWith(403, expect.any(Object));
+    expect(activity.writeHead).toHaveBeenCalledWith(403, expect.any(Object));
+    expect(activity.end).not.toHaveBeenCalledWith(expect.stringContaining('secret-log'));
+    mockTopologyPort.validateHomeOwnership.mockResolvedValue(undefined);
+  });
+
+  it('lists only the devices of the caller homes', async () => {
+    const mine = { id: 'mine', homeId: 'home-1', externalId: 'ha:light.mine', name: 'Mine', type: 'light', status: 'ASSIGNED', lastKnownState: {}, entityVersion: 1, createdAt: '', updatedAt: '' } as Device;
+    const foreign = { ...mine, id: 'foreign', homeId: 'other-home', externalId: 'ha:light.foreign', name: 'Foreign' } as Device;
+    mockDeviceRepository.findAllOrderedByStatus.mockResolvedValue([mine, foreign]);
+    mockHomeRepository.findHomesByUserId.mockResolvedValue([{ id: 'home-1' }]);
+    const list = { writeHead: jest.fn().mockReturnThis(), end: jest.fn(), setHeader: jest.fn() };
+
+    await routes.handle(mockReq as HomePilotRequest, list as any, '/api/v1/devices', 'GET', mockContainer as BootstrapContainer);
+
+    const body = list.end.mock.calls[0][0] as string;
+    expect(body).toContain('"mine"');
+    expect(body).not.toContain('"foreign"');
+  });
+
 });
