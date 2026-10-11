@@ -4,6 +4,7 @@ import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { CreateUserPayload } from '../../../packages/auth/application/UserManagementService';
 import { UserRole } from '../../../packages/auth/domain/User';
+import type { AccessScope } from '../../../packages/auth/domain/roomAccess';
 
 /**
  * Admin routes: /api/v1/admin/users/*
@@ -44,6 +45,25 @@ export class AdminRoutes extends ApiRoutes {
         if ((e instanceof Error ? e.message : String(e)).includes('USERNAME_TAKEN')) code = 'USERNAME_TAKEN';
         else if ((e instanceof Error ? e.message : String(e)).includes('INVALID_INPUT')) code = 'INVALID_INPUT';
         this.sendError(res, 400, code, (e instanceof Error ? e.message : String(e)));
+      }
+      return true;
+    }
+
+    // PATCH /api/v1/admin/users/:id/access — rooms a child or guest can use, and when the account expires
+    const patchAccessMatch = method === 'PATCH' && pathname.match(/^\/api\/v1\/admin\/users\/([^\/]+)\/access$/);
+    if (patchAccessMatch) {
+      try {
+        const payload = await this.parseBody<{ accessScope?: unknown; roomIds?: unknown; expiresAt?: unknown }>(req);
+        const access = await container.services.userManagementService.updateAccess(req.user!.id, patchAccessMatch[1], {
+          accessScope: payload.accessScope as AccessScope,
+          roomIds: payload.roomIds as string[] | undefined,
+          expiresAt: payload.expiresAt as string | null | undefined,
+        });
+        this.sendJson(res, access);
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : String(e);
+        if (message.includes('USER_NOT_FOUND')) return this.sendError(res, 404, 'USER_NOT_FOUND', message), true;
+        this.sendError(res, 400, message.includes('INVALID_INPUT') ? 'INVALID_INPUT' : 'USER_ACCESS_ERROR', message);
       }
       return true;
     }

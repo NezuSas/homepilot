@@ -42,7 +42,9 @@ export function LoginView({ onLoginSuccess, ssoLinkToken = null, ssoError = fals
       });
 
       if (!resp.ok) {
-        throw new Error(t('login.error_credentials'));
+        // A temporary account past its date gets its own sentence, only after the password was right.
+        const body = await resp.json().catch(() => null) as { error?: { code?: string } } | null;
+        throw new Error(t(body?.error?.code === 'ACCOUNT_EXPIRED' ? 'login.error_expired' : 'login.error_credentials'));
       }
 
       const data = await resp.json() as LoginResponse;

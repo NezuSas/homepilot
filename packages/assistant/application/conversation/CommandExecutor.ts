@@ -29,6 +29,7 @@ export class CommandExecutor extends ConversationCollaborator {
 
     if (!homeId) throw new Error('DEVICE_HOME_ID_NOT_FOUND');
     await this.deps.permissionGate.assertHomeAuthorized(userId, homeId);
+    await this.deps.permissionGate.assertDeviceAuthorized(userId, device);
     if (!hasParams && !knownDevice) return this.modules.hooks.executeSingleCommand(deviceId, command, prompt, correlationId);
     return this.modules.hooks.executeSingleCommand(deviceId, command, prompt, correlationId, hasParams ? params : undefined, knownDevice);
   }

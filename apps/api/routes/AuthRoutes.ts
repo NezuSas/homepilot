@@ -5,6 +5,7 @@ import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import type { MediaService } from '../../../packages/shared/infrastructure/MediaService';
 import type { LoginAttemptRateLimiter } from '../../../packages/auth/application/LoginAttemptRateLimiter';
 import { DirectorySsoError } from '../../../packages/auth/application/DirectorySsoVerifier';
+import { AccountExpiredError } from '../../../packages/auth/application/AuthService';
 
 /**
  * Auth routes: /api/v1/auth/*
@@ -158,9 +159,12 @@ export class AuthRoutes extends ApiRoutes {
             avatarDataUri: result.user.avatarDataUri,
             role: result.user.role,
             isActive: result.user.isActive,
+            accessScope: result.user.accessScope ?? 'all',
+            roomIds: result.user.roomIds ?? [],
           },
         });
       } catch (error: unknown) {
+        if (error instanceof AccountExpiredError) return this.sendError(res, 401, 'ACCOUNT_EXPIRED', 'Account expired'), true;
         if (error instanceof DirectorySsoError) this.sendDirectorySsoError(res, error);
         else this.sendError(res, 500, 'INTERNAL_ERROR', 'Internal Login Error');
       }

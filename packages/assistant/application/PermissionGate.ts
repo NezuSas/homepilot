@@ -6,6 +6,10 @@ import { HomeRepository } from '../../topology/domain/repositories/HomeRepositor
 import { Device } from '../../devices/domain/types';
 import { Room } from '../../topology/domain/types';
 import { Scene } from '../../devices/domain/Scene';
+import { canUseRoom, isRoomRestricted, type RoomScopedSubject } from '../../auth/domain/roomAccess';
+
+/** Tells which rooms a user is limited to; null when the user is unknown. */
+export type RoomScopeProvider = (userId: string) => Promise<RoomScopedSubject | null>;
 
 /**
  * PermissionGate
@@ -28,8 +32,24 @@ export class PermissionGate {
     private readonly roomRepository: RoomRepository,
     private readonly sceneRepository: SceneRepository,
     private readonly automationRepository: AutomationRuleRepository,
-    private readonly homeRepository?: HomeRepository
+    private readonly homeRepository?: HomeRepository,
+    private readonly roomScopeProvider?: RoomScopeProvider
   ) {}
+
+  /** The subject only when it is limited to some rooms; null means the whole home is allowed. */
+  private async restrictedScopeFor(userId: string): Promise<RoomScopedSubject | null> {
+    if (!this.roomScopeProvider) return null;
+    const subject = await this.roomScopeProvider(userId);
+    return subject && isRoomRestricted(subject) ? subject : null;
+  }
+
+  private async sceneWithinScope(scene: Scene, scope: RoomScopedSubject): Promise<boolean> {
+    for (const action of scene.actions) {
+      const device = await this.deviceRepository.findDeviceById(action.deviceId);
+      if (!device || !canUseRoom(scope, device.roomId)) return false;
+    }
+    return true;
+  }
 
   public async authorizedHomeIdsFor(userId: string): Promise<string[]> {
     if (!this.homeRepository) return [];
@@ -38,23 +58,36 @@ export class PermissionGate {
   }
 
   public async getAuthorizedDevices(userId: string): Promise<Device[]> {
-    if (!this.homeRepository) return Array.from(await this.deviceRepository.findAll());
+    const scope = await this.restrictedScopeFor(userId);
+    const inScope = (devices: Device[]) => (scope ? devices.filter((device) => canUseRoom(scope, device.roomId)) : devices);
+    if (!this.homeRepository) return inScope(Array.from(await this.deviceRepository.findAll()));
     const homeIds = await this.authorizedHomeIdsFor(userId);
     if (homeIds.length === 0) return [];
     const perHome = await Promise.all(homeIds.map((homeId) => this.deviceRepository.findAllByHomeId(homeId)));
-    return perHome.flatMap((devices) => Array.from(devices));
+    return inScope(perHome.flatMap((devices) => Array.from(devices)));
   }
 
   public async getAuthorizedRooms(userId: string): Promise<Room[]> {
-    if (!this.homeRepository) return Array.from(await this.roomRepository.findAll());
+    const scope = await this.restrictedScopeFor(userId);
+    const inScope = (rooms: Room[]) => (scope ? rooms.filter((room) => canUseRoom(scope, room.id)) : rooms);
+    if (!this.homeRepository) return inScope(Array.from(await this.roomRepository.findAll()));
     const homeIds = await this.authorizedHomeIdsFor(userId);
     if (homeIds.length === 0) return [];
     const perHome = await Promise.all(homeIds.map((homeId) => this.roomRepository.findRoomsByHomeId(homeId)));
-    return perHome.flatMap((rooms) => Array.from(rooms));
+    return inScope(perHome.flatMap((rooms) => Array.from(rooms)));
   }
 
   public async getAuthorizedScenes(userId: string): Promise<Scene[]> {
-    if (!this.homeRepository) return Array.from(await this.sceneRepository.findAll()).filter((scene) => scene.userId === userId);
+    const scope = await this.restrictedScopeFor(userId);
+    const owned = !this.homeRepository
+      ? Array.from(await this.sceneRepository.findAll()).filter((scene) => scene.userId === userId)
+      : await this.ownedScenesInHomes(userId);
+    if (!scope) return owned;
+    const inScope = await Promise.all(owned.map((scene) => this.sceneWithinScope(scene, scope)));
+    return owned.filter((_scene, index) => inScope[index]);
+  }
+
+  private async ownedScenesInHomes(userId: string): Promise<Scene[]> {
     const homeIds = await this.authorizedHomeIdsFor(userId);
     if (homeIds.length === 0) return [];
     const perHome = await Promise.all(homeIds.map((homeId) => this.sceneRepository.findScenesByHomeId(homeId)));
@@ -72,6 +105,14 @@ export class PermissionGate {
   public async assertSceneAuthorized(userId: string, scene: Scene): Promise<void> {
     if (scene.userId !== userId) throw new Error('ASSISTANT_SCENE_FORBIDDEN');
     await this.assertHomeAuthorized(userId, scene.homeId);
+    const scope = await this.restrictedScopeFor(userId);
+    if (scope && !(await this.sceneWithinScope(scene, scope))) throw new Error('ASSISTANT_SCENE_FORBIDDEN');
+  }
+
+  /** A user limited to some rooms can only act on devices in those rooms, whatever path found the device. */
+  public async assertDeviceAuthorized(userId: string, device: Pick<Device, 'roomId'>): Promise<void> {
+    const scope = await this.restrictedScopeFor(userId);
+    if (scope && !canUseRoom(scope, device.roomId)) throw new Error('ASSISTANT_DEVICE_FORBIDDEN');
   }
 
   /**

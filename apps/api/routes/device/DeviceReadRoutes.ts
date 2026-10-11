@@ -6,6 +6,7 @@ import { HomePilotRequest } from '../../../../packages/shared/domain/http';
 import { ApiRoutes } from '../ApiRoutes';
 import { enrichDevice, toControlCatalogView, toEffectiveActionsView } from './deviceSerialization';
 import { mapDeviceReadError } from './deviceErrorMapping';
+import { roomVisibleTo } from '../roomScope';
 
 /**
  * Authenticated read-only device routes (the caller has already passed the auth guard):
@@ -73,7 +74,8 @@ export class DeviceReadRoutes extends ApiRoutes {
       try {
         const homes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
         const devices = (await Promise.all(homes.map((home) =>
-          container.repositories.deviceRepository.findAllByHomeId(home.id)))).flat();
+          container.repositories.deviceRepository.findAllByHomeId(home.id)))).flat()
+          .filter((device) => roomVisibleTo(req.user!, device.roomId));
         this.sendJson(res, container.services.deviceControlCatalogProvider.listDashboardActionsForDevices(devices));
       } catch (error: unknown) {
         this.sendDeviceReadError(res, error);
@@ -149,7 +151,7 @@ export class DeviceReadRoutes extends ApiRoutes {
         const homes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
         const homeIds = new Set(homes.map((home) => home.id));
         const devices = await container.repositories.deviceRepository.findAllOrderedByStatus();
-        this.sendJson(res, devices.filter((device) => homeIds.has(device.homeId)).map(d => enrichDevice(d)));
+        this.sendJson(res, devices.filter((device) => homeIds.has(device.homeId) && roomVisibleTo(req.user!, device.roomId)).map(d => enrichDevice(d)));
       } catch (error: unknown) {
         this.sendError(res, 500, 'DB_ERROR', error instanceof Error ? error.message : 'Unknown error');
       }

@@ -1401,6 +1401,7 @@
       "USER_DEACTIVATED": "Access suspended for '{{targetUser}}'",
       "USER_ACTIVATED": "Access restored for '{{targetUser}}'",
       "USER_ROLE_CHANGED": "Role of '{{targetUser}}' updated to {{role}}",
+      "USER_ACCESS_CHANGED": "Access for '{{targetUser}}' updated",
       "USER_SESSIONS_REVOKED": "All sessions for '{{targetUser}}' have been revoked"
     },
     "sync_summary_count_one": "{{count}} update grouped",
@@ -1437,20 +1438,20 @@
   "users": {
     "loading": "Loading user directory...",
     "create_form": {
-      "title": "Register New Organization User",
+      "title": "Add a person",
       "username": "Username",
       "password": "Initial Password",
-      "role": "Role Allocation",
+      "role": "What kind of person is this?",
       "operator_desc": "Operator (Standard Access)",
       "admin_desc": "Admin (System Wide)",
-      "submit": "Create Security Context",
-      "password_hint": "Min 8 chars required",
-      "username_placeholder": "e.g. operator_1"
+      "submit": "Create account",
+      "password_hint": "At least 8 characters",
+      "username_placeholder": "e.g. maria"
     },
     "header": {
-      "title": "Users and Access",
-      "subtitle": "Manage organizational access and session boundaries.",
-      "add_button": "Add User"
+      "title": "People and access",
+      "subtitle": "Decide who can use your home and how far each person can go.",
+      "add_button": "Add person"
     },
     "table": {
       "identity": "User Identity",
@@ -1481,11 +1482,48 @@
       "create_failed": "Failed to register new user"
     },
     "roles": {
-      "admin": "System Administrator",
-      "operator": "Technical Support",
-      "parent": "Parent / Owner",
-      "child": "Child / Member",
+      "admin": "Administrator",
+      "operator": "Operator (legacy)",
+      "parent": "Family member",
+      "child": "Child",
       "guest": "Guest"
+    },
+    "role_descriptions": {
+      "admin": "Controls everything: people, system and devices.",
+      "operator": "Older account. Behaves like a family member.",
+      "parent": "Uses every device, scene and dashboard, and creates their own automations.",
+      "child": "Uses the rooms you give them and runs scenes. Cannot edit automations.",
+      "guest": "Uses only the rooms you choose, until their access ends."
+    },
+    "access": {
+      "title": "How far they can go",
+      "scope_label": "Reach inside the home",
+      "scope_all": "Whole home",
+      "scope_all_desc": "Can use every room and device.",
+      "scope_rooms": "Only some rooms",
+      "scope_rooms_desc": "Only sees and controls what is in the rooms you choose.",
+      "rooms_label": "Allowed rooms",
+      "no_rooms": "No rooms have been created yet.",
+      "none_selected": "With no rooms chosen, this person will see nothing.",
+      "expiry_label": "Until when",
+      "expiry_never": "No expiry",
+      "expiry_1d": "1 day",
+      "expiry_7d": "7 days",
+      "expiry_30d": "30 days",
+      "expiry_custom": "Pick a date",
+      "expiry_date": "Last day of access",
+      "expiry_date_placeholder": "Choose a date",
+      "expiry_past": "Choose a date from tomorrow on.",
+      "summary_all": "Whole home",
+      "summary_rooms": "Only: {{rooms}}",
+      "summary_none": "No rooms assigned yet",
+      "expires_on": "Expires on {{date}}",
+      "expired": "Access expired",
+      "edit_title": "Edit access",
+      "modal_title": "Access for {{username}}",
+      "modal_description": "Choose which rooms they can use and until when.",
+      "save": "Save access",
+      "error_save": "Could not save the access"
     },
     "password_reset": {
       "title": "New password for {{username}}",
@@ -1516,6 +1554,7 @@
     "password": "Password",
     "button": "Log in",
     "error_credentials": "Invalid credentials",
+    "error_expired": "This temporary account has expired. Ask the administrator to renew it.",
     "sso_error": "Directory sign-in could not be completed. You can still sign in locally.",
     "error_failed": "Login failed. Please verify your credentials."
   },
@@ -2092,8 +2131,8 @@
     "false": "FALSE",
     "roles": {
       "admin": "Administrator",
-      "operator": "Operator",
-      "parent": "Parent",
+      "operator": "Operator (legacy)",
+      "parent": "Family member",
       "child": "Child",
       "guest": "Guest"
     },
@@ -2145,6 +2184,7 @@
       "USER_DEACTIVATED": "User Deactivated",
       "USER_ACTIVATED": "User Activated",
       "USER_ROLE_CHANGED": "Role Changed",
+      "USER_ACCESS_CHANGED": "Access Changed",
       "USER_SESSIONS_REVOKED": "Sessions Revoked"
     },
     "no_content_yet": "No content available yet"

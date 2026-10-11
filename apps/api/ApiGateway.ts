@@ -5,6 +5,7 @@ import { BootstrapContainer } from '../../bootstrap';
 import { RouteHandler } from './RouteHandler';
 import { HomePilotRequest } from '../../packages/shared/domain/http';
 import { isDiagnosticLoggingEnabled, logRuntimeDiagnostic } from '../../packages/shared/config/runtimeEnvironment';
+import { canUseRoom, isAccountExpired, isRoomRestricted, type RoomScopedSubject } from '../../packages/auth/domain/roomAccess';
 
 interface RealtimeEventMessage {
   type: string;
@@ -13,6 +14,7 @@ interface RealtimeEventMessage {
 }
 
 const REALTIME_PATHNAME = '/ws';
+const WS_SUBJECT_REFRESH_MS = 5000;
 const BRIDGED_EVENT_TYPES = [
   'DeviceDiscoveredEvent',
   'HomeCreatedEvent',
@@ -44,6 +46,9 @@ export class ApiGateway {
   private readonly fastify: FastifyInstance;
   private readonly wsServer: WebSocketServer;
   private readonly wsClients = new Set<WebSocket>();
+  /** Who each socket belongs to and the room scope last read for them (refreshed every few seconds). */
+  private readonly wsSubjects = new WeakMap<WebSocket, { userId: string; subject: RoomScopedSubject; loadedAt: number }>();
+  private readonly pendingWsUsers = new WeakMap<object, string>();
   private readonly eventBusUnsubscribers: Array<() => void> = [];
   private readonly port: number;
 
@@ -249,6 +254,7 @@ export class ApiGateway {
           socket.destroy();
           return;
         }
+        if (authResult.user) this.pendingWsUsers.set(request, authResult.user.id);
       } catch (error: unknown) {
         logRuntimeDiagnostic('error', '[ApiGateway] WebSocket auth error:', error);
         socket.write('HTTP/1.1 500 Internal Server Error\r\n\r\n');
@@ -261,8 +267,10 @@ export class ApiGateway {
       });
     });
 
-    this.wsServer.on('connection', (ws) => {
+    this.wsServer.on('connection', (ws, request) => {
       this.wsClients.add(ws);
+      const userId = this.pendingWsUsers.get(request);
+      if (userId) void this.refreshSocketSubject(ws, userId);
 
       ws.on('close', () => {
         this.wsClients.delete(ws);
@@ -295,12 +303,15 @@ export class ApiGateway {
     }
 
     const serializedMessage = JSON.stringify(message);
+    const eventRoom = await this.resolveEventRoom(message);
 
     for (const client of this.wsClients) {
       if (client.readyState !== WebSocket.OPEN) {
         this.wsClients.delete(client);
         continue;
       }
+
+      if (!(await this.clientMayReceive(client, eventRoom))) continue;
 
       try {
         client.send(serializedMessage);
@@ -314,6 +325,45 @@ export class ApiGateway {
         client.terminate();
       }
     }
+  }
+
+  /** Reads who the socket belongs to again, so a change of rooms or an expiry applies to open connections too. */
+  private async refreshSocketSubject(ws: WebSocket, userId: string): Promise<RoomScopedSubject | null> {
+    const user = await this.container.repositories.userRepository.findById(userId);
+    if (!user || !user.isActive || isAccountExpired(user)) {
+      this.wsSubjects.delete(ws);
+      this.wsClients.delete(ws);
+      ws.close(1008, 'session no longer valid');
+      return null;
+    }
+    const subject: RoomScopedSubject = { role: user.role, accessScope: user.accessScope, roomIds: user.roomIds };
+    this.wsSubjects.set(ws, { userId, subject, loadedAt: Date.now() });
+    return subject;
+  }
+
+  /** Where an event happened: the room of its device, or the room it names. Undefined when it has no room. */
+  private async resolveEventRoom(message: RealtimeEventMessage): Promise<{ roomId: string | null } | undefined> {
+    const payload = message.payload;
+    if (typeof payload.roomId === 'string' && message.type === 'DeviceAssignedToRoomEvent') return { roomId: payload.roomId };
+    if (typeof payload.deviceId !== 'string') return undefined;
+    try {
+      const device = await this.container.repositories.deviceRepository.findDeviceById(payload.deviceId);
+      return { roomId: device?.roomId ?? null };
+    } catch {
+      return { roomId: null };
+    }
+  }
+
+  /** A user limited to some rooms only receives events that belong to those rooms. */
+  private async clientMayReceive(client: WebSocket, eventRoom: { roomId: string | null } | undefined): Promise<boolean> {
+    const known = this.wsSubjects.get(client);
+    if (!known) return true;
+    const subject = Date.now() - known.loadedAt > WS_SUBJECT_REFRESH_MS
+      ? await this.refreshSocketSubject(client, known.userId)
+      : known.subject;
+    if (!subject) return false;
+    if (!isRoomRestricted(subject)) return true;
+    return eventRoom !== undefined && canUseRoom(subject, eventRoom.roomId);
   }
 
   private normalizePayload(payload: unknown): Record<string, unknown> {

@@ -1,7 +1,9 @@
 import { ActivityLogRepository } from '../../devices/domain/repositories/ActivityLogRepository';
-import { UserRole } from '../domain/User';
+import { User, UserRole } from '../domain/User';
+import { AccessScope, EXPIRABLE_ROLES, ROOM_RESTRICTABLE_ROLES } from '../domain/roomAccess';
 import {
   UserManagementCryptoService,
+  UserManagementRoomLookup,
   UserManagementSessionRepository,
   UserManagementUserRepository,
 } from './ports/UserManagementPorts';
@@ -13,6 +15,9 @@ export interface PublicUserDto {
   avatarDataUri: string | null;
   role: 'admin' | 'parent' | 'child' | 'guest' | 'operator';
   isActive: boolean;
+  accessScope: AccessScope;
+  roomIds: string[];
+  expiresAt: string | null;
   createdAt: string;
   updatedAt: string;
   hasActiveSessions: boolean;
@@ -22,6 +27,21 @@ export interface CreateUserPayload {
   username: string;
   passwordPlain: string;
   role: 'admin' | 'parent' | 'child' | 'guest' | 'operator';
+  accessScope?: AccessScope;
+  roomIds?: string[];
+  expiresAt?: string | null;
+}
+
+export interface UserAccessInput {
+  accessScope: AccessScope;
+  roomIds?: string[];
+  expiresAt?: string | null;
+}
+
+export interface NormalizedAccess {
+  accessScope: AccessScope;
+  roomIds: string[];
+  expiresAt: string | null;
 }
 
 export class UserManagementService {
@@ -29,7 +49,8 @@ export class UserManagementService {
     private readonly userRepository: UserManagementUserRepository,
     private readonly sessionRepository: UserManagementSessionRepository,
     private readonly activityLogRepository: ActivityLogRepository,
-    private readonly cryptoService: UserManagementCryptoService
+    private readonly cryptoService: UserManagementCryptoService,
+    private readonly roomLookup?: UserManagementRoomLookup
   ) {}
 
   private static readonly VALID_ROLES = new Set<string>(['admin', 'parent', 'child', 'guest', 'operator']);
@@ -47,6 +68,9 @@ export class UserManagementService {
         avatarDataUri: u.avatarDataUri ?? null,
         role: u.role,
         isActive: u.isActive,
+        accessScope: u.accessScope ?? 'all',
+        roomIds: u.roomIds ?? [],
+        expiresAt: u.expiresAt ?? null,
         createdAt: u.createdAt,
         updatedAt: u.updatedAt,
         hasActiveSessions: liveSessions > 0
@@ -71,6 +95,11 @@ export class UserManagementService {
       throw new Error('INVALID_ROLE');
     }
 
+    const wantsAccess = payload.accessScope !== undefined || payload.roomIds !== undefined || payload.expiresAt !== undefined;
+    const access = wantsAccess
+      ? await this.normalizeAccess(payload.role as UserRole, { accessScope: payload.accessScope ?? 'all', roomIds: payload.roomIds, expiresAt: payload.expiresAt })
+      : null;
+
     const cleanUsername = payload.username.trim();
     const existing = await this.userRepository.findByUsername(cleanUsername);
     if (existing) {
@@ -94,6 +123,7 @@ export class UserManagementService {
     };
 
     await this.userRepository.seedInitialAdmin(newUser); // Can be reused for any user insertion
+    if (access) await this.userRepository.updateAccess(newUserId, access.accessScope, access.roomIds, access.expiresAt);
 
     await this.activityLogRepository.saveActivity({
       deviceId: 'user-management',
@@ -104,7 +134,10 @@ export class UserManagementService {
         adminActorUserId: adminUserId,
         targetUserId: newUserId,
         newRole: newUser.role,
-        newIsActive: true
+        newIsActive: true,
+        accessScope: access?.accessScope ?? 'all',
+        roomCount: access?.roomIds.length ?? 0,
+        expiresAt: access?.expiresAt ?? null
       }
     });
 
@@ -115,6 +148,9 @@ export class UserManagementService {
       avatarDataUri: null,
       role: newUser.role,
       isActive: newUser.isActive,
+      accessScope: access?.accessScope ?? 'all',
+      roomIds: access?.roomIds ?? [],
+      expiresAt: access?.expiresAt ?? null,
       createdAt: newUser.createdAt,
       updatedAt: newUser.updatedAt,
       hasActiveSessions: false
@@ -141,6 +177,11 @@ export class UserManagementService {
       throw new Error('MINIMUM_ADMINS_VIOLATED: Cannot demote the last active admin');
     }
 
+    // Only a child or a guest can be limited to some rooms or expire: any other role goes back to the whole home.
+    if (!ROOM_RESTRICTABLE_ROLES.has(newRole) && (target.accessScope === 'rooms' || target.expiresAt)) {
+      await this.userRepository.updateAccess(targetUserId, 'all', [], null);
+    }
+
     await this.activityLogRepository.saveActivity({
       deviceId: 'user-management',
       type: 'USER_ROLE_CHANGED',
@@ -153,6 +194,62 @@ export class UserManagementService {
         newRole
       }
     });
+  }
+
+  /** Sets which rooms a child or guest can use and when the account stops working. */
+  public async updateAccess(adminUserId: string, targetUserId: string, input: UserAccessInput): Promise<NormalizedAccess> {
+    const target: User | null = await this.userRepository.findById(targetUserId);
+    if (!target) throw new Error('USER_NOT_FOUND');
+    const access = await this.normalizeAccess(target.role, input);
+
+    await this.userRepository.updateAccess(targetUserId, access.accessScope, access.roomIds, access.expiresAt);
+
+    await this.activityLogRepository.saveActivity({
+      deviceId: 'user-management',
+      type: 'USER_ACCESS_CHANGED',
+      timestamp: new Date().toISOString(),
+      description: 'User room access or expiry was modified',
+      data: {
+        adminActorUserId: adminUserId,
+        targetUserId,
+        previousAccessScope: target.accessScope ?? 'all',
+        newAccessScope: access.accessScope,
+        roomCount: access.roomIds.length,
+        expiresAt: access.expiresAt
+      }
+    });
+
+    return access;
+  }
+
+  private async normalizeAccess(role: UserRole, input: UserAccessInput): Promise<NormalizedAccess> {
+    if (input.accessScope !== 'all' && input.accessScope !== 'rooms') {
+      throw new Error('INVALID_INPUT: accessScope must be all or rooms');
+    }
+    if (input.accessScope === 'rooms' && !ROOM_RESTRICTABLE_ROLES.has(role)) {
+      throw new Error('INVALID_INPUT: Only a child or a guest can be limited to some rooms');
+    }
+
+    const requestedRooms = Array.isArray(input.roomIds) ? input.roomIds : [];
+    if (requestedRooms.some((roomId) => typeof roomId !== 'string' || roomId.length === 0)) {
+      throw new Error('INVALID_INPUT: roomIds must be room ids');
+    }
+    const roomIds = input.accessScope === 'rooms' ? [...new Set(requestedRooms)] : [];
+    for (const roomId of roomIds) {
+      const room = this.roomLookup ? await this.roomLookup.findRoomById(roomId) : null;
+      if (!room) throw new Error('INVALID_INPUT: Unknown room');
+    }
+
+    let expiresAt: string | null = null;
+    if (input.expiresAt !== undefined && input.expiresAt !== null) {
+      if (!EXPIRABLE_ROLES.has(role)) throw new Error('INVALID_INPUT: Only a child or a guest can expire');
+      const expiresAtMs = typeof input.expiresAt === 'string' ? Date.parse(input.expiresAt) : Number.NaN;
+      if (!Number.isFinite(expiresAtMs)) throw new Error('INVALID_INPUT: expiresAt must be a date');
+      if (expiresAtMs <= Date.now()) throw new Error('INVALID_INPUT: expiresAt must be in the future');
+      expiresAt = new Date(expiresAtMs).toISOString();
+    }
+
+    return { accessScope: input.accessScope, roomIds, expiresAt };
   }
 
   public async setUserActiveState(adminUserId: string, targetUserId: string, isActive: boolean): Promise<void> {

@@ -265,6 +265,90 @@ describe('ApiGateway HTTP transport contracts', () => {
       await gateway.fastify.close();
     }
   });
+  describe('realtime events for a user limited to some rooms', () => {
+    interface ScopedGateway extends TestGateway {
+      wsSubjects: WeakMap<object, { userId: string; subject: { role: string; accessScope?: 'all' | 'rooms'; roomIds?: string[] }; loadedAt: number }>;
+    }
+    const devices: Record<string, string | null> = { 'light-sala': 'sala', 'light-cocina': 'cocina' };
+
+    function scopedGateway() {
+      const container = {
+        eventBus: { subscribe: jest.fn().mockReturnValue(jest.fn()) },
+        services: { authService: { verifyToken: jest.fn() } },
+        repositories: {
+          deviceRepository: { findDeviceById: jest.fn(async (id: string) => (id in devices ? { id, roomId: devices[id] } : null)) },
+          userRepository: { findById: jest.fn() },
+        },
+      } as unknown as BootstrapContainer;
+      const gateway = new ApiGateway(container, ':memory:', [], 0) as unknown as ScopedGateway;
+      const connect = (subject: { role: string; accessScope?: 'all' | 'rooms'; roomIds?: string[] }) => {
+        const client = { readyState: WebSocket.OPEN, send: jest.fn(), terminate: jest.fn(), close: jest.fn() };
+        gateway.wsClients.add(client);
+        gateway.wsSubjects.set(client, { userId: 'u', subject, loadedAt: Date.now() });
+        return client;
+      };
+      return { gateway, connect, container };
+    }
+    const event = (type: string, payload: Record<string, unknown>) => ({ type, timestamp: '2026-10-11T00:00:00.000Z', payload });
+
+    it('delivers a device event only to the people who can use that room', async () => {
+      const { gateway, connect } = scopedGateway();
+      const family = connect({ role: 'parent', accessScope: 'all', roomIds: [] });
+      const guestSala = connect({ role: 'guest', accessScope: 'rooms', roomIds: ['sala'] });
+      const guestCocina = connect({ role: 'guest', accessScope: 'rooms', roomIds: ['cocina'] });
+      try {
+        await gateway.broadcastRealtimeEvent(event('DeviceStateUpdatedEvent', { deviceId: 'light-sala', newState: { on: true } }));
+        expect(family.send).toHaveBeenCalledTimes(1);
+        expect(guestSala.send).toHaveBeenCalledTimes(1);
+        expect(guestCocina.send).not.toHaveBeenCalled();
+      } finally {
+        await gateway.fastify.close();
+      }
+    });
+
+    it('keeps events without a room away from limited users while everyone else still gets them', async () => {
+      const { gateway, connect } = scopedGateway();
+      const family = connect({ role: 'child', accessScope: 'all', roomIds: [] });
+      const guest = connect({ role: 'guest', accessScope: 'rooms', roomIds: ['sala'] });
+      try {
+        await gateway.broadcastRealtimeEvent(event('RoomCreatedEvent', { id: 'garage', homeId: 'h1', name: 'Garage' }));
+        await gateway.broadcastRealtimeEvent(event('DeviceStateUpdatedEvent', { deviceId: 'ghost-device' }));
+        expect(family.send).toHaveBeenCalledTimes(2);
+        expect(guest.send).not.toHaveBeenCalled();
+      } finally {
+        await gateway.fastify.close();
+      }
+    });
+
+    it('follows a device moved into a room the guest can use', async () => {
+      const { gateway, connect } = scopedGateway();
+      const guest = connect({ role: 'guest', accessScope: 'rooms', roomIds: ['sala'] });
+      try {
+        await gateway.broadcastRealtimeEvent(event('DeviceAssignedToRoomEvent', { deviceId: 'light-cocina', roomId: 'sala' }));
+        await gateway.broadcastRealtimeEvent(event('DeviceAssignedToRoomEvent', { deviceId: 'light-sala', roomId: 'cocina' }));
+        expect(guest.send).toHaveBeenCalledTimes(1);
+      } finally {
+        await gateway.fastify.close();
+      }
+    });
+
+    it('re-reads the scope after a few seconds and closes the socket of an account that expired', async () => {
+      const { gateway, connect, container } = scopedGateway();
+      const guest = connect({ role: 'guest', accessScope: 'rooms', roomIds: ['sala'] });
+      gateway.wsSubjects.set(guest, { userId: 'u', subject: { role: 'guest', accessScope: 'rooms', roomIds: ['sala'] }, loadedAt: Date.now() - 60_000 });
+      (container.repositories.userRepository.findById as jest.Mock).mockResolvedValue({
+        id: 'u', role: 'guest', isActive: true, accessScope: 'rooms', roomIds: ['sala'], expiresAt: '2020-01-01T00:00:00.000Z',
+      });
+      try {
+        await gateway.broadcastRealtimeEvent(event('DeviceStateUpdatedEvent', { deviceId: 'light-sala' }));
+        expect(guest.send).not.toHaveBeenCalled();
+        expect(guest.close).toHaveBeenCalledWith(1008, expect.any(String));
+        expect(gateway.wsClients.has(guest)).toBe(false);
+      } finally {
+        await gateway.fastify.close();
+      }
+    });
+  });
   it('does not serialize or send a realtime event when there are no connected clients', async () => {
     const gateway = new ApiGateway(createContainer(), ':memory:', [], 0) as unknown as TestGateway;
     try {

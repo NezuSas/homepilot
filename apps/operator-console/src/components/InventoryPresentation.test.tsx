@@ -30,10 +30,17 @@ describe('Feature: Compact inventory and access (AC55, AC56)', () => {
     const html = renderToStaticMarkup(<InboxDeviceTile device={{ id: 'd', homeId: 'h', roomId: null, name: 'Luz', type: 'light', status: 'PENDING', lastKnownState: { state: 'unavailable' } }} rooms={[]} />);
     expect(html.match(/disabled=""/g)).toHaveLength(2);
   });
-  const labels = { identity: 'Identidad', access: 'Rol', status: 'Estado', controls: 'Controles', active: 'Activo', suspended: 'Suspendido', live: 'Sesión activa', suspendTitle: 'Suspender', restoreTitle: 'Restaurar', revokeTitle: 'Revocar sesiones', resetPasswordTitle: 'Restablecer contraseña', swapRoleTitle: () => 'Cambiar rol' };
+  const labels = { identity: 'Identidad', access: 'Rol', status: 'Estado', controls: 'Controles', active: 'Activo', suspended: 'Suspendido', live: 'Sesión activa', suspendTitle: 'Suspender', restoreTitle: 'Restaurar', revokeTitle: 'Revocar sesiones', resetPasswordTitle: 'Restablecer contraseña', editAccessTitle: 'Editar acceso', swapRoleTitle: () => 'Cambiar rol' };
+  const cardProps = {
+    getRoleLabel: (role: string) => (role === 'operator' ? 'Operador (heredado)' : role === 'guest' ? 'Invitado' : 'Familiar'),
+    getRoleDescription: (role: string) => `desc-${role}`,
+    getAccessText: () => 'Toda la casa',
+    getExpiry: () => null,
+    onEditAccess: noop,
+  };
   const user = { id: 'u', username: 'ana', displayName: 'Ana', avatarDataUri: null, role: 'operator' as const, isActive: true, hasActiveSessions: false, createdAt: '', updatedAt: '' };
   it.each(['u', 'other'].flatMap(currentUserId => [false, true].map(hasActiveSessions => ({ currentUserId, hasActiveSessions }))))('retains security controls and current-user password protection for $currentUserId with active sessions=$hasActiveSessions', ({ currentUserId, hasActiveSessions }) => {
-    const html = renderToStaticMarkup(<UserAccessCard user={{ ...user, hasActiveSessions }} labels={labels} roleOptions={[{ value: 'operator', label: 'Operador' }]} currentUserId={currentUserId} onToggleActive={noop} onChangeRole={noop} onRevokeSessions={noop} onResetPassword={noop} />);
+    const html = renderToStaticMarkup(<UserAccessCard user={{ ...user, hasActiveSessions }} labels={labels} roleOptions={[{ value: 'operator', label: 'Operador' }]} {...cardProps} currentUserId={currentUserId} onToggleActive={noop} onChangeRole={noop} onRevokeSessions={noop} onResetPassword={noop} />);
     expect(html).toContain('Ana');
     expect(html).toContain('aria-label="Rol"');
     expect(html).toContain('aria-label="Suspender"');
@@ -42,5 +49,39 @@ describe('Feature: Compact inventory and access (AC55, AC56)', () => {
     expect(revokeButtons).toHaveLength(1);
     expect(/\sdisabled=""(?:\s|>)/.test(revokeButtons![0])).toBe(!hasActiveSessions);
     expect(html.includes('aria-label="Restablecer contraseña"')).toBe(currentUserId !== user.id);
+  });
+
+  it('shows what a limited guest can reach, when the access ends, and offers to edit it', () => {
+    const guest = { ...user, role: 'guest' as const, accessScope: 'rooms' as const, roomIds: ['sala'], expiresAt: '2026-10-20T00:00:00.000Z' };
+    const html = renderToStaticMarkup(<UserAccessCard user={guest} labels={labels} roleOptions={[{ value: 'guest', label: 'Invitado' }]} {...cardProps}
+      getAccessText={() => 'Solo: Sala'} getExpiry={() => ({ text: 'Vence el 20 de octubre de 2026', expired: false })}
+      currentUserId="other" onToggleActive={noop} onChangeRole={noop} onRevokeSessions={noop} onResetPassword={noop} />);
+
+    expect(html).toContain('Solo: Sala');
+    expect(html).toContain('Vence el 20 de octubre de 2026');
+    expect(html).toContain('desc-guest');
+    expect(html).toContain('aria-label="Editar acceso"');
+    expect(html).not.toContain('text-danger');
+  });
+
+  it('marks an expired account in the danger tone', () => {
+    const html = renderToStaticMarkup(<UserAccessCard user={{ ...user, role: 'guest' as const }} labels={labels} roleOptions={[{ value: 'guest', label: 'Invitado' }]} {...cardProps}
+      getExpiry={() => ({ text: 'Acceso vencido', expired: true })} currentUserId="other" onToggleActive={noop} onChangeRole={noop} onRevokeSessions={noop} onResetPassword={noop} />);
+
+    expect(html).toContain('Acceso vencido');
+    expect(html).toContain('text-danger');
+  });
+
+  it.each(['admin', 'parent', 'operator'] as const)('does not offer room access editing for the %s role', (role) => {
+    const html = renderToStaticMarkup(<UserAccessCard user={{ ...user, role }} labels={labels} roleOptions={[{ value: 'parent', label: 'Familiar' }]} {...cardProps}
+      currentUserId="other" onToggleActive={noop} onChangeRole={noop} onRevokeSessions={noop} onResetPassword={noop} />);
+
+    expect(html).not.toContain('aria-label="Editar acceso"');
+  });
+
+  it('keeps the legacy operator role selectable on the account that has it, without offering it to others', () => {
+    const operatorHtml = renderToStaticMarkup(<UserAccessCard user={user} labels={labels} roleOptions={[{ value: 'parent', label: 'Familiar' }]} {...cardProps}
+      currentUserId="other" onToggleActive={noop} onChangeRole={noop} onRevokeSessions={noop} onResetPassword={noop} />);
+    expect(operatorHtml).toContain('Operador (heredado)');
   });
 });

@@ -50,6 +50,16 @@ describe('AuthGuard', () => {
     expect(result.end).toHaveBeenCalledWith(expect.stringContaining(code));
   });
 
+  it('refuses an expired temporary account with its own code', async () => {
+    verifyToken.mockResolvedValue({ isValid: false, reason: 'account_expired' });
+    const guard = new AuthGuard(authService);
+    const result = response();
+
+    await expect(guard.protect(request({ authorization: 'Bearer token' }), result.response)).resolves.toBe(false);
+    expect(result.writeHead).toHaveBeenCalledWith(401, { 'Content-Type': 'application/json' });
+    expect(result.end).toHaveBeenCalledWith(expect.stringContaining('ACCOUNT_EXPIRED'));
+  });
+
   it('attaches the verified session user and handles verification failures safely', async () => {
     verifyToken.mockResolvedValueOnce({
       isValid: true,
@@ -59,12 +69,56 @@ describe('AuthGuard', () => {
     const validRequest = request({ authorization: 'Bearer token' });
 
     await expect(guard.protect(validRequest, response().response)).resolves.toBe(true);
-    expect(validRequest.user).toEqual({ id: 'user-1', username: 'oscar', role: 'parent', displayName: 'Oscar', avatarDataUri: null });
+    expect(validRequest.user).toEqual({ id: 'user-1', username: 'oscar', role: 'parent', displayName: 'Oscar', avatarDataUri: null, accessScope: 'all', roomIds: [] });
 
     verifyToken.mockRejectedValueOnce(new Error('database unavailable'));
     const failed = response();
     await expect(guard.protect(request({ authorization: 'Bearer token' }), failed.response)).resolves.toBe(false);
     expect(failed.end).toHaveBeenCalledWith(expect.stringContaining('AUTH_ERROR'));
+  });
+
+  describe('room access', () => {
+    const guest = { id: 'guest-1', username: 'visita', role: 'guest', displayName: null, avatarDataUri: null, accessScope: 'rooms', roomIds: ['sala'] };
+    const scopedRequest = (url: string): HomePilotRequest => ({ headers: { authorization: 'Bearer token' }, url }) as unknown as HomePilotRequest;
+
+    it('asks the room rule for a user limited to some rooms and refuses what it rejects', async () => {
+      verifyToken.mockResolvedValue({ isValid: true, user: guest });
+      const check = jest.fn().mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+      const guard = new AuthGuard(authService);
+      guard.setRoomAccessCheck(check);
+
+      const allowedRequest = scopedRequest('/api/v1/devices/light-1/state?x=1');
+      await expect(guard.protect(allowedRequest, response().response)).resolves.toBe(true);
+      expect(check).toHaveBeenCalledWith(expect.objectContaining({ role: 'guest', roomIds: ['sala'] }), '/api/v1/devices/light-1/state');
+      expect(allowedRequest.user?.id).toBe('guest-1');
+
+      const refused = response();
+      const refusedRequest = scopedRequest('/api/v1/devices/light-2/command');
+      await expect(guard.protect(refusedRequest, refused.response)).resolves.toBe(false);
+      expect(refused.writeHead).toHaveBeenCalledWith(403, { 'Content-Type': 'application/json' });
+      expect(refused.end).toHaveBeenCalledWith(expect.stringContaining('FORBIDDEN'));
+      expect(refusedRequest.user).toBeUndefined();
+    });
+
+    it('never asks the room rule for users that see the whole home', async () => {
+      verifyToken.mockResolvedValue({ isValid: true, user: { ...guest, role: 'parent', accessScope: 'all', roomIds: [] } });
+      const check = jest.fn().mockResolvedValue(false);
+      const guard = new AuthGuard(authService);
+      guard.setRoomAccessCheck(check);
+
+      await expect(guard.protect(scopedRequest('/api/v1/devices/light-1'), response().response)).resolves.toBe(true);
+      expect(check).not.toHaveBeenCalled();
+    });
+
+    it('drops the user without failing when protection is optional and the room is out of reach', async () => {
+      verifyToken.mockResolvedValue({ isValid: true, user: guest });
+      const guard = new AuthGuard(authService);
+      guard.setRoomAccessCheck(jest.fn().mockResolvedValue(false));
+      const optionalRequest = scopedRequest('/api/v1/rooms/cocina/action');
+
+      await expect(guard.protect(optionalRequest, response().response, false)).resolves.toBe(true);
+      expect(optionalRequest.user).toBeUndefined();
+    });
   });
 
   it('supports the test-only bypass and enforces role hierarchy or a supplied checker', () => {

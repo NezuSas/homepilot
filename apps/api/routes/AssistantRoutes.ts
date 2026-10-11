@@ -14,6 +14,8 @@ import {
 } from '../../../packages/assistant/application/AssistantSpeechToTextService';
 import { sanitizeAssistantResponse } from '../../../packages/assistant/application/AssistantResponseSanitizer';
 import { SingleHomeInstallationError } from '../../../packages/topology/domain/errors';
+import { roomVisibleTo } from './roomScope';
+import type { RequestUser } from '../../../packages/shared/domain/http';
 import { isHomeChatEnabled, isVoiceEnabled } from '../../../packages/shared/config/getInstallationProfile';
 
 /**
@@ -158,7 +160,7 @@ export class AssistantRoutes extends ApiRoutes {
         
         if (body.sourceRoomId) {
           const sourceRoom = await container.repositories.roomRepository.findRoomById(body.sourceRoomId);
-          if (!sourceRoom || !authorizedHomeIds.includes(sourceRoom.homeId)) {
+          if (!sourceRoom || !authorizedHomeIds.includes(sourceRoom.homeId) || !roomVisibleTo(req.user!, sourceRoom.id)) {
             throw new Error('ASSISTANT_HOME_FORBIDDEN');
           }
           console.info(`[ASSISTANT_CONTEXT_SOURCE] {"sourceRoomId":"${body.sourceRoomId}","source":"operator_console"}`);
@@ -211,7 +213,7 @@ export class AssistantRoutes extends ApiRoutes {
       try {
         const body = await this.parseBody<{ audioBase64?: string; audioContentType?: string }>(req);
         const language = req.headers['accept-language']?.startsWith('en') ? 'en' : 'es';
-        const contextTerms = await this.resolveLocalSpeechContext(container, authorizedHomeIds);
+        const contextTerms = await this.resolveLocalSpeechContext(container, authorizedHomeIds, req.user!);
         const response = await container.services.assistantSpeechToTextService.transcribe({
           audioBase64: body.audioBase64 || '',
           audioContentType: body.audioContentType || '',
@@ -236,13 +238,16 @@ export class AssistantRoutes extends ApiRoutes {
     return true;
   }
 
-  private async resolveLocalSpeechContext(container: BootstrapContainer, authorizedHomeIds: readonly string[]): Promise<string[]> {
+  private async resolveLocalSpeechContext(container: BootstrapContainer, authorizedHomeIds: readonly string[], user: RequestUser): Promise<string[]> {
     try {
       const [devicesByHome, roomsByHome] = await Promise.all([
         Promise.all(authorizedHomeIds.map((homeId) => container.repositories.deviceRepository.findAllByHomeId(homeId))),
         Promise.all(authorizedHomeIds.map((homeId) => container.repositories.roomRepository.findRoomsByHomeId(homeId)))
       ]);
-      const terms = [...devicesByHome.flat().map((device) => device.name), ...roomsByHome.flat().map((room) => room.name)];
+      // Only names the user can actually control: a limited user's speech hints never reveal other rooms.
+      const devices = devicesByHome.flat().filter((device) => roomVisibleTo(user, device.roomId));
+      const rooms = roomsByHome.flat().filter((room) => roomVisibleTo(user, room.id));
+      const terms = [...devices.map((device) => device.name), ...rooms.map((room) => room.name)];
       return [...new Set(terms.map((term) => term.trim()).filter((term) => term.length > 0 && term.length <= 64))].slice(0, 40);
     } catch {
       // Speech recognition remains available without contextual terms if a local inventory read is temporarily unavailable.

@@ -2,6 +2,8 @@ import * as http from 'http';
 import { AuthService } from '../application/AuthService';
 import { UserRole } from '../domain/User';
 import { HomePilotRequest, RequestUser } from '../../shared/domain/http';
+import type { RoomAccessCheck } from '../application/RoomAccessRules';
+import { isRoomRestricted } from '../domain/roomAccess';
 
 export type RoleCheckerFn = (user: RequestUser, requiredRole: UserRole) => boolean;
 
@@ -30,7 +32,14 @@ export class AuthGuard {
     return userWeight >= requiredWeight;
   };
 
+  private roomAccessCheck: RoomAccessCheck | null = null;
+
   constructor(private authService: AuthService) {}
+
+  /** Installs the rule that keeps users limited to some rooms away from the rest of the home. */
+  public setRoomAccessCheck(check: RoomAccessCheck): void {
+    this.roomAccessCheck = check;
+  }
 
   /**
    * Formal override for testing scenarios to bypass role checks.
@@ -83,6 +92,8 @@ export class AuthGuard {
             this.sendError(res, 401, 'Session Expired', 'SESSION_EXPIRED');
           } else if (authResult.reason === 'inactive') {
             this.sendError(res, 403, 'Account Disabled', 'USER_INACTIVE');
+          } else if (authResult.reason === 'account_expired') {
+            this.sendError(res, 401, 'Account Expired', 'ACCOUNT_EXPIRED');
           } else {
             this.sendError(res, 401, 'Invalid Session', 'INVALID_TOKEN');
           }
@@ -95,8 +106,22 @@ export class AuthGuard {
         username: authResult.user!.username,
         role: authResult.user!.role,
         displayName: authResult.user!.displayName,
-        avatarDataUri: authResult.user!.avatarDataUri
+        avatarDataUri: authResult.user!.avatarDataUri,
+        accessScope: authResult.user!.accessScope ?? 'all',
+        roomIds: authResult.user!.roomIds ?? []
       };
+
+      if (this.roomAccessCheck && isRoomRestricted(req.user)) {
+        const pathname = (req.url ?? '').split('?')[0];
+        if (!(await this.roomAccessCheck(req.user, pathname))) {
+          req.user = undefined;
+          if (isRequired) {
+            this.sendError(res, 403, 'Forbidden', 'FORBIDDEN');
+            return false;
+          }
+          return true;
+        }
+      }
 
       return true;
     } catch (e) {

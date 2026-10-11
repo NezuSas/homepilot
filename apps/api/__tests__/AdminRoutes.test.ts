@@ -137,4 +137,43 @@ describe('Feature: Administrative user management route outcomes', () => {
     await routes.handle({ user: { id: 'admin-1', role: 'admin' } } as HomePilotRequest, unknown, '/api/v1/admin/users/unknown', 'GET', container);
     expect(unknown.writeHead).toHaveBeenCalledWith(404, expect.any(Object));
   });
+
+  it('Scenario: Given an administrator When a guest access is updated Then the service receives the scope, rooms and expiry', async () => {
+    const container = containerFor(true);
+    const updateAccess = jest.fn().mockResolvedValue({ accessScope: 'rooms', roomIds: ['sala'], expiresAt: '2099-01-01T00:00:00.000Z' });
+    (container.services.userManagementService as unknown as Record<string, unknown>).updateAccess = updateAccess;
+    const res = response();
+
+    await routes.handle(requestWithBody({ accessScope: 'rooms', roomIds: ['sala'], expiresAt: '2099-01-01T00:00:00.000Z' }), res, '/api/v1/admin/users/guest-1/access', 'PATCH', container);
+
+    expect(updateAccess).toHaveBeenCalledWith('admin-1', 'guest-1', { accessScope: 'rooms', roomIds: ['sala'], expiresAt: '2099-01-01T00:00:00.000Z' });
+    expect(res.writeHead).toHaveBeenCalledWith(200, expect.any(Object));
+  });
+
+  it.each([
+    ['USER_NOT_FOUND', 404, 'USER_NOT_FOUND'],
+    ['INVALID_INPUT: Unknown room', 400, 'INVALID_INPUT'],
+    ['something unexpected', 400, 'USER_ACCESS_ERROR'],
+  ])('Scenario: Given the service fails with %s When access is updated Then the answer is %i %s', async (message, status, code) => {
+    const container = containerFor(true);
+    (container.services.userManagementService as unknown as Record<string, unknown>).updateAccess = jest.fn().mockRejectedValue(new Error(message));
+    const res = response();
+
+    await routes.handle(requestWithBody({ accessScope: 'rooms', roomIds: ['garage'] }), res, '/api/v1/admin/users/guest-1/access', 'PATCH', container);
+
+    expect(res.writeHead).toHaveBeenCalledWith(status, expect.any(Object));
+    expect(res.end).toHaveBeenCalledWith(expect.stringContaining(code));
+  });
+
+  it('Scenario: Given a non-administrator When access is updated Then the service is never reached', async () => {
+    const container = containerFor(false);
+    const updateAccess = jest.fn();
+    (container.services.userManagementService as unknown as Record<string, unknown>).updateAccess = updateAccess;
+    const res = response();
+
+    await routes.handle(requestWithBody({ accessScope: 'all' }), res, '/api/v1/admin/users/guest-1/access', 'PATCH', container);
+
+    expect(res.writeHead).toHaveBeenCalledWith(403, expect.any(Object));
+    expect(updateAccess).not.toHaveBeenCalled();
+  });
 });

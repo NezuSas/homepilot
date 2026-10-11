@@ -10,6 +10,9 @@ export interface RequestUser {
   role: UserRole;
   displayName: string | null;
   avatarDataUri: string | null;
+  /** 'rooms' limits a child or guest to roomIds; absent or 'all' means the whole home. */
+  accessScope?: 'all' | 'rooms';
+  roomIds?: string[];
 }
 
 /**

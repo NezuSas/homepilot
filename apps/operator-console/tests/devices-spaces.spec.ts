@@ -465,14 +465,14 @@ for (const viewport of [
       if (['mobile portrait', 'tablet portrait', 'desktop'].includes(viewport.name)) await page.screenshot({ path: testInfo.outputPath(`discovery-${theme}.png`), fullPage: true });
       await page.goto('/system/users');
       await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
-      await expect(page.getByRole('heading', { name: /Usuarios y Acceso|Users and Access/i })).toBeVisible();
+      await expect(page.getByRole('heading', { name: /Personas y acceso|People and access/i })).toBeVisible();
       const card = page.getByRole('article', { name: 'Ana', exact: true });
       await expect(card.getByRole('button', { name: /Suspender|Suspend/i })).toBeVisible();
       await expect(card.getByRole('button', { name: /Revocar|Revoke/i })).toBeEnabled();
       const reset = card.getByRole('button', { name: /Restablecer|Reset/i });
       await expect(reset).toBeVisible();
       await expect(page.getByRole('article', { name: 'Administrador', exact: true }).getByRole('button', { name: /Restablecer|Reset/i })).toHaveCount(0);
-      expect((await card.boundingBox())?.height).toBeLessThanOrEqual(240);
+      expect((await card.boundingBox())?.height).toBeLessThanOrEqual(300);
       const resetBounds = await reset.boundingBox();
       expect(resetBounds?.height).toBeGreaterThanOrEqual(44);
       expect(resetBounds?.width).toBeGreaterThanOrEqual(44);

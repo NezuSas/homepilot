@@ -21,6 +21,9 @@ export interface UserContext {
   role: string;
   displayName: string | null;
   avatarDataUri: string | null;
+  /** 'rooms' means the person only reaches roomIds; absent or 'all' is the whole home. */
+  accessScope?: 'all' | 'rooms';
+  roomIds?: string[];
 }
 
 interface SessionState {

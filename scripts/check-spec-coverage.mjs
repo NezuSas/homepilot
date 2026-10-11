@@ -10,6 +10,7 @@ const modularComponentDocs = documentedModularComponents;
 
 
 const rules = [
+  ['household-roles-and-access-v1.md', /(?:roomAccess|RoomAccess|roomScope|RoomScoped|userAccess|UserAccess)/i],
   ['modbus-tcp-local-integration-v1.md', /(?:Modbus|integrations\/modbus)/i],
   ['installation-profiles-v1.md', /(?:getInstallationProfile|SystemSetupService|OnboardingView)/i],
   ['media-player-local-control-v1.md', /(?:MediaPlayer|MediaRoutes|MediaService)/i],

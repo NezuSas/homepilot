@@ -1,5 +1,6 @@
 import { Database } from 'better-sqlite3';
 import { User, UserRole } from '../domain/User';
+import type { AccessScope } from '../domain/roomAccess';
 
 interface UserRow {
   id: string;
@@ -9,6 +10,8 @@ interface UserRow {
   is_active: number;
   display_name: string | null;
   avatar_data_uri: string | null;
+  access_scope: AccessScope | null;
+  expires_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -31,7 +34,8 @@ export class SqliteUserRepository {
   public async findAll(): Promise<User[]> {
     const stmt = this.db.prepare('SELECT * FROM users ORDER BY created_at ASC');
     const rows = stmt.all() as UserRow[];
-    return rows.map(r => this.mapToDomain(r));
+    const roomIdsByUser = this.roomIdsByUser();
+    return rows.map(r => this.mapToDomain(r, roomIdsByUser.get(r.id) ?? []));
   }
 
   public async seedInitialAdmin(admin: User): Promise<void> {
@@ -56,14 +60,14 @@ export class SqliteUserRepository {
     const stmt = this.db.prepare('SELECT * FROM users WHERE username = ? COLLATE NOCASE');
     const row = stmt.get(username) as UserRow | undefined;
     if (!row) return null;
-    return this.mapToDomain(row);
+    return this.mapToDomain(row, this.roomIdsFor(row.id));
   }
 
   public async findById(id: string): Promise<User | null> {
     const stmt = this.db.prepare('SELECT * FROM users WHERE id = ?');
     const row = stmt.get(id) as UserRow | undefined;
     if (!row) return null;
-    return this.mapToDomain(row);
+    return this.mapToDomain(row, this.roomIdsFor(row.id));
   }
 
   public async updatePassword(id: string, passwordHash: string): Promise<void> {
@@ -131,13 +135,37 @@ export class SqliteUserRepository {
     return result.changes > 0;
   }
 
+  /** Replaces the user's room scope and expiry in one transaction. */
+  public async updateAccess(id: string, scope: AccessScope, roomIds: readonly string[], expiresAt: string | null): Promise<void> {
+    const now = new Date().toISOString();
+    const apply = this.db.transaction(() => {
+      this.db.prepare('UPDATE users SET access_scope = ?, expires_at = ?, updated_at = ? WHERE id = ?').run(scope, expiresAt, now, id);
+      this.db.prepare('DELETE FROM user_room_access WHERE user_id = ?').run(id);
+      const insert = this.db.prepare('INSERT OR IGNORE INTO user_room_access (user_id, room_id) VALUES (?, ?)');
+      for (const roomId of roomIds) insert.run(id, roomId);
+    });
+    apply();
+  }
+
   public async updateProfile(id: string, displayName: string | null, avatarDataUri: string | null): Promise<void> {
     const now = new Date().toISOString();
     const stmt = this.db.prepare('UPDATE users SET display_name = ?, avatar_data_uri = ?, updated_at = ? WHERE id = ?');
     stmt.run(displayName, avatarDataUri, now, id);
   }
 
-  private mapToDomain(row: UserRow): User {
+  private roomIdsFor(userId: string): string[] {
+    const rows = this.db.prepare('SELECT room_id FROM user_room_access WHERE user_id = ? ORDER BY room_id').all(userId) as { room_id: string }[];
+    return rows.map((row) => row.room_id);
+  }
+
+  private roomIdsByUser(): Map<string, string[]> {
+    const rows = this.db.prepare('SELECT user_id, room_id FROM user_room_access ORDER BY room_id').all() as { user_id: string; room_id: string }[];
+    const byUser = new Map<string, string[]>();
+    for (const row of rows) byUser.set(row.user_id, [...(byUser.get(row.user_id) ?? []), row.room_id]);
+    return byUser;
+  }
+
+  private mapToDomain(row: UserRow, roomIds: string[] = []): User {
     return {
       id: row.id,
       username: row.username,
@@ -146,6 +174,9 @@ export class SqliteUserRepository {
       isActive: row.is_active === 1,
       displayName: row.display_name ?? null,
       avatarDataUri: row.avatar_data_uri ?? null,
+      accessScope: row.access_scope === 'rooms' ? 'rooms' : 'all',
+      roomIds,
+      expiresAt: row.expires_at ?? null,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     };

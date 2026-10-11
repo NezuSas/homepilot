@@ -3,9 +3,15 @@ import { Plus } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Input } from './ui/Input';
-import { SearchableSelectField } from './ui/SearchableSelectField';
+import { SelectableOptionCard } from './ui/SelectableOptionCard';
 
 export type UserRole = 'admin' | 'parent' | 'child' | 'guest' | 'operator';
+
+export interface UserRoleOption {
+  value: UserRole;
+  label: string;
+  description: string;
+}
 
 interface UserCreateFormProps {
   title: string;
@@ -17,11 +23,13 @@ interface UserCreateFormProps {
   roleLabel: string;
   cancelLabel: string;
   submitLabel: string;
-  roleOptions: { value: UserRole; label: string }[];
+  roleOptions: UserRoleOption[];
   username: string;
   password: string;
   role: UserRole;
   error: string;
+  /** Room and expiry choices, shown only for the roles that can be limited. */
+  accessFields?: React.ReactNode;
   onUsernameChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
   onRoleChange: (role: UserRole) => void;
@@ -44,6 +52,7 @@ export const UserCreateForm: React.FC<UserCreateFormProps> = ({
   password,
   role,
   error,
+  accessFields,
   onUsernameChange,
   onPasswordChange,
   onRoleChange,
@@ -58,39 +67,46 @@ export const UserCreateForm: React.FC<UserCreateFormProps> = ({
       </CardTitle>
     </CardHeader>
     <CardContent className="pt-6">
-    <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-      {error && <p className="text-danger text-body font-medium">{error}</p>}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="col-span-1">
-          <Input
-            label={usernameLabel}
-            type="text"
-            value={username}
-            onChange={event => onUsernameChange(event.target.value)}
-            placeholder={usernamePlaceholder}
-            required
-          />
-        </div>
-        <div className="col-span-1">
-          <Input
-            label={passwordLabel}
-            type="password"
-            value={password}
-            onChange={event => onPasswordChange(event.target.value)}
-            placeholder={passwordPlaceholder}
-            helperText={passwordHint}
-            required
-          />
-        </div>
-        <div className="col-span-1">
-          <SearchableSelectField
-            label={roleLabel}
-            value={role}
-            onChange={value => onRoleChange(value as UserRole)}
-            options={roleOptions}
-          />
-        </div>
+    <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+      {error && <p role="alert" className="text-danger text-body font-medium">{error}</p>}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Input
+          label={usernameLabel}
+          type="text"
+          value={username}
+          onChange={event => onUsernameChange(event.target.value)}
+          placeholder={usernamePlaceholder}
+          maxLength={40}
+          required
+        />
+        <Input
+          label={passwordLabel}
+          type="password"
+          value={password}
+          onChange={event => onPasswordChange(event.target.value)}
+          placeholder={passwordPlaceholder}
+          helperText={passwordHint}
+          required
+        />
       </div>
+
+      <fieldset className="min-w-0 space-y-2">
+        <legend className="text-body font-semibold">{roleLabel}</legend>
+        <div role="radiogroup" aria-label={roleLabel} className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          {roleOptions.map(option => (
+            <SelectableOptionCard
+              key={option.value}
+              title={option.label}
+              description={option.description}
+              checked={role === option.value}
+              onClick={() => onRoleChange(option.value)}
+            />
+          ))}
+        </div>
+      </fieldset>
+
+      {accessFields}
+
       <div className="flex justify-end gap-3 mt-2 pt-4 border-t">
         <Button
           type="button"

@@ -51,6 +51,10 @@ describe('UserManagementService (Deep Audit & Atomic Security)', () => {
       avatarDataUri: null,
       role: 'admin',
       isActive: true,
+      // An account without room access fields means the whole home and no expiry.
+      accessScope: 'all',
+      roomIds: [],
+      expiresAt: null,
       createdAt: '...',
       updatedAt: '...',
       hasActiveSessions: true

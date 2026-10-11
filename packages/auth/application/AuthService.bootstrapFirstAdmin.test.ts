@@ -15,8 +15,16 @@ function createAuthService(): AuthService {
       is_active INTEGER NOT NULL DEFAULT 1,
       display_name TEXT,
       avatar_data_uri TEXT,
+      access_scope TEXT NOT NULL DEFAULT 'all',
+      expires_at TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE user_room_access (
+      user_id TEXT NOT NULL,
+      room_id TEXT NOT NULL,
+      PRIMARY KEY (user_id, room_id)
     );
 
     CREATE TABLE sessions (

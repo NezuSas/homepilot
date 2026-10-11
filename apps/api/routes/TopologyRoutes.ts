@@ -12,6 +12,7 @@ import { ForbiddenOwnershipError, TopologyResourceNotFoundError } from '../../..
 import { DeviceCommandV1 } from '../../../packages/devices/domain/commands';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
+import { roomVisibleTo } from './roomScope';
 import { ActivityType } from '../../../packages/devices/domain/repositories/ActivityLogRepository';
 
 
@@ -56,7 +57,7 @@ export class TopologyRoutes extends ApiRoutes {
         }
 
         const rooms = (await Promise.all(homes.map((home) => container.repositories.roomRepository.findRoomsByHomeId(home.id)))).flat();
-        this.sendJson(res, rooms);
+        this.sendJson(res, rooms.filter((room) => roomVisibleTo(req.user!, room.id)));
       } catch (error: unknown) {
         this.sendError(res, 500, 'DB_ERROR', (error instanceof Error ? error.message : String(error)));
       }
@@ -156,7 +157,7 @@ export class TopologyRoutes extends ApiRoutes {
           return this.sendError(res, 403, 'FORBIDDEN', 'Home does not belong to this installation'), true;
         }
         const rooms = await container.repositories.roomRepository.findRoomsByHomeId(homeId);
-        this.sendJson(res, rooms);
+        this.sendJson(res, rooms.filter((room) => roomVisibleTo(req.user!, room.id)));
       } catch (error: unknown) {
         this.sendError(res, 500, 'DB_ERROR', error instanceof Error ? error.message : 'Failed to load rooms');
       }

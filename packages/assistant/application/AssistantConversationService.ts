@@ -26,7 +26,7 @@ import { AssistantMediaPlayerResolver } from './AssistantMediaPlayerResolver';
 import { AssistantAliasManagementService } from './AssistantAliasManagementService';
 import { DomesticSkillResolver } from './DomesticSkillResolver';
 import { ScopeFilter } from './ScopeFilter';
-import { PermissionGate } from './PermissionGate';
+import { PermissionGate, type RoomScopeProvider } from './PermissionGate';
 import { ConversationModules } from './conversation/ConversationModules';
 import type { AssistantConversationResponse, AssistantConverseRequest } from './conversation/conversationTypes';
 
@@ -67,10 +67,11 @@ export class AssistantConversationService {
     private readonly confirmationTicketRepository?: ConfirmationTicketRepository,
     domesticSkillResolver?: DomesticSkillResolver,
     private readonly roomManagementService?: AssistantRoomManagementPort,
-    private readonly mediaPlayerResolver: AssistantMediaPlayerResolver = new AssistantMediaPlayerResolver()
+    private readonly mediaPlayerResolver: AssistantMediaPlayerResolver = new AssistantMediaPlayerResolver(),
+    roomScopeProvider?: RoomScopeProvider
   ) {
     this.aliasManagementService = aliasManagementService ?? new AssistantAliasManagementService(memoryService, deviceRepository, roomRepository);
-    this.permissionGate = new PermissionGate(deviceRepository, roomRepository, sceneRepository, automationRepository, homeRepository);
+    this.permissionGate = new PermissionGate(deviceRepository, roomRepository, sceneRepository, automationRepository, homeRepository, roomScopeProvider);
     this.domesticSkillResolver = domesticSkillResolver ?? new DomesticSkillResolver(this.permissionGate);
 
     this.modules = new ConversationModules({

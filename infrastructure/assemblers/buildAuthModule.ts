@@ -25,6 +25,9 @@ import type { SqliteDatabaseManager } from '../../packages/shared/infrastructure
 import type { SQLiteHomeRepository } from '../../packages/topology/infrastructure/repositories/SQLiteHomeRepository';
 import type { SQLiteSettingsRepository } from '../../packages/integrations/home-assistant/infrastructure/SQLiteSettingsRepository';
 import type { HomeAssistantSettingsService } from '../../packages/integrations/home-assistant/application/HomeAssistantSettingsService';
+import type { SQLiteRoomRepository } from '../../packages/topology/infrastructure/repositories/SQLiteRoomRepository';
+import type { SQLiteDeviceRepository } from '../../packages/devices/infrastructure/repositories/SQLiteDeviceRepository';
+import { createRoomAccessCheck } from '../../packages/auth/application/RoomAccessRules';
 import type { SQLiteActivityLogRepository } from '../../packages/devices/infrastructure/repositories/SQLiteActivityLogRepository';
 
 export interface AuthModuleAssembly {
@@ -46,10 +49,12 @@ export interface AuthModuleDeps {
   settingsRepository: SQLiteSettingsRepository;
   settingsService: HomeAssistantSettingsService;
   activityLogRepository: SQLiteActivityLogRepository;
+  roomRepository: SQLiteRoomRepository;
+  deviceRepository: SQLiteDeviceRepository;
 }
 
 export async function buildAuthModule(deps: AuthModuleDeps): Promise<AuthModuleAssembly> {
-  const { db, dbPath, homeRepository, settingsRepository, settingsService, activityLogRepository } = deps;
+  const { db, dbPath, homeRepository, settingsRepository, settingsService, activityLogRepository, roomRepository, deviceRepository } = deps;
 
   // -- INIT AUTH V1 --
   const userRepository = new SqliteUserRepository(db);
@@ -57,6 +62,12 @@ export async function buildAuthModule(deps: AuthModuleDeps): Promise<AuthModuleA
   const cryptoService = new CryptoService();
   const authService = new AuthService(userRepository, sessionRepository, cryptoService);
   const authGuard = new AuthGuard(authService);
+  authGuard.setRoomAccessCheck(createRoomAccessCheck({
+    findDeviceRoom: async (deviceId) => {
+      const device = await deviceRepository.findDeviceById(deviceId);
+      return { exists: Boolean(device), roomId: device?.roomId ?? null };
+    },
+  }));
   const directorySsoRepository = new SqliteDirectorySsoRepository(db);
   const directorySsoService = new DirectorySsoService(
     new DirectorySsoVerifier(directorySsoRepository),
@@ -100,7 +111,8 @@ export async function buildAuthModule(deps: AuthModuleDeps): Promise<AuthModuleA
     userRepository,
     sessionRepository,
     activityLogRepository,
-    cryptoService
+    cryptoService,
+    roomRepository
   );
 
   return {

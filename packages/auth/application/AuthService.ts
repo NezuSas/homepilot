@@ -1,6 +1,15 @@
 import { User } from '../domain/User';
 import { Session } from '../domain/Session';
+import { isAccountExpired } from '../domain/roomAccess';
 import { AuthCryptoService, AuthSessionRepository, AuthUserRepository } from './ports/AuthPorts';
+
+/** Thrown after valid credentials when the temporary account has passed its expiry date. */
+export class AccountExpiredError extends Error {
+  constructor() {
+    super('ACCOUNT_EXPIRED');
+    this.name = 'AccountExpiredError';
+  }
+}
 
 export class AuthService {
   // Session lifespan: 7 days
@@ -32,7 +41,7 @@ export class AuthService {
 
   public async createSessionForUserId(userId: string): Promise<{ token: string; user: User } | null> {
     const user = await this.userRepository.findById(userId);
-    if (!user || !user.isActive) return null;
+    if (!user || !user.isActive || isAccountExpired(user)) return null;
     return this.createSessionForUser(user);
   }
 
@@ -49,6 +58,9 @@ export class AuthService {
       return null;
     }
 
+    // Only after the password is right, so an expiry never reveals which accounts exist.
+    if (isAccountExpired(user)) throw new AccountExpiredError();
+
     if (afterCredentialsVerified) await afterCredentialsVerified(user);
     return this.createSessionForUser(user);
   }
@@ -57,7 +69,7 @@ export class AuthService {
     await this.sessionRepository.deleteSession(token);
   }
 
-  public async verifyToken(token: string): Promise<{ isValid: boolean; user: User | null; reason?: 'expired' | 'inactive' | 'not_found' }> {
+  public async verifyToken(token: string): Promise<{ isValid: boolean; user: User | null; reason?: 'expired' | 'inactive' | 'not_found' | 'account_expired' }> {
     const session = await this.sessionRepository.getSessionByToken(token);
     
     if (!session) {
@@ -76,6 +88,12 @@ export class AuthService {
 
     if (!user.isActive) {
       return { isValid: false, user: null, reason: 'inactive' };
+    }
+
+    if (isAccountExpired(user)) {
+      // An expired temporary account loses every open session, not just the one in this request.
+      await this.sessionRepository.deleteAllUserSessions(user.id);
+      return { isValid: false, user: null, reason: 'account_expired' };
     }
 
     return { isValid: true, user };

@@ -1401,6 +1401,7 @@
       "USER_DEACTIVATED": "Acceso suspendido para '{{targetUser}}'",
       "USER_ACTIVATED": "Acceso restaurado para '{{targetUser}}'",
       "USER_ROLE_CHANGED": "Rol de '{{targetUser}}' actualizado a {{role}}",
+      "USER_ACCESS_CHANGED": "Acceso de '{{targetUser}}' actualizado",
       "USER_SESSIONS_REVOKED": "Todas las sesiones de '{{targetUser}}' han sido revocadas"
     },
     "sync_summary_count_one": "{{count}} actualización agrupada",
@@ -1437,20 +1438,20 @@
   "users": {
     "loading": "Cargando directorio de usuarios...",
     "create_form": {
-      "title": "Registrar Nuevo Usuario de la Organización",
+      "title": "Añadir a una persona",
       "username": "Nombre de Usuario",
       "password": "Contraseña Inicial",
-      "role": "Asignación de Rol",
+      "role": "¿Qué tipo de persona es?",
       "operator_desc": "Operador (Acceso Estándar)",
       "admin_desc": "Admin (Todo el Sistema)",
-      "submit": "Crear Contexto de Seguridad",
-      "password_hint": "Mín. 8 caracteres",
-      "username_placeholder": "ej. operador_1"
+      "submit": "Crear cuenta",
+      "password_hint": "Mínimo 8 caracteres",
+      "username_placeholder": "ej. maria"
     },
     "header": {
-      "title": "Usuarios y Acceso",
-      "subtitle": "Gestionar acceso organizacional y límites de sesión.",
-      "add_button": "Añadir Usuario"
+      "title": "Personas y acceso",
+      "subtitle": "Decide quién puede usar tu casa y hasta dónde llega cada persona.",
+      "add_button": "Añadir persona"
     },
     "table": {
       "identity": "Identidad del Usuario",
@@ -1481,11 +1482,48 @@
       "create_failed": "Error al registrar el nuevo usuario"
     },
     "roles": {
-      "admin": "Admin",
-      "operator": "Soporte Técnico",
-      "parent": "Padre / Dueño",
-      "child": "Hijo / Miembro",
+      "admin": "Administrador",
+      "operator": "Operador (heredado)",
+      "parent": "Familiar",
+      "child": "Niño",
       "guest": "Invitado"
+    },
+    "role_descriptions": {
+      "admin": "Controla todo: personas, sistema y dispositivos.",
+      "operator": "Cuenta anterior. Se comporta como Familiar.",
+      "parent": "Usa todos los dispositivos, escenas y tableros, y crea sus propias automatizaciones.",
+      "child": "Usa las habitaciones que le des y ejecuta escenas. No edita automatizaciones.",
+      "guest": "Usa solo las habitaciones que elijas, hasta que venza su acceso."
+    },
+    "access": {
+      "title": "Hasta dónde llega",
+      "scope_label": "Alcance dentro de la casa",
+      "scope_all": "Toda la casa",
+      "scope_all_desc": "Puede usar todas las habitaciones y dispositivos.",
+      "scope_rooms": "Solo algunas habitaciones",
+      "scope_rooms_desc": "Solo ve y controla lo que haya en las habitaciones que elijas.",
+      "rooms_label": "Habitaciones permitidas",
+      "no_rooms": "Todavía no hay habitaciones creadas.",
+      "none_selected": "Sin habitaciones elegidas, esta persona no verá nada.",
+      "expiry_label": "Hasta cuándo",
+      "expiry_never": "Sin vencimiento",
+      "expiry_1d": "1 día",
+      "expiry_7d": "7 días",
+      "expiry_30d": "30 días",
+      "expiry_custom": "Elegir fecha",
+      "expiry_date": "Último día de acceso",
+      "expiry_date_placeholder": "Elige una fecha",
+      "expiry_past": "Elige una fecha a partir de mañana.",
+      "summary_all": "Toda la casa",
+      "summary_rooms": "Solo: {{rooms}}",
+      "summary_none": "Sin habitaciones asignadas todavía",
+      "expires_on": "Vence el {{date}}",
+      "expired": "Acceso vencido",
+      "edit_title": "Editar acceso",
+      "modal_title": "Acceso de {{username}}",
+      "modal_description": "Elige qué habitaciones puede usar y hasta cuándo.",
+      "save": "Guardar acceso",
+      "error_save": "No se pudo guardar el acceso"
     },
     "password_reset": {
       "title": "Nueva contraseña para {{username}}",
@@ -1516,6 +1554,7 @@
     "password": "Contraseña",
     "button": "Iniciar sesión",
     "error_credentials": "Credenciales inválidas",
+    "error_expired": "Esta cuenta temporal ya venció. Pide al administrador que la renueve.",
     "sso_error": "No se pudo completar el acceso desde el Directorio. Puedes iniciar sesión localmente.",
     "error_failed": "Fallo al iniciar sesión. Por favor verifica tus credenciales."
   },
@@ -2092,9 +2131,9 @@
     ],
     "roles": {
       "admin": "Administrador",
-      "operator": "Operador",
-      "parent": "Padre",
-      "child": "Hijo",
+      "operator": "Operador (heredado)",
+      "parent": "Familiar",
+      "child": "Niño",
       "guest": "Invitado"
     },
     "errors": {
@@ -2145,6 +2184,7 @@
       "USER_DEACTIVATED": "Usuario Desactivado",
       "USER_ACTIVATED": "Usuario Activado",
       "USER_ROLE_CHANGED": "Rol Cambiado",
+      "USER_ACCESS_CHANGED": "Acceso Cambiado",
       "USER_SESSIONS_REVOKED": "Sesiones Revocadas"
     },
     "no_content_yet": "No hay contenido disponible todavía"

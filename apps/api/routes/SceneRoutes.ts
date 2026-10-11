@@ -6,6 +6,7 @@ import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { Scene } from '../../../packages/devices/domain/Scene';
 import { canAccessRoutine, parseRoutineSharedUsers } from '../../../packages/devices/domain/routineAccess';
 import { isValidCommand } from '../../../packages/devices/domain/commands';
+import { sceneWithinRoomScope } from './roomScope';
 
 /**
  * Scene routes: /api/v1/scenes/*
@@ -112,7 +113,9 @@ export class SceneRoutes extends ApiRoutes {
         if (!homeId) return this.sendJson(res, []), true;
 
         const scenes = await container.repositories.sceneRepository.findScenesByHomeId(homeId);
-        this.sendJson(res, scenes.filter((scene) => canAccessRoutine(scene, req.user!.id)));
+        const reachable = scenes.filter((scene) => canAccessRoutine(scene, req.user!.id));
+        const inScope = await Promise.all(reachable.map((scene) => sceneWithinRoomScope(scene, req.user!, container.repositories.deviceRepository)));
+        this.sendJson(res, reachable.filter((_scene, index) => inScope[index]));
       } catch (error: unknown) {
         this.sendError(res, 500, 'DB_ERROR', error instanceof Error ? error.message : 'Unknown error');
       }
@@ -248,6 +251,7 @@ export class SceneRoutes extends ApiRoutes {
         const sceneId = executeSceneMatch[1];
         const scene = await container.repositories.sceneRepository.findSceneById(sceneId);
         if (!scene || !canAccessRoutine(scene, req.user!.id)) return this.sendError(res, 404, 'NOT_FOUND', 'Scene not found'), true;
+        if (!(await sceneWithinRoomScope(scene, req.user!, container.repositories.deviceRepository))) return this.sendError(res, 404, 'NOT_FOUND', 'Scene not found'), true;
         const homes = await container.repositories.homeRepository.findHomesByUserId(req.user!.id);
         if (!homes.some(home => home.id === scene.homeId)) return this.sendError(res, 403, 'FORBIDDEN', 'Home is not accessible'), true;
 

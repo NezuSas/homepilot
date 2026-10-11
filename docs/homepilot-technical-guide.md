@@ -89,13 +89,15 @@ General request flow:
 
 Authentication uses local SQLite users and opaque sessions.
 
-| Role | Use |
-|---|---|
-| admin | Technical superuser with full access |
-| operator | Legacy/support role with administrator-equivalent permissions for compatibility |
-| parent | Home owner who manages home functions without full technical configuration |
-| child | Family member with device and dashboard control |
-| guest | Visitor with limited access |
+| Role (name shown) | Id | Use |
+|---|---|---|
+| Administrator | admin | Everything: people, system, diagnostics, devices, automations, energy |
+| Family member | parent | Uses every device, scene and dashboard and creates their own automations; sees no system information |
+| Child | child | Uses the rooms the administrator gives them and runs scenes; cannot edit automations |
+| Guest | guest | Uses only the rooms the administrator chooses, until the account expires |
+| Operator (legacy) | operator | Kept for existing accounts; behaves like a family member and is no longer offered for new users |
+
+A child or a guest can be limited to some rooms (`access_scope = rooms` plus `user_room_access`) and can have an expiry date (`expires_at`). The API applies the limit to device and room lists, reads, commands, cameras, scenes, the assistant and realtime events; an expired account gets 401 `ACCOUNT_EXPIRED` and loses its sessions. The administrator manages both from People and access (`PATCH /api/v1/admin/users/:id/access`). Existing accounts keep the whole home and never expire. See `specs/household-roles-and-access-v1.md`.
 
 The backend enforces one critical rule: at least one active administrator must always exist. The last administrator cannot be downgraded or disabled because that could lock access to the system.
 

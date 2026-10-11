@@ -88,7 +88,9 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     homeRepository: repos.homeRepository,
     settingsRepository: repos.settingsRepository,
     settingsService: haModule.settingsService,
-    activityLogRepository: repos.activityLogRepository
+    activityLogRepository: repos.activityLogRepository,
+    roomRepository: repos.roomRepository,
+    deviceRepository: repos.deviceRepository
   });
 
   // 4. Assistant (necesario por buildCommandRouter)
@@ -175,6 +177,10 @@ export async function bootstrap(options?: BootstrapOptions): Promise<BootstrapCo
     sceneExecutionService,
     systemVariableService,
     topologyEventPublisher,
+    roomScopeProvider: async (userId) => {
+      const user = await authModule.userRepository.findById(userId);
+      return user ? { role: user.role, accessScope: user.accessScope, roomIds: user.roomIds } : null;
+    },
   });
 
   // 8. Cloud gateway (manifiestos y ejecución de comandos IntentFlow)

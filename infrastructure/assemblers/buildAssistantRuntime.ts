@@ -12,7 +12,7 @@ import { AssistantConfirmationPolicy } from '../../packages/assistant/applicatio
 import { AssistantMemoryService } from '../../packages/assistant/application/AssistantMemoryService';
 import { AssistantConversationService } from '../../packages/assistant/application/AssistantConversationService';
 import { DomesticSkillResolver } from '../../packages/assistant/application/DomesticSkillResolver';
-import { PermissionGate } from '../../packages/assistant/application/PermissionGate';
+import { PermissionGate, type RoomScopeProvider } from '../../packages/assistant/application/PermissionGate';
 import { AssistantFastPathResolver } from '../../packages/assistant/application/AssistantFastPathResolver';
 import { AssistantAliasManagementService } from '../../packages/assistant/application/AssistantAliasManagementService';
 import { AssistantSmallTalkService } from '../../packages/assistant/application/AssistantSmallTalkService';
@@ -45,10 +45,12 @@ export interface AssistantRuntimeDeps {
   sceneExecutionService: SceneExecutionService;
   systemVariableService: SystemVariableService;
   topologyEventPublisher: EventBusTopologyEventPublisher;
+  /** Rooms each user is limited to; absent means everyone sees the whole home. */
+  roomScopeProvider?: RoomScopeProvider;
 }
 
 export function buildAssistantRuntime(deps: AssistantRuntimeDeps): AssistantRuntimeAssembly {
-  const { repos, assistantDraftService, commandDispatcher, sceneExecutionService, systemVariableService, topologyEventPublisher } = deps;
+  const { repos, assistantDraftService, commandDispatcher, sceneExecutionService, systemVariableService, topologyEventPublisher, roomScopeProvider } = deps;
 
   const assistantMemoryService = new AssistantMemoryService(repos.executionRecordRepository, repos.assistantMemoryRepository);
   const assistantLearningService = new AssistantLearningService(repos.assistantLearningRepository);
@@ -88,7 +90,8 @@ export function buildAssistantRuntime(deps: AssistantRuntimeDeps): AssistantRunt
     repos.roomRepository,
     repos.sceneRepository,
     repos.automationRuleRepository,
-    repos.homeRepository
+    repos.homeRepository,
+    roomScopeProvider
   );
   const domesticSkillResolver = new DomesticSkillResolver(assistantPermissionGate);
   const assistantFastPathResolver = new AssistantFastPathResolver();
@@ -127,7 +130,9 @@ export function buildAssistantRuntime(deps: AssistantRuntimeDeps): AssistantRunt
     repos.homeRepository,
     repos.confirmationTicketRepository,
     domesticSkillResolver,
-    roomManagementService
+    roomManagementService,
+    undefined,
+    roomScopeProvider
   );
 
   return {

@@ -1,3 +1,4 @@
+import { AccountExpiredError } from '../../../packages/auth/application/AuthService';
 import { EventEmitter } from 'events';
 import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
@@ -53,6 +54,24 @@ describe('Feature: protección de inicio de sesión', () => {
     expect(blockedResponse.headers.get('Retry-After')).toBe('60');
     expect(blockedResponse.headers.get('Cache-Control')).toBe('no-store');
   });
+  it('Scenario: Given an expired temporary account When it logs in with the right password Then it answers 401 ACCOUNT_EXPIRED without counting a failed attempt', async () => {
+    const limiter = new LoginAttemptRateLimiter({ maxFailures: 1, lockoutMs: 60_000 });
+    const routes = new AuthRoutes(new MediaService(), limiter);
+    const container = createContainer();
+    (container.services.authService.login as jest.Mock).mockRejectedValue(new AccountExpiredError());
+
+    const first = new MockResponse();
+    await routes.handle(createRequest(), first as unknown as http.ServerResponse, '/api/v1/auth/login', 'POST', container);
+    const second = new MockResponse();
+    await routes.handle(createRequest(), second as unknown as http.ServerResponse, '/api/v1/auth/login', 'POST', container);
+
+    for (const response of [first, second]) {
+      expect(response.writeHead).toHaveBeenCalledWith(401, expect.any(Object));
+      expect(response.end).toHaveBeenCalledWith(expect.stringContaining('ACCOUNT_EXPIRED'));
+    }
+    expect(container.repositories.activityLogRepository.saveActivity).not.toHaveBeenCalled();
+  });
+
   it('Scenario: Given an authenticated user When managing session and profile endpoints Then each action uses the current identity', async () => {
     const limiter = new LoginAttemptRateLimiter();
     const routes = new AuthRoutes({ saveUserAvatar: jest.fn() } as unknown as MediaService, limiter);

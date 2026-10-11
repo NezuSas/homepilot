@@ -1,4 +1,5 @@
 import { User, UserRole } from '../../domain/User';
+import type { AccessScope } from '../../domain/roomAccess';
 
 export interface UserManagementUserRepository {
   findAll(): Promise<User[]>;
@@ -9,6 +10,12 @@ export interface UserManagementUserRepository {
   updateRoleAtomic(id: string, role: UserRole): Promise<boolean>;
   updateActiveStateAtomic(id: string, isActive: boolean): Promise<boolean>;
   updateProfile(id: string, displayName: string | null, avatarDataUri: string | null): Promise<void>;
+  updateAccess(id: string, scope: AccessScope, roomIds: readonly string[], expiresAt: string | null): Promise<void>;
+}
+
+/** Lets the access rules check that a chosen room exists in the home. */
+export interface UserManagementRoomLookup {
+  findRoomById(id: string): Promise<{ id: string } | null>;
 }
 
 export interface UserManagementSessionRepository {
