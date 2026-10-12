@@ -17,6 +17,7 @@ import { getClockGridOptions } from './clock/clockRegistry';
 import { InformationCardSkeleton } from './InformationCard';
 import { getCardFrameClass, getCardGridHeight, getCardGridRowSpan, getCardPresentationStyle } from './cardGridResize';
 import { DashboardCardSkeleton, type DashboardCardSkeletonVariant } from '../../../components/ui/DashboardCardSkeleton';
+import { useJustDropped } from '../canvas/useJustDropped';
 import { needsInitialDashboardSkeleton, useDelayedSkeleton } from '../../../components/ui/useDashboardDelayedSkeleton';
 import {
   getDefaultSpan, getEffectiveCardSpan, getSpanClass,
@@ -152,6 +153,7 @@ export function SectionCardItem({
     transition: DASHBOARD_DRAG_TRANSITION,
     attributes: { roleDescription: t('common.reorder_role') },
   });
+  const settling = useJustDropped(isDragging);
   const interactionAttributes = isEditing ? attributes
     : isActionable && normalizedKind !== 'action'
       ? { role: 'button' as const, tabIndex: 0, 'aria-label': card.title || catalogLabel(card.kind) } : {};
@@ -161,6 +163,7 @@ export function SectionCardItem({
       key={card.id}
       data-dashboard-card-id={card.id}
       data-dashboard-drag-origin={isDragging ? 'true' : undefined}
+      data-dashboard-just-dropped={settling ? 'true' : undefined}
       data-dashboard-drop-target={isEditing && isOver && !isDragging ? 'true' : undefined}
       ref={(element) => {
         previewNode.current = element;

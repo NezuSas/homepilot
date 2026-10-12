@@ -367,6 +367,19 @@
   }
 
   /* ── Animations ─────────────────────────────────────────── */
+  @keyframes dashboard-drag-lift {
+    from { transform: translateY(0); box-shadow: 0 0 0 0 hsl(var(--primary) / 0), 0 6px 14px -8px rgb(0 0 0 / 0.3); }
+    to { transform: translateY(-4px); box-shadow: 0 0 0 1px hsl(var(--primary) / 0.45), 0 28px 56px -14px rgb(0 0 0 / 0.55); }
+  }
+  @keyframes dashboard-drop-breathe {
+    0%, 100% { box-shadow: 0 0 0 4px hsl(var(--primary) / 0.1); }
+    50% { box-shadow: 0 0 0 9px hsl(var(--primary) / 0.2); }
+  }
+  @keyframes dashboard-drop-settle {
+    0% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.55); }
+    60% { box-shadow: 0 0 0 12px hsl(var(--primary) / 0); }
+    100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0); }
+  }
   @keyframes luxury-ripple {
     0%   { transform: scale(0.8); opacity: 0;   filter: blur(4px); }
     50%  { opacity: 0.3;                         filter: blur(0px); }
@@ -1078,8 +1091,15 @@
     .section-card-editor-preview { grid-column: 2; grid-row: 1; }
     .section-card-editor-controls { grid-column: 1; grid-row: 1; }
   }
-  [data-dashboard-drag-origin="true"] { outline: 2px solid hsl(var(--primary)); outline-offset: -2px; background: hsl(var(--primary) / 0.1); }
-  [data-dashboard-drop-target="true"] { outline: 2px solid hsl(var(--primary)); outline-offset: -2px; }
+  /* Dragging feels physical: a lifted copy, a dashed gap where it came from, a breathing target, a settling pulse. */
+  [data-dashboard-drag-origin="true"] { outline: 2px dashed hsl(var(--primary) / 0.55); outline-offset: -2px; background: hsl(var(--primary) / 0.06); }
+  [data-dashboard-drop-target="true"] { outline: 2px solid hsl(var(--primary)); outline-offset: -2px; box-shadow: 0 0 0 6px hsl(var(--primary) / 0.14); }
+  div[data-dashboard-drag-preview="true"] { transform: translateY(-4px); box-shadow: 0 0 0 1px hsl(var(--primary) / 0.45), 0 28px 56px -14px rgb(0 0 0 / 0.55); }
+  @media (prefers-reduced-motion: no-preference) {
+    div[data-dashboard-drag-preview="true"] { animation: dashboard-drag-lift var(--duration-fast) var(--ease-spring) both; }
+    [data-dashboard-drop-target="true"] { animation: dashboard-drop-breathe 1400ms ease-in-out infinite; }
+    [data-dashboard-just-dropped="true"] { animation: dashboard-drop-settle 420ms var(--ease-out) both; }
+  }
   .sensor-analog-instrument { position: relative; container-type: inline-size; width: 100%; max-width: 22rem; flex-shrink: 0; }
   .sensor-analog-canvas { display: block; width: 100%; height: auto; aspect-ratio: 320 / 265; }
   .sensor-vessel { fill: hsl(var(--popover)); stroke: hsl(var(--border)); stroke-width: 2; }

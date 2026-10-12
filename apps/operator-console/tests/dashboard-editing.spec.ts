@@ -479,7 +479,13 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     expect(dragBounds.width).toBeCloseTo(sourceBounds.width, 1);
     expect(dragBounds.height).toBeCloseTo(sourceBounds.height, 1);
     await expect(page.locator('[data-dashboard-drop-target="true"]').filter({ visible: true })).not.toHaveCount(0);
+    // The drag feels physical without changing geometry: the copy rises, the origin becomes a dashed gap.
+    await expect(page.locator('[data-dashboard-drag-preview="true"]')).toHaveCSS('transform', /^matrix\(1, 0, 0, 1, 0, -4\)$/);
+    await expect(source).toHaveCSS('outline-style', 'dashed');
+    await page.screenshot({ path: testInfo.outputPath('dashboard-drag-feel.png') });
     await page.mouse.up();
+    await expect(regions[1].locator('[data-dashboard-card-id="movable"]')).toHaveAttribute('data-dashboard-just-dropped', 'true');
+    await expect(regions[1].locator('[data-dashboard-card-id="movable"]')).not.toHaveAttribute('data-dashboard-just-dropped', 'true', { timeout: 3000 });
     await expect.poll(() => saved.tabs[0].widgets.find(widget => widget.id === 'patio')?.config.extra?.cards.map(card => card.id)).toEqual(['tall', 'movable']);
     await expect(regions[0].locator('[data-dashboard-card-id="movable"]')).toHaveCount(0);
     await expect(regions[1].locator('[data-dashboard-card-id="movable"]')).toBeVisible();

@@ -7,6 +7,7 @@ import type { DashboardWidget, DashboardWidgetConfig } from '../types';
 import { DashboardWidgetNode } from '../DashboardWidget';
 import { clampSectionSpan, getSectionSpan } from '../dashboardUtils';
 import { useMeasuredRowSpan } from './useMeasuredRowSpan';
+import { useJustDropped } from './useJustDropped';
 
 /** True when a pointer/touch landed on the section surface itself, not on an interactive control inside it. */
 function isDragSurface(target: EventTarget | null, surface: HTMLElement): boolean {
@@ -50,6 +51,7 @@ export function SortableCanvasWidget({
     transition: DASHBOARD_DRAG_TRANSITION,
     attributes: { roleDescription: t('common.reorder_role') },
   });
+  const settling = useJustDropped(isDragging);
   const span = clampSectionSpan(getSectionSpan(widget), columns);
   const sectionDrag = canDrag && widget.type === 'section';
 
@@ -57,6 +59,7 @@ export function SortableCanvasWidget({
     <div
       ref={(node) => { setNodeRef(node); nodeRef.current = node; }}
       data-dashboard-drag-origin={isDragging ? 'true' : undefined}
+      data-dashboard-just-dropped={settling ? 'true' : undefined}
       data-dashboard-section-id={widget.type === 'section' ? widget.id : undefined}
       data-dashboard-drop-target={canDrag && isOver && !isDragging ? 'true' : undefined}
       {...(sectionDrag ? { ...attributes, 'aria-label': `${t('common.reorder')}: ${widget.config.appearance?.title || t('dashboard.editor.sections.untitled_section')}` } : {})}

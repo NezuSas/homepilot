@@ -9,3 +9,4 @@
 - [x] Mostrar una vez un aviso táctil, acortar la pulsación a 300 ms y vibrar al levantar.
 - [x] Conservar el orden previsualizado al soltar una tarjeta sobre otra.
 - [x] Describir los elementos movibles en el idioma de la interfaz.
+- [x] Retroalimentación visual del arrastre: levantado, hueco de origen, destino que respira y pulso al soltar, con reducción de movimiento.

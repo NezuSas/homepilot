@@ -30,6 +30,7 @@ Una revisión del arrastrar y soltar de Tableros (ratón, táctil, teclado, canc
 - **REQ-05:** En modo edición cada sección muestra un asa de agarre en su barra flotante, sin ocupar espacio del flujo ni existir en modo vista. Arrastrar desde el asa mueve la sección.
 - **REQ-06:** En pantallas táctiles se muestra una sola vez un aviso temporal que explica cómo mover un elemento; se oculta solo, al arrastrar y no se repite. La pulsación para levantar dura 300 ms y el dispositivo vibra brevemente si lo permite.
 - **REQ-07:** Una tarjeta soltada sobre otra queda en el orden mostrado durante el arrastre, salvo en secciones con tarjetas fijadas a posiciones de la cuadrícula, donde decide la posición del puntero.
+- **REQ-08:** El arrastre se siente físico y claro, con el naranja de marca como único acento y sin cambiar el comportamiento. (a) Al levantar, la copia flotante sube 4 px con más sombra y un halo naranja suave, en 150 ms con la curva `--ease-spring`; conserva exactamente el tamaño del original, porque la animación de soltar la lleva hasta el hueco y un tamaño distinto produciría un salto. (b) El lugar de origen queda como un hueco: borde punteado naranja tenue, fondo teñido y contenido atenuado, en lugar de un recuadro sólido. (c) El destino válido bajo el puntero se resalta con borde naranja y un halo que respira lentamente. (d) Al soltar, el elemento que cae hace un breve pulso de asentamiento de 420 ms en su nuevo lugar. (e) Con `prefers-reduced-motion: reduce` no hay animaciones: solo los cambios de borde, fondo y opacidad, que siguen indicando origen y destino. (f) Ningún efecto cambia el tamaño del diseño ni el de otros elementos, y las pruebas existentes de arrastre siguen pasando.
 
 ## Criterios de aceptación
 
@@ -40,10 +41,13 @@ Una revisión del arrastrar y soltar de Tableros (ratón, táctil, teclado, canc
 - [x] **AC5:** En la consola real, el aviso táctil aparece una vez, desaparece solo y no reaparece.
 - [x] **AC6:** `sectionHasPinnedCards` distingue secciones con tarjetas fijadas de las que fluyen.
 - [x] **AC7:** Las pruebas de edición de Tableros y la suite responsive siguen pasando.
+- [x] **AC8:** `useJustDropped` marca un elemento durante 420 ms cuando termina de arrastrarse y no antes; con reducción de movimiento el marcador existe pero no anima.
+- [x] **AC9:** En la consola real, la copia flotante tiene la transformación de levantado, el origen muestra borde punteado y, tras soltar, el elemento lleva el marcador de asentamiento que desaparece solo.
 
 ## Evidencia
 
 - `canvas/dragAnnouncements.ts` y `DashboardCanvas.tsx` conectan anuncios, instrucciones y aviso táctil.
 - `canvas/TouchDragHint.tsx` implementa el aviso de una sola vez.
+- `canvas/useJustDropped.ts`, los estados `data-dashboard-*` de `index.css` y `SortableCanvasWidget.tsx`/`SectionCardItem.tsx` implementan REQ-08; la prueba `dashboard-editing.spec.ts` comprueba el levantado, el hueco punteado y el pulso al soltar.
 - `DashboardWidgetControls.tsx` agrega el asa y `canvas/useCanvasSensors.ts` fija los 300 ms.
 - `canvas/useCanvasDragHandlers.ts` y `sectionCardDrag.ts` conservan el orden previsualizado.
