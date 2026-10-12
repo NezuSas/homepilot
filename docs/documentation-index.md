@@ -27,6 +27,7 @@ remain the normative source for functional requirements and acceptance criteria.
 | `docs/design-book.md` | How to open the component gallery and generate the printable design book (PDF of every component on phone, tablet, kiosk and desktop, dark and light). |
 | `docs/dashboard-architecture-reference.md` | Dashboard hierarchy, cards, edit UX, and personalization, mapped against Home Assistant's Lovelace model. |
 | `docs/local-windows-runtime.md` | Docker Desktop runtime profile. |
+| `docs/office-minipc-operations.md` | Operación de la MiniPC de oficina: despliegue, mantenimiento y compactación. |
 | `docs/local-wsl-workflow.md` | Windows-to-WSL deployment workflow. |
 | `docs/spec-coverage-matrix.md` | Executable SDD mapping from source surfaces to primary specs. |
 | `docs/quality/test-assurance-v1.md` | Test inventory, coverage baseline, ratchet, and required evidence. |
