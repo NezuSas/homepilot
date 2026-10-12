@@ -209,7 +209,7 @@ describe('Feature: Automation Engine V2 reactive execution', () => {
     expect(logs[0].data.status).toBe('skipped_target_state_match');
   });
 
-  it('Scenario: Given un estado que no satisface una regla When llega el evento Then no despacha y registra skipped_no_match', async () => {
+  it('Scenario: Given un estado que no satisface una regla When llega el evento Then no despacha y no deja rastro en el registro', async () => {
     await setupData();
 
     await engine.handleSystemEvent({
@@ -218,8 +218,7 @@ describe('Feature: Automation Engine V2 reactive execution', () => {
     });
 
     expect(dispatcherMock.dispatchCommand).not.toHaveBeenCalled();
-    const logs = await logRepo.findRecentByDeviceId('sensor-1', 1);
-    expect(logs[0].data).toMatchObject({ status: 'skipped_no_match', eventId: 'evt-no-match' });
+    expect(await logRepo.findRecentByDeviceId('sensor-1', 5)).toEqual([]);
   });
   describe('Scheduled Triggers (Timezone Consistency)', () => {
     it('debe disparar una regla programada basado en la hora local del equipo (Ecuador UTC-5)', async () => {

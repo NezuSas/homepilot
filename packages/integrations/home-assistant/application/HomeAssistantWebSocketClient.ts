@@ -2,11 +2,6 @@ import { EventEmitter } from 'events';
 import { WebSocket } from 'ws';
 import { logRuntimeDiagnostic } from '../../../shared/config/runtimeEnvironment';
 
-export type HAWebSocketEvent = {
-  type: string;
-  [key: string]: unknown;
-};
-
 interface WebSocketMessageEvent {
   data: unknown;
 }

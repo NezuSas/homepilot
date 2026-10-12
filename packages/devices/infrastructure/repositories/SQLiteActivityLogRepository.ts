@@ -1,5 +1,5 @@
 import { Database as SqliteDatabase } from 'better-sqlite3';
-import { ActivityLogRepository, ActivityRecord, ActivityType } from '../../domain/repositories/ActivityLogRepository';
+import { ActivityDeletionOptions, ActivityLogRepository, ActivityRecord, ActivityType } from '../../domain/repositories/ActivityLogRepository';
 import { SqliteDatabaseManager } from '../../../shared/infrastructure/database/SqliteDatabaseManager';
 
 /**
@@ -79,6 +79,25 @@ export class SQLiteActivityLogRepository implements ActivityLogRepository {
     const rows = stmt.all(limit) as ActivityLogRow[];
     
     return rows.map(row => this.mapToEntity(row));
+  }
+
+  public async deleteOlderThan(cutoff: string, options: ActivityDeletionOptions): Promise<number> {
+    const limit = Math.max(0, Math.floor(options.limit));
+    if (limit === 0) return 0;
+    const filters = ['timestamp < ?'];
+    const params: Array<string | number> = [cutoff];
+    if (options.types && options.types.length > 0) {
+      filters.push(`type IN (${options.types.map(() => '?').join(',')})`);
+      params.push(...options.types);
+    }
+    if (options.excludeTypes && options.excludeTypes.length > 0) {
+      filters.push(`type NOT IN (${options.excludeTypes.map(() => '?').join(',')})`);
+      params.push(...options.excludeTypes);
+    }
+    const result = this.db.prepare(
+      `DELETE FROM activity_logs WHERE id IN (SELECT id FROM activity_logs WHERE ${filters.join(' AND ')} LIMIT ?)`
+    ).run(...params, limit);
+    return result.changes;
   }
 
   public async findAllByTypes(types: ActivityType[], since: string): Promise<ReadonlyArray<ActivityRecord>> {

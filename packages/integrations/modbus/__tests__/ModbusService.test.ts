@@ -250,7 +250,7 @@ describe('Feature: PLC I/O controller (AC20/AC21/AC22/AC23/AC25)', () => {
     });
     await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
     const events = jest.fn().mockResolvedValue(undefined), logs = jest.fn().mockResolvedValue(undefined);
-    const deps: SyncDeviceStateDependencies = { deviceRepository: f.devices, eventPublisher: { publish: events }, activityLogRepository: { saveActivity: logs, findAllRecent: async () => [], findAllByTypes: async () => [], findRecentByDeviceId: async () => [] }, idGenerator: { generate: () => 'event-id' }, clock: { now: () => new Date().toISOString() } };
+    const deps: SyncDeviceStateDependencies = { deviceRepository: f.devices, eventPublisher: { publish: events }, activityLogRepository: { saveActivity: logs, findAllRecent: async () => [], findAllByTypes: async () => [], findRecentByDeviceId: async () => [], deleteOlderThan: async () => 0 }, idGenerator: { generate: () => 'event-id' }, clock: { now: () => new Date().toISOString() } };
     // Test-only loopback transport; production configuration validation remains private-IP/502.
     const tcp = new ModbusTcpClient();
     const endpoint = (connection: ModbusConnection): ModbusConnection => ({ ...connection, host: '127.0.0.1', port: (server.address() as AddressInfo).port });

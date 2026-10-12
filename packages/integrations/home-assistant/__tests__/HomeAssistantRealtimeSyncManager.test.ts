@@ -308,6 +308,25 @@ describe('Feature: Home Assistant resilience and reconciliation', () => {
     }));
   });
 
+  it('updates a numeric sensor and publishes its event without writing it to the activity log', async () => {
+    const device: Device = { ...createDevice('cpu-load', 'sensor.cpu_load'), type: 'sensor', lastKnownState: { state: '12' } };
+    const saveDevice = jest.fn().mockResolvedValue(undefined);
+    const saveActivity = jest.fn().mockResolvedValue(undefined);
+    const manager = new HomeAssistantRealtimeSyncManager(
+      { updateStatusFromOperation: jest.fn() } as unknown as HomeAssistantSettingsService,
+      { findByExternalId: jest.fn().mockResolvedValue(device), saveDevice } as unknown as DeviceRepository,
+      { saveActivity } as unknown as ActivityLogRepository,
+    );
+    const systemEvent = jest.fn();
+    manager.on('system_event', systemEvent);
+
+    await eventProcessorOf(manager).process({ entity_id: 'sensor.cpu_load', new_state: { state: '35', attributes: { unit_of_measurement: '%' } } });
+
+    expect(saveDevice).toHaveBeenCalledWith(expect.objectContaining({ lastKnownState: { state: '35', attributes: { unit_of_measurement: '%' } } }));
+    expect(systemEvent).toHaveBeenCalledWith(expect.objectContaining({ deviceId: 'cpu-load' }));
+    expect(saveActivity).not.toHaveBeenCalled();
+  });
+
   it('ignores a duplicate realtime snapshot even when Home Assistant changes attribute key order', async () => {
     const device: Device = {
       ...createDevice('living-room-light', 'light.living_room'),

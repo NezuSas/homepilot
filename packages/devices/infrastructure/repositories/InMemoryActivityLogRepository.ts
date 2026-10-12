@@ -1,4 +1,4 @@
-import { ActivityLogRepository, ActivityRecord } from '../../domain/repositories/ActivityLogRepository';
+import { ActivityDeletionOptions, ActivityLogRepository, ActivityRecord } from '../../domain/repositories/ActivityLogRepository';
 
 /**
  * Adaptador de persistencia en memoria para el log de actividad.
@@ -33,6 +33,16 @@ export class InMemoryActivityLogRepository implements ActivityLogRepository {
       types.includes(log.type) && log.timestamp >= since
     );
     return Object.freeze([...filtered]);
+  }
+
+  async deleteOlderThan(cutoff: string, options: ActivityDeletionOptions): Promise<number> {
+    const removable = this.logs.filter((log) =>
+      log.timestamp < cutoff
+      && (!options.types || options.types.includes(log.type))
+      && !(options.excludeTypes?.includes(log.type)));
+    const doomed = new Set(removable.slice(0, Math.max(0, options.limit)));
+    this.logs = this.logs.filter((log) => !doomed.has(log));
+    return doomed.size;
   }
 
   /**

@@ -7,6 +7,7 @@ import { CloudGatewayConnector } from './packages/cloud-gateway/infrastructure/C
 import { EdgeGatewayRelayExecutor } from './packages/cloud-gateway/application/EdgeGatewayRelayExecutor';
 import { DeviceIdentityError } from './packages/cloud-gateway/application/DeviceIdentityProvider';
 import { createDeviceIdentityDiagnosticServer } from './apps/api/DeviceIdentityDiagnosticServer';
+import { ActivityLogRetentionService } from './packages/system-observability/application/ActivityLogRetentionService';
 
 /**
  * Punto de entrada principal (Entrypoint Edge) 
@@ -31,6 +32,16 @@ async function main(): Promise<void> {
       const stopModbus = (): void => { void container.services.modbusService.stop(); };
       process.once('SIGINT', stopModbus);
       process.once('SIGTERM', stopModbus);
+    }
+
+    if (process.env.NODE_ENV !== 'test') {
+      // The activity log would otherwise grow without limit (see specs/activity-log-retention-v1.md).
+      const activityRetention = new ActivityLogRetentionService(container.repositories.activityLogRepository, {
+        onError: (error) => console.error('[ActivityLogRetention] Pass failed:', error instanceof Error ? error.message : error),
+      });
+      activityRetention.start();
+      process.once('SIGINT', () => activityRetention.stop());
+      process.once('SIGTERM', () => activityRetention.stop());
     }
 
     const cloudGatewayConnector = CloudGatewayConnector.fromEnvironment(

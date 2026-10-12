@@ -1,6 +1,7 @@
 import { DeviceRepository } from '../../../../devices/domain/repositories/DeviceRepository';
 import { ActivityLogRepository } from '../../../../devices/domain/repositories/ActivityLogRepository';
 import { trackInboxAvailability } from '../../../../devices/application/deviceAvailability';
+import { recordsStateChange } from '../../../../devices/domain/activityPolicy';
 import type { ExpiredInboxDeviceRemover } from '../../../../devices/application/ports/ExpiredInboxDeviceRemover';
 import { logRuntimeDiagnostic } from '../../../../shared/config/runtimeEnvironment';
 import type { SystemStateChangeEvent } from './syncTypes';
@@ -77,13 +78,15 @@ export class HomeAssistantStateEventProcessor {
 
         this.hooks.publish(systemEvent);
 
-        await this.activityLogRepository.saveActivity({
-          timestamp: new Date().toISOString(),
-          deviceId: device.id,
-          type: 'STATE_CHANGED',
-          description: `Device synchronized from Home Assistant WebSocket`,
-          data: { state: String(newState), attributes }
-        });
+        if (recordsStateChange(device.type)) {
+          await this.activityLogRepository.saveActivity({
+            timestamp: new Date().toISOString(),
+            deviceId: device.id,
+            type: 'STATE_CHANGED',
+            description: `Device synchronized from Home Assistant WebSocket`,
+            data: { state: String(newState), attributes }
+          });
+        }
       } catch (logErr: unknown) {
         logRuntimeDiagnostic('error', `[HA-Sync] No se pudo guardar el activity log:`, getErrorMessage(logErr));
       }

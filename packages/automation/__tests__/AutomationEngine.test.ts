@@ -160,7 +160,7 @@ describe('Feature: automation rule execution', () => {
     });
   });
 
-  it('records unmatched rules without dispatching a command', async () => {
+  it('leaves no trace for an event that matches no rule', async () => {
     const harness = createHarness([createRule({
       trigger: {
         type: 'device_state_changed',
@@ -173,10 +173,8 @@ describe('Feature: automation rule execution', () => {
     await harness.engine.handleSystemEvent(matchingEvent());
 
     expect(harness.dispatcher.dispatchCommand).not.toHaveBeenCalled();
-    expect(harness.activityLogRepository.saveActivity).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'AUTOMATION_EXECUTED',
-      data: expect.objectContaining({ status: 'skipped_no_match' }),
-    }));
+    // An event that matches no rule is the normal case and must not fill the activity log.
+    expect(harness.activityLogRepository.saveActivity).not.toHaveBeenCalled();
   });
 
   it('does not dispatch an idempotent command when its target already has the desired state', async () => {
@@ -297,8 +295,8 @@ describe('Feature: automation rule execution', () => {
     await harness.engine.handleSystemEvent(matchingEvent());
 
     expect(harness.dispatcher.dispatchCommand).toHaveBeenCalledTimes(1);
-    expect(harness.activityLogRepository.saveActivity).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ ruleId: 'and-rule', status: 'skipped_no_match' }),
+    expect(harness.activityLogRepository.saveActivity).not.toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ ruleId: 'and-rule' }),
     }));
   });
 

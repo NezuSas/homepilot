@@ -80,17 +80,14 @@ export class AutomationEngine {
 
       if (rule.trigger.type === 'device_state_changed') {
         const trigger = rule.trigger as DeviceStateTrigger;
+        // An event that does not match is the normal case for most events and rules: it leaves no trace.
         if (matchDeviceStateTrigger(trigger, event)) {
           await this.fireRule(rule, correlationId, event.eventId);
-        } else {
-          await this.activityLogger.logSkippedMatch(rule, correlationId, event);
         }
       } else if (rule.trigger.type === 'compound') {
         const trigger = rule.trigger as CompoundTrigger;
         if (await evaluateCompound(trigger, event, null, null)) {
           await this.fireRule(rule, correlationId, event.eventId);
-        } else {
-          await this.activityLogger.logSkippedMatch(rule, correlationId, event);
         }
       }
     }

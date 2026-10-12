@@ -1,6 +1,5 @@
 import { ActivityLogRepository, ActivityType } from '../../../devices/domain/repositories/ActivityLogRepository';
 import type { AutomationRule } from '../../../devices/domain/automation/types';
-import type { SystemStateChangeEvent } from '../../../integrations/home-assistant/application/HomeAssistantRealtimeSyncManager';
 
 export type SkippedActionStatus = 'skipped_loop_prevention' | 'skipped_target_state_match';
 
@@ -9,21 +8,6 @@ export type SkippedActionStatus = 'skipped_loop_prevention' | 'skipped_target_st
  */
 export class AutomationActivityLogger {
   constructor(private readonly activityLogRepository: ActivityLogRepository) {}
-
-  public async logSkippedMatch(
-    rule: AutomationRule,
-    correlationId: string,
-    event: SystemStateChangeEvent
-  ): Promise<void> {
-    await this.activityLogRepository.saveActivity({
-      timestamp: new Date().toISOString(),
-      deviceId: event.deviceId,
-      type: 'AUTOMATION_EXECUTED',
-      description: `Automation "${rule.name}" skipped: skipped_no_match.`,
-      correlationId,
-      data: { ruleId: rule.id, ruleName: rule.name, status: 'skipped_no_match', eventId: event.eventId },
-    });
-  }
 
   public async logSkippedAction(
     rule: AutomationRule,

@@ -61,4 +61,16 @@ export interface ActivityLogRepository {
    * Útil para análisis proactivo de comportamiento.
    */
   findAllByTypes(types: ActivityType[], since: string): Promise<ReadonlyArray<ActivityRecord>>;
+
+  /**
+   * Borra como máximo `limit` entradas anteriores a `cutoff` (ISO). `types` limita el borrado a esos tipos y
+   * `excludeTypes` los protege. Devuelve cuántas filas borró; el llamador repite hasta que devuelva menos que `limit`.
+   */
+  deleteOlderThan(cutoff: string, options: ActivityDeletionOptions): Promise<number>;
+}
+
+export interface ActivityDeletionOptions {
+  readonly limit: number;
+  readonly types?: readonly ActivityType[];
+  readonly excludeTypes?: readonly ActivityType[];
 }

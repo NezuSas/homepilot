@@ -3,6 +3,7 @@ import { DeviceRepository } from '../domain/repositories/DeviceRepository';
 import { DeviceEventPublisher } from '../domain/events/DeviceEventPublisher';
 import { ActivityLogRepository } from '../domain/repositories/ActivityLogRepository';
 import { isStateIdentical } from '../domain/state';
+import { recordsStateChange } from '../domain/activityPolicy';
 import { normalizeMediaPlaybackState } from '../domain/MediaPlayerPlaybackState';
 import { createDeviceStateUpdatedEvent } from '../domain/events/factories';
 import { DeviceNotFoundError } from './errors';
@@ -78,7 +79,8 @@ export async function syncDeviceStateUseCase(
     // Silencio: El fallo del publicador no debe opacar el éxito de la persistencia del snapshot
   }
 
-  // 6. Registro en Read Model (Best-effort activity log)
+  // 6. Registro en Read Model (Best-effort activity log). La telemetría numérica no se registra.
+  if (!recordsStateChange(device.type)) return;
   try {
     const t_log = Date.now();
     await deps.activityLogRepository.saveActivity({
