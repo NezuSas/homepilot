@@ -1823,13 +1823,27 @@ test('Feature: Dashboard drag discovery — Scenario: Sections show a grip only 
   await expect(page.locator('[data-dashboard-section-grip]')).toHaveCount(0);
   await enterDashboardEdit(page);
   await expect(page.locator('[data-dashboard-section-grip]')).toHaveCount(2);
-  const grip = await page.locator('[data-dashboard-section-id="alpha"] [data-dashboard-section-grip]').boundingBox();
-  const target = await page.locator('[data-dashboard-section-id="beta"]').boundingBox();
-  if (!grip || !target) throw new Error('Missing grip drag bounds');
+  // Entering edit mode still moves the layout for a few frames; measure only once both boxes stop changing.
+  const settledBox = async (locator: import('@playwright/test').Locator) => {
+    let previous = '';
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      const box = await locator.boundingBox();
+      const key = JSON.stringify(box);
+      if (box && key === previous) return box;
+      previous = key;
+      await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+    }
+    throw new Error('Drag bounds never settled');
+  };
+  const grip = await settledBox(page.locator('[data-dashboard-section-id="alpha"] [data-dashboard-section-grip]'));
+  const target = await settledBox(page.locator('[data-dashboard-section-id="beta"]'));
   await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
   await page.mouse.down();
   await page.mouse.move(grip.x + 30, grip.y + 10, { steps: 4 });
+  // Wait until the drag really started before travelling: on a loaded machine the sensor activates a few frames late.
+  await expect(page.locator('[data-dashboard-section-id="alpha"]')).toHaveAttribute('data-dashboard-drag-origin', 'true');
   await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 16 });
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
   await page.mouse.up();
   await expect.poll(() => saved.tabs[0].sectionLayout?.columns3?.slice(0, 2)).toEqual(['beta', 'alpha']);
 });

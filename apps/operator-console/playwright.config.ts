@@ -8,7 +8,9 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   reporter: process.env.CI ? 'github' : 'list',
   expect: {
-    timeout: process.env.CI ? 10_000 : 5_000,
+    // The first tests of a run pay for Vite compiling on demand, and the suite runs beside Docker and an IDE
+    // on developer machines; a slow first paint is not a failure, a missing element still is.
+    timeout: 10_000,
   },
   use: {
     baseURL: 'http://127.0.0.1:4173',
