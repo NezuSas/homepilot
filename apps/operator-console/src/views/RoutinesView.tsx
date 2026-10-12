@@ -35,6 +35,7 @@ export default function RoutinesView({
     <div className="flex flex-col gap-6 pb-8 sm:gap-8 sm:pb-10">
       <SectionHeader
         level="view"
+        icon={Workflow}
         title={t('routines.title')}
         subtitle={t('routines.description')}
         action={
