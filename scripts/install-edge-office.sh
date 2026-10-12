@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# shellcheck source=/dev/null
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/brand.sh"
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 source "$(dirname "${BASH_SOURCE[0]}")/lib/camera-acceleration.sh"
@@ -82,7 +84,7 @@ show_community_integration_guidance() {
 
   section 'Mantenimiento de integraciones Home Assistant'
   ok "Entorno técnico detectado: ${environment}."
-  info 'Este modo no ejecuta docker compose, no recompila imágenes y no reinicia HomePilot.'
+  info 'Este modo no ejecuta docker compose, no recompila imágenes y no reinicia '"$HP_BRAND"'.'
   info "Home Assistant objetivo: contenedor ${container}."
   printf '%b\n' "${DIM}  Equivalente manual: docker exec ${container} sh -lc \"wget -qO- https://get.hacs.xyz | bash\"${NC}"
   printf '%b\n' "${DIM}  Después: docker restart ${container}${NC}"
@@ -117,7 +119,7 @@ configure_profile() {
 
 banner() {
   [[ "${HOMEPILOT_INSTALLER_EMBEDDED:-0}" != 1 ]] || return 0
-  printf '%b\n' "${BOLD}HomePilot · preparación técnica${NC}"
+  printf '%b\n' "${BOLD}${HP_BRAND} · preparación técnica${NC}"
   if [[ -n "$profile" ]]; then
     printf '%b\n' "${BLUE}   Instalador técnico · Perfil ${profile}${NC}"
   else
@@ -127,23 +129,23 @@ banner() {
 }
 
 usage() {
-  cat <<'EOF'
+  cat <<EOF
 Uso: bash scripts/install-edge-office.sh [opciones]
 
-Prepara HomePilot para un hogar nuevo o existente.
+Prepara ${HP_BRAND} para un hogar nuevo o existente.
 
 Opciones:
   --profile PERFIL      Selección técnica opcional: bridge_ha, native_only o ha_companion.
                        En una instalación nueva e interactiva el asistente pregunta
                        si el cliente ya usa Home Assistant y recomienda el camino.
-  --clean              Elimina solo contenedores HomePilot que ya estén detenidos.
-  --start              Construye e inicia los servicios de HomePilot al finalizar.
+  --clean              Elimina solo contenedores ${HP_BRAND} que ya estén detenidos.
+  --start              Construye e inicia los servicios de ${HP_BRAND} al finalizar.
   --status             Consulta el estado actual sin crear, limpiar ni iniciar servicios.
   --wizard             Abre el checklist guiado para técnicos antes de preparar el appliance.
   --with-community-integrations
-                       Instala HACS y SonoffLAN al finalizar el flujo de HomePilot.
+                       Instala HACS y SonoffLAN al finalizar el flujo de ${HP_BRAND}.
   --community-integrations-only
-                       Mantiene HACS y SonoffLAN sin reconstruir ni reiniciar HomePilot.
+                       Mantiene HACS y SonoffLAN sin reconstruir ni reiniciar ${HP_BRAND}.
                        Detecta el entorno del técnico y usa el Home Assistant existente.
   --api-url URL        Configuracion avanzada para una API en otro origen.
                        Por defecto UI/API usan el mismo dominio.
@@ -191,10 +193,10 @@ choose_profile_for_new_installation() {
     return
   fi
 
-  printf '\n%s\n' '¿Quieres incluir Home Assistant con HomePilot?'
-  printf '%s\n' '  S: Instalar Home Assistant junto a HomePilot (recomendado si quieres su ecosistema).'
-  printf '%s\n' '  N: Usar solo las integraciones nativas de HomePilot.'
-  read_terminal_line 'Instalar Home Assistant con HomePilot [S/n] ' || fail "No se pudo leer la selección del técnico."
+  printf '\n%s\n' '¿Quieres incluir Home Assistant con '"$HP_BRAND"'?'
+  printf '%s\n' '  S: Instalar Home Assistant junto a '"$HP_BRAND"' (recomendado si quieres su ecosistema).'
+  printf '%s\n' '  N: Usar solo las integraciones nativas de '"$HP_BRAND"'.'
+  read_terminal_line 'Instalar Home Assistant con '"$HP_BRAND"' [S/n] ' || fail "No se pudo leer la selección del técnico."
   answer="$REPLY"
 
   if [[ "$answer" =~ ^([Nn]|[Nn][Oo])$ ]]; then
@@ -219,8 +221,8 @@ choose_technician_profile() {
 
   printf '\n%b\n' "${BOLD}Arquitectura del cliente${NC}"
   printf '%s\n' '  1. Conectar un Home Assistant existente (recomendado para clientes que ya lo usan).'
-  printf '%s\n' '  2. Instalar Home Assistant junto a HomePilot (appliance completo).'
-  printf '%s\n' '  3. Instalar solo HomePilot con integraciones nativas.'
+  printf '%s\n' '  2. Instalar Home Assistant junto a '"$HP_BRAND"' (appliance completo).'
+  printf '%s\n' '  3. Instalar solo '"$HP_BRAND"' con integraciones nativas.'
 
   while true; do
     read_terminal_line 'Selecciona una opción [1-3] ' || fail "No se pudo leer la selección del técnico."
@@ -238,11 +240,11 @@ choose_technician_action() {
   local answer
 
   printf '\n%b\n' "${BOLD}Acción de instalación${NC}"
-  printf '%s\n' '  1. Preparar y desplegar HomePilot ahora.'
+  printf '%s\n' '  1. Preparar y desplegar '"$HP_BRAND"' ahora.'
   printf '%s\n' '  2. Preparar la configuración sin iniciar servicios.'
   printf '%s\n' '  3. Ejecutar solo diagnóstico (sin modificar archivos ni servicios).'
   if [[ "$requires_home_assistant" == true ]]; then
-    printf '%s\n' '  4. Instalar o reparar HACS y SonoffLAN sin reconstruir HomePilot.'
+    printf '%s\n' '  4. Instalar o reparar HACS y SonoffLAN sin reconstruir '"$HP_BRAND"'.'
   fi
 
   while true; do
@@ -286,7 +288,7 @@ show_technician_checklist() {
   local action_label cleanup_label community_label
 
   if [[ "$community_integrations_only" == true ]]; then
-    action_label="Mantener HACS y SonoffLAN sin reconstruir HomePilot"
+    action_label="Mantener HACS y SonoffLAN sin reconstruir ${HP_BRAND}"
   elif [[ "$status_only" == true ]]; then
     action_label="Solo diagnóstico"
   elif [[ "$start" == true ]]; then
@@ -296,7 +298,7 @@ show_technician_checklist() {
   fi
 
   cleanup_label="No"
-  [[ "$clean" == true ]] && cleanup_label="Sí, solo contenedores HomePilot detenidos"
+  [[ "$clean" == true ]] && cleanup_label="Sí, solo contenedores ${HP_BRAND} detenidos"
 
   community_label="No aplica"
   if [[ "$profile" == "ha_companion" ]]; then
@@ -321,7 +323,7 @@ run_technician_wizard() {
 
   banner
   printf '%b\n' "${BOLD}Checklist guiado de instalación para técnicos${NC}"
-  printf '%s\n' 'El cliente no necesita completar este flujo. HomePilot conserva la arquitectura existente cuando detecta un .env.'
+  printf '%s\n' 'El cliente no necesita completar este flujo. '"$HP_BRAND"' conserva la arquitectura existente cuando detecta un .env.'
 
   choose_technician_profile
   configure_profile
@@ -336,7 +338,7 @@ run_technician_wizard() {
     else
       android_display_choice=false
     fi
-    if ask_technician_yes_no "¿Retirar contenedores HomePilot detenidos antes de continuar?"; then
+    if ask_technician_yes_no "¿Retirar contenedores ${HP_BRAND} detenidos antes de continuar?"; then
       clean=true
     fi
 
@@ -475,7 +477,7 @@ wait_for_runtime_ready() {
   interval_seconds=5
   elapsed=0
 
-  section "Espera de salud de HomePilot"
+  section "Espera de salud de ${HP_BRAND}"
   info "Esperando servicios saludables hasta ${timeout_seconds}s..."
 
   while (( elapsed <= timeout_seconds )); do
@@ -484,7 +486,7 @@ wait_for_runtime_ready() {
       && { [[ "$voice_enabled" != true ]] || { container_ready "homepilot-stt" true && container_ready "homepilot-tts" true; }; } \
       && { [[ "$mqtt_enabled" != true ]] || container_ready "homepilot-mqtt" "$([[ "$profile" == ha_companion ]] && printf true || printf false)"; } \
       && { [[ "$android_display_enabled" != true ]] || container_ready 'homepilot-display-bridge' true; }; then
-      ok "Servicios HomePilot listos."
+      ok "Servicios ${HP_BRAND} listos."
       return 0
     fi
 
@@ -653,8 +655,8 @@ show_runtime_status() {
 
   runtime_failures=0
   section "Estado operativo de servicios"
-  check_container "homepilot-api" "API HomePilot" true
-  check_container "homepilot-ui" "UI HomePilot · puerto ${ui_port}" false
+  check_container "homepilot-api" "API ${HP_BRAND}" true
+  check_container "homepilot-ui" "UI ${HP_BRAND} · puerto ${ui_port}" false
   if [[ "$voice_enabled" == true ]]; then
     check_container "homepilot-stt" "STT Whisper · puerto ${stt_port}" true
     check_container "homepilot-tts" "TTS Piper · puerto ${tts_port}" true
@@ -671,12 +673,12 @@ show_runtime_status() {
   section "Conectividad de servicios"
   api_status="$(homepilot_api_health_status || true)"
   if [[ "$api_status" == "200" ]]; then
-    ok "API HomePilot: responde desde el contenedor (HTTP 200)."
+    ok "API ${HP_BRAND}: responde desde el contenedor (HTTP 200)."
   else
-    warn "API HomePilot: sin respuesta desde el contenedor (HTTP ${api_status:-000})."
+    warn "API ${HP_BRAND}: sin respuesta desde el contenedor (HTTP ${api_status:-000})."
     runtime_failures=$((runtime_failures + 1))
   fi
-  check_endpoint "UI HomePilot · puerto ${ui_port}" "http://127.0.0.1:${ui_port}" "200"
+  check_endpoint "UI ${HP_BRAND} · puerto ${ui_port}" "http://127.0.0.1:${ui_port}" "200"
   if [[ "$voice_enabled" == true ]]; then
     check_endpoint "STT Whisper · puerto ${stt_port}" "http://127.0.0.1:${stt_port}/health" "200"
     check_endpoint "TTS Piper · puerto ${tts_port}" "http://127.0.0.1:${tts_port}/health" "200"
@@ -772,7 +774,7 @@ if [[ -f "$ENV_FILE" ]]; then
     *) fail 'HOMEPILOT_ANDROID_DISPLAY_ENABLED debe ser true o false; no se cambiará silenciosamente.' ;;
   esac
 fi
-[[ -f "$compose_file" ]] || fail "Ejecuta el script desde la raiz del repositorio HomePilot."
+[[ -f "$compose_file" ]] || fail "Ejecuta el script desde la raiz del repositorio ${HP_BRAND}."
 [[ -f "$env_template" ]] || fail "No existe $env_template."
 command -v docker >/dev/null 2>&1 || fail "Docker no esta instalado o no esta disponible para este usuario."
 docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 no esta disponible."
@@ -780,7 +782,7 @@ docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 no esta dispon
 if [[ "$community_integrations_only" == true ]]; then
   [[ "$requires_home_assistant" == true ]] || fail "Este perfil no usa Home Assistant; no hay integraciones comunitarias que mantener."
   show_community_integration_guidance
-  if [[ "$assume_yes" == false ]] && ! confirm "¿Instalar o reparar HACS y SonoffLAN sin reconstruir HomePilot?"; then
+  if [[ "$assume_yes" == false ]] && ! confirm "¿Instalar o reparar HACS y SonoffLAN sin reconstruir ${HP_BRAND}?"; then
     fail "Mantenimiento de integraciones cancelado por el técnico."
   fi
   provision_home_assistant_community_integrations
@@ -801,7 +803,7 @@ if [[ "$status_only" == true && -f "$ENV_FILE" ]]; then
 fi
 
 if [[ "$status_only" == true ]]; then
-  section 'Builder de HomePilot'
+  section 'Builder de '"$HP_BRAND"''
   homepilot_builder_report
   section 'Aceleración HLS de cámaras'
   [[ "$camera_enabled" != true ]] || camera_acceleration_report_running
@@ -835,15 +837,15 @@ if [[ "$requires_home_assistant" == true ]]; then
   fi
 else
   section "Perfil nativo"
-  ok "No se requiere Home Assistant. Las integraciones se añaden desde HomePilot."
+  ok "No se requiere Home Assistant. Las integraciones se añaden desde ${HP_BRAND}."
 fi
 
-section "Puertos requeridos por HomePilot"
+section "Puertos requeridos por ${HP_BRAND}"
 required_ports=(3000 8080 11434)
 [[ "$voice_enabled" != true ]] || required_ports+=(8088 8090)
 for port in "${required_ports[@]}"; do
   if ss -ltn 2>/dev/null | grep -q ":${port} "; then
-    warn "Puerto ${port} ya esta ocupado; ajusta HOMEPILOT_*_PORT en .env si no pertenece a HomePilot."
+    warn "Puerto ${port} ya esta ocupado; ajusta HOMEPILOT_*_PORT en .env si no pertenece a ${HP_BRAND}."
   else
     ok "Puerto ${port} disponible."
   fi
@@ -855,8 +857,8 @@ if [[ "$start" == true ]]; then
 fi
 
 if [[ "$clean" == true ]]; then
-  section "Limpieza acotada a HomePilot"
-  if confirm "Se retirarán solo contenedores detenidos del proyecto HomePilot. Continuar?"; then
+  section "Limpieza acotada a ${HP_BRAND}"
+  if confirm "Se retirarán solo contenedores detenidos del proyecto ${HP_BRAND}. Continuar?"; then
     docker compose -f "$compose_file" rm --force || true
     ok "Limpieza acotada terminada; no se ejecutó ningún prune global de Docker."
     docker system df || true
@@ -864,7 +866,7 @@ if [[ "$clean" == true ]]; then
     warn "Limpieza omitida por el operador."
   fi
 else
-  warn "Limpieza no ejecutada. Usa --clean para retirar solo contenedores detenidos de HomePilot."
+  warn "Limpieza no ejecutada. Usa --clean para retirar solo contenedores detenidos de ${HP_BRAND}."
 fi
 
 section "Configuración de entorno"
@@ -953,9 +955,9 @@ fi
 mkdir -p data backups
 if [[ -n "$cloud_url" || -n "$pairing_code" ]]; then
   [[ -n "$cloud_url" && -n "$pairing_code" ]] || fail "Usa --cloud-url y --pairing-code juntos."
-  command -v node >/dev/null 2>&1 || fail "Node.js es necesario para reclamar el código de HomePilot Cloud."
+  command -v node >/dev/null 2>&1 || fail "Node.js es necesario para reclamar el código de ${HP_BRAND} Cloud."
   node scripts/claim-cloud-pairing.mjs "$cloud_url" "$pairing_code" || fail "No se pudo reclamar el código de emparejamiento."
-  ok "HomePilot Cloud quedó configurado sin variables .env."
+  ok "${HP_BRAND} Cloud quedó configurado sin variables .env."
 fi
 camera_compose_args=(-f "$compose_file")
 if [[ "$android_display_desktop" == true ]]; then
@@ -968,7 +970,7 @@ fi
 append_global_overlays
 if [[ "$start" == true ]]; then
   export HOMEPILOT_BUILD_REVISION="$(homepilot_image_revision)"
-  section 'Builder de HomePilot'
+  section 'Builder de '"$HP_BRAND"''
   homepilot_builder_ensure
   if [[ "$camera_enabled" == true ]]; then
     section 'Aceleración HLS de cámaras'
@@ -988,7 +990,7 @@ if [[ "$android_display_enabled" == true ]]; then
 fi
 docker compose "${camera_compose_args[@]}" config --quiet
 if [[ "$profile" == ha_companion ]]; then
-  ok "Compose companion válido: administra Home Assistant junto a HomePilot."
+  ok "Compose companion válido: administra Home Assistant junto a ${HP_BRAND}."
 else
   ok "Compose válido: no declara un servicio Home Assistant."
 fi
@@ -1016,18 +1018,18 @@ if [[ "$start" == true ]]; then
       runtime_services+=(homepilot-display-bridge)
     fi
   fi
-  section "Inicio de HomePilot"
-  if confirm "Se construiran e iniciaran los servicios HomePilot de este compose. Continuar?"; then
+  section "Inicio de ${HP_BRAND}"
+  if confirm "Se construiran e iniciaran los servicios ${HP_BRAND} de este compose. Continuar?"; then
     homepilot_image_prepare_rollback "${camera_compose_args[@]}"
     if [[ "$global_install" == true && "$voice_enabled" != true ]]; then
       # Turning voice off on an installation that had it must not leave the old speech services running.
       docker compose "${camera_compose_args[@]}" rm -sf homepilot-stt homepilot-tts >/dev/null
     fi
     if [[ "$global_install" == true ]]; then
-      if ! { COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios HomePilot' docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" "${build_services[@]}" \
-        && hp_ui_run 'Iniciando servicios HomePilot' docker compose "${camera_compose_args[@]}" up --no-build --no-deps -d "${runtime_services[@]}"; }; then
+      if ! { COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios '"$HP_BRAND"'' docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" "${build_services[@]}" \
+        && hp_ui_run 'Iniciando servicios '"$HP_BRAND"'' docker compose "${camera_compose_args[@]}" up --no-build --no-deps -d "${runtime_services[@]}"; }; then
         if [[ -z "$camera_acceleration_overlay" ]]; then
-          fail 'No se pudo iniciar el conjunto modular HomePilot; se conservan las imágenes de rollback.'
+          fail 'No se pudo iniciar el conjunto modular '"$HP_BRAND"'; se conservan las imágenes de rollback.'
         fi
         warn 'El inicio con VAAPI falló; se reintentará con libx264.'
         camera_compose_args=(-f "$compose_file")
@@ -1048,13 +1050,13 @@ if [[ "$start" == true ]]; then
         camera_acceleration_fallback='software (libx264)'
         camera_acceleration_reason='falló el inicio con el override VAAPI'
         camera_acceleration_report
-        COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios HomePilot' docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" "${build_services[@]}"
-        hp_ui_run 'Iniciando servicios HomePilot' docker compose "${camera_compose_args[@]}" up --no-build --no-deps -d "${runtime_services[@]}"
+        COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios '"$HP_BRAND"'' docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" "${build_services[@]}"
+        hp_ui_run 'Iniciando servicios '"$HP_BRAND"'' docker compose "${camera_compose_args[@]}" up --no-build --no-deps -d "${runtime_services[@]}"
       fi
-    elif ! { COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios HomePilot' docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" \
-      && hp_ui_run 'Iniciando servicios HomePilot' docker compose "${camera_compose_args[@]}" up --no-build -d; }; then
+    elif ! { COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios '"$HP_BRAND"'' docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" \
+      && hp_ui_run 'Iniciando servicios '"$HP_BRAND"'' docker compose "${camera_compose_args[@]}" up --no-build -d; }; then
       if [[ -z "$camera_acceleration_overlay" ]]; then
-        fail 'No se pudo iniciar HomePilot.'
+        fail 'No se pudo iniciar '"$HP_BRAND"'.'
       fi
       warn 'El inicio con VAAPI falló; se reintentará con libx264.'
       camera_compose_args=(-f "$compose_file")
@@ -1075,8 +1077,8 @@ if [[ "$start" == true ]]; then
       camera_acceleration_fallback='software (libx264)'
       camera_acceleration_reason='falló el inicio con el override VAAPI'
       camera_acceleration_report
-      COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios HomePilot' docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME"
-      hp_ui_run 'Iniciando servicios HomePilot' docker compose "${camera_compose_args[@]}" up --no-build -d
+      COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios '"$HP_BRAND"'' docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME"
+      hp_ui_run 'Iniciando servicios '"$HP_BRAND"'' docker compose "${camera_compose_args[@]}" up --no-build -d
     fi
     docker compose "${camera_compose_args[@]}" ps
     if ! wait_for_runtime_ready; then
@@ -1096,8 +1098,8 @@ fi
 
 section "Instalación preparada"
 ui_port="$(env_value HOMEPILOT_UI_PORT 8080)"
-printf '%b\n' "${BOLD}  HomePilot UI${NC}       http://127.0.0.1:${ui_port}"
-printf '%b\n' "${BOLD}  HomePilot API${NC}      http://127.0.0.1:${ui_port}/health ${DIM}(vía UI)${NC}"
+printf '%b\n' "${BOLD}  ${HP_BRAND} UI${NC}       http://127.0.0.1:${ui_port}"
+printf '%b\n' "${BOLD}  ${HP_BRAND} API${NC}      http://127.0.0.1:${ui_port}/health ${DIM}(vía UI)${NC}"
 if [[ "$requires_home_assistant" == true ]]; then
   printf '%b\n' "${BOLD}  Home Assistant${NC}     http://127.0.0.1:${ha_port} ${DIM}(${ha_management_label})${NC}"
 else

@@ -1,3 +1,4 @@
+import { BRAND } from '../../../shared/config/brand';
 import { DateTime } from 'luxon';
 import { Scene } from '../../../devices/domain/Scene';
 import { Device } from '../../../devices/domain/types';
@@ -29,7 +30,7 @@ export class HomeInfoHandler extends ConversationCollaborator {
     const aliasNames = Object.keys(aliases).slice(0, 5);
 
     const esLines = [
-      "Soy HomePilot, tu operador residencial local. Estoy para ayudarte a consultar, controlar y organizar la casa con órdenes naturales.",
+      `Soy ${BRAND.productName}, tu operador residencial local. Estoy para ayudarte a consultar, controlar y organizar la casa con órdenes naturales.`,
       "",
       "Puedes pedirme:",
       "• Estado general: \"qué está encendido\", \"qué luces están encendidas\", \"cómo está la casa\".",
@@ -43,12 +44,12 @@ export class HomeInfoHandler extends ConversationCollaborator {
       "",
       "Límites:",
       "• No soy un buscador general ni respondo temas fuera del hogar.",
-      "• Solo puedo operar dispositivos, estancias, escenas, automatizaciones y alias registrados en HomePilot.",
+      `• Solo puedo operar dispositivos, estancias, escenas, automatizaciones y alias registrados en ${BRAND.productName}.`,
       "• Si una orden es ambigua o masiva, te pediré elegir o confirmar antes de ejecutar."
     ];
 
     const enLines = [
-      "I am HomePilot, your local residential operator. I help you inspect, control, and organize the home with natural commands.",
+      `I am ${BRAND.productName}, your local residential operator. I help you inspect, control, and organize the home with natural commands.`,
       "",
       "You can ask me:",
       "• General status: \"what is on\", \"what lights are on\", \"how is the house\".",
@@ -62,12 +63,12 @@ export class HomeInfoHandler extends ConversationCollaborator {
       "",
       "Limits:",
       "• I am not a general search assistant and I avoid topics outside the home.",
-      "• I can only operate devices, rooms, scenes, automations, and aliases registered in HomePilot.",
+      `• I can only operate devices, rooms, scenes, automations, and aliases registered in ${BRAND.productName}.`,
       "• If a command is ambiguous or bulk-level, I will ask you to choose or confirm before executing."
     ];
 
     const lines = language === 'en' ? enLines : esLines;
-    const inventoryLabel = language === 'en' ? "Current HomePilot context:" : "Contexto actual de HomePilot:";
+    const inventoryLabel = language === 'en' ? `Current ${BRAND.productName} context:` : `Contexto actual de ${BRAND.productName}:`;
     const roomsLabel = language === 'en' ? "rooms" : "estancias";
     const devicesLabel = language === 'en' ? "controllable devices" : "dispositivos controlables";
     const scenesLabel = language === 'en' ? "scenes" : "escenas";

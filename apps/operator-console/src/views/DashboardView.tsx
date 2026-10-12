@@ -12,6 +12,7 @@ import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { HomeClimateSummary } from '../components/HomeClimateSummary';
 import { API_BASE_URL } from '../config';
 import { useAutomationFavorites, useSceneFavorites } from '../lib/useSceneFavorites';
+import { BRAND } from '../brand';
 import { apiFetch } from '../lib/apiClient';
 import { EMPTY_HOME_PERSONALIZATION, getHomePeriod, HOME_HERO_INTERVAL_MS, msUntilNextHomePeriod, resolveHomePhrase, type HomePersonalization } from '../lib/homePersonalization';
 import { fetchDiagnosticResource } from '../lib/diagnosticResourceRequests';
@@ -265,7 +266,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
         <div className="relative z-10 min-w-0">
           <HomeClimateSummary currentUserId={currentUserId} onOpenOwnDashboardTab={onOpenOwnDashboardTab} onReady={setContextSettled} />
         </div>
-        <div className="homepilot-home-watermark absolute z-10 text-micro leading-tight text-muted-foreground" aria-label="HomePilot by NEZU"><span className="block font-semibold text-foreground/70">HomePilot</span><span className="block">by NEZU</span></div>
+        <div className="homepilot-home-watermark absolute z-10 text-micro leading-tight text-muted-foreground" aria-label={`${BRAND.productName} by ${BRAND.companyName}`}><span className="block font-semibold text-foreground/70">{BRAND.productName}</span><span className="block">by {BRAND.companyName}</span></div>
       </header>
 
       <DashboardRoutinesSection

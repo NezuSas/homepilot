@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# shellcheck source=/dev/null
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/brand.sh"
 readonly HOMEPILOT_DISPLAY_OVERLAY='docker-compose.android-display.yml'
 readonly HOMEPILOT_DISPLAY_DESKTOP_OVERLAY='docker-compose.android-display.desktop.yml'
 readonly HOMEPILOT_DISPLAY_ADB_DIR='data/android-display/adb-home/.android'
@@ -57,7 +59,7 @@ android_display_load() {
   [[ "$port" =~ ^[0-9]+$ ]] && (( 10#$port >= 1 && 10#$port <= 65535 )) \
     || fail 'Android Display habilitado sin puerto HTTP válido.'
   [[ -z "$adb_home" || "$adb_home" == "./$HOMEPILOT_DISPLAY_ADB_DIR" ]] \
-    || fail 'Android Display requiere el directorio ADB administrado por HomePilot.'
+    || fail 'Android Display requiere el directorio ADB administrado por '"$HP_BRAND"'.'
   export HOMEPILOT_DISPLAY_BRIDGE_TOKEN="$token"
   export HOMEPILOT_DISPLAY_ADB_CIDRS="$cidrs"
   export HOMEPILOT_DISPLAY_BRIDGE_HTTP_PORT="$port"

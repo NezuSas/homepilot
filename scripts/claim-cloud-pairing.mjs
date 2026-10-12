@@ -3,6 +3,11 @@ import { dirname, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 
+// In the image the compiled code carries brand.json under dist/; in a checkout it sits at the repository root.
+const brandFile = [new URL('../brand.json', import.meta.url), new URL('../dist/brand.json', import.meta.url)].find((candidate) => existsSync(candidate));
+if (!brandFile) throw new Error('No se encontró brand.json.');
+const { productName } = JSON.parse(readFileSync(brandFile, 'utf8'));
+
 const [cloudUrl, suppliedCode, suppliedEdgeHostname] = process.argv.slice(2);
 const code = suppliedCode === '--code-stdin' ? readFileSync(0, 'utf8').trim() : suppliedCode;
 if (!cloudUrl || !code) throw new Error('Uso: node scripts/claim-cloud-pairing.mjs <https://accounts.nezuecuador.com> <codigo> [https://homepilot-casa.nezuecuador.com]');
@@ -19,7 +24,7 @@ if (typeof config.url !== 'string' || !config.url.startsWith('wss://') || typeof
 const path = resolve(process.env.HOMEPILOT_CLOUD_CONFIG_PATH || './data/cloud-gateway.json');
 mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
 const temporary = path + '.tmp'; writeFileSync(temporary, JSON.stringify(config), { encoding: 'utf8', mode: 0o600 }); chmodSync(temporary, 0o600); renameSync(temporary, path); protectForCurrentUser(path);
-console.log('HomePilot Edge quedó vinculado. La configuración se guardó protegida.');
+console.log(`${productName} Edge quedó vinculado. La configuración se guardó protegida.`);
 
 function discoverCloudflaredHostname() {
   const candidates = [process.env.CLOUDFLARED_CONFIG, '/etc/cloudflared/config.yml', resolve(homedir(), '.cloudflared/config.yml')]
@@ -31,7 +36,7 @@ function discoverCloudflaredHostname() {
     .filter((hostname) => new URL(hostname).hostname.endsWith('.nezuecuador.com'));
   const homepilotHosts = hostnames.filter((hostname) => /^homepilot(?:[-.]|$)/.test(new URL(hostname).hostname));
   const selected = homepilotHosts.length === 1 ? homepilotHosts[0] : hostnames.length === 1 ? hostnames[0] : null;
-  if (!selected) throw new Error('No se pudo identificar una única URL Cloudflare de HomePilot. Usa el tercer argumento solo durante la instalación.');
+  if (!selected) throw new Error(`No se pudo identificar una única URL Cloudflare de ${productName}. Usa el tercer argumento solo durante la instalación.`);
   return selected;
 }
 

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# shellcheck source=/dev/null
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/brand.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/android-display-appliance.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/api-health.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/homepilot-terminal-ui.sh"
@@ -71,7 +73,7 @@ hp_collect_information() {
 hp_collect_architecture() {
   hp_step 4 'ARQUITECTURA DEL CLIENTE'
   hp_ui_select '¿Cómo se integrarán los dispositivos?' \
-    'Home Assistant existente' 'Instalar Home Assistant' 'Solo HomePilot' \
+    'Home Assistant existente' 'Instalar Home Assistant' 'Solo '"$HP_BRAND"'' \
     || hp_fail 'Falta selección Home Assistant.'
   case "$REPLY" in
     1) hp_profile=bridge_ha ;;
@@ -83,8 +85,8 @@ hp_collect_architecture() {
     if hp_yes_no '¿Autorizar instalar HACS y SonoffLAN si faltan?' false; then hp_community=true; fi
   fi
   hp_step 5 'CAPACIDADES OPCIONALES'
-  hp_ui_block "$HP_SECONDARY" 'Las cámaras RTSP/ONVIF se integran directamente en HomePilot.'
-  if hp_yes_no '¿El cliente tendrá cámaras administradas por HomePilot?' false; then hp_cameras=true; fi
+  hp_ui_block "$HP_SECONDARY" 'Las cámaras RTSP/ONVIF se integran directamente en '"$HP_BRAND"'.'
+  if hp_yes_no '¿El cliente tendrá cámaras administradas por '"$HP_BRAND"'?' false; then hp_cameras=true; fi
   if hp_yes_no '¿El cliente tendrá una pizarra o pantalla Android administrada?' false; then
     hp_android=true
     hp_read 'CIDR LAN autorizado (ej. 192.168.1.0/24): ' || hp_fail 'Falta CIDR Android.'
@@ -112,14 +114,14 @@ hp_collect_architecture() {
   hp_ui_block "$HP_SECONDARY" '«Conversar con mi casa» es el chat con el asistente dentro de la consola.'
   if ! hp_yes_no '¿Habilitar «Conversar con mi casa»?' true; then hp_chat=false; fi
   if [[ "$hp_chat" == true ]]; then
-    if ! hp_yes_no '¿Habilitar voz local HomePilot (hablar y escuchar al asistente)?' true; then hp_voice=false; fi
+    if ! hp_yes_no '¿Habilitar voz local '"$HP_BRAND"' (hablar y escuchar al asistente)?' true; then hp_voice=false; fi
   else
     hp_voice=false
   fi
   hp_step 6 'ACCESO REMOTO Y DIRECTORY'
-  if ! hp_yes_no '¿Configurar acceso remoto administrado por NEZU?' true; then hp_remote=false; fi
+  if ! hp_yes_no '¿Configurar acceso remoto administrado por '"$HP_BRAND_COMPANY"'?' true; then hp_remote=false; fi
   if [[ "$hp_remote" == true ]]; then
-    hp_read 'URL pública HomePilot asignada por NEZU (https://...): ' || hp_fail 'Falta URL pública.'
+    hp_read 'URL pública '"$HP_BRAND"' asignada por '"$HP_BRAND_COMPANY"' (https://...): ' || hp_fail 'Falta URL pública.'
     hp_edge_hostname="$REPLY"
     hp_valid_edge_url "$hp_edge_hostname" || hp_fail 'URL pública inválida.'
     hp_ui_confirm_value "$hp_edge_hostname"
@@ -419,7 +421,7 @@ hp_finish() {
   local ui_port=8080
   if [[ -f .env ]]; then ui_port="$(sed -n 's/^HOMEPILOT_UI_PORT=//p' .env | tail -n 1)"; ui_port="${ui_port:-8080}"; fi
   printf '\n'
-  hp_ui_block "$HP_PRIMARY" 'HomePilot'
+  hp_ui_block "$HP_PRIMARY" ''"$HP_BRAND"''
   hp_ui_block "$HP_AMBER" "http://$(hp_lan_address):${ui_port}"
   hp_ui_wrap_block "$HP_SECONDARY" 'Desde ahí: crear administrador, configurar integraciones, completar onboarding y Dashboard.'
   printf '\n'
@@ -473,15 +475,15 @@ hp_global_diagnostic() {
 
   code="$(hp_diag_api_status)"
   if [[ "$code" == 200 ]]; then
-    hp_ui_status '✓' "$HP_GREEN" 'HomePilot API' 'Healthy'
+    hp_ui_status '✓' "$HP_GREEN" ''"$HP_BRAND"' API' 'Healthy'
   else
-    hp_diag_failure 'HomePilot API' "Unavailable (HTTP ${code:-000})"
+    hp_diag_failure ''"$HP_BRAND"' API' "Unavailable (HTTP ${code:-000})"
   fi
   code="$(hp_diag_http_status "http://127.0.0.1:${ui_port}")"
   if [[ "$code" == 200 || "$code" == 301 || "$code" == 302 ]]; then
-    hp_ui_status '✓' "$HP_GREEN" 'HomePilot UI' 'Online'
+    hp_ui_status '✓' "$HP_GREEN" ''"$HP_BRAND"' UI' 'Online'
   else
-    hp_diag_failure 'HomePilot UI' "Unavailable (HTTP ${code:-000})"
+    hp_diag_failure ''"$HP_BRAND"' UI' "Unavailable (HTTP ${code:-000})"
   fi
 
   if [[ "$profile" == bridge_ha || "$profile" == ha_companion ]]; then

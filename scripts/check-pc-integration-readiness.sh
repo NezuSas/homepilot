@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# shellcheck source=/dev/null
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/brand.sh"
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
@@ -6,12 +8,12 @@ mode="mini-pc"
 failures=0
 
 usage() {
-  cat <<'EOF'
+  cat <<EOF
 Uso: bash scripts/check-pc-integration-readiness.sh [--mode mini-pc|linux-target]
 
 Modos:
-  mini-pc       Comprueba requisitos no destructivos de la miniPC HomePilot.
-  linux-target  Comprueba si esta PC Linux puede ejecutar HomePilot Linux Agent.
+  mini-pc       Comprueba requisitos no destructivos de la miniPC ${HP_BRAND}.
+  linux-target  Comprueba si esta PC Linux puede ejecutar ${HP_BRAND} Linux Agent.
 
 Este comando no instala paquetes, no cambia servicios y no imprime secretos.
 EOF
@@ -32,7 +34,7 @@ case "$mode" in
   mini-pc)
     command -v docker >/dev/null 2>&1 && ok 'Docker está disponible.' || warn 'Docker no está disponible.'
     docker compose version >/dev/null 2>&1 && ok 'Docker Compose v2 está disponible.' || warn 'Docker Compose v2 no está disponible.'
-    [[ -f .env ]] && ok 'Existe .env de HomePilot.' || warn 'No existe .env; ejecute primero el instalador de HomePilot.'
+    [[ -f .env ]] && ok 'Existe .env de '"$HP_BRAND"'.' || warn 'No existe .env; ejecute primero el instalador de '"$HP_BRAND"'.'
     curl --silent --fail --max-time 5 http://127.0.0.1:8123/ >/dev/null && ok 'Home Assistant responde localmente.' || warn 'Home Assistant no responde en 127.0.0.1:8123.'
     if ss -lnt 2>/dev/null | grep -qE '(:1883[[:space:]])'; then
       ok 'Hay un broker MQTT escuchando en el puerto 1883.'
@@ -47,9 +49,9 @@ case "$mode" in
     command -v pactl >/dev/null 2>&1 && ok 'pactl está disponible.' || warn 'Falta pactl (Debian/Ubuntu: sudo apt install pulseaudio-utils).'
     command -v systemctl >/dev/null 2>&1 && ok 'systemd está disponible.' || warn 'Falta systemd; este agente no es compatible.'
     if systemctl --user is-enabled homepilot-linux-agent.service >/dev/null 2>&1; then
-      ok 'El servicio HomePilot Linux Agent está habilitado.'
+      ok 'El servicio '"$HP_BRAND"' Linux Agent está habilitado.'
     else
-      warn 'El servicio HomePilot Linux Agent no está habilitado todavía.'
+      warn 'El servicio '"$HP_BRAND"' Linux Agent no está habilitado todavía.'
     fi
     ;;
   *) printf 'ERROR modo no válido: %s\n' "$mode" >&2; exit 2 ;;

@@ -1,3 +1,4 @@
+import { BRAND } from '../../shared/config/brand';
 import { SystemSetupRepository } from '../domain/SystemSetupState';
 import { HomeAssistantSettingsService } from '../../integrations/home-assistant/application/HomeAssistantSettingsService';
 import { ActivityLogRepository } from '../../devices/domain/repositories/ActivityLogRepository';
@@ -117,7 +118,7 @@ export class SystemSetupService {
     const defaultHome: Home = {
       id: 'local-home',
       ownerId: userId,
-      name: 'Mi HomePilot',
+      name: `Mi ${BRAND.productName}`,
       entityVersion: 1,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()

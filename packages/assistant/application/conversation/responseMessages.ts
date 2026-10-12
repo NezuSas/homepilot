@@ -1,3 +1,4 @@
+import { BRAND } from '../../../shared/config/brand';
 import { DeviceCommandV1 } from '../../../devices/domain/commands';
 import { Device } from '../../../devices/domain/types';
 import { AssistantMemoryState } from '../ports/AssistantMemoryPort';
@@ -32,8 +33,8 @@ export function handleEquivalenceQuery(language: string): AssistantConversationR
   return {
     type: 'answer',
     message: language === 'en'
-      ? 'Yes. In HomePilot, I can resolve rooms by their name or the aliases you define in your settings. I’ll treat them as references to where your devices are located.'
-      : 'Sí, en HomePilot puedo resolver estancias por su nombre o por los alias que definas en tu configuración. Los usaré como referencias al espacio donde están tus dispositivos.'
+      ? `Yes. In ${BRAND.productName}, I can resolve rooms by their name or the aliases you define in your settings. I’ll treat them as references to where your devices are located.`
+      : `Sí, en ${BRAND.productName} puedo resolver estancias por su nombre o por los alias que definas en tu configuración. Los usaré como referencias al espacio donde están tus dispositivos.`
   };
 }
 
@@ -179,8 +180,8 @@ export function formatMultiCommandSummary(results: ExecutedCommandResult[], lang
 export function handleCompanyInfoQuery(language: string): AssistantConversationResponse {
   const isEn = language === 'en';
   const message = isEn
-    ? "NEZU S.A.S. is an Ecuadorian technology company based in Cuenca, focused on transforming homes, buildings, businesses, and industrial spaces into connected, secure, efficient, and personalized environments. NEZU creates integrated systems to improve how people live and work through ecosystems like NEZU Living, NEZU Elevate, and NEZU Core. For more information about our services in automation, security, and infrastructure, visit: https://www.nezuecuador.com/"
-    : "NEZU S.A.S. es una empresa ecuatoriana de tecnología con base en Cuenca, enfocada en transformar hogares, edificios, comercios e industrias en espacios conectados, seguros, eficientes y personalizados. NEZU crea sistemas integrados para mejorar la vida y el trabajo a través de ecosistemas como NEZU Living, NEZU Elevate y NEZU Core. Para más información sobre nuestros servicios de automatización, seguridad e infraestructura, visita: https://www.nezuecuador.com/";
+    ? `${BRAND.companyName} S.A.S. is an Ecuadorian technology company based in Cuenca, focused on transforming homes, buildings, businesses, and industrial spaces into connected, secure, efficient, and personalized environments. ${BRAND.companyName} creates integrated systems to improve how people live and work through ecosystems like ${BRAND.companyName} Living, ${BRAND.companyName} Elevate, and ${BRAND.companyName} Core. For more information about our services in automation, security, and infrastructure, visit: https://www.nezuecuador.com/`
+    : `${BRAND.companyName} S.A.S. es una empresa ecuatoriana de tecnología con base en Cuenca, enfocada en transformar hogares, edificios, comercios e industrias en espacios conectados, seguros, eficientes y personalizados. ${BRAND.companyName} crea sistemas integrados para mejorar la vida y el trabajo a través de ecosistemas como ${BRAND.companyName} Living, ${BRAND.companyName} Elevate y ${BRAND.companyName} Core. Para más información sobre nuestros servicios de automatización, seguridad e infraestructura, visita: https://www.nezuecuador.com/`;
 
   return {
     type: 'answer',

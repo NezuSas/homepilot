@@ -3,6 +3,8 @@
 # Only enabled Compose-built runtime images participate in rollback rotation.
 # The camera probe is labeled separately and has no rollback: it is disposable
 # and can be rebuilt from the API Dockerfile on the next acceleration check.
+# shellcheck source=/dev/null
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/brand.sh"
 HOMEPILOT_IMAGE_SERVICES=(api ui stt tts)
 
 homepilot_image_enable_display() {
@@ -88,7 +90,7 @@ homepilot_image_finalize_rollback() {
       || fail "No se pudo verificar la imagen activa de ${service}; se conservan los rollback anteriores."
     [[ -n "$current" ]] || fail "Falta la imagen activa de ${service}; se conservan los rollback anteriores."
     homepilot_image_is_managed_runtime "$current" "$service" \
-      || fail "La nueva imagen de ${service} no tiene labels HomePilot válidos; no se consolida el rollback."
+      || fail "La nueva imagen de ${service} no tiene labels ${HP_BRAND} válidos; no se consolida el rollback."
   done
 
   for service in "${HOMEPILOT_IMAGE_SERVICES[@]}"; do
@@ -117,7 +119,7 @@ homepilot_image_gc_scan() {
   HOMEPILOT_GC_CANDIDATE_SERVICES=()
 
   image_list="$(docker image ls --all --quiet --no-trunc --filter label=io.nezu.homepilot.managed=v1)" \
-    || fail 'No se pudo enumerar las imágenes etiquetadas de HomePilot; no se eliminará nada.'
+    || fail 'No se pudo enumerar las imágenes etiquetadas de '"$HP_BRAND"'; no se eliminará nada.'
   containers="$(docker ps --all --quiet --no-trunc)" \
     || fail 'No se pudo enumerar todos los contenedores; no se eliminará nada.'
   [[ -z "$image_list" ]] || mapfile -t image_ids <<< "$image_list"
@@ -176,12 +178,12 @@ homepilot_image_gc_scan() {
 
 homepilot_image_gc_report() {
   local index
-  info 'Candidatas: solo imágenes dangling con labels HomePilot v1 y sin uso por ningún contenedor.'
+  info 'Candidatas: solo imágenes dangling con labels '"$HP_BRAND"' v1 y sin uso por ningún contenedor.'
   for index in "${!HOMEPILOT_GC_CANDIDATES[@]}"; do
     printf '  %s  %s\n' "${HOMEPILOT_GC_CANDIDATE_SERVICES[$index]}" "${HOMEPILOT_GC_CANDIDATES[$index]}"
   done
   if (( ${#HOMEPILOT_GC_CANDIDATES[@]} == 0 )); then
-    info 'No hay imágenes HomePilot verificadas para eliminar. Las legacy sin labels se conservan.'
+    info 'No hay imágenes '"$HP_BRAND"' verificadas para eliminar. Las legacy sin labels se conservan.'
   fi
 }
 

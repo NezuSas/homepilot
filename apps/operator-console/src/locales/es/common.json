@@ -114,7 +114,7 @@
     "none": "Desconocido"
   },
   "assistant": {
-    "title": "Asistente HomePilot",
+    "title": "Asistente {{brand}}",
     "subtitle": "Mejoras y sugerencias del sistema",
     "voice_notice": {
       "label": "Voz Nezu",
@@ -223,7 +223,7 @@
       "placeholder": "Dime algo, ej: ¿qué luces están encendidas?",
       "send": "Enviar",
       "sending": "Enviando...",
-        "consulting": "Consultando HomePilot…",
+        "consulting": "Consultando {{brand}}…",
         "request_cancelled": "Solicitud cancelada. Puedes hacer otra consulta cuando quieras.",
         "cancel_request": "Cancelar",
       "voice_start": "Hablar con Nezu",
@@ -234,7 +234,7 @@
       "voice_not_understood": "No tengo una lectura clara. Intenta decir: apaga la luz de la sala",
       "voice_timeout": "No pude entenderte a tiempo. Inténtalo de nuevo.",
       "voice_capture_error": "No se detectó un micrófono",
-      "voice_unavailable_error": "Abre HomePilot desde localhost o HTTPS para usar el micrófono",
+      "voice_unavailable_error": "Abre {{brand}} desde localhost o HTTPS para usar el micrófono",
       "voice_transcribing": "Transcribiendo voz...",
         "voice_transcribing_status": "Transcribiendo tu voz…",
       "voice_transcription_error": "No se pudo transcribir el audio",
@@ -247,7 +247,7 @@
       "speech_on": "Lectura de respuestas activada",
       "speech_off": "Activar lectura de respuestas",
       "empty_title": "¿Qué quieres hacer en casa?",
-      "empty_description": "Consulta el estado de tu hogar o pídele a HomePilot que controle algo por ti.",
+      "empty_description": "Consulta el estado de tu hogar o pídele a {{brand}} que controle algo por ti.",
       "selected_option": "Seleccioné: {{label}}",
       "options_question": "¿Cuál quieres controlar?",
         "show_more_options": "Ver {{count}} opciones más",
@@ -273,7 +273,7 @@
       "suggestion_1": "Apagar todo",
       "user_fallback": "Usuario",
       "typing": "El asistente está escribiendo",
-      "product_label": "HomePilot Edge",
+      "product_label": "{{brand}} Edge",
       "edge_label": "Edge",
       "local_label": "Local"
     }
@@ -439,9 +439,9 @@
         "info_time": "Hora",
         "info_weather": "Clima",
         "info_sensor": "Sensor",
-        "section_card_sensor_desc": "Lectura de batería, medición o estado disponible en HomePilot.",
+        "section_card_sensor_desc": "Lectura de batería, medición o estado disponible en {{brand}}.",
         "section_card_media": "Reproductor",
-        "section_card_media_desc": "Controla audio y estado de un reproductor importado en HomePilot.",
+        "section_card_media_desc": "Controla audio y estado de un reproductor importado en {{brand}}.",
         "media_design": "Diseño",
         "media_design_premium": "Premium",
         "media_design_classic": "Clásico",
@@ -717,12 +717,12 @@
     },
     "config": {
       "title": "Datos de conexión",
-      "subtitle": "Define cómo HomePilot debe conectarse a tu instancia de Home Assistant.",
+      "subtitle": "Define cómo {{brand}} debe conectarse a tu instancia de Home Assistant.",
       "url_label": "Dirección de Home Assistant",
       "token_label": "Token de acceso de larga duración",
       "token_placeholder": "Introduce tu token de HA...",
       "token_masked": "Token activo: {{token}}",
-      "token_hint": "HomePilot usa este token para sincronizar estados y ejecutar comandos locales."
+      "token_hint": "{{brand}} usa este token para sincronizar estados y ejecutar comandos locales."
     },
     "security": {
       "title": "Seguridad de tus datos",
@@ -732,7 +732,7 @@
     "test": {
       "success": "Conexión correcta",
       "failure": "No se pudo conectar",
-      "success_msg": "HomePilot se ha comunicado correctamente con Home Assistant.",
+      "success_msg": "{{brand}} se ha comunicado correctamente con Home Assistant.",
       "failure_msg": "No se pudo establecer el enlace. Verifica la URL y el Token.",
       "url_hint": "Especifique el protocolo (http/https) y el puerto."
     },
@@ -836,7 +836,7 @@
     }
   },
   "shell": {
-    "app_title": "HomePilot",
+    "app_title": "{{brand}}",
     "app_edge": "Edge",
     "subtitle": "Control Local Premium",
     "sidebar_subtitle": "Control local",
@@ -855,7 +855,7 @@
       "updated_now": "Actualizado ahora",
       "edge_active": "Red Edge Activa",
       "verifying_session": "Verificando Sesión...",
-      "security_gate": "Puerta de seguridad HomePilot Edge"
+      "security_gate": "Puerta de seguridad {{brand}} Edge"
     },
     "tooltips": {
       "switch_language": "Cambiar Idioma",
@@ -893,7 +893,7 @@
       "current_plan": "Plan actual",
       "plan_fallback": "Plan {{id}}",
       "plan_pending": "Datos comerciales pendientes de sincronización",
-      "homepilot_controls": "Controles HomePilot",
+      "homepilot_controls": "Controles {{brand}}",
       "included_controls": "Comandos incluidos en tu plan",
       "direct_action": "Acción directa",
       "value_control": "Control de valor",
@@ -901,7 +901,7 @@
       "control_available": "Control disponible",
       "included_in_plan": "Incluido en tu plan",
       "managed_externally": "Incluido en el plan · Gestionado por NEZU",
-      "included_unavailable": "Incluido en el plan · No disponible aún en HomePilot",
+      "included_unavailable": "Incluido en el plan · No disponible aún en {{brand}}",
       "no_other_controls": "No hay otros comandos incluidos.",
       "online": "En línea",
       "offline": "Sin conexión",
@@ -964,7 +964,7 @@
     "edge_hint": "Capacidades de control local activadas. Independencia de red activa.",
     "inspector": {
       "remove_import_title": "Eliminar dispositivo local",
-      "remove_import_description": "Quita este dispositivo del inventario de HomePilot. No afecta al dispositivo físico ni a la integración que lo detectó.",
+      "remove_import_description": "Quita este dispositivo del inventario de {{brand}}. No afecta al dispositivo físico ni a la integración que lo detectó.",
       "remove_import_confirm": "¿Eliminar {{name}} del inventario local? Podrá aparecer nuevamente si su integración lo detecta.",
       "delete_failed": "No se pudo eliminar el dispositivo. Puede estar en uso por una escena o automatización.",
       "title": "Inspector Técnico",
@@ -989,7 +989,7 @@
       "placement": "Ubicación",
       "entity_id": "ID de entidad",
       "actions_header": "Acciones Soportadas",
-      "data_object": "Objeto de Datos Core HomePilot v2.0",
+      "data_object": "Objeto de Datos Core {{brand}} v2.0",
       "label_alias": "Alias Local / Sobrescritura de Identidad",
       "label_room": "Ubicación de Habitación",
       "room_label": "Asignación de Estancia",
@@ -1050,7 +1050,7 @@
     "room_details": "Detalle de la estancia",
     "delete_room": "Eliminar estancia",
     "delete_room_title": "¿Eliminar estancia?",
-    "delete_room_description": "Solo se eliminará la estancia. Los dispositivos asignados permanecerán sin asignar en HomePilot y podrás ubicarlos nuevamente después.",
+    "delete_room_description": "Solo se eliminará la estancia. Los dispositivos asignados permanecerán sin asignar en {{brand}} y podrás ubicarlos nuevamente después.",
     "no_rooms": "No hay estancias asociadas a este entorno.",
     "select_home": "Por favor, selecciona un hogar a la izquierda para gestionar sus estancias.",
     "select_home_hint": "Sin Hogar Seleccionado",
@@ -1277,10 +1277,10 @@
   },
   "native_cameras": {
     "title": "Cámaras IP locales",
-    "subtitle": "Gestiona cámaras IP nativas directamente desde HomePilot sin depender de Home Assistant.",
+    "subtitle": "Gestiona cámaras IP nativas directamente desde {{brand}} sin depender de Home Assistant.",
     "add_camera": "Agregar cámara",
     "empty_title": "No hay cámaras configuradas",
-    "empty_description": "Agrega tu primera cámara IP local. HomePilot se conectará directamente por RTSP y gestionará el stream de forma segura.",
+    "empty_description": "Agrega tu primera cámara IP local. {{brand}} se conectará directamente por RTSP y gestionará el stream de forma segura.",
     "camera_count_one": "1 cámara configurada",
     "camera_count_other": "{{count}} cámaras configuradas",
     "status_active": "Activa",
@@ -1301,7 +1301,7 @@
     },
     "discovery": {
       "title": "Agregar cámara nativa",
-      "subtitle": "Elige el tipo de integración. HomePilot buscará ONVIF cuando el protocolo lo permita; RTSP/DVR y Sonoff se configuran con su URL local.",
+      "subtitle": "Elige el tipo de integración. {{brand}} buscará ONVIF cuando el protocolo lo permita; RTSP/DVR y Sonoff se configuran con su URL local.",
       "searching": "Buscando dispositivos ONVIF...",
       "manual": "Configurar dispositivo ONVIF manualmente",
       "manual_rtsp": "Configurar RTSP manualmente",
@@ -1325,7 +1325,7 @@
     "delete": "Eliminar",
     "delete_confirm_title": "¿Eliminar cámara?",
     "delete_confirm_description": "Se eliminará la cámara y su configuración. El stream dejará de estar disponible de inmediato.",
-    "security_note": "Las credenciales se almacenan localmente en HomePilot y nunca se exponen en el navegador.",
+    "security_note": "Las credenciales se almacenan localmente en {{brand}} y nunca se exponen en el navegador.",
     "form": {
       "title_create": "Agregar cámara IP",
       "title_edit": "Editar cámara",
@@ -1344,7 +1344,7 @@
       "field_password_placeholder": "Contraseña de la cámara",
       "field_rtsp_path": "Ruta del stream RTSP",
       "field_host_hints": {
-        "onvif-ptz": "IP o host ONVIF de la cámara. HomePilot negociará el perfil de video automáticamente.",
+        "onvif-ptz": "IP o host ONVIF de la cámara. {{brand}} negociará el perfil de video automáticamente.",
         "rtsp-dvr": "IP o host del DVR/NVR. Usa el puerto RTSP real del equipo, normalmente 554.",
         "sonoff-rtsp": "IP local de la cámara Sonoff con RTSP habilitado."
       },
@@ -1354,7 +1354,7 @@
         "sonoff-rtsp": "Ej: /av_stream/ch0"
       },
       "field_rtsp_path_hints": {
-        "onvif-ptz": "HomePilot obtiene esta ruta desde ONVIF cuando el dispositivo la expone.",
+        "onvif-ptz": "{{brand}} obtiene esta ruta desde ONVIF cuando el dispositivo la expone.",
         "rtsp-dvr": "Obligatoria para DVR/NVR. Ejemplos comunes: /Streaming/Channels/101, /cam/realmonitor?channel=1&subtype=0 o /live/ch00_0.",
         "sonoff-rtsp": "Obligatoria para Sonoff RTSP. Ajusta la ruta si tu modelo usa una distinta."
       },
@@ -1377,7 +1377,7 @@
       "created": "Cámara agregada correctamente",
       "updated": "Cámara actualizada correctamente",
       "deleted": "Cámara eliminada correctamente",
-      "already_exists": "Esta cámara ya existe en HomePilot.",
+      "already_exists": "Esta cámara ya existe en {{brand}}.",
       "delete_failed": "No se pudo eliminar la cámara",
       "load_failed": "No se pudieron cargar las cámaras"
     }
@@ -1478,7 +1478,7 @@
       "suspended": "CUENTA SUSPENDIDA",
       "live": "TELEMETRÍA EN VIVO / SESIÓN"
     },
-    "protection_rule": "Regla de Protección del Sistema: HomePilot requiere al menos un usuario administrador activo. Desactivar o degradar al último administrador está estrictamente prohibido por la lógica de seguridad del backend para evitar bloqueos permanentes.",
+    "protection_rule": "Regla de Protección del Sistema: {{brand}} requiere al menos un usuario administrador activo. Desactivar o degradar al último administrador está estrictamente prohibido por la lógica de seguridad del backend para evitar bloqueos permanentes.",
     "actions": {
       "confirm_title": "Confirmar acción",
       "confirm_suspend": "¿Está seguro de que desea SUSPENDER a este usuario? La suspensión matará instantáneamente todas las sesiones activas.",
@@ -1560,7 +1560,7 @@
     }
   },
   "login": {
-    "title": "HomePilot",
+    "title": "{{brand}}",
     "subtitle": "Inicia sesión para acceder a la Consola de Operador",
     "username": "Usuario",
     "password": "Contraseña",
@@ -1572,7 +1572,7 @@
   },
   "onboarding": {
     "kicker": "Instalador residencial",
-    "title": "Activación de HomePilot",
+    "title": "Activación de {{brand}}",
     "subtitle": "Conecta el appliance con Home Assistant y deja la consola lista para operar en red local.",
     "error_save": "Error al guardar la conexión",
     "error_complete": "Error al finalizar la configuración inicial",
@@ -1588,8 +1588,8 @@
       "local": "Control local validado antes de abrir el workspace.",
       "secure": "Tu token se protege y solo se usa para conectar tu sistema.",
       "recoverable": "Puedes revisar la conexión desde configuración si Home Assistant cambia.",
-      "native_secure": "HomePilot funciona localmente sin requerir un bridge externo.",
-      "native_recoverable": "Las integraciones nativas se agregan y administran desde HomePilot."
+      "native_secure": "{{brand}} funciona localmente sin requerir un bridge externo.",
+      "native_recoverable": "Las integraciones nativas se agregan y administran desde {{brand}}."
     },
     "step1": {
       "title": "Diagnóstico del Sistema",
@@ -1605,25 +1605,25 @@
       "unknown": "Desconocida / Inalcanzable",
       "operator_note_title": "Nota de instalación",
       "operator_note": "La activación requiere un administrador activo. El siguiente paso conecta tu Home Assistant actual y comprueba la conexión.",
-      "native_operator_note": "La activación requiere un administrador activo. Luego podrás añadir integraciones nativas desde HomePilot.",
+      "native_operator_note": "La activación requiere un administrador activo. Luego podrás añadir integraciones nativas desde {{brand}}.",
       "continue": "Conectar mi Home Assistant",
       "native_continue": "Continuar a la Activación"
     },
     "step2": {
       "title": "Conecta tu Home Assistant",
       "description": "Introduce la dirección de tu Home Assistant y un token de acceso de larga duración. No modificaremos tu instalación.",
-      "url": "URL para enlazar HomePilot",
+      "url": "URL para enlazar {{brand}}",
       "token": "Token de Acceso de Larga Duración",
       "runtime_title": "Configuración detectada",
       "runtime_docker_desktop": "Docker Desktop",
       "runtime_linux_edge": "Appliance Linux",
       "runtime_unknown": "Entorno local",
-      "bridge_url_title": "Dirección sugerida para HomePilot",
-      "bridge_url_hint": "HomePilot usa esta dirección internamente para conectarse y sincronizar tu hogar.",
+      "bridge_url_title": "Dirección sugerida para {{brand}}",
+      "bridge_url_hint": "{{brand}} usa esta dirección internamente para conectarse y sincronizar tu hogar.",
       "use_bridge_url": "Usar esta URL",
       "token_url_title": "Abre Home Assistant para crear el token",
       "open_home_assistant": "Abrir Home Assistant",
-      "url_hint": "Usa la URL sugerida para que HomePilot pueda alcanzar Home Assistant desde su propio entorno.",
+      "url_hint": "Usa la URL sugerida para que {{brand}} pueda alcanzar Home Assistant desde su propio entorno.",
       "test": "Probar Conexión",
       "save": "Guardar y Continuar",
       "success": "¡Conexión exitosa!",
@@ -1631,15 +1631,15 @@
       "token_placeholder": "Token de acceso de larga duración...",
       "token_help_title": "Cómo obtener el token",
       "token_help_1": "1. En Home Assistant abre tu perfil de usuario.",
-      "token_help_2": "2. Crea un token de larga duración para HomePilot.",
+      "token_help_2": "2. Crea un token de larga duración para {{brand}}.",
       "token_help_3": "3. Pégalo aquí, prueba la conexión y guarda solo si el enlace responde."
     },
     "step3": {
       "kicker": "Bridge confirmado",
       "native_kicker": "Control nativo confirmado",
       "title": "Sistema Listo",
-      "subtitle": "HomePilot está configurado y conectado de forma segura a tu Home Assistant.",
-      "native_subtitle": "Tu appliance HomePilot está listo para incorporar y operar integraciones locales de forma nativa.",
+      "subtitle": "{{brand}} está configurado y conectado de forma segura a tu Home Assistant.",
+      "native_subtitle": "Tu appliance {{brand}} está listo para incorporar y operar integraciones locales de forma nativa.",
       "next_1": "Importar dispositivos",
       "native_next_1": "Añadir integraciones",
       "next_2": "Asignar espacios",
@@ -1707,7 +1707,7 @@
     "connection": "Conexión",
     "connected": "Disponible",
     "check_required": "Revisar",
-    "connection_ok": "Los servicios de HomePilot responden correctamente.",
+    "connection_ok": "Los servicios de {{brand}} responden correctamente.",
     "connection_pending": "No se pudo completar la comprobación. Inténtalo de nuevo más tarde.",
     "devices": "Dispositivos",
     "devices_description": "Dispositivos disponibles en tu hogar.",
@@ -1716,7 +1716,7 @@
     "spaces_description_other": "{{count}} hogares organizados por espacios.",
     "routines": "Rutinas",
     "routines_description": "{{scenes}} escenas y {{automations}} automatizaciones disponibles.",
-    "privacy_title": "Tu hogar se controla desde HomePilot",
+    "privacy_title": "Tu hogar se controla desde {{brand}}",
     "privacy_description": "La información se mantiene en tu instalación local. Los detalles técnicos se gestionan desde Diagnóstico."
   },
   "energy": {
@@ -1727,7 +1727,7 @@
     "subtitle": "Saber dónde va la energía y dónde ahorrar.",
     "status_active": "Monitoreo energético activo",
     "empty_title": "Consciencia Energética Próximamente",
-    "empty_description": "HomePilot mostrará patrones de consumo, dispositivos inactivos y oportunidades de ahorro desde tus datos locales.",
+    "empty_description": "{{brand}} mostrará patrones de consumo, dispositivos inactivos y oportunidades de ahorro desde tus datos locales.",
     "what_you_will_see": "Qué verás aquí",
     "feature_consumption": "Consumo en vivo por habitación y dispositivo",
     "feature_idle": "Detección de dispositivos inactivos y alertas",
@@ -1847,7 +1847,7 @@
       "upload_image": "Subir imagen",
       "clear_image": "Limpiar imagen",
       "background_presets": {
-        "title": "Fondos de HomePilot",
+        "title": "Fondos de {{brand}}",
         "description": "Elige una imagen local diseñada para conservar la legibilidad de tus tarjetas.",
         "warm_graphite": {
           "label": "Grafito cálido",
@@ -1866,7 +1866,7 @@
           "description": "Formas arquitectónicas suaves en piedra."
         },
         "amber_residence": {
-          "label": "HomePilot Amber Residence",
+          "label": "{{brand}} Amber Residence",
           "description": "Interior residencial de luz cálida y profundidad ámbar."
         }
       },
@@ -1964,7 +1964,7 @@
       },
       "system_status": {
         "label": "Sistema",
-        "placeholder": "No se pudo obtener el diagnóstico del servidor HomePilot.",
+        "placeholder": "No se pudo obtener el diagnóstico del servidor {{brand}}.",
         "processor": "Procesador",
         "memory": "Memoria (RAM)",
         "uptime": "Tiempo Activo",
@@ -2034,11 +2034,11 @@
     "steps": {
       "dashboard": {
         "title": "Tu hogar, un solo control",
-        "description": "HomePilot centraliza espacios, escenas, dispositivos y salud del sistema en una sola consola local, pensada para operar la casa sin saltar entre apps."
+        "description": "{{brand}} centraliza espacios, escenas, dispositivos y salud del sistema en una sola consola local, pensada para operar la casa sin saltar entre apps."
       },
       "scenes": {
         "title": "Escenas listas para ejecutar",
-        "description": "Las escenas agrupan comandos de varios dispositivos. HomePilot muestra cuántos puntos toca y si pueden ejecutarse con resiliencia local."
+        "description": "Las escenas agrupan comandos de varios dispositivos. {{brand}} muestra cuántos puntos toca y si pueden ejecutarse con resiliencia local."
       },
       "routines": {
         "title": "Rutinas para cada momento",

@@ -1,3 +1,4 @@
+import { BRAND } from '../../../packages/shared/config/brand';
 import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { RouteHandler } from '../RouteHandler';
@@ -18,7 +19,7 @@ const SAFE_MESSAGES: Record<string, string> = {
   'SSO_TOKEN_HOME_MISMATCH': 'Este acceso desde el Directorio no corresponde a este hogar.',
   'SSO_NOT_CONFIGURED': 'El acceso desde el Directorio no está disponible en este hogar.',
   'SSO_HANDOFF_INVALID': 'No se pudo completar el acceso desde el Directorio. Vuelve a iniciarlo.',
-  'INSTALLATION_VERIFICATION_CLOUD_NOT_PAIRED': 'Este HomePilot no está vinculado al Directorio.',
+  'INSTALLATION_VERIFICATION_CLOUD_NOT_PAIRED': `Este ${BRAND.productName} no está vinculado al Directorio.`,
   'INSTALLATION_VERIFICATION_INPUT_INVALID': 'Los datos de verificación no son válidos.',
   'INSTALLATION_VERIFICATION_DIRECTORY_UNAVAILABLE': 'El Directorio no está disponible en este momento.',
   'INSTALLATION_VERIFICATION_DIRECTORY_REJECTED': 'El Directorio rechazó la solicitud de verificación.',

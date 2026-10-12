@@ -5,6 +5,7 @@ import { cn } from '../lib/utils';
 import type { UserContext } from '../lib/useSession';
 import { SurfaceButton } from './ui/SurfaceButton';
 import { IconButton } from './ui/IconButton';
+import { BRAND } from '../brand';
 
 interface AppSidebarFooterProps {
   collapsed: boolean;
@@ -46,7 +47,7 @@ export function AppSidebarFooter({ collapsed, user, profile, theme, demoStepCoun
           <IconButton icon={LogOut} label={t('nav.logout')} onClick={onLogout} variant="danger" size="sm" />
         </div>
       </div>
-      <p className={cn('text-center text-micro text-muted-foreground/70', collapsed && 'xl:sr-only')}>Powered by NEZU</p>
+      <p className={cn('text-center text-micro text-muted-foreground/70', collapsed && 'xl:sr-only')}>Powered by {BRAND.companyName}</p>
     </div>
   );
 }

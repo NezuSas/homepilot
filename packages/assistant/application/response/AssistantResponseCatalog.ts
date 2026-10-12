@@ -1,3 +1,4 @@
+import { BRAND } from '../../../shared/config/brand';
 export type AssistantResponseCatalogLanguage = 'es' | 'en';
 
 export type AssistantResponseCatalogParameters = {
@@ -152,8 +153,8 @@ const responseCatalog: AssistantResponseCatalog = {
     en: () => 'Operating normally. Local control, voice services, and residential systems are standing by.',
   },
   'quick.name': {
-    es: () => 'Soy HomePilot, tu operador residencial local.',
-    en: () => 'I am HomePilot, your local residential operator.',
+    es: () => `Soy ${BRAND.productName}, tu operador residencial local.`,
+    en: () => `I am ${BRAND.productName}, your local residential operator.`,
   },
   'profile.preferred_address': {
     es: ({ address }) => `Entendido. Me dirigiré a ti como ${address} en la conversación general.`,
@@ -612,12 +613,12 @@ const responseCatalog: AssistantResponseCatalog = {
     en: ({ roomName }) => `You do not have imported audio players in ${roomName}.`,
   },
   'media.operation_not_supported': {
-    es: ({ deviceName }) => `${deviceName} no permite esa operación desde HomePilot.`,
-    en: ({ deviceName }) => `${deviceName} does not support that operation from HomePilot.`,
+    es: ({ deviceName }) => `${deviceName} no permite esa operación desde ${BRAND.productName}.`,
+    en: ({ deviceName }) => `${deviceName} does not support that operation from ${BRAND.productName}.`,
   },
   'media.turn_on_not_supported': {
-    es: ({ deviceName }) => `${deviceName} está apagado y no admite encendido desde HomePilot.`,
-    en: ({ deviceName }) => `${deviceName} is off and does not support being turned on from HomePilot.`,
+    es: ({ deviceName }) => `${deviceName} está apagado y no admite encendido desde ${BRAND.productName}.`,
+    en: ({ deviceName }) => `${deviceName} is off and does not support being turned on from ${BRAND.productName}.`,
   },
   'media.operation_failed': {
     es: ({ deviceName }) => `No pude completar la operación en ${deviceName}. Revisa que siga encendido y conectado.`,

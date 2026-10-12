@@ -2,6 +2,8 @@
 
 # A separate docker-container builder keeps new HomePilot build cache apart from
 # the daemon's shared builder. Never select it globally or prune any builder.
+# shellcheck source=/dev/null
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/brand.sh"
 readonly HOMEPILOT_BUILDER_NAME='homepilot-builder'
 readonly HOMEPILOT_BUILDER_CONTAINER="buildx_buildkit_${HOMEPILOT_BUILDER_NAME}0"
 readonly HOMEPILOT_BUILDKIT_CONFIG="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/docker/buildkit/homepilot-buildkitd.toml"
@@ -39,12 +41,12 @@ homepilot_builder_size_bytes() {
 homepilot_builder_ensure() {
   local details compose_build_help
 
-  [[ -f "$HOMEPILOT_BUILDKIT_CONFIG" ]] || fail "Falta la política GC de HomePilot: ${HOMEPILOT_BUILDKIT_CONFIG}."
+  [[ -f "$HOMEPILOT_BUILDKIT_CONFIG" ]] || fail "Falta la política GC de ${HP_BRAND}: ${HOMEPILOT_BUILDKIT_CONFIG}."
   docker buildx version >/dev/null 2>&1 || fail 'Docker Buildx no está disponible; no se puede aislar la construcción.'
   compose_build_help="$(docker compose build --help 2>/dev/null)" \
     || fail 'No se pudo comprobar la capacidad de build de Docker Compose.'
   [[ "$compose_build_help" == *--builder* ]] \
-    || fail 'Docker Compose no admite build --builder; actualiza Compose antes de construir HomePilot.'
+    || fail 'Docker Compose no admite build --builder; actualiza Compose antes de construir '"$HP_BRAND"'.'
 
   if details="$(docker buildx inspect "$HOMEPILOT_BUILDER_NAME" 2>/dev/null)"; then
     [[ "$details" =~ (^|$'\n')Driver:[[:space:]]*docker-container($|[[:space:]]) ]] \
@@ -67,13 +69,13 @@ homepilot_builder_ensure() {
     || fail "${HOMEPILOT_BUILDER_NAME} no garantiza la carga local de imágenes."
   homepilot_builder_policy_matches "$details" \
     || fail "${HOMEPILOT_BUILDER_NAME} conserva una política GC anterior o no verificable. No se modifica ni se reconstruye automáticamente; consulta la migración manual en docs/homepilot-technical-guide.md."
-  ok "Builder dedicado ${HOMEPILOT_BUILDER_NAME} listo para los builds de HomePilot."
+  ok "Builder dedicado ${HOMEPILOT_BUILDER_NAME} listo para los builds de ${HP_BRAND}."
 }
 
 homepilot_builder_report() {
   local details usage summary total_size total_bytes max_bytes
 
-  info "Builder de HomePilot: ${HOMEPILOT_BUILDER_NAME}."
+  info "Builder de ${HP_BRAND}: ${HOMEPILOT_BUILDER_NAME}."
   info "GC objetivo: reservado ${HOMEPILOT_GC_RESERVED}; máximo ${HOMEPILOT_GC_MAX_USED}; libre objetivo ${HOMEPILOT_GC_MIN_FREE}; caché local 48h y caché general antigua 30 días primero."
   if ! details="$(docker buildx inspect "$HOMEPILOT_BUILDER_NAME" 2>/dev/null)"; then
     info 'Estado: no creado o no disponible. No hay una cifra de caché atribuible al builder.'
@@ -86,7 +88,7 @@ homepilot_builder_report() {
     return 0
   fi
   if homepilot_builder_policy_matches "$details"; then
-    ok 'Política GC de HomePilot verificada en el builder activo.'
+    ok 'Política GC de '"$HP_BRAND"' verificada en el builder activo.'
   else
     warn 'El builder activo usa una política GC anterior o no verificable. Requiere migración manual; no se modifica automáticamente.'
   fi

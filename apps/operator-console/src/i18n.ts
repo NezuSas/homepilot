@@ -5,6 +5,7 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 // Import translations
 import enCommon from './locales/en/common.json';
 import esCommon from './locales/es/common.json';
+import { BRAND } from './brand';
 
 i18n
   .use(LanguageDetector)
@@ -23,6 +24,8 @@ i18n
     defaultNS: 'common',
     interpolation: {
       escapeValue: false, // not needed for react as it escapes by default
+      // Every text can say {{brand}} and {{company}}; the names live only in brand.json.
+      defaultVariables: { brand: BRAND.productName, company: BRAND.companyName },
     },
     detection: {
       order: ['localStorage', 'navigator'],

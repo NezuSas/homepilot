@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# shellcheck source=/dev/null
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/brand.sh"
 set -euo pipefail
 readonly HOMEPILOT_MAINTENANCE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$HOMEPILOT_MAINTENANCE_ROOT"
@@ -38,20 +40,20 @@ RED="$HP_RED" GREEN="$HP_GREEN" YELLOW="$HP_YELLOW" BLUE="$HP_AMBER"
 BOLD="$HP_BOLD" DIM="$HP_DIM" NC="$HP_RESET"
 
 usage() {
-  cat <<'EOF'
+  cat <<EOF
 Uso: bash scripts/homepilot-maintenance.sh [opciones]
 
-Mantiene una instalación HomePilot en miniPC sin tocar recursos de otros proyectos Docker.
+Mantiene una instalación ${HP_BRAND} en miniPC sin tocar recursos de otros proyectos Docker.
 No borra volúmenes ni bases de datos. RECLAIMABLE es una cifra global de Docker.
 
 Opciones:
-  --deploy                 Construye/inicia HomePilot y retira solo contenedores detenidos del proyecto.
-  --clean                  Retira solo contenedores detenidos del proyecto HomePilot.
+  --deploy                 Construye/inicia ${HP_BRAND} y retira solo contenedores detenidos del proyecto.
+  --clean                  Retira solo contenedores detenidos del proyecto ${HP_BRAND}.
   --status                 Muestra uso del filesystem y Docker, contenedores y salud sin modificar nada.
-  --gc-homepilot           Previsualiza y, tras confirmar, elimina solo imágenes antiguas HomePilot verificadas.
+  --gc-homepilot           Previsualiza y, tras confirmar, elimina solo imágenes antiguas ${HP_BRAND} verificadas.
   --profile PERFIL         bridge_ha (defecto), native_only o ha_companion.
   --compose FILE           Compose personalizado. Sobrescribe la selección automática de runtime.
-  --truncate-logs          Vacía únicamente logs de contenedores HomePilot. Puede pedir sudo.
+  --truncate-logs          Vacía únicamente logs de contenedores ${HP_BRAND}. Puede pedir sudo.
   --yes                    No pide confirmacion.
   --help                   Muestra esta ayuda.
 
@@ -158,8 +160,8 @@ configure_profile() {
 
 banner() {
   [[ "${HOMEPILOT_INSTALLER_EMBEDDED:-0}" != 1 ]] || return 0
-  printf '%b\n' "${BOLD}HomePilot · mantenimiento${NC}"
-  printf '%b\n' "${DIM}   Perfil ${profile} · mantenimiento acotado al proyecto HomePilot${NC}"
+  printf '%b\n' "${BOLD}${HP_BRAND} · mantenimiento${NC}"
+  printf '%b\n' "${DIM}   Perfil ${profile} · mantenimiento acotado al proyecto ${HP_BRAND}${NC}"
   divider
 }
 
@@ -202,7 +204,7 @@ confirm() {
 
 show_disk() {
   storage_report
-  section 'Builder de HomePilot'
+  section 'Builder de '"$HP_BRAND"''
   homepilot_builder_report
 }
 
@@ -276,9 +278,9 @@ check_api_health() {
   local status_code
   status_code="$(homepilot_api_health_status || true)"
   if [[ "$status_code" == "200" ]]; then
-    ok "API HomePilot responde desde el contenedor (HTTP 200)."
+    ok "API ${HP_BRAND} responde desde el contenedor (HTTP 200)."
   else
-    warn "API HomePilot no responde desde el contenedor (HTTP ${status_code:-000})."
+    warn "API ${HP_BRAND} no responde desde el contenedor (HTTP ${status_code:-000})."
     runtime_failures=$((runtime_failures + 1))
   fi
 }
@@ -292,14 +294,14 @@ verify_runtime_once() {
   ha_port="$(env_value HOMEPILOT_HOME_ASSISTANT_PORT 8123)"
 
   runtime_failures=0
-  check_container "homepilot-api" "API HomePilot"
-  check_container "homepilot-ui" "UI HomePilot"
+  check_container "homepilot-api" "API ${HP_BRAND}"
+  check_container "homepilot-ui" "UI ${HP_BRAND}"
   if [[ "$voice_enabled" == true ]]; then
     check_container "homepilot-stt" "STT Whisper"
     check_container "homepilot-tts" "TTS Piper"
   fi
   check_api_health
-  check_endpoint "UI HomePilot · puerto ${ui_port}" "http://127.0.0.1:${ui_port}" "200"
+  check_endpoint "UI ${HP_BRAND} · puerto ${ui_port}" "http://127.0.0.1:${ui_port}" "200"
   if [[ "$voice_enabled" == true ]]; then
     check_endpoint "STT Whisper · puerto ${stt_port}" "http://127.0.0.1:${stt_port}/health" "200"
     check_endpoint "TTS Piper · puerto ${tts_port}" "http://127.0.0.1:${tts_port}/health" "200"
@@ -350,18 +352,18 @@ clean_docker_residue() {
   local compose_command=()
   local container_id log_path
 
-  section "Limpieza acotada a HomePilot"
+  section "Limpieza acotada a ${HP_BRAND}"
   info "No se ejecutan limpiezas globales de Docker (system, builder, image, container, network o volume)."
   mapfile -t compose_command < <(compose_args)
 
   if docker compose "${compose_command[@]}" rm --force; then
-    ok "Contenedores detenidos del proyecto HomePilot eliminados."
+    ok "Contenedores detenidos del proyecto ${HP_BRAND} eliminados."
   else
-    warn "No se pudieron eliminar contenedores detenidos del proyecto HomePilot."
+    warn "No se pudieron eliminar contenedores detenidos del proyecto ${HP_BRAND}."
   fi
 
   if [[ "$truncate_logs" == true ]]; then
-    section "Limpieza de logs de HomePilot"
+    section "Limpieza de logs de ${HP_BRAND}"
     while IFS= read -r container_id; do
       [[ -n "$container_id" ]] || continue
       log_path="$(docker inspect --format '{{.LogPath}}' "$container_id" 2>/dev/null || true)"
@@ -372,7 +374,7 @@ clean_docker_residue() {
         truncate -s 0 "$log_path"
       fi
     done < <(docker compose "${compose_command[@]}" ps -a -q)
-    ok "Solo los logs de contenedores HomePilot fueron truncados."
+    ok "Solo los logs de contenedores ${HP_BRAND} fueron truncados."
   fi
 }
 select_camera_acceleration_for_deploy() {
@@ -399,16 +401,16 @@ maintenance_build_and_up() {
       # Turning voice off on an installation that had it must not leave the old speech services running.
       docker compose "${compose_options[@]}" rm -sf homepilot-stt homepilot-tts >/dev/null
     fi
-    COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios HomePilot' docker compose "${compose_options[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" "${build_services[@]}" \
-      && hp_ui_run 'Iniciando servicios HomePilot' docker compose "${compose_options[@]}" up -d --no-build --no-deps "${runtime_services[@]}"
+    COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios '"$HP_BRAND"'' docker compose "${compose_options[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" "${build_services[@]}" \
+      && hp_ui_run 'Iniciando servicios '"$HP_BRAND"'' docker compose "${compose_options[@]}" up -d --no-build --no-deps "${runtime_services[@]}"
   else
-    COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios HomePilot' docker compose "${compose_options[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" \
-      && hp_ui_run 'Iniciando servicios HomePilot' docker compose "${compose_options[@]}" up -d --no-build
+    COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios '"$HP_BRAND"'' docker compose "${compose_options[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" \
+      && hp_ui_run 'Iniciando servicios '"$HP_BRAND"'' docker compose "${compose_options[@]}" up -d --no-build
   fi
 }
 
 deploy_homepilot() {
-  section "Despliegue HomePilot"
+  section "Despliegue ${HP_BRAND}"
   info "Compose: ${compose_files[*]}"
   info "Perfil: ${profile}"
   info "Los servicios se construyen con ${HOMEPILOT_BUILDER_NAME}; Compose los inicia sin reconstruir."
@@ -426,7 +428,7 @@ deploy_homepilot() {
   while (( attempt <= max_attempts )); do
     info "Construcción e inicio: intento ${attempt}/${max_attempts}."
     if maintenance_build_and_up "${compose_args[@]}"; then
-      ok "HomePilot construido e iniciado."
+      ok "${HP_BRAND} construido e iniciado."
       break
     fi
 
@@ -443,7 +445,7 @@ deploy_homepilot() {
         compose_args+=( -f "$file" )
       done
       if maintenance_build_and_up "${compose_args[@]}"; then
-        ok 'HomePilot construido e iniciado con codificación por software.'
+        ok ''"$HP_BRAND"' construido e iniciado con codificación por software.'
         break
       fi
     fi
@@ -525,7 +527,7 @@ validate_profile_environment
 show_disk
 
 if [[ "$gc_homepilot" == true ]]; then
-  section 'Imágenes HomePilot · limpieza explícita'
+  section 'Imágenes '"$HP_BRAND"' · limpieza explícita'
   homepilot_image_gc_scan
   homepilot_image_gc_report
   if (( ${#HOMEPILOT_GC_CANDIDATES[@]} == 0 )); then
@@ -533,7 +535,7 @@ if [[ "$gc_homepilot" == true ]]; then
   fi
   if confirm 'Eliminar solo las imágenes candidatas verificadas arriba?'; then
     homepilot_image_gc_remove
-    ok 'Limpieza de imágenes HomePilot terminada sin prune global.'
+    ok 'Limpieza de imágenes '"$HP_BRAND"' terminada sin prune global.'
   else
     warn 'Limpieza de imágenes cancelada.'
   fi
@@ -560,7 +562,7 @@ if [[ "$clean_only" == true && "$deploy" == false ]]; then
 fi
 
 if [[ "$deploy" == true ]]; then
-  if confirm "Limpiar, construir e iniciar HomePilot ahora?"; then
+  if confirm "Limpiar, construir e iniciar ${HP_BRAND} ahora?"; then
     if [[ "$global_installer_v1" == true ]]; then
       HOMEPILOT_IMAGE_SERVICES=(api ui)
       build_services=(homepilot-api homepilot-ui)
@@ -581,7 +583,7 @@ if [[ "$deploy" == true ]]; then
     fi
     [[ "$android_display_enabled" != true ]] || android_display_prepare_adb_home
     export HOMEPILOT_BUILD_REVISION="$(homepilot_image_revision)"
-    section 'Builder de HomePilot'
+    section 'Builder de '"$HP_BRAND"''
     homepilot_builder_ensure
     select_camera_acceleration_for_deploy
     mapfile -t image_compose_args < <(compose_args)

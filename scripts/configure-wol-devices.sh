@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# shellcheck source=/dev/null
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/brand.sh"
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -24,11 +26,11 @@ fail() { printf '%b\n' "${RED}ERROR${RESET} $1" >&2; exit 1; }
 divider() { printf '%b\n' "${DIM}----------------------------------------------------------------${RESET}"; }
 
 usage() {
-  cat <<'EOF'
+  cat <<EOF
 Uso: bash scripts/configure-wol-devices.sh [opcion]
 
 Configura computadoras objetivo para encendido remoto Wake-on-LAN desde
-la mini-PC HomePilot. Wake-on-LAN no utiliza MQTT ni HASS.Agent.
+la mini-PC ${HP_BRAND}. Wake-on-LAN no utiliza MQTT ni HASS.Agent.
 
 Opciones:
   --list          Muestra las computadoras registradas.
@@ -254,7 +256,7 @@ apply_home_assistant_configuration() {
 }
 menu() {
   while true; do
-    printf '\n%b\n' "${ORANGE}${BOLD}HomePilot · Computadoras Wake-on-LAN${RESET}"
+    printf '\n%b\n' "${ORANGE}${BOLD}${HP_BRAND} · Computadoras Wake-on-LAN${RESET}"
     printf '%s\n' '1) Registrar computadoras'
     printf '%s\n' '2) Ver computadoras registradas'
     printf '%s\n' '3) Eliminar una computadora'

@@ -1,3 +1,4 @@
+import { BRAND } from './packages/shared/config/brand';
 import 'dotenv/config';
 import * as path from 'path';
 import { bootstrap } from './bootstrap';
@@ -14,7 +15,7 @@ import { ActivityLogRetentionService } from './packages/system-observability/app
  * Orquesta la secuencia real de arranque de la aplicación usando el bootstrap reutilizable.
  */
 async function main(): Promise<void> {
-  console.log('[Main] Iniciando proceso HomePilot Edge...');
+  console.log(`[Main] Iniciando proceso ${BRAND.productName} Edge...`);
   
   try {
     // 1. Ejecución del Bootstrap que garantiza persistencia y migraciones

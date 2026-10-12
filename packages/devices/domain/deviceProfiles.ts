@@ -1,3 +1,4 @@
+import { BRAND } from '../../shared/config/brand';
 import { CapabilityType, CAPABILITY_DEFINITIONS, DeviceCapability } from './capabilities';
 import { DeviceCommandV1 } from './commands';
 import { Device, DeviceSemanticType } from './types';
@@ -50,7 +51,7 @@ const STATE_SYNC_SECTION: DeviceConfigurationSection = {
 const READ_ONLY_SECTION: DeviceConfigurationSection = {
   id: 'read_only',
   label: 'Solo lectura',
-  description: 'Este perfil no expone comandos operativos desde HomePilot.',
+  description: `Este perfil no expone comandos operativos desde ${BRAND.productName}.`,
 };
 
 function commandsFor(capabilityTypes: ReadonlyArray<CapabilityType>): ReadonlyArray<DeviceCommandV1> {

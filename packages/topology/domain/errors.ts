@@ -1,3 +1,4 @@
+import { BRAND } from '../../shared/config/brand';
 /**
  * Clase base para errores del dominio de topología.
  */
@@ -54,7 +55,7 @@ export class InvalidHomeIdError extends TopologyDomainError {
  */
 export class SingleHomeInstallationError extends TopologyDomainError {
   constructor() {
-    super('HomePilot Edge supports exactly one home per installation.');
+    super(`${BRAND.productName} Edge supports exactly one home per installation.`);
     this.name = 'SingleHomeInstallationError';
   }
 }

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
 # Presentation shared by the global installation wizard. Never changes the terminal in logs.
+# shellcheck source=/dev/null
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/brand.sh"
 hp_color_init() {
   HP_RESET='' HP_BOLD='' HP_DIM='' HP_AMBER='' HP_SOFT=''
   HP_PRIMARY='' HP_SECONDARY='' HP_GREEN='' HP_YELLOW='' HP_RED=''
@@ -162,7 +164,7 @@ hp_ui_header() {
   hp_ui_center "$HP_SECONDARY" 'Bienvenido a'
   printf '\n'
   if [[ "$HP_UI_TTY" != true ]] || (( $(hp_ui_columns) < 44 )); then
-    hp_ui_center "$HP_PRIMARY$HP_BOLD" 'NEZU'
+    hp_ui_center "$HP_PRIMARY$HP_BOLD" ''"$HP_BRAND_COMPANY"''
     HP_UI_HEADER_LINES=8
   else
   hp_ui_center "$HP_PRIMARY" '███╗   ██╗███████╗███████╗██╗   ██╗'
@@ -350,10 +352,10 @@ hp_ui_begin() {
   hp_ui_status '●' "$HP_AMBER" "$ubuntu" 'Detectado; requisitos por verificar'
   hp_ui_status '●' "$HP_AMBER" 'Docker' "$docker_state"
   hp_ui_status '●' "$HP_AMBER" 'TPM 2.0' "$tpm_state"
-  hp_ui_status '●' "$HP_AMBER" 'HomePilot' 'Pendiente de instalación'
+  hp_ui_status '●' "$HP_AMBER" ''"$HP_BRAND"'' 'Pendiente de instalación'
   printf '\n'
-  hp_ui_center "$HP_PRIMARY" 'Preparación de HomePilot Edge'
-  hp_ui_wrap_block "$HP_SECONDARY" 'Configura esta MiniPC para una instalación de HomePilot.'
+  hp_ui_center "$HP_PRIMARY" 'Preparación de '"$HP_BRAND"' Edge'
+  hp_ui_wrap_block "$HP_SECONDARY" 'Configura esta MiniPC para una instalación de '"$HP_BRAND"'.'
   if [[ "$HP_UI_TTY" == true ]]; then
     printf '\n'
     hp_ui_block "$HP_AMBER" '❯ Pulsa ENTER para comenzar'

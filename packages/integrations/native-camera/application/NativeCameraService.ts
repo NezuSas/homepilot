@@ -9,6 +9,7 @@ import type {
 import type { NativeCameraDriverRegistry } from './ports/NativeCameraDriverRegistry';
 import type { DiscoveredNativeCamera } from './ports/NativeCameraDriver';
 import { restoreMaskedStreamPathSecrets } from './streamPathSecrets';
+import { BRAND } from '../../../shared/config/brand';
 
 export const NATIVE_CAMERA_SOURCE_TYPES: ReadonlyArray<NativeCameraSourceType> = ['onvif-ptz', 'rtsp-dvr', 'sonoff-rtsp'];
 
@@ -150,7 +151,7 @@ export class NativeCameraService {
 
     const duplicate = this.nativeCameraSourceRepository.findDuplicate(input.homeId, host, resolvedRtspPort, resolvedRtspPath);
     if (duplicate) {
-      return fail('NATIVE_CAMERA_ALREADY_EXISTS', `La cámara "${duplicate.name}" ya está integrada en HomePilot.`);
+      return fail('NATIVE_CAMERA_ALREADY_EXISTS', `La cámara "${duplicate.name}" ya está integrada en ${BRAND.productName}.`);
     }
 
     const now = new Date().toISOString();
@@ -232,7 +233,7 @@ export class NativeCameraService {
 
     const duplicate = this.nativeCameraSourceRepository.findDuplicate(existing.homeId, newHost, resolvedRtspPort, resolvedRtspPath, deviceId);
     if (duplicate) {
-      return fail('NATIVE_CAMERA_ALREADY_EXISTS', `La cámara "${duplicate.name}" ya está integrada en HomePilot.`);
+      return fail('NATIVE_CAMERA_ALREADY_EXISTS', `La cámara "${duplicate.name}" ya está integrada en ${BRAND.productName}.`);
     }
 
     const now = new Date().toISOString();

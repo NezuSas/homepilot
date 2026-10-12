@@ -1,3 +1,4 @@
+import { BRAND } from '../brand';
 import { cn } from '../lib/utils';
 import { Button } from './ui/Button';
 import { Heading } from './ui/Heading';
@@ -23,7 +24,7 @@ export function AppSidebarBrand({ collapsed, title, toggleLabel, onToggle }: App
           title={toggleLabel}
           aria-label={toggleLabel}
         >
-          <img src="/logo.svg" alt="HomePilot" className={cn('h-7 w-auto object-contain transition-opacity', !collapsed && 'xl:opacity-100')} />
+          <img src="/logo.svg" alt={BRAND.productName} className={cn('h-7 w-auto object-contain transition-opacity', !collapsed && 'xl:opacity-100')} />
         </Button>
         <Heading variant="section" as="h2" className={cn('leading-none whitespace-nowrap overflow-hidden transition-[opacity,width] duration-200', collapsed && 'xl:w-0 xl:opacity-0')}>
           {title}

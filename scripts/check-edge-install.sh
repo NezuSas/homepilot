@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# shellcheck source=/dev/null
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/brand.sh"
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 source "$(dirname "${BASH_SOURCE[0]}")/lib/api-health.sh"
@@ -21,7 +23,7 @@ if [[ "$(read_env HOMEPILOT_GLOBAL_INSTALLER_VERSION)" == v1 ]]; then
   case "$(read_env HOMEPILOT_INSTALLATION_PROFILE)" in
     ha_companion) compose_file=docker-compose.yml ;;
     bridge_ha|native_only) compose_file=docker-compose.office.yml; ha_managed=false ;;
-    *) echo 'Invalid saved HomePilot profile' >&2; exit 1 ;;
+    *) echo 'Invalid saved '"$HP_BRAND"' profile' >&2; exit 1 ;;
   esac
   voice_enabled="$(read_env HOMEPILOT_VOICE_ENABLED)"
   [[ "$voice_enabled" == true || "$voice_enabled" == false ]] || { echo 'Invalid voice setting' >&2; exit 1; }
@@ -43,7 +45,7 @@ else
 fi
 
 if [[ "$embedded" != 1 ]]; then
-  echo "HomePilot Edge install check"
+  echo "${HP_BRAND} Edge install check"
   echo
   echo "Working directory: $(pwd)"
 fi
@@ -73,7 +75,7 @@ docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}'
 
 if [[ -f "$compose_file" ]]; then
   echo
-  echo "HomePilot compose status"
+  echo "${HP_BRAND} compose status"
   docker compose "${compose_args[@]}" ps
 fi
 
@@ -91,11 +93,11 @@ probe() {
 
 api_status="$(homepilot_api_health_status 2>/dev/null || true)"
 if [[ "$api_status" == 200 ]]; then
-  echo 'OK   HomePilot API: container HTTP 200'
+  echo 'OK   '"$HP_BRAND"' API: container HTTP 200'
 else
-  echo "FAIL HomePilot API: container HTTP ${api_status:-000}"
+  echo "FAIL ${HP_BRAND} API: container HTTP ${api_status:-000}"
 fi
-probe "HomePilot UI" "http://127.0.0.1:${ui_port}"
+probe "${HP_BRAND} UI" "http://127.0.0.1:${ui_port}"
 if [[ "$ha_managed" == true ]]; then probe "Home Assistant" "http://127.0.0.1:8123"; fi
 if [[ "$voice_enabled" == true ]]; then
   probe "STT" "http://127.0.0.1:8090/health"

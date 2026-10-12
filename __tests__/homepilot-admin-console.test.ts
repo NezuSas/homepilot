@@ -257,6 +257,10 @@ describe('Feature: Unified HomePilot administration console (AC9/AC10/AC11)', ()
       mkdirSync(path.join(directory, 'scripts'));
       mkdirSync(path.join(directory, 'ha-config'));
       copyFileSync('scripts/configure-wol-devices.sh', path.join(directory, 'scripts/configure-wol-devices.sh'));
+      // The script finds the product name the way it does in a real checkout: brand.json plus the shared loader.
+      mkdirSync(path.join(directory, 'scripts/lib'));
+      copyFileSync('scripts/lib/brand.sh', path.join(directory, 'scripts/lib/brand.sh'));
+      copyFileSync('brand.json', path.join(directory, 'brand.json'));
       const config = path.join(directory, 'ha-config/configuration.yaml');
       writeFileSync(config, 'default_config:\n');
       const result = spawnSync(bash, [path.join(directory, 'scripts/configure-wol-devices.sh').replaceAll('\\', '/'), option],

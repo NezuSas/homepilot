@@ -3,6 +3,8 @@
 # Presentation and dispatch only. Existing scripts remain the operational engines.
 # Each operation runs in a fresh strict Bash process: catching its exit status in
 # the menu must never disable errexit inside the installer or expose its secrets.
+# shellcheck source=/dev/null
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/brand.sh"
 hp_admin_execute() {
   HOMEPILOT_INSTALLER_EMBEDDED=1 bash -c '
     set -euo pipefail
@@ -71,7 +73,7 @@ hp_admin_operation() {
       local profile
       profile="$(hp_saved_value HOMEPILOT_INSTALLATION_PROFILE '')"
       case "$profile" in bridge_ha|ha_companion) ;; *) hp_fail 'Este perfil no utiliza Home Assistant.'; return 1 ;; esac
-      hp_yes_no '¿Autorizar HACS/SonoffLAN en Home Assistant? No reconstruye HomePilot.' false || return 0
+      hp_yes_no '¿Autorizar HACS/SonoffLAN en Home Assistant? No reconstruye '"$HP_BRAND"'.' false || return 0
       bash scripts/install-edge-office.sh --profile "$profile" --community-integrations-only --yes
       ;;
     mqtt-status) hp_admin_existing_project; bash scripts/configure-pc-agent-mqtt.sh status ;;
@@ -124,7 +126,7 @@ hp_admin_operation() {
       hp_remote=true
       hp_complete_pending_runtime
       if ! hp_is_paired; then
-        hp_read 'URL pública HomePilot asignada por NEZU (https://...):' || return 1
+        hp_read 'URL pública '"$HP_BRAND"' asignada por '"$HP_BRAND_COMPANY"' (https://...):' || return 1
         hp_edge_hostname="$REPLY"
         hp_valid_edge_url "$hp_edge_hostname" || { hp_fail 'URL pública inválida.'; return 1; }
       fi
@@ -165,7 +167,7 @@ hp_admin_submenu() {
         ;;
       ALMACENAMIENTO)
         hp_ui_block "$HP_SECONDARY" '1. Informe de espacio · solo lectura'
-        hp_ui_block "$HP_SECONDARY" '2. Limpiar imágenes HomePilot verificadas'
+        hp_ui_block "$HP_SECONDARY" '2. Limpiar imágenes '"$HP_BRAND"' verificadas'
         hp_ui_block "$HP_SECONDARY" '3. Retirar contenedores detenidos'
         hp_ui_wrap_block "$HP_SECONDARY" 'La limpieza requiere confirmación. No elimina datos, backups, volúmenes ni caché global.'
         ;;
@@ -225,7 +227,7 @@ hp_admin_cli() {
   fi
   case "$1" in
     --help)
-      printf '%s\n' 'HomePilot · Administración de la instalación' \
+      printf '%s\n' ''"$HP_BRAND"' · Administración de la instalación' \
         'Sin argumentos: asistente nuevo o menú de instalación existente.' \
         '--status: diagnóstico de solo lectura.' '--deploy: actualizar, con confirmación.' \
         '--clean: retirar contenedores detenidos, con confirmación.' \
