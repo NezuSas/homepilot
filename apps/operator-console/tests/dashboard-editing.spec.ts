@@ -1872,3 +1872,39 @@ test('Feature: Dashboard drag discovery — Scenario: Touch screens get a one-ti
     await context.close();
   }
 });
+
+test('Feature: Dashboard card reordering — Scenario: Cards slide aside while another is dragged over them', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const template = responsiveDashboard.tabs[0].widgets[1];
+  const cards = ['uno', 'dos', 'tres'].map((id, index) => ({ id, kind: 'light', title: `Luz ${index + 1}`, entityId: 'light-kitchen', span: 'small', icon: 'Lightbulb' }));
+  const section = { ...template, id: 'solo', config: { ...template.config, layout: { ...template.config.layout, span: 1 }, appearance: { title: 'Solo', showTitle: true }, extra: { cards } } };
+  const dashboard = { ...responsiveDashboard, tabs: [{ ...responsiveDashboard.tabs[0], widgets: [responsiveDashboard.tabs[0].widgets[0], section] }] };
+  await prepareAuthenticatedDashboard(page, dashboard);
+  await page.route('**/api/v1/dashboards', route => route.fulfill({ json: [dashboard] }));
+  await page.route('**/api/v1/dashboards/responsive-dashboard', route => route.fulfill({ json: dashboard }));
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  await enterDashboardEdit(page);
+
+  // Count the slides as they start: each one lasts a fraction of a second.
+  await page.evaluate(() => {
+    const started: string[] = [];
+    (window as unknown as { __slides: string[] }).__slides = started;
+    const original = Element.prototype.animate;
+    Element.prototype.animate = function (this: Element, keyframes: Keyframe[] | PropertyIndexedKeyframes | null, options?: number | KeyframeAnimationOptions) {
+      if (typeof options === 'object' && options?.id === 'card-reorder') started.push((this as HTMLElement).dataset.dashboardCardId ?? '?');
+      return original.call(this, keyframes, options);
+    };
+  });
+  const card = (id: string) => page.locator(`[data-dashboard-card-id="${id}"]`);
+  const last = (await card('tres').boundingBox())!;
+  const first = (await card('uno').boundingBox())!;
+  await page.mouse.move(last.x + last.width / 2, last.y + last.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(first.x + first.width * 0.3, first.y + first.height / 2, { steps: 14 });
+
+  // The cards that make room glide to their new place instead of jumping there.
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __slides: string[] }).__slides.length)).toBeGreaterThan(0);
+  await page.screenshot({ path: testInfo.outputPath('dashboard-reorder-motion.png') });
+  await page.mouse.up();
+  await expect.poll(() => page.evaluate(() => document.getAnimations().filter(animation => animation.id === 'card-reorder').length)).toBe(0);
+});
