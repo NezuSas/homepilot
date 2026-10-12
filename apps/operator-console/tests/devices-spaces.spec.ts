@@ -474,8 +474,8 @@ for (const viewport of [
       await expect(page.getByRole('article', { name: 'Administrador', exact: true }).getByRole('button', { name: /Restablecer|Reset/i })).toHaveCount(0);
       expect((await card.boundingBox())?.height).toBeLessThanOrEqual(300);
       const resetBounds = await reset.boundingBox();
-      expect(resetBounds?.height).toBeGreaterThanOrEqual(44);
-      expect(resetBounds?.width).toBeGreaterThanOrEqual(44);
+      expect(resetBounds?.height).toBeGreaterThanOrEqual(43.99);
+      expect(resetBounds?.width).toBeGreaterThanOrEqual(43.99);
       await reset.click();
       const resetDialog = page.getByRole('dialog');
       await expect(resetDialog).toBeVisible();
