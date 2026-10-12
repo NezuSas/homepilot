@@ -91,9 +91,7 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
     }
   };
 
-  const roleLabel = user.role === 'admin'
-    ? t('users.roles.admin')
-    : t('users.roles.operator');
+  const roleLabel = t(`users.roles.${user.role}`);
 
   return (
     <Modal
