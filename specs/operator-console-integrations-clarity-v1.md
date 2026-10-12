@@ -33,6 +33,7 @@ Fuera de alcance: cambiar la fuente técnica `Disket Mono` para el resto de meta
 - **REQ-05:** La redacción en español de Home Assistant, Diagnósticos, Descubrimiento y Cámaras usa mayúscula solo al inicio de frase, evita anglicismos y jerga («SLA», «Delta», «Sondas», «Payload», «Testear») y explica los estados con frases corrientes. Las claves de traducción no cambian.
 - **REQ-06:** La tarjeta de una cámara guardada es una fila compacta con lo que la persona necesita para reconocerla: nombre, dirección y tipo en una línea, y las acciones editar y eliminar. El estado solo aparece cuando la cámara está inactiva (una etiqueta «Inactiva»); «Activa» se da por supuesto. El puerto y la ruta RTSP no se repiten en cada tarjeta: se consultan al editar. El tipo de cámara puede ocupar una segunda línea en vez de cortarse. La cuadrícula acomoda más cámaras por fila.
 - **REQ-07:** El origen de un dispositivo se muestra con el nombre de su integración (Home Assistant, Sonoff, Cámara IP, Modbus TCP, Android) y un icono neutro por tipo (puente, red local, cámara, PLC, pantalla), en la ficha del dispositivo y en las tarjetas de Descubrimiento. Nunca se usan logotipos de terceros. Un origen desconocido se muestra con su identificador, sin ocultarlo. El nombre, el tipo y la pregunta «¿es un punto de PLC?» salen de un único catálogo (`integrationCatalog.ts`); el código genérico pregunta al catálogo en vez de comparar identificadores, de modo que un protocolo nuevo es una entrada más.
+- **REQ-08:** Un valor binario apagado, como una entrada de PLC en reposo, se muestra en neutro y solo el encendido destaca en verde; el rojo se reserva para fallos. El instrumento sigue sin ser interactivo.
 
 ## Criterios de aceptación
 
@@ -44,6 +45,7 @@ Fuera de alcance: cambiar la fuente técnica `Disket Mono` para el resto de meta
 - [x] **AC6:** La validación de traducciones pasa y las pruebas de la consola usan los textos nuevos.
 - [x] **AC7:** `CompactSystemPresentation.test.tsx` cubre que la tarjeta nombra sus acciones, muestra nombre y dirección, no repite puerto ni ruta, oculta «Activa» y muestra «Inactiva» cuando corresponde.
 - [x] **AC8:** `integrationCatalog.test.ts` y `IntegrationBadge.test.tsx` cubren los nombres, los tipos, los alias, el origen desconocido, que no se dibuja ninguna imagen y que solo el tipo PLC responde afirmativamente; las pruebas de capacidades, comandos y tiempo real de Modbus siguen pasando con el predicado neutral.
+- [x] **AC9:** `SensorMetricCard.test.tsx` cubre que un binario apagado no usa el color de peligro y que el encendido sigue en verde.
 
 ## Estrategia de compatibilidad y reversión
 

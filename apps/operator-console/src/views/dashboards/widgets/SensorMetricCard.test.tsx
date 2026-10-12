@@ -12,12 +12,20 @@ describe('Fixed measurement scale (AC42)', () => {
     const html = renderToStaticMarkup(<SensorMetricCard title="Bit" visualStyle="switch" device={sensor('Bit', { state })} />);
     expect(html).toContain('data-sensor-visualizer="switch"'); expect(html).toContain(label); expect(html).not.toContain('<button');
   });
+  it('does not paint an input at rest in the danger colour: off is a normal state, on is the only one that stands out', () => {
+    const device = (state: string) => ({ ...sensor('Input', { state }), type: 'binary_sensor' });
+    const off = renderToStaticMarkup(<SensorMetricCard title="Input" device={device('off')} />);
+    const on = renderToStaticMarkup(<SensorMetricCard title="Input" device={device('on')} />);
+    expect(off).not.toContain('border-danger');
+    expect(off).not.toContain('bg-danger');
+    expect(on).toContain('border-success');
+  });
   it.each(['on', 'off', 'unavailable'])('shows a non-interactive binary instrument for %s (AC53)', state => {
     const device = { ...sensor('Input', { state }), type: 'binary_sensor' };
     const html = renderToStaticMarkup(<SensorMetricCard title="Input" device={device} />);
     expect(html).toContain('data-sensor-visualizer="switch"'); expect(html).not.toContain('<button'); expect(html).not.toContain('role="meter"');
     expect(html).toContain(state === 'on' ? 'ON' : state === 'off' ? 'OFF' : 'Sin lectura');
-    expect(html).toContain(state === 'on' ? 'bg-success/15' : state === 'off' ? 'bg-danger/15' : 'bg-muted');
+    expect(html).toContain(state === 'on' ? 'bg-success/15' : 'bg-muted');
   });
   it('keeps the precise PLC value accessible while rounding the shared display (AC35)', () => {
     const device = { ...sensor('Reading', { state: '22.4567', unit: 'bar' }), integrationSource: 'modbus-tcp' };
