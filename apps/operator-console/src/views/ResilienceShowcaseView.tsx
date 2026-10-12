@@ -64,7 +64,7 @@ export const ResilienceShowcaseView: React.FC = () => {
   const cards = [
     { icon: Router, label: t('system_status.connection'), value: isConnected ? t('system_status.connected') : t('system_status.check_required'), description: isConnected ? t('system_status.connection_ok') : t('system_status.connection_pending'), tone: isConnected ? 'success' as const : 'warning' as const },
     { icon: Activity, label: t('system_status.devices'), value: devices.length.toString(), description: t('system_status.devices_description'), tone: 'success' as const },
-    { icon: Home, label: t('system_status.spaces'), value: spacesCount.toString(), description: t('system_status.spaces_description', { homes: homes.length }), tone: 'success' as const },
+    { icon: Home, label: t('system_status.spaces'), value: spacesCount.toString(), description: t('system_status.spaces_description', { count: homes.length }), tone: 'success' as const },
     { icon: Workflow, label: t('system_status.routines'), value: (scenes.length + automations.length).toString(), description: t('system_status.routines_description', { scenes: scenes.length, automations: automations.length }), tone: 'success' as const },
   ];
 

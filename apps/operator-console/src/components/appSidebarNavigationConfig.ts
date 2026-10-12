@@ -1,4 +1,4 @@
-import { Activity, Camera, LayoutDashboard, MessageSquare, Monitor, Network, Server, Settings, ShieldAlert, ShieldCheck, Sparkles, Users, Zap } from 'lucide-react';
+import { Activity, Camera, LayoutDashboard, MessageSquare, Monitor, Network, Server, Settings, ShieldAlert, ShieldCheck, Sparkles, Users, Workflow, Zap } from 'lucide-react';
 import type { View } from '../types';
 
 export interface SidebarNavigationItem { view: View; labelKey: string; icon: typeof Activity; requires?: 'family' | 'admin' | 'system' | 'admin-role'; }
@@ -6,7 +6,7 @@ export interface SidebarNavigationItem { view: View; labelKey: string; icon: typ
 export const primarySidebarNavigation: SidebarNavigationItem[] = [
   { view: 'dashboard', labelKey: 'nav.dashboard', icon: LayoutDashboard },
   { view: 'spaces', labelKey: 'nav.spaces', icon: LayoutDashboard },
-  { view: 'routines', labelKey: 'nav.routines', icon: Zap, requires: 'family' },
+  { view: 'routines', labelKey: 'nav.routines', icon: Workflow, requires: 'family' },
   { view: 'home-conversation', labelKey: 'nav.talk_to_home', icon: MessageSquare },
   { view: 'assistant', labelKey: 'nav.assistant', icon: Sparkles, requires: 'system' },
   { view: 'energy', labelKey: 'nav.energy', icon: Zap, requires: 'admin' },
