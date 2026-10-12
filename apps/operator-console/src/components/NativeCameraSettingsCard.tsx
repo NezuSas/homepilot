@@ -20,7 +20,7 @@ export function NativeCameraSettingsCard({ camera, onEdit, onDelete }: Props) {
     </div>
     <div className="min-w-0 flex-1">
       <Heading variant="card" className="truncate">{camera.name}</Heading>
-      <p className="truncate text-caption text-muted-foreground">
+      <p className="line-clamp-2 break-words text-caption text-muted-foreground">
         <span className="font-data">{camera.host}</span> · {t(`native_cameras.source_types.${camera.sourceType || 'onvif-ptz'}`)}
       </p>
       {!camera.enabled && <StatusPill variant="neutral" className="mt-1">{t('native_cameras.status_inactive')}</StatusPill>}

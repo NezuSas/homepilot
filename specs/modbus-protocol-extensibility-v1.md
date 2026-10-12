@@ -26,7 +26,7 @@ Fuera de alcance: un segundo protocolo real; un modelo de direcciones distinto d
 - **REQ-03:** El servicio obtiene el transporte de un `PlcTransportRegistry` según el protocolo de cada conexión. Pedir un protocolo sin transporte registrado es un error de configuración, nunca un respaldo silencioso.
 - **REQ-04:** Un dispositivo nuevo de una variable toma como `integrationSource` el protocolo de su conexión y como fabricante su nombre del catálogo; `supports` y las comprobaciones de enlace usan el catálogo y la conexión en vez del identificador escrito a mano. El enrutador de comandos registra el servicio para cada protocolo de `PLC_PROTOCOLS`.
 - **REQ-05:** El comportamiento actual no cambia: las lecturas, la sondeo, los comandos, los permisos, la API y los datos guardados son los mismos para Modbus TCP.
-- **REQ-06:** La pantalla se titula «Controladores PLC» (y «PLC controllers») y la tarjeta de cada conexión muestra el nombre de su protocolo antes de la dirección.
+- **REQ-06:** La pantalla se titula «Controladores PLC» (y «PLC controllers») y la tarjeta de cada conexión muestra el protocolo y el modelo en una línea y la dirección en la siguiente, para que ninguna se parta a medias.
 
 ## Criterios de aceptación
 
