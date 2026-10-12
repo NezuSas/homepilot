@@ -21,8 +21,8 @@ it('translates the known HA synchronization record without rewriting stored desc
 describe('Feature: Compact inventory and access (AC55, AC56)', () => {
   it('keeps pending assignment and explicit configuration, without native-local or operational controls', () => {
     const html = renderToStaticMarkup(<InboxDeviceTile device={{ id: 'd', homeId: 'h', roomId: null, lastKnownState: null, name: 'Luz', type: 'light', status: 'PENDING', integrationSource: 'sonoff' }} rooms={[]} onInspect={noop} />);
-    expect(html).toContain('common.unassigned');
-    expect(html).toContain('common.save');
+    expect(html).toContain('inbox.choose_room');
+    expect(html).toContain('inbox.assign');
     expect(html).toContain('inbox.manage_device');
     expect(html).not.toMatch(/native_local|aria-pressed|device_states.on|device_states.off/);
   });
