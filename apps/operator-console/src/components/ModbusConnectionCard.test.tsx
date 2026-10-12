@@ -25,20 +25,19 @@ describe('Feature: Compact Modbus navigation (AC40)', () => {
     expect(html).not.toContain('modbus.search_variables');
     expect(html).not.toContain('Point 10');
   });
-  it('Scenario: Dense grid and initial diagnostics reserve no expanded content (AC40)', () => {
+  it('Scenario: Compact tiles fit as many columns as the width allows and keep technical detail behind one switch (AC40)', () => {
     const html = renderToStaticMarkup(<ModbusConnectionCard connection={connection} {...callbacks} />);
     expect(html).toContain('data-modbus-variable-grid');
-    expect(html).toContain('grid items-start gap-2 md:grid-cols-2');
-    expect(html.match(/data-modbus-variable-diagnostic/g)).toHaveLength(3);
-    expect(html).not.toContain(' open=');
-    expect(html).toContain('PDU 1');
-    expect(html).toContain('FC01');
-    expect(html).toContain('modbus.scale');
+    expect(html).toContain('grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))]');
+    expect(html).toContain('plc.technical_details');
+    expect(html).toContain('aria-pressed="false"');
+    expect(html).not.toContain('data-modbus-variable-diagnostic');
+    expect(html).not.toContain('PDU 1');
     expect(html).toContain('data-modbus-variable-id="v1"');
   });
   it('Scenario: Initial detail skeleton fills two compact rows without actions (AC40)', () => {
     const html = renderToStaticMarkup(<ModbusConnectionCardSkeleton />);
-    expect(html).toContain('grid items-start gap-2 md:grid-cols-2');
+    expect(html).toContain('grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))]');
     expect(html.match(/rounded-panel border border-border px-3 py-2/g)).toHaveLength(4);
     expect(html).not.toContain('<button');
   });

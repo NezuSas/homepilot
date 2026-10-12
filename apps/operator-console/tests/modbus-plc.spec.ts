@@ -144,26 +144,22 @@ for (const width of [390, 768, 1024, 1440]) {
       await expect(rows).toHaveCount(3);
       await expect(rows.nth(0)).toContainText('Input 1'); await expect(rows.nth(1)).toContainText('Input 2'); await expect(rows.nth(2)).toContainText('Input 10');
       const grid = card.locator('[data-modbus-variable-group="input"] [data-modbus-variable-grid]');
-      expect(await grid.evaluate(element => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(width >= 768 ? 2 : 1);
+      const columns = await grid.evaluate(element => getComputedStyle(element).gridTemplateColumns.split(' ').length);
+      expect(columns).toBeGreaterThanOrEqual(width >= 1024 ? 2 : 1);
       const first = rows.first();
-      const sibling = rows.nth(1);
       const compactBounds = await first.boundingBox();
-      expect(compactBounds?.height).toBeLessThan(220);
-      const siblingBefore = await sibling.boundingBox();
+      expect(compactBounds?.height).toBeLessThan(120);
+      await expect(first.locator('[data-modbus-variable-diagnostic]')).toHaveCount(0);
+      const technicalSwitch = card.getByRole('button', { name: /^(Technical details|Detalles técnicos)$/i });
+      await expect(technicalSwitch).toHaveAttribute('aria-pressed', 'false');
+      await technicalSwitch.click();
+      await expect(technicalSwitch).toHaveAttribute('aria-pressed', 'true');
       const diagnostic = first.locator('[data-modbus-variable-diagnostic]');
-      await expect(diagnostic).not.toHaveAttribute('open');
-      await diagnostic.locator('summary').click();
-      await expect(diagnostic).toHaveAttribute('open', '');
       await expect(diagnostic).toContainText('PDU 1');
       await expect(diagnostic).toContainText('FC01');
-      const expandedBounds = await first.boundingBox();
-      expect(expandedBounds!.height).toBeGreaterThan(compactBounds!.height);
-      if (width >= 768) {
-        const siblingAfter = await sibling.boundingBox();
-        expect(siblingAfter!.height).toBeCloseTo(siblingBefore!.height, 0);
-        expect(siblingAfter!.y).toBeCloseTo(siblingBefore!.y, 0);
-      }
-      await diagnostic.locator('summary').click();
+      expect((await first.boundingBox())!.height).toBeGreaterThan(compactBounds!.height);
+      await technicalSwitch.click();
+      await expect(first.locator('[data-modbus-variable-diagnostic]')).toHaveCount(0);
       const configure = first.getByRole('button', { name: /Input 1/ });
       await configure.focus(); await expect(configure).toBeFocused();
       const controlBounds = await configure.boundingBox();
@@ -637,7 +633,7 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     await expect(variableEditor.getByRole('button', { name: /^(Data type|Tipo de dato)$/i })).toContainText('uint32');
     await variableEditor.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
     expect(savedVariable).toMatchObject({ address: 100, dataType: 'uint32', scale: 0.1, offset: 2, unit: '°C', writable: false });
-    await page.reload(); await page.getByRole('button', { name: /^(View variables|Ver variables)$/i }).click(); await expect(page.getByRole('region', { name: 'PLC 192.168.1.5' })).toContainText('uint32');
+    await page.reload(); await page.getByRole('button', { name: /^(View variables|Ver variables)$/i }).click(); await page.getByRole('button', { name: /^(Technical details|Detalles técnicos)$/i }).click(); await expect(page.getByRole('region', { name: 'PLC 192.168.1.5' })).toContainText('uint32');
   });
 }
 
@@ -727,7 +723,7 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     }
     await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click(); await expect(editor).not.toBeVisible();
     expect(variables[0]).toMatchObject({ writable: true, plc: { role: 'output', command: { symbolicAddress: 'M100', address: 100 }, physical: { symbolicAddress: 'Y0', address: 24576 }, feedback: { symbolicAddress: 'M200', address: 200 }, feedbackPolicy: 'required' } });
-    await page.reload(); await openDetail(); await expect(card).toContainText('M200');
+    await page.reload(); await openDetail(); await card.getByRole('button', { name: /^(Technical details|Detalles técnicos)$/i }).click(); await expect(card).toContainText('M200');
     await expect(card).toContainText(/Requested state: Active|Estado solicitado: Activo/);
       await expect(card).toContainText(/Read state: Inactive|Estado leído: Inactivo/);
     // AC34: explicit no-feedback output, command derived on save, physical edits isolated.
@@ -796,15 +792,15 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     expect(variables[2]).toMatchObject({ visualStyle: 'level', writable: false, plc: { role: 'measurement' } });
     await page.reload(); await openDetail();
     const measurementRow = card.locator('[data-modbus-variable-id]').filter({ hasText: 'Nivel depósito' });
-    await expect(measurementRow.locator('[data-modbus-variable-diagnostic]')).not.toHaveAttribute('open');
-    await measurementRow.locator('[data-modbus-variable-diagnostic] summary').click();
+    await expect(measurementRow.locator('[data-modbus-variable-diagnostic]')).toHaveCount(0);
+    await card.getByRole('button', { name: /^(Technical details|Detalles técnicos)$/i }).click();
     await expect(card.locator('[data-sensor-visualizer="level"]')).toBeVisible();
     await card.getByRole('button', { name: /^(Configure Nivel depósito|Configurar Nivel depósito)$/i }).click();
     await editor.getByRole('button', { name: /^(Visualization|Visualización)$/i }).click(); await page.getByRole('option', { name: /^(Thermometer|Termómetro)$/i, exact: true }).click();
     await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click(); await expect(editor).not.toBeVisible();
     expect(variables[2]).toMatchObject({ visualStyle: 'thermometer' });
     await page.reload(); await openDetail();
-    await measurementRow.locator('[data-modbus-variable-diagnostic] summary').click();
+    await card.getByRole('button', { name: /^(Technical details|Detalles técnicos)$/i }).click();
     await expect(card.locator('[data-sensor-visualizer="thermometer"]')).toBeVisible();
     await card.getByRole('button', { name: /^(Add variable|Añadir variable)$/i }).click();
     await editor.getByLabel(/^(Name|Nombre)$/i).fill('Entrada puerta');

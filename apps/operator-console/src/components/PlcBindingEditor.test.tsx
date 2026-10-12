@@ -12,7 +12,7 @@ it('Scenario: Individual output displays physical ON, command OFF and command RA
   const profileId = base.profileId!;
   const variable: ModbusVariable = { ...base, deviceId: 'v', connectionId: 'c', symbolicAddress: 'M200', plc: { role: 'output', command: { profileId, symbolicAddress: 'M200', area: 'coil', address: 200 }, physical: { profileId, symbolicAddress: 'Y0', area: 'coil', address: 24576 }, feedbackPolicy: 'none', mode: 'sustained', feedbackTimeoutMs: 2000, pulseDurationMs: 500 } };
   mockSnapshots.push({ id: 'v', lastKnownState: { commandState: false, physicalState: true, actualState: true, value: true, state: 'on', confirmation: 'confirmed' } });
-  const html = renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: true, variables: [{ ...variable, diagnostic: { status: 'online', value: true, raw: [false] } }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
+  const html = renderToStaticMarkup(<ModbusConnectionCard technicalOpen connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: true, variables: [{ ...variable, diagnostic: { status: 'online', value: true, raw: [false] } }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
   expect(html).toContain('plc.physical_read_state: plc.on');
   expect(html).toContain('plc.command_read_state: plc.off');
   expect(html).toContain('plc.command_raw (M200) false');
@@ -28,7 +28,7 @@ describe('Feature: PLC binding editor (AC26)', () => {
       feedbackPolicy: 'none', feedbackTimeoutMs: 2000, mode: 'sustained', pulseDurationMs: 500,
     } };
     const original = JSON.stringify(variable);
-    const html = renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: false, variables: [variable] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
+    const html = renderToStaticMarkup(<ModbusConnectionCard technicalOpen connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: false, variables: [variable] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
     expect(html).toContain('plc.related_outputs: Y0 · Y1');
     expect(html).toContain('plc.command: M100');
     expect(html).toContain('plc.feedback: plc.not_configured');
@@ -53,7 +53,7 @@ describe('Feature: PLC binding editor (AC26)', () => {
       physical: symbol ? { profileId, symbolicAddress: symbol, area: 'coil', address: 100 } : undefined,
     } };
     const original = JSON.stringify(variable);
-    const html = renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: false, variables: [variable] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
+    const html = renderToStaticMarkup(<ModbusConnectionCard technicalOpen connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: false, variables: [variable] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
     if (label) expect(html).toContain(`${label}: ${symbol}`);
     for (const other of ['plc.physical', 'plc.physical_input', 'plc.physical_output', 'plc.related_logical_point']) {
       if (other !== label) expect(html).not.toContain(`${other}:`);
@@ -70,13 +70,13 @@ describe('Feature: PLC binding editor (AC26)', () => {
       expect(JSON.stringify(variable)).toBe(original);
     }
     expect(getModbusVariableGroup({ ...base, deviceId: 'legacy', connectionId: 'c' })).toBe('variable');
-    const html = renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: false, variables: [{ ...base, deviceId: 'legacy', connectionId: 'c' }, ...(['input', 'output'] as const).map(role => ({ ...base, deviceId: role, connectionId: 'c', plc: { ...policy, role } }))] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
+    const html = renderToStaticMarkup(<ModbusConnectionCard technicalOpen connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: false, variables: [{ ...base, deviceId: 'legacy', connectionId: 'c' }, ...(['input', 'output'] as const).map(role => ({ ...base, deviceId: role, connectionId: 'c', plc: { ...policy, role } }))] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
     expect(html.indexOf('data-modbus-variable-group="input"')).toBeLessThan(html.indexOf('data-modbus-variable-group="output"'));
     expect(html.indexOf('data-modbus-variable-group="output"')).toBeLessThan(html.indexOf('data-modbus-variable-group="variable"'));
     expect(html).toContain('plc.legacy');
   });
   it('Scenario: The connection summary hides variables and command actions until opened (AC35)', () => {
-    const html = renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: false, variables: [{ ...base, deviceId: 'v', connectionId: 'c', name: 'Hidden measurement' }] }} onOpen={() => {}} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
+    const html = renderToStaticMarkup(<ModbusConnectionCard technicalOpen connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: false, variables: [{ ...base, deviceId: 'v', connectionId: 'c', name: 'Hidden measurement' }] }} onOpen={() => {}} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
     expect(html).toContain('plc.open_connection'); expect(html).toContain('plc.variable_count');
     expect(html).not.toContain('Hidden measurement'); expect(html).not.toContain('modbus.add_variable'); expect(html).not.toContain('plc.test_command');
   });
@@ -107,7 +107,7 @@ describe('Feature: PLC binding editor (AC26)', () => {
     expect(html).toContain('plc.minimum'); expect(html).toContain('plc.maximum'); expect(html).toContain('plc.setpoint_hint');
   });
   it('Scenario: A disconnected PLC never presents its previous true reading as active', () => {
-    const html = renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: true, diagnostic: { status: 'unavailable' }, variables: [{ ...base, deviceId: 'v', connectionId: 'c', dataType: 'boolean', diagnostic: { status: 'online', value: true, confirmation: 'unconfirmed' } }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
+    const html = renderToStaticMarkup(<ModbusConnectionCard technicalOpen connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: true, diagnostic: { status: 'unavailable' }, variables: [{ ...base, deviceId: 'v', connectionId: 'c', dataType: 'boolean', diagnostic: { status: 'online', value: true, confirmation: 'unconfirmed' } }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
     expect(html).toContain('plc.unavailable'); expect(html).toContain('plc.confirmations.unconfirmed'); expect(html).not.toContain('plc.on');
   });
   it('Scenario: Connection skeleton has no physical command controls', () => {
@@ -115,25 +115,25 @@ describe('Feature: PLC binding editor (AC26)', () => {
     expect(html).not.toContain('<button'); expect(html).toContain('aria-hidden="true"');
   });
   it.each(['pending', 'unconfirmed'])('Scenario: %s separates the requested ON from actual OFF', confirmation => {
-    const html = renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: true, diagnostic: { status: 'online' }, variables: [{ ...base, deviceId: 'v', connectionId: 'c', dataType: 'boolean', diagnostic: { status: 'online', value: false, commandedState: true, confirmation } }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
+    const html = renderToStaticMarkup(<ModbusConnectionCard technicalOpen connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: true, diagnostic: { status: 'online' }, variables: [{ ...base, deviceId: 'v', connectionId: 'c', dataType: 'boolean', diagnostic: { status: 'online', value: false, commandedState: true, confirmation } }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
     expect(html).toContain('plc.requested_state: plc.on');
     expect(html).toContain('plc.read_state: plc.off');
     expect(html).toContain(`plc.confirmations.${confirmation}`);
   });
   it.each([['online', 'plc.connected'], ['unavailable', 'plc.disconnected'], ['error', 'plc.error']] as const)('Scenario: Connection %s has an independent connectivity label', (status, label) => {
-    const html = renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: true, diagnostic: { status, error: 'private transport message' }, variables: [] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
+    const html = renderToStaticMarkup(<ModbusConnectionCard technicalOpen connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: true, diagnostic: { status, error: 'private transport message' }, variables: [] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
     expect(html).toContain(label); expect(html).toContain('plc.enabled'); expect(html).toContain('plc.errors.unknown'); expect(html).not.toContain('private transport message');
   });
   it('Scenario: Read-only measurement reuses the level visualizer and has no command action', () => {
-    const html = renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: true, diagnostic: { status: 'online' }, variables: [{ ...base, deviceId: 'v', connectionId: 'c', visualStyle: 'level', unit: '%', diagnostic: { status: 'online', value: 0 }, plc: { role: 'measurement', mode: 'sustained', feedbackPolicy: 'none', feedbackTimeoutMs: 2000, pulseDurationMs: 500 } }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} onCommand={() => {}} />);
+    const html = renderToStaticMarkup(<ModbusConnectionCard technicalOpen connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: true, diagnostic: { status: 'online' }, variables: [{ ...base, deviceId: 'v', connectionId: 'c', visualStyle: 'level', unit: '%', diagnostic: { status: 'online', value: 0 }, plc: { role: 'measurement', mode: 'sustained', feedbackPolicy: 'none', feedbackTimeoutMs: 2000, pulseDurationMs: 500 } }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} onCommand={() => {}} />);
     expect(html).toContain('data-sensor-visualizer="level"'); expect(html).toContain('aria-valuenow="0"'); expect(html).not.toContain('plc.test_command');
   });
   it('Scenario: Pulse exposes activation and explicitly absent feedback', () => {
-    const html = renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: true, variables: [{ ...base, deviceId: 'v', connectionId: 'c', writable: true, plc: { role: 'output', mode: 'pulse', feedbackPolicy: 'none', feedbackTimeoutMs: 2000, pulseDurationMs: 500 } }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} onCommand={() => {}} />);
+    const html = renderToStaticMarkup(<ModbusConnectionCard technicalOpen connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: true, variables: [{ ...base, deviceId: 'v', connectionId: 'c', writable: true, plc: { role: 'output', mode: 'pulse', feedbackPolicy: 'none', feedbackTimeoutMs: 2000, pulseDurationMs: 500 } }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} onCommand={() => {}} />);
     expect(html).toContain('plc.activate'); expect(html).toContain('plc.not_configured'); expect(html).toContain('500 ms');
   });
   it('Scenario: A connection error never renders the retained measurement as a live meter', () => {
-    const html = renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: true, diagnostic: { status: 'error' }, variables: [{ ...base, deviceId: 'v', connectionId: 'c', visualStyle: 'level', unit: '%', diagnostic: { status: 'online', value: 25 }, plc: { role: 'measurement', mode: 'sustained', feedbackPolicy: 'none', feedbackTimeoutMs: 2000, pulseDurationMs: 500 } }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
+    const html = renderToStaticMarkup(<ModbusConnectionCard technicalOpen connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: true, diagnostic: { status: 'error' }, variables: [{ ...base, deviceId: 'v', connectionId: 'c', visualStyle: 'level', unit: '%', diagnostic: { status: 'online', value: 25 }, plc: { role: 'measurement', mode: 'sustained', feedbackPolicy: 'none', feedbackTimeoutMs: 2000, pulseDurationMs: 500 } }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
     expect(html).toContain('plc.unavailable'); expect(html).not.toContain('aria-valuenow="25"');
   });
   it('Scenario: Command readback never claims physical confirmation without independent feedback (AC26)', () => {
@@ -141,7 +141,7 @@ describe('Feature: PLC binding editor (AC26)', () => {
     const address = (symbolicAddress: string, address: number) => ({ profileId, symbolicAddress, address, area: 'coil' as const });
     const variable: ModbusVariable = { ...base, deviceId: 'command', connectionId: 'c', symbolicAddress: 'M200', area: 'coil', address: 200, dataType: 'boolean',
       plc: { role: 'output', command: address('M200', 200), physical: address('Y0', 24576), feedbackPolicy: 'none', feedbackTimeoutMs: 2000, mode: 'sustained', pulseDurationMs: 500 } };
-    const render = (feedback = false) => renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: true, variables: [{ ...variable, plc: { ...variable.plc!, ...(feedback ? { feedback: address('M300', 300), feedbackPolicy: 'required' as const } : {}) }, diagnostic: { status: 'online', value: true, commandedState: true, confirmation: 'confirmed' } }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
+    const render = (feedback = false) => renderToStaticMarkup(<ModbusConnectionCard technicalOpen connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: true, variables: [{ ...variable, plc: { ...variable.plc!, ...(feedback ? { feedback: address('M300', 300), feedbackPolicy: 'required' as const } : {}) }, diagnostic: { status: 'online', value: true, commandedState: true, confirmation: 'confirmed' } }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
     expect(render()).toContain('plc.command_read_matches');
     expect(render()).toContain('plc.no_independent_feedback');
     expect(render()).not.toContain('plc.confirmations.confirmed');
@@ -152,14 +152,14 @@ describe('Feature: PLC binding editor (AC26)', () => {
   it.each(['confirmed', 'pending', 'unconfirmed'])('Scenario: Policy none suppresses physical confirmation for %s even with retained feedback metadata (AC26)', confirmation => {
     const profileId = 'xinje-xl5e-16t-v1';
     const feedback = { profileId, symbolicAddress: 'M300', area: 'coil' as const, address: 300 };
-    const html = renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: true, variables: [{ ...base, deviceId: 'v', connectionId: 'c', plc: { role: 'output', feedbackPolicy: 'none', feedbackTimeoutMs: 2000, mode: 'sustained', pulseDurationMs: 500, feedback }, diagnostic: { status: 'online', value: false, commandedState: false, confirmation } }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
+    const html = renderToStaticMarkup(<ModbusConnectionCard technicalOpen connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: true, variables: [{ ...base, deviceId: 'v', connectionId: 'c', plc: { role: 'output', feedbackPolicy: 'none', feedbackTimeoutMs: 2000, mode: 'sustained', pulseDurationMs: 500, feedback }, diagnostic: { status: 'online', value: false, commandedState: false, confirmation } }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
     expect(html).toContain('plc.read_state');
     expect(html).toContain('plc.command_read_');
     expect(html).not.toContain(`plc.confirmations.${confirmation}`);
     expect(html).not.toContain('plc.actual_state');
   });
   it('Scenario: A stale confirmed command does not claim a current readback match (AC26)', () => {
-    const html = renderToStaticMarkup(<ModbusConnectionCard connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: false, variables: [{ ...base, deviceId: 'v', connectionId: 'c', plc: { role: 'output', feedbackPolicy: 'none', feedbackTimeoutMs: 2000, mode: 'sustained', pulseDurationMs: 500 }, diagnostic: { status: 'online', value: true, confirmation: 'confirmed' } }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
+    const html = renderToStaticMarkup(<ModbusConnectionCard technicalOpen connection={{ id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, timeoutMs: 2000, pollIntervalMs: 5000, enabled: false, variables: [{ ...base, deviceId: 'v', connectionId: 'c', plc: { role: 'output', feedbackPolicy: 'none', feedbackTimeoutMs: 2000, mode: 'sustained', pulseDurationMs: 500 }, diagnostic: { status: 'online', value: true, confirmation: 'confirmed' } }] }} onEdit={() => {}} onAdd={() => {}} onVariable={() => {}} />);
     expect(html).toContain('plc.command_read_unavailable');
     expect(html).not.toContain('plc.command_read_matches');
     expect(html).not.toContain('plc.confirmations.confirmed');
