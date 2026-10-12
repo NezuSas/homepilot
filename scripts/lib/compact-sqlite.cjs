@@ -1,7 +1,8 @@
 'use strict';
 // Writes a compact copy of the HomePilot database and proves it holds the same data before anyone swaps it in.
 // Runs inside the API image (it ships better-sqlite3). Paths come from the environment so it can be tested anywhere.
-const Database = require('better-sqlite3');
+// Resolved from the working directory so it also works when the script is mounted outside the app folder.
+const Database = require(require.resolve('better-sqlite3', { paths: [process.cwd(), '/app'] }));
 const fs = require('fs');
 
 const sourcePath = process.env.HP_DB_SOURCE || '/app/data/homepilot.db';
