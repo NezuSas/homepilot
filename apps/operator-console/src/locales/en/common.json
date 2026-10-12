@@ -1283,12 +1283,7 @@
     "empty_description": "Add your first local IP camera. {{brand}} will connect directly via RTSP and manage the stream securely.",
     "camera_count_one": "1 camera configured",
     "camera_count_other": "{{count}} cameras configured",
-    "status_active": "Active",
     "status_inactive": "Inactive",
-    "host_label": "Host / IP",
-    "rtsp_port_label": "RTSP Port",
-    "rtsp_path_label": "RTSP Path",
-    "onvif_port_label": "ONVIF Port",
     "source_types": {
       "onvif-ptz": "ONVIF / PTZ",
       "rtsp-dvr": "RTSP / DVR",

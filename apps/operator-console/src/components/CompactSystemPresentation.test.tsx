@@ -28,12 +28,17 @@ describe('Feature: Compact system presentation (AC59)', () => {
     const expanded = renderToStaticMarkup(<AssistantFindingGroupCard {...props} isExpanded />);
     expect(expanded.match(/assistant.actions.create_automation/g)).toHaveLength(2);
   });
-  it('keeps camera configuration actions named and omits live playback', () => {
-    const html = renderToStaticMarkup(<NativeCameraSettingsCard camera={{ deviceId: 'c', homeId: 'h', sourceType: 'rtsp-dvr', name: 'Patio', host: '192.0.2.1', rtspPort: 554, onvifPort: 80, rtspPath: '/stream', enabled: true, createdAt: '' }} onEdit={noop} onDelete={noop} />);
+  it('shows a camera as one compact row with its name and address and no repeated technical detail', () => {
+    const camera = { deviceId: 'c', homeId: 'h', sourceType: 'rtsp-dvr' as const, name: 'Patio', host: '192.0.2.1', rtspPort: 554, onvifPort: 80, rtspPath: '/stream', enabled: true, createdAt: '' };
+    const html = renderToStaticMarkup(<NativeCameraSettingsCard camera={camera} onEdit={noop} onDelete={noop} />);
     expect(html).toContain('aria-label="common.edit: Patio"');
     expect(html).toContain('aria-label="common.delete: Patio"');
-    expect(html).toContain('/stream');
+    expect(html).toContain('192.0.2.1');
+    expect(html).not.toContain('/stream');
+    expect(html).not.toContain('native_cameras.rtsp_port_label');
+    expect(html).not.toContain('native_cameras.status_active');
     expect(html).not.toMatch(/<video|<img/);
+    expect(renderToStaticMarkup(<NativeCameraSettingsCard camera={{ ...camera, enabled: false }} onEdit={noop} onDelete={noop} />)).toContain('native_cameras.status_inactive');
   });
   it('counts HA-backed resources instead of reporting native autonomy as zero', () => {
     const html = renderToStaticMarkup(<DiagnosticsResilienceSummary devices={[]} scenes={[{}, {}]} automations={[{}]} />);

@@ -31,6 +31,7 @@ Fuera de alcance: cambiar la fuente técnica `Disket Mono` para el resto de meta
 - **REQ-03:** La tarjeta de una conexión Modbus muestra su estado como una etiqueta de color (verde conectada, ámbar reconectando, roja sin conexión, gris deshabilitada). Si está habilitada y no responde, una frase indica la causa traducida cuando se conoce, o «No se puede contactar con el PLC en {dirección}. Revisa que esté encendido y conectado a la misma red.», más la última lectura correcta o que aún no se leyó nada. Mientras no responde no se muestra «Variables con error», sino «Sin lectura mientras el PLC no responda». Con el PLC conectado, los conteos no cambian. Nunca se muestra el texto crudo del transporte.
 - **REQ-04:** Descubrimiento nombra la acción de cada tarjeta «Asignar» y su selector «Elegir habitación». Cuando hay más de un dispositivo pendiente, una barra permite elegir una habitación y asignarla a todos los disponibles de la lista visible. Los dispositivos no disponibles se omiten sin contarse como fallos, un fallo no detiene a los demás, se envían de uno en uno y el resultado (asignados, omitidos, fallidos) queda visible aunque la lista se vacíe, hasta que el usuario lo cierre.
 - **REQ-05:** La redacción en español de Home Assistant, Diagnósticos, Descubrimiento y Cámaras usa mayúscula solo al inicio de frase, evita anglicismos y jerga («SLA», «Delta», «Sondas», «Payload», «Testear») y explica los estados con frases corrientes. Las claves de traducción no cambian.
+- **REQ-06:** La tarjeta de una cámara guardada es una fila compacta con lo que la persona necesita para reconocerla: nombre, dirección y tipo en una línea, y las acciones editar y eliminar. El estado solo aparece cuando la cámara está inactiva (una etiqueta «Inactiva»); «Activa» se da por supuesto. El puerto y la ruta RTSP no se repiten en cada tarjeta: se consultan al editar. La cuadrícula acomoda más cámaras por fila.
 
 ## Criterios de aceptación
 
@@ -40,6 +41,7 @@ Fuera de alcance: cambiar la fuente técnica `Disket Mono` para el resto de meta
 - [x] **AC4:** `bulkAssign.test.ts` y `BulkAssignBar.test.tsx` cubren la asignación en orden, las omisiones, los fallos aislados y el resumen.
 - [x] **AC5:** En la consola real, la asignación en bloque asigna solo los dispositivos disponibles, omite los no disponibles y deja el resultado visible, y las pruebas existentes de Descubrimiento siguen pasando.
 - [x] **AC6:** La validación de traducciones pasa y las pruebas de la consola usan los textos nuevos.
+- [x] **AC7:** `CompactSystemPresentation.test.tsx` cubre que la tarjeta nombra sus acciones, muestra nombre y dirección, no repite puerto ni ruta, oculta «Activa» y muestra «Inactiva» cuando corresponde.
 
 ## Estrategia de compatibilidad y reversión
 
@@ -50,4 +52,5 @@ Sin migraciones ni cambios de contrato: la API solo deja de devolver valores sec
 - `packages/integrations/native-camera/application/streamPathSecrets.ts`, `NativeCameraService.ts` y `apps/api/routes/NativeCameraRoutes.ts`.
 - `components/ModbusConnectionCard.tsx` y `lib/plcUi.ts` (`plcConnectionTone`).
 - `components/BulkAssignBar.tsx`, `lib/bulkAssign.ts`, `components/InboxDeviceTile.tsx` y `views/InboxView.tsx`.
+- `components/NativeCameraSettingsCard.tsx` y `views/NativeCamerasView.tsx` (tarjeta compacta).
 - `locales/es/common.json` y `locales/en/common.json`, `index.css` (`--font-data`) y `tailwind.config.js`.

@@ -65,7 +65,7 @@ export const NativeCamerasView: React.FC = () => {
       ) : cameras.length === 0 ? (
         <EmptyState icon={Camera} variant="collection" title={t('native_cameras.empty_title')} description={t('native_cameras.empty_description')} />
       ) : (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,18rem),1fr))] gap-3">
           {cameras.map(camera => <NativeCameraSettingsCard key={camera.deviceId} camera={camera}
             onEdit={form.handleOpenEditModal} onDelete={setDeviceToDelete} />)}
         </div>

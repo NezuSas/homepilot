@@ -87,10 +87,10 @@ export function HaDiscoverySkeleton(props: SkeletonProps) {
   return <LoadingState {...props}><div className="flex flex-wrap justify-between gap-3"><Bar className="h-11 w-80 max-w-full" /><Bar className="ml-auto h-16 w-52" /></div><div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,17rem),1fr))] gap-3">{Array.from({ length: 3 }, (_, i) => <div key={i} className={`${shell} flex flex-col gap-3`}><div className="flex-1 space-y-2"><Bar className="h-5 w-3/4" /><Bar className="h-4 w-full" /></div><Bar className="h-11 w-24" /></div>)}</div></LoadingState>;
 }
 export function NativeCameraSettingsSkeleton(props: SkeletonProps) {
-  return <LoadingState {...props}><div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 3 }, (_, i) => <NativeCameraSettingsCardSkeleton key={i} />)}</div></LoadingState>;
+  return <LoadingState {...props}><div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,18rem),1fr))] gap-3">{Array.from({ length: 3 }, (_, i) => <NativeCameraSettingsCardSkeleton key={i} />)}</div></LoadingState>;
 }
 export function NativeCameraSettingsCardSkeleton() {
-  return <div className="space-y-3 rounded-card border border-border bg-card p-3"><div className="flex gap-3"><Bar className="size-10 shrink-0" /><div className="flex-1 space-y-1"><Bar className="h-5 w-3/4" /><Bar className="h-4 w-1/2" /></div><Bar className="h-4 w-12" /></div><div className="space-y-1">{Array.from({ length: 3 }, (_, i) => <div key={i} className="flex justify-between gap-3"><Bar className="h-4 w-20" /><Bar className="h-4 w-24" /></div>)}</div><div className="flex justify-end gap-1 border-t border-border pt-2"><Bar className="size-11" /><Bar className="size-11" /></div></div>;
+  return <div className="flex items-center gap-3 rounded-card border border-border bg-card p-3"><Bar className="size-10 shrink-0" /><div className="flex-1 space-y-1"><Bar className="h-5 w-3/4" /><Bar className="h-4 w-1/2" /></div><div className="flex gap-1"><Bar className="size-11" /><Bar className="size-11" /></div></div>;
 }
 export function NativeCameraDiscoverySkeleton(props: SkeletonProps) {
   return <LoadingState {...props}><div className="grid gap-3 md:grid-cols-3">{Array.from({ length: 3 }, (_, i) => <div key={i} className="space-y-2 rounded-control border border-border p-3"><Bar className="h-5 w-3/4" /><Bar className="h-4 w-full" /><Bar className="h-4 w-1/2" /></div>)}</div><Bar className="h-14 w-full" /><Bar className="ml-auto h-11 w-32" /></LoadingState>;
