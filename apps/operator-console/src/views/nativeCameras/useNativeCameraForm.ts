@@ -33,14 +33,6 @@ export function useNativeCameraForm(
     }
   }, [homes, formData.homeId]);
 
-  /** Opens an empty create form, optionally prefilled from discovery; null keeps the previous values. */
-  const openCreateModal = (prefill: NativeCameraFormData | null) => {
-    setEditingDevice(null);
-    setFormError(null);
-    if (prefill) setFormData(prefill);
-    setIsModalOpen(true);
-  };
-
   const handleOpenEditModal = (camera: NativeCamera) => {
     setEditingDevice(camera.deviceId);
     setFormData(formDataFromCamera(camera));
@@ -101,7 +93,6 @@ export function useNativeCameraForm(
     formData,
     setFormData,
     setIsModalOpen,
-    openCreateModal,
     handleOpenEditModal,
     handleSourceTypeChange,
     handleSubmit,

@@ -1299,27 +1299,80 @@
       "rtsp-dvr": "Uses a direct RTSP path from the DVR. Ideal for Hikvision, Dahua, or NVR channels.",
       "sonoff-rtsp": "Uses the local RTSP stream exposed by compatible Sonoff cameras."
     },
-    "discovery": {
-      "title": "Add native camera",
-      "subtitle": "Choose the integration type. {{brand}} will discover ONVIF when the protocol supports it; RTSP/DVR and Sonoff are configured with their local URL.",
-      "searching": "Searching ONVIF devices...",
-      "manual": "Configure ONVIF device manually",
-      "manual_rtsp": "Configure RTSP manually",
-      "detected_by_onvif": "detected by ONVIF to prefill IP",
-      "submit": "Continue",
-      "profile_hints": {
-        "onvif-ptz": "Discover on the network or manually configure an ONVIF/PTZ camera.",
-        "rtsp-dvr": "Add a DVR/NVR channel using host, port, and RTSP path.",
-        "sonoff-rtsp": "Add a Sonoff camera that exposes local RTSP."
+    "wizard": {
+      "title": "Add camera",
+      "subtitles": {
+        "choose": "Choose how to connect your camera. {{brand}} tests it before saving.",
+        "details": "Enter the camera details. You only need its address, user and password.",
+        "test": "We check that the camera responds and show you what it sees."
       },
-      "manual_profile_notes": {
-        "rtsp-dvr": "RTSP/DVR has no universal discovery. You can select a detected DVR to prefill the IP; the recommended RTSP port will be 554.",
-        "sonoff-rtsp": "Sonoff is configured through local RTSP. You can select a detected camera to prefill the IP and adjust the path if your model uses a different one."
+      "steps_label": "Steps to add the camera",
+      "steps": { "choose": "Choose", "details": "Details", "test": "Test" },
+      "searching": "Looking for cameras on your network...",
+      "found_title": "Cameras found on your network",
+      "already_added": "Already added",
+      "brand_title": "Or pick your camera brand",
+      "brand_hint": "We fill in each brand's usual port and path for you. You can change them.",
+      "brands": {
+        "hikvision": {
+          "name": "Hikvision and compatibles",
+          "note": "Includes Ezviz, Annke and Hikvision recorders",
+          "details_note": "We use Hikvision's usual path (channel 1, main stream). If your recorder has several channels, change it under Advanced options."
+        },
+        "dahua": {
+          "name": "Dahua and compatibles",
+          "note": "Includes Amcrest, Lorex and Dahua recorders",
+          "details_note": "We use Dahua's usual path (channel 1, main stream). Change the channel under Advanced options if your recorder has several."
+        },
+        "reolink": {
+          "name": "Reolink",
+          "note": "Cameras and recorders with RTSP enabled",
+          "details_note": "Reolink needs RTSP turned on in the camera's network settings. If you see no image, try the path /h264Preview_01_sub."
+        },
+        "tapo": {
+          "name": "TP-Link Tapo",
+          "note": "Needs a camera account created in the Tapo app",
+          "details_note": "On Tapo, the user and password are the camera account you create in the Tapo app (Advanced settings), not your TP-Link account."
+        },
+        "axis": {
+          "name": "Axis",
+          "note": "Professional network cameras",
+          "details_note": "We use Axis's usual path. The user must be allowed to view video."
+        },
+        "sonoff": {
+          "name": "Sonoff CAM",
+          "note": "Sonoff cameras with local RTSP enabled",
+          "details_note": "Turn on local RTSP mode in the Sonoff app before testing."
+        },
+        "other": {
+          "name": "Other brand",
+          "note": "Enter the details yourself",
+          "details_note": ""
+        }
       },
-      "manual_rtsp_hints": {
-        "rtsp-dvr": "Use this option if you know the DVR IP or if it does not appear in the list.",
-        "sonoff-rtsp": "Use this option if you know the Sonoff camera IP or if it does not appear in the list."
-      }
+      "paste_title": "Have the full address?",
+      "paste_hint": "Paste the address the manufacturer gives you and we fill in the fields for you.",
+      "paste_use": "Use this address",
+      "paste_invalid": "That address does not look valid. It must start with rtsp:// and include the camera's IP.",
+      "field_address": "Camera address",
+      "field_address_hint": "The camera's IP on your network, for example 192.168.1.50. You can find it in its app or your router.",
+      "credentials_hint": "Use the camera's own user and password, not your manufacturer account. They are stored only on this device.",
+      "advanced_title": "Advanced options",
+      "path_hint": "If you are told the path does not exist, check your model's manual.",
+      "back": "Back",
+      "back_to_details": "Back to details",
+      "test_button": "Test connection",
+      "testing_title": "Connecting to {{name}}...",
+      "testing_hint": "It can take up to 12 seconds. Nothing is saved until you confirm.",
+      "preview_alt": "Current image from {{name}}",
+      "test_ok": "The camera responds ({{details}}). Check that the image is what you expect.",
+      "test_ok_no_details": "no further details",
+      "test_ptz": "This camera can be moved (PTZ).",
+      "test_request_failed": "The test could not be completed.",
+      "test_request_failed_hint": "Check your connection to {{brand}} and try again.",
+      "save_ok": "Looks good, save",
+      "save_anyway": "Save anyway",
+      "retry": "Retry"
     },
     "edit": "Edit",
     "delete": "Delete",

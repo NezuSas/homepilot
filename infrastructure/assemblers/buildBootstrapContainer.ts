@@ -85,6 +85,7 @@ export function buildBootstrapContainer(deps: BootstrapContainerDeps): Bootstrap
       assistantSpeechToTextService: assistantRuntime.assistantSpeechToTextService,
       nativeCameraService: nativeCameraModule.nativeCameraService,
       nativeCameraStreamingService: nativeCameraModule.nativeCameraStreamingService,
+      nativeCameraConnectionTester: nativeCameraModule.nativeCameraConnectionTester,
       androidDisplayService: deps.androidDisplayService,
       installationVerificationBroker: cloudGateway.installationVerificationBroker,
       edgeDeviceIdentityService: edgeIdentity.edgeDeviceIdentityService,

@@ -641,33 +641,85 @@ test('Feature: Modal visual viewport — Scenario: The tablet scene editor remai
   await expect.poll(() => save.evaluate((element) => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(400);
 });
 
-test('Feature: Native camera setup — Scenario: An owner opens discovery and manual configuration', async ({ page }) => {
+test('Feature: Native camera guided setup — Scenario: An owner adds a camera by pasting its address, retries after a failed test and saves what the preview shows', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await prepareAuthenticatedDashboard(page);
-  await page.route('**/api/v1/homes', async (route) => {
-    await route.fulfill({ contentType: 'application/json', body: JSON.stringify([{ id: 'test-home', name: 'Test home' }]) });
+  await page.addInitScript(() => localStorage.setItem('i18nextLng', 'es'));
+  await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: 'test-home', name: 'Test home' }] }));
+  await page.route('**/api/v1/native-cameras?*', route => route.fulfill({
+    json: { cameras: [{ deviceId: 'known', homeId: 'test-home', sourceType: 'rtsp-dvr', name: 'Camara DVR', host: '192.168.1.35', onvifPort: 80, rtspPort: 554, rtspPath: '/x', enabled: true, createdAt: '' }] },
+  }));
+  await page.route('**/api/v1/native-cameras/discover', route => route.fulfill({
+    json: { devices: [
+      { urn: 'urn:new', name: 'ONVIF_ICAMERA', host: '192.168.1.56', onvifPort: 8000 },
+      { urn: 'urn:known', name: 'Camara DVR', host: '192.168.1.35', onvifPort: 80 },
+    ] },
+  }));
+  const testBodies: Record<string, unknown>[] = [];
+  const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+  await page.route('**/api/v1/native-cameras/test', async route => {
+    testBodies.push(route.request().postDataJSON());
+    await route.fulfill({ json: testBodies.length === 1
+      ? { ok: false, code: 'CREDENTIALS_REJECTED', message: 'La cámara rechazó el usuario o la contraseña.', hint: 'Revisa los datos.' }
+      : { ok: true, snapshot: png, width: 1920, height: 1080, codec: 'h264', ptzSupported: false } });
   });
-  await page.route('**/api/v1/native-cameras?*', async (route) => {
-    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ cameras: [] }) });
+  const created: Record<string, unknown>[] = [];
+  await page.route('**/api/v1/native-cameras', async route => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    created.push(route.request().postDataJSON());
+    await route.fulfill({ status: 201, json: { camera: {} } });
   });
-  await page.route('**/api/v1/native-cameras/discover', async (route) => {
-    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ devices: [] }) });
-  });
+
   await page.goto('/system/cameras');
-  await page.getByRole('button', { name: /Add camera|Añadir cámara/i }).first().click();
-  await expect(page.getByText(/Configure ONVIF device manually|Configurar dispositivo ONVIF manualmente/i)).toBeVisible();
-  const profileCards = page.getByRole('dialog').getByRole('radio');
-  expect(await profileCards.count()).toBeGreaterThanOrEqual(4);
-  for (const card of await profileCards.all()) {
-    await expect(card).toHaveCSS('border-radius', '28px');
-    await expect(card).toHaveCSS('min-height', '48px');
-    // The dialog scales during entry; measure the actual target once it settles.
-    await expect.poll(async () => (await card.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(48);
-    expect(await card.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
-  }
-  await page.getByRole('button', { name: /^(Continue|Continuar)$/i }).click();
-  await expect(page.getByText(/Add IP Camera|Añadir cámara IP/i)).toBeVisible();
-  await expect(page.getByRole('textbox', { name: /Camera name|Nombre de la cámara/i })).toBeVisible();
+  await page.getByRole('button', { name: 'Agregar cámara', exact: true }).first().click();
+  const wizard = page.getByRole('dialog');
+  await expect(wizard.getByRole('button', { name: /ONVIF_ICAMERA/ })).toBeEnabled();
+  await expect(wizard.getByRole('button', { name: /Camara DVR.*Ya agregada/ })).toBeDisabled();
+
+  await wizard.getByRole('textbox', { name: /¿Tienes la dirección completa\?/ }).fill('rtsp://admin:s3cret@192.168.1.60:554/stream1');
+  await wizard.getByRole('button', { name: 'Usar esta dirección' }).click();
+  await expect(wizard.getByRole('textbox', { name: 'Dirección de la cámara' })).toHaveValue('192.168.1.60');
+  await expect(wizard.getByRole('textbox', { name: 'Usuario' })).toHaveValue('admin');
+  await wizard.getByRole('textbox', { name: 'Nombre de la cámara' }).fill('Patio');
+  await expect(wizard.getByRole('combobox', { name: 'Hogar' })).toHaveCount(0);
+
+  await wizard.getByRole('button', { name: 'Probar conexión' }).click();
+  await expect(wizard.getByText('La cámara rechazó el usuario o la contraseña.')).toBeVisible();
+  await expect(wizard.getByRole('button', { name: 'Guardar de todos modos' })).toBeVisible();
+  await wizard.getByRole('button', { name: 'Reintentar' }).click();
+  await expect(wizard.getByRole('img', { name: /Imagen actual de Patio/ })).toBeVisible();
+  expect(created).toHaveLength(0);
+
+  await wizard.getByRole('button', { name: 'Se ve bien, guardar' }).click();
+  await expect(wizard).toHaveCount(0);
+  expect(testBodies).toHaveLength(2);
+  expect(testBodies[0]).toMatchObject({ host: '192.168.1.60', username: 'admin', password: 's3cret', rtspPath: '/stream1' });
+  expect(created).toHaveLength(1);
+  expect(created[0]).toMatchObject({ name: 'Patio', host: '192.168.1.60', rtspPath: '/stream1', username: 'admin', homeId: 'test-home' });
+});
+
+test('Feature: Native camera guided setup — Scenario: A brand preset fills the usual path and an invalid pasted address is explained', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await prepareAuthenticatedDashboard(page);
+  await page.addInitScript(() => localStorage.setItem('i18nextLng', 'es'));
+  await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: 'test-home', name: 'Test home' }] }));
+  await page.route('**/api/v1/native-cameras?*', route => route.fulfill({ json: { cameras: [] } }));
+  await page.route('**/api/v1/native-cameras/discover', route => route.fulfill({ json: { devices: [] } }));
+  await page.goto('/system/cameras');
+  await page.getByRole('button', { name: 'Agregar cámara', exact: true }).first().click();
+  const wizard = page.getByRole('dialog');
+
+  await wizard.getByRole('textbox', { name: /¿Tienes la dirección completa\?/ }).fill('http://192.168.1.9/stream');
+  await wizard.getByRole('button', { name: 'Usar esta dirección' }).click();
+  await expect(wizard.getByText(/no parece válida/)).toBeVisible();
+  await expect(wizard.getByRole('textbox', { name: 'Dirección de la cámara' })).toHaveCount(0);
+
+  await wizard.getByRole('button', { name: /Hikvision y compatibles/ }).click();
+  await wizard.getByText('Opciones avanzadas', { exact: true }).click();
+  await expect(wizard.getByRole('textbox', { name: /Ruta del stream RTSP/ })).toHaveValue('/Streaming/Channels/101');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await wizard.getByRole('button', { name: 'Atrás' }).click();
+  await expect(wizard.getByRole('button', { name: /Hikvision y compatibles/ })).toBeVisible();
 });
 
 test('Las cámaras cargan el primer fotograma en Espacios y conservan la tarjeta de imagen del Dashboard', async ({ page }) => {

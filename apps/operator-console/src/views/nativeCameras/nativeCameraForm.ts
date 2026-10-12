@@ -1,6 +1,5 @@
 import {
   sourceTypeDefaults,
-  type DiscoveredCamera,
   type NativeCamera,
   type NativeCameraFormData,
   type NativeCameraPayload,
@@ -8,8 +7,6 @@ import {
 } from './types';
 
 const SOURCE_TYPES: readonly string[] = ['onvif-ptz', 'rtsp-dvr', 'sonoff-rtsp'];
-
-export const MANUAL_DISCOVERY_ID = 'manual';
 
 export function isNativeCameraSourceType(value: string): value is NativeCameraSourceType {
   return SOURCE_TYPES.includes(value);
@@ -22,44 +19,6 @@ export function createEmptyFormData(homeId: string): NativeCameraFormData {
     host: '',
     rtspPort: 554,
     onvifPort: 8000,
-    username: '',
-    password: '',
-    rtspPath: '',
-    homeId,
-  };
-}
-
-/** Returns null when an ONVIF camera was picked but is no longer in the discovered list. */
-export function formDataFromDiscovery(
-  selectedCamera: DiscoveredCamera | undefined,
-  selectedDiscoveredCamera: string,
-  selectedSourceType: NativeCameraSourceType,
-  homeId: string,
-): NativeCameraFormData | null {
-  if (selectedSourceType !== 'onvif-ptz') {
-    const defaults = sourceTypeDefaults[selectedSourceType];
-    return {
-      name: selectedCamera?.name || '',
-      sourceType: selectedSourceType,
-      host: selectedCamera?.host || '',
-      rtspPort: defaults.rtspPort,
-      onvifPort: selectedCamera?.onvifPort || defaults.onvifPort,
-      username: '',
-      password: '',
-      rtspPath: defaults.rtspPath,
-      homeId,
-    };
-  }
-  if (selectedDiscoveredCamera === MANUAL_DISCOVERY_ID || !selectedDiscoveredCamera) {
-    return createEmptyFormData(homeId);
-  }
-  if (!selectedCamera) return null;
-  return {
-    name: selectedCamera.name,
-    sourceType: 'onvif-ptz',
-    host: selectedCamera.host,
-    rtspPort: 554, // usually ONVIF profile provides RTSP, but we set default
-    onvifPort: selectedCamera.onvifPort,
     username: '',
     password: '',
     rtspPath: '',

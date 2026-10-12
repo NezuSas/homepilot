@@ -3,7 +3,9 @@ import * as os from 'os';
 import * as path from 'path';
 import * as http from 'http';
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
-import type { MediaTranscoderPort, NativeCameraRtspEndpoint, NativeCameraHlsRuntimeHandle } from '../application/ports/MediaTranscoderPort';
+import type { FrameCaptureResult, MediaTranscoderPort, NativeCameraRtspEndpoint, NativeCameraHlsRuntimeHandle } from '../application/ports/MediaTranscoderPort';
+import { buildRtspUrl } from './rtspUrl';
+import { captureRtspFrame } from './FfmpegFrameProbe';
 
 const NATIVE_CAMERA_HLS_ROOT = path.join(os.tmpdir(), 'homepilot-native-cameras');
 
@@ -21,20 +23,6 @@ interface NativeHlsRuntime {
 // otherwise freeze on the last segment forever.
 const STALE_SEGMENT_THRESHOLD_MS = 15_000;
 const HEALTH_CHECK_INTERVAL_MS = 5_000;
-
-function buildRtspUrl(endpoint: NativeCameraRtspEndpoint): string {
-  const rtspPath = endpoint.rtspPath.startsWith('/') ? endpoint.rtspPath : `/${endpoint.rtspPath}`;
-  const hasEmbeddedCreds = rtspPath.toLowerCase().includes('username=') ||
-    rtspPath.toLowerCase().includes('password=') ||
-    rtspPath.toLowerCase().includes('user=') ||
-    rtspPath.toLowerCase().includes('pwd=');
-  if (hasEmbeddedCreds) {
-    return `rtsp://${endpoint.host}:${endpoint.rtspPort}${rtspPath}`;
-  }
-  const username = encodeURIComponent(endpoint.username);
-  const password = encodeURIComponent(endpoint.password);
-  return `rtsp://${username}:${password}@${endpoint.host}:${endpoint.rtspPort}${rtspPath}`;
-}
 
 /**
  * Transcodes native camera RTSP feeds to browser-consumable formats by
@@ -266,6 +254,10 @@ export class FfmpegMediaTranscoder implements MediaTranscoderPort {
         console.error(`[FfmpegMediaTranscoder] ffmpeg snapshot exit code ${code}`);
       }
     });
+  }
+
+  public captureFrame(endpoint: NativeCameraRtspEndpoint, timeoutMs?: number): Promise<FrameCaptureResult> {
+    return captureRtspFrame(endpoint, timeoutMs);
   }
 
   public streamMjpeg(endpoint: NativeCameraRtspEndpoint, res: http.ServerResponse): void {

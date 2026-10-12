@@ -309,15 +309,16 @@ for (const viewport of [{ name: 'mobile', width: 320, height: 720 }, { name: 'ta
       await edit.getByRole('button', { name: /^(Cancelar|Cancel)$/i }).click();
       await expect(edit).toHaveCount(0);
       await main.getByRole('button', { name: 'Agregar cámara', exact: true }).click();
-      await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+      await page.getByRole('button', { name: /Otra marca/ }).click();
       const create = page.getByRole('dialog');
       await expect(create.getByRole('textbox', { name: 'Nombre de la cámara', exact: true })).toHaveValue('');
-      await expect(create.getByRole('textbox', { name: /Host|Dirección IP/ })).toBeVisible();
+      await expect(create.getByRole('textbox', { name: 'Dirección de la cámara', exact: true })).toBeVisible();
       const modalBounds = await create.boundingBox();
       expect(modalBounds!.width).toBeLessThanOrEqual(viewport.width);
       expect(modalBounds!.height).toBeLessThanOrEqual(viewport.height);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
-      await create.getByRole('button', { name: /^(Cancelar|Cancel)$/i }).click();
+      await create.getByRole('button', { name: /^(Cerrar|Close)$/i }).click();
+      await expect(create).toHaveCount(0);
     }
   });
 }

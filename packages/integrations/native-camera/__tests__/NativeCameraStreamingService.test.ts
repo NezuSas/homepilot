@@ -22,6 +22,7 @@ describe('NativeCameraStreamingService', () => {
       stopHlsRuntime: jest.fn(),
       streamSnapshot: jest.fn(),
       streamMjpeg: jest.fn(),
+      captureFrame: jest.fn(),
     };
     service = new NativeCameraStreamingService(transcoder);
   });

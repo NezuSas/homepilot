@@ -56,6 +56,12 @@ export class NativeCameraRoutes extends ApiRoutes {
       return true;
     }
 
+    // POST /api/v1/native-cameras/test: opens the camera and returns a frame; saves nothing
+    if (method === 'POST' && pathname === '/api/v1/native-cameras/test') {
+      await this.testNativeCamera(req, res, container);
+      return true;
+    }
+
     // POST /api/v1/native-cameras
     if (method === 'POST' && pathname === '/api/v1/native-cameras') {
       await this.createNativeCamera(req, res, container);
@@ -149,6 +155,31 @@ export class NativeCameraRoutes extends ApiRoutes {
       res.end(JSON.stringify({ camera: toNativeCameraDto(result.value) }));
     } catch (error: unknown) {
       this.sendError(res, 500, 'INTERNAL_ERROR', error instanceof Error ? error.message : 'Failed to create camera');
+    }
+  }
+
+  private async testNativeCamera(
+    req: HomePilotRequest,
+    res: http.ServerResponse,
+    container: BootstrapContainer,
+  ): Promise<void> {
+    const isProtected = await container.guards.authGuard.protect(req, res, true);
+    if (!isProtected) return;
+    if (!container.guards.authGuard.requireRole(req, res, 'admin')) return;
+
+    try {
+      const body = await this.parseBody<Record<string, unknown>>(req);
+      const result = await container.services.nativeCameraConnectionTester.test(body ?? {});
+      if (result.ok) {
+        this.sendJson(res, { ok: true, ...result.value });
+        return;
+      }
+      // A camera that does not answer is a result of the test, not a failed request; only bad input is a client error.
+      const status = result.error.code === 'INVALID_INPUT' ? 400 : 200;
+      res.writeHead(status, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, ...result.error }));
+    } catch (error: unknown) {
+      this.sendError(res, 500, 'INTERNAL_ERROR', error instanceof Error ? error.message : 'Failed to test camera');
     }
   }
 

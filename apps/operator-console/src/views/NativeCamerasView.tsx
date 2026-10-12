@@ -11,14 +11,13 @@ import { AlertBanner } from '../components/ui/AlertBanner';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import ConfirmModal from '../components/ConfirmModal';
 import type { NativeCameraNotice } from './nativeCameras/types';
-import { formDataFromDiscovery } from './nativeCameras/nativeCameraForm';
-import { NativeCameraDiscoveryModal } from './nativeCameras/NativeCameraDiscoveryModal';
+import { NativeCameraWizardModal } from './nativeCameras/NativeCameraWizardModal';
 import { NativeCameraFormModal } from './nativeCameras/NativeCameraFormModal';
 import { NativeCameraNoticeToast } from './nativeCameras/NativeCameraNoticeToast';
 import { useNativeCameraList } from './nativeCameras/useNativeCameraList';
 import { useNativeCameraDelete } from './nativeCameras/useNativeCameraDelete';
-import { useNativeCameraDiscovery } from './nativeCameras/useNativeCameraDiscovery';
 import { useNativeCameraForm } from './nativeCameras/useNativeCameraForm';
+import { useNativeCameraWizard } from './nativeCameras/useNativeCameraWizard';
 
 export const NativeCamerasView: React.FC = () => {
   const { t } = useTranslation();
@@ -29,22 +28,9 @@ export const NativeCamerasView: React.FC = () => {
 
   const { cameras, setCameras, isLoading, loadCameras } = useNativeCameraList(activeHomeId);
   const initialLoading = useInitialLoading(isLoading);
-  const discovery = useNativeCameraDiscovery();
+  const wizard = useNativeCameraWizard(homes, cameras, loadCameras, setNotice);
   const form = useNativeCameraForm(homes, loadCameras, setNotice);
   const { deviceToDelete, setDeviceToDelete, confirmDelete } = useNativeCameraDelete(setCameras, setNotice);
-
-  const handleDiscoverySubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    discovery.setIsDiscoveryModalOpen(false);
-
-    const selectedCamera = discovery.discoveredCameras.find(camera => camera.urn === discovery.selectedDiscoveredCamera);
-    form.openCreateModal(formDataFromDiscovery(
-      selectedCamera,
-      discovery.selectedDiscoveredCamera,
-      discovery.selectedSourceType,
-      homes[0]?.id || '',
-    ));
-  };
 
   return (
     <div className="flex flex-col gap-6 sm:gap-8">
@@ -56,7 +42,7 @@ export const NativeCamerasView: React.FC = () => {
         action={
           <Button
             variant="primary"
-            onClick={discovery.handleOpenDiscoveryModal}
+            onClick={wizard.open}
             disabled={homes.length === 0}
           >
             <Plus size={16} /> {t('native_cameras.add_camera')}
@@ -85,17 +71,7 @@ export const NativeCamerasView: React.FC = () => {
         </div>
       )}
 
-      <NativeCameraDiscoveryModal
-        isDiscoveryModalOpen={discovery.isDiscoveryModalOpen}
-        isDiscovering={discovery.isDiscovering}
-        discoveredCameras={discovery.discoveredCameras}
-        selectedDiscoveredCamera={discovery.selectedDiscoveredCamera}
-        selectedSourceType={discovery.selectedSourceType}
-        setIsDiscoveryModalOpen={discovery.setIsDiscoveryModalOpen}
-        setSelectedDiscoveredCamera={discovery.setSelectedDiscoveredCamera}
-        setSelectedSourceType={discovery.setSelectedSourceType}
-        handleDiscoverySubmit={handleDiscoverySubmit}
-      />
+      <NativeCameraWizardModal wizard={wizard} homes={homes} />
 
       <NativeCameraFormModal
         isModalOpen={form.isModalOpen}

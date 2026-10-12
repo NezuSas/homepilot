@@ -62,6 +62,7 @@ import type { EventBus } from '../../packages/shared/domain/events/EventBus';
 import type { AutomationEngine } from '../../packages/automation/application/AutomationEngine';
 import type { SceneExecutionService } from '../../packages/devices/application/SceneExecutionService';
 import type { NativeCameraService } from '../../packages/integrations/native-camera/application/NativeCameraService';
+import type { NativeCameraConnectionTester } from '../../packages/integrations/native-camera/application/NativeCameraConnectionTester';
 import type { NativeCameraStreamingService } from '../../packages/integrations/native-camera/application/NativeCameraStreamingService';
 
 export interface BootstrapContainer {
@@ -110,6 +111,7 @@ export interface BootstrapContainer {
     assistantSpeechToTextService: AssistantSpeechToTextService;
     nativeCameraService: NativeCameraService;
     nativeCameraStreamingService: NativeCameraStreamingService;
+    nativeCameraConnectionTester: NativeCameraConnectionTester;
     androidDisplayService: AndroidDisplayService;
     installationVerificationBroker: InstallationVerificationBroker;
     edgeDeviceIdentityService: EdgeDeviceIdentityService;

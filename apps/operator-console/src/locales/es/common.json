@@ -1299,27 +1299,80 @@
       "rtsp-dvr": "Usa una ruta RTSP directa del DVR. Ideal para canales como Hikvision, Dahua o grabadores NVR.",
       "sonoff-rtsp": "Usa el stream RTSP local expuesto por cámaras Sonoff compatibles."
     },
-    "discovery": {
-      "title": "Agregar cámara nativa",
-      "subtitle": "Elige el tipo de integración. {{brand}} buscará ONVIF cuando el protocolo lo permita; RTSP/DVR y Sonoff se configuran con su URL local.",
-      "searching": "Buscando dispositivos ONVIF...",
-      "manual": "Configurar dispositivo ONVIF manualmente",
-      "manual_rtsp": "Configurar RTSP manualmente",
-      "detected_by_onvif": "detectado por ONVIF para prellenar IP",
-      "submit": "Continuar",
-      "profile_hints": {
-        "onvif-ptz": "Buscar en red o configurar manualmente una cámara ONVIF/PTZ.",
-        "rtsp-dvr": "Agregar un canal DVR/NVR usando host, puerto y ruta RTSP.",
-        "sonoff-rtsp": "Agregar una cámara Sonoff que expone RTSP local."
+    "wizard": {
+      "title": "Agregar cámara",
+      "subtitles": {
+        "choose": "Elige cómo quieres conectar tu cámara. {{brand}} la prueba antes de guardarla.",
+        "details": "Escribe los datos de la cámara. Solo necesitas su dirección, usuario y contraseña.",
+        "test": "Comprobamos que la cámara responde y te mostramos lo que ve."
       },
-      "manual_profile_notes": {
-        "rtsp-dvr": "RTSP/DVR no tiene descubrimiento universal. Puedes seleccionar un DVR detectado para prellenar la IP; el puerto RTSP recomendado será 554.",
-        "sonoff-rtsp": "Sonoff se configura por RTSP local. Puedes seleccionar una cámara detectada para prellenar la IP y ajustar la ruta si tu modelo usa una distinta."
+      "steps_label": "Pasos para agregar la cámara",
+      "steps": { "choose": "Elegir", "details": "Datos", "test": "Probar" },
+      "searching": "Buscando cámaras en tu red...",
+      "found_title": "Cámaras encontradas en tu red",
+      "already_added": "Ya agregada",
+      "brand_title": "O elige la marca de tu cámara",
+      "brand_hint": "Rellenamos por ti el puerto y la ruta habituales de cada marca. Podrás cambiarlos.",
+      "brands": {
+        "hikvision": {
+          "name": "Hikvision y compatibles",
+          "note": "Incluye Ezviz, Annke y grabadores Hikvision",
+          "details_note": "Usamos la ruta habitual de Hikvision (canal 1, flujo principal). Si tu grabador tiene varios canales, cámbiala en Opciones avanzadas."
+        },
+        "dahua": {
+          "name": "Dahua y compatibles",
+          "note": "Incluye Amcrest, Lorex y grabadores Dahua",
+          "details_note": "Usamos la ruta habitual de Dahua (canal 1, flujo principal). Cambia el canal en Opciones avanzadas si tu grabador tiene varios."
+        },
+        "reolink": {
+          "name": "Reolink",
+          "note": "Cámaras y grabadores con RTSP activado",
+          "details_note": "En Reolink hay que activar RTSP en la configuración de red de la cámara. Si no ves imagen, prueba la ruta /h264Preview_01_sub."
+        },
+        "tapo": {
+          "name": "TP-Link Tapo",
+          "note": "Requiere una cuenta de cámara creada en la app Tapo",
+          "details_note": "En Tapo, el usuario y la contraseña son los de la cuenta de cámara que creas en la app Tapo (Ajustes avanzados), no los de tu cuenta TP-Link."
+        },
+        "axis": {
+          "name": "Axis",
+          "note": "Cámaras de red profesionales",
+          "details_note": "Usamos la ruta habitual de Axis. El usuario debe tener permiso para ver video."
+        },
+        "sonoff": {
+          "name": "Sonoff CAM",
+          "note": "Cámaras Sonoff con RTSP local activado",
+          "details_note": "Activa el modo RTSP local en la app de Sonoff antes de probar."
+        },
+        "other": {
+          "name": "Otra marca",
+          "note": "Escribe los datos tú mismo",
+          "details_note": ""
+        }
       },
-      "manual_rtsp_hints": {
-        "rtsp-dvr": "Usa esta opción si conoces la IP del DVR o si no aparece en la lista.",
-        "sonoff-rtsp": "Usa esta opción si conoces la IP de la cámara Sonoff o si no aparece en la lista."
-      }
+      "paste_title": "¿Tienes la dirección completa?",
+      "paste_hint": "Pega la dirección que te da el fabricante y rellenamos los campos por ti.",
+      "paste_use": "Usar esta dirección",
+      "paste_invalid": "Esa dirección no parece válida. Debe empezar por rtsp:// y llevar la IP de la cámara.",
+      "field_address": "Dirección de la cámara",
+      "field_address_hint": "La IP de la cámara en tu red, por ejemplo 192.168.1.50. La encuentras en la app o en el router.",
+      "credentials_hint": "Usa el usuario y la contraseña de la propia cámara, no los de tu cuenta del fabricante. Se guardan solo en este equipo.",
+      "advanced_title": "Opciones avanzadas",
+      "path_hint": "Si ves el mensaje de que la ruta no existe, revisa el manual de tu modelo.",
+      "back": "Atrás",
+      "back_to_details": "Volver a los datos",
+      "test_button": "Probar conexión",
+      "testing_title": "Conectando con {{name}}...",
+      "testing_hint": "Puede tardar hasta 12 segundos. No se guarda nada hasta que tú lo confirmes.",
+      "preview_alt": "Imagen actual de {{name}}",
+      "test_ok": "La cámara responde ({{details}}). Comprueba que la imagen es la que esperas.",
+      "test_ok_no_details": "sin más detalles",
+      "test_ptz": "Esta cámara permite moverla (PTZ).",
+      "test_request_failed": "No se pudo completar la prueba.",
+      "test_request_failed_hint": "Comprueba tu conexión con {{brand}} y vuelve a intentarlo.",
+      "save_ok": "Se ve bien, guardar",
+      "save_anyway": "Guardar de todos modos",
+      "retry": "Reintentar"
     },
     "edit": "Editar",
     "delete": "Eliminar",

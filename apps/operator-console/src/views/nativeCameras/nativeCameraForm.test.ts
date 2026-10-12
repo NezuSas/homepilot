@@ -3,13 +3,10 @@ import {
   buildNativeCameraPayload,
   createEmptyFormData,
   formDataFromCamera,
-  formDataFromDiscovery,
   isNativeCameraSourceType,
   validateNativeCameraForm,
 } from './nativeCameraForm';
-import type { DiscoveredCamera, NativeCamera, NativeCameraFormData } from './types';
-
-const discovered: DiscoveredCamera = { urn: 'urn:1', name: 'Patio', host: '10.0.0.5', onvifPort: 8080 };
+import type { NativeCamera, NativeCameraFormData } from './types';
 
 const validForm = (extra: Partial<NativeCameraFormData> = {}): NativeCameraFormData => ({
   ...createEmptyFormData('home'),
@@ -24,20 +21,6 @@ describe('nativeCameraForm', () => {
   it('recognises only supported source types', () => {
     expect(isNativeCameraSourceType('rtsp-dvr')).toBe(true);
     expect(isNativeCameraSourceType('other')).toBe(false);
-  });
-
-  it('builds form data from a discovered ONVIF camera or manual entry', () => {
-    expect(formDataFromDiscovery(discovered, 'urn:1', 'onvif-ptz', 'home')).toMatchObject({
-      name: 'Patio', host: '10.0.0.5', onvifPort: 8080, rtspPort: 554, rtspPath: '',
-    });
-    expect(formDataFromDiscovery(undefined, 'manual', 'onvif-ptz', 'home')).toEqual(createEmptyFormData('home'));
-    expect(formDataFromDiscovery(undefined, 'urn:gone', 'onvif-ptz', 'home')).toBeNull();
-  });
-
-  it('applies RTSP defaults for non ONVIF sources', () => {
-    expect(formDataFromDiscovery(undefined, 'manual', 'sonoff-rtsp', 'home')).toMatchObject({
-      sourceType: 'sonoff-rtsp', onvifPort: 80, rtspPath: '/av_stream/ch0',
-    });
   });
 
   it('blanks credentials when editing an existing camera', () => {

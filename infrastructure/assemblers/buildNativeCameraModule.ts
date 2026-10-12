@@ -7,6 +7,7 @@
  * `NativeCameraRoutes`/`CameraRoutes`.
  */
 import { NativeCameraService } from '../../packages/integrations/native-camera/application/NativeCameraService';
+import { NativeCameraConnectionTester } from '../../packages/integrations/native-camera/application/NativeCameraConnectionTester';
 import { NativeCameraStreamingService } from '../../packages/integrations/native-camera/application/NativeCameraStreamingService';
 import { TcpNetworkProbe } from '../../packages/integrations/native-camera/infrastructure/TcpNetworkProbe';
 import { OnvifWsDiscoveryProbe } from '../../packages/integrations/native-camera/infrastructure/onvif/OnvifWsDiscoveryProbe';
@@ -24,6 +25,7 @@ import type { SQLiteHomeRepository } from '../../packages/topology/infrastructur
 export interface NativeCameraAssembly {
   nativeCameraService: NativeCameraService;
   nativeCameraStreamingService: NativeCameraStreamingService;
+  nativeCameraConnectionTester: NativeCameraConnectionTester;
   /** Exposed so buildCommandRouter can register NativeCameraDeviceDriver against the same drivers. */
   nativeCameraDriverRegistry: NativeCameraDriverRegistry;
 }
@@ -51,7 +53,9 @@ export function buildNativeCameraModule(deps: NativeCameraModuleDeps): NativeCam
     driverRegistry
   );
 
-  const nativeCameraStreamingService = new NativeCameraStreamingService(new FfmpegMediaTranscoder());
+  const transcoder = new FfmpegMediaTranscoder();
+  const nativeCameraStreamingService = new NativeCameraStreamingService(transcoder);
+  const nativeCameraConnectionTester = new NativeCameraConnectionTester(driverRegistry, transcoder);
 
-  return { nativeCameraService, nativeCameraStreamingService, nativeCameraDriverRegistry: driverRegistry };
+  return { nativeCameraService, nativeCameraStreamingService, nativeCameraConnectionTester, nativeCameraDriverRegistry: driverRegistry };
 }
