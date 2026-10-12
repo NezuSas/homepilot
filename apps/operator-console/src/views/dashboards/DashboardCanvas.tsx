@@ -77,7 +77,7 @@ export function DashboardCanvas({
   };
 
   const sensors = useCanvasSensors(useSectionSlots);
-  const { handleDragStart, handleDragOver, handleDragEnd, handleDragCancel } = useCanvasDragHandlers({
+  const { handleDragStart, handleDragOver, handleDragMove, handleDragEnd, handleDragCancel } = useCanvasDragHandlers({
     canEditLayout, widgets, sectionLayout, columns, containerRef, drag, model, onLayoutChange,
   });
 
@@ -99,6 +99,7 @@ export function DashboardCanvas({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onDragOver={handleDragOver}
+      onDragMove={handleDragMove}
       onDragCancel={handleDragCancel}
     >
       <TouchDragHint editing={isEditing} dragging={activeWidget !== null} />

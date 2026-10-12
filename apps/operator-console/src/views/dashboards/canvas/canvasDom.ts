@@ -61,6 +61,22 @@ export function cloneDragPreviewNode(original: HTMLElement): HTMLElement {
   return clone;
 }
 
+/** The grid cell under the dragged card's top-left corner inside one section, without measuring every card. */
+export function measureDropCell(
+  container: HTMLElement | null,
+  targetSectionId: unknown,
+  dragged: { left: number; top: number } | null | undefined,
+): { column: number; row: number } | undefined {
+  if (!container || !dragged) return undefined;
+  const section = Array.from(container.querySelectorAll<HTMLElement>('[data-dashboard-section-id]')).find(node => node.dataset.dashboardSectionId === targetSectionId);
+  const grid = section?.querySelector<HTMLElement>('[data-section-card-grid]');
+  if (!grid) return undefined;
+  const bounds = grid.getBoundingClientRect();
+  const step = (bounds.width + 8) / 12;
+  const tracks = getComputedStyle(grid).gridTemplateRows.split(' ').map(Number.parseFloat).filter(Number.isFinite);
+  return { column: Math.round((dragged.left - bounds.left) / step) + 1, row: rowAtOffset(tracks, dragged.top - bounds.top) };
+}
+
 /** Reads every section's card grid and returns card placements plus the drop cell inside the target section. */
 export function measureCardPlacements(
   container: HTMLElement | null,

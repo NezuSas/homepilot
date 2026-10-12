@@ -3,7 +3,6 @@ import { DndContext, KeyboardSensor, MouseSensor, TouchSensor, useSensor, useSen
 import { SectionCardDragContext, sectionCardDragId } from '../sectionCardDrag';
 import { SortableContext, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { SectionAddCardButton, SectionBadgeRow, SectionCardGrid, SectionHeading } from './SectionChrome';
-import { useCardReorderMotion } from './useCardReorderMotion';
 import ConfirmModal from '../../../components/ConfirmModal';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../lib/utils';
@@ -71,7 +70,6 @@ export function SectionWidget({ config, isEditing, onUpdate, sectionId }: Sectio
   const title = rawTitle || t('dashboard.editor.sections.new_section');
   const showTitle = config.appearance?.showTitle !== false;
   const cards = normalizeCards(config.extra);
-  useCardReorderMotion(sectionGridRef, cards.map((card) => card.id).join('|'));
   const hasRoutineAction = cards.some((card) => card.entityId && normalizeKind(card.kind) === 'action');
   const sectionIcon = config.appearance?.icon?.trim();
   const SectionIcon = sectionIcon ? getDashboardIconComponent(sectionIcon) : null;

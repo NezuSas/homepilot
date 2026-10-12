@@ -1,12 +1,12 @@
 import { isValidElement } from 'react';
 import type { RefObject } from 'react';
-import type { DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
+import type { DragEndEvent, DragStartEvent, DragOverEvent, DragMoveEvent } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 import { moveSectionCard, placeSectionCard, sectionCardDragId, sectionHasPinnedCards } from '../sectionCardDrag';
 import { moveSectionSlot, resolveSectionSlots, sectionLayoutKey, type SectionLayout } from '../sectionSlots';
 import type { DashboardWidget } from '../types';
 import { resolveSlotTargetIndex } from './canvasLayout';
-import { cloneDragPreviewNode, measureCardPlacements } from './canvasDom';
+import { cloneDragPreviewNode, measureCardPlacements, measureDropCell } from './canvasDom';
 import type { CanvasDragState } from './useCanvasDragState';
 import type { CanvasModel } from './useCanvasModel';
 
@@ -31,7 +31,13 @@ export function useCanvasDragHandlers({ canEditLayout, widgets, sectionLayout, c
   const handleDragStart = (event: DragStartEvent) => {
     if (!canEditLayout) return;
     if (typeof navigator !== 'undefined') navigator.vibrate?.(10);
-    dragSession.current = { widgets, layout: sectionLayout, sourceSectionId: event.active.data.current?.sectionId, identities: cardDragIdentities };
+    const startedFrom = event.active.data.current?.sectionId;
+    dragSession.current = {
+      widgets, layout: sectionLayout, sourceSectionId: startedFrom, identities: cardDragIdentities,
+      ...(event.active.data.current?.kind === 'section-card' && typeof startedFrom === 'string'
+        ? { originWidgets: widgets, originPlacements: measureCardPlacements(containerRef.current, null, null).placements, originSourceId: startedFrom }
+        : {}),
+    };
     const widget = flowWidgets.find((w) => w.id === event.active.id);
     if (widget) setActiveWidget(widget);
     const getPreviewRect = event.active.data.current?.getPreviewRect;
@@ -52,8 +58,14 @@ export function useCanvasDragHandlers({ canEditLayout, widgets, sectionLayout, c
     if (source?.kind === 'section-card' && typeof source.cardId === 'string' && session.sourceSectionId
       && typeof destination?.sectionId === 'string'
       && (destination.sectionId !== session.sourceSectionId || destination.kind === 'section-card')) {
-      const moved = moveSectionCard(session.widgets, session.sourceSectionId, source.cardId, destination.sectionId, destination.kind === 'section-card' ? destination.cardId : undefined);
-      if (moved === session.widgets) return;
+      // A section that pins its cards to grid cells is previewed by pointer cell in handleDragMove; reordering the list would change nothing there.
+      if (session.originWidgets && sectionHasPinnedCards(session.originWidgets, destination.sectionId)) return;
+      // Leaving a pinned-section preview starts again from the layout as it was, so the cards that made room return to their place.
+      const leavingPreview = Boolean(session.lastCell && session.originWidgets && session.originSourceId);
+      const base = leavingPreview ? session.originWidgets! : session.widgets;
+      const moved = moveSectionCard(base, leavingPreview ? session.originSourceId! : session.sourceSectionId, source.cardId, destination.sectionId, destination.kind === 'section-card' ? destination.cardId : undefined);
+      if (moved === base) return;
+      session.lastCell = undefined;
       const sourceKey = sectionCardDragId(session.sourceSectionId, source.cardId);
       const targetKey = sectionCardDragId(destination.sectionId, source.cardId);
       if (destination.sectionId !== session.sourceSectionId) setCardDragIdentities(current => {
@@ -84,6 +96,36 @@ export function useCanvasDragHandlers({ canEditLayout, widgets, sectionLayout, c
     setDragLayout({ widgets: session.widgets, layout: session.layout });
   };
 
+  /** Over a section with pinned cards: the card keeps the cell under the pointer and the cards there make room. */
+  const handleDragMove = ({ active, over }: DragMoveEvent) => {
+    const session = dragSession.current;
+    const origin = session?.originWidgets;
+    const placements = session?.originPlacements;
+    const source = active.data.current;
+    const destination = over?.data.current;
+    if (!session || !origin || !placements || !session.originSourceId) return;
+    if (source?.kind !== 'section-card' || typeof source.cardId !== 'string') return;
+    if (typeof destination?.sectionId !== 'string' || !sectionHasPinnedCards(origin, destination.sectionId)) return;
+    const cell = measureDropCell(containerRef.current, destination.sectionId, active.rect.current.translated);
+    if (!cell) return;
+    const key = `${destination.sectionId}:${cell.column}:${cell.row}`;
+    if (key === session.lastCell) return;
+    const placed = placeSectionCard(origin, session.originSourceId, source.cardId, destination.sectionId, cell.column, cell.row, placements);
+    if (placed === origin) return;
+    const sourceKey = sectionCardDragId(session.sourceSectionId ?? session.originSourceId, source.cardId);
+    const targetKey = sectionCardDragId(destination.sectionId, source.cardId);
+    if (destination.sectionId !== session.sourceSectionId) setCardDragIdentities(current => {
+      const next = { ...current, [targetKey]: current[sourceKey] ?? String(active.id) };
+      delete next[sourceKey];
+      return next;
+    });
+    session.widgets = placed;
+    session.sourceSectionId = destination.sectionId;
+    session.lastCell = key;
+    captureSectionRects();
+    setDragLayout({ widgets: placed, layout: session.layout });
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveWidget(null);
     setDragPreview(null);
@@ -95,6 +137,11 @@ export function useCanvasDragHandlers({ canEditLayout, widgets, sectionLayout, c
     const { active, over } = event;
     if (!over) {
       if (session) setCardDragIdentities(session.identities);
+      return;
+    }
+    // What the pinned-section preview showed is exactly what is saved.
+    if (session?.lastCell && active.data.current?.kind === 'section-card') {
+      onLayoutChange(session.widgets, session.layout);
       return;
     }
     const overData = over.data.current;
@@ -168,5 +215,5 @@ export function useCanvasDragHandlers({ canEditLayout, widgets, sectionLayout, c
     setDragLayout(null);
   };
 
-  return { handleDragStart, handleDragOver, handleDragEnd, handleDragCancel };
+  return { handleDragStart, handleDragOver, handleDragMove, handleDragEnd, handleDragCancel };
 }

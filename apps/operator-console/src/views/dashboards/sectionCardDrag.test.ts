@@ -80,13 +80,47 @@ describe('moving cards within one tab', () => {
     ]);
     expect(widgets[0].config.extra?.cards).toEqual(cards);
   });
-  it('moves between sections without overlapping an occupied slot or losing metadata', () => {
+  it('moves between sections keeping the dropped cell, pushing the occupant down and keeping metadata', () => {
     const widgets = [section('tech', [card]), section('patio', [{ id: 'b' }])];
     const placements = { tech: [{ id: 'media', column: 1, row: 1, columns: 6, rows: 4 }], patio: [{ id: 'b', column: 1, row: 1, columns: 6, rows: 4 }] };
     const next = placeSectionCard(widgets, 'tech', 'media', 'patio', 1, 1, placements);
     expect(next[0].config.extra?.cards).toEqual([]);
-    expect(next[1].config.extra?.cards).toContainEqual({ ...card, gridOptions: { columns: 6, rows: 'auto', columnStart: 1, rowStart: 5 } });
+    expect(next[1].config.extra?.cards).toContainEqual({ ...card, gridOptions: { columns: 6, rows: 'auto', columnStart: 1, rowStart: 1 } });
+    expect(next[1].config.extra?.cards).toContainEqual({ id: 'b', gridOptions: { columns: 6, rows: 'auto', columnStart: 1, rowStart: 5 } });
     expect(JSON.parse(JSON.stringify(next))).toEqual(next);
     expect(placeSectionCard(widgets, 'tech', 'missing', 'patio', 1, 1, placements)).toBe(widgets);
+  });
+  describe('dropping a card on an occupied cell of its own section', () => {
+    const row = (id: string, column: number, rowNumber: number, rows = 4) => ({ id, column, row: rowNumber, columns: 3, rows });
+    const pinned = (id: string, column: number, rowStart: number) => ({ id, gridOptions: { columns: 3, rows: 'auto', columnStart: column, rowStart } });
+    const cardsOf = (widgets: DashboardWidget[]) => Object.fromEntries((widgets[0].config.extra?.cards as Array<{ id: string; gridOptions: { columnStart: number; rowStart: number } }>)
+      .map(value => [value.id, [value.gridOptions.columnStart, value.gridOptions.rowStart]]));
+
+    it('keeps the dropped card in the cell and moves only the card that was there', () => {
+      const widgets = [section('tech', [pinned('a', 1, 1), pinned('b', 4, 1), pinned('c', 7, 1)])];
+      const placements = { tech: [row('a', 1, 1), row('b', 4, 1), row('c', 7, 1)] };
+
+      expect(cardsOf(placeSectionCard(widgets, 'tech', 'c', 'tech', 1, 1, placements))).toEqual({ a: [1, 5], b: [4, 1], c: [1, 1] });
+    });
+    it('cascades the push so nothing overlaps', () => {
+      const widgets = [section('tech', [pinned('a', 1, 1), pinned('b', 1, 5), pinned('c', 7, 1)])];
+      const placements = { tech: [row('a', 1, 1), row('b', 1, 5), row('c', 7, 1)] };
+
+      expect(cardsOf(placeSectionCard(widgets, 'tech', 'c', 'tech', 1, 1, placements))).toEqual({ a: [1, 5], b: [1, 9], c: [1, 1] });
+    });
+    it('leaves every other card where it was when the cell is free', () => {
+      const widgets = [section('tech', [pinned('a', 1, 1), pinned('b', 4, 1)])];
+      const placements = { tech: [row('a', 1, 1), row('b', 4, 1)] };
+
+      expect(cardsOf(placeSectionCard(widgets, 'tech', 'b', 'tech', 7, 1, placements))).toEqual({ a: [1, 1], b: [7, 1] });
+    });
+    it('never mutates the widgets it was given', () => {
+      const widgets = [section('tech', [pinned('a', 1, 1), pinned('b', 4, 1)])];
+      const snapshot = JSON.stringify(widgets);
+
+      placeSectionCard(widgets, 'tech', 'b', 'tech', 1, 1, { tech: [row('a', 1, 1), row('b', 4, 1)] });
+
+      expect(JSON.stringify(widgets)).toBe(snapshot);
+    });
   });
 });

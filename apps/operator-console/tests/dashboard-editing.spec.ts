@@ -1873,38 +1873,44 @@ test('Feature: Dashboard drag discovery — Scenario: Touch screens get a one-ti
   }
 });
 
-test('Feature: Dashboard card reordering — Scenario: Cards slide aside while another is dragged over them', async ({ page }, testInfo) => {
+test('Feature: Dashboard pinned cards — Scenario: A card dropped on an occupied cell keeps it and pushes the occupant down', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   const template = responsiveDashboard.tabs[0].widgets[1];
-  const cards = ['uno', 'dos', 'tres'].map((id, index) => ({ id, kind: 'light', title: `Luz ${index + 1}`, entityId: 'light-kitchen', span: 'small', icon: 'Lightbulb' }));
-  const section = { ...template, id: 'solo', config: { ...template.config, layout: { ...template.config.layout, span: 1 }, appearance: { title: 'Solo', showTitle: true }, extra: { cards } } };
+  const pinned = (id: string, columnStart: number) => ({ id, kind: 'light', title: `Luz ${id.toUpperCase()}`, entityId: 'light-kitchen', span: 'small', icon: 'Lightbulb', gridOptions: { columns: 3, rows: 4, columnStart, rowStart: 1 } });
+  const section = { ...template, id: 'fijas', config: { ...template.config, layout: { ...template.config.layout, span: 1 }, appearance: { title: 'Fijas', showTitle: true }, extra: { cards: [pinned('a', 1), pinned('b', 4), pinned('c', 7)] } } };
   const dashboard = { ...responsiveDashboard, tabs: [{ ...responsiveDashboard.tabs[0], widgets: [responsiveDashboard.tabs[0].widgets[0], section] }] };
   await prepareAuthenticatedDashboard(page, dashboard);
-  await page.route('**/api/v1/dashboards', route => route.fulfill({ json: [dashboard] }));
-  await page.route('**/api/v1/dashboards/responsive-dashboard', route => route.fulfill({ json: dashboard }));
+  let saved = dashboard;
+  await page.route('**/api/v1/dashboards', route => route.fulfill({ json: [saved] }));
+  await page.route('**/api/v1/dashboards/responsive-dashboard', route => {
+    if (route.request().method() === 'PATCH') saved = { ...saved, ...route.request().postDataJSON() };
+    return route.fulfill({ json: saved });
+  });
   await page.goto('/dashboards/responsive-dashboard/responsive-tab');
   await enterDashboardEdit(page);
 
-  // Count the slides as they start: each one lasts a fraction of a second.
-  await page.evaluate(() => {
-    const started: string[] = [];
-    (window as unknown as { __slides: string[] }).__slides = started;
-    const original = Element.prototype.animate;
-    Element.prototype.animate = function (this: Element, keyframes: Keyframe[] | PropertyIndexedKeyframes | null, options?: number | KeyframeAnimationOptions) {
-      if (typeof options === 'object' && options?.id === 'card-reorder') started.push((this as HTMLElement).dataset.dashboardCardId ?? '?');
-      return original.call(this, keyframes, options);
-    };
-  });
   const card = (id: string) => page.locator(`[data-dashboard-card-id="${id}"]`);
-  const last = (await card('tres').boundingBox())!;
-  const first = (await card('uno').boundingBox())!;
-  await page.mouse.move(last.x + last.width / 2, last.y + last.height / 2);
+  await page.evaluate(() => Promise.all(document.getAnimations().map(animation => animation.finished.catch(() => undefined))));
+  const a = (await card('a').boundingBox())!;
+  const c = (await card('c').boundingBox())!;
+  await page.mouse.move(c.x + c.width / 2, c.y + c.height / 2);
   await page.mouse.down();
-  await page.mouse.move(first.x + first.width * 0.3, first.y + first.height / 2, { steps: 14 });
+  await page.mouse.move(a.x + a.width * 0.35, a.y + a.height * 0.35, { steps: 16 });
 
-  // The cards that make room glide to their new place instead of jumping there.
-  await expect.poll(() => page.evaluate(() => (window as unknown as { __slides: string[] }).__slides.length)).toBeGreaterThan(0);
-  await page.screenshot({ path: testInfo.outputPath('dashboard-reorder-motion.png') });
+  // While dragging, the occupant already makes room: it sits lower than the card beside it.
+  await expect.poll(async () => (await card('a').boundingBox())!.y).toBeGreaterThan(a.y + a.height * 0.5);
+  await expect.poll(async () => (await card('b').boundingBox())!.y).toBeCloseTo(a.y, 0);
+  await page.screenshot({ path: testInfo.outputPath('dashboard-pinned-push.png') });
   await page.mouse.up();
-  await expect.poll(() => page.evaluate(() => document.getAnimations().filter(animation => animation.id === 'card-reorder').length)).toBe(0);
+
+  const cardsOf = () => (saved.tabs[0].widgets.find(widget => widget.id === 'fijas')?.config.extra.cards ?? []) as Array<{ id: string; gridOptions: { columnStart: number; rowStart: number } }>;
+  const place = (id: string) => cardsOf().find(value => value.id === id)!.gridOptions;
+  await expect.poll(() => place('c').columnStart).toBe(1);
+  expect(place('c').rowStart).toBe(1);
+  expect(place('a').rowStart).toBeGreaterThan(1);
+  expect(place('a').columnStart).toBe(1);
+  expect(place('b')).toMatchObject({ columnStart: 4, rowStart: 1 });
+  // What was shown while dragging is what stays on screen after the drop.
+  await expect.poll(async () => (await card('a').boundingBox())!.y).toBeGreaterThan(a.y + a.height * 0.5);
+  expect((await card('c').boundingBox())!.y).toBeCloseTo(a.y, 0);
 });

@@ -86,23 +86,26 @@ export function placeSectionCard(widgets: DashboardWidget[], sourceId: string, c
   const options = transferred.gridOptions as Record<string, unknown> | undefined;
   const targetColumns = options?.columns === 'full' ? 12 : typeof options?.columns === 'number' ? options.columns : measured.columns;
   const startColumn = Math.max(1, Math.min(13 - targetColumns, Math.round(column)));
-  let startRow = Math.max(1, Math.min(10000, Math.round(row)));
-  const occupied = (placements[targetId] ?? []).filter(value => value.id !== cardId);
-  while (occupied.some(value => startColumn < value.column + value.columns && startColumn + targetColumns > value.column
-    && startRow < value.row + value.rows && startRow + measured.rows > value.row)) {
-    if (++startRow > 10000) return widgets;
-  }
+  const startRow = Math.max(1, Math.min(10000, Math.round(row)));
+  // The dropped card keeps exactly the cell it was dropped on; the cards that were there make room by
+  // moving down, cascading in reading order, so a drop reads as a reorder and never as a card sent away.
+  const droppedPlacement: SectionCardPlacement = { ...measured, columns: targetColumns, column: startColumn, row: startRow };
+  const others = (placements[targetId] ?? []).filter(value => value.id !== cardId).sort((a, b) => a.row - b.row || a.column - b.column);
+  const makeRoom = resolvePlacedCardRows([droppedPlacement, ...others]);
   const freeze = (value: StoredCard, placement: SectionCardPlacement | undefined) => {
     if (!placement) return value;
     const options = value.gridOptions && typeof value.gridOptions === 'object' && !Array.isArray(value.gridOptions)
       ? value.gridOptions as Record<string, unknown> : { columns: placement.columns, rows: 'auto' };
     return { ...value, gridOptions: { ...options, columnStart: placement.column, rowStart: placement.row } };
   };
-  const moved = freeze(transferred, { ...measured, columns: targetColumns, column: startColumn, row: startRow });
+  const moved = freeze(transferred, droppedPlacement);
   return widgets.map(widget => {
     if (widget.id !== sourceId && widget.id !== targetId) return widget;
     const cards = storedCards(widget).filter(value => value.id !== cardId)
-      .map(value => freeze(value, placements[widget.id]?.find(position => position.id === value.id)));
+      .map(value => {
+        const placement = placements[widget.id]?.find(position => position.id === value.id);
+        return freeze(value, placement && widget.id === targetId ? { ...placement, row: makeRoom[placement.id] ?? placement.row } : placement);
+      });
     if (widget.id === targetId) cards.push(moved);
     return { ...widget, config: { ...widget.config, extra: { ...widget.config.extra, cards } } };
   });

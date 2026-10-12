@@ -10,4 +10,4 @@
 - [x] Conservar el orden previsualizado al soltar una tarjeta sobre otra.
 - [x] Describir los elementos movibles en el idioma de la interfaz.
 - [x] Retroalimentación visual del arrastre: levantado, hueco de origen, destino que respira y pulso al soltar, con reducción de movimiento.
-- [x] Deslizamiento de las tarjetas al reordenar (`useCardReorderMotion`) en lugar de saltar.
+- [x] Soltar sobre una zona ocupada en secciones con tarjetas fijadas: la tarjeta conserva su celda y las ocupantes se corren hacia abajo, con previsualización en vivo.
