@@ -1,3 +1,4 @@
+import * as net from 'net';
 import * as path from 'path';
 import { bootstrap, BootstrapContainer } from '../bootstrap';
 import { OperatorConsoleServer } from '../apps/api/OperatorConsoleServer';
@@ -11,13 +12,24 @@ import { Scene } from '../packages/devices/domain/Scene';
  * Tests de integración para OperatorConsoleServer.
  * Cubre Automation API, Device API y la nueva funcionalidad de HA Sync V1.
  */
+// Another local tool may already hold a fixed port, so the server takes whichever one is free.
+const freePort = (): Promise<number> => new Promise((resolve, reject) => {
+  const probe = net.createServer();
+  probe.once('error', reject);
+  probe.listen(0, '127.0.0.1', () => {
+    const { port } = probe.address() as net.AddressInfo;
+    probe.close(() => resolve(port));
+  });
+});
+
 describe('OperatorConsoleServer Integration Tests', () => {
   let server: OperatorConsoleServer;
   let container: BootstrapContainer;
-  const PORT = 3101;
+  let PORT = 0;
   const DB_PATH = path.resolve(process.cwd(), 'test.api.db');
 
   beforeAll(async () => {
+    PORT = await freePort();
     container = await bootstrap({ dbPath: DB_PATH, verbose: false });
     const db = SqliteDatabaseManager.getInstance(DB_PATH);
     db.exec(`

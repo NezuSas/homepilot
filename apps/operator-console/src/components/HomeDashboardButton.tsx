@@ -15,7 +15,7 @@ export const HomeDashboardButton: React.FC<HomeDashboardButtonProps> = ({
   <Button
     type="button"
     variant="secondary"
-    size="icon"
+    size="md"
     className="homepilot-home-dashboard-button relative z-20 self-end border-primary/[0.78] hover:border-primary disabled:pointer-events-auto disabled:opacity-100"
     style={{ minHeight: '3.25rem', padding: '0.65rem 1.1rem', gap: '0.7rem', borderRadius: '999px' }}
     disabled={disabled}

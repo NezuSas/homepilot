@@ -159,6 +159,24 @@ test('disables the Home dashboard action without an owned main tab', async ({ pa
   await expect(action).toBeDisabled();
 });
 
+test('keeps the Home dashboard action wide enough to show its whole label', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await prepareAuthenticatedDashboard(page);
+  await page.goto('/');
+
+  const action = page.getByLabel(/contexto local del hogar|local home context/i).getByRole('button', { name: /abrir la pestaña|open/i });
+  await expect(action).toContainText(/Ir a tablero|Go to dashboard/);
+  const geometry = await action.evaluate((button) => {
+    const label = button.querySelector('span');
+    const labelBox = label?.getBoundingClientRect();
+    const box = button.getBoundingClientRect();
+    return { width: box.width, height: box.height, labelWidth: labelBox?.width ?? 0, overflow: button.scrollWidth - button.clientWidth };
+  });
+  expect(geometry.width).toBeGreaterThan(geometry.labelWidth + 36);
+  expect(geometry.height).toBeLessThan(geometry.width);
+  expect(geometry.overflow).toBeLessThanOrEqual(0);
+});
+
 test('opens the owned main tab even when a shared dashboard is also accessible', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await prepareAuthenticatedDashboard(page);
