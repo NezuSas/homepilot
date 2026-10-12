@@ -17,3 +17,4 @@
 - [x] AC3: `tests/devices-spaces.spec.ts` actualizado.
 - [x] AC4: revisión visual con los datos de la oficina.
 - [x] AC5: suite completa y `verify:quality`.
+- [x] Resumen a todo el ancho bajo la cabecera del detalle y mensaje «Conectando cámara…» en la ficha de cámara lenta (AC6).

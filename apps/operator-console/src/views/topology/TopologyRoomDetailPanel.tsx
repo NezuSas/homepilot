@@ -101,7 +101,6 @@ export function TopologyRoomDetailPanel({
               </div>
             )}
             {renameError && <p className="mt-2 text-caption font-semibold text-danger">{renameError}</p>}
-            <RoomSummaryLine summary={summary} className="mt-1" />
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1">
@@ -119,6 +118,7 @@ export function TopologyRoomDetailPanel({
           <IconButton icon={X} label={t('topology.close_details')} onClick={onClose} variant="default" size="md" className="hover:text-foreground" />
         </div>
       </div>
+      <RoomSummaryLine summary={summary} className="mt-3" />
 
       <div className="mt-5 border-t border-border/50 pt-5">
         {devices.length === 0 ? (

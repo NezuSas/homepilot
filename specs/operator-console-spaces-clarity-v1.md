@@ -33,6 +33,8 @@ Fuera de alcance: elegir el tipo de espacio o una foto (requiere guardar datos n
 - **REQ-08:** Los comandos momentáneos (`press`, `activate`) se agrupan en «Acciones», salvo cámaras, persianas y pantallas, y su ficha no repite «Acción momentánea».
 - **REQ-09:** Eliminar el espacio es un botón con icono en la cabecera del detalle, que conserva la confirmación existente; renombrar sigue junto al nombre.
 - **REQ-10:** Los textos de Espacios usan «espacio» y no «estancia» (y «space» en inglés), con mayúscula solo inicial.
+- **REQ-11:** El resumen del detalle ocupa todo el ancho bajo la cabecera, no la columna del nombre, para que en móvil no se parta palabra por palabra.
+- **REQ-12:** Una cámara que tarda en conectar muestra «Conectando cámara…» sobre el recuadro, en vez de un rectángulo oscuro sin explicación.
 
 ## Criterios de aceptación
 
@@ -41,6 +43,7 @@ Fuera de alcance: elegir el tipo de espacio o una foto (requiere guardar datos n
 - [x] **AC3:** Los e2e de Espacios usan el nuevo flujo: añadir espacio desde el botón, renombrar el hogar desde el menú, acciones agrupadas y búsqueda de dispositivos con ocho dispositivos.
 - [x] **AC4:** Revisión visual con los datos reales de la oficina en escritorio y móvil, sin desbordes.
 - [x] **AC5:** Las pruebas existentes de Espacios, cámaras y dispositivos siguen pasando, y la validación completa del repositorio.
+- [x] **AC6:** Revisión como cliente sobre la consola de la oficina (escritorio y móvil): el resumen no se parte en móvil y una cámara lenta anuncia que está conectando.
 
 ## Estrategia de compatibilidad y reversión
 

@@ -228,6 +228,7 @@ export const CameraDeviceTile: React.FC<CameraDeviceTileProps> = ({ device, room
           )}
           {firstFramePending && <div className="absolute inset-0" role="status" aria-busy="true" aria-label={statusLabel}>
             <DashboardCardSkeleton variant="camera" mediaOnly visible={showSkeleton} className="h-full" />
+            {showSkeleton && <p data-camera-connecting="" className="absolute inset-x-0 top-[38%] text-center text-caption font-semibold text-white/85 drop-shadow motion-safe:animate-pulse">{statusLabel}…</p>}
           </div>}
           {!firstFramePending && (!media || hasFeedError || unavailable) && (
             <div className="absolute inset-0 flex h-full w-full flex-col items-center justify-center gap-2.5 bg-muted text-muted-foreground" role="status" aria-live="polite">
