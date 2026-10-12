@@ -5,6 +5,8 @@
 **Date:** 2026-10-10
 **Scope:** Capa visual de `apps/operator-console`: superficies mate con estado «iluminado», icono circular de marca y una escena de habitación que refleja el estado real. Sin funcionalidades nuevas.
 
+> **Actualización 2026-10-12:** la escena de habitación (`RoomScene`, REQ-05 a REQ-07, AC4 y AC5) se retiró de Espacios por no informar sobre lo que cada espacio contiene realmente; ver `operator-console-spaces-clarity-v1.md`. Lo demás de esta spec (tipografía, superficies iluminadas) sigue vigente.
+
 ## Problem Statement
 
 Las tarjetas de dispositivo se perciben rígidas y poco distinguibles entre encendido y apagado, y la vista de Espacios no comunica el estado real de la estancia. Una primera exploración con vidrio translúcido fue descartada: el contenido competía con el fondo. El estudio de competidores (Apple Home, Control4 X4, Savant, Crestron, Home Assistant) indica que lo premium proviene del contraste decisivo entre encendido y apagado, la tipografía, el espacio y la estancia como protagonista, no del desenfoque.
@@ -31,9 +33,9 @@ Las tarjetas de dispositivo se perciben rígidas y poco distinguibles entre ence
 - **REQ-02:** Los tokens `--tile-*` existen en `:root` (oscuro) y `.light`.
 - **REQ-03:** Una tarjeta encendida en los ámbitos `.homepilot-room-devices`, `.homepilot-home-routines` y `.homepilot-dashboard-screen` usa la superficie iluminada con texto legible y el icono sobre disco naranja, en ambos temas.
 - **REQ-04:** `DeviceWidget` encendido usa la misma superficie iluminada; apagado conserva la superficie de tarjeta.
-- **REQ-05:** `RoomScene` es decorativa (`aria-hidden`), no recibe foco, no añade texto visible ni contenido accesible nuevo y se adapta al ancho del panel sin desbordar.
-- **REQ-06:** `RoomScene` muestra la lámpara encendida si al menos una luz de la habitación está encendida y apagada en caso contrario; con estado desconocido de todas las luces se muestra apagada.
-- **REQ-07:** `RoomScene` muestra las cortinas según la posición de la persiana conocida; si no hay persiana o su posición es desconocida, no dibuja cortinas (no asume cerrada).
+- **REQ-05 (retirado):** `RoomScene` es decorativa (`aria-hidden`), no recibe foco, no añade texto visible ni contenido accesible nuevo y se adapta al ancho del panel sin desbordar.
+- **REQ-06 (retirado):** `RoomScene` muestra la lámpara encendida si al menos una luz de la habitación está encendida y apagada en caso contrario; con estado desconocido de todas las luces se muestra apagada.
+- **REQ-07 (retirado):** `RoomScene` muestra las cortinas según la posición de la persiana conocida; si no hay persiana o su posición es desconocida, no dibuja cortinas (no asume cerrada).
 
 ## Non-Functional Requirements
 
@@ -47,8 +49,8 @@ Las tarjetas de dispositivo se perciben rígidas y poco distinguibles entre ence
 - **AC1:** `--font-sans` empieza por Inter y el archivo OFL está en el repositorio.
 - **AC2:** Los tokens `--tile-*` existen en oscuro y claro.
 - **AC3:** Las tarjetas de luz encendidas en el detalle de habitación mantienen `aria-pressed`, tamaños y nombres accesibles, y su texto y su icono cumplen el contraste de NFR-01 (comprobado en navegador).
-- **AC4:** El modelo de escena devuelve `lightsOn` según luces encendidas y `curtainOpen` según la posición de persiana, e ignora estados desconocidos.
-- **AC5:** El detalle de habitación contiene la escena decorativa sin `role`, sin foco y sin desbordamiento horizontal a 320, 768 y 1440 px.
+- **AC4 (retirado):** El modelo de escena devuelve `lightsOn` según luces encendidas y `curtainOpen` según la posición de persiana, e ignora estados desconocidos.
+- **AC5 (retirado):** El detalle de habitación contiene la escena decorativa sin `role`, sin foco y sin desbordamiento horizontal a 320, 768 y 1440 px.
 - **AC6:** Las pruebas existentes de Jest y las responsive de habitación, tarjeta unificada y sensor siguen pasando.
 - **AC7:** `check:spec-coverage`, `check:bdd-traceability`, `check:module-test-coverage`, `check:ui-primitives`, lint, typecheck y ambos builds pasan.
 - **AC8:** La aprobación visual es una decisión humana previa a ampliar el alcance.

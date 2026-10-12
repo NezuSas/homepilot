@@ -15,3 +15,5 @@
 - [x] Diseños: lienzo de Claude Design (tablet horizontal ×3, vertical, móvil, escritorio) y Figma páginas A y B (fundamentos, Light Tile, Curtain Tile, Camera Tile, Room Scene, detalle de habitación).
 - [ ] Aprobación visual humana.
 - [ ] Fase 2 (no incluida): restilar `CurtainDeviceTile`, `CameraDeviceTile` y sensor; riel lateral en tablet; fotos por estancia (requiere persistencia).
+
+> 2026-10-12: la tarea de la escena de habitación quedó retirada; ver `operator-console-spaces-clarity-v1.tasks.md`.

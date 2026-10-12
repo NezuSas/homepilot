@@ -101,7 +101,7 @@ The command fails if a file cannot be mapped to an existing spec.
 | Acciones momentáneas en Escenas y Automatizaciones | Capacidades reales `press`/`activate`, constructores y ejecución compartida de comandos | `specs/operator-console-v1.md` AC46; `specs/operator-console-v1.tasks.md` UI-Routines-01 |
 | Carga inicial propia por componente, favoritas estables y dispositivos por espacio | LoadingState, ComponentSkeletons, useInitialLoading, Home y vistas asíncronas, SceneCard, AutomationDeviceSelect y SearchableSelectField | `specs/operator-console-v1.md` AC51–AC53; `specs/operator-console-v1.tasks.md` UI-Loading-01, UI-Routines-06; `specs/operator-console-modular-components-v1.md` REQ-18 |
 | Gestor de configuración sin controles operativos | ManagedDeviceTile, DeviceInspector, InboxView, useDisplayControlCatalog | `specs/operator-console-v1.md` AC54; `specs/operator-console-modular-components-v1.md` AC77–AC78 (fichas compactas, filtros, Drawer estable y scroll sin barras); `specs/smart-display-control-catalog-v1.md` |
-| Tarjetas iluminadas y escena de habitación (Estancia viva) | `index.css` tokens `--tile-*` y `--scene-*`, `DeviceWidget`, tarjetas de luz en Espacios/Rutinas/Dashboards, `RoomScene`, `roomSceneModel`, `TopologyRoomDetailPanel` | `specs/operator-console-estancia-viva-design-v1.md` AC1–AC7; `roomSceneModel.test.ts`, `RoomScene.test.tsx`; Playwright `Room devices` y `Unified control tile` |
+| Tarjetas iluminadas (Estancia viva) | `index.css` tokens `--tile-*`, `DeviceWidget`, tarjetas de luz en Espacios/Rutinas/Dashboards, `TopologyRoomDetailPanel` | `specs/operator-console-estancia-viva-design-v1.md` AC1–AC7; Playwright `Room devices` y `Unified control tile` |
 | Shared Edge foundations | API gateway, route handler, shared contracts | Edge platform foundations |
 
 ## Audited Coverage
@@ -112,7 +112,7 @@ The command fails if a file cannot be mapped to an existing spec.
 - AC48 colocación y controles (2026-10-03): coordenadas opcionales en JSON compatible, conservación de huecos, colisiones, crecimiento intrínseco y transferencia; anchos según canvas y acciones de Section unificadas. Tests focalizados 222/222 PASS en 10 suites; sin ejecución responsive ni certificación táctil.
 - AC48 mínimos/preview/menús: ActionMenu y CardPreviewFrame con pruebas propias; tamaño nuevo mínimo 2 × 2 sin reescribir histórico, preview estable y título primero. 48/48 Jest PASS, typecheck/lint/builds y checks de spec/BDD/módulos PASS; responsive no ejecutado.
 - AC48 transferencia/etiquetas: tamaño proporcional entre Sections, preview uniforme y Etiqueta independiente; 153/153 tests focalizados PASS, tipos/lint/builds/spec/BDD/módulos/i18n/arquitectura PASS. Sin responsive ni comprobación visual en tablet.
-- The **1279** audited TypeScript/TSX files have a mapping rule to an existing
+- The **1280** audited TypeScript/TSX files have a mapping rule to an existing
   spec.
 - All bounded contexts under `packages/` and all API route families are
   covered.

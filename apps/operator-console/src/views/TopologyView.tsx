@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Home as HomeIcon, Layers3 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
@@ -14,11 +14,14 @@ import { TopologyHomeHeader } from './topology/TopologyHomeHeader';
 import { TopologyRoomCard } from './topology/TopologyRoomCard';
 import { TopologyRoomDetailPanel } from './topology/TopologyRoomDetailPanel';
 import { sortRoomDevices } from './topology/topologyDeviceControl';
-import { canManageHome, countActiveRoomDevices, getAssignedRoomDevices } from './topology/topologyViewModel';
+import { canManageHome, getAssignedRoomDevices } from './topology/topologyViewModel';
 import { useRoomDeviceCommand } from './topology/useRoomDeviceCommand';
 import { useTopologyData } from './topology/useTopologyData';
 import { useTopologyHomeRename } from './topology/useTopologyHomeRename';
 import { useTopologyRooms } from './topology/useTopologyRooms';
+
+/** With a handful of spaces the list is scanned by eye; a search box only starts to help beyond this. */
+const ROOM_SEARCH_THRESHOLD = 6;
 
 interface TopologyViewProps {
   currentUser: UserContext | null;
@@ -55,10 +58,13 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
     return sortRoomDevices(selectedRoomDevices, deviceSearch);
   }, [deviceSearch, selectedRoomDevices]);
 
-  const activeRoomDeviceCount = useMemo(
-    () => countActiveRoomDevices(selectedRoomDevices),
-    [selectedRoomDevices],
-  );
+  // Opening a space brings its detail into view: on a phone it opens below the whole list.
+  const detailRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!selectedRoomId) return;
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    detailRef.current?.scrollIntoView({ block: 'start', behavior: reduceMotion ? 'auto' : 'smooth' });
+  }, [selectedRoomId]);
 
   if (loadingHomes) {
     return <SpacesSkeleton label={t('common.loading')} />;
@@ -78,6 +84,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
           <>
             <TopologyHomeHeader
               home={selectedHome}
+              roomCount={rooms.length}
               canManage={manageable}
               editing={homeRename.editingHomeId === selectedHome.id}
               nameDraft={homeRename.homeNameDraft}
@@ -91,12 +98,12 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
               onNewRoomNameChange={roomsState.setNewRoomName}
               onAddRoom={roomsState.handleAddRoom}
             />
-            <SearchInput
+            {rooms.length > ROOM_SEARCH_THRESHOLD && <SearchInput
               value={roomSearch}
               onChange={(event) => setRoomSearch(event.target.value)}
               placeholder={t('topology.search_rooms')}
               aria-label={t('topology.search_rooms')}
-            />
+            />}
 
               <div className={cn(
                 "grid grid-cols-1 items-start gap-4",
@@ -128,7 +135,6 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                           room={room}
                           devices={devices}
                           selected={selectedRoomId === room.id}
-                          t={t}
                           onSelect={() => {
                             roomsState.setSelectedRoomId((currentRoomId) => currentRoomId === room.id ? null : room.id);
                             if (editingRoomId !== room.id) roomsState.cancelRoomRename();
@@ -137,11 +143,10 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                       ))}
                     </div>
 
-                    {selectedRoom && <TopologyRoomDetailPanel
+                    {selectedRoom && <div ref={detailRef} className="scroll-mt-4"><TopologyRoomDetailPanel
                       room={selectedRoom}
                       devices={selectedRoomDevices}
                       visibleDevices={visibleSelectedRoomDevices}
-                      activeLightCount={activeRoomDeviceCount}
                       canManage={manageable}
                       editing={editingRoomId === selectedRoom.id}
                       draft={roomsState.roomNameDraft}
@@ -158,7 +163,7 @@ export const TopologyView: React.FC<TopologyViewProps> = ({ currentUser }) => {
                       onDeviceSearchChange={setDeviceSearch}
                       onDeviceCommand={executeRoomDeviceCommand}
                       onDelete={() => roomsState.setRoomPendingDelete(selectedRoom)}
-                    />}
+                    /></div>}
                   </>
                 )}
               </div>

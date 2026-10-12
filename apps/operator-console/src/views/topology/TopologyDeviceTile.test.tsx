@@ -7,7 +7,6 @@ jest.mock('../../components/CameraMediaFrame', () => ({ CameraMediaFrame: () => 
 jest.mock('../dashboards/components/IconPicker', () => ({ getDashboardIconComponent: () => 'svg' }));
 jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => ({
   'dashboard.editor.sections.sensor_unavailable': 'Sin lectura',
-  'topology.momentary_action': 'Acción momentánea',
   'device_states.off': 'Apagado',
   'device_states.unavailable': 'No disponible',
 } as Record<string, string>)[key] ?? key }) }));
@@ -26,9 +25,9 @@ describe('Room Dashboard presenters (AC24, AC25)', () => {
     expect(html).not.toContain('Iluminación');
     expect(html).not.toContain('>Apagado<');
   });
-  it('shows momentary controls without toggle semantics', () => {
+  it('shows momentary controls without toggle semantics or a repeated caption', () => {
     const html = render(device({ type: 'sensor', semanticType: 'light', capabilities: [{ type: 'button', name: 'Button', commands: [{ name: 'press' }] }] }));
-    expect(html).toContain('Acción momentánea');
+    expect(html).not.toContain('topology.momentary_action');
     expect(html).not.toContain('aria-pressed');
     expect(html).not.toContain('Apagado');
   });

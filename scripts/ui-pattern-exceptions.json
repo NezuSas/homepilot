@@ -27,6 +27,6 @@
   "apps/operator-console/src/views/OnboardingConnectionStep.tsx": "Bordered container with runtime title, buttons and links, not a message banner.",
   "apps/operator-console/src/views/OnboardingHeader.tsx": "Stepper progress tiles with current/done/pending state; no catalog component fits.",
   "apps/operator-console/src/views/topology/RoomDisplayControls.tsx": "section[aria-label] landmark with col-span-full; Card renders a div with overflow-hidden.",
-  "apps/operator-console/src/views/topology/TopologyRoomDetailPanel.tsx": "aside[aria-label] landmark with negative-margin geometry for RoomScene that Playwright pins.",
+  "apps/operator-console/src/views/topology/TopologyRoomDetailPanel.tsx": "aside[aria-label] landmark for the space detail that Playwright pins.",
   "apps/operator-console/src/views/TopologyView.tsx": "section wrapping the room and device dropdowns; Card overflow-hidden could clip them."
 }

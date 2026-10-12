@@ -150,7 +150,6 @@
     --light-active:        36 100% 66%;      /* physical light warmth */
     --light-active-foreground: 30 60% 10%;
 
-
     /* ── Semantic Status ────────────────────────────────────── */
     --success:             151 38% 46%;
     --success-foreground:  150 42% 9%;
@@ -206,17 +205,6 @@
     --tile-chip:          27 86% 59%;
     --tile-chip-ink:      25 70% 9%;
 
-    /* ── Room scene (night): illustration tokens, no logic in JS ── */
-    --scene-wall-a: 24 20% 15%;  --scene-wall-b: 22 22% 9%;
-    --scene-floor-a: 22 25% 8%;  --scene-floor-b: 20 30% 5%;  --scene-base: 24 25% 18%;
-    --scene-sky-a: 214 42% 31%;  --scene-sky-b: 216 42% 11%;  --scene-orb: 41 54% 87%;  --scene-stars: 1;
-    --scene-frame: 28 22% 24%;   --scene-rod: 28 24% 34%;
-    --scene-curtain-a: 20 17% 21%; --scene-curtain-b: 20 17% 29%; --scene-fold: 22 25% 13%;
-    --scene-sofa-back: 24 20% 23%; --scene-sofa-seat: 22 22% 19%; --scene-sofa-arm: 22 25% 16%; --scene-cushion: 24 18% 25%;
-    --scene-art-frame: 24 25% 14%; --scene-art-line: 25 24% 29%;
-    --scene-shade-on: 36 86% 78%; --scene-shade-off: 34 14% 48%; --scene-pole: 28 24% 34%; --scene-glow: 27 86% 59%; --scene-glow-strength: 0.62;
-    --scene-plant-a: 145 24% 22%; --scene-plant-b: 145 22% 28%; --scene-plant-c: 145 26% 18%; --scene-pot: 22 22% 19%;
-    --scene-shadow: 20 40% 4%;   --scene-veil: 20 40% 3%;     --scene-veil-strength: 0.4;
   }
 
   .light {
@@ -284,7 +272,6 @@
     --light-active:        37 65% 54%;       /* warm brass */
     --light-active-foreground: 30 60% 10%;
 
-
     /* ── Semantic Status ────────────────────────────────────── */
     --success:             123 18% 41%;       /* deep olive #557B57 */
     --success-foreground:  0 0% 100%;
@@ -307,16 +294,6 @@
     --tile-lit-ink-muted: 32 12% 76%;
 
     /* Room scene (day) */
-    --scene-wall-a: 36 24% 80%;  --scene-wall-b: 34 22% 70%;
-    --scene-floor-a: 32 18% 62%; --scene-floor-b: 30 18% 54%; --scene-base: 32 18% 50%;
-    --scene-sky-a: 204 56% 82%;  --scene-sky-b: 38 70% 88%;  --scene-orb: 40 90% 70%;  --scene-stars: 0;
-    --scene-frame: 30 22% 40%;   --scene-rod: 30 20% 38%;
-    --scene-curtain-a: 30 22% 66%; --scene-curtain-b: 30 22% 76%; --scene-fold: 30 20% 54%;
-    --scene-sofa-back: 26 24% 44%; --scene-sofa-seat: 24 24% 38%; --scene-sofa-arm: 24 24% 33%; --scene-cushion: 28 22% 50%;
-    --scene-art-frame: 30 20% 62%; --scene-art-line: 30 20% 46%;
-    --scene-shade-on: 36 86% 80%; --scene-shade-off: 34 20% 78%; --scene-pole: 30 20% 40%; --scene-glow-strength: 0.3;
-    --scene-plant-a: 140 22% 32%; --scene-plant-b: 140 22% 40%; --scene-plant-c: 140 22% 26%; --scene-pot: 24 24% 38%;
-    --scene-shadow: 30 30% 20%;  --scene-veil-strength: 0;
   }
 }
 
@@ -830,9 +807,6 @@
     background-color: hsl(var(--background));
   }
 
-
-
-
   /* An inset edge preserves measured section/card bounds and masonry rows. */
   .homepilot-dashboard-screen .homepilot-dashboard-section {
     background: radial-gradient(circle at 88% 0%, rgb(var(--hp-section-ambient) / 0.11), transparent 46%), linear-gradient(145deg, rgb(var(--hp-section-surface) / 0.97), rgb(var(--hp-section-surface) / 0.9));
@@ -1169,7 +1143,6 @@
      must not override the light section and clock palettes in that state. */
   /* Dashboard treatments consume the global palette; only material/opacity is local. */
 
-
   .dark:not(.light) .homepilot-dashboard-screen .homepilot-clock-surface,
   .dark:not(.light) .homepilot-dashboard-screen [data-media-player="homepilot-premium"],
   .dark:not(.light) .homepilot-dashboard-screen .sensor-metric-card,
@@ -1309,7 +1282,6 @@
     display: flex;
     align-items: center;
   }
-
 
   .homepilot-dashboard-screen .homepilot-clock-reference-header {
     justify-content: space-between;

@@ -3,16 +3,21 @@ import { getRoutineDeviceCommands, isCameraDevice } from '../../lib/deviceCapabi
 import { isDeviceUnavailable } from '../../lib/deviceAvailability';
 import { resolveManagedDeviceKind, type ManagedDeviceKind } from '../../lib/devicePresentation';
 
-export type RoomDeviceGroup = ManagedDeviceKind | 'media_player';
+/** `action` collects momentary commands (press, activate) whatever their source calls them, so they are not mistaken for lights or switches. */
+export type RoomDeviceGroup = ManagedDeviceKind | 'media_player' | 'action';
+
+const NEVER_AN_ACTION: readonly ManagedDeviceKind[] = ['cover', 'camera', 'smart_display'];
 
 export function getRoomDeviceGroup(device: SnapshotDevice): RoomDeviceGroup {
   const kind = resolveManagedDeviceKind(device);
-  if (kind === 'other' && (device.type === 'media_player' || device.profile?.domain === 'media_player'
-    || device.capabilities?.some(capability => capability.type === 'media_player'))) return 'media_player';
+  const isMediaPlayer = kind === 'other' && (device.type === 'media_player' || device.profile?.domain === 'media_player'
+    || device.capabilities?.some(capability => capability.type === 'media_player'));
+  if (isMediaPlayer) return 'media_player';
+  if (!NEVER_AN_ACTION.includes(kind) && isRoomDeviceMomentary(device)) return 'action';
   return kind;
 }
 
-const ROOM_DEVICE_GROUP_ORDER: RoomDeviceGroup[] = ['light', 'switch', 'cover', 'media_player', 'sensor', 'smart_display', 'camera', 'other'];
+export const ROOM_DEVICE_GROUP_ORDER: readonly RoomDeviceGroup[] = ['light', 'switch', 'action', 'cover', 'media_player', 'sensor', 'smart_display', 'camera', 'other'];
 
 /** Null means unknown, not off. Momentary commands never acquire a toggle state. */
 export function getRoomDeviceState(device: SnapshotDevice): boolean | null {

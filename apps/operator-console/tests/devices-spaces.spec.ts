@@ -114,6 +114,7 @@ for (const viewport of [
       { ...base, id: 'room-cover', name: 'Cortina Kitchen', type: 'cover', lastKnownState: { state: 'closed', current_position: 0 }, capabilities: [{ type: 'cover', name: 'Cover', commands: [{ name: 'open' }, { name: 'close' }, { name: 'stop' }] }] },
       { ...base, id: 'room-camera', name: 'Cámara Kitchen', type: 'camera', lastKnownState: null },
       { ...base, id: 'room-music', name: 'Speaker Kitchen', type: 'media_player', lastKnownState: { state: 'idle' } },
+      { ...base, id: 'room-humidity', name: 'Humedad Kitchen', type: 'sensor', lastKnownState: { state: '48', unit_of_measurement: '%' } },
       { ...base, id: 'other-room', roomId: 'other', name: 'Luz de otra estancia', type: 'light', lastKnownState: { on: false } },
     ];
     const commands: { id: string; command: string }[] = [];
@@ -131,8 +132,8 @@ for (const viewport of [
     for (const theme of ['dark', 'light']) {
       await page.goto('/spaces');
       await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
-      await page.getByRole('button', { name: /Kitchen.*7 dispositivos|Kitchen.*7 devices/i }).click();
-      const detail = page.getByRole('complementary', { name: /Detalle de la estancia|Room details|Detalle de estancia/i });
+      await page.getByRole('button', { name: /^Kitchen/ }).click();
+      const detail = page.getByRole('complementary', { name: /Detalle del espacio|Space details/i });
       await expect(detail).toBeVisible();
       await expect(detail).toContainText('23°C');
       await expect(detail).toContainText(/Sin lectura|No reading/i);
@@ -143,8 +144,10 @@ for (const viewport of [
       const lights = detail.getByRole('region', { name: /^(Luces|Lights)$/i });
       const sensors = detail.getByRole('region', { name: /^(Sensores|Sensors)$/i });
       const music = detail.getByRole('region', { name: /^(Multimedia|Media Player)$/i });
+      const actions = detail.getByRole('region', { name: /^(Acciones|Actions)$/i });
       await expect(lights).toContainText('Desayunador blanca');
-      await expect(lights).toContainText('On/Off TV');
+      await expect(lights).not.toContainText('On/Off TV');
+      await expect(actions).toContainText('On/Off TV');
       await expect(lights).not.toContainText('Temperatura Kitchen');
       await expect(sensors).toContainText('Temperatura Kitchen');
       await expect(sensors).not.toContainText('Speaker Kitchen');
@@ -239,8 +242,8 @@ for (const viewport of [
       await expect(inspector).toHaveCount(0);
       await page.goto('/spaces');
       await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
-      await page.getByRole('button', { name: /Sala de reuniones.*3 dispositivos|Sala de reuniones.*3 devices/i }).click();
-      const detail = page.getByRole('complementary', { name: /Detalle de.*estancia|Room details/i });
+      await page.getByRole('button', { name: /^Sala de reuniones/i }).click();
+      const detail = page.getByRole('complementary', { name: /Detalle del espacio|Space details/i });
       await expect(detail.getByRole('button', { name: /pantalla completa|full screen/i })).toBeVisible();
       expect(cameraSessions).toBeGreaterThan(0);
       const board = detail.getByRole('region', { name: display.name, exact: true });
@@ -777,8 +780,8 @@ test('Las cámaras cargan el primer fotograma en Espacios y conservan la tarjeta
 
   await page.route('**/api/v1/homes', route => route.fulfill({ json: [{ id: camera.homeId, name: 'Casa', ownerId: dashboardUser.id }] }));
   await page.goto('/spaces');
-  await page.getByRole('button', { name: /Patio.*1 dispositivo|Patio.*1 device/i }).click();
-  const managedCamera = page.getByRole('complementary', { name: /Detalle de.*estancia|Room details/i });
+  await page.getByRole('button', { name: /^Patio/ }).click();
+  const managedCamera = page.getByRole('complementary', { name: /Detalle del espacio|Space details/i });
   await expect(managedCamera.getByRole('status')).toBeVisible();
   await expect(managedCamera.getByRole('status')).toHaveCount(0);
   await expect(managedCamera.getByRole('button', { name: /pantalla completa|full screen/i })).toBeVisible();
@@ -1038,11 +1041,14 @@ for (const width of [360, 768, 1440]) {
       return route.fulfill({ json: rooms[0] });
     });
     await page.goto('/spaces');
-    const create = page.getByRole('textbox', { name: /^(Room name\.\.\.|Nombre de la estancia\.\.\.)$/i });
+    await expect(page.getByRole('textbox', { name: /^(Space name\.\.\.|Nombre del espacio\.\.\.)$/i })).toHaveCount(0);
+    await page.getByRole('button', { name: /^(Add space|Añadir espacio)$/i }).click();
+    const create = page.getByRole('textbox', { name: /^(Space name\.\.\.|Nombre del espacio\.\.\.)$/i });
     await expect(create).toBeVisible();
     for (const theme of ['dark', 'light']) {
       await page.evaluate(light => document.documentElement.classList.toggle('light', light), theme === 'light');
-      await page.getByRole('button', { name: /^(Rename home|Renombrar hogar)$/i }).click();
+      await page.getByRole('button', { name: /^(Home options|Opciones del hogar)$/i }).click();
+      await page.getByRole('menuitem', { name: /^(Rename home|Renombrar hogar)$/i }).click();
       const rename = page.getByRole('textbox', { name: /^(Rename home|Renombrar hogar)$/i });
       await expect(rename).toBeFocused();
       await expect(rename).toHaveValue(home.name);
@@ -1059,9 +1065,9 @@ for (const width of [360, 768, 1440]) {
     await create.fill('  Sala ficticia  ');
     await create.press('Enter');
     await expect.poll(() => writes).toBe(1);
-    const detail = page.getByRole('complementary', { name: /Detalle de.*estancia|Room details/i });
+    const detail = page.getByRole('complementary', { name: /Detalle del espacio|Space details/i });
     await expect(detail).toContainText('Sala ficticia');
-    await detail.getByRole('button', { name: /^(Rename room|Renombrar estancia)$/i }).click();
+    await detail.getByRole('button', { name: /^(Rename space|Renombrar espacio)$/i }).click();
     const name = detail.getByRole('textbox', { name: /^(Edit name|Editar nombre)$/i });
     await expect(name).toHaveCSS('height', '44px');
     await expect(name).toHaveCSS('border-radius', '12px');
@@ -1116,18 +1122,19 @@ test('Feature: Room details — Scenario: A home owner selects a room, controls 
   await page.getByRole('button', { name: /Sala de prueba/ }).click();
   const detail = page.locator('aside.self-start');
   await expect(detail).toContainText('Lámpara central');
-  await expect(detail).toContainText(/Dispositivos en la estancia|Devices in room/i);
+  await expect(detail).toContainText(/1 dispositivo|1 device/i);
+  await expect(detail.getByRole('textbox', { name: /Buscar dispositivos|Search devices/i })).toHaveCount(0);
 
   await detail.getByRole('button', { name: /Encender dispositivo|Turn on device/i }).click();
   await expect(detail.getByRole('button', { name: /Apagar dispositivo|Turn off device/i })).toBeVisible();
   expect(commandCount).toBe(1);
 
-  await detail.getByRole('button', { name: /Renombrar estancia|Rename room/i }).click();
+  await detail.getByRole('button', { name: /Renombrar espacio|Rename space/i }).click();
   await detail.getByRole('textbox', { name: /Editar nombre|Edit name/i }).fill('Sala principal');
   await detail.getByRole('button', { name: /Guardar nombre|Save name/i }).click();
   await expect(detail).toContainText('Sala principal');
 
-  await detail.getByRole('button', { name: /Cerrar detalle de estancia|Close room details/i }).click();
+  await detail.getByRole('button', { name: /Cerrar detalle del espacio|Close space details/i }).click();
   await expect(detail).toHaveCount(0);
 });
 
