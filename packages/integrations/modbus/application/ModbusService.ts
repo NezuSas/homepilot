@@ -6,7 +6,9 @@ import type { Device } from '../../../devices/domain/types';
 import { ModbusError, validateConnection, validateVariable, type ModbusConnection, type ModbusVariable, type ModbusProbeResult, type ModbusDiagnostic } from '../domain/Modbus';
 import { resolveModbusRange, validateProfileMapping } from '../domain/ModbusAddressProfile';
 import { modbusWordCount } from '../domain/Modbus';
-import type { ModbusRepository, ModbusTransport } from './ModbusPorts';
+import type { ModbusRepository, ModbusTransport, PlcTransportRegistry } from './ModbusPorts';
+import { DEFAULT_PLC_PROTOCOL } from '../domain/PlcProtocol';
+import { integrationInfo, isPlcIntegration } from '../../../devices/domain/integrationCatalog';
 import { plcReadVariable, validatePlcBinding } from '../domain/PlcBinding';
 import { encodeModbusValue } from '../domain/ModbusEncoder';
 
@@ -21,9 +23,14 @@ export class ModbusService implements DeviceDriver {
   private readonly probes = new Set<string>();
   private readonly diagnostics = new Map<string, ModbusDiagnostic>();
   private readonly commands = new Map<string, { commandedState: boolean | number; confirmation: string }>();
-  constructor(private readonly repository: ModbusRepository, private readonly transport: ModbusTransport,
+  constructor(private readonly repository: ModbusRepository, private readonly transports: PlcTransportRegistry,
     private readonly devices: DeviceRepository, private readonly homes: HomeRepository,
     private readonly publishState: (deviceId: string, state: Record<string, unknown>) => Promise<void>) {}
+
+  /** The transport of the protocol this connection speaks. */
+  private transportOf(connection: ModbusConnection): ModbusTransport {
+    return this.transports.transportFor(connection.protocol ?? DEFAULT_PLC_PROTOCOL);
+  }
 
   private async authorize(userId: string, homeId: string): Promise<void> {
     if (!(await this.homes.findHomesByUserId(userId)).some(h => h.id === homeId)) throw new ModbusError('FORBIDDEN', 'Home is not accessible');
@@ -76,7 +83,7 @@ export class ModbusService implements DeviceDriver {
         if (signal?.aborted) throw new ModbusError('CANCELLED', 'Read cancelled');
         const started = Date.now();
         try {
-          const raw = await this.transport.readRange(connection, map.area, map.address, end - map.address + 1, signal);
+          const raw = await this.transportOf(connection).readRange(connection, map.area, map.address, end - map.address + 1, signal);
           if (signal?.aborted) throw new ModbusError('CANCELLED', 'Read cancelled');
           if (raw.length !== end - map.address + 1) throw new ModbusError('PROTOCOL', 'Incomplete read');
           return { sampledAt: new Date().toISOString(), rows: raw.map((value, i) => ({ address: map.address + i, raw: value, status: 'ok' as const, elapsedMs: Date.now() - started, ...(resolved ? { symbolicAddress: resolved[i].symbolicAddress, area: map.area } : {}) })) };
@@ -115,10 +122,10 @@ export class ModbusService implements DeviceDriver {
       const variable: ModbusVariable = { ...validateVariable({ ...existing, ...input }), deviceId: deviceId ?? randomUUID(), connectionId };
       try { validateProfileMapping(variable, modbusWordCount(variable.dataType), this.requireConnection(connectionId).moduleCapacities); validatePlcBinding(variable.plc, variable, this.requireConnection(connectionId).moduleCapacities); } catch { throw new ModbusError('INVALID_CONFIG', 'Invalid profile mapping'); }
       const previous = existing ? await this.devices.findDeviceById(variable.deviceId) : null;
-      if (existing && (!previous || previous.homeId !== connection.homeId || previous.integrationSource !== 'modbus-tcp')) throw new ModbusError('FORBIDDEN', 'Invalid Modbus binding');
+      if (existing && (!previous || previous.homeId !== connection.homeId || previous.integrationSource !== (connection.protocol ?? DEFAULT_PLC_PROTOCOL))) throw new ModbusError('FORBIDDEN', 'Invalid Modbus binding');
       const now = new Date().toISOString(), type = variable.dataType !== 'boolean' ? 'sensor' : variable.writable ? 'switch' : 'binary_sensor';
       const device: Device = { id: variable.deviceId, homeId: connection.homeId, roomId: null,
-        externalId: `modbus:${variable.deviceId}`, vendor: 'Modbus TCP', status: 'PENDING', integrationSource: 'modbus-tcp',
+        externalId: `modbus:${variable.deviceId}`, vendor: integrationInfo(connection.protocol ?? DEFAULT_PLC_PROTOCOL)?.name ?? 'PLC', status: 'PENDING', integrationSource: connection.protocol ?? DEFAULT_PLC_PROTOCOL,
         invertState: false, lastKnownState: { state: 'unavailable', stale: true }, createdAt: now,
         ...previous, name: variable.name, type, semanticType: type === 'switch' ? 'switch' : 'sensor',
         updatedAt: now, entityVersion: (previous?.entityVersion ?? 0) + 1 };
@@ -130,7 +137,7 @@ export class ModbusService implements DeviceDriver {
       return variable;
     });
   }
-  supports(device: Device): boolean { return device.integrationSource === 'modbus-tcp'; }
+  supports(device: Device): boolean { return isPlcIntegration(device.integrationSource); }
   async deleteConnection(userId: string, id: string): Promise<void> {
     await this.authorize(userId, this.requireConnection(id).homeId);
     await this.serialize(id, async () => {
@@ -163,10 +170,11 @@ export class ModbusService implements DeviceDriver {
     try { validateProfileMapping(variable, modbusWordCount(variable.dataType), connection.moduleCapacities); validatePlcBinding(variable.plc, variable, connection.moduleCapacities); } catch { throw new ModbusError('INVALID_CONFIG', 'Invalid PLC mapping'); }
     const started = Date.now(), plc = variable.plc;
     const primary = plc?.role === 'input' && plc.logical ? plcReadVariable(variable, plc.logical) : variable;
-    const sample = this.transport.readSample ? await this.transport.readSample(connection, primary) : { value: await this.transport.read(connection, primary), raw: undefined };
+    const transport = this.transportOf(connection);
+    const sample = transport.readSample ? await transport.readSample(connection, primary) : { value: await transport.read(connection, primary), raw: undefined };
     const value = sample.value;
-    const physicalState = plc?.physical ? await this.transport.read(connection, plcReadVariable(variable, plc.physical)) : undefined;
-    const feedbackState = plc?.feedback ? await this.transport.read(connection, plcReadVariable(variable, plc.feedback)) : undefined;
+    const physicalState = plc?.physical ? await this.transportOf(connection).read(connection, plcReadVariable(variable, plc.physical)) : undefined;
+    const feedbackState = plc?.feedback ? await this.transportOf(connection).read(connection, plcReadVariable(variable, plc.feedback)) : undefined;
     const readsPhysicalOutput = plc?.role === 'output' && !!plc.physical && plc.feedbackPolicy === 'none';
     let actual = feedbackState ?? value;
     if (readsPhysicalOutput) {
@@ -199,27 +207,27 @@ export class ModbusService implements DeviceDriver {
           this.commands.set(current.deviceId, { commandedState: value, confirmation: 'pending' });
           const previous = await this.devices.findDeviceById(current.deviceId);
           await this.publishState(current.deviceId, { ...previous?.lastKnownState, commandedState: value, confirmation: 'pending' });
-          await this.transport.writeHoldingRegisters(connection, current.address, words);
+          await this.transportOf(connection).writeHoldingRegisters(connection, current.address, words);
           return { success: true, newState: await this.readState(connection, current) };
         }
         const pulse = command.name === 'pulse' || command.name === 'press';
         if (current.area !== 'coil' || Object.keys(command.params ?? {}).length || (pulse ? plc?.mode !== 'pulse' : !['turn_on', 'turn_off', 'toggle'].includes(command.name) || plc?.mode === 'pulse')) throw new ModbusError('READ_ONLY', 'Unsupported Modbus command');
-        const value = pulse ? true : command.name === 'toggle' ? !(await this.transport.read(connection, plc?.feedback ? plcReadVariable(current, plc.feedback) : current)) : command.name === 'turn_on';
+        const value = pulse ? true : command.name === 'toggle' ? !(await this.transportOf(connection).read(connection, plc?.feedback ? plcReadVariable(current, plc.feedback) : current)) : command.name === 'turn_on';
         this.commands.set(current.deviceId, { commandedState: value, confirmation: 'pending' });
         const previous = await this.devices.findDeviceById(current.deviceId);
         await this.publishState(current.deviceId, { ...previous?.lastKnownState, commandedState: value, confirmation: 'pending' });
         if (pulse) {
           // OFF is a cleanup attempt, NOT a retry. A PLC watchdog is still required.
           let onError: unknown;
-          try { await this.transport.writeCoil(connection, current.address, true); await new Promise(resolve => setTimeout(resolve, plc!.pulseDurationMs)); } catch (error: unknown) { onError = error; }
-          try { await this.transport.writeCoil(connection, current.address, false); }
+          try { await this.transportOf(connection).writeCoil(connection, current.address, true); await new Promise(resolve => setTimeout(resolve, plc!.pulseDurationMs)); } catch (error: unknown) { onError = error; }
+          try { await this.transportOf(connection).writeCoil(connection, current.address, false); }
           catch { this.commands.set(current.deviceId, { commandedState: value, confirmation: 'reset_failed' }); throw new ModbusError('RESET_FAILED', 'PLC pulse reset failed'); }
           if (onError) throw onError;
-        } else await this.transport.writeCoil(connection, current.address, value);
+        } else await this.transportOf(connection).writeCoil(connection, current.address, value);
         if (plc?.feedbackPolicy === 'required') {
           const deadline = Date.now() + plc.feedbackTimeoutMs;
           do {
-            const feedback = await this.transport.read({ ...connection, timeoutMs: Math.max(1, Math.min(connection.timeoutMs, deadline - Date.now())) }, plcReadVariable(current, plc.feedback!));
+            const feedback = await this.transportOf(connection).read({ ...connection, timeoutMs: Math.max(1, Math.min(connection.timeoutMs, deadline - Date.now())) }, plcReadVariable(current, plc.feedback!));
             const state = { ...this.state(current, feedback), actualState: feedback, feedbackState: feedback, commandedState: value, confirmation: feedback === value ? 'confirmed' : 'pending' };
             await this.publishState(current.deviceId, state);
             if (state.actualState === value) { this.commands.set(current.deviceId, { commandedState: value, confirmation: 'confirmed' }); return { success: true, newState: state }; }

@@ -833,7 +833,7 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
     for (const theme of ['dark', 'light']) {
       await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
       await page.evaluate(() => { document.querySelectorAll<HTMLElement>('*').forEach(element => { if (element.scrollHeight > element.clientHeight) element.scrollTop = 0; }); window.scrollTo(0, 0); });
-      await expect(page.getByRole('heading', { name: 'Modbus TCP', exact: true })).toBeInViewport({ ratio: 1 });
+      await expect(page.getByRole('heading', { name: /^(Controladores PLC|PLC controllers)$/ })).toBeInViewport({ ratio: 1 });
       await page.screenshot({ path: testInfo.outputPath(`plc-io-${theme}.png`), animations: 'disabled', fullPage: true });
     }
   });
@@ -851,7 +851,7 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
       connections.push({ ...data, id: 'c', variables: [] }); return route.fulfill({ json: { connection: connections[0] } });
     });
     await page.goto('/system/modbus');
-    await expect(page.getByRole('heading', { name: 'Modbus TCP', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^(Controladores PLC|PLC controllers)$/ })).toBeVisible();
     await page.getByRole('button', { name: /^(Add connection|Añadir conexión)$/i }).click();
     const dialog = page.getByRole('dialog', { name: /^(Configure connection|Configurar conexión)$/i });
     await dialog.getByLabel(/^(Name|Nombre)$/i).fill('PLC simulado');
@@ -908,6 +908,6 @@ test('Feature: Native Modbus configuration — Scenario: Non-Admin direct naviga
   await page.route('**/api/v1/modbus/**', route => { calls++; return route.fulfill({ json: { connections: [] } }); });
   await page.goto('/system/modbus');
   await expect(page.getByRole('button', { name: /^(Add connection|Añadir conexión)$/i })).toHaveCount(0);
-  await expect(page.getByRole('navigation').getByText('Modbus TCP', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('navigation').getByText(/^(Controladores PLC|PLC controllers)$/)).toHaveCount(0);
   expect(calls).toBe(0);
 });

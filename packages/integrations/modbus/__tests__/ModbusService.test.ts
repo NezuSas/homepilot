@@ -15,6 +15,7 @@ import type { AddressInfo } from 'node:net';
 import { ModbusTcpClient } from '../infrastructure/ModbusTcpClient';
 import { syncDeviceStateUseCase, type SyncDeviceStateDependencies } from '../../../devices/application/syncDeviceStateUseCase';
 import { DeviceCommandService } from '../../../devices/application/DeviceCommandService';
+import { modbusFixture } from './modbusFixture';
 
 describe('Feature: PLC I/O controller (AC20/AC21/AC22/AC23/AC25)', () => {
   let f: ReturnType<typeof modbusFixture>;
@@ -261,7 +262,7 @@ describe('Feature: PLC I/O controller (AC20/AC21/AC22/AC23/AC25)', () => {
       if (awaitingFeedback && variable.address === 200) { logicalNow += 1000; feedbackReads++; }
       return value;
     }, readSample: (connection, variable) => tcp.readSample(endpoint(connection), variable), readRange: (connection, area, start, count, signal) => tcp.readRange(endpoint(connection), area, start, count, signal), writeCoil: (connection, address, value) => tcp.writeCoil(endpoint(connection), address, value), writeHoldingRegisters: (connection, address, words) => tcp.writeHoldingRegisters(endpoint(connection), address, words) };
-    const service = new ModbusService(f.repository, transport, f.devices, new SQLiteHomeRepository(f.dbPath), (id, state) => syncDeviceStateUseCase(id, state, 'plc-e2e', deps));
+    const service = new ModbusService(f.repository, { transportFor: () => transport }, f.devices, new SQLiteHomeRepository(f.dbPath), (id, state) => syncDeviceStateUseCase(id, state, 'plc-e2e', deps));
     const dispatcher = new DeviceCommandService(f.devices, { register: () => undefined, resolve: () => service }, deps);
     const now = jest.spyOn(Date, 'now').mockImplementation(() => logicalNow);
     try {
@@ -281,20 +282,6 @@ describe('Feature: PLC I/O controller (AC20/AC21/AC22/AC23/AC25)', () => {
     } finally { now.mockRestore(); await service.stop(); for (const socket of sockets) socket.destroy(); await new Promise<void>(resolve => server.close(() => resolve())); }
   });
 });
-
-export function modbusFixture() {
-  const directory = mkdtempSync(join(tmpdir(), 'homepilot-modbus-'));
-  const dbPath = join(directory, 'test.db');
-  const db = SqliteDatabaseManager.getInstance(dbPath);
-  for (const file of ['001_initial_schema.sql', '006_add_invert_state_to_devices.sql', '015_add_device_integration_source.sql', '022_add_semantic_type_to_devices.sql', '035_modbus_tcp.sql']) db.exec(readFileSync(join(process.cwd(), 'migrations', file), 'utf8'));
-  db.prepare('INSERT INTO homes(id,owner_id,name) VALUES (?,?,?)').run('h', 'admin', 'Home');
-  const repository = new SQLiteModbusRepository(dbPath), devices = new SQLiteDeviceRepository(dbPath), homes = new SQLiteHomeRepository(dbPath);
-  const transport: jest.Mocked<ModbusTransport> = { readRange: jest.fn().mockResolvedValue([42]), read: jest.fn().mockResolvedValue(42), writeCoil: jest.fn().mockResolvedValue(undefined), writeHoldingRegisters: jest.fn().mockResolvedValue(undefined) };
-  const publish = jest.fn(async (id: string, state: Record<string, unknown>) => { const device = await devices.findDeviceById(id); if (device) await devices.saveDevice({ ...device, lastKnownState: state }); });
-  const service = new ModbusService(repository, transport, devices, homes, publish);
-  const cleanup = () => { SqliteDatabaseManager.close(dbPath); for (const name of readdirSync(directory)) unlinkSync(join(directory, name)); rmdirSync(directory); };
-  return { db, dbPath, repository, devices, transport, publish, service, cleanup };
-}
 
 describe('Feature: Dashboard priority polling (AC36)', () => {
   let f: ReturnType<typeof modbusFixture>;

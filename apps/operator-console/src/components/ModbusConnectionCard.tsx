@@ -15,6 +15,8 @@ import { formatMeasurement } from '../lib/formatMeasurement';
 import { Input } from './ui/Input';
 import { StatusPill } from './ui/StatusPill';
 import { SegmentedControl } from './ui/SegmentedControl';
+import { integrationInfo } from '../../../../packages/devices/domain/integrationCatalog';
+import { DEFAULT_PLC_PROTOCOL } from '../../../../packages/integrations/modbus/domain/PlcProtocol';
 
 export type ModbusConnectionSummary = ModbusConnection & { diagnostic?: ModbusDiagnostic; variables: (ModbusVariable & { diagnostic?: ModbusDiagnostic })[] };
 export function getModbusVariableGroup(variable: ModbusVariable): 'input' | 'output' | 'command' | 'feedback' | 'variable' {
@@ -52,7 +54,7 @@ export function ModbusConnectionCard({ connection, onEdit, onAdd, onVariable, on
   return <Card as="section" aria-label={connection.name} variant="flat" radius="section" className="p-4 text-card-foreground">
     <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
       <div className="flex min-w-0 items-center gap-3"><Cable aria-hidden="true" className="size-5 shrink-0 text-primary" />
-        <div className="min-w-0"><Heading as="h2" variant="item">{connection.name}</Heading><p className="break-words text-caption text-muted-foreground">{connection.host}:{connection.port} · {t('modbus.unitId')} {connection.unitId}</p>{profile && <p className="text-caption text-muted-foreground">{profile.manufacturer} {profile.model}</p>}</div>
+        <div className="min-w-0"><Heading as="h2" variant="item">{connection.name}</Heading><p className="break-words text-caption text-muted-foreground"><span data-plc-protocol="">{integrationInfo(connection.protocol ?? DEFAULT_PLC_PROTOCOL)?.name ?? connection.protocol}</span> · {connection.host}:{connection.port} · {t('modbus.unitId')} {connection.unitId}</p>{profile && <p className="text-caption text-muted-foreground">{profile.manufacturer} {profile.model}</p>}</div>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3"><div className="text-caption text-muted-foreground">{connection.enabled ? <p role="status" className="flex flex-wrap items-center gap-2"><StatusPill variant={plcConnectionTone(connection)}>{t(plcConnectionKey(connection))}</StatusPill><span>{t('plc.enabled')}</span></p> : <StatusPill variant="neutral">{t('modbus.disabled')}</StatusPill>}</div>
         <Button variant="secondary" size="lg" onClick={onEdit}><Settings aria-hidden="true" className="size-4" />{t('modbus.configure')}</Button>

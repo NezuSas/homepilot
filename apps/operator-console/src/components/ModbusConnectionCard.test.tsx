@@ -16,6 +16,8 @@ describe('Feature: Compact Modbus navigation (AC40)', () => {
     expect(html).toContain('role="radiogroup"');
     expect(html).not.toContain('data-modbus-variable-group="feedback"');
     expect(html).toContain('127.0.0.1:502');
+    expect(html).toContain('data-plc-protocol');
+    expect(html).toContain('Modbus TCP');
     expect(JSON.stringify(connection)).toBe(before);
     Object.values(callbacks).forEach(callback => expect(callback).not.toHaveBeenCalled());
   });

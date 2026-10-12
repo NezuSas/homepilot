@@ -1,5 +1,6 @@
 import type { Device } from '../../../devices/domain/types';
 import type { ModbusArea, ModbusConnection, ModbusVariable } from '../domain/Modbus';
+import type { PlcProtocolId } from '../domain/PlcProtocol';
 export interface ModbusRepository {
   /** Persisted dashboard bindings only; absence retains historical polling. */
   dashboardDeviceIds?(): ReadonlySet<string>;
@@ -20,4 +21,8 @@ export interface ModbusTransport {
   readSample?(connection: ModbusConnection, variable: ModbusVariable): Promise<{ raw: Array<number | boolean>; value: number | boolean }>;
   writeCoil(connection: ModbusConnection, address: number, value: boolean): Promise<void>;
   writeHoldingRegisters(connection: ModbusConnection, address: number, words: readonly number[]): Promise<void>;
+}
+/** Finds the transport for the protocol a connection speaks. */
+export interface PlcTransportRegistry {
+  transportFor(protocol: PlcProtocolId): ModbusTransport;
 }

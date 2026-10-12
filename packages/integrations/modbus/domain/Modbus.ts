@@ -1,5 +1,6 @@
 import { addressProfile, validateModuleCapacities, validateProfileMapping, type ModbusModuleCapacities } from './ModbusAddressProfile';
 import { validatePlcBinding, type PlcBinding } from './PlcBinding';
+import { DEFAULT_PLC_PROTOCOL, isPlcProtocolId, type PlcProtocolId } from './PlcProtocol';
 
 export type ModbusArea = 'coil' | 'discrete_input' | 'holding_register' | 'input_register';
 export type ModbusDataType = 'boolean' | 'uint16' | 'int16' | 'uint32' | 'int32' | 'float32';
@@ -27,6 +28,8 @@ export function convertModbusValue(words: readonly (number | boolean)[], config:
 export interface ModbusConnection {
   id: string; homeId: string; name: string; host: string; port: number; unitId: number;
   timeoutMs: number; pollIntervalMs: number; enabled: boolean;
+  /** Absent in connections saved before it existed, which are Modbus TCP; validation always fills it in. */
+  protocol?: PlcProtocolId;
   profileId?: string; moduleCapacities?: ModbusModuleCapacities;
 }
 export interface ModbusVariable {
@@ -63,7 +66,8 @@ export function validateConnection(input: Record<string, unknown>): Omit<ModbusC
   if (!(a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)) || d === 0 || d === 255) return invalid();
   let profileId: string | undefined, moduleCapacities: ModbusModuleCapacities | undefined;
   try { if (input.profileId != null && input.profileId !== '') { profileId = text(input.profileId, 80); addressProfile(profileId); } moduleCapacities = validateModuleCapacities(input.moduleCapacities, profileId); if (moduleCapacities && !profileId) return invalid(); } catch { return invalid(); }
-  return { ...(profileId ? { profileId } : {}), ...(moduleCapacities ? { moduleCapacities } : {}), name: text(input.name, 80), host, port: integer(input.port, 502, 502, 502),
+  const protocol = input.protocol === undefined || input.protocol === null ? DEFAULT_PLC_PROTOCOL : isPlcProtocolId(input.protocol) ? input.protocol : invalid();
+  return { protocol, ...(profileId ? { profileId } : {}), ...(moduleCapacities ? { moduleCapacities } : {}), name: text(input.name, 80), host, port: integer(input.port, 502, 502, 502),
     unitId: integer(input.unitId, 1, 1, 247), timeoutMs: integer(input.timeoutMs, 2000, 250, 10000),
     pollIntervalMs: integer(input.pollIntervalMs, 5000, 1000, 60000), enabled: flag(input.enabled) };
 }

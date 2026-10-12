@@ -38,6 +38,7 @@ import type { SQLiteAssistantFeedbackRepository } from '../../packages/assistant
 import type { AssistantDraftService } from '../../packages/assistant/application/AssistantDraftService';
 import type { SQLiteDashboardRepository } from '../../packages/topology/infrastructure/repositories/SQLiteDashboardRepository';
 import type { NativeCameraDriverRegistry } from '../../packages/integrations/native-camera/application/ports/NativeCameraDriverRegistry';
+import { PLC_PROTOCOLS } from '../../packages/integrations/modbus/domain/PlcProtocol';
 
 export interface CommandRouterAssembly {
   commandDispatcher: DeviceCommandService;
@@ -140,7 +141,7 @@ export function buildCommandRouter(deps: CommandRouterDeps): CommandRouterAssemb
 
   // -- DRIVER LAYER SETUP --
   const driverRegistry = new DefaultDeviceDriverRegistry();
-  if (deps.modbusDriver) driverRegistry.register('modbus-tcp', deps.modbusDriver);
+  if (deps.modbusDriver) for (const protocol of PLC_PROTOCOLS) driverRegistry.register(protocol, deps.modbusDriver);
   
   // Registrar drivers
   driverRegistry.register('ha', new HomeAssistantDeviceDriver(connectionProvider));
