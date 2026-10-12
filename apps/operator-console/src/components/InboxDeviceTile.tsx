@@ -7,6 +7,7 @@ import { isDeviceUnavailable } from '../lib/deviceAvailability';
 import type { SnapshotDevice as Device, SnapshotRoom as Room } from '../stores/useDeviceSnapshotStore';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
+import { IntegrationBadge } from './IntegrationBadge';
 import { Heading } from './ui/Heading';
 import { IconButton } from './ui/IconButton';
 import { SearchableSelectField } from './ui/SearchableSelectField';
@@ -43,7 +44,7 @@ export function InboxDeviceTile({ device, rooms, onUpdate, onInspect }: InboxDev
   };
   return <Card variant="flat" as="article" className="space-y-3 p-3">
     <div className="flex items-center gap-3">
-      <Heading as="h4" variant="item" className="flex-1">{device.name}</Heading>
+      <div className="min-w-0 flex-1"><Heading as="h4" variant="item">{device.name}</Heading><IntegrationBadge source={device.integrationSource} /></div>
       {onInspect && <IconButton icon={Settings2} size="lg" label={`${t('inbox.manage_device')}: ${device.name}`} onClick={onInspect} />}
     </div>
     <div className="flex min-w-0 items-center gap-2">

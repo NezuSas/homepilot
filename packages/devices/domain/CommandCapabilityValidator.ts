@@ -2,6 +2,7 @@ import { Device } from './types';
 import { DeviceCommandRequest } from './commands';
 import { CapabilityCommand } from './capabilities';
 import { resolveCapabilitiesForDevice, capabilityCommandsForDevice } from './CapabilityResolver';
+import { isPlcIntegration } from './integrationCatalog';
 
 /**
  * ValidationResult
@@ -19,7 +20,7 @@ export interface ValidationResult {
  * Implementa un enfoque conservador para no romper dispositivos existentes no identificados.
  */
 export function validateDeviceCommand(device: Device, command: DeviceCommandRequest): ValidationResult {
-  if (device.integrationSource === 'modbus-tcp') {
+  if (isPlcIntegration(device.integrationSource)) {
     const state = device.lastKnownState;
     if (command.name === 'set_value') return state?.plcRole === 'setpoint' && state.writable === true && typeof command.params?.value === 'number' && Number.isFinite(command.params.value) && Object.keys(command.params).length === 1 ? { valid: true } : { valid: false, error: 'Invalid PLC setpoint command.' };
     if (command.name === 'pulse' || command.name === 'press') return state?.plcMode === 'pulse' && state.writable === true && !Object.keys(command.params ?? {}).length ? { valid: true } : { valid: false, error: 'PLC pulse is not configured.' };

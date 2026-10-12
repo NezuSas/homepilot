@@ -13,6 +13,7 @@ import { SensorPresentationHero } from './SensorPresentationHero';
 import { SensorBinaryInstrument } from './SensorBinaryInstrument';
 import { getCategoryLabel } from './sensorDisplay';
 import { asRecord, getSensorReading, getSensorSeverity, numericValue, resolveSensorVisualStyle } from './sensorReading';
+import { isPlcIntegration } from '../../../../../../packages/devices/domain/integrationCatalog';
 
 export type { SensorCategory, SensorPresentation, SensorSeverity } from './sensorReading';
 export { formatSensorValue } from './sensorDisplay';
@@ -33,7 +34,7 @@ export function SensorMetricCard({ device, title, isPreview = false, icon, roomN
   const { t } = useTranslation();
   const initialReading = getSensorReading(device, isPreview);
   const state = asRecord(device?.lastKnownState);
-  const inheritedStyle = device?.integrationSource === 'modbus-tcp' ? state.plcVisualStyle : undefined;
+  const inheritedStyle = isPlcIntegration(device?.integrationSource) ? state.plcVisualStyle : undefined;
   const selectedStyle = normalizeSensorVisualStyle(visualStyle ?? inheritedStyle);
   const inferredBinary = initialReading.presentation === 'binary' || device?.type === 'binary_sensor' || device?.type === 'switch' || ['input', 'output', 'output_command', 'output_feedback'].includes(String(state.plcRole ?? ''));
   const binarySensor = selectedStyle === 'switch' || ((visualStyle === undefined || selectedStyle === 'auto') && inferredBinary);
@@ -61,7 +62,7 @@ export function SensorMetricCard({ device, title, isPreview = false, icon, roomN
   const statusLabel = !hasStatus ? null : reading.category === 'memory' && (severity === 'low' || severity === 'critical')
     ? t(`dashboard.editor.sections.sensor_memory_${severity}`)
     : t(`dashboard.editor.sections.sensor_${severity}`);
-  const heroDecimals = sensorDecimals || device?.integrationSource === 'modbus-tcp';
+  const heroDecimals = sensorDecimals || isPlcIntegration(device?.integrationSource);
 
   return (
     <div

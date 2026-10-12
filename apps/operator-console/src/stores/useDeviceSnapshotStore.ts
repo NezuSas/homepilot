@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import type { RealtimeEventMessage } from './useAppShellStore';
+import { isPlcIntegration } from '../../../../packages/devices/domain/integrationCatalog';
 
 const API_URL = `${API_BASE_URL}/api/v1`;
 const SNAPSHOT_FRESHNESS_MS = 15_000;
@@ -195,7 +196,7 @@ export const useDeviceSnapshotStore = create<DeviceSnapshotState>((set, get) => 
         set({
           devices: devices.map((device) => {
             const current = get().devices.find((candidate) => candidate.id === device.id && candidate.homeId === device.homeId);
-            return device.integrationSource === 'modbus-tcp' && current?.integrationSource === 'modbus-tcp'
+            return isPlcIntegration(device.integrationSource) && current !== undefined && isPlcIntegration(current.integrationSource)
               && Date.parse(current.updatedAt ?? '') > Date.parse(device.updatedAt ?? '')
               ? { ...device, lastKnownState: current.lastKnownState, updatedAt: current.updatedAt }
               : device;
@@ -246,7 +247,7 @@ export function isKnownModbusStateEvent(event: RealtimeEventMessage): boolean {
     && typeof deviceId === 'string' && typeof homeId === 'string'
     && !!newState && typeof newState === 'object' && !Array.isArray(newState)
     && useDeviceSnapshotStore.getState().devices.some((device) => device.id === deviceId
-      && device.homeId === homeId && device.integrationSource === 'modbus-tcp');
+      && device.homeId === homeId && isPlcIntegration(device.integrationSource));
 }
 
 export function applyModbusRealtimeState(event: RealtimeEventMessage): void {

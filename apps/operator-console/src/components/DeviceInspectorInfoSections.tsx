@@ -19,9 +19,9 @@ import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { Heading } from './ui/Heading';
 import { SearchableSelectField } from './ui/SearchableSelectField';
-import { StatusPill } from './ui/StatusPill';
 import { ToggleSwitch } from './ui/ToggleSwitch';
 import type { DeviceCommand, InspectableDevice } from './deviceInspectorTypes';
+import { IntegrationBadge } from './IntegrationBadge';
 
 export function DeviceInspectorUnavailableNotice() {
   const { t } = useTranslation();
@@ -63,7 +63,7 @@ export function DeviceInspectorIdentitySection({
         </span>
         <div className="flex min-w-0 flex-wrap items-center gap-2 mt-1">
           <span className="min-w-0 break-words text-caption font-bold uppercase">{device.type}</span>
-          <StatusPill variant="neutral" size="sm" uppercase>{device.integrationSource}</StatusPill>
+          <IntegrationBadge source={device.integrationSource} />
           {device.integrationSource === 'sonoff' && (
             <div className="flex items-center gap-1 ml-auto">
               <div className={cn('w-1.5 h-1.5 rounded-full', isOnline ? 'bg-success animate-pulse' : 'bg-danger')} />

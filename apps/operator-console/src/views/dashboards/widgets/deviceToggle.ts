@@ -1,6 +1,7 @@
 import { canExecuteCommand } from '../../../lib/deviceCapabilities';
 import type { SnapshotDevice } from '../../../stores/useDeviceSnapshotStore';
 import { isDeviceActive } from '../dashboardUtils';
+import { isPlcIntegration } from '../../../../../../packages/devices/domain/integrationCatalog';
 
 export type DeviceToggleCommand = 'turn_on' | 'turn_off' | 'toggle';
 
@@ -21,7 +22,7 @@ export interface DeviceToggleExecutionDependencies {
  */
 export function createDeviceTogglePlan(device: SnapshotDevice): DeviceTogglePlan | null {
   const priorState = device.lastKnownState ?? {};
-  const commandDrivenOutput = device.integrationSource === 'modbus-tcp' && priorState.plcRole === 'output' && priorState.feedbackState === undefined && typeof priorState.physicalState === 'boolean' && typeof priorState.commandState === 'boolean';
+  const commandDrivenOutput = isPlcIntegration(device.integrationSource) && priorState.plcRole === 'output' && priorState.feedbackState === undefined && typeof priorState.physicalState === 'boolean' && typeof priorState.commandState === 'boolean';
   // Output appearance follows the PLC output; control intent follows its command.
   if (commandDrivenOutput && (priorState.available === false || priorState.stale === true)) return null;
   const wasActive = commandDrivenOutput ? priorState.commandState === true : isDeviceActive(device);

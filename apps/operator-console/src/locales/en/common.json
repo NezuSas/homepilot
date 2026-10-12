@@ -1275,6 +1275,9 @@
     },
     "matter_badge": "Matter"
   },
+  "integrations": {
+    "kinds": { "bridge": "Bridge to another system", "local_network": "Local network", "camera": "Network camera", "plc": "PLC controller", "display": "Display" }
+  },
   "native_cameras": {
     "title": "Local IP Cameras",
     "subtitle": "Manage native IP cameras directly from {{brand}} without depending on Home Assistant.",

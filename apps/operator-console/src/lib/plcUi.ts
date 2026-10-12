@@ -1,5 +1,6 @@
 import type { ModbusConnection, ModbusDiagnostic, ModbusVariable } from '../../../../packages/integrations/modbus/domain/Modbus';
 import type { SnapshotDevice } from '../stores/useDeviceSnapshotStore';
+import { isPlcIntegration } from '../../../../packages/devices/domain/integrationCatalog';
 
 export const plcFeedbackPolicies = ['none', 'optional', 'required'] as const;
 export const plcCommandModes = ['sustained', 'pulse'] as const;
@@ -10,7 +11,7 @@ export const plcSwitchCommands = ['turn_on', 'turn_off'] as const;
 
 /** Presentation only. Related outputs and actualState never classify an action. */
 export function isMomentaryPlcCommand(device?: Pick<SnapshotDevice, 'integrationSource' | 'lastKnownState'>): boolean {
-  return device?.integrationSource === 'modbus-tcp' && device.lastKnownState?.plcRole === 'output_command' && device.lastKnownState.plcMode === 'pulse';
+  return !!device && isPlcIntegration(device.integrationSource) && device.lastKnownState?.plcRole === 'output_command' && device.lastKnownState.plcMode === 'pulse';
 }
 
 /** Labels describe the stored symbol, never an inferred Ladder relationship. */

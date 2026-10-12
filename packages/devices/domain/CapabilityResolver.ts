@@ -1,6 +1,7 @@
 import { Device } from './types';
 import { DeviceCapability, CapabilityType, CAPABILITY_DEFINITIONS, type CapabilityCommand } from './capabilities';
 import { getDeviceProfileCapabilities, getDeviceProfileForDevice } from './deviceProfiles';
+import { isPlcIntegration } from './integrationCatalog';
 
 /**
  * resolveCapabilitiesForDevice
@@ -40,7 +41,7 @@ export function resolveCapabilitiesForDevice(device: Device): DeviceCapability[]
 
 /** Integration-specific commands are projected from state metadata, not added to every switch. */
 export function capabilityCommandsForDevice(device: Device, type: CapabilityType): CapabilityCommand[] {
-  if (device.integrationSource === 'modbus-tcp') {
+  if (isPlcIntegration(device.integrationSource)) {
     const state = device.lastKnownState;
     if (state?.plcRole === 'setpoint') return state.writable === true ? [{ name: 'set_value', params: [{ name: 'value', type: 'number', required: true }] }] : [];
     if (state?.plcMode === 'pulse') return state.writable === true ? [{ name: 'press' }, { name: 'pulse' }] : [];
