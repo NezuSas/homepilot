@@ -31,25 +31,6 @@ export const mapActivityType = (type: string, t: TFunction): string => {
 };
 
 /**
- * Maps system roles to localized names.
- */
-export const mapUserRole = (role: string, t: TFunction): string => {
-  const key = `common.roles.${role.toLowerCase()}`;
-  const translated = t(key);
-  if (translated === key) {
-    return role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
-  }
-  return translated;
-};
-
-/**
- * Maps boolean values to localized text.
- */
-export const mapBoolean = (val: boolean, t: TFunction): string => {
-  return val ? t('common.true') : t('common.false');
-};
-
-/**
  * Maps device commands (e.g. "turn_on", "open") to localized strings.
  */
 export const mapDeviceCommand = (command: string, t: TFunction): string => {

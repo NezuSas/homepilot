@@ -4,7 +4,6 @@ import { DeviceIdentityError } from '../application/DeviceIdentityProvider';
 import { DirectoryTokenError, directoryEdgeDeviceUrl } from '../application/EdgeDeviceContract';
 
 export { DirectoryTokenError, directoryEdgeDeviceUrl } from '../application/EdgeDeviceContract';
-export type { DirectoryTokenErrorCode } from '../application/EdgeDeviceContract';
 
 export const MANIFEST_REQUEST_TIMEOUT_MS = 10_000;
 export const COMMAND_TOKEN_TTL_SECONDS = 120;

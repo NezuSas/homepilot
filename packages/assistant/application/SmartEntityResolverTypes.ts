@@ -22,9 +22,3 @@ export type EntityResolutionResult<T> =
   | { type: 'single'; match: ResolutionMatch<T> }
   | { type: 'multiple'; matches: ResolutionMatch<T>[] };
 
-export interface ResolvedEntities {
-  devices: EntityResolutionResult<Device>;
-  rooms: EntityResolutionResult<Room>;
-  scenes: EntityResolutionResult<Scene>;
-  automations: EntityResolutionResult<AutomationRule>;
-}

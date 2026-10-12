@@ -33,9 +33,7 @@ import type { AssistantConversationResponse, AssistantConverseRequest } from './
 // The conversation contracts stay importable from this module.
 export type {
   AssistantConversationResponse,
-  ExecutedCommandResult,
-  AssistantConverseRequest,
-  RoomAliasResolution
+  AssistantConverseRequest
 } from './conversation/conversationTypes';
 
 /**

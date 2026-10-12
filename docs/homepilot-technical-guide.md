@@ -558,13 +558,12 @@ Relevant Docker Compose variables:
 | PIPER_VOICE_EN | English Piper voice |
 ## Frontend
 
-The console is in apps/operator-console and uses React, TypeScript, and Vite. The UI is organized through views, reusable components, design tokens, and centralized API calls.
+The console is in apps/operator-console and uses React, TypeScript, and Vite. The UI is organized through views, reusable components, and centralized API calls; the palette and scales live in `index.css` and the Tailwind configuration.
 
 | Area | Path | Use |
 |---|---|---|
 | App shell | App.tsx | Global layout, navigation, and role gates |
 | API configuration | config.ts | Endpoint URLs |
-| Design tokens | design-system/tokens.ts | Colors, radii, shadows, and scales |
 | Base components | components/ui | Buttons, cards, inputs, modals, and selects |
 | Home | views/DashboardView.tsx and dashboard components | Home header, favorite scenes/automations, intelligent suggestions |
 | Dashboards | views/DashboardsView.tsx and views/dashboards | User navigation, Home Assistant-style tabs, editable sections, modular cards |
@@ -676,6 +675,8 @@ WHISPER_MAX_AUDIO_BYTES=9000000
 | HOMEPILOT_DEV_BOOTSTRAP | true | Creates admin/admin only when the database is empty; local development only |
 | HOMEPILOT_HOME_CHAT_ENABLED | true | Set by the installer. `false` hides "Conversar con mi casa" (menu, route, wake word and demo step) and makes the API refuse chat, text-to-speech and speech-to-text requests with `FEATURE_DISABLED`; the rest of the assistant is unaffected |
 | HOMEPILOT_VOICE_ENABLED | true | Set by the installer. `false` (or a disabled chat) makes the API refuse text-to-speech and speech-to-text with `FEATURE_DISABLED`, hides the microphone and spoken answers in the console, and keeps the STT and TTS services out of the deployment |
+| HOMEPILOT_ACTIVITY_NOISE_RETENTION_DAYS | 7 | Days the activity log keeps `STATE_CHANGED` and `AUTOMATION_EXECUTED` rows; older ones are deleted in small batches every 6 hours |
+| HOMEPILOT_ACTIVITY_RETENTION_DAYS | 90 | Days the activity log keeps every other row (commands, scenes, users, resilience) |
 | HOMEPILOT_DB_PATH | ./data/homepilot.db | SQLite path outside Docker/inside local WSL; containers normally use /app/data/homepilot.db |
 | HOMEPILOT_SQLITE_JOURNAL_MODE | WAL | Use WAL on the Linux mini PC; use DELETE only when Docker mounts data from Windows | Bundled HomePilot synthetic voice identity; `male` is also available |
 | TTS_PROVIDER | kokoro | Primary local voice engine with Piper fallback |

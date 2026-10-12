@@ -8,8 +8,6 @@ export interface EventBusEvent<TPayload = unknown> {
   readonly payload: TPayload;
 }
 
-export type Event = EventBusEvent;
-
 export type EventBusHandler = (event: EventBusEvent) => void | Promise<void>;
 
 export interface EventBus {

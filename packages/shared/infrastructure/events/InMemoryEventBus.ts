@@ -33,5 +33,3 @@ export class InMemoryEventBus implements EventBus {
     };
   }
 }
-
-export default InMemoryEventBus;

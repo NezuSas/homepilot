@@ -147,6 +147,8 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
 *.db
+*.db-shm
+*.db-wal
 test.*.db
 test.*.db-shm
 test.*.db-wal
