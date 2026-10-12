@@ -6,3 +6,4 @@
 - [x] Borrado acotado en el repositorio y servicio de retención con arranque periódico.
 - [x] Pruebas de motor, sincronización, servicio, repositorio y migración.
 - [x] Documentar el procedimiento para instalaciones que ya crecieron.
+- [x] Retención de copias de seguridad (`HOMEPILOT_BACKUP_KEEP`), de revisiones de tableros (100 por tablero) y de sesiones vencidas.

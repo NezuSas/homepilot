@@ -28,6 +28,7 @@ Fuera de alcance: exportar el registro, compactación automática del archivo SQ
 - **REQ-03:** Un servicio de retención borra, por lotes acotados y cediendo el control entre lotes, las filas más antiguas que el plazo de su clase: `STATE_CHANGED` y `AUTOMATION_EXECUTED` a 7 días (`HOMEPILOT_ACTIVITY_NOISE_RETENTION_DAYS`) y el resto a 90 días (`HOMEPILOT_ACTIVITY_RETENTION_DAYS`). Los valores no válidos usan el plazo por defecto. Se ejecuta poco después de arrancar y cada 6 horas, y un fallo no detiene la API.
 - **REQ-04:** La migración `037_activity_log_indexes.sql` crea los índices `activity_logs(timestamp)`, `activity_logs(device_id, timestamp)` y `activity_logs(type, timestamp)`, sin modificar datos.
 - **REQ-05:** El borrado nunca elimina filas dentro de su plazo ni de otra clase, y reporta cuántas filas borró.
+- **REQ-06:** Otras tres fuentes de crecimiento sin límite quedan acotadas, sin cambiar ninguna API. (a) Cada copia de seguridad creada con éxito por `DatabaseBackupService` conserva solo las últimas `HOMEPILOT_BACKUP_KEEP` copias propias del servicio (por defecto 5, mínimo 1); nunca borra archivos que no empiecen por `homepilot-backup-` ni la copia recién creada, y un fallo al borrar se reporta sin invalidar la copia nueva. (b) Al guardar una revisión de un tablero se conservan solo las 100 revisiones más recientes de ese tablero. (c) Al iniciar una sesión se borran las sesiones que vencieron hace más de un día.
 
 ## Criterios de aceptación
 
@@ -35,6 +36,9 @@ Fuera de alcance: exportar el registro, compactación automática del archivo SQ
 - [x] **AC2:** Las pruebas de ambos caminos de sincronización confirman que un `sensor` no escribe `STATE_CHANGED` y que un `switch` o `binary_sensor` sí.
 - [x] **AC3:** Las pruebas del servicio de retención cubren plazos distintos por clase, lotes, valores inválidos, repetición periódica y tolerancia a fallos.
 - [x] **AC4:** Las pruebas del repositorio SQLite confirman que el borrado respeta el plazo, la clase y el límite del lote, y que la migración añade los índices sobre una base con datos.
+- [x] **AC5:** Las pruebas de `DatabaseBackupService` confirman que solo se conservan las últimas copias propias, que archivos ajenos y la copia nueva nunca se borran, y que el valor por defecto es 5.
+- [x] **AC6:** Las pruebas del repositorio de tableros confirman que cada tablero conserva sus 100 revisiones más recientes sin tocar las de otros tableros.
+- [x] **AC7:** Las pruebas del repositorio de sesiones confirman que se borran las vencidas hace más de un día y que las vigentes y las recién vencidas se conservan.
 
 ## Procedimiento para una instalación que ya creció
 
@@ -47,4 +51,5 @@ La migración solo añade índices. Revertir el código deja los índices sin us
 ## Evidencia
 
 - `packages/system-observability/application/ActivityLogRetentionService.ts`, `SQLiteActivityLogRepository.ts` (`deleteOlderThan`), `AutomationActivityLogger.ts`, `StateEventProcessor.ts`, `syncDeviceStateUseCase.ts`, `packages/devices/domain/activityPolicy.ts` y `migrations/037_activity_log_indexes.sql`.
+- `DatabaseBackupService.ts`, `SQLiteDashboardRepository.ts` y `SqliteSessionRepository.ts` (REQ-06), con `DatabaseBackupRetention.test.ts`, `DashboardRevisionRetention.test.ts` y `SqliteSessionRetention.test.ts`.
 - Pruebas correspondientes en cada paquete.

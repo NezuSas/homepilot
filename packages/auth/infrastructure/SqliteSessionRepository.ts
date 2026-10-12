@@ -8,6 +8,8 @@ interface SessionRow {
   created_at: string;
 }
 
+const EXPIRED_SESSION_GRACE_MS = 24 * 60 * 60 * 1000;
+
 export class SqliteSessionRepository {
   constructor(private db: Database) {}
 
@@ -22,6 +24,9 @@ export class SqliteSessionRepository {
       session.expiresAt,
       session.createdAt
     );
+    // Expired sessions are useless after a day; dropping them keeps the table from growing without limit.
+    this.db.prepare('DELETE FROM sessions WHERE expires_at < ?')
+      .run(new Date(Date.now() - EXPIRED_SESSION_GRACE_MS).toISOString());
   }
 
   public async getSessionByToken(token: string): Promise<Session | null> {

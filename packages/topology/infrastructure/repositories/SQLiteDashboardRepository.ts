@@ -1,6 +1,9 @@
 import { Dashboard, DashboardRepository, DashboardRevision } from '../../domain/Dashboard';
 import { SqliteDatabaseManager } from '../../../shared/infrastructure/database/SqliteDatabaseManager';
 
+/** Revision history kept per dashboard; older ones are dropped as new ones are saved. */
+const MAX_REVISIONS_PER_DASHBOARD = 100;
+
 interface LocalDashboardRow {
   id: string;
   owner_id: string;
@@ -105,6 +108,13 @@ export class SQLiteDashboardRepository implements DashboardRepository {
       JSON.stringify(revision.snapshot),
       revision.createdAt,
     );
+    db.prepare(`
+      DELETE FROM dashboard_revisions
+      WHERE dashboard_id = ?
+        AND id NOT IN (
+          SELECT id FROM dashboard_revisions WHERE dashboard_id = ? ORDER BY created_at DESC, rowid DESC LIMIT ?
+        )
+    `).run(revision.dashboardId, revision.dashboardId, MAX_REVISIONS_PER_DASHBOARD);
   }
 
   public async findRevisionsByDashboardId(dashboardId: string): Promise<DashboardRevision[]> {

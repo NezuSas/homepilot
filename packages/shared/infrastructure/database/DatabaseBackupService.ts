@@ -95,6 +95,7 @@ export class DatabaseBackupService {
       partialPath = undefined;
 
       const stats = fs.statSync(targetPath);
+      await this.pruneOldBackups(filename);
 
       return {
         success: true,
@@ -118,6 +119,25 @@ export class DatabaseBackupService {
       return { success: false, error: message };
     } finally {
       source?.close();
+    }
+  }
+
+  /** How many of this service's own backups are kept; HOMEPILOT_BACKUP_KEEP overrides the default of 5 (minimum 1). */
+  private keepCount(): number {
+    const configured = Number.parseInt(process.env.HOMEPILOT_BACKUP_KEEP ?? '', 10);
+    return Number.isFinite(configured) && configured >= 1 ? configured : 5;
+  }
+
+  /** Removes the oldest backups this service created, never the one just written and never any other file. */
+  private async pruneOldBackups(justCreated: string): Promise<void> {
+    try {
+      const own = await this.listBackups();
+      for (const backup of own.slice(this.keepCount())) {
+        if (backup.filename === justCreated) continue;
+        for (const artifact of [backup.path, `${backup.path}-wal`, `${backup.path}-shm`]) fs.rmSync(artifact, { force: true });
+      }
+    } catch (error: unknown) {
+      logRuntimeDiagnostic('error', '[DatabaseBackupService] Error pruning old backups:', error);
     }
   }
 
