@@ -1,3 +1,7 @@
+# Fixed project name: the stack no longer depends on the folder it was cloned into.
+# COMPOSE_PROJECT_NAME and -p still take precedence, so existing installations keep their project.
+name: homepilot
+
 x-homepilot-logging: &homepilot-logging
   driver: json-file
   options:
