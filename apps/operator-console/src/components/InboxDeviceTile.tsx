@@ -49,10 +49,10 @@ export function InboxDeviceTile({ device, rooms, onUpdate, onInspect }: InboxDev
     <div className="flex min-w-0 items-center gap-2">
       <SearchableSelectField value={selectedRoomId} onChange={setSelectedRoomId}
         options={rooms.map(room => ({ value: room.id, label: room.name }))}
-        placeholder={t('common.unassigned')}
+        placeholder={t('inbox.choose_room')}
         disabled={isProcessing || unavailable} className="min-w-0 flex-1" />
       <Button onClick={() => { void handleAssign(); }} size="lg" disabled={!selectedRoomId || isProcessing || unavailable} isLoading={isProcessing}>
-        {t('common.save')}
+        {t('inbox.assign')}
       </Button>
     </div>
     {error && <p role="alert" className="text-caption text-danger">{error}</p>}

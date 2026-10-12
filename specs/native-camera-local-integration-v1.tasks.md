@@ -15,3 +15,4 @@
 - [x] Selección automática y reutilizable (AC16-18): instalador y mantenimiento prueban codificación VAAPI real en la imagen API, agregan el override solo si funciona y muestran encoder/fallback. La selección se repite en cada `--deploy`, sin cambiar perfiles ni depender del nombre de la máquina. Pruebas locales cubren VAAPI disponible, dispositivo ausente, encoder ausente, probe fallido y fallback software.
 - [ ] Validar descubrimiento, persistencia de alta/edición/baja y streaming local para cada cambio funcional.
 - [ ] Medir en la mini-PC CPU, número de procesos, estabilidad prolongada de VAAPI y reproducción de varias cámaras antes de desplegar esta optimización. Esta tarea no modifica la mini-PC.
+- [x] Enmascarar en la API las credenciales dentro de la ruta RTSP y restaurarlas al editar (criterio 19).

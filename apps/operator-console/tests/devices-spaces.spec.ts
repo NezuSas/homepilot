@@ -438,11 +438,11 @@ for (const viewport of [
       expect(typeBounds!.x + typeBounds!.width).toBeGreaterThan(mainBounds!.x + mainBounds!.width - 40);
       const tile = main.getByRole('article').filter({ hasText: 'Luz pendiente' });
       expect((await tile.boundingBox())?.height).toBeLessThanOrEqual(140);
-      await tile.getByRole('button', { name: /^(Sin asignar|Unassigned)$/i }).click();
+      await tile.getByRole('button', { name: /^(Elegir habitación|Choose a room)$/i }).click();
       await page.getByRole('option', { name: 'Oficina', exact: true }).click();
-      await tile.getByRole('button', { name: /^(Guardar|Save)$/i }).click();
+      await tile.getByRole('button', { name: /^(Asignar|Assign)$/i }).click();
       await expect(tile).toHaveCount(0);
-      await main.getByRole('button', { name: /Descubrir entidades|Discover entities/i }).click();
+      await main.getByRole('button', { name: /Buscar dispositivos|Discover entities/i }).click();
       const discovery = page.getByRole('region', { name: /Home Assistant/i });
       await expect(discovery.getByRole('article').filter({ hasText: 'Sensor desconectado' })).toContainText(/No disponible|Unavailable/);
       const candidate = discovery.getByRole('article').filter({ hasText: 'Luz nueva' });
@@ -809,7 +809,7 @@ test('Feature: Home Assistant discovery — Scenario: Given more than one discov
   });
 
   await page.goto('/system/inbox');
-  await page.getByRole('button', { name: /discover entities|descubrir entidades/i }).click();
+  await page.getByRole('button', { name: /discover entities|buscar dispositivos/i }).click();
 
   const discovery = page.locator('section[aria-labelledby="ha-discovery-title"]');
   await expect(discovery.locator('article')).toHaveCount(48);
@@ -1077,4 +1077,44 @@ test('Feature: Room details — Scenario: A home owner selects a room, controls 
 
   await detail.getByRole('button', { name: /Cerrar detalle de estancia|Close room details/i }).click();
   await expect(detail).toHaveCount(0);
+});
+
+test('Feature: Bulk assignment — Scenario: One room for every available pending device, with a result that stays visible', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await prepareAuthenticatedDashboard(page);
+  const pending = (id: string, name: string, state = 'off') => ({ id, homeId: 'responsive-home', roomId: null, name, type: 'switch', status: 'PENDING', integrationSource: 'sonoff', lastKnownState: { state } });
+  let devices = [pending('sw-1', 'Interruptor uno'), pending('sw-2', 'Interruptor dos'), pending('sw-3', 'Interruptor apagado', 'unavailable')];
+  const assigned: string[] = [];
+  await page.route('**/api/v1/devices', route => route.fulfill({ json: devices }));
+  await page.route('**/api/v1/rooms', route => route.fulfill({ json: [{ id: 'office', homeId: 'responsive-home', name: 'Oficina' }] }));
+  await page.route(/\/api\/v1\/devices\/[^/]+\/assign$/, async route => {
+    const id = route.request().url().split('/').at(-2)!;
+    expect(route.request().postDataJSON()).toEqual({ roomId: 'office' });
+    assigned.push(id);
+    const done = { ...devices.find(device => device.id === id)!, roomId: 'office', status: 'ASSIGNED' };
+    devices = devices.map(device => device.id === id ? done : device);
+    await route.fulfill({ json: done });
+  });
+  await page.goto('/system/inbox');
+  const main = page.getByRole('main');
+  const bar = main.getByRole('region', { name: /Asignar varios a la vez|Assign several at once/i });
+  await expect(bar).toBeVisible();
+  const submit = bar.getByRole('button', { name: /Asignar 2 dispositivos|Assign 2 devices/i });
+  await expect(submit).toBeDisabled();
+
+  await bar.getByRole('button', { name: /^(Elegir habitación|Choose a room)$/i }).click();
+  await page.getByRole('option', { name: 'Oficina', exact: true }).click();
+  await expect(submit).toBeEnabled();
+  await submit.click();
+
+  // Only the two available devices were assigned; the offline one was skipped, and the result stays on screen.
+  await expect.poll(() => assigned.slice().sort()).toEqual(['sw-1', 'sw-2']);
+  const result = main.getByRole('status').filter({ hasText: /Se asignaron 2 dispositivos|2 devices were assigned/i });
+  await expect(result).toBeVisible();
+  await expect(result).toContainText(/1 dispositivo no disponible se omitió|1 unavailable device was skipped/i);
+  await expect(main.getByRole('article').filter({ hasText: 'Interruptor uno' })).toHaveCount(0);
+  await expect(main.getByRole('article').filter({ hasText: 'Interruptor apagado' })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('bulk-assign.png'), fullPage: true });
+  await result.getByRole('button', { name: /^(Cerrar|Close)$/i }).click();
+  await expect(result).toHaveCount(0);
 });

@@ -193,6 +193,23 @@ describe('NativeCameraService', () => {
     }));
   });
 
+  it('keeps the stored secret when the console sends the masked placeholder back unchanged', async () => {
+    const securedPath = '/stream0?username=admin&password=real-secret';
+    const driver = createFakeDriver('rtsp-dvr', { outcome: 'reachable', profile: { rtspPort: 554, rtspPath: securedPath, profileToken: null, ptzConfigurationToken: null, ptzSupported: false } });
+    deviceRepository.findDeviceById.mockResolvedValue({ id: 'placeholder', name: 'Cam', lastKnownState: {}, entityVersion: 1 });
+    const service = buildService(driver);
+    const created = await service.create({ homeId: 'home-1', name: 'Cam', host: '192.168.1.30', username: 'a', password: 'b', sourceType: 'rtsp-dvr', rtspPath: securedPath });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    deviceRepository.findDeviceById.mockResolvedValue({ id: created.value.deviceId, name: 'Cam', lastKnownState: {}, entityVersion: 1 });
+
+    const updated = await service.update(created.value.deviceId, { name: 'Renamed', rtspPath: '/stream0?username=••••••••&password=••••••••' });
+
+    expect(updated).toEqual(expect.objectContaining({ ok: true }));
+    expect(driver.negotiate).toHaveBeenLastCalledWith(expect.objectContaining({ rtspPath: securedPath }));
+    expect(sourceRepository.findByDeviceId(created.value.deviceId)?.rtspPath).toBe(securedPath);
+  });
+
   it('rejects invalid ports and missing RTSP paths during update', async () => {
     const driver = createFakeDriver('rtsp-dvr', { outcome: 'reachable', profile: { rtspPort: 554, rtspPath: '/stream', profileToken: null, ptzConfigurationToken: null, ptzSupported: false } });
     const service = buildService(driver);

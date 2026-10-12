@@ -71,3 +71,13 @@ export async function plcResponseError(response: Response): Promise<string> {
   } catch { /* Safe fallback for non-JSON errors. */ }
   return plcErrorKey(undefined);
 }
+
+/** Colour of the connection pill: healthy, retrying, lost, or simply not in use. */
+export function plcConnectionTone(connection: Pick<ModbusConnection, 'enabled'> & { diagnostic?: ModbusDiagnostic }): 'success' | 'warning' | 'danger' | 'neutral' {
+  if (!connection.enabled) return 'neutral';
+  const diagnostic = connection.diagnostic;
+  if (diagnostic?.status === 'online') return 'success';
+  if (diagnostic?.status === 'unavailable') return diagnostic.retryAt ? 'warning' : 'danger';
+  if (diagnostic?.status === 'error' || diagnostic?.status === 'variable_error') return 'danger';
+  return 'neutral';
+}

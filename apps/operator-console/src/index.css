@@ -114,6 +114,7 @@
      */
     --font-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Android Emoji", sans-serif;
     --font-sans: "Inter", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Android Emoji", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-data: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
     --font-mono: "Disket Mono", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Android Emoji", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
     /* ── Core Surfaces (elevation ladder) ─────────────────── */

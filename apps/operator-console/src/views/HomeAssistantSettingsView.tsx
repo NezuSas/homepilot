@@ -186,7 +186,7 @@ export const HomeAssistantSettingsView: React.FC = () => {
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
                 placeholder="http://192.168.1.100:8123"
-                className="font-mono"
+                className="font-data"
                 required
               />
               <p className="text-caption text-muted-foreground">{t('ha_settings.test.url_hint')}</p>

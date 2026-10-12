@@ -43,3 +43,57 @@ describe('Feature: Compact Modbus navigation (AC40)', () => {
     expect(html).not.toContain('<button');
   });
 });
+
+describe('Feature: a PLC that does not answer is explained, not alarmed about', () => {
+  const base: ModbusConnectionSummary = { id: 'c', homeId: 'h', name: 'PLC', host: '192.168.1.5', port: 502, unitId: 1, enabled: true, timeoutMs: 2000, pollIntervalMs: 5000, variables: [{ deviceId: 'v1', connectionId: 'c', name: 'Point 1', area: 'holding_register', address: 1, dataType: 'uint16', wordOrder: 'high_first', scale: 1, offset: 0, writable: false, diagnostic: { status: 'unavailable' } } as never] };
+  const callbacks = { onEdit: jest.fn(), onAdd: jest.fn(), onVariable: jest.fn(), onCommand: jest.fn() };
+  const render = (connection: ModbusConnectionSummary) => renderToStaticMarkup(<ModbusConnectionCard connection={connection} {...callbacks} onOpen={() => {}} />);
+
+  it('Scenario: Given a PLC that never answered When the connection is shown Then it says what to check and that nothing was read', () => {
+    const html = render({ ...base, diagnostic: { status: 'unavailable' } });
+
+    expect(html).toContain('plc.unreachable_hint');
+    expect(html).toContain('plc.never_read');
+    expect(html).toContain('plc.variables_waiting');
+    expect(html).not.toContain('plc.variables_error');
+  });
+  it('Scenario: Given a PLC that answered before When it stops Then the last good reading time is given', () => {
+    const html = render({ ...base, diagnostic: { status: 'unavailable', lastReadAt: '2026-10-12T10:00:00.000Z' } });
+
+    expect(html).toContain('plc.last_good_read');
+    expect(html).not.toContain('plc.never_read');
+  });
+  it('Scenario: Given a known failure When the PLC does not answer Then the translated cause replaces the generic hint', () => {
+    const html = render({ ...base, diagnostic: { status: 'unavailable', error: 'TIMEOUT' } });
+
+    expect(html).toContain('plc.errors.timeout');
+    expect(html).not.toContain('plc.unreachable_hint');
+  });
+  it('Scenario: Given a healthy PLC When shown Then it keeps the variable counts and shows no warning', () => {
+    const html = render({ ...base, diagnostic: { status: 'online' }, variables: [{ ...base.variables[0]!, diagnostic: { status: 'online', value: 1 } }] });
+
+    expect(html).toContain('plc.variables_ok');
+    expect(html).toContain('plc.variables_error');
+    expect(html).not.toContain('plc.unreachable_hint');
+    expect(html).not.toContain('plc.variables_waiting');
+  });
+  it('Scenario: Given a disabled connection When shown Then nothing claims it is failing', () => {
+    const html = render({ ...base, enabled: false });
+
+    expect(html).toContain('modbus.disabled');
+    expect(html).not.toContain('plc.unreachable_hint');
+    expect(html).not.toContain('plc.variables_waiting');
+  });
+  it.each([
+    [{ enabled: false }, 'neutral'],
+    [{ enabled: true, diagnostic: { status: 'online' as const } }, 'success'],
+    [{ enabled: true, diagnostic: { status: 'unavailable' as const, retryAt: '2026-10-12T10:00:00.000Z' } }, 'warning'],
+    [{ enabled: true, diagnostic: { status: 'unavailable' as const } }, 'danger'],
+    [{ enabled: true, diagnostic: { status: 'error' as const } }, 'danger'],
+    [{ enabled: true }, 'neutral'],
+  ])('Scenario: connection %j has the %s tone', async (connection, tone) => {
+    const { plcConnectionTone } = await import('../lib/plcUi');
+
+    expect(plcConnectionTone(connection)).toBe(tone);
+  });
+});

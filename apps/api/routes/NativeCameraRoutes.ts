@@ -3,6 +3,7 @@ import { BootstrapContainer } from '../../../bootstrap';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import type { NativeCameraSource } from '../../../packages/devices/domain/repositories/NativeCameraSourceRepository';
 import type { NativeCameraService, NativeCameraServiceError } from '../../../packages/integrations/native-camera/application/NativeCameraService';
+import { maskStreamPathSecrets } from '../../../packages/integrations/native-camera/application/streamPathSecrets';
 import { ApiRoutes } from './ApiRoutes';
 
 function toNativeCameraDto(source: NativeCameraSource): Record<string, unknown> {
@@ -16,7 +17,7 @@ function toNativeCameraDto(source: NativeCameraSource): Record<string, unknown> 
     rtspPort: source.rtspPort,
     // password is intentionally omitted from API responses
     maskedPassword: source.password.length > 0 ? '••••••••' : '',
-    rtspPath: source.rtspPath,
+    rtspPath: maskStreamPathSecrets(source.rtspPath),
     enabled: source.enabled,
     createdAt: source.createdAt,
     updatedAt: source.updatedAt,

@@ -134,10 +134,10 @@ for (const viewport of [
       await page.screenshot({ path: testInfo.outputPath(`personalization-${theme}.png`), fullPage: true });
       await page.goto('/system/ha');
       await page.evaluate(light => document.documentElement.classList.toggle('light', light), theme === 'light');
-      const testButton = main.getByRole('button', { name: 'Testear Conexión', exact: true });
+      const testButton = main.getByRole('button', { name: 'Probar conexión', exact: true });
       await expect(testButton).toBeEnabled();
       await testButton.click();
-      await expect(main.getByText('Conexión Exitosa', { exact: true })).toBeVisible();
+      await expect(main.getByText('Conexión correcta', { exact: true })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
       await page.screenshot({ path: testInfo.outputPath(`ha-${theme}.png`), fullPage: true });
       await page.goto('/system/onboarding');

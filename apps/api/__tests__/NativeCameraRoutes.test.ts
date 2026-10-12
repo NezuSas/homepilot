@@ -106,6 +106,24 @@ describe('Feature: Native camera configuration', () => {
     expect(homeRepository.findHomeById).not.toHaveBeenCalled();
   });
 
+  it('Scenario: Given credentials embedded in the stream path When the cameras are listed Then no secret reaches the response', async () => {
+    const db = SqliteDatabaseManager.getInstance(dbPath);
+    db.prepare("INSERT INTO homes VALUES ('home-2')").run();
+    db.prepare("INSERT INTO devices VALUES ('cam-2')").run();
+    db.prepare(`INSERT INTO native_camera_sources (device_id, home_id, source_type, name, host, onvif_port, rtsp_port, username, password, rtsp_path, enabled, created_at, updated_at)
+      VALUES ('cam-2', 'home-2', 'onvif-ptz', 'PTZ', '192.168.1.56', 80, 554, 'admin', 'secret-value', '/stream0?username=admin&password=embedded-secret&channel=1', 1, '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')`).run();
+    const res = response();
+    const request = { url: '/api/v1/native-cameras?homeId=home-2', headers: {} } as HomePilotRequest;
+
+    await routes.handle(request, res, '/api/v1/native-cameras', 'GET', container());
+
+    const body = (res.end as jest.Mock).mock.calls[0][0] as string;
+    expect(body).not.toContain('embedded-secret');
+    expect(body).not.toContain('secret-value');
+    const payload = JSON.parse(body) as { cameras: Array<Record<string, unknown>> };
+    expect(payload.cameras[0]?.rtspPath).toBe('/stream0?username=••••••••&password=••••••••&channel=1');
+  });
+
   it('Scenario: Given a native camera with stored credentials When its home cameras are listed Then the password remains masked', async () => {
     const db = SqliteDatabaseManager.getInstance(dbPath);
     db.prepare("INSERT INTO homes VALUES ('home-1')").run();

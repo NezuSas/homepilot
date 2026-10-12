@@ -10,6 +10,7 @@ export default {
       fontFamily: {
         sans: ['var(--font-sans)'],
         mono: ['var(--font-mono)'],
+        data: ['var(--font-data)'],
       },
       colors: {
         background: 'hsl(var(--background))',

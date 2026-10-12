@@ -9,10 +9,11 @@ import { LoadingState } from './ui/LoadingState';
 import { DashboardSkeletonBar as Bar } from './ui/DashboardCardSkeleton';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import { modbusAddressProfiles } from '../../../../packages/integrations/modbus/domain/ModbusAddressProfile';
-import { plcConnectionAvailable, plcConnectionKey, plcErrorKey, plcReadFunction, plcRelatedPointLabel, plcSensorDevice, plcStatusLabel } from '../lib/plcUi';
+import { plcConnectionAvailable, plcConnectionKey, plcConnectionTone, plcErrorKey, plcReadFunction, plcRelatedPointLabel, plcSensorDevice, plcStatusLabel } from '../lib/plcUi';
 import { SensorMetricCard } from '../views/dashboards/widgets/SensorMetricCard';
 import { formatMeasurement } from '../lib/formatMeasurement';
 import { Input } from './ui/Input';
+import { StatusPill } from './ui/StatusPill';
 import { SegmentedControl } from './ui/SegmentedControl';
 
 export type ModbusConnectionSummary = ModbusConnection & { diagnostic?: ModbusDiagnostic; variables: (ModbusVariable & { diagnostic?: ModbusDiagnostic })[] };
@@ -52,12 +53,16 @@ export function ModbusConnectionCard({ connection, onEdit, onAdd, onVariable, on
       <div className="flex min-w-0 items-center gap-3"><Cable aria-hidden="true" className="size-5 shrink-0 text-primary" />
         <div className="min-w-0"><Heading as="h2" variant="item">{connection.name}</Heading><p className="break-words text-caption text-muted-foreground">{connection.host}:{connection.port} · {t('modbus.unitId')} {connection.unitId}</p>{profile && <p className="text-caption text-muted-foreground">{profile.manufacturer} {profile.model}</p>}</div>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-3"><div className="text-caption text-muted-foreground">{connection.enabled ? <p role="status"><span className="font-medium text-foreground">{t(plcConnectionKey(connection))}</span> · {t('plc.enabled')}</p> : <p>{t('modbus.disabled')}</p>}</div>
+      <div className="flex flex-wrap items-center justify-between gap-3"><div className="text-caption text-muted-foreground">{connection.enabled ? <p role="status" className="flex flex-wrap items-center gap-2"><StatusPill variant={plcConnectionTone(connection)}>{t(plcConnectionKey(connection))}</StatusPill><span>{t('plc.enabled')}</span></p> : <StatusPill variant="neutral">{t('modbus.disabled')}</StatusPill>}</div>
         <Button variant="secondary" size="lg" onClick={onEdit}><Settings aria-hidden="true" className="size-4" />{t('modbus.configure')}</Button>
         {!onOpen && <Button variant="outline" size="lg" onClick={onAdd}>{t('modbus.add_variable')}</Button>}
       </div>
     </div>
-    <div className="mt-2 flex flex-wrap items-center justify-between gap-2"><p className="text-caption text-muted-foreground">{t('plc.variable_count', { count: connection.variables.length })} · {t('plc.variables_ok')}: {ok} · <span className={errors ? 'text-danger' : undefined}>{t('plc.variables_error')}: {errors}</span></p>{onOpen && <Button variant="outline" size="lg" onClick={onOpen}>{t('plc.open_connection')}</Button>}</div>
+    {connection.enabled && !plcConnectionAvailable(connection) && <p role="status" className="mt-2 rounded-control border border-border bg-background/40 px-3 py-2 text-caption text-muted-foreground">
+      {t(connection.diagnostic?.error ? plcErrorKey(connection.diagnostic.error) : 'plc.unreachable_hint', { address: `${connection.host}:${connection.port}` })}{' '}
+      {connection.diagnostic?.lastReadAt ? t('plc.last_good_read', { date: date(connection.diagnostic.lastReadAt) }) : t('plc.never_read')}
+    </p>}
+    <div className="mt-2 flex flex-wrap items-center justify-between gap-2"><p className="text-caption text-muted-foreground">{t('plc.variable_count', { count: connection.variables.length })}{plcConnectionAvailable(connection) ? <> · {t('plc.variables_ok')}: {ok} · <span className={errors ? 'text-danger' : undefined}>{t('plc.variables_error')}: {errors}</span></> : connection.enabled ? <> · {t('plc.variables_waiting')}</> : null}</p>{onOpen && <Button variant="outline" size="lg" onClick={onOpen}>{t('plc.open_connection')}</Button>}</div>
     {!onOpen && <>
     <details className="mt-2 border-t border-border text-caption text-muted-foreground"><summary className="flex min-h-11 cursor-pointer items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{t('plc.connection_diagnostics')}</summary><dl className="grid gap-x-4 gap-y-2 pb-2 sm:grid-cols-2"><div><dt>{t('plc.last_communication')}</dt><dd>{date(connection.diagnostic?.lastReadAt)}</dd></div><div><dt>{t('plc.latency')}</dt><dd>{connection.diagnostic?.latencyMs ?? '—'} ms</dd></div>{connection.diagnostic?.retryAt && <div><dt>{t('plc.retry_at')}</dt><dd>{date(connection.diagnostic.retryAt)}</dd></div>}{connection.diagnostic?.error && <div><dt>{t('plc.last_error')}</dt><dd role="status">{t(plcErrorKey(connection.diagnostic.error))}</dd></div>}</dl></details>
     <div data-modbus-filters className="flex flex-wrap items-center gap-2 border-t border-border py-2">

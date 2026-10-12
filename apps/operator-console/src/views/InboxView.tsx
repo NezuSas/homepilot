@@ -12,6 +12,7 @@ import { StatusPill } from '../components/ui/StatusPill';
 import { EmptyState } from '../components/ui/EmptyState';
 import { DeviceInspector } from '../components/DeviceInspector';
 import { HomeAssistantDiscoverySection } from '../components/HomeAssistantDiscoverySection';
+import { BulkAssignBar, BulkAssignSummary } from '../components/BulkAssignBar';
 import { InboxDeviceTile } from '../components/InboxDeviceTile';
 import { ManagedDeviceTile } from '../components/ManagedDeviceTile';
 import { SmartDisplayControls } from '../components/SmartDisplayControls';
@@ -21,6 +22,7 @@ import { useInitialLoading } from '../components/ui/useInitialLoading';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 import type { SnapshotDevice as Device, SnapshotRoom as Room } from '../stores/useDeviceSnapshotStore';
 import { humanize } from '../lib/naming-utils';
+import type { BulkAssignOutcome } from '../lib/bulkAssign';
 import { resolveManagedDeviceKind, type ManagedDeviceKind } from '../lib/devicePresentation';
 
 /**
@@ -39,6 +41,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
   const [controllingDisplayId, setControllingDisplayId] = useState<string | null>(null);
   const [filter, setFilter] = useState<DeviceFilter>('all');
   const [originFilter, setOriginFilter] = useState<'all' | 'local' | 'bridged'>('all');
+  const [bulkOutcome, setBulkOutcome] = useState<BulkAssignOutcome | null>(null);
   const devices = useDeviceSnapshotStore((state) => state.devices);
   const roomsByHome = useDeviceSnapshotStore((state) => state.roomsByHome);
   const loading = useDeviceSnapshotStore((state) => state.isLoading);
@@ -172,6 +175,8 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
         }
       />
 
+      {bulkOutcome && <BulkAssignSummary outcome={bulkOutcome} onDismiss={() => setBulkOutcome(null)} />}
+
       {/* Adaptive Grid Rendering */}
       <div className="flex flex-col gap-8">
         {Array.isArray(Object.entries(grouped)) && Object.entries(grouped).map(([id, group]) => (
@@ -188,6 +193,15 @@ export const InboxView: React.FC<InboxViewProps> = ({ mode = 'discovery' }) => {
                 </StatusPill>
               </div>
             </div>
+
+            {mode === 'discovery' && group.devices.length > 1 && (
+              <BulkAssignBar
+                devices={group.devices}
+                rooms={roomsByHome[group.devices[0]!.homeId] || []}
+                onUpdate={(updated) => handleDeviceUpdate(updated.id, updated)}
+                onFinished={setBulkOutcome}
+              />
+            )}
 
             <div className={cn(
               'grid gap-3 sm:gap-4',

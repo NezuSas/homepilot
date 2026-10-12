@@ -8,6 +8,7 @@ import type {
 } from '../../../devices/domain/repositories/NativeCameraSourceRepository';
 import type { NativeCameraDriverRegistry } from './ports/NativeCameraDriverRegistry';
 import type { DiscoveredNativeCamera } from './ports/NativeCameraDriver';
+import { restoreMaskedStreamPathSecrets } from './streamPathSecrets';
 
 export const NATIVE_CAMERA_SOURCE_TYPES: ReadonlyArray<NativeCameraSourceType> = ['onvif-ptz', 'rtsp-dvr', 'sonoff-rtsp'];
 
@@ -206,7 +207,7 @@ export class NativeCameraService {
     const newOnvifPort = input.onvifPort !== undefined ? input.onvifPort : existing.onvifPort;
     const newUsername = typeof input.username === 'string' && input.username ? input.username : existing.username;
     const newPassword = typeof input.password === 'string' && input.password ? input.password : existing.password;
-    const newRtspPath = typeof input.rtspPath === 'string' ? normalizeRtspPath(input.rtspPath) : existing.rtspPath;
+    const newRtspPath = typeof input.rtspPath === 'string' ? restoreMaskedStreamPathSecrets(normalizeRtspPath(input.rtspPath), existing.rtspPath) : existing.rtspPath;
     const newEnabled = typeof input.enabled === 'boolean' ? input.enabled : existing.enabled;
 
     if (sourceTypeRequiresManualRtspPath(newSourceType) && !newRtspPath) {
