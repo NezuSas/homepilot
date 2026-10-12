@@ -13,7 +13,7 @@ export interface PublicUserDto {
   username: string;
   displayName: string | null;
   avatarDataUri: string | null;
-  role: 'admin' | 'parent' | 'child' | 'guest' | 'operator';
+  role: 'admin' | 'parent' | 'child' | 'guest';
   isActive: boolean;
   accessScope: AccessScope;
   roomIds: string[];
@@ -26,7 +26,7 @@ export interface PublicUserDto {
 export interface CreateUserPayload {
   username: string;
   passwordPlain: string;
-  role: 'admin' | 'parent' | 'child' | 'guest' | 'operator';
+  role: 'admin' | 'parent' | 'child' | 'guest';
   accessScope?: AccessScope;
   roomIds?: string[];
   expiresAt?: string | null;
@@ -53,7 +53,7 @@ export class UserManagementService {
     private readonly roomLookup?: UserManagementRoomLookup
   ) {}
 
-  private static readonly VALID_ROLES = new Set<string>(['admin', 'parent', 'child', 'guest', 'operator']);
+  private static readonly VALID_ROLES = new Set<string>(['admin', 'parent', 'child', 'guest']);
 
   public async listUsers(): Promise<PublicUserDto[]> {
     const users = await this.userRepository.findAll();
@@ -167,7 +167,7 @@ export class UserManagementService {
     await this.userRepository.updateProfile(userId, displayName, avatarDataUri);
   }
 
-  public async updateUserRole(adminUserId: string, targetUserId: string, newRole: 'admin' | 'parent' | 'child' | 'guest' | 'operator'): Promise<void> {
+  public async updateUserRole(adminUserId: string, targetUserId: string, newRole: 'admin' | 'parent' | 'child' | 'guest'): Promise<void> {
     const target = await this.userRepository.findById(targetUserId);
     if (!target) throw new Error('USER_NOT_FOUND');
     if (!UserManagementService.VALID_ROLES.has(newRole)) throw new Error('INVALID_ROLE');

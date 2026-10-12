@@ -9,7 +9,7 @@ import { AuthGuard } from '../../../packages/auth/infrastructure/AuthGuard';
 import type { AuthService } from '../../../packages/auth/application/AuthService';
 
 describe('Feature: Real Modbus Admin authorization (AC19)', () => {
-  it.each(['anonymous', 'guest', 'child', 'parent', 'operator', 'admin'])('Scenario: Real guard verifies %s before administrative access', async role => {
+  it.each(['anonymous', 'guest', 'child', 'parent', 'admin'])('Scenario: Real guard verifies %s before administrative access', async role => {
     const verifyToken = jest.fn().mockResolvedValue({ isValid: true, user: { id: 'u', username: 'u', role, displayName: 'U', avatarDataUri: null } });
     const guard = new AuthGuard({ verifyToken } as unknown as AuthService);
     const service = { list: jest.fn().mockResolvedValue([]) };

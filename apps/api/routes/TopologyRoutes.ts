@@ -22,7 +22,6 @@ import { ActivityType } from '../../../packages/devices/domain/repositories/Acti
 export class TopologyRoutes extends ApiRoutes {
   private canReadSharedTopology(role: string): boolean {
     return role === 'admin'
-      || role === 'operator'
       || role === 'parent'
       || role === 'child'
       || role === 'guest';

@@ -842,7 +842,6 @@
     "sidebar_subtitle": "Control local",
     "compact_roles": {
       "admin": "Admin",
-      "operator": "Operador",
       "parent": "Padre",
       "child": "Hijo",
       "guest": "Invitado"
@@ -1483,14 +1482,12 @@
     },
     "roles": {
       "admin": "Administrador",
-      "operator": "Operador (heredado)",
       "parent": "Familiar",
       "child": "Niño",
       "guest": "Invitado"
     },
     "role_descriptions": {
       "admin": "Controla todo: personas, sistema y dispositivos.",
-      "operator": "Cuenta anterior. Se comporta como Familiar.",
       "parent": "Usa todos los dispositivos, escenas y tableros, y crea sus propias automatizaciones.",
       "child": "Usa las habitaciones que le des y ejecuta escenas. No edita automatizaciones.",
       "guest": "Usa solo las habitaciones que elijas, hasta que venza su acceso."
@@ -2132,7 +2129,6 @@
     ],
     "roles": {
       "admin": "Administrador",
-      "operator": "Operador (heredado)",
       "parent": "Familiar",
       "child": "Niño",
       "guest": "Invitado"

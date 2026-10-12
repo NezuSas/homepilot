@@ -16,7 +16,7 @@ describe('Feature: room access for household members', () => {
     expect(canUseRoom(guest, undefined)).toBe(false);
   });
 
-  it.each(['admin', 'parent', 'operator'])('Scenario: Given the %s role When rooms are checked Then the whole home is usable even if a scope was stored', (role) => {
+  it.each(['admin', 'parent'])('Scenario: Given the %s role When rooms are checked Then the whole home is usable even if a scope was stored', (role) => {
     expect(isRoomRestricted({ role, accessScope: 'rooms', roomIds: [] })).toBe(false);
     expect(canUseRoom({ role, accessScope: 'rooms', roomIds: [] }, 'cocina')).toBe(true);
     expect(canUseRoom({ role, accessScope: 'rooms', roomIds: [] }, null)).toBe(true);

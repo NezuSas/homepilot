@@ -842,7 +842,6 @@
     "sidebar_subtitle": "Local control",
     "compact_roles": {
       "admin": "Admin",
-      "operator": "Operator",
       "parent": "Parent",
       "child": "Child",
       "guest": "Guest"
@@ -1483,14 +1482,12 @@
     },
     "roles": {
       "admin": "Administrator",
-      "operator": "Operator (legacy)",
       "parent": "Family member",
       "child": "Child",
       "guest": "Guest"
     },
     "role_descriptions": {
       "admin": "Controls everything: people, system and devices.",
-      "operator": "Older account. Behaves like a family member.",
       "parent": "Uses every device, scene and dashboard, and creates their own automations.",
       "child": "Uses the rooms you give them and runs scenes. Cannot edit automations.",
       "guest": "Uses only the rooms you choose, until their access ends."
@@ -2132,7 +2129,6 @@
     "false": "FALSE",
     "roles": {
       "admin": "Administrator",
-      "operator": "Operator (legacy)",
       "parent": "Family member",
       "child": "Child",
       "guest": "Guest"

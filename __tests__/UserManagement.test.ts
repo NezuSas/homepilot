@@ -67,10 +67,10 @@ describe('UserManagementService (Deep Audit & Atomic Security)', () => {
     mockUserRepo.findById.mockResolvedValue({ id: 'admin1', role: 'admin', isActive: true });
     mockUserRepo.updateRoleAtomic.mockResolvedValue(false); // Simulated atomic violation
 
-    await expect(service.updateUserRole('any', 'admin1', 'operator'))
+    await expect(service.updateUserRole('any', 'admin1', 'parent'))
       .rejects.toThrow('MINIMUM_ADMINS_VIOLATED');
     
-    expect(mockUserRepo.updateRoleAtomic).toHaveBeenCalledWith('admin1', 'operator');
+    expect(mockUserRepo.updateRoleAtomic).toHaveBeenCalledWith('admin1', 'parent');
   });
 
   test('setUserActiveState() should utilize updateActiveStateAtomic and handle failure', async () => {
@@ -97,13 +97,13 @@ describe('UserManagementService (Deep Audit & Atomic Security)', () => {
     await expect(service.createUser('admin1', {
       username: ' existing ',
       passwordPlain: 'short',
-      role: 'operator'
+      role: 'parent'
     })).rejects.toThrow('INVALID_INPUT: Password must be at least 8 characters long');
 
     await expect(service.createUser('admin1', {
       username: 'existing',
       passwordPlain: 'valid_password',
-      role: 'operator'
+      role: 'parent'
     })).rejects.toThrow('USERNAME_TAKEN');
   });
 
@@ -120,18 +120,18 @@ describe('UserManagementService (Deep Audit & Atomic Security)', () => {
   });
 
   test('resetUserPassword() hashes the new password, revokes sessions and writes a safe audit record', async () => {
-    mockUserRepo.findById.mockResolvedValue({ id: 'operator-1', username: 'operator' });
+    mockUserRepo.findById.mockResolvedValue({ id: 'user-1', username: 'familiar' });
 
-    await service.resetUserPassword('admin-1', 'operator-1', 'secure-password');
+    await service.resetUserPassword('admin-1', 'user-1', 'secure-password');
 
     expect(mockCrypto.hashPassword).toHaveBeenCalledWith('secure-password');
-    expect(mockUserRepo.updatePassword).toHaveBeenCalledWith('operator-1', 'hashed_pwd');
-    expect(mockSessionRepo.deleteAllUserSessions).toHaveBeenCalledWith('operator-1');
+    expect(mockUserRepo.updatePassword).toHaveBeenCalledWith('user-1', 'hashed_pwd');
+    expect(mockSessionRepo.deleteAllUserSessions).toHaveBeenCalledWith('user-1');
     expect(mockActivityRepo.saveActivity).toHaveBeenCalledWith(expect.objectContaining({
       type: 'USER_PASSWORD_RESET',
       data: expect.objectContaining({
         adminActorUserId: 'admin-1',
-        targetUserId: 'operator-1',
+        targetUserId: 'user-1',
         revokedSessionsCount: 2,
       }),
     }));
@@ -141,7 +141,7 @@ describe('UserManagementService (Deep Audit & Atomic Security)', () => {
   test('resetUserPassword() rejects self-reset and weak passwords', async () => {
     await expect(service.resetUserPassword('admin-1', 'admin-1', 'secure-password'))
       .rejects.toThrow('SELF_PASSWORD_CHANGE_REQUIRED');
-    await expect(service.resetUserPassword('admin-1', 'operator-1', 'short'))
+    await expect(service.resetUserPassword('admin-1', 'user-1', 'short'))
       .rejects.toThrow('INVALID_INPUT');
   });
   test('createUser() persists a sanitized active user and writes an audit record', async () => {

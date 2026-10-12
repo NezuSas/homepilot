@@ -21,7 +21,7 @@ for (const viewport of [
       id: 'guest-1', username: 'visita', displayName: 'Visita', avatarDataUri: null, role: 'guest', isActive: true, hasActiveSessions: false,
       accessScope: 'rooms', roomIds: ['sala'], expiresAt: new Date(Date.now() + 5 * DAY_MS).toISOString(), createdAt: '', updatedAt: '',
     };
-    const legacy = { ...guest, id: 'op-1', username: 'tecnico', displayName: 'Técnico', role: 'operator', accessScope: 'all', roomIds: [], expiresAt: null };
+    const legacy = { ...guest, id: 'fam-1', username: 'mama', displayName: 'Mamá', role: 'parent', accessScope: 'all', roomIds: [], expiresAt: null };
     const expired = { ...guest, id: 'old-1', username: 'antigua', displayName: 'Antigua', expiresAt: new Date(Date.now() - DAY_MS).toISOString() };
     const admin = { ...guest, id: dashboardUser.id, username: 'admin', displayName: 'Administrador', role: 'admin', accessScope: 'all', roomIds: [], expiresAt: null };
     let created: unknown = null;
@@ -47,8 +47,8 @@ for (const viewport of [
     await expect(guestCard).toContainText(/Vence el|Expires on/);
     await expect(page.getByRole('article', { name: 'Antigua', exact: true })).toContainText(/Acceso vencido|Access expired/);
     await expect(page.getByRole('article', { name: 'Administrador', exact: true }).getByRole('button', { name: /Editar acceso|Edit access/i })).toHaveCount(0);
-    await expect(page.getByRole('article', { name: 'Técnico', exact: true })).toContainText(/Operador \(heredado\)|Operator \(legacy\)/);
-    await expect(page.getByRole('article', { name: 'Técnico', exact: true }).getByRole('button', { name: /Editar acceso|Edit access/i })).toHaveCount(0);
+    await expect(page.getByRole('article', { name: 'Mamá', exact: true })).toContainText(/Familiar|Family/);
+    await expect(page.getByRole('article', { name: 'Mamá', exact: true }).getByRole('button', { name: /Editar acceso|Edit access/i })).toHaveCount(0);
 
     // Editing the access of the guest.
     await guestCard.getByRole('button', { name: /Editar acceso|Edit access/i }).click();

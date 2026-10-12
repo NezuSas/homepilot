@@ -90,7 +90,7 @@ export class SqliteUserRepository {
     const now = new Date().toISOString();
     // Logic: 
     // 1. If newRole is 'admin', it's always safe (adding an admin).
-    // 2. If newRole is 'operator', we only update if (target is not an active admin) OR (count of active admins > 1).
+    // 2. Otherwise we only update if (target is not an active admin) OR (count of active admins > 1).
     const stmt = this.db.prepare(`
       UPDATE users 
       SET role = ?, updated_at = ? 

@@ -1,6 +1,6 @@
 /** Rules for the people of the home: who can be limited to rooms, and how an expiry is chosen and described. */
 
-export type HouseholdRole = 'admin' | 'parent' | 'child' | 'guest' | 'operator';
+export type HouseholdRole = 'admin' | 'parent' | 'child' | 'guest';
 export type AccessScope = 'all' | 'rooms';
 export type ExpiryPreset = 'never' | '1d' | '7d' | '30d' | 'custom';
 

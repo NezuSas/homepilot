@@ -86,11 +86,11 @@ describe('Directory SSO AC1-AC8', () => {
   });
 
   it('AC7/AC8 preserves the local role and does not require the Directory after a local session is issued', async () => {
-    const repo = new MemorySsoRepository(); await repo.create('directory-account', 'operator-user');
-    const localAuth = auth('operator'); const service = new DirectorySsoService(new DirectorySsoVerifier(repo, publicKey), repo, localAuth as never);
+    const repo = new MemorySsoRepository(); await repo.create('directory-account', 'parent-user');
+    const localAuth = auth('parent'); const service = new DirectorySsoService(new DirectorySsoVerifier(repo, publicKey), repo, localAuth as never);
     const result = await service.login(token());
-    expect(result).toMatchObject({ linked: true, user: { role: 'operator' } });
-    expect(localAuth.createSessionForUserId).toHaveBeenCalledWith('operator-user');
+    expect(result).toMatchObject({ linked: true, user: { role: 'parent' } });
+    expect(localAuth.createSessionForUserId).toHaveBeenCalledWith('parent-user');
   });
 });
 describe('DirectorySsoVerifier structural security contracts', () => {

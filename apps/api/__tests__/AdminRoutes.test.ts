@@ -21,7 +21,7 @@ function containerFor(isAdmin: boolean): BootstrapContainer {
     services: {
       userManagementService: {
         listUsers: jest.fn().mockResolvedValue([
-          { id: 'user-1', username: 'operator', displayName: null, avatarDataUri: null, role: 'operator', isActive: true, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', hasActiveSessions: false },
+          { id: 'user-1', username: 'familiar', displayName: null, avatarDataUri: null, role: 'parent', isActive: true, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', hasActiveSessions: false },
         ]),
       },
     },
@@ -31,11 +31,11 @@ function containerFor(isAdmin: boolean): BootstrapContainer {
 describe('Feature: Administrative user management boundary', () => {
   const routes = new AdminRoutes();
 
-  it('Scenario: Given an operator When the user directory is requested Then access is denied', async () => {
+  it('Scenario: Given a family member When the user directory is requested Then access is denied', async () => {
     const res = response();
     const container = containerFor(false);
 
-    await routes.handle({ user: { id: 'operator-1', role: 'operator' } } as HomePilotRequest, res, '/api/v1/admin/users', 'GET', container);
+    await routes.handle({ user: { id: 'parent-1', role: 'parent' } } as HomePilotRequest, res, '/api/v1/admin/users', 'GET', container);
 
     expect(container.services.userManagementService.listUsers).not.toHaveBeenCalled();
     expect(res.writeHead).toHaveBeenCalledWith(403, expect.any(Object));
@@ -49,7 +49,7 @@ describe('Feature: Administrative user management boundary', () => {
 
     expect(res.writeHead).toHaveBeenCalledWith(200, expect.any(Object));
     const body = (res.end as jest.Mock).mock.calls[0][0] as string;
-    expect(body).toContain('operator');
+    expect(body).toContain('familiar');
     expect(body).not.toContain('passwordHash');
   });
 });

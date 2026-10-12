@@ -1,6 +1,6 @@
-const BASIC_HOME_ROLES = new Set(['admin', 'operator', 'parent', 'child', 'guest']);
-const FAMILY_CONTROL_ROLES = new Set(['admin', 'operator', 'parent', 'child']);
-const ADMIN_CONTROL_ROLES = new Set(['admin', 'operator', 'parent']);
+const BASIC_HOME_ROLES = new Set(['admin', 'parent', 'child', 'guest']);
+const FAMILY_CONTROL_ROLES = new Set(['admin', 'parent', 'child']);
+const ADMIN_CONTROL_ROLES = new Set(['admin', 'parent']);
 // System information (diagnostics, history, cameras setup, assistant insights) is for the administrator;
 // everyone else only uses the home.
 const SYSTEM_ROLES = new Set(['admin']);

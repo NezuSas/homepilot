@@ -11,7 +11,7 @@ import {
 const NOW = new Date(2026, 9, 11, 10, 0, 0).getTime();
 
 describe('Feature: people of the home', () => {
-  it('Scenario: Given the roles an administrator can hand out When they are listed Then the legacy operator is not offered', () => {
+  it('Scenario: Given the roles an administrator can hand out When they are listed Then exactly the four household roles are offered', () => {
     expect(SELECTABLE_ROLES).toEqual(['admin', 'parent', 'child', 'guest']);
   });
 
@@ -20,7 +20,6 @@ describe('Feature: people of the home', () => {
     ['guest', true],
     ['parent', false],
     ['admin', false],
-    ['operator', false],
   ] as const)('Scenario: Given the %s role When access limits are considered Then restrictable is %s', (role, restrictable) => {
     expect(canRestrictAccess(role)).toBe(restrictable);
   });

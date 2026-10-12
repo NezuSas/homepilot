@@ -7,3 +7,4 @@
 - [x] Endpoint `PATCH /admin/users/:id/access`, DTO y `GET /auth/me`.
 - [x] Consola: nombres y descripciones de rol, selector de alcance y de vencimiento, tarjeta de resumen.
 - [x] Pruebas unitarias, de API y de extremo a extremo; documentación y matriz de cobertura.
+- [x] Retiro del rol `operator`: migración `038_retire_operator_role.sql`, dominio, API, consola, textos y pruebas.

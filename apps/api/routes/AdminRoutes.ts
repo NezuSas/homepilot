@@ -72,7 +72,7 @@ export class AdminRoutes extends ApiRoutes {
     const patchRoleMatch = method === 'PATCH' && pathname.match(/^\/api\/v1\/admin\/users\/([^\/]+)\/role$/);
     if (patchRoleMatch) {
       const targetId = patchRoleMatch[1];
-      const VALID_ROLES = new Set(['admin', 'parent', 'child', 'guest', 'operator']);
+      const VALID_ROLES = new Set(['admin', 'parent', 'child', 'guest']);
       try {
         const payload = await this.parseBody<{ role: string }>(req);
         if (!payload.role || !VALID_ROLES.has(payload.role)) {

@@ -9,7 +9,7 @@ import type { AccessScope } from './roomAccess';
  *  guest   → Temporary visitor. Basic device control only (lights, climate). Read-mostly.
  *  operator → Legacy role kept for existing accounts; behaves like parent and is no longer offered for new users.
  */
-export type UserRole = 'admin' | 'parent' | 'child' | 'guest' | 'operator';
+export type UserRole = 'admin' | 'parent' | 'child' | 'guest';
 
 export interface User {
   id: string;

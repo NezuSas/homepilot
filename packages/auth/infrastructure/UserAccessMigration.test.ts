@@ -64,3 +64,25 @@ describe('Feature: migration 036 gives existing users the whole home and no expi
     expect((await repository.findById('u-guest'))?.roomIds).toEqual(['cocina']);
   });
 });
+
+describe('Feature: migration 038 retires the operator role', () => {
+  it('Scenario: Given an operator account and other users When the migration runs Then only the operator becomes a family member', async () => {
+    const db = legacyDatabase();
+    db.prepare("INSERT INTO users (id, username, password_hash, role, is_active, created_at, updated_at) VALUES ('u-op', 'tecnico', 'h', 'operator', 1, 'now', 'now')").run();
+    db.exec(migration('036_user_access_scope.sql'));
+
+    db.exec(migration('038_retire_operator_role.sql'));
+
+    const roles = Object.fromEntries((await new SqliteUserRepository(db).findAll()).map((user) => [user.username, user.role]));
+    expect(roles).toEqual({ visita: 'guest', admin: 'admin', tecnico: 'parent' });
+  });
+
+  it('Scenario: Given no operator accounts When the migration runs Then nothing changes', () => {
+    const db = legacyDatabase();
+
+    db.exec(migration('038_retire_operator_role.sql'));
+
+    expect(db.prepare('SELECT count(*) AS count FROM users WHERE role = ?').get('operator')).toEqual({ count: 0 });
+    expect(db.prepare('SELECT count(*) AS count FROM users').get()).toEqual({ count: 2 });
+  });
+});

@@ -85,7 +85,7 @@ describe('TopologyRoutes - delete room', () => {
   });
 
   it('BDD AC4: exposes the installation topology to an authenticated shared-role user', async () => {
-    const request = { user: { id: 'operator-1', role: 'operator' }, headers: {} } as unknown as HomePilotRequest;
+    const request = { user: { id: 'parent-1', role: 'parent' }, headers: {} } as unknown as HomePilotRequest;
     const homesResponse = createResponse();
     const roomsResponse = createResponse();
 

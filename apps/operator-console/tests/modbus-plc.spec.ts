@@ -907,7 +907,7 @@ for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'ta
 }
 
 test('Feature: Native Modbus configuration — Scenario: Non-Admin direct navigation never requests configuration (AC2)', async ({ page }) => {
-  await prepareAuthenticatedDashboard(page, responsiveDashboard, { ...dashboardUser, role: 'operator' });
+  await prepareAuthenticatedDashboard(page, responsiveDashboard, { ...dashboardUser, role: 'parent' });
   let calls = 0;
   await page.route('**/api/v1/modbus/**', route => { calls++; return route.fulfill({ json: { connections: [] } }); });
   await page.goto('/system/modbus');

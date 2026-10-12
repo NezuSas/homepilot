@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Input } from './ui/Input';
 import { SelectableOptionCard } from './ui/SelectableOptionCard';
 
-export type UserRole = 'admin' | 'parent' | 'child' | 'guest' | 'operator';
+export type UserRole = 'admin' | 'parent' | 'child' | 'guest';
 
 export interface UserRoleOption {
   value: UserRole;

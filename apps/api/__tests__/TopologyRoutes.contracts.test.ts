@@ -348,7 +348,7 @@ describe('TopologyRoutes - additional contracts', () => {
     expect(response.end).toHaveBeenCalledWith(expect.stringContaining('ROOM_ACTION_ERROR'));
   });
 
-  it.each(['admin', 'operator', 'parent', 'child', 'guest'] as const)(
+  it.each(['admin', 'parent', 'child', 'guest'] as const)(
     'lists shared homes for the %s role',
     async (role) => {
       const container = createContainer();

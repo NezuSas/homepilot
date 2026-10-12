@@ -419,7 +419,7 @@ for (const viewport of [
       imports++;
       await route.fulfill({ json: { ...pending, id: 'new-light', name: 'Luz nueva', integrationSource: 'home-assistant' } });
     });
-    const user = { id: 'other-user', username: 'ana', displayName: 'Ana', avatarDataUri: null, role: 'operator', isActive: true, hasActiveSessions: true, createdAt: '', updatedAt: '' };
+    const user = { id: 'other-user', username: 'ana', displayName: 'Ana', avatarDataUri: null, role: 'parent', isActive: true, hasActiveSessions: true, createdAt: '', updatedAt: '' };
     await page.route('**/api/v1/admin/users', route => route.fulfill({ json: [user, { ...user, id: dashboardUser.id, username: 'admin', displayName: 'Administrador', role: 'admin', hasActiveSessions: false }] }));
     for (const theme of ['dark', 'light']) {
       devices = [pending, { ...pending, id: 'pending-unavailable', name: 'Luz no disponible', lastKnownState: { state: 'unavailable' } }];

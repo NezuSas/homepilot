@@ -2,7 +2,7 @@ import { getAppAccessControl } from './accessControl';
 import { DEFAULT_INSTALLED_FEATURES, resolveVisibleView } from './installedFeatures';
 
 describe('Feature: only the administrator sees system information, everyone else uses the home', () => {
-  it.each(['operator', 'parent', 'child', 'guest'])('Scenario: Given the %s role When access is evaluated Then the system area is closed', (role) => {
+  it.each(['parent', 'child', 'guest'])('Scenario: Given the %s role When access is evaluated Then the system area is closed', (role) => {
     expect(getAppAccessControl(role).canAccessSystem).toBe(false);
   });
 

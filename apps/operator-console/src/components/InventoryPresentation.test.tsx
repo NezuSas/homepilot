@@ -32,15 +32,15 @@ describe('Feature: Compact inventory and access (AC55, AC56)', () => {
   });
   const labels = { identity: 'Identidad', access: 'Rol', status: 'Estado', controls: 'Controles', active: 'Activo', suspended: 'Suspendido', live: 'Sesión activa', suspendTitle: 'Suspender', restoreTitle: 'Restaurar', revokeTitle: 'Revocar sesiones', resetPasswordTitle: 'Restablecer contraseña', editAccessTitle: 'Editar acceso', swapRoleTitle: () => 'Cambiar rol' };
   const cardProps = {
-    getRoleLabel: (role: string) => (role === 'operator' ? 'Operador (heredado)' : role === 'guest' ? 'Invitado' : 'Familiar'),
+    getRoleLabel: (role: string) => (role === 'guest' ? 'Invitado' : 'Familiar'),
     getRoleDescription: (role: string) => `desc-${role}`,
     getAccessText: () => 'Toda la casa',
     getExpiry: () => null,
     onEditAccess: noop,
   };
-  const user = { id: 'u', username: 'ana', displayName: 'Ana', avatarDataUri: null, role: 'operator' as const, isActive: true, hasActiveSessions: false, createdAt: '', updatedAt: '' };
+  const user = { id: 'u', username: 'ana', displayName: 'Ana', avatarDataUri: null, role: 'parent' as const, isActive: true, hasActiveSessions: false, createdAt: '', updatedAt: '' };
   it.each(['u', 'other'].flatMap(currentUserId => [false, true].map(hasActiveSessions => ({ currentUserId, hasActiveSessions }))))('retains security controls and current-user password protection for $currentUserId with active sessions=$hasActiveSessions', ({ currentUserId, hasActiveSessions }) => {
-    const html = renderToStaticMarkup(<UserAccessCard user={{ ...user, hasActiveSessions }} labels={labels} roleOptions={[{ value: 'operator', label: 'Operador' }]} {...cardProps} currentUserId={currentUserId} onToggleActive={noop} onChangeRole={noop} onRevokeSessions={noop} onResetPassword={noop} />);
+    const html = renderToStaticMarkup(<UserAccessCard user={{ ...user, hasActiveSessions }} labels={labels} roleOptions={[{ value: 'parent', label: 'Familiar' }]} {...cardProps} currentUserId={currentUserId} onToggleActive={noop} onChangeRole={noop} onRevokeSessions={noop} onResetPassword={noop} />);
     expect(html).toContain('Ana');
     expect(html).toContain('aria-label="Rol"');
     expect(html).toContain('aria-label="Suspender"');
@@ -72,16 +72,11 @@ describe('Feature: Compact inventory and access (AC55, AC56)', () => {
     expect(html).toContain('text-danger');
   });
 
-  it.each(['admin', 'parent', 'operator'] as const)('does not offer room access editing for the %s role', (role) => {
+  it.each(['admin', 'parent'] as const)('does not offer room access editing for the %s role', (role) => {
     const html = renderToStaticMarkup(<UserAccessCard user={{ ...user, role }} labels={labels} roleOptions={[{ value: 'parent', label: 'Familiar' }]} {...cardProps}
       currentUserId="other" onToggleActive={noop} onChangeRole={noop} onRevokeSessions={noop} onResetPassword={noop} />);
 
     expect(html).not.toContain('aria-label="Editar acceso"');
   });
 
-  it('keeps the legacy operator role selectable on the account that has it, without offering it to others', () => {
-    const operatorHtml = renderToStaticMarkup(<UserAccessCard user={user} labels={labels} roleOptions={[{ value: 'parent', label: 'Familiar' }]} {...cardProps}
-      currentUserId="other" onToggleActive={noop} onChangeRole={noop} onRevokeSessions={noop} onResetPassword={noop} />);
-    expect(operatorHtml).toContain('Operador (heredado)');
-  });
 });
