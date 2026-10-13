@@ -287,6 +287,8 @@
     "user_fallback": "Usuario",
     "resident": "Oscar",
     "home_calm": "Todo está bajo control.",
+    "home_attention_one": "Hay 1 cosa por revisar.",
+    "home_attention_other": "Hay {{count}} cosas por revisar.",
     "active_summary": "{{active}} de {{total}} dispositivos activos",
     "favorite_routines": "Rutinas favoritas",
     "favorite_routines_hint": "Acciones manuales y reglas automáticas que usas con frecuencia.",

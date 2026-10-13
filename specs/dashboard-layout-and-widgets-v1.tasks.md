@@ -274,3 +274,5 @@ Evidencia local: 181/181 Jest en seis suites SensorMetricCard/SensorAnalogGauge/
 Hallazgo fuera de alcance: al ampliar temporalmente el fixture Premium con duración/posición, su progreso condicional aumenta 24px. Se conserva su escenario previo sin duración; no se modifica Premium por una solicitud de estabilidad del Clásico. No se afirma que ese caso adicional esté corregido.
 
 - [x] AC57: catálogo de tarjetas uniforme con escenario fijo (`CatalogPreviewStage`), editor que pide primero el dispositivo y tamaños con nombre en la pestaña Diseño (`availableCardSizePresets`); pruebas `CatalogPreviewStage.test.ts`, `CardGridSizePicker.test.tsx` y el e2e de añadir tarjeta.
+
+- [x] AC58: frase neutra del Inicio veraz según las sugerencias abiertas (`DashboardView.tsx`, e2e `home-personalization.spec.ts`).

@@ -81,6 +81,19 @@ test('empty personalization keeps the shipped image and neutral phrase', async (
   await expect(hero.getByText(/Todo está bajo control|Everything is under control/i)).toBeVisible();
 });
 
+test('the neutral phrase does not claim calm while suggestions wait for attention', async ({ page }) => {
+  await prepare(page);
+  await page.route(endpoint, (route) => route.fulfill({ json: { morningPhrase: '', afternoonPhrase: '', nightPhrase: '', heroImages: [] } }));
+  await page.route('**/api/v1/assistant/findings', (route) => route.fulfill({ json: ['one', 'two'].map((id) => ({
+    id, type: 'device_missing_room', severity: 'medium', title: '', description: '', relatedEntityType: 'device', relatedEntityId: `device-${id}`,
+    status: 'open', score: 1, metadata: { deviceName: id }, actions: [],
+  })) }));
+  await page.goto('/');
+  const hero = page.locator('.homepilot-home-hero');
+  await expect(hero.getByText(/2 cosas por revisar|2 things to review/i)).toBeVisible();
+  await expect(hero.getByText(/Todo está bajo control|Everything is under control/i)).toHaveCount(0);
+});
+
 test('Home dashboard button opens the own default tab by click or keyboard', async ({ page }) => {
   await page.setViewportSize({ width: 768, height: 1024 });
   await prepare(page);

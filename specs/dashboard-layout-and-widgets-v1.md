@@ -194,6 +194,8 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 
 - **AC57 (añadir tarjeta con claridad, revisión como cliente 2026-10-12):** el catálogo «Añadir tarjeta a la sección» muestra recuadros uniformes en una cuadrícula de hasta tres columnas: cada vista previa vive en un escenario de tamaño fijo y se reduce para caber entera, de modo que un botón de una celda y un dial grande se ven proporcionales y ninguna queda cortada. El editor de tarjeta pide primero el dispositivo asignado y el nombre, y deja la escala del sensor, la visualización y el tipo de tarjeta después. La pestaña Diseño ofrece tamaños con nombre (Pequeña 3×2, Mediana 6×3, Grande 6×5, además de Automático y Completa) que respetan los mínimos y máximos de cada tarjeta, sin sustituir la cuadrícula de dibujo. Sin cambios en el modelo, la persistencia ni los tamaños ya guardados.
 
+- **AC58 (Inicio veraz, revisión como cliente 2026-10-12):** la frase neutra del encabezado del Inicio, la que se muestra cuando nadie personalizó frases, solo dice «Todo está bajo control» si no hay sugerencias abiertas que el usuario pueda ver; si las hay dice cuántas cosas hay por revisar. Las frases personalizadas no cambian, y quien no puede ver las sugerencias nunca ve el aviso. Prueba e2e en `home-personalization.spec.ts`.
+
 ## 7. Notas Técnicas y Arquitectura
 
 - API: `/api/v1/dashboards/*` mediante `DashboardRoutes`.

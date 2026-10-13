@@ -22,6 +22,16 @@ export function getSensorGaugeScale(value: number, percentage: boolean, min?: un
     : { min: 0, max: Math.max(step, Math.ceil(magnitude / step) * step), source: 'automatic' };
 }
 
+type Rgb = [number, number, number];
+const TONE_MS = 500;
+
+/** The colour a CSS colour resolves to, so two of them can be blended while the accent changes. */
+function toRgb(ctx: CanvasRenderingContext2D, css: string): Rgb {
+  ctx.fillStyle = '#000'; ctx.fillStyle = css;
+  const hex = String(ctx.fillStyle);
+  return hex.startsWith('#') && hex.length === 7 ? [1, 3, 5].map(at => Number.parseInt(hex.slice(at, at + 2), 16)) as Rgb : [0, 0, 0];
+}
+
 export function sensorNeedleFraction(value: number, scale: SensorGaugeScale): number {
   return Math.max(0, Math.min(1, (value - scale.min) / (scale.max - scale.min)));
 }
@@ -38,6 +48,8 @@ export function formatSensorGaugeTick(value: number): string {
 export function SensorAnalogGauge({ value, scale }: { value: number | null; scale: SensorGaugeScale | null }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const displayedFraction = useRef<number | null>(null);
+  const toneProgress = useRef(1);
+  const tone = useRef<{ from: Rgb[]; to: Rgb[]; since: number } | null>(null);
   const min = scale?.min;
   const max = scale?.max;
   useEffect(() => {
@@ -45,6 +57,7 @@ export function SensorAnalogGauge({ value, scale }: { value: number | null; scal
     if (!canvas) return;
     let disposed = false;
     let frame = 0;
+    let settle = 0;
     const target = value !== null && min !== undefined && max !== undefined ? sensorNeedleFraction(value, { min, max, source: 'metadata' }) : null;
     const start = displayedFraction.current ?? target;
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -67,9 +80,19 @@ export function SensorAnalogGauge({ value, scale }: { value: number | null; scal
       const edge = color('--border');
       const surface = color('--card');
       const raised = color('--popover');
-      const accentToken = style.getPropertyValue('--sensor-accent').trim() ? '--sensor-accent' : '--primary';
-      const accent = color(accentToken);
-      const accentEnd = accentToken === '--primary' ? color('--light-active') : accent;
+      const hasAccent = style.getPropertyValue('--sensor-accent').trim() !== '';
+      const wanted = [toRgb(ctx, color(hasAccent ? '--sensor-accent' : '--primary')), toRgb(ctx, color(hasAccent ? '--sensor-accent-end' : '--light-active'))];
+      const now = performance.now();
+      if (!tone.current) tone.current = { from: wanted, to: wanted, since: now };
+      else if (tone.current.to.some((rgb, at) => rgb.some((channel, index) => channel !== wanted[at]![index])) ) {
+        const mid = Math.min(1, (now - tone.current.since) / TONE_MS);
+        tone.current = { from: tone.current.from.map((rgb, at) => rgb.map((channel, index) => channel + (tone.current!.to[at]![index]! - channel) * mid) as Rgb), to: wanted, since: now };
+      }
+      const progress = Math.min(1, (now - tone.current.since) / TONE_MS);
+      const blended = tone.current.from.map((rgb, at) => `rgb(${rgb.map((channel, index) => Math.round(channel + (tone.current!.to[at]![index]! - channel) * progress)).join(',')})`);
+      const accent = blended[0]!;
+      const accentEnd = blended[1]!;
+      toneProgress.current = progress;
       const angle = (fraction: number) => (150 + fraction * 240) * Math.PI / 180;
       const point = (fraction: number, radius: number) => ({ x: 160 + Math.cos(angle(fraction)) * radius, y: 151 + Math.sin(angle(fraction)) * radius });
       const arc = (radius: number, thickness: number, from: number, to: number, paint: string | CanvasGradient) => {
@@ -129,6 +152,8 @@ export function SensorAnalogGauge({ value, scale }: { value: number | null; scal
       pivot.addColorStop(0, raised); pivot.addColorStop(1, surface);
       ctx.beginPath(); ctx.arc(160, 151, 15, 0, Math.PI * 2);
       ctx.fillStyle = pivot; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = edge; ctx.stroke();
+      // A redraw that lands mid-blend (resize, theme) keeps going until the colour has settled.
+      if (toneProgress.current < 1 && !settle) settle = requestAnimationFrame(() => { settle = 0; draw(); });
     };
     const resize = new ResizeObserver(draw);
     resize.observe(canvas);
@@ -139,12 +164,12 @@ export function SensorAnalogGauge({ value, scale }: { value: number | null; scal
       const elapsed = Math.min(1, (performance.now() - started) / 400);
       displayedFraction.current = target === null ? null : motion.matches || start === null ? target : start + (target - start) * (1 - (1 - elapsed) ** 3);
       draw();
-      if (!motion.matches && target !== null && elapsed < 1) frame = requestAnimationFrame(animate);
+      if (!motion.matches && target !== null && (elapsed < 1 || toneProgress.current < 1)) frame = requestAnimationFrame(animate);
     };
     const reduceMotion = () => { cancelAnimationFrame(frame); displayedFraction.current = target; draw(); };
     motion.addEventListener('change', reduceMotion);
     animate();
-    return () => { disposed = true; cancelAnimationFrame(frame); motion.removeEventListener('change', reduceMotion); resize.disconnect(); theme.disconnect(); };
+    return () => { disposed = true; cancelAnimationFrame(frame); cancelAnimationFrame(settle); motion.removeEventListener('change', reduceMotion); resize.disconnect(); theme.disconnect(); };
   }, [value, min, max]);
   return <canvas ref={canvasRef} className="sensor-analog-canvas" aria-hidden="true" />;
 }

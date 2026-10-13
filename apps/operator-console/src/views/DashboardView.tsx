@@ -227,7 +227,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onActionExecute, o
     }), [findings, devices, roomsByHome]);
 
   const greetingKey = homePeriod === 'night' ? 'evening' : homePeriod;
-  const phrase = resolveHomePhrase(homePersonalization, homePeriod, t('dashboard.home_calm'));
+  // The neutral line must not claim calm while the suggestions below are asking for attention.
+  const pendingCount = canViewInsights ? prioritizedFindings.length : 0;
+  const phrase = resolveHomePhrase(homePersonalization, homePeriod, pendingCount > 0 ? t('dashboard.home_attention', { count: pendingCount }) : t('dashboard.home_calm'));
   const heroImages = homePersonalization.heroImages.length > 0
     ? homePersonalization.heroImages.map((image) => `${API_BASE_URL}${image.url}`)
     : ['/home-dashboard-ambient.png'];
