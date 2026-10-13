@@ -13,13 +13,18 @@ const finding: AssistantFinding = { id: 'f', type: 'habit_pattern_detected', tit
   relatedEntityId: 'd', relatedEntityType: 'device', status: 'open', score: 1, metadata: { deviceName: 'Speaker', timeWindow: '00:00' },
   actions: [{ type: 'configure_automation', label: 'assistant.actions.create_automation' }, { type: 'ignore', label: 'assistant.actions.ignore' }] };
 describe('Feature: Compact system presentation (AC59)', () => {
-  it('renders the same finding component in Home and Assistant with recorded evidence', () => {
+  it('shows recorded evidence, keeps one card per kind on Home and links to all of them past five kinds', () => {
     const card = renderToStaticMarkup(<AssistantFindingCard finding={finding} onAction={noop} />);
-    const home = renderToStaticMarkup(<MemoryRouter><DashboardInsightsSection findings={Array.from({ length: 7 }, (_, i) => ({ ...finding, id: `finding-${i}` }))} onAction={noop} /></MemoryRouter>);
+    const kinds = ['habit_pattern_detected', 'device_missing_room', 'new_device_available', 'device_name_technical', 'device_name_duplicate', 'optimization_opportunity'];
+    const home = renderToStaticMarkup(<MemoryRouter><DashboardInsightsSection findings={kinds.map((type, i) => ({ ...finding, id: `finding-${i}`, type }))} onAction={noop} /></MemoryRouter>);
+    const sameKind = renderToStaticMarkup(<MemoryRouter><DashboardInsightsSection findings={Array.from({ length: 7 }, (_, i) => ({ ...finding, id: `same-${i}` }))} onAction={noop} /></MemoryRouter>);
     expect(card).toContain('assistant.evidence.habit_window');
-    expect(home.match(/assistant.evidence.habit_window/g)).toHaveLength(5);
-    expect(home).toContain('href="/assistant"');
     expect(card).toContain('assistant.actions.create_automation');
+    expect(home.match(/homepilot-home-suggestion/g)).toHaveLength(5);
+    expect(home).toContain('href="/assistant"');
+    expect(sameKind.match(/homepilot-home-suggestion-group/g)).toHaveLength(1);
+    expect(sameKind).not.toContain('assistant.actions.create_automation');
+    expect(sameKind).not.toContain('href="/assistant"');
   });
   it('groups without hiding individual actions when expanded and exposes disclosure semantics', () => {
     const group = { id: 'g', type: finding.type, subGroups: [{ name: 'Speaker', findings: [finding, { ...finding, id: 'f2' }] }], actions: [] };

@@ -209,7 +209,8 @@ for (const viewport of [{ name: 'mobile', width: 320, height: 720 }, { name: 'ta
       exact: true,
     });
 
-    await expect(initialInsights.getByRole('article')).toHaveCount(5);
+    // Seven habit suggestions share one card; the missing-room alert keeps its own.
+    await expect(initialInsights.getByRole('article')).toHaveCount(2);
 
     for (const theme of ['dark', 'light']) {
       if (theme === 'light') {
@@ -218,8 +219,11 @@ for (const viewport of [{ name: 'mobile', width: 320, height: 720 }, { name: 'ta
 
       await page.evaluate(light => document.documentElement.classList.toggle('light', light), theme === 'light');
       const insights = page.getByRole('region', { name: 'Sugerencias Inteligentes', exact: true });
-      await expect(insights.getByRole('article')).toHaveCount(5);
-      await expect(insights).not.toContainText(pending.name);
+      await expect(insights.getByRole('article')).toHaveCount(2);
+      await insights.getByRole('button', { name: /Patrón de Hábito Detectado/ }).click();
+      await expect(insights.getByRole('button', { name: 'Crear automatización', exact: true })).toHaveCount(7);
+      // The pending device's habit suggestion is not operational: only its missing-room alert remains.
+      await expect(insights.getByRole('article', { name: /Patrón de Hábito Detectado/ })).not.toContainText(pending.name);
       await page.screenshot({ path: testInfo.outputPath(`home-insights-${theme}.png`), fullPage: true });
       await page.goto('/assistant');
       await page.getByRole('button', { name: 'Patrón de Hábito Detectado 7', exact: true }).click();

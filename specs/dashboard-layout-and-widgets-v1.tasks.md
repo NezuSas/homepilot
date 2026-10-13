@@ -276,4 +276,4 @@ Hallazgo fuera de alcance: al ampliar temporalmente el fixture Premium con durac
 - [x] AC57: catálogo de tarjetas uniforme con escenario fijo (`CatalogPreviewStage`), editor que pide primero el dispositivo y tamaños con nombre en la pestaña Diseño (`availableCardSizePresets`); pruebas `CatalogPreviewStage.test.ts`, `CardGridSizePicker.test.tsx` y el e2e de añadir tarjeta.
 
 - [x] AC58: frase neutra del Inicio veraz según las sugerencias abiertas (`DashboardView.tsx`, e2e `home-personalization.spec.ts`).
-- [x] AC59: sugerencias del Inicio como filas con ícono por tipo, prioridad alta marcada y acción principal con contorno (`HomeSuggestionRow.tsx`).
+- [x] AC59: sugerencias del Inicio como filas con ícono por tipo, prioridad alta marcada y acción principal con contorno (`HomeSuggestionRow.tsx`, `HomeSuggestionGroup.tsx`: las del mismo tipo en una tarjeta que se abre).
