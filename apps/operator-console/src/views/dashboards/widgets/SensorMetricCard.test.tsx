@@ -12,6 +12,26 @@ describe('Fixed measurement scale (AC42)', () => {
     const html = renderToStaticMarkup(<SensorMetricCard title="Bit" visualStyle="switch" device={sensor('Bit', { state })} />);
     expect(html).toContain('data-sensor-visualizer="switch"'); expect(html).toContain(label); expect(html).not.toContain('<button');
   });
+  it('shows a slim bar with the place of the reading in its range, for the cards too small to hold a dial', () => {
+    const battery = renderToStaticMarkup(<SensorMetricCard title="Nivel" device={sensor('Nivel', { state: '80', unit_of_measurement: '%' })} />);
+    expect(battery).toContain('data-sensor-compact-bar');
+    expect(battery).toContain('width:80%');
+    expect(battery).toContain('bg-primary');
+  });
+
+  it('colours the bar only when the reading needs attention', () => {
+    const critical = renderToStaticMarkup(<SensorMetricCard title="Memoria" device={sensor('Memoria', { state: '97', unit_of_measurement: '%' })} />);
+    const calm = renderToStaticMarkup(<SensorMetricCard title="Memoria" device={sensor('Memoria', { state: '40', unit_of_measurement: '%' })} />);
+    expect(calm).toContain('bg-primary');
+    expect(calm).not.toContain('bg-danger');
+    expect(critical).not.toContain('bg-primary');
+  });
+
+  it('draws no bar when there is no reading to place or the reading is on/off', () => {
+    expect(renderToStaticMarkup(<SensorMetricCard title="Sin dato" device={sensor('Sin dato', { state: 'unavailable' })} />)).not.toContain('data-sensor-compact-bar');
+    expect(renderToStaticMarkup(<SensorMetricCard title="Entrada" device={{ ...sensor('Entrada', { state: 'on' }), type: 'binary_sensor' }} />)).not.toContain('data-sensor-compact-bar');
+  });
+
   it('does not paint an input at rest in the danger colour: off is a normal state, on is the only one that stands out', () => {
     const device = (state: string) => ({ ...sensor('Input', { state }), type: 'binary_sensor' });
     const off = renderToStaticMarkup(<SensorMetricCard title="Input" device={device('off')} />);

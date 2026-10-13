@@ -9,3 +9,4 @@
 - [x] Pruebas unitarias, de API y de la consola real; documentación y matriz de cobertura.
 - [x] Catálogo de integraciones y etiqueta de origen (nombre más icono neutro) en la ficha del dispositivo y en Descubrimiento; el código de PLC deja de comparar `'modbus-tcp'` y pregunta al catálogo.
 - [x] Un binario apagado (entrada de PLC en reposo) en neutro, no en rojo (AC9).
+- [x] Tarjetas de sensor pequeñas: nombre legible sin partir palabras y barra con el lugar de la lectura en su rango (AC10).

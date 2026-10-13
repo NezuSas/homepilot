@@ -11,6 +11,7 @@ import { SensorBatteryGauge } from './SensorBatteryGauge';
 import { CategoryIcon } from './SensorCategoryIcon';
 import { SensorPresentationHero } from './SensorPresentationHero';
 import { SensorBinaryInstrument } from './SensorBinaryInstrument';
+import { SensorCompactBar } from './SensorCompactBar';
 import { getCategoryLabel } from './sensorDisplay';
 import { asRecord, getSensorReading, getSensorSeverity, numericValue, resolveSensorVisualStyle } from './sensorReading';
 import { isPlcIntegration } from '../../../../../../packages/devices/domain/integrationCatalog';
@@ -31,7 +32,7 @@ interface SensorMetricCardProps {
 }
 
 export function SensorMetricCard({ device, title, isPreview = false, icon, roomName, sensorScale, sensorDecimals = false, visualStyle }: SensorMetricCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const initialReading = getSensorReading(device, isPreview);
   const state = asRecord(device?.lastKnownState);
   const inheritedStyle = isPlcIntegration(device?.integrationSource) ? state.plcVisualStyle : undefined;
@@ -77,7 +78,7 @@ export function SensorMetricCard({ device, title, isPreview = false, icon, roomN
         >
           {ConfiguredIcon ? <ConfiguredIcon className="h-full w-full" /> : <CategoryIcon category={reading.category} percentage={reading.percentage} />}
         </span>
-        <div className="min-w-0"><span title={displayTitle} className="sensor-reading-title block text-foreground">{displayTitle}</span>
+        <div className="min-w-0"><span title={displayTitle} lang={i18n?.language} className="sensor-reading-title block text-foreground">{displayTitle}</span>
           {roomName ? <span className="sensor-reading-room block text-muted-foreground">{roomName}</span> : null}
         </div>
       </div>
@@ -90,6 +91,7 @@ export function SensorMetricCard({ device, title, isPreview = false, icon, roomN
           aria-valuetext={scale && number !== null ? `${reading.value}${isPercentage ? '%' : reading.unit ? ` ${reading.unit}` : ''}` : undefined}
         >
           <Visualizer value={number} scale={scale} charging={attributes.is_charging === true || attributes.charging === true || state.charging === true} />
+          {scale && number !== null && <SensorCompactBar value={number} min={scale.min} max={scale.max} attention={severity === 'low' || severity === 'critical' ? severity : null} />}
           <div className="sensor-analog-readout"><SensorPresentationHero reading={reading} t={t} decimals={heroDecimals} /></div>
         </div> : <SensorPresentationHero reading={reading} t={t} decimals={heroDecimals} />}
       </div>

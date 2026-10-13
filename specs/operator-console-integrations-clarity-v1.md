@@ -34,6 +34,7 @@ Fuera de alcance: cambiar la fuente técnica `Disket Mono` para el resto de meta
 - **REQ-06:** La tarjeta de una cámara guardada es una fila compacta con lo que la persona necesita para reconocerla: nombre, dirección y tipo en una línea, y las acciones editar y eliminar. El estado solo aparece cuando la cámara está inactiva (una etiqueta «Inactiva»); «Activa» se da por supuesto. El puerto y la ruta RTSP no se repiten en cada tarjeta: se consultan al editar. El tipo de cámara puede ocupar una segunda línea en vez de cortarse. La cuadrícula acomoda más cámaras por fila.
 - **REQ-07:** El origen de un dispositivo se muestra con el nombre de su integración (Home Assistant, Sonoff, Cámara IP, Modbus TCP, Android) y un icono neutro por tipo (puente, red local, cámara, PLC, pantalla), en la ficha del dispositivo y en las tarjetas de Descubrimiento. Nunca se usan logotipos de terceros. Un origen desconocido se muestra con su identificador, sin ocultarlo. El nombre, el tipo y la pregunta «¿es un punto de PLC?» salen de un único catálogo (`integrationCatalog.ts`); el código genérico pregunta al catálogo en vez de comparar identificadores, de modo que un protocolo nuevo es una entrada más.
 - **REQ-08:** Un valor binario apagado, como una entrada de PLC en reposo, se muestra en neutro y solo el encendido destaca en verde; el rojo se reserva para fallos. El instrumento sigue sin ser interactivo.
+- **REQ-09:** Las tarjetas de sensor pequeñas, donde no cabe el dial, muestran el nombre sin partir palabras a mitad (dividido por sílabas según el idioma de la aplicación y con una letra algo menor), una barra delgada con el lugar de la lectura dentro de su rango (en el color de la marca, y en ámbar o rojo solo si la lectura necesita atención) y el valor. Las tarjetas grandes conservan su dial y no muestran la barra. Sin lectura o con un valor de encendido o apagado no se dibuja barra.
 
 ## Criterios de aceptación
 
@@ -46,6 +47,7 @@ Fuera de alcance: cambiar la fuente técnica `Disket Mono` para el resto de meta
 - [x] **AC7:** `CompactSystemPresentation.test.tsx` cubre que la tarjeta nombra sus acciones, muestra nombre y dirección, no repite puerto ni ruta, oculta «Activa» y muestra «Inactiva» cuando corresponde.
 - [x] **AC8:** `integrationCatalog.test.ts` y `IntegrationBadge.test.tsx` cubren los nombres, los tipos, los alias, el origen desconocido, que no se dibuja ninguna imagen y que solo el tipo PLC responde afirmativamente; las pruebas de capacidades, comandos y tiempo real de Modbus siguen pasando con el predicado neutral.
 - [x] **AC9:** `SensorMetricCard.test.tsx` cubre que un binario apagado no usa el color de peligro y que el encendido sigue en verde.
+- [x] **AC10:** `SensorMetricCard.test.tsx` cubre la barra (ancho según el rango, color solo con atención, ausente sin lectura o en binarios) y los e2e de sensores siguen pasando con la geometría fijada; revisión visual con los datos de la oficina en escritorio y móvil.
 
 ## Estrategia de compatibilidad y reversión
 
@@ -57,5 +59,6 @@ Sin migraciones ni cambios de contrato: la API solo deja de devolver valores sec
 - `components/ModbusConnectionCard.tsx` y `lib/plcUi.ts` (`plcConnectionTone`).
 - `components/BulkAssignBar.tsx`, `lib/bulkAssign.ts`, `components/InboxDeviceTile.tsx` y `views/InboxView.tsx`.
 - `packages/devices/domain/integrationCatalog.ts`, `components/IntegrationBadge.tsx`, `DeviceInspectorInfoSections.tsx` e `InboxDeviceTile.tsx`.
+- `views/dashboards/widgets/SensorCompactBar.tsx`, `SensorMetricCard.tsx` y `index.css` (barra compacta y nombre por sílabas).
 - `components/NativeCameraSettingsCard.tsx` y `views/NativeCamerasView.tsx` (tarjeta compacta).
 - `locales/es/common.json` y `locales/en/common.json`, `index.css` (`--font-data`) y `tailwind.config.js`.
