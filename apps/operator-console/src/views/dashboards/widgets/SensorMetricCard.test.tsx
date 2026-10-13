@@ -27,6 +27,13 @@ describe('Fixed measurement scale (AC42)', () => {
     expect(critical).not.toContain('bg-primary');
   });
 
+  it('marks the card with the reading severity so the instrument can take the amber or red accent', () => {
+    const html = (state: string) => renderToStaticMarkup(<SensorMetricCard title="Memoria" device={sensor('Memoria', { state, unit_of_measurement: '%' })} />);
+    expect(html('97')).toContain('data-severity="critical"');
+    expect(html('70')).toContain('data-severity="low"');
+    expect(html('40')).toContain('data-severity="normal"');
+  });
+
   it('draws no bar when there is no reading to place or the reading is on/off', () => {
     expect(renderToStaticMarkup(<SensorMetricCard title="Sin dato" device={sensor('Sin dato', { state: 'unavailable' })} />)).not.toContain('data-sensor-compact-bar');
     expect(renderToStaticMarkup(<SensorMetricCard title="Entrada" device={{ ...sensor('Entrada', { state: 'on' }), type: 'binary_sensor' }} />)).not.toContain('data-sensor-compact-bar');

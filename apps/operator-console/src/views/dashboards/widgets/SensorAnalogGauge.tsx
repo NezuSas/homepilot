@@ -67,7 +67,9 @@ export function SensorAnalogGauge({ value, scale }: { value: number | null; scal
       const edge = color('--border');
       const surface = color('--card');
       const raised = color('--popover');
-      const accent = color('--primary');
+      const accentToken = style.getPropertyValue('--sensor-accent').trim() ? '--sensor-accent' : '--primary';
+      const accent = color(accentToken);
+      const accentEnd = accentToken === '--primary' ? color('--light-active') : accent;
       const angle = (fraction: number) => (150 + fraction * 240) * Math.PI / 180;
       const point = (fraction: number, radius: number) => ({ x: 160 + Math.cos(angle(fraction)) * radius, y: 151 + Math.sin(angle(fraction)) * radius });
       const arc = (radius: number, thickness: number, from: number, to: number, paint: string | CanvasGradient) => {
@@ -88,7 +90,7 @@ export function SensorAnalogGauge({ value, scale }: { value: number | null; scal
       if (known) {
         const fraction = displayedFraction.current ?? target ?? 0;
         const light = ctx.createLinearGradient(20, 220, 260, 40);
-        light.addColorStop(0, accent); light.addColorStop(1, color('--light-active'));
+        light.addColorStop(0, accent); light.addColorStop(1, accentEnd);
         if (fraction > 0) arc(132, 7, 0, fraction, light);
       }
       for (let index = 0; index <= 50; index += 1) {
@@ -117,7 +119,7 @@ export function SensorAnalogGauge({ value, scale }: { value: number | null; scal
         const tip = point(fraction, 111);
         const a = angle(fraction);
         const needle = ctx.createLinearGradient(160, 151, tip.x, tip.y);
-        needle.addColorStop(0, accent); needle.addColorStop(1, color('--light-active'));
+        needle.addColorStop(0, accent); needle.addColorStop(1, accentEnd);
         ctx.beginPath(); ctx.moveTo(tip.x, tip.y);
         ctx.lineTo(160 + Math.cos(a + Math.PI / 2) * 7, 151 + Math.sin(a + Math.PI / 2) * 7);
         ctx.lineTo(160 + Math.cos(a - Math.PI / 2) * 7, 151 + Math.sin(a - Math.PI / 2) * 7);

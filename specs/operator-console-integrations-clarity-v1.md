@@ -35,6 +35,7 @@ Fuera de alcance: cambiar la fuente técnica `Disket Mono` para el resto de meta
 - **REQ-07:** El origen de un dispositivo se muestra con el nombre de su integración (Home Assistant, Sonoff, Cámara IP, Modbus TCP, Android) y un icono neutro por tipo (puente, red local, cámara, PLC, pantalla), en la ficha del dispositivo y en las tarjetas de Descubrimiento. Nunca se usan logotipos de terceros. Un origen desconocido se muestra con su identificador, sin ocultarlo. El nombre, el tipo y la pregunta «¿es un punto de PLC?» salen de un único catálogo (`integrationCatalog.ts`); el código genérico pregunta al catálogo en vez de comparar identificadores, de modo que un protocolo nuevo es una entrada más.
 - **REQ-08:** Un valor binario apagado, como una entrada de PLC en reposo, se muestra en neutro y solo el encendido destaca en verde; el rojo se reserva para fallos. El instrumento sigue sin ser interactivo.
 - **REQ-09:** Las tarjetas de sensor pequeñas, donde no cabe el dial, muestran el nombre sin partir palabras a mitad (dividido por sílabas según el idioma de la aplicación y con una letra algo menor), una barra delgada con el lugar de la lectura dentro de su rango (en el color de la marca, y en ámbar o rojo solo si la lectura necesita atención) y el valor. Las tarjetas grandes conservan su dial y no muestran la barra. Sin lectura o con un valor de encendido o apagado no se dibuja barra.
+- **REQ-10:** Las tarjetas de sensor toman el color de su estado: el dial, el termómetro, el nivel y la barra usan el color de la marca con una lectura normal y ámbar o rojo cuando la lectura pide atención. Al tocar o activar con teclado una tarjeta de sensor con dispositivo asignado (fuera del modo edición) se abre el «Detalle del sensor»: el instrumento a tamaño completo, el espacio, el origen, el rango del medidor si se configuró y la última actualización; se cierra con la X, Escape o tocando fuera y no vuelve a abrirse solo.
 
 ## Criterios de aceptación
 
@@ -48,6 +49,7 @@ Fuera de alcance: cambiar la fuente técnica `Disket Mono` para el resto de meta
 - [x] **AC8:** `integrationCatalog.test.ts` y `IntegrationBadge.test.tsx` cubren los nombres, los tipos, los alias, el origen desconocido, que no se dibuja ninguna imagen y que solo el tipo PLC responde afirmativamente; las pruebas de capacidades, comandos y tiempo real de Modbus siguen pasando con el predicado neutral.
 - [x] **AC9:** `SensorMetricCard.test.tsx` cubre que un binario apagado no usa el color de peligro y que el encendido sigue en verde.
 - [x] **AC10:** `SensorMetricCard.test.tsx` cubre la barra (ancho según el rango, color solo con atención, ausente sin lectura o en binarios) y los e2e de sensores siguen pasando con la geometría fijada; revisión visual con los datos de la oficina en escritorio y móvil.
+- [x] **AC11:** `SensorMetricCard.test.tsx` comprueba que la tarjeta marca su severidad (`data-severity`) y el e2e «Sensor detail» abre el detalle al tocar y con Enter, lo cierra con Escape y no lo reabre; revisión visual con lecturas normales, altas y críticas.
 
 ## Estrategia de compatibilidad y reversión
 

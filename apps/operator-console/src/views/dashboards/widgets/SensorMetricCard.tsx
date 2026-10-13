@@ -68,6 +68,7 @@ export function SensorMetricCard({ device, title, isPreview = false, icon, roomN
   return (
     <div
       className="sensor-metric-card homepilot-sensor-reading relative flex h-full min-w-0 flex-col border border-border/55 bg-card/95 text-foreground shadow-surface-card"
+      data-severity={severity}
       style={{ containerName: 'sensor-card', '--sensor-reserved-height': hasStatus ? '6.5rem' : '5rem' } as CSSProperties}
     >
       <div className="sensor-premium-header">

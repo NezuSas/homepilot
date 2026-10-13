@@ -1796,6 +1796,14 @@
     "no_data": "No energy data available from Home Assistant"
   },
   "dashboards": {
+    "sensor_detail": {
+      "title": "Sensor detail",
+      "room": "Space",
+      "origin": "Source",
+      "range": "Meter range",
+      "updated": "Last update",
+      "unknown": "No data"
+    },
     "edit_session": {
       "section_actions": "Section actions",
       "duplicate": "Duplicate",

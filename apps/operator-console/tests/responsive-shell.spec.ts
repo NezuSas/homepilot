@@ -148,6 +148,24 @@ test('Feature: Sensor width — Scenario: A sensor stays medium without a width 
   await expect.poll(() => savedDashboard.tabs[0]!.widgets[0]!.config.extra.cards[0]!.span).toBe('medium');
 });
 
+test('Feature: Sensor detail — Scenario: Tapping a sensor opens its detail, and closing it does not reopen it', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await prepareAuthenticatedDashboard(page);
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  const sensor = page.locator('[data-dashboard-card-id="responsive-sensor"]');
+  await sensor.click();
+  const detail = page.getByRole('dialog');
+  await expect(detail.locator('[data-sensor-detail]')).toBeVisible();
+  await expect(detail.getByText(/^(Last update|Última actualización)$/i)).toBeVisible();
+  await expect(detail.getByText(/^(Source|Origen)$/i)).toBeVisible();
+  await expect(detail).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(detail).toHaveCount(0);
+  await sensor.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('dialog')).toBeVisible();
+});
+
 test('disables the Home dashboard action without an owned main tab', async ({ page }) => {
   const shared = { ...responsiveDashboard, ownerId: 'another-user' };
   await prepareAuthenticatedDashboard(page, shared);

@@ -1085,9 +1085,12 @@
   .sensor-analog-instrument { position: relative; container-type: inline-size; width: 100%; max-width: 22rem; flex-shrink: 0; }
   .sensor-analog-canvas { display: block; width: 100%; height: auto; aspect-ratio: 320 / 265; }
   .sensor-vessel { fill: hsl(var(--popover)); stroke: hsl(var(--border)); stroke-width: 2; }
-  .sensor-liquid { fill: hsl(var(--primary)); transform-origin: center bottom; transition: transform 400ms ease-out; }
-  .sensor-liquid-bulb { fill: hsl(var(--primary)); stroke: hsl(var(--border)); stroke-width: 2; }
-  .sensor-liquid-surface { fill: hsl(var(--accent)); stroke: hsl(var(--primary)); stroke-width: 2; transition: transform 400ms ease-out; }
+  .sensor-metric-card { --sensor-accent: var(--primary); }
+  .sensor-metric-card[data-severity='low'] { --sensor-accent: var(--warning); }
+  .sensor-metric-card[data-severity='critical'] { --sensor-accent: var(--danger); }
+  .sensor-liquid { fill: hsl(var(--sensor-accent, var(--primary))); transform-origin: center bottom; transition: transform 400ms ease-out; }
+  .sensor-liquid-bulb { fill: hsl(var(--sensor-accent, var(--primary))); stroke: hsl(var(--border)); stroke-width: 2; }
+  .sensor-liquid-surface { fill: hsl(var(--accent)); stroke: hsl(var(--sensor-accent, var(--primary))); stroke-width: 2; transition: transform 400ms ease-out; }
   .sensor-tank-rim { fill: none; stroke: hsl(var(--border)); stroke-width: 2; }
   .sensor-liquid-tick { fill: hsl(var(--muted-foreground)); font: 14px Inter, sans-serif; }
   .sensor-liquid-tick path { stroke: hsl(var(--border)); }

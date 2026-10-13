@@ -13,6 +13,7 @@ import { CurtainDeviceTileLoadingGeometry } from '../../../components/CurtainDev
 import type { MediaPlayerCommand } from './MediaPlayerCard';
 import { MASONRY_ROW_GAP_PX, MASONRY_ROW_UNIT_PX } from './useMasonryRowSpans';
 import { SectionCardContent } from './SectionCardContent';
+import { SensorDetailModal } from './SensorDetailModal';
 import { getClockGridOptions } from './clock/clockRegistry';
 import { InformationCardSkeleton } from './InformationCard';
 import { getCardFrameClass, getCardGridHeight, getCardGridRowSpan, getCardPresentationStyle } from './cardGridResize';
@@ -70,6 +71,7 @@ export function SectionCardItem({
   const { t } = useTranslation();
   const dragIdentities = useContext(SectionCardDragContext);
   const [touchSelected, setTouchSelected] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const previewNode = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (!touchSelected) return;
@@ -117,6 +119,7 @@ export function SectionCardItem({
   // illustrative controls or a magic pixel height.
   const reserveContentGeometry = normalizedKind === 'sensor';
   const overlaySkeleton = reserveContentGeometry || isCover;
+  const opensDetail = normalizedKind === 'sensor' && Boolean(assignedDevice) && !isEditing && !initialPending;
 
 
   const cardContent = <SectionCardContent
@@ -156,7 +159,8 @@ export function SectionCardItem({
   const settling = useJustDropped(isDragging);
   const interactionAttributes = isEditing ? attributes
     : isActionable && normalizedKind !== 'action'
-      ? { role: 'button' as const, tabIndex: 0, 'aria-label': card.title || catalogLabel(card.kind) } : {};
+      ? { role: 'button' as const, tabIndex: 0, 'aria-label': card.title || catalogLabel(card.kind) }
+      : opensDetail ? { role: 'button' as const, tabIndex: 0, 'aria-haspopup': 'dialog' as const, 'aria-label': card.title || assignedDevice?.name || catalogLabel(card.kind) } : {};
 
   return (
     <div
@@ -190,8 +194,12 @@ export function SectionCardItem({
       }}
       onPointerUp={(event) => { if (isEditing && event.pointerType === 'touch' && !isDragging) setTouchSelected(true); }}
       onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setTouchSelected(false); }}
-      onClick={initialPending || isCover || normalizedKind === 'action' ? undefined : (event) => { void handleCardAction(card, event); }}
-      onKeyDown={isActionable && normalizedKind !== 'action' && !initialPending ? (event) => {
+      onClick={opensDetail ? (event) => { if (event.target instanceof Node && event.currentTarget.contains(event.target)) setDetailOpen(true); } : initialPending || isCover || normalizedKind === 'action' ? undefined : (event) => { void handleCardAction(card, event); }}
+      onKeyDown={opensDetail ? (event) => {
+        if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) return;
+        event.preventDefault();
+        setDetailOpen(true);
+      } : isActionable && normalizedKind !== 'action' && !initialPending ? (event) => {
         if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) return;
         event.preventDefault();
         void handleCardAction(card);
@@ -213,7 +221,7 @@ export function SectionCardItem({
         normalizedKind === 'sensor' && explicitHeight !== undefined && 'homepilot-bounded-sensor',
         isEditing && "touch-pan-y",
         getCardFrameClass(normalizedKind, span, tileIsActive),
-        isActionable && !initialPending && "cursor-pointer hover:-translate-y-0.5 hover:shadow-depth-2 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+        (isActionable || opensDetail) && !initialPending && "cursor-pointer hover:-translate-y-0.5 hover:shadow-depth-2 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         isDragging && "z-30 opacity-40",
         getSpanClass(span)
       )}
@@ -262,6 +270,19 @@ export function SectionCardItem({
         </>
       ) : null}
 
+      {opensDetail && assignedDevice ? (
+        <SensorDetailModal
+          isOpen={detailOpen}
+          onClose={() => setDetailOpen(false)}
+          device={assignedDevice}
+          title={card.title || assignedDevice.name}
+          icon={card.icon}
+          roomName={assignedRoomName}
+          sensorScale={card.sensorScale}
+          sensorDecimals={card.sensorDecimals}
+          visualStyle={card.visualStyle}
+        />
+      ) : null}
     </div>
   );
 }
