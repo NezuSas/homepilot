@@ -196,6 +196,8 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 
 - **AC58 (Inicio veraz, revisión como cliente 2026-10-12):** la frase neutra del encabezado del Inicio, la que se muestra cuando nadie personalizó frases, solo dice «Todo está bajo control» si no hay sugerencias abiertas que el usuario pueda ver; si las hay dice cuántas cosas hay por revisar. Las frases personalizadas no cambian, y quien no puede ver las sugerencias nunca ve el aviso. Prueba e2e en `home-personalization.spec.ts`.
 
+- **AC59 (sugerencias del Inicio con claridad, revisión como cliente 2026-10-12):** cada sugerencia del Inicio es una fila propia con un ícono según su tipo, el tipo como etiqueta pequeña, el dispositivo como título y la descripción debajo; solo las de prioridad alta llevan la etiqueta «Prioridad Alta» y un ícono ámbar. La acción principal es un botón con contorno y «Ignorar» queda como acción discreta, de modo que varias filas no compiten con botones rellenos. El encabezado indica cuántas ideas hay. La sección conserva su región accesible, máximo cinco filas y el enlace a ver todas; la vista del Asistente no cambia. Prueba `HomeSuggestionRow.test.tsx` y los e2e de sugerencias.
+
 ## 7. Notas Técnicas y Arquitectura
 
 - API: `/api/v1/dashboards/*` mediante `DashboardRoutes`.

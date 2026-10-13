@@ -335,6 +335,8 @@
     "resilience_insight": "Auditoría de autonomía",
     "resilience_hint": "Fiabilidad Verificada • Control Local Independiente",
     "actionable_insights": "Sugerencias Inteligentes",
+    "insights_hint_one": "1 idea para mejorar tu casa",
+    "insights_hint_other": "{{count}} ideas para mejorar tu casa",
     "energy_insight": "Ahorro de Energía",
     "proactive": "Optimización",
     "scene_global": "Escena Global",

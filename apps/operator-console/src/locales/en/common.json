@@ -335,6 +335,8 @@
     "resilience_insight": "Hardware autonomy audit",
     "resilience_hint": "Reliability Verified • Independent Local Control",
     "actionable_insights": "Smart Suggestions",
+    "insights_hint_one": "1 idea to improve your home",
+    "insights_hint_other": "{{count}} ideas to improve your home",
     "energy_insight": "Energy Efficiency",
     "proactive": "Optimization",
     "scene_global": "Global Scene",
