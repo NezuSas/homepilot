@@ -10,6 +10,7 @@ import { SurfaceButton } from '../../../components/ui/SurfaceButton';
 import { IconButton } from '../../../components/ui/IconButton';
 import { Input } from '../../../components/ui/Input';
 import type { WidgetType } from '../types';
+import { CatalogPreviewStage } from './CatalogPreviewStage';
 import { ModalPortal } from './ModalPortal';
 import {
   catalogCategories, type NormalizedSectionCardKind, type SectionCardCategory,
@@ -106,22 +107,22 @@ export function SectionCardCatalogModal({
 
           <div className="max-h-section-editor overflow-y-auto p-6">
             {items.length > 0 ? (
-              <div className="grid grid-cols-1 items-start gap-5 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {items.map((item) => (
                   <Card
                     key={item.kind}
                     variant="flat"
-                    className="group relative w-full p-3 text-left transition-colors hover:border-primary/50 hover:bg-primary/5 focus-within:border-primary/50"
+                    className="group relative flex h-full w-full flex-col p-3 text-left transition-colors hover:border-primary/50 hover:bg-primary/5 focus-within:border-primary/50"
                   >
                     <div aria-hidden="true" className="pointer-events-none">
-                      {renderCatalogPreview(item.kind, item.title, item.span, item.icon)}
+                      <CatalogPreviewStage>{renderCatalogPreview(item.kind, item.title, item.span, item.icon)}</CatalogPreviewStage>
                     </div>
-                    <div className="px-2 pb-1 pt-3">
+                    <div className="flex flex-1 flex-col px-2 pb-1 pt-3">
                       <span className="block text-body font-black text-foreground">{item.title}</span>
-                      <span className="mt-1 line-clamp-2 text-caption font-medium leading-relaxed text-muted-foreground">
+                      <span className="mb-2 mt-1 line-clamp-2 text-caption font-medium leading-relaxed text-muted-foreground">
                         {item.description}
                       </span>
-                      <StatusPill uppercase className="mt-2">
+                      <StatusPill uppercase className="mt-auto self-start">
                         {item.span === 'full'
                           ? t('dashboard.editor.sections.card_size_full')
                           : t(`dashboard.editor.sections.card_size_${item.span}`, {

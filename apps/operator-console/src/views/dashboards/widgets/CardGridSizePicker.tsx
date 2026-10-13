@@ -2,7 +2,7 @@ import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../../components/ui/Button';
 import type { CardGridOptions } from '../types';
-import { CARD_EDITOR_MAX_ROWS, pickCardGridSize } from './cardGridResize';
+import { availableCardSizePresets, CARD_EDITOR_MAX_ROWS, pickCardGridSize } from './cardGridResize';
 
 /** One two-dimensional control for mouse, touch and keyboard sizing. */
 export function CardGridSizePicker({ value, onChange, allowAutomatic = true }: { value: CardGridOptions; onChange: (value: CardGridOptions) => void; allowAutomatic?: boolean }) {
@@ -15,6 +15,7 @@ export function CardGridSizePicker({ value, onChange, allowAutomatic = true }: {
     const bounds = element.getBoundingClientRect();
     onChange(pickCardGridSize(value, x - bounds.left, y - bounds.top, bounds.width, bounds.height));
   };
+  const presets = availableCardSizePresets(value);
   return <div className="space-y-3">
     <output className="block text-body-compact font-semibold text-foreground">
       {t('dashboards.edit_session.columns')}: {value.columns === 'full' ? t('dashboard.editor.sections.card_size_full') : columns}
@@ -50,7 +51,10 @@ export function CardGridSizePicker({ value, onChange, allowAutomatic = true }: {
           className={column < columns && row < rows ? 'cursor-pointer bg-primary/35 aria-disabled:cursor-default aria-disabled:bg-muted' : 'cursor-pointer bg-card aria-disabled:cursor-default aria-disabled:bg-muted'} />)}
       </div>)}
     </div>
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2" role="group" aria-label={t('dashboards.edit_session.sizes')}>
+      {presets.map(preset => <Button key={preset.key} type="button" variant="secondary" size="sm" data-card-size-preset={preset.key}
+        aria-pressed={value.columns === preset.options.columns && value.rows === preset.options.rows}
+        onClick={() => onChange(preset.options)}>{t(`dashboards.edit_session.size_${preset.key}`)}</Button>)}
       {allowAutomatic && <Button type="button" variant="secondary" size="sm" aria-pressed={value.rows === 'auto'} onClick={() => onChange({ ...value, rows: 'auto' })}>{t('dashboards.edit_session.auto')}</Button>}
       {(value.maxColumns ?? 12) === 12 && <Button type="button" variant="secondary" size="sm" aria-pressed={value.columns === 'full'} onClick={() => onChange({ ...value, columns: 'full', ...(value.columnStart === undefined ? {} : { columnStart: 1 }) })}>{t('dashboard.editor.sections.card_size_full')}</Button>}
     </div>

@@ -80,3 +80,22 @@ export function resizeCardGrid(initial: CardGridOptions, columnsDelta: number, r
     rows: rowsDelta === 0 ? initial.rows : Math.min(initial.maxRows ?? CARD_EDITOR_MAX_ROWS, Math.max(initial.minRows ?? 1, rows + rowsDelta)),
   };
 }
+
+/** Sizes people can pick by name; each is a target on the same grid, kept inside what the card allows. */
+export const CARD_SIZE_PRESETS = [
+  { key: 'small', columns: 3, rows: 2 },
+  { key: 'medium', columns: 6, rows: 3 },
+  { key: 'large', columns: 6, rows: 5 },
+] as const;
+
+export type CardSizePresetKey = typeof CARD_SIZE_PRESETS[number]['key'];
+
+/**
+ * The named sizes that apply to a card. A card with limits (a clock that cannot be one cell wide) can make
+ * two names land on the same size; the first name is kept and the repeats are dropped.
+ */
+export function availableCardSizePresets(initial: CardGridOptions): { key: CardSizePresetKey; options: CardGridOptions }[] {
+  return CARD_SIZE_PRESETS
+    .map(preset => ({ key: preset.key, options: pickCardGridSize(initial, preset.columns, preset.rows, 12, CARD_EDITOR_MAX_ROWS) }))
+    .filter((preset, index, all) => all.findIndex(other => other.options.columns === preset.options.columns && other.options.rows === preset.options.rows) === index);
+}

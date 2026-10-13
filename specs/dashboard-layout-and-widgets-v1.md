@@ -192,6 +192,8 @@ Los usuarios necesitan tableros personales, locales y configurables que agrupen 
 - [ ] AC43: Sensor, dispositivo, cámara, media y energía usan skeletons semánticos únicamente durante su primera carga sin contenido. Cámara conserva proporción 4:3 y un fotograma anterior; reloj muestra la hora inmediatamente y limita el placeholder al clima; botones/escenas con configuración local no muestran carga falsa. Un error u offline finaliza el skeleton; si falla el primer snapshot de dispositivos, el tablero ofrece un aviso y reintento sin cambiar el contrato del store.
 - [ ] AC44: En escritorio, tablet, móvil y kiosco vertical, la transición skeleton → contenido mantiene bounds de tarjetas, sección y canvas sin overflow horizontal. Los placeholders no reciben foco ni ejecutan comandos; la animación se desactiva con `prefers-reduced-motion`.
 
+- **AC57 (añadir tarjeta con claridad, revisión como cliente 2026-10-12):** el catálogo «Añadir tarjeta a la sección» muestra recuadros uniformes en una cuadrícula de hasta tres columnas: cada vista previa vive en un escenario de tamaño fijo y se reduce para caber entera, de modo que un botón de una celda y un dial grande se ven proporcionales y ninguna queda cortada. El editor de tarjeta pide primero el dispositivo asignado y el nombre, y deja la escala del sensor, la visualización y el tipo de tarjeta después. La pestaña Diseño ofrece tamaños con nombre (Pequeña 3×2, Mediana 6×3, Grande 6×5, además de Automático y Completa) que respetan los mínimos y máximos de cada tarjeta, sin sustituir la cuadrícula de dibujo. Sin cambios en el modelo, la persistencia ni los tamaños ya guardados.
+
 ## 7. Notas Técnicas y Arquitectura
 
 - API: `/api/v1/dashboards/*` mediante `DashboardRoutes`.

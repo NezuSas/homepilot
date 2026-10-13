@@ -1,6 +1,7 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CardGridSizePicker } from './CardGridSizePicker';
+import { availableCardSizePresets } from './cardGridResize';
 
 jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
@@ -49,5 +50,33 @@ describe('Feature: Interactive card sizing (AC48)', () => {
       expect(onChange).toHaveBeenCalledTimes(1);
       expect(onChange).toHaveBeenCalledWith({ columns: 5, rows: 4 });
     } finally { id.mockRestore(); }
+  });
+});
+
+describe('Feature: card sizes can be picked by name', () => {
+  it('Scenario: Given a free card When sizes are offered Then small, medium and large map to the grid', () => {
+    expect(availableCardSizePresets({ columns: 6, rows: 4 }).map(preset => [preset.key, preset.options.columns, preset.options.rows]))
+      .toEqual([['small', 3, 2], ['medium', 6, 3], ['large', 6, 5]]);
+  });
+
+  it('Scenario: Given a card that cannot be small When sizes are offered Then each name stays inside its limits', () => {
+    const sizes = availableCardSizePresets({ columns: 6, rows: 4, minColumns: 6, minRows: 4, maxRows: 4 });
+    expect(sizes).toHaveLength(1);
+    expect(sizes[0].options).toMatchObject({ columns: 6, rows: 4 });
+  });
+
+  it('Scenario: Given the card has the size of a name When shown Then that name is the one pressed', () => {
+    const html = renderToStaticMarkup(React.createElement(CardGridSizePicker, { value: { columns: 6, rows: 3 }, onChange: () => {} }));
+    expect(html).toMatch(/data-card-size-preset="medium"[^>]*aria-pressed="true"|aria-pressed="true"[^>]*data-card-size-preset="medium"/);
+    expect(html).toMatch(/data-card-size-preset="small"[^>]*aria-pressed="false"|aria-pressed="false"[^>]*data-card-size-preset="small"/);
+    expect(html).toContain('dashboards.edit_session.size_large');
+  });
+
+  it('Scenario: Given a name is chosen When pressed Then the full grid options are produced and the placement is kept', () => {
+    const onChange = jest.fn();
+    const presets = availableCardSizePresets({ columns: 'full', rows: 4, columnStart: 5 });
+    expect(presets[0].options).toMatchObject({ columns: 3, rows: 2, columnStart: 5 });
+    onChange(presets[0].options);
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ columns: 3, rows: 2 }));
   });
 });

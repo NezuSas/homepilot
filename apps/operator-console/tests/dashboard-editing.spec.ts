@@ -1620,6 +1620,57 @@ test('Feature: Button card default — Scenario: A new button persists the first
   await expect.poll(() => JSON.stringify(savedDashboard)).toMatch(/"kind":"light"[^}]*"span":"small"/);
 });
 
+test('Feature: Add card — Scenario: The catalog tiles are uniform, every preview fits whole, sizes are picked by name and the device is asked for first', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await prepareAuthenticatedDashboard(page);
+  let savedDashboard = responsiveDashboard;
+  await page.route('**/api/v1/dashboards/responsive-dashboard', async (route) => {
+    if (route.request().method() !== 'PATCH') return route.continue();
+    savedDashboard = { ...savedDashboard, ...(route.request().postDataJSON() as Partial<typeof responsiveDashboard>) };
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(savedDashboard) });
+  });
+  await page.route('**/api/v1/scenes', async (route) => { await route.fulfill({ contentType: 'application/json', body: '[]' }); });
+  await page.route('**/api/v1/automations', async (route) => { await route.fulfill({ contentType: 'application/json', body: '[]' }); });
+  await page.goto('/dashboards/responsive-dashboard/responsive-tab');
+  await enterDashboardEdit(page);
+  await page.getByRole('button', { name: /^(Add card|Añadir tarjeta)$/i }).click();
+
+  const stages = page.locator('[data-catalog-preview-stage]');
+  await expect(stages.first()).toBeVisible();
+  const sizes = await stages.evaluateAll((elements) => elements.map((element) => {
+    const bounds = element.getBoundingClientRect();
+    return `${Math.round(bounds.width)}x${Math.round(bounds.height)}`;
+  }));
+  expect(sizes.length).toBeGreaterThanOrEqual(6);
+  expect(new Set(sizes).size).toBe(1);
+  await expect.poll(() => stages.evaluateAll((elements) => elements.every((element) => {
+    const stage = element.getBoundingClientRect();
+    const content = element.firstElementChild!.getBoundingClientRect();
+    return content.top >= stage.top - 1 && content.bottom <= stage.bottom + 1 && content.left >= stage.left - 1 && content.right <= stage.right + 1;
+  }))).toBe(true);
+
+  await page.getByRole('button', { name: /^(Button|Botón)$/i }).click();
+  const editor = page.getByRole('dialog', { name: /^(Edit|Editar)$/i });
+  await editor.getByRole('radio', { name: /^(Design|Diseño)$/i }).click();
+  const selectedCell = editor.getByRole('grid', { name: /^(Design|Diseño)$/i }).locator('[role="gridcell"][aria-selected="true"]');
+  await editor.locator('[data-card-size-preset="medium"]').click();
+  await expect(selectedCell).toHaveAttribute('aria-label', /: 6, (Rows|Filas): 3$/i);
+  await expect(editor.locator('[data-card-size-preset="medium"]')).toHaveAttribute('aria-pressed', 'true');
+  await editor.locator('[data-card-size-preset="small"]').click();
+  await expect(selectedCell).toHaveAttribute('aria-label', /: 3, (Rows|Filas): 2$/i);
+  await editor.getByRole('button', { name: /^(Save|Guardar)$/i }).click();
+  await expect(editor).toHaveCount(0);
+
+  await page.getByRole('button', { name: /^(Add card|Añadir tarjeta)$/i }).click();
+  await page.getByRole('button', { name: /^(Sensor)$/i }).click();
+  const sensorEditor = page.getByRole('dialog', { name: /^(Edit|Editar)$/i });
+  const device = await sensorEditor.getByText(/^(Assigned device|Dispositivo asignado)$/i).boundingBox();
+  const name = await sensorEditor.getByText(/^(Name|Nombre)$/i).first().boundingBox();
+  const minimum = await sensorEditor.getByText(/^(Minimum|Mínimo)$/i).boundingBox();
+  expect(device!.y).toBeLessThan(name!.y);
+  expect(name!.y).toBeLessThan(minimum!.y);
+});
+
 test('Feature: Dashboard import — Scenario: Pending bindings and local backgrounds are reported without exposing source IDs', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await prepareAuthenticatedDashboard(page);

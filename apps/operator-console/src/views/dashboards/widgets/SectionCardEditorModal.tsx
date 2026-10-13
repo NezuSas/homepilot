@@ -66,7 +66,7 @@ export function SectionCardEditorModal({
   const sensorScale = normalizeSensorScale({ min: cardDraft.sensorMin, max: cardDraft.sensorMax });
   const invalidScale = isSensorScaleInvalid(cardDraft, sensorScale, validMinimum, validMaximum);
   return (
-    <Modal isOpen onClose={onClose} title={t('common.edit')} headerAlign="start" layerClassName="!items-start" className="section-card-editor !my-0 max-w-5xl"
+    <Modal isOpen onClose={onClose} title={t('common.edit')} description={catalogLabel(cardDraft.kind)} headerAlign="start" layerClassName="!items-start" className="section-card-editor !my-0 max-w-5xl"
       bodyClassName="flex flex-1 flex-col overflow-hidden" headerClassName="shrink-0" contentClassName="min-h-0 flex-1"
       footerClassName="justify-end gap-2 px-5 py-4 sm:px-8"
       footer={<>
@@ -106,6 +106,32 @@ export function SectionCardEditorModal({
                 setCardDraft(draft => applyInfoSourceChange(draft, value));
               }} />}
 
+            {isBindableKind(cardDraft.kind) ? (
+              <SectionCardAssignmentField
+                cardDraft={cardDraft}
+                setCardDraft={setCardDraft}
+                assignableDevices={assignableDevices}
+                assignableRooms={assignableRooms}
+                scenes={scenes}
+                automations={automations}
+                displayActions={displayActions}
+                devices={devices}
+              />
+            ) : null}
+
+            <Input
+              label={t('dashboard.editor.sections.name')}
+              value={cardDraft.title}
+              onChange={(event) => setCardDraft((draft) => ({ ...draft, title: event.target.value }))}
+            />
+
+            {(cardDraft.kind.startsWith('info_') || cardDraft.kind === 'light' || cardDraft.kind === 'action' || cardDraft.kind === 'device' || cardDraft.kind === 'cover') ? (
+              <IconPicker
+                value={cardDraft.icon}
+                onChange={(icon) => setCardDraft((draft) => ({ ...draft, icon }))}
+              />
+            ) : null}
+
             {normalizeKind(cardDraft.kind) === 'media' && (
               <fieldset className="space-y-2">
                 <legend className="text-caption font-semibold text-foreground">{t('dashboard.editor.sections.media_design')}</legend>
@@ -134,12 +160,6 @@ export function SectionCardEditorModal({
               onMaximumValidityChange={setValidMaximum}
             />}
 
-            <Input
-              label={t('dashboard.editor.sections.name')}
-              value={cardDraft.title}
-              onChange={(event) => setCardDraft((draft) => ({ ...draft, title: event.target.value }))}
-            />
-
             {!isClockKind(cardDraft.kind) && !cardDraft.kind.startsWith('info_') && (
               <SearchableSelectField
                 label={t('dashboard.editor.sections.card_type')}
@@ -156,26 +176,6 @@ export function SectionCardEditorModal({
                 }}
               />
             )}
-
-            {(cardDraft.kind.startsWith('info_') || cardDraft.kind === 'light' || cardDraft.kind === 'action' || cardDraft.kind === 'device' || cardDraft.kind === 'cover') ? (
-              <IconPicker
-                value={cardDraft.icon}
-                onChange={(icon) => setCardDraft((draft) => ({ ...draft, icon }))}
-              />
-            ) : null}
-
-            {isBindableKind(cardDraft.kind) ? (
-              <SectionCardAssignmentField
-                cardDraft={cardDraft}
-                setCardDraft={setCardDraft}
-                assignableDevices={assignableDevices}
-                assignableRooms={assignableRooms}
-                scenes={scenes}
-                automations={automations}
-                displayActions={displayActions}
-                devices={devices}
-              />
-            ) : null}
             </div>
             </div>
           </div>
