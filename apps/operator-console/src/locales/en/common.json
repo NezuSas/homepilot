@@ -1976,6 +1976,7 @@
         "description": "Runs a one-time action",
         "placeholder": "Link it to a compatible button to run its action.",
         "execute": "Run",
+        "sent": "Sent",
         "pending": "Running",
         "success": "Done",
         "error": "Error",

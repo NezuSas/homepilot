@@ -105,7 +105,7 @@ export function useSectionCardActions({ devices, isEditing, upsertDevice }: Sect
         const updated = await response.json() as SnapshotDevice;
         upsertDevice(updated);
         if (plcPulse && (updated.lastKnownState?.confirmation === 'reset_failed' || updated.lastKnownState?.error)) throw new Error(plcErrorKey(updated.lastKnownState.error ?? 'RESET_FAILED'));
-        if (!plcPulse) showActionFeedback(card.id, 'success');
+        showActionFeedback(card.id, 'success');
       } catch (error) {
         showActionFeedback(card.id, 'error', plcPulse ? error instanceof Error && error.message.startsWith('plc.errors.') ? error.message : plcErrorKey(undefined) : undefined);
       } finally {

@@ -35,6 +35,8 @@ export function ActionButtonWidget({ config, isEditing, onConfigure }: {
   const executionLock = useRef(false);
   const [status, setStatus] = useState<ActionStatus>('idle');
   const [actionError, setActionError] = useState<string | null>(null);
+  /** A PLC pulse returns to ready at once; this keeps a short "sent" so the person sees that the order went out. */
+  const [sent, setSent] = useState(false);
   useEffect(() => () => {
     if (feedbackTimerRef.current !== null) window.clearTimeout(feedbackTimerRef.current);
   }, []);
@@ -63,7 +65,9 @@ export function ActionButtonWidget({ config, isEditing, onConfigure }: {
       ? t('dashboards.widgets.action_button.success')
       : status === 'error'
         ? t('dashboards.widgets.action_button.error')
-        : t('dashboards.widgets.action_button.execute');
+        : sent
+          ? t('dashboards.widgets.action_button.sent')
+          : t('dashboards.widgets.action_button.execute');
 
   const handlePress = async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
@@ -72,6 +76,7 @@ export function ActionButtonWidget({ config, isEditing, onConfigure }: {
 
     if (feedbackTimerRef.current !== null) window.clearTimeout(feedbackTimerRef.current);
     setStatus('pending');
+    setSent(false);
     setActionError(null);
     try {
       const response = await apiFetch(`${API}/devices/${encodeURIComponent(device.id)}/command`, {
@@ -84,6 +89,10 @@ export function ActionButtonWidget({ config, isEditing, onConfigure }: {
       upsertDevice(updated);
       if (plcPulse && (updated.lastKnownState?.confirmation === 'reset_failed' || updated.lastKnownState?.error)) throw new Error(plcErrorKey(updated.lastKnownState.error ?? 'RESET_FAILED'));
       setStatus(plcPulse ? 'idle' : 'success');
+      if (plcPulse) {
+        setSent(true);
+        feedbackTimerRef.current = window.setTimeout(() => setSent(false), 1800);
+      }
     } catch (error) {
       if (plcPulse) setActionError(error instanceof Error && error.message.startsWith('plc.errors.') ? error.message : plcErrorKey(undefined));
       setStatus(plcPulse ? 'idle' : 'error');

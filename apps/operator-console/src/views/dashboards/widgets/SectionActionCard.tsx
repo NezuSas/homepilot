@@ -69,7 +69,7 @@ export function SectionActionCard({
     >
       <Icon aria-hidden="true" className={getLightTileIconClasses(Boolean(isActive))} />
       <span className="line-clamp-2 min-w-0 text-micro font-bold leading-tight text-foreground">{title}</span>
-      {momentaryCommand && <span className="min-w-0 text-micro text-muted-foreground">{t(actionFeedback === 'pending' ? 'dashboards.widgets.action_button.pending' : 'dashboards.widgets.action_button.execute')}</span>}
+      {momentaryCommand && <span className="min-w-0 text-micro text-muted-foreground">{t(actionFeedback === 'pending' ? 'dashboards.widgets.action_button.pending' : actionFeedback === 'success' ? 'dashboards.widgets.action_button.sent' : 'dashboards.widgets.action_button.execute')}</span>}
       {momentaryCommand && actionFeedback === 'error' && <span role="alert" className="line-clamp-2 min-w-0 text-micro text-danger">{actionError ?? t('dashboard.editor.sections.action_button_error')}</span>}
       {actionFeedback === 'success' && <span role="status" className="sr-only">{t('dashboard.editor.sections.action_button_success')}</span>}
       {!momentaryCommand && actionFeedback === 'error' && <span role="alert" className="sr-only">{t('dashboard.editor.sections.action_button_error')}</span>}

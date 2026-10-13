@@ -1976,6 +1976,7 @@
         "description": "Ejecuta una acción puntual",
         "placeholder": "Vincúlalo a un botón compatible para ejecutar su acción.",
         "execute": "Ejecutar",
+        "sent": "Enviado",
         "pending": "Ejecutando",
         "success": "Listo",
         "error": "Error",

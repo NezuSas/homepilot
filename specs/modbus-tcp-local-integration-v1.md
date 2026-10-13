@@ -63,6 +63,9 @@ Migración aditiva 035: tablas modbus_connections y modbus_variables con referen
 
 ## Criterios de aceptación
 
+- AC44 (revisión como cliente, 2026-10-12): un comando de pulso de PLC en un tablero (tarjeta de sección o botón de acción) muestra «Enviado» durante unos 1,8 segundos después de que el servidor lo ejecuta y suelta sin error, y después vuelve a «Ejecutar». Es un aviso de que la orden salió, no una confirmación de que la carga se activó (sin retroalimentación independiente no se afirma más); la tarjeta sigue siendo momentánea (`data-action-state` en reposo, sin `aria-pressed`) y un error nunca muestra «Enviado».
+
+
 - AC43 (revisión visual con datos reales, 2026-10-12): la tarjeta de una variable es una unidad compacta que se acomoda en tantas columnas como el ancho permita (mínimo 15 rem). Muestra el nombre, una sola línea de direcciones (física, lógica y de comando sin repetir), el estado y el error si lo hay; la acción de configurar es solo un icono y no se sale de la tarjeta. El detalle técnico (comando, entrada o salida física, feedback, permiso de escritura, área, PDU, función, tipo, escala, RAW y vista previa de medición) no se repite en cada tarjeta: un único interruptor «Detalles técnicos» de la conexión lo muestra u oculta en todas. Sin cambios de contrato, persistencia ni comportamiento de comandos.
 
 
