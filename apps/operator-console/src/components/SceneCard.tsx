@@ -39,6 +39,8 @@ interface SceneCardProps {
   canManage?: boolean;
   scene: SceneCardScene;
   roomName: string | null;
+  /** The devices it acts on, so the card says what it does and not only how many things. */
+  summary?: string;
   isFavorite: boolean;
   isExecuting: boolean;
   isSuccessful: boolean;
@@ -62,6 +64,7 @@ const getSceneIcon = (name: string) => {
 export const SceneCard: React.FC<SceneCardProps> = ({
   scene,
   roomName,
+  summary,
   isFavorite,
   isExecuting,
   isSuccessful,
@@ -110,15 +113,18 @@ export const SceneCard: React.FC<SceneCardProps> = ({
         />
       </div>
 
-      {scene.description && <p className="line-clamp-2 text-caption text-muted-foreground">{scene.description}</p>}
+      {scene.description
+        ? <p className="line-clamp-2 text-caption text-muted-foreground">{scene.description}</p>
+        : summary ? <p className="truncate text-caption text-muted-foreground" title={summary}>{summary}</p> : null}
 
       <div className="mt-auto flex items-center gap-1.5">
         <Button
           type="button"
           aria-label={t(isSuccessful ? 'scenes.executed' : 'scenes.execute')}
           size="lg"
+          variant="outline"
           isLoading={isExecuting}
-          className="flex-1"
+          className="flex-1 border-primary/50 text-primary hover:bg-primary/10"
           onClick={() => onExecute(scene)}
         >
           {!isExecuting && (isSuccessful ? <Check aria-hidden="true" className="size-4 shrink-0" /> : <Play aria-hidden="true" className="size-4 shrink-0" />)}
@@ -128,7 +134,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({
           icon={Edit2}
           label={t('common.edit')}
           onClick={(event) => onEdit(scene, event)}
-          variant="default"
+          variant="ghost"
           size="lg"
         />}
         {canManage && <IconButton

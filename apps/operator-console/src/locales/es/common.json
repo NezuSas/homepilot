@@ -684,9 +684,11 @@
       "welcome": "La escena perfecta para dar la bienvenida al hogar",
       "generic": "Un entorno a medida para este momento"
     },
+    "more_devices_one": "1 más",
+    "more_devices_other": "{{count}} más",
     "header": {
-      "available_one": "{{count}} Escena disponible",
-      "available_other": "{{count}} Escenas disponibles"
+      "available_one": "{{count}} escena",
+      "available_other": "{{count}} escenas"
     },
     "favorites": "Entornos Favoritos",
     "add_favorite": "Añadir a favoritas",
@@ -1117,7 +1119,8 @@
     "save_button": "Guardar automatización",
     "header": {
       "title": "Automatizaciones",
-      "subtitle": "{{count}} Reglas de Inteligencia Activas • Ejecución Local"
+      "summary_one": "{{active}} de {{count}} regla activa",
+      "summary_other": "{{active}} de {{count}} reglas activas"
     },
     "loading": "Sincronizando Workbench...",
     "active_recipes_one": "{{count}} Automatización activa",
@@ -1192,6 +1195,10 @@
         "bridged": "Puenteada"
       },
       "clock_hits": "El reloj marca las {{time}}",
+      "every_day": "todos los días",
+      "weekdays": "de lunes a viernes",
+      "state_on": "encendido",
+      "state_off": "apagado",
       "if": "SI",
       "then": "ENTONCES",
       "trigger_label": "DISPARADOR",

@@ -41,7 +41,7 @@ const ScenesView: React.FC<{
   onActionExecute?: (label: string) => void;
   currentUserId: string | null;
 }> = ({ onActionExecute, currentUserId }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [devices, setDevices] = useState<SnapshotDevice[]>([]);
@@ -178,6 +178,13 @@ const ScenesView: React.FC<{
 
   if (initialLoading) return <ScenesSkeleton label={t('common.loading')} />;
 
+  const summarizeScene = (scene: Scene) => {
+    const names = [...new Set(scene.actions.map(action => devices.find(device => device.id === action.deviceId)?.name).filter((name): name is string => Boolean(name)))];
+    const shown = names.slice(0, 3);
+    const rest = names.length - shown.length;
+    return new Intl.ListFormat(i18n?.language, { style: 'long', type: 'conjunction' }).format(rest > 0 ? [...shown, t('scenes.more_devices', { count: rest })] : shown);
+  };
+
   const openCreateScene = () => {
     if (!homeId) {
       setError(t('scenes.errors.no_home'));
@@ -213,6 +220,7 @@ const ScenesView: React.FC<{
             iconClassName=""
             scenes={scenes}
             rooms={rooms}
+            summarize={summarizeScene}
             favorites={favorites}
             executingId={executingId}
             successId={successId}

@@ -16,6 +16,7 @@ interface ScenesGroupProps<TScene extends SceneCardScene & { roomId: string | nu
   iconClassName: string;
   scenes: TScene[];
   rooms: Room[];
+  summarize?: (scene: TScene) => string;
   favorites: string[];
   executingId: string | null;
   successId: string | null;
@@ -31,6 +32,7 @@ export const ScenesGroup = <TScene extends SceneCardScene & { roomId: string | n
   iconClassName,
   scenes,
   rooms,
+  summarize,
   favorites,
   executingId,
   successId,
@@ -60,6 +62,7 @@ export const ScenesGroup = <TScene extends SceneCardScene & { roomId: string | n
               scene={scene}
               canManage={canManage?.(scene)}
               roomName={room?.name || null}
+              summary={summarize?.(scene)}
               isFavorite={favorites.includes(scene.id)}
               isExecuting={executingId === scene.id}
               isSuccessful={successId === scene.id}

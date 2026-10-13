@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AutomationRuleCard } from './AutomationRuleCard';
-jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string, values?: { value?: string }) => values?.value ? `${key}|${values.value}` : key }) }));
 jest.mock('../views/dashboards/components/IconPicker', () => ({ getDashboardIconComponent: () => null }));
 const props = {
   rule: { id: 'rule', name: 'Trabajo', enabled: false, trigger: { type: 'time' as const, timeLocal: '19:00' }, action: { type: 'execute_scene' as const, sceneId: 'scene' } },
@@ -40,5 +40,16 @@ describe('Feature: Compact automation cards (AC50)', () => {
     expect(html).toContain('role="status" aria-live="polite">automations.executed');
     expect(html).toContain('automations.summary.paused');
     expect(html).toContain('automations.remove_favorite');
+  });
+});
+
+describe('Feature: Automation rule summary (AC60)', () => {
+  it('shows the days a clock rule runs and a state as a word, not as the technical value', () => {
+    const weekdays = renderToStaticMarkup(<AutomationRuleCard {...props} rule={{ ...props.rule, trigger: { type: 'time', timeLocal: '19:00', days: [1, 2, 3, 4, 5] } }} />);
+    const everyDay = renderToStaticMarkup(<AutomationRuleCard {...props} />);
+    const device = renderToStaticMarkup(<AutomationRuleCard {...props} rule={{ ...props.rule, trigger: { type: 'device_state_changed', deviceId: 'd', expectedValue: 'on' } }} />);
+    expect(weekdays).toContain('automations.summary.weekdays');
+    expect(everyDay).toContain('automations.summary.every_day');
+    expect(device).toContain('when_device|automations.summary.state_on');
   });
 });

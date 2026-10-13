@@ -26,6 +26,16 @@ const props = {
   onDelete: jest.fn(),
 };
 
+describe('Feature: Scene summary (AC60)', () => {
+  it('says which devices the scene controls when it has no description, and prefers the description when it has one', () => {
+    const summary = renderToStaticMarkup(<SceneCard {...props} summary="Luz sala y Persiana patio" />);
+    const described = renderToStaticMarkup(<SceneCard {...props} scene={{ ...props.scene, description: 'Abre todo' }} summary="Luz sala y Persiana patio" />);
+    expect(summary).toContain('Luz sala y Persiana patio');
+    expect(described).toContain('Abre todo');
+    expect(described).not.toContain('Luz sala y Persiana patio');
+  });
+});
+
 describe('Feature: Compact scene cards (AC47)', () => {
   it('offers execution and favorites, but no management, to a shared recipient', () => {
     const html = renderToStaticMarkup(<SceneCard {...props} canManage={false} />);

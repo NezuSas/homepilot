@@ -32,7 +32,7 @@ export default function RoutinesView({
   ];
 
   return (
-    <div className="flex flex-col gap-6 pb-8 sm:gap-8 sm:pb-10">
+    <div className="flex flex-col gap-4 pb-8 sm:gap-5 sm:pb-10">
       <SectionHeader
         level="view"
         icon={Workflow}

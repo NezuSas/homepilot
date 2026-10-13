@@ -167,6 +167,7 @@ const AutomationsView: React.FC<{ currentUserId: string | null }> = ({ currentUs
     <div className="flex flex-col gap-6 pb-8 sm:gap-7">
       <AutomationsHeader
         activeCount={persistentRules.filter((rule) => rule.enabled).length}
+        totalCount={persistentRules.length}
         onCreate={() => setIsBuilderOpen(true)}
       />
 
