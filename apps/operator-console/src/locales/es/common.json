@@ -1534,6 +1534,8 @@
     "header": {
       "title": "Personas y acceso",
       "subtitle": "Decide quién puede usar tu casa y hasta dónde llega cada persona.",
+      "summary_one": "{{count}} persona",
+      "summary_other": "{{count}} personas · {{active}} con cuenta activa",
       "add_button": "Añadir persona"
     },
     "table": {
@@ -1544,12 +1546,13 @@
     },
     "status": {
       "active": "CUENTA ACTIVA",
-      "suspended": "CUENTA SUSPENDIDA",
-      "live": "TELEMETRÍA EN VIVO / SESIÓN"
+      "suspended": "Suspendida",
+      "live": "Sesión abierta"
     },
-    "protection_rule": "Regla de Protección del Sistema: {{brand}} requiere al menos un usuario administrador activo. Desactivar o degradar al último administrador está estrictamente prohibido por la lógica de seguridad del backend para evitar bloqueos permanentes.",
+    "protection_rule": "Siempre debe quedar al menos un administrador activo, por eso no se puede suspender ni cambiar de nivel al último.",
     "actions": {
       "confirm_title": "Confirmar acción",
+      "more": "Más acciones",
       "confirm_suspend": "¿Está seguro de que desea SUSPENDER a este usuario? La suspensión matará instantáneamente todas las sesiones activas.",
       "confirm_restore": "¿Está seguro de que desea RESTAURAR a este usuario?",
       "confirm_role": "¿Confirmar CAMBIO DE ROL para \"{{username}}\"? Elevar o degradar cuentas afecta los permisos en todo el sistema.",

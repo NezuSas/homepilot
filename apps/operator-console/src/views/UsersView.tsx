@@ -221,7 +221,7 @@ export function UsersView({ currentUserId }: UsersViewProps) {
   }
 
   return (
-    <div className="flex flex-col gap-8 pb-10">
+    <div className="flex flex-col gap-5 pb-10">
       {error && <UsersErrorBanner message={error} />}
 
       {showCreate ? (
@@ -252,7 +252,7 @@ export function UsersView({ currentUserId }: UsersViewProps) {
       ) : (
         <UsersHeader
           title={t('users.header.title')}
-          subtitle={t('users.header.subtitle')}
+          subtitle={t('users.header.summary', { count: users.length, active: users.filter(user => user.isActive).length })}
           addLabel={t('users.header.add_button')}
           onAdd={() => setShowCreate(true)}
         />
@@ -268,6 +268,7 @@ export function UsersView({ currentUserId }: UsersViewProps) {
           active: t('users.status.active'),
           suspended: t('users.status.suspended'),
           live: t('users.status.live'),
+          moreActions: t('users.actions.more'),
           suspendTitle: t('users.actions.suspend_title'),
           restoreTitle: t('users.actions.restore_title'),
           revokeTitle: t('users.actions.revoke_title'),

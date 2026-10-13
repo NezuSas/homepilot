@@ -30,7 +30,7 @@ describe('Feature: Compact inventory and access (AC55, AC56)', () => {
     const html = renderToStaticMarkup(<InboxDeviceTile device={{ id: 'd', homeId: 'h', roomId: null, name: 'Luz', type: 'light', status: 'PENDING', lastKnownState: { state: 'unavailable' } }} rooms={[]} />);
     expect(html.match(/disabled=""/g)).toHaveLength(2);
   });
-  const labels = { identity: 'Identidad', access: 'Rol', status: 'Estado', controls: 'Controles', active: 'Activo', suspended: 'Suspendido', live: 'Sesión activa', suspendTitle: 'Suspender', restoreTitle: 'Restaurar', revokeTitle: 'Revocar sesiones', resetPasswordTitle: 'Restablecer contraseña', editAccessTitle: 'Editar acceso', swapRoleTitle: () => 'Cambiar rol' };
+  const labels = { identity: 'Identidad', access: 'Rol', status: 'Estado', controls: 'Controles', active: 'Activo', suspended: 'Suspendido', live: 'Sesión activa', moreActions: 'Más acciones', suspendTitle: 'Suspender', restoreTitle: 'Restaurar', revokeTitle: 'Revocar sesiones', resetPasswordTitle: 'Restablecer contraseña', editAccessTitle: 'Editar acceso', swapRoleTitle: () => 'Cambiar rol' };
   const cardProps = {
     getRoleLabel: (role: string) => (role === 'guest' ? 'Invitado' : 'Familiar'),
     getRoleDescription: (role: string) => `desc-${role}`,
@@ -43,12 +43,9 @@ describe('Feature: Compact inventory and access (AC55, AC56)', () => {
     const html = renderToStaticMarkup(<UserAccessCard user={{ ...user, hasActiveSessions }} labels={labels} roleOptions={[{ value: 'parent', label: 'Familiar' }]} {...cardProps} currentUserId={currentUserId} onToggleActive={noop} onChangeRole={noop} onRevokeSessions={noop} onResetPassword={noop} />);
     expect(html).toContain('Ana');
     expect(html).toContain('aria-label="Rol"');
-    expect(html).toContain('aria-label="Suspender"');
-    // Check the named button, without depending on React's attribute order.
-    const revokeButtons = html.match(/<button\b[^>]*\baria-label="Revocar sesiones"[^>]*>/g);
-    expect(revokeButtons).toHaveLength(1);
-    expect(/\sdisabled=""(?:\s|>)/.test(revokeButtons![0])).toBe(!hasActiveSessions);
-    expect(html.includes('aria-label="Restablecer contraseña"')).toBe(currentUserId !== user.id);
+    // The security actions live in one labelled menu; the live session shows as a dot on the photo.
+    expect(html).toContain('aria-label="Más acciones"');
+    expect(html.includes('aria-label="Sesión activa"')).toBe(hasActiveSessions);
   });
 
   it('shows what a limited guest can reach, when the access ends, and offers to edit it', () => {
@@ -60,7 +57,7 @@ describe('Feature: Compact inventory and access (AC55, AC56)', () => {
     expect(html).toContain('Solo: Sala');
     expect(html).toContain('Vence el 20 de octubre de 2026');
     expect(html).toContain('desc-guest');
-    expect(html).toContain('aria-label="Editar acceso"');
+    expect(html).toContain('Editar acceso');
     expect(html).not.toContain('text-danger');
   });
 
@@ -76,7 +73,7 @@ describe('Feature: Compact inventory and access (AC55, AC56)', () => {
     const html = renderToStaticMarkup(<UserAccessCard user={{ ...user, role }} labels={labels} roleOptions={[{ value: 'parent', label: 'Familiar' }]} {...cardProps}
       currentUserId="other" onToggleActive={noop} onChangeRole={noop} onRevokeSessions={noop} onResetPassword={noop} />);
 
-    expect(html).not.toContain('aria-label="Editar acceso"');
+    expect(html).not.toContain('Editar acceso');
   });
 
 });

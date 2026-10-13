@@ -1534,6 +1534,8 @@
     "header": {
       "title": "People and access",
       "subtitle": "Decide who can use your home and how far each person can go.",
+      "summary_one": "{{count}} person",
+      "summary_other": "{{count}} people · {{active}} with an active account",
       "add_button": "Add person"
     },
     "table": {
@@ -1544,12 +1546,13 @@
     },
     "status": {
       "active": "ACCOUNT ACTIVE",
-      "suspended": "ACCOUNT SUSPENDED",
-      "live": "LIVE TELEMETRY / SESSION"
+      "suspended": "Suspended",
+      "live": "Signed in"
     },
-    "protection_rule": "System Protection Rule: {{brand}} requires at least one active Admin user. Deactivating or demoting the last administrator is strictly prohibited by backend security logic to prevent permanent lockout.",
+    "protection_rule": "There must always be at least one active administrator, so the last one cannot be suspended or changed to another level.",
     "actions": {
       "confirm_title": "Confirm action",
+      "more": "More actions",
       "confirm_suspend": "WARNING: Are you sure you want to SUSPEND this user? Suspension instantly kills all active sessions.",
       "confirm_restore": "Are you sure you want to RESTORE this user?",
       "confirm_role": "Confirm ROLE CHANGE for \"{{username}}\"? Elevating or demoting accounts affects system-wide permissions.",

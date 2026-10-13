@@ -470,20 +470,28 @@ for (const viewport of [
       await page.evaluate(theme => document.documentElement.classList.toggle('light', theme === 'light'), theme);
       await expect(page.getByRole('heading', { name: /Personas y acceso|People and access/i })).toBeVisible();
       const card = page.getByRole('article', { name: 'Ana', exact: true });
-      await expect(card.getByRole('button', { name: /Suspender|Suspend/i })).toBeVisible();
-      await expect(card.getByRole('button', { name: /Revocar|Revoke/i })).toBeEnabled();
-      const reset = card.getByRole('button', { name: /Restablecer|Reset/i });
+      const more = card.getByRole('button', { name: /Más acciones|More actions/i });
+      await more.click();
+      const menu = page.getByRole('menu');
+      await expect(menu.getByRole('menuitem', { name: /Suspender|Suspend/i })).toBeVisible();
+      await expect(menu.getByRole('menuitem', { name: /Revocar|Revoke/i })).toBeEnabled();
+      const reset = menu.getByRole('menuitem', { name: /Restablecer|Reset/i });
       await expect(reset).toBeVisible();
-      await expect(page.getByRole('article', { name: 'Administrador', exact: true }).getByRole('button', { name: /Restablecer|Reset/i })).toHaveCount(0);
       expect((await card.boundingBox())?.height).toBeLessThanOrEqual(300);
+      const moreBounds = await more.boundingBox();
+      expect(moreBounds?.height).toBeGreaterThanOrEqual(43.99);
+      expect(moreBounds?.width).toBeGreaterThanOrEqual(43.99);
       const resetBounds = await reset.boundingBox();
       expect(resetBounds?.height).toBeGreaterThanOrEqual(43.99);
-      expect(resetBounds?.width).toBeGreaterThanOrEqual(43.99);
       await reset.click();
       const resetDialog = page.getByRole('dialog');
       await expect(resetDialog).toBeVisible();
       await resetDialog.getByRole('button', { name: /^(Cancelar|Cancel)$/i }).click();
       await expect(resetDialog).toHaveCount(0);
+      // The signed-in administrator cannot reset their own password from here.
+      await page.getByRole('article', { name: 'Administrador', exact: true }).getByRole('button', { name: /Más acciones|More actions/i }).click();
+      await expect(page.getByRole('menu').getByRole('menuitem', { name: /Restablecer|Reset/i })).toHaveCount(0);
+      await page.keyboard.press('Escape');
       expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
       if (['mobile portrait', 'tablet portrait', 'desktop'].includes(viewport.name)) await page.screenshot({ path: testInfo.outputPath(`users-${theme}.png`), fullPage: true });
     }
