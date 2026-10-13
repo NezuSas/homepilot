@@ -98,7 +98,7 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
       isOpen
       onClose={saving ? undefined : onClose}
       title={t('users.profile.title')}
-      description={roleLabel}
+      description={t('users.profile.subtitle')}
       headerAlign="start"
       headerClassName="pb-4"
       className="max-w-md"
@@ -136,13 +136,17 @@ export function UserProfileModal({ user, onClose, onSaved }: UserProfileModalPro
             cropper={cropper}
             avatarPreview={avatarPreview}
             username={user?.username}
+            displayName={displayName.trim()}
+            roleLabel={roleLabel}
             onPreviewError={() => setAvatarPreview(null)}
+            onRemove={() => setAvatarPreview(null)}
           />
 
           <Input
             label={t('users.profile.display_name')}
             type="text" value={displayName} onChange={e => setDisplayName(e.target.value)}
             placeholder={user.username} maxLength={40}
+            helperText={t('users.profile.display_name_hint')}
           />
 
           <DirectorySsoLinksSection />

@@ -94,6 +94,39 @@ test('the neutral phrase does not claim calm while suggestions wait for attentio
   await expect(hero.getByText(/Todo está bajo control|Everything is under control/i)).toHaveCount(0);
 });
 
+test('the profile shows who is signed in and the password form points at the field that is wrong', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await prepare(page);
+  await page.route('**/api/v1/auth/change-password', (route) => route.fulfill({ status: 400, json: { error: 'invalid' } }));
+  await page.goto('/');
+
+  await page.getByTitle(/^(My Profile|Mi Perfil)$/i).click();
+  const profile = page.getByRole('dialog', { name: /^(My Profile|Mi Perfil)$/i });
+  await expect(profile.getByText('@admin')).toBeVisible();
+  await expect(profile.getByRole('button', { name: /^(Change photo|Cambiar foto)$/i }).first()).toBeVisible();
+  await expect(profile).not.toContainText('MiniPC');
+  await profile.getByRole('button', { name: /^(Cancel|Cancelar)$/i }).click();
+
+  await page.getByRole('button', { name: /^(Change password|Cambiar contraseña)$/i }).first().click();
+  const dialog = page.getByRole('dialog');
+  const [current, next, confirm] = [0, 1, 2].map((index) => dialog.locator('input').nth(index));
+  await expect(current).toHaveAttribute('autocomplete', 'current-password');
+  await expect(next).toHaveAttribute('autocomplete', 'new-password');
+  await current.fill('wrong-current');
+  await next.fill('long-enough-1');
+  await confirm.fill('different-1');
+  await dialog.getByRole('button', { name: /^(Show password|Mostrar contraseña)$/i }).first().click();
+  await expect(current).toHaveAttribute('type', 'text');
+  await dialog.getByRole('button', { name: /^(Change password|Cambiar contraseña)$/i }).click();
+  await expect(confirm).toHaveAttribute('aria-invalid', 'true');
+  await expect(current).not.toHaveAttribute('aria-invalid', 'true');
+  await expect(next).not.toHaveAttribute('aria-invalid', 'true');
+  await confirm.fill('long-enough-1');
+  await dialog.getByRole('button', { name: /^(Change password|Cambiar contraseña)$/i }).click();
+  await expect(current).toHaveAttribute('aria-invalid', 'true');
+  await expect(confirm).not.toHaveAttribute('aria-invalid', 'true');
+});
+
 test('Home dashboard button opens the own default tab by click or keyboard', async ({ page }) => {
   await page.setViewportSize({ width: 768, height: 1024 });
   await prepare(page);

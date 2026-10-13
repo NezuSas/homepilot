@@ -44,7 +44,7 @@ export function AppSidebarFooter({ collapsed, user, profile, theme, demoStepCoun
           <IconButton icon={Globe} label={t('shell.tooltips.switch_language')} onClick={onToggleLanguage} variant="ghost" size="sm" />
           <IconButton icon={KeyRound} label={t('shell.tooltips.change_password')} onClick={onChangePassword} variant="ghost" size="sm" />
           <div className={cn('mx-0.5 h-4 w-px bg-border/40', collapsed && 'xl:my-0.5 xl:h-px xl:w-4 xl:mx-0')} />
-          <IconButton icon={LogOut} label={t('nav.logout')} onClick={onLogout} variant="danger" size="sm" />
+          <IconButton icon={LogOut} label={t('nav.logout')} onClick={onLogout} variant="ghost" size="sm" className="text-danger hover:bg-danger/10 hover:text-danger" />
         </div>
       </div>
       <p className={cn('text-center text-micro text-muted-foreground/70', collapsed && 'xl:sr-only')}>Powered by {BRAND.companyName}</p>

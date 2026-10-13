@@ -1,6 +1,9 @@
 import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Camera, UserCircle2, ZoomIn, Move } from 'lucide-react';
+import { Button } from '../ui/Button';
+import { SurfaceButton } from '../ui/SurfaceButton';
+import { StatusPill } from '../ui/StatusPill';
 import { API_BASE_URL } from '../../config';
 import { IconButton } from '../ui/IconButton';
 import { RangeInput } from '../ui/RangeInput';
@@ -11,13 +14,50 @@ interface AvatarCropperProps {
   cropper: ReturnType<typeof useAvatarCropper>;
   avatarPreview: string | null;
   username: string;
+  /** Name shown beside the photo while it rests, and the role as a label. */
+  displayName: string;
+  roleLabel: string;
   onPreviewError: () => void;
+  onRemove: () => void;
 }
 
-export function AvatarCropper({ cropper, avatarPreview, username, onPreviewError }: AvatarCropperProps) {
+export function AvatarCropper({ cropper, avatarPreview, username, displayName, roleLabel, onPreviewError, onRemove }: AvatarCropperProps) {
   const { t } = useTranslation();
   const fileRef = useRef<HTMLInputElement>(null);
   const { containerRef, rawImage, zoom, setZoom, offset, handleFileChange, handleMouseDown } = cropper;
+
+  if (!rawImage) {
+    const source = avatarPreview ? (avatarPreview.startsWith('/') ? `${API_BASE_URL}${avatarPreview}` : avatarPreview) : null;
+    return (
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-4">
+          <SurfaceButton
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            aria-label={t('users.profile.change_avatar')}
+            className="group relative size-24 shrink-0 overflow-hidden rounded-full border-2 border-border bg-primary/10 text-primary"
+          >
+            {source
+              ? <img src={source} alt={t('users.profile.avatar_alt')} className="size-full object-cover" onError={onPreviewError} />
+              : <span className="grid size-full place-items-center text-2xl font-black uppercase">{(username || '?').substring(0, 2)}</span>}
+            <span aria-hidden="true" className="absolute inset-0 grid place-items-center bg-background/60 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+              <Camera className="size-6 text-foreground" />
+            </span>
+          </SurfaceButton>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-body font-semibold text-foreground">{displayName || username}</p>
+            <p className="truncate text-caption text-muted-foreground">@{username}</p>
+            <StatusPill variant="neutral" size="sm" className="mt-1.5">{roleLabel}</StatusPill>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" size="sm" variant="secondary" onClick={() => fileRef.current?.click()}><Camera aria-hidden="true" className="size-4" />{t('users.profile.change_avatar')}</Button>
+          {avatarPreview && <Button type="button" size="sm" variant="ghost" className="text-muted-foreground" onClick={onRemove}>{t('users.profile.remove_avatar')}</Button>}
+        </div>
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -103,7 +143,7 @@ export function AvatarCropper({ cropper, avatarPreview, username, onPreviewError
       )}
 
       <p className="text-label text-muted-foreground text-center max-w-copy-lg">
-        {rawImage ? t('users.profile.crop_hint') : t('users.profile.avatar_hint')}
+        {t('users.profile.crop_hint')}
       </p>
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
     </div>

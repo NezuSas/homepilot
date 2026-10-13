@@ -1615,7 +1615,8 @@
     "profile": {
       "title": "My Profile",
       "change_avatar": "Change Photo",
-      "avatar_hint": "Click the photo to change it. It gets saved locally on the MiniPC.",
+      "remove_avatar": "Remove photo",
+      "subtitle": "How others see you.",
       "crop_hint": "Adjust the zoom and drag the photo to frame your face.",
       "avatar_error": "Could not process image. Please try another.",
       "display_name": "Display Name",
@@ -1742,7 +1743,11 @@
   },
   "change_password": {
     "title": "Change Password",
-    "subtitle": "Your active sessions will be revoked.",
+    "subtitle": "Changing it signs you out on all your devices.",
+    "requirements": "At least 8 characters.",
+    "show": "Show password",
+    "hide": "Hide password",
+    "submit": "Change password",
     "current_password": "Current Password",
     "new_password": "New Password",
     "confirm_password": "Confirm New Password",

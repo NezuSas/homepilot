@@ -1615,7 +1615,8 @@
     "profile": {
       "title": "Mi Perfil",
       "change_avatar": "Cambiar Foto",
-      "avatar_hint": "Haz clic en la foto para cambiarla. Se guarda localmente en la MiniPC.",
+      "remove_avatar": "Quitar foto",
+      "subtitle": "Así te ven los demás.",
       "crop_hint": "Ajusta el zoom y arrastra la foto para encuadrar tu cara.",
       "avatar_error": "No se pudo procesar la imagen. Intenta con otra.",
       "display_name": "Nombre a Mostrar",
@@ -1742,7 +1743,11 @@
   },
   "change_password": {
     "title": "Cambiar Contraseña",
-    "subtitle": "Tus sesiones activas serán revocadas.",
+    "subtitle": "Al cambiarla se cerrará tu sesión en todos tus dispositivos.",
+    "requirements": "Mínimo 8 caracteres.",
+    "show": "Mostrar contraseña",
+    "hide": "Ocultar contraseña",
+    "submit": "Cambiar contraseña",
     "current_password": "Contraseña Actual",
     "new_password": "Nueva Contraseña",
     "confirm_password": "Confirmar Nueva Contraseña",
