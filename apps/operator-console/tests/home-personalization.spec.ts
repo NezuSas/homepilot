@@ -44,18 +44,15 @@ async function prepare(page: Page, images: Array<{ slot: number; url: string }> 
 
 test('Home uses one period for greeting and phrase and rotates ordered images without moving content', async ({ page }) => {
   await page.setViewportSize({ width: 768, height: 1024 });
-  await page.clock.install();
+  // A fixed afternoon: the period must not depend on the real clock (the night starts at 18:30, which a hard-coded hour here once missed).
+  await page.clock.install({ time: new Date(2026, 9, 12, 15, 0, 0) });
   const images = [1, 2, 3].map((slot) => ({ slot, url: `/media/home/image_home_${slot}.png` }));
   await prepare(page, images);
   await page.goto('/');
   const hero = page.locator('.homepilot-home-hero');
   await expect(hero).toBeVisible();
   await expect(hero.getByText('Mi Hogar')).toHaveCount(0);
-  const period = await page.evaluate(() => {
-    const hour = new Date().getHours();
-    return hour < 12 ? 'mañana' : hour < 19 ? 'tarde' : 'noche';
-  });
-  await expect(hero.getByText(`Frase de ${period}`)).toBeVisible();
+  await expect(hero.getByText('Frase de tarde')).toBeVisible();
   const before = await hero.boundingBox();
   const first = hero.locator('img[src*="image_home_1.png"]');
   const second = hero.locator('img[src*="image_home_2.png"]');
