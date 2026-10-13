@@ -50,15 +50,19 @@ interface SceneCardProps {
   onDelete: (sceneId: string, event: React.MouseEvent) => void;
 }
 
+/** Words that suggest an icon, in Spanish and English and compared without accents, so a scene named "Buenos días" gets a sun. */
+const SCENE_ICON_WORDS: Array<[typeof Zap, string[]]> = [
+  [Sun, ['morning', 'wake', 'manana', 'buenos dias', 'despert', 'amanecer']],
+  [Moon, ['night', 'sleep', 'bed', 'noche', 'dormir', 'descanso nocturno', 'cierre']],
+  [Coffee, ['relax', 'chill', 'cine', 'pelicula', 'descans']],
+  [Monitor, ['work', 'focus', 'office', 'trabajo', 'oficina', 'reunion', 'enfoque', 'estudio']],
+  [Home, ['welcome', 'home', 'arrive', 'bienvenid', 'llegada', 'casa', 'regreso']],
+  [Leaf, ['eco', 'saving', 'ahorro']],
+];
+
 const getSceneIcon = (name: string) => {
-  const normalizedName = name.toLowerCase();
-  if (normalizedName.includes('morning') || normalizedName.includes('wake')) return Sun;
-  if (normalizedName.includes('night') || normalizedName.includes('sleep') || normalizedName.includes('bed')) return Moon;
-  if (normalizedName.includes('relax') || normalizedName.includes('chill')) return Coffee;
-  if (normalizedName.includes('work') || normalizedName.includes('focus') || normalizedName.includes('office')) return Monitor;
-  if (normalizedName.includes('welcome') || normalizedName.includes('home') || normalizedName.includes('arrive')) return Home;
-  if (normalizedName.includes('eco') || normalizedName.includes('saving')) return Leaf;
-  return Zap;
+  const normalizedName = name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  return SCENE_ICON_WORDS.find(([, words]) => words.some(word => normalizedName.includes(word)))?.[0] ?? Zap;
 };
 
 export const SceneCard: React.FC<SceneCardProps> = ({
@@ -98,7 +102,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({
         </div>
         <div className="min-w-0 flex-1">
           <Heading as="h4" variant="item" id={titleId} title={scene.name} className="truncate">{scene.name}</Heading>
-          <p className="mt-0.5 truncate text-caption text-muted-foreground" title={roomName || undefined}>
+          <p className="mt-0.5 line-clamp-2 text-caption text-muted-foreground" title={roomName || undefined}>
             {roomName ? `${roomName} · ` : ''}{t('scenes.action_count', { count: scene.actions.length })}
           </p>
         </div>

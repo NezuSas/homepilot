@@ -26,6 +26,12 @@ const props = {
   onDelete: jest.fn(),
 };
 
+describe('Feature: Scene icon from its name (AC60)', () => {
+  it.each([['Buenos días', 'lucide-sun'], ['Reunión', 'lucide-monitor'], ['Noche de cine', 'lucide-moon'], ['Escena rara', 'lucide-zap']])('gives %s the %s icon in Spanish without accents mattering', (name, icon) => {
+    expect(renderToStaticMarkup(<SceneCard {...props} scene={{ ...props.scene, name }} />)).toContain(icon);
+  });
+});
+
 describe('Feature: Scene summary (AC60)', () => {
   it('says which devices the scene controls when it has no description, and prefers the description when it has one', () => {
     const summary = renderToStaticMarkup(<SceneCard {...props} summary="Luz sala y Persiana patio" />);
