@@ -189,7 +189,7 @@ hp_stage=''
 hp_on_exit() {
   local status=$?
   if (( status != 0 )) && [[ "$hp_stage" == post_deploy ]]; then
-    hp_warn 'HomePilot quedó desplegado, pero falta Cloudflare, el pairing o el binding TPM.'
+    hp_warn "${HP_BRAND} quedó desplegado, pero falta Cloudflare, el pairing o el binding TPM."
     hp_warn 'Vuelve a ejecutar: sudo bash scripts/homepilot-install.sh y elige «7. Completar configuración pendiente».'
   fi
   hp_ui_shutdown
