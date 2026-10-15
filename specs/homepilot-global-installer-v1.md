@@ -64,6 +64,17 @@ Tests: `__tests__/homepilot-admin-console.test.ts`, `__tests__/homepilot-global-
 
 Jest: 287 suites y 2843 pruebas superadas (14 del wizard). Sintaxis Bash, `check:spec-coverage`, `check:bdd-traceability`, `check:module-test-coverage`, `check:docker-profiles`, `check:no-production-any`, `check:architecture-boundaries`, `check:tuya-policy`, `typecheck` y `build` superados. Compose se comprobó de forma declarativa; no se ejecutó ningún despliegue.
 
+### Endurecimiento del instalador en MiniPC nueva (AC14–AC17)
+
+Ampliación acotada por revisión del instalador (2026-10-15). No cambia contratos de API, perfiles, Compose, persistencia ni la política de TPM obligatorio.
+
+- **AC14:** el sistema base (Ubuntu, arquitectura, espacio, red) y el dispositivo TPM se validan **antes** de pedir datos al técnico. El preflight de red comprueba, además de Docker, el registry de imágenes y el de paquetes npm como requisitos; los repositorios opcionales (Cloudflare, PyPI) producen solo una advertencia.
+- **AC15:** `.env` queda siempre con permisos `600`, no solo cuando se habilita Android Display.
+- **AC16:** si `HOMEPILOT_INTEGRATION_API_KEY` está vacía y la ejecución no es de solo estado, el instalador genera una clave aleatoria (`openssl rand -hex 32`) sin imprimirla; nunca reemplaza una clave existente. Sin esa clave las rutas M2M (discovery, state-sync, gateways MQTT) rechazan toda petición.
+- **AC17:** si Cloudflare, pairing o binding TPM fallan después del despliegue, el instalador indica que HomePilot quedó desplegado y cómo completar los pasos pendientes (opción «Completar configuración pendiente» del menú), conservando el código de salida distinto de cero. Con acceso remoto configurado y `DIRECTORY_SSO_PUBLIC_KEY` vacía, el resumen final lo señala como pendiente; el instalador **no** descarga la llave automáticamente (evita una conexión externa no autorizada y un PEM multilínea en `.env`). El login local sigue funcionando.
+
+Quedan fuera de esta ampliación, por ser decisiones de producto: sustituir el TPM obligatorio por un fallback, y distribuir imágenes ya construidas en lugar de construirlas en cada MiniPC.
+
 ## Validación pendiente fuera de CI
 
 ### Preparación completa de dependencias del host (AC12)

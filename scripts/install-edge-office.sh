@@ -879,6 +879,14 @@ else
   fi
   ok ".env creado desde $env_template."
 fi
+chmod 600 "$ENV_FILE" || fail 'No se pudo proteger .env.'
+
+if [[ "$status_only" != true && -z "$(env_value HOMEPILOT_INTEGRATION_API_KEY '')" ]]; then
+  command -v openssl >/dev/null 2>&1 || fail 'OpenSSL es necesario para generar la clave de integración.'
+  set_env_value HOMEPILOT_INTEGRATION_API_KEY "$(openssl rand -hex 32)"
+  chmod 600 "$ENV_FILE" || fail 'No se pudo proteger .env.'
+  ok 'Clave de integración M2M generada y guardada en .env (no se muestra).'
+fi
 
 configured_profile="$(env_value HOMEPILOT_INSTALLATION_PROFILE '')"
 if [[ -z "$configured_profile" ]]; then

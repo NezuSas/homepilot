@@ -1,5 +1,8 @@
 # Tasks — HomePilot Global Installer v1
 
+- [x] T17 (AC14–AC17): sistema/TPM antes de las preguntas, preflight de red ampliado, `.env` 600, clave M2M generada y ayuda de recuperación tras un fallo posterior al despliegue.
+- [ ] T18 (AC14–AC17): validar T17 en una MiniPC Ubuntu real y limpia; no sustituir por mocks.
+
 - [x] T15 (AC13): progreso modular ámbar y tiempo transcurrido en apt/build/inicio, modo técnico explícito, códigos de error y limpieza del indicador sin logs crudos ni porcentajes ficticios.
 - [ ] T16 (AC13): comprobar animación, resize e interrupción en terminal SSH real; ejecutar regresión completa actualizada antes de publicar.
 

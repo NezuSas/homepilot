@@ -412,6 +412,88 @@ describe('HomePilot global installation wizard without system operations', () =>
     }
   });
 
+  it('checks the system and TPM before asking the technician anything (AC14)', () => {
+    const result = runShell(simulatedSystem, 'Cliente Prueba\nCasa Prueba\nhomepilot-test\nn\n3\nn\nn\nn\ns\ns\nn\ns\n');
+    expect(result.status).toBe(0);
+    const out = result.stdout;
+    expect(out.indexOf('PREFLIGHT_OK')).toBeGreaterThan(-1);
+    expect(out.indexOf('PREFLIGHT_OK')).toBeLessThan(out.indexOf('INFORMACIÓN DEL CLIENTE'));
+  });
+
+  it('stops before any question when the system check fails (AC14)', () => {
+    const failing = simulatedSystem.replace(/hp_preflight\(\) \{[^\n]*\}/, "hp_preflight() { hp_fail 'sistema no compatible'; }");
+    expect(failing).toContain('sistema no compatible');
+    const result = runShell(failing, '');
+    expect(result.status).not.toBe(0);
+    expect(result.stdout).not.toContain('INFORMACIÓN DEL CLIENTE');
+    expect(result.stdout).not.toContain('DEPLOY:');
+  });
+
+  it('requires registry and npm reachability but only warns for optional repositories (AC14)', () => {
+    const source = readFileSync('scripts/lib/homepilot-global-installer.sh', 'utf8');
+    expect(source).toContain('for host in download.docker.com registry-1.docker.io registry.npmjs.org');
+    expect(source).toContain('for host in pkg.cloudflare.com pypi.org');
+    const unreachable = runShell('hp_https_reachable() { return 1; }; hp_https_reachable x.invalid || printf UNREACHABLE');
+    expect(unreachable.stdout).toContain('UNREACHABLE');
+  });
+
+  it('tells the technician how to finish when a step after the deployment fails (AC17)', () => {
+    const result = runShell(`
+      hp_stage=post_deploy
+      trap hp_on_exit EXIT
+      exit 3
+    `);
+    expect(result.status).toBe(3);
+    expect(result.stdout).toContain('quedó desplegado');
+    expect(result.stdout).toContain('Completar configuración pendiente');
+  });
+
+  it('stays silent about recovery on a failure before the deployment or on success (AC17)', () => {
+    const early = runShell('trap hp_on_exit EXIT; exit 3');
+    expect(early.status).toBe(3);
+    expect(early.stdout).not.toContain('quedó desplegado');
+    const ok = runShell('hp_stage=post_deploy; trap hp_on_exit EXIT; exit 0');
+    expect(ok.status).toBe(0);
+    expect(ok.stdout).not.toContain('quedó desplegado');
+  });
+
+  it('marks the post-deployment stage around Cloudflare, pairing and binding only (AC17)', () => {
+    const source = readFileSync('scripts/lib/homepilot-global-installer.sh', 'utf8');
+    expect(source).toMatch(/hp_deploy\n\s+hp_stage=post_deploy\n\s+hp_configure_cloudflared\n\s+hp_pair_directory\n\s+hp_bind_identity\n\s+hp_stage=''/);
+    expect(readFileSync('scripts/homepilot-install.sh', 'utf8')).toContain("trap 'hp_on_exit' EXIT");
+  });
+
+  it('flags a missing Directory SSO key in the final summary without fetching it (AC17)', () => {
+    const missing = runShell(`
+      hp_remote=true hp_profile=bridge_ha hp_cameras=false hp_android=false hp_mqtt=false hp_chat=true hp_voice=false
+      hp_saved_value() { printf '%s' "$2"; }
+      hp_lan_address() { printf 192.168.1.10; }
+      hp_finish
+    `);
+    expect(missing.status).toBe(0);
+    expect(missing.stdout).toContain('Llave pública pendiente');
+    const present = runShell(`
+      hp_remote=true hp_profile=bridge_ha hp_cameras=false hp_android=false hp_mqtt=false hp_chat=true hp_voice=false
+      hp_saved_value() { [[ "$1" == DIRECTORY_SSO_PUBLIC_KEY ]] && printf key || printf '%s' "$2"; }
+      hp_lan_address() { printf 192.168.1.10; }
+      hp_finish
+    `);
+    expect(present.stdout).not.toContain('Llave pública pendiente');
+    expect(readFileSync('scripts/lib/homepilot-global-installer.sh', 'utf8')).not.toContain('directory/sso/public-key');
+  });
+
+  it('protects .env and generates the M2M key only when it is empty, without printing it (AC15, AC16)', () => {
+    const source = readFileSync('scripts/install-edge-office.sh', 'utf8');
+    const created = source.indexOf('ok ".env creado desde $env_template."');
+    const protect = source.indexOf('chmod 600 "$ENV_FILE"', created);
+    const generate = source.indexOf('openssl rand -hex 32');
+    expect(protect).toBeGreaterThan(created);
+    expect(generate).toBeGreaterThan(protect);
+    const block = source.slice(source.lastIndexOf('if [[ "$status_only" != true', generate), generate + 300);
+    expect(block).toContain("-z \"$(env_value HOMEPILOT_INTEGRATION_API_KEY '')\"");
+    expect(block).not.toMatch(/(echo|printf|ok|info).*\$\(openssl/);
+  });
+
   it('never keeps voice on in maintenance when the chat is off', () => {
     const source = readFileSync('scripts/homepilot-maintenance.sh', 'utf8');
     expect(source).toContain('[[ "$home_chat_enabled" == true ]] || voice_enabled=false');

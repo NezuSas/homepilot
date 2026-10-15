@@ -52,7 +52,7 @@ hp_saved_value() {
 }
 
 hp_collect_information() {
-  hp_step 1 'INFORMACIÓN DEL CLIENTE'
+  hp_step 3 'INFORMACIÓN DEL CLIENTE'
   hp_read 'Nombre del cliente: ' || hp_fail 'Falta nombre del cliente.'
   hp_client="$REPLY"
   hp_valid_name "$hp_client" || hp_fail 'Nombre del cliente inválido.'
@@ -169,11 +169,30 @@ hp_preflight() {
   local free_kib
   free_kib="$(df -Pk . | awk 'NR==2 {print $4}')"
   [[ "$free_kib" =~ ^[0-9]+$ ]] && (( free_kib >= 20 * 1024 * 1024 )) || hp_fail 'Se requieren al menos 20 GiB libres.'
-  getent ahostsv4 download.docker.com >/dev/null \
-    && timeout 8 bash -c 'exec 3<>/dev/tcp/download.docker.com/443' >/dev/null 2>&1 \
-    || hp_fail 'No hay conectividad de instalación.'
+  local host
+  for host in download.docker.com registry-1.docker.io registry.npmjs.org; do
+    hp_https_reachable "$host" || hp_fail "No hay conectividad de instalación con ${host}."
+  done
+  for host in pkg.cloudflare.com pypi.org; do
+    hp_https_reachable "$host" || hp_warn "Sin conectividad con ${host}; las funciones que lo necesitan fallarán."
+  done
   hp_ok "Ubuntu ${VERSION_ID} · x86_64 · espacio y red verificados."
   hp_tpm_device_available || hp_fail 'TPM 2.0 no disponible: faltan /dev/tpm0 o /dev/tpmrm0.'
+}
+
+hp_https_reachable() {
+  getent ahostsv4 "$1" >/dev/null && timeout 8 bash -c 'exec 3<>/dev/tcp/$1/443' _ "$1" >/dev/null 2>&1
+}
+
+# Set before the steps that follow the deployment so a failure there tells the technician how to finish.
+hp_stage=''
+hp_on_exit() {
+  local status=$?
+  if (( status != 0 )) && [[ "$hp_stage" == post_deploy ]]; then
+    hp_warn 'HomePilot quedó desplegado, pero falta Cloudflare, el pairing o el binding TPM.'
+    hp_warn 'Vuelve a ejecutar: sudo bash scripts/homepilot-install.sh y elige «7. Completar configuración pendiente».'
+  fi
+  hp_ui_shutdown
 }
 
 hp_install_base() {
@@ -406,6 +425,8 @@ hp_finish() {
     hp_ui_status '✓' "$HP_GREEN" 'TPM 2.0' 'Bound'
     hp_ui_status '✓' "$HP_GREEN" 'Directory Edge' 'Paired'
     hp_ui_status '!' "$HP_YELLOW" 'Cloudflare Tunnel' 'Servicio activo; conexión no verificada'
+    [[ -n "$(hp_saved_value DIRECTORY_SSO_PUBLIC_KEY '')" ]] \
+      || hp_ui_status '!' "$HP_YELLOW" 'Directory SSO' 'Llave pública pendiente; el acceso local funciona'
   else
     hp_ui_status '●' "$HP_YELLOW" 'TPM 2.0' 'Verificado · binding pendiente'
     hp_ui_status '—' "$HP_SECONDARY" 'Directory Edge' 'Pendiente'
@@ -592,11 +613,11 @@ hp_main() {
   if hp_existing_installation; then hp_admin_menu; return; fi
   hp_banner
   hp_ui_begin
-  hp_collect_information
-  hp_step 2 'SISTEMA BASE'
+  hp_step 1 'SISTEMA BASE'
   hp_preflight
-  hp_step 3 'TPM 2.0'
+  hp_step 2 'TPM 2.0'
   hp_ok 'Dispositivo TPM detectado; prueba funcional después de la confirmación.'
+  hp_collect_information
   hp_collect_architecture
   hp_summary
   hp_yes_no '¿Aplicar esta configuración?' false || { hp_warn 'Instalación cancelada sin cambios.'; return 1; }
@@ -609,8 +630,10 @@ hp_main() {
   hp_verify_tpm
   hp_prepare_mqtt
   hp_deploy
+  hp_stage=post_deploy
   hp_configure_cloudflared
   hp_pair_directory
   hp_bind_identity
+  hp_stage=''
   hp_finish
 }
