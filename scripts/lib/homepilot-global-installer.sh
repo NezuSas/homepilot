@@ -195,11 +195,89 @@ hp_on_exit() {
   hp_ui_shutdown
 }
 
-hp_install_base() {
-  local missing=() package
-  for package in ca-certificates curl jq openssh-server openssh-client git python3 openssl iproute2 coreutils util-linux grep sed gawk findutils tar gzip; do
-    dpkg-query -W -f='${Status}' "$package" 2>/dev/null | grep -q 'install ok installed' || missing+=("$package")
+hp_base_packages() {
+  printf '%s\n' ca-certificates curl jq openssh-server openssh-client git python3 openssl iproute2 coreutils util-linux grep sed gawk findutils tar gzip
+}
+
+hp_missing_base_packages() {
+  local package
+  while IFS= read -r package; do
+    dpkg-query -W -f='${Status}' "$package" 2>/dev/null | grep -q 'install ok installed' || printf '%s\n' "$package"
+  done < <(hp_base_packages)
+}
+
+hp_docker_operative() {
+  command -v docker >/dev/null && docker info >/dev/null 2>&1 \
+    && docker compose version >/dev/null 2>&1 && docker buildx version >/dev/null 2>&1
+}
+
+# Apt sources outside the one this installer writes that already reference the Docker repository.
+hp_foreign_docker_sources() {
+  grep -rl 'download.docker.com' /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null \
+    | grep -v '^/etc/apt/sources.list.d/docker.sources$' || true
+}
+
+# Informative: says what is already available and stops early on a conflict it knows would fail the install.
+hp_detect_environment() {
+  local missing http_code foreign
+  hp_ui_block "$HP_SECONDARY" 'Componentes detectados en esta MiniPC:'
+  if hp_docker_operative; then
+    hp_ok "Ya disponible: Docker Engine $(docker version --format '{{.Server.Version}}' 2>/dev/null), Compose y Buildx; se reutilizan."
+  elif command -v docker >/dev/null; then
+    hp_warn 'Docker está instalado pero no responde; el instalador se detendrá en ese paso.'
+  else
+    foreign="$(hp_foreign_docker_sources | tr '\n' ' ')"
+    if [[ -n "${foreign// /}" ]]; then
+      hp_fail "Hay otra fuente apt de Docker (${foreign% }) que choca con la que instala ${HP_BRAND}; retírala antes de continuar. No se modificó nada."
+      return 1
+    fi
+    hp_skipped 'Docker no está instalado; se instalará.'
+  fi
+  missing="$(hp_missing_base_packages | tr '\n' ' ')"
+  if [[ -z "${missing// /}" ]]; then
+    hp_ok 'Ya disponibles: paquetes base, Git y SSH.'
+  else
+    hp_skipped "Se instalarán los paquetes base que faltan: ${missing% }"
+  fi
+  if systemctl is-active --quiet cloudflared 2>/dev/null; then
+    hp_ok 'Ya disponible: Cloudflare Tunnel activo; se reutiliza sin pedir el token.'
+  else
+    hp_skipped 'Cloudflare Tunnel no está activo; solo se configura si eliges acceso remoto.'
+  fi
+  http_code="$(hp_diag_http_status http://127.0.0.1:8123/)"
+  case "$http_code" in
+    200|301|302|401|403) hp_ok 'Home Assistant responde en el puerto 8123: disponible para «Home Assistant existente».' ;;
+    *) hp_skipped 'No se detectó Home Assistant en el puerto 8123.' ;;
+  esac
+}
+
+hp_port_listening() { [[ -n "$(ss -H -ltn "sport = :$1" 2>/dev/null)" ]]; }
+hp_port_owner() { ss -H -ltnp "sport = :$1" 2>/dev/null | sed -n 's/.*users:(("\([^"]*\)".*/\1/p' | head -n 1; }
+
+# After the options are chosen and before anything changes: the host ports that selection will publish must be free.
+hp_check_ports() {
+  local wanted=("8080|la interfaz de ${HP_BRAND}") entry port label owner conflicts=0
+  [[ "$hp_profile" != ha_companion ]] || wanted+=('18123|Home Assistant administrado')
+  [[ "$hp_mqtt" != true ]] || wanted+=('1883|MQTT')
+  [[ "$hp_voice" != true ]] || wanted+=('8090|la voz (STT)' '8088|la voz (TTS)')
+  [[ "$hp_android" != true ]] || wanted+=('5002|la pantalla Android')
+  for entry in "${wanted[@]}"; do
+    IFS='|' read -r port label <<< "$entry"
+    hp_port_listening "$port" || continue
+    owner="$(hp_port_owner "$port")"
+    hp_warn "El puerto ${port} está ocupado${owner:+ por ${owner}}; lo necesita ${label}."
+    conflicts=$((conflicts + 1))
   done
+  if (( conflicts > 0 )); then
+    hp_fail 'Libera esos puertos o detén ese servicio y vuelve a ejecutar. No se cambió nada en el sistema.'
+    return 1
+  fi
+  hp_ok 'Puertos necesarios libres.'
+}
+
+hp_install_base() {
+  local missing=()
+  mapfile -t missing < <(hp_missing_base_packages)
   if (( ${#missing[@]} > 0 )); then
     hp_ui_run 'Actualizando catálogo de paquetes' apt-get update -qq
     DEBIAN_FRONTEND=noninteractive hp_ui_run 'Instalando dependencias del sistema' apt-get install -y --no-install-recommends "${missing[@]}"
@@ -615,10 +693,12 @@ hp_main() {
   hp_ui_begin
   hp_step 1 'SISTEMA BASE'
   hp_preflight
+  hp_detect_environment
   hp_step 2 'TPM 2.0'
   hp_ok 'Dispositivo TPM detectado; prueba funcional después de la confirmación.'
   hp_collect_information
   hp_collect_architecture
+  hp_check_ports
   hp_summary
   hp_yes_no '¿Aplicar esta configuración?' false || { hp_warn 'Instalación cancelada sin cambios.'; return 1; }
   if [[ "$hp_change_hostname" == true ]]; then hostnamectl set-hostname "$hp_hostname"; fi

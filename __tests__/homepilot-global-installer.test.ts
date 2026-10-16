@@ -14,6 +14,8 @@ function runShell(body: string, input = '') {
 const simulatedSystem = `
   hp_existing_installation() { return 1; }
   hp_preflight() { printf 'PREFLIGHT_OK\\n'; }
+  hp_detect_environment() { printf 'DETECT_OK\\n'; }
+  hp_check_ports() { printf 'PORTS_OK:%s:%s:%s\\n' "$hp_profile" "$hp_mqtt" "$hp_voice"; }
   hp_install_base() { printf 'BASE_OK\\n'; }
   hp_install_docker() { printf 'DOCKER_OK\\n'; }
   hp_verify_tpm() { printf 'TPM_OK\\n'; }
@@ -511,6 +513,109 @@ describe('HomePilot global installation wizard without system operations', () =>
     const companion = readFileSync('docker-compose.yml', 'utf8');
     expect(companion).toContain('"${HOMEPILOT_UI_PORT:-8080}:80"');
     expect(companion).not.toContain('"80:80"');
+  });
+
+  it('reports what is already available before asking anything and checks ports before the summary (AC22, AC24)', () => {
+    const result = runShell(simulatedSystem, 'Cliente Prueba\nCasa Prueba\nhomepilot-test\nn\n3\nn\nn\nn\ns\ns\nn\ns\n');
+    expect(result.status).toBe(0);
+    const out = result.stdout;
+    expect(out.indexOf('PREFLIGHT_OK')).toBeLessThan(out.indexOf('DETECT_OK'));
+    expect(out.indexOf('DETECT_OK')).toBeLessThan(out.indexOf('INFORMACIÓN DEL CLIENTE'));
+    expect(out).toContain('PORTS_OK:native_only:false:true');
+    expect(out.indexOf('PORTS_OK')).toBeLessThan(out.indexOf('REVISAR CONFIGURACIÓN'));
+  });
+
+  it('lists the components that are reused and the ones that will be installed (AC22)', () => {
+    const present = runShell(`
+      hp_docker_operative() { return 0; }
+      docker() { printf '28.1.1'; }
+      hp_missing_base_packages() { return 0; }
+      systemctl() { return 0; }
+      hp_diag_http_status() { printf 200; }
+      hp_detect_environment
+    `);
+    expect(present.status).toBe(0);
+    expect(present.stdout).toContain('Ya disponible: Docker Engine 28.1.1, Compose y Buildx; se reutilizan.');
+    expect(present.stdout).toContain('Ya disponibles: paquetes base, Git y SSH.');
+    expect(present.stdout).toContain('Cloudflare Tunnel activo; se reutiliza sin pedir el token.');
+    expect(present.stdout).toContain('Home Assistant responde en el puerto 8123');
+
+    const absent = runShell(`
+      hp_docker_operative() { return 1; }
+      command() { [[ "$2" == docker ]] && return 1; builtin command "$@"; }
+      hp_foreign_docker_sources() { :; }
+      hp_missing_base_packages() { printf 'git\\njq\\n'; }
+      systemctl() { return 3; }
+      hp_diag_http_status() { printf 000; }
+      hp_detect_environment
+    `);
+    expect(absent.status).toBe(0);
+    expect(absent.stdout).toContain('Docker no está instalado; se instalará.');
+    expect(absent.stdout).toContain('Se instalarán los paquetes base que faltan: git jq');
+    expect(absent.stdout).toContain('Cloudflare Tunnel no está activo');
+    expect(absent.stdout).toContain('No se detectó Home Assistant en el puerto 8123.');
+  });
+
+  it('stops before asking anything when another apt source already points at the Docker repository (AC23)', () => {
+    const result = runShell(`
+      hp_docker_operative() { return 1; }
+      command() { [[ "$2" == docker ]] && return 1; builtin command "$@"; }
+      hp_foreign_docker_sources() { printf '/etc/apt/sources.list.d/docker.list\\n'; }
+      hp_missing_base_packages() { return 0; }
+      hp_detect_environment
+      printf 'CONTINUED\\n'
+    `);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('/etc/apt/sources.list.d/docker.list');
+    expect(result.stderr).toContain('No se modificó nada');
+    expect(result.stdout).not.toContain('CONTINUED');
+    const reuse = runShell(`
+      hp_docker_operative() { return 0; }
+      docker() { printf 1.0; }
+      hp_foreign_docker_sources() { printf '/etc/apt/sources.list.d/docker.list\\n'; }
+      hp_missing_base_packages() { return 0; }
+      systemctl() { return 3; }
+      hp_diag_http_status() { printf 000; }
+      hp_detect_environment
+    `);
+    expect(reuse.status).toBe(0);
+  });
+
+  it('never matches the apt source the installer itself writes as a conflict (AC23)', () => {
+    const source = readFileSync('scripts/lib/homepilot-global-installer.sh', 'utf8');
+    expect(source).toContain("grep -v '^/etc/apt/sources.list.d/docker.sources$'");
+  });
+
+  it('stops before changing anything when a required host port is taken, naming port and process (AC24)', () => {
+    const result = runShell(`
+      hp_profile=native_only hp_mqtt=false hp_voice=false hp_android=false
+      hp_port_listening() { [[ "$1" == 8080 ]]; }
+      hp_port_owner() { printf nginx; }
+      hp_check_ports
+      printf 'CONTINUED\\n'
+    `);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr + result.stdout).toContain('El puerto 8080 está ocupado por nginx');
+    expect(result.stderr).toContain('No se cambió nada en el sistema');
+    expect(result.stdout).not.toContain('CONTINUED');
+  });
+
+  it('checks only the ports of the options that were chosen (AC24)', () => {
+    const probe = (flags: string) => runShell(`
+      ${flags}
+      hp_port_listening() { printf 'PROBE:%s\\n' "$1" >&2; return 1; }
+      hp_check_ports
+    `).stderr.match(/PROBE:\d+/g)?.join(',');
+    expect(probe('hp_profile=native_only hp_mqtt=false hp_voice=false hp_android=false')).toBe('PROBE:8080');
+    expect(probe('hp_profile=ha_companion hp_mqtt=false hp_voice=false hp_android=false')).toBe('PROBE:8080,PROBE:18123');
+    expect(probe('hp_profile=native_only hp_mqtt=true hp_voice=true hp_android=true'))
+      .toBe('PROBE:8080,PROBE:1883,PROBE:8090,PROBE:8088,PROBE:5002');
+  });
+
+  it('keeps the base package list in one place for detection and installation (AC22)', () => {
+    const source = readFileSync('scripts/lib/homepilot-global-installer.sh', 'utf8');
+    expect(source.match(/ca-certificates curl jq openssh-server/g)).toHaveLength(1);
+    expect(source).toContain('mapfile -t missing < <(hp_missing_base_packages)');
   });
 
   it('never keeps voice on in maintenance when the chat is off', () => {

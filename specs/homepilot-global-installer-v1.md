@@ -84,6 +84,14 @@ Hallazgos de la matriz ejecutada en una MiniPC Ubuntu 24.04 limpia (2026-10-16).
 
 Matriz verificada en MiniPC real (acceso remoto siempre desactivado): mínimo, solo chat, chat con voz, solo cámaras, solo Android, solo MQTT, `bridge_ha` (con Home Assistant previo), `ha_companion` y todo activado; cada escenario levanta exactamente los contenedores elegidos y ninguno queda `unhealthy`. La rama con Cloudflare, pairing y binding TPM no se probó en hardware.
 
+### Detección de lo existente y conflictos previos (AC22–AC24)
+
+Ampliación acotada: el instalador informa lo que ya está disponible y detiene la instalación, antes de cambiar el sistema, cuando detecta un conflicto que sabe que la haría fallar. No cambia el orden de instalación, los perfiles ni la política de reutilización.
+
+- **AC22:** tras el chequeo del sistema, el asistente muestra una sola vez qué componentes ya están disponibles y se reutilizan (Docker Engine con Compose y Buildx, SSH, Git y demás paquetes base, `cloudflared` activo, Home Assistant respondiendo en el puerto 8123) y cuáles faltan y se instalarán. Es informativo y no pide decisiones.
+- **AC23:** si Docker no está operativo y existe más de un archivo de fuentes apt que referencie `download.docker.com`, el instalador se detiene antes de pedir datos, nombra los archivos en conflicto y no modifica ninguno.
+- **AC24:** una vez elegidas las opciones y antes del resumen, el instalador comprueba que los puertos que esa selección publicará en el host estén libres (UI 8080; Home Assistant administrado 18123; MQTT 1883; voz 8088 y 8090; pantalla Android 5002). Si alguno está ocupado, se detiene antes de cambiar nada, indica puerto y proceso, y no cierra ni toca el proceso ajeno.
+
 Quedan fuera de esta ampliación, por ser decisiones de producto: sustituir el TPM obligatorio por un fallback, y distribuir imágenes ya construidas en lugar de construirlas en cada MiniPC.
 
 ## Validación pendiente fuera de CI
