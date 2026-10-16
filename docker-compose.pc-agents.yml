@@ -1,6 +1,6 @@
 services:
   homepilot-mqtt:
-    image: eclipse-mosquitto:2
+    image: eclipse-mosquitto:2.0.22
     container_name: homepilot-mqtt
     ports:
       - "${HOMEPILOT_MQTT_BIND_ADDRESS:-0.0.0.0}:${HOMEPILOT_MQTT_PORT:-1883}:1883"

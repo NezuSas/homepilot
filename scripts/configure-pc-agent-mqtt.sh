@@ -25,6 +25,17 @@ ok() { printf 'OK %s\n' "$1"; }
 is_name() { [[ "$1" =~ ^[A-Za-z0-9_-]+$ ]]; }
 compose() { docker compose -f "$compose_base" -f "$compose_agents" "$@"; }
 
+readonly mosquitto_image="eclipse-mosquitto:2.0.22"
+readonly broker_uid="1883"
+
+# Mosquitto 2.1 reads its credentials as the unprivileged broker user, so the directory and both files
+# must belong to it. Mode 0600 keeps everyone else out.
+protect_credentials() {
+  chmod 600 "$password_file" "$acl_file"
+  chown "${broker_uid}:${broker_uid}" "$credentials_dir" "$password_file" "$acl_file" 2>/dev/null \
+    || fail 'Ejecuta con sudo: el broker necesita ser propietario de las credenciales MQTT.'
+}
+
 command_name="${1:-}"
 [[ -n "$command_name" ]] || { usage; exit 2; }
 shift || true
@@ -50,13 +61,13 @@ case "$command_name" in
     mkdir -p "$credentials_dir"
     docker_tty=()
     [[ ! -t 0 || ! -t 1 ]] || docker_tty=(-t)
-    docker run --rm -i "${docker_tty[@]}" -v "$(pwd)/${credentials_dir}:/mqtt" eclipse-mosquitto:2 \
+    docker run --rm -i "${docker_tty[@]}" -v "$(pwd)/${credentials_dir}:/mqtt" "$mosquitto_image" \
       mosquitto_passwd -c /mqtt/passwordfile "$ha_username"
     cat > "$acl_file" <<EOF
 user ${ha_username}
 topic readwrite hass.agent/#
 EOF
-    chmod 600 "$password_file" "$acl_file"
+    protect_credentials
     if [[ "$prepare_only" == true ]]; then
       ok 'Credenciales MQTT seguras preparadas; el instalador iniciará el broker.'
     else
@@ -81,7 +92,7 @@ EOF
     fi
     docker_tty=()
     [[ ! -t 0 || ! -t 1 ]] || docker_tty=(-t)
-    docker run --rm -i "${docker_tty[@]}" -v "$(pwd)/${credentials_dir}:/mqtt" eclipse-mosquitto:2 \
+    docker run --rm -i "${docker_tty[@]}" -v "$(pwd)/${credentials_dir}:/mqtt" "$mosquitto_image" \
       mosquitto_passwd /mqtt/passwordfile "$device_name"
     cat >> "$acl_file" <<EOF
 
@@ -90,7 +101,7 @@ topic write hass.agent/devices/${device_name}
 topic write hass.agent/media_player/${device_name}/state
 topic read hass.agent/media_player/${device_name}/cmd
 EOF
-    chmod 600 "$password_file" "$acl_file"
+    protect_credentials
     compose restart homepilot-mqtt
     ok "Credencial creada para ${device_name}."
     printf 'Usa usuario %s y la contraseña indicada solo en el agente de esa computadora.\n' "$device_name"

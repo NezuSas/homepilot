@@ -494,6 +494,25 @@ describe('HomePilot global installation wizard without system operations', () =>
     expect(block).not.toMatch(/(echo|printf|ok|info).*\$\(openssl/);
   });
 
+  it('hands the MQTT credentials to the broker user and pins the broker image (AC19)', () => {
+    const script = readFileSync('scripts/configure-pc-agent-mqtt.sh', 'utf8');
+    expect(script).toContain('readonly mosquitto_image="eclipse-mosquitto:2.0.22"');
+    expect(script).toContain('chown "${broker_uid}:${broker_uid}" "$credentials_dir" "$password_file" "$acl_file"');
+    expect(script.match(/^    protect_credentials$/gm)).toHaveLength(2);
+    expect(script).not.toMatch(/^s+chmod 600 "$password_file" "$acl_file"$/m);
+    expect(script).not.toMatch(/eclipse-mosquitto:2 /);
+    for (const compose of ['docker-compose.mqtt-secure.yml', 'docker-compose.pc-agents.yml', 'docker-compose.yml']) {
+      expect(readFileSync(compose, 'utf8')).toMatch(/image: eclipse-mosquitto:2.0.22s*$/m);
+    }
+  });
+
+  it('keeps the voice dependencies reproducible and the companion UI on the reported port (AC18, AC20)', () => {
+    expect(readFileSync('services/tts-piper/requirements.txt', 'utf8')).toMatch(/^transformers>=4.51,<5$/m);
+    const companion = readFileSync('docker-compose.yml', 'utf8');
+    expect(companion).toContain('"${HOMEPILOT_UI_PORT:-8080}:80"');
+    expect(companion).not.toContain('"80:80"');
+  });
+
   it('never keeps voice on in maintenance when the chat is off', () => {
     const source = readFileSync('scripts/homepilot-maintenance.sh', 'utf8');
     expect(source).toContain('[[ "$home_chat_enabled" == true ]] || voice_enabled=false');

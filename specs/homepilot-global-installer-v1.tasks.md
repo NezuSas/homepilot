@@ -1,6 +1,8 @@
 # Tasks — HomePilot Global Installer v1
 
 - [x] T17 (AC14–AC17): sistema/TPM antes de las preguntas, preflight de red ampliado, `.env` 600, clave M2M generada y ayuda de recuperación tras un fallo posterior al despliegue.
+- [x] T19 (AC18–AC21): dependencia TTS fijada, Mosquitto con versión exacta y credenciales del broker, puerto de UI de `ha_companion` y chequeo en `check:docker-profiles`; matriz de nueve escenarios verificada en MiniPC real.
+- [ ] T20 (AC14–AC17): probar acceso remoto (Cloudflare Tunnel, pairing y binding TPM) en hardware con un Directory vigente.
 - [ ] T18 (AC14–AC17): validar T17 en una MiniPC Ubuntu real y limpia; no sustituir por mocks.
 
 - [x] T15 (AC13): progreso modular ámbar y tiempo transcurrido en apt/build/inicio, modo técnico explícito, códigos de error y limpieza del indicador sin logs crudos ni porcentajes ficticios.

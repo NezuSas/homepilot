@@ -79,7 +79,7 @@ services:
         HOMEPILOT_BUILD_REVISION: ${HOMEPILOT_BUILD_REVISION:-unknown}
     container_name: homepilot-ui
     ports:
-      - "80:80"
+      - "${HOMEPILOT_UI_PORT:-8080}:80"
     restart: unless-stopped
     logging: *homepilot-logging
     extra_hosts:
@@ -109,7 +109,7 @@ services:
     logging: *homepilot-logging
 
   homepilot-mqtt:
-    image: eclipse-mosquitto:2
+    image: eclipse-mosquitto:2.0.22
     container_name: homepilot-mqtt
     ports:
       - "127.0.0.1:1883:1883"

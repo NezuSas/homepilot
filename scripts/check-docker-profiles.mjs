@@ -121,6 +121,14 @@ if (failures.length === 0) {
   if (!desktop.includes('HOMEPILOT_API_PORT:-13000') || !office.includes('HOMEPILOT_UI_PORT:-8080')) {
     failures.push('Desktop profile must expose API 13000 and UI 8080 defaults');
   }
+  if (!integrated.includes('"${HOMEPILOT_UI_PORT:-8080}:80"') || integrated.includes('"80:80"')) {
+    failures.push('The Home Assistant companion profile must publish the UI on HOMEPILOT_UI_PORT (8080), the port the installer checks and reports');
+  }
+  for (const [name, content] of [['pc-agents', pcAgents], ['secure MQTT overlay', secureMqttOverlay], ['integrated', integrated]]) {
+    if (/image:\s*eclipse-mosquitto:2\s*$/m.test(content) || !/image:\s*eclipse-mosquitto:\d+\.\d+\.\d+\s*$/m.test(content)) {
+      failures.push(`${name} must pin the Mosquitto image to an exact version, not the floating "2" tag`);
+    }
+  }
   for (const [name, content] of [['office', office], ['integrated', integrated]]) {
     if (!content.includes('HOMEPILOT_API_BIND_HOST=${HOMEPILOT_API_BIND_HOST:-host.docker.internal}')
       && !content.includes('HOMEPILOT_API_BIND_HOST: ${HOMEPILOT_API_BIND_HOST:-host.docker.internal}')) {

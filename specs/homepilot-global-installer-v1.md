@@ -73,6 +73,17 @@ Ampliación acotada por revisión del instalador (2026-10-15). No cambia contrat
 - **AC16:** si `HOMEPILOT_INTEGRATION_API_KEY` está vacía y la ejecución no es de solo estado, el instalador genera una clave aleatoria (`openssl rand -hex 32`) sin imprimirla; nunca reemplaza una clave existente. Sin esa clave las rutas M2M (discovery, state-sync, gateways MQTT) rechazan toda petición.
 - **AC17:** si Cloudflare, pairing o binding TPM fallan después del despliegue, el instalador indica que HomePilot quedó desplegado y cómo completar los pasos pendientes (opción «Completar configuración pendiente» del menú), conservando el código de salida distinto de cero. Con acceso remoto configurado y `DIRECTORY_SSO_PUBLIC_KEY` vacía, el resumen final lo señala como pendiente; el instalador **no** descarga la llave automáticamente (evita una conexión externa no autorizada y un PEM multilínea en `.env`). El login local sigue funcionando.
 
+### Reproducibilidad y matriz de opciones (AC18–AC21)
+
+Hallazgos de la matriz ejecutada en una MiniPC Ubuntu 24.04 limpia (2026-10-16). Sin cambios de contratos de API ni de formato persistido.
+
+- **AC18:** el servicio de voz fija `transformers>=4.51,<5`; con `transformers` 5 la imagen TTS no se construye porque `kokoro` no importa.
+- **AC19:** el broker MQTT usa una versión exacta de imagen (`eclipse-mosquitto:2.0.22`), nunca la etiqueta flotante `2`, y el script de MQTT deja `data/mqtt` y sus credenciales (modo 0600) como propiedad del usuario del broker (uid 1883), de modo que el broker las lee con cualquier versión.
+- **AC20:** el perfil `ha_companion` publica la UI en `HOMEPILOT_UI_PORT` (8080 por defecto), el puerto que el instalador comprueba y anuncia.
+- **AC21:** `check:docker-profiles` falla si se pierde AC19 o AC20.
+
+Matriz verificada en MiniPC real (acceso remoto siempre desactivado): mínimo, solo chat, chat con voz, solo cámaras, solo Android, solo MQTT, `bridge_ha` (con Home Assistant previo), `ha_companion` y todo activado; cada escenario levanta exactamente los contenedores elegidos y ninguno queda `unhealthy`. La rama con Cloudflare, pairing y binding TPM no se probó en hardware.
+
 Quedan fuera de esta ampliación, por ser decisiones de producto: sustituir el TPM obligatorio por un fallback, y distribuir imágenes ya construidas en lugar de construirlas en cada MiniPC.
 
 ## Validación pendiente fuera de CI
