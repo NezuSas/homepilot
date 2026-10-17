@@ -3,6 +3,14 @@
 # Presentation shared by the global installation wizard. Never changes the terminal in logs.
 # shellcheck source=/dev/null
 . "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/brand.sh"
+
+# Widths and padding are measured in characters. Over SSH the session often has no UTF-8 locale and bash then
+# counts bytes, so every letter with an accent shifts the columns; use the built-in UTF-8 locale instead.
+case "${LC_ALL:-${LC_CTYPE:-${LANG:-}}}" in
+  *[Uu][Tt][Ff]-8*|*[Uu][Tt][Ff]8*) ;;
+  *) export LC_ALL=C.UTF-8 ;;
+esac
+
 hp_color_init() {
   HP_RESET='' HP_BOLD='' HP_DIM='' HP_AMBER='' HP_SOFT=''
   HP_PRIMARY='' HP_SECONDARY='' HP_GREEN='' HP_YELLOW='' HP_RED=''
@@ -61,6 +69,14 @@ hp_ui_separator() {
   hp_ui_center "$HP_SECONDARY" "$line"
 }
 
+# printf pads by bytes even in a UTF-8 locale, which shifts every column after a letter with an accent.
+hp_ui_pad() {
+  local value="$1" width="$2" missing
+  missing=$((width - ${#value}))
+  (( missing > 0 )) || missing=0
+  printf '%s%*s' "$value" "$missing" ''
+}
+
 hp_ui_status() {
   local symbol="$1" color="$2" label="$3" detail="${4:-}" left
   left="$(hp_ui_left)"
@@ -80,7 +96,7 @@ hp_ui_status() {
     return
   fi
   if [[ -n "$detail" ]]; then
-    printf '%*s%b%s%b %-25s %s\n' "$left" '' "$color" "$symbol" "$HP_RESET" "$label" "$detail"
+    printf '%*s%b%s%b %s %s\n' "$left" '' "$color" "$symbol" "$HP_RESET" "$(hp_ui_pad "$label" 25)" "$detail"
   else
     printf '%*s%b%s%b %s\n' "$left" '' "$color" "$symbol" "$HP_RESET" "$label"
   fi
@@ -336,8 +352,18 @@ hp_ui_wrap_block() {
 
 hp_ui_review_row() {
   local row
-  printf -v row '%-22s %s' "$1" "$2"
+  row="$(hp_ui_pad "$1" 22) $2"
   hp_ui_block "$HP_PRIMARY" "$row"
+}
+
+# Each step clears the screen, so what a step reports would vanish before it can be read.
+hp_ui_pause() {
+  [[ "$HP_UI_TTY" == true ]] || return 0
+  printf '\n'
+  hp_ui_block "$HP_AMBER" '❯ Pulsa ENTER para continuar'
+  local ignored
+  IFS= read -rs ignored </dev/tty || return 1
+  printf '\n'
 }
 
 hp_ui_begin() {

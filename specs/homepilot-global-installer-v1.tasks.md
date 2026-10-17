@@ -1,6 +1,7 @@
 # Tasks — HomePilot Global Installer v1
 
 - [x] T17 (AC14–AC17): sistema/TPM antes de las preguntas, preflight de red ampliado, `.env` 600, clave M2M generada y ayuda de recuperación tras un fallo posterior al despliegue.
+- [x] T23 (AC27–AC28): alineación en caracteres con locale UTF-8 forzado y pausa tras la detección en terminal interactivo.
 - [x] T22 (AC25–AC26): configuración de proxy de confianza de Home Assistant administrado para operar detrás del túnel, idempotente y sin sobrescribir configuración existente.
 - [x] T21 (AC22–AC24): detección informativa de componentes existentes, conflicto de fuentes apt de Docker y puertos ocupados antes de cambiar el sistema.
 - [x] T19 (AC18–AC21): dependencia TTS fijada, Mosquitto con versión exacta y credenciales del broker, puerto de UI de `ha_companion` y chequeo en `check:docker-profiles`; matriz de nueve escenarios verificada en MiniPC real.

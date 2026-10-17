@@ -99,6 +99,13 @@ Hallazgo en la MiniPC real (2026-10-17): con el perfil `ha_companion`, Home Assi
 - **AC25:** en el perfil `ha_companion`, antes de iniciar los servicios y mientras `ha-config/configuration.yaml` no exista, el instalador crea la configuración por defecto de Home Assistant (con `automations.yaml`, `scripts.yaml` y `scenes.yaml`) más una sección `http:` con `use_x_forwarded_for: true` y `trusted_proxies` para `127.0.0.1`, `::1` y `172.16.0.0/12` (los puentes de Docker), de modo que Home Assistant nazca ya preparado para el túnel. La operación es idempotente.
 - **AC26:** el instalador nunca sobrescribe ni modifica una configuración existente. Si Home Assistant ya estaba inicializado y no declara esos ajustes, lo avisa al técnico con los valores que debe configurar en lugar de intentar un cambio que esa versión ignoraría; si no puede escribir el directorio, avisa y continúa. En `bridge_ha` y `native_only` no hace nada, porque el Home Assistant es del cliente o no existe.
 
+### Legibilidad del asistente en SSH (AC27–AC28)
+
+Hallazgos de la primera instalación guiada por una persona (2026-10-17). Solo presentación; no cambia el flujo ni las decisiones del asistente.
+
+- **AC27:** el asistente mide y alinea el texto en caracteres, no en bytes: si la sesión no tiene una configuración regional UTF-8 (habitual por SSH), usa `C.UTF-8`, y el relleno de columnas se calcula contando caracteres porque `printf` rellena por bytes aunque la configuración sea UTF-8. Las filas con letras acentuadas ("Instalación", "Cámaras") quedan alineadas igual que las demás.
+- **AC28:** con un terminal interactivo, tras mostrar los componentes detectados el asistente espera ENTER antes de cambiar de paso, porque cada paso limpia la pantalla. Sin terminal (registros, pruebas, entrada redirigida) no espera.
+
 Quedan fuera de esta ampliación, por ser decisiones de producto: sustituir el TPM obligatorio por un fallback, y distribuir imágenes ya construidas en lugar de construirlas en cada MiniPC.
 
 ## Validación pendiente fuera de CI

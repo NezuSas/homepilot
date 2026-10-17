@@ -694,6 +694,7 @@ hp_main() {
   hp_step 1 'SISTEMA BASE'
   hp_preflight
   hp_detect_environment
+  hp_ui_pause
   hp_step 2 'TPM 2.0'
   hp_ok 'Dispositivo TPM detectado; prueba funcional después de la confirmación.'
   hp_collect_information

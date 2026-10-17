@@ -683,6 +683,49 @@ describe('HomePilot global installation wizard without system operations', () =>
     expect(source).not.toContain('docker restart "$container"\n    ha-config');
   });
 
+  // Git Bash for Windows does not honour C.UTF-8 the way the Ubuntu appliance does, so this runs on Linux only.
+  const itOnLinux = process.platform === 'win32' ? it.skip : it;
+  itOnLinux('aligns rows with accented labels even when the session has no UTF-8 locale (AC27)', () => {
+    const result = spawnSync(bash, ['-c', `set -euo pipefail
+      source scripts/lib/homepilot-global-installer.sh
+      hp_color_init
+      printf 'LOCALE:%s\\n' "$LC_ALL"
+      hp_ui_review_row 'Cliente' 'Valor'
+      hp_ui_review_row 'Instalación' 'Valor'
+      hp_ui_review_row 'Cámaras' 'Valor'
+      hp_ui_review_row 'Conversar con mi casa' 'Valor'`],
+    { cwd: process.cwd(), encoding: 'utf8', env: { ...process.env, TERM: 'dumb', LC_ALL: 'C', LANG: 'C', LC_CTYPE: 'C' } });
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('LOCALE:C.UTF-8');
+    const columns = result.stdout.split('\n').filter((line) => line.includes('Valor')).map((line) => line.indexOf('Valor'));
+    expect(columns).toHaveLength(4);
+    expect(new Set(columns).size).toBe(1);
+  });
+
+  it('pads labels by characters instead of relying on printf, which counts bytes (AC27)', () => {
+    const source = readFileSync('scripts/lib/homepilot-terminal-ui.sh', 'utf8');
+    expect(source).toContain('hp_ui_pad()');
+    expect(source).toContain('"$(hp_ui_pad "$label" 25)"');
+    expect(source).toContain('row="$(hp_ui_pad "$1" 22) $2"');
+    expect(source).not.toMatch(/%-2[0-9]s/);
+    const padded = runShell(`printf '[%s]' "$(hp_ui_pad abc 6)"; printf '[%s]' "$(hp_ui_pad abcdefgh 3)"`);
+    expect(padded.stdout).toBe('[abc   ][abcdefgh]');
+  });
+
+  it('keeps a UTF-8 locale the session already has (AC27)', () => {
+    const result = spawnSync(bash, ['-c', `source scripts/lib/homepilot-terminal-ui.sh; printf '%s' "$LC_ALL"`],
+      { cwd: process.cwd(), encoding: 'utf8', env: { ...process.env, LC_ALL: 'en_US.UTF-8' } });
+    expect(result.stdout).toBe('en_US.UTF-8');
+  });
+
+  it('waits for ENTER after the detection only on an interactive terminal (AC28)', () => {
+    const quiet = runShell('hp_ui_pause; printf DONE');
+    expect(quiet.status).toBe(0);
+    expect(quiet.stdout).toBe('DONE');
+    const source = readFileSync('scripts/lib/homepilot-global-installer.sh', 'utf8');
+    expect(source).toMatch(/hp_detect_environment\r?\n\s+hp_ui_pause\r?\n\s+hp_step 2/);
+  });
+
   it('never keeps voice on in maintenance when the chat is off', () => {
     const source = readFileSync('scripts/homepilot-maintenance.sh', 'utf8');
     expect(source).toContain('[[ "$home_chat_enabled" == true ]] || voice_enabled=false');
