@@ -168,7 +168,8 @@ if (failures.length === 0) {
   }
   if (!maintenance.includes('is_docker_desktop')
     || !maintenance.includes('docker-compose.desktop.yml')
-    || !maintenance.includes('docker compose "${compose_options[@]}" build --builder "$HOMEPILOT_BUILDER_NAME"')
+    || !maintenance.includes('homepilot_build_images "${compose_options[@]}" --')
+    || !read('scripts/lib/homepilot-prebuilt.sh').includes('build --builder "$HOMEPILOT_BUILDER_NAME"')
     || maintenance.includes('--remove-orphans')
     || !maintenance.includes('maintenance_build_and_up "${compose_args[@]}"')) {
     failures.push('Maintenance deploy must select the Docker Desktop overlay, build with the dedicated builder, then start without rebuilding');

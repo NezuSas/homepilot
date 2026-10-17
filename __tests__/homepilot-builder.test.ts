@@ -215,13 +215,17 @@ describe('dedicated HomePilot builder', () => {
     const installer = readFileSync('scripts/install-edge-office.sh', 'utf8');
     const camera = readFileSync('scripts/lib/camera-acceleration.sh', 'utf8');
     const builder = readFileSync('scripts/lib/homepilot-builder.sh', 'utf8');
+    const prebuilt = readFileSync('scripts/lib/homepilot-prebuilt.sh', 'utf8');
+    // Every build goes through homepilot_build_images, whose one real Compose build names the dedicated builder.
+    expect(prebuilt).toContain('build --builder "$HOMEPILOT_BUILDER_NAME"');
     for (const script of [maintenance, installer]) {
-      expect(script).toContain('build --builder "$HOMEPILOT_BUILDER_NAME"');
+      expect(script).toContain('homepilot_build_images');
+      expect(script).not.toMatch(/docker compose [^\n]* build /);
       expect(script).toMatch(/up (?:-d --no-build|--no-build -d)/);
       expect(script).toContain('homepilot_builder_ensure');
     }
     expect(camera).toContain('docker buildx build --builder "${HOMEPILOT_BUILDER_NAME:?}" --load');
-    expect([maintenance, installer, camera, builder].join('\n'))
+    expect([maintenance, installer, camera, builder, prebuilt].join('\n'))
       .not.toMatch(/(^|\s)docker\s+(system|builder|buildx|image|volume|container|network)\s+prune\b/m);
   });
 });

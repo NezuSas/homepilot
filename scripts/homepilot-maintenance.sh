@@ -8,12 +8,14 @@ source "$HOMEPILOT_MAINTENANCE_ROOT/scripts/lib/camera-acceleration.sh"
 source "$HOMEPILOT_MAINTENANCE_ROOT/scripts/lib/appliance-storage-report.sh"
 source "$HOMEPILOT_MAINTENANCE_ROOT/scripts/lib/homepilot-builder.sh"
 source "$HOMEPILOT_MAINTENANCE_ROOT/scripts/lib/homepilot-images.sh"
+source "$HOMEPILOT_MAINTENANCE_ROOT/scripts/lib/homepilot-prebuilt.sh"
 source "$HOMEPILOT_MAINTENANCE_ROOT/scripts/lib/android-display-appliance.sh"
 source "$HOMEPILOT_MAINTENANCE_ROOT/scripts/lib/api-health.sh"
 source "$HOMEPILOT_MAINTENANCE_ROOT/scripts/lib/homepilot-runtime-preservation.sh"
 source "$HOMEPILOT_MAINTENANCE_ROOT/scripts/lib/homepilot-terminal-ui.sh"
 
 profile="bridge_ha"
+build_label=''
 compose_file="docker-compose.office.yml"
 compose_files=()
 compose_explicit=false
@@ -401,10 +403,10 @@ maintenance_build_and_up() {
       # Turning voice off on an installation that had it must not leave the old speech services running.
       docker compose "${compose_options[@]}" rm -sf homepilot-stt homepilot-tts >/dev/null
     fi
-    COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios '"$HP_BRAND"'' docker compose "${compose_options[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" "${build_services[@]}" \
+    hp_ui_run "$build_label" homepilot_build_images "${compose_options[@]}" -- "${build_services[@]}" \
       && hp_ui_run 'Iniciando servicios '"$HP_BRAND"'' docker compose "${compose_options[@]}" up -d --no-build --no-deps "${runtime_services[@]}"
   else
-    COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios '"$HP_BRAND"'' docker compose "${compose_options[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" \
+    hp_ui_run "$build_label" homepilot_build_images "${compose_options[@]}" -- \
       && hp_ui_run 'Iniciando servicios '"$HP_BRAND"'' docker compose "${compose_options[@]}" up -d --no-build
   fi
 }
@@ -583,8 +585,21 @@ if [[ "$deploy" == true ]]; then
     fi
     [[ "$android_display_enabled" != true ]] || android_display_prepare_adb_home
     export HOMEPILOT_BUILD_REVISION="$(homepilot_image_revision)"
-    section 'Builder de '"$HP_BRAND"''
-    homepilot_builder_ensure
+    if homepilot_prebuilt_available; then
+      # A release bundle carries the images: load them instead of building, so no builder is prepared.
+      if [[ "$global_installer_v1" == true ]]; then
+        needed_images=("${HOMEPILOT_IMAGE_SERVICES[@]}")
+      else
+        needed_images=(api ui stt tts)
+        [[ "$android_display_enabled" != true ]] || needed_images+=(display-bridge)
+      fi
+      homepilot_prebuilt_prepare "${needed_images[@]}"
+      build_label='Activando las imágenes de '"$HP_BRAND"
+    else
+      section 'Builder de '"$HP_BRAND"''
+      homepilot_builder_ensure
+      build_label='Construyendo servicios '"$HP_BRAND"
+    fi
     select_camera_acceleration_for_deploy
     mapfile -t image_compose_args < <(compose_args)
     homepilot_image_prepare_rollback "${image_compose_args[@]}"

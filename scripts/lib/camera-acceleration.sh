@@ -44,8 +44,11 @@ camera_acceleration_select() {
     camera_acceleration_reason='timeout no disponible para una prueba acotada'
     return 0
   fi
+  if [[ -n "${HOMEPILOT_PREBUILT_API_IMAGE:-}" ]]; then
+    # A release bundle has no Dockerfile: probe with the API image itself, which carries the same FFmpeg.
+    image="$HOMEPILOT_PREBUILT_API_IMAGE"
   # Probe the same runtime Dockerfile as the API, not an unrelated host FFmpeg.
-  if ! timeout 600s docker buildx build --builder "${HOMEPILOT_BUILDER_NAME:?}" --load --quiet \
+  elif ! timeout 600s docker buildx build --builder "${HOMEPILOT_BUILDER_NAME:?}" --load --quiet \
     --build-arg HOMEPILOT_IMAGE_ROLE=probe \
     --build-arg "HOMEPILOT_BUILD_REVISION=${HOMEPILOT_BUILD_REVISION:-unknown}" \
     --tag "$image" -f docker/api/Dockerfile . >/dev/null 2>&1; then

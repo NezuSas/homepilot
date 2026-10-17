@@ -6,6 +6,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 source "$(dirname "${BASH_SOURCE[0]}")/lib/camera-acceleration.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-builder.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-images.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-prebuilt.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/android-display-appliance.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/api-health.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-runtime-preservation.sh"
@@ -31,6 +32,7 @@ install_community_integrations=false
 community_integrations_only=false
 runtime_failures=0
 startup_failed=false
+build_label=''
 android_display_choice="${HOMEPILOT_INSTALL_ANDROID_CHOICE:-}"
 android_display_desktop=false
 global_install="${HOMEPILOT_GLOBAL_INSTALL:-false}"
@@ -979,8 +981,22 @@ fi
 append_global_overlays
 if [[ "$start" == true ]]; then
   export HOMEPILOT_BUILD_REVISION="$(homepilot_image_revision)"
-  section 'Builder de '"$HP_BRAND"''
-  homepilot_builder_ensure
+  if homepilot_prebuilt_available; then
+    # A release bundle carries the images: nothing is built here, so there is no builder to prepare.
+    if [[ "$global_install" == true ]]; then
+      needed_images=(api ui)
+      [[ "$voice_enabled" != true ]] || needed_images+=(stt tts)
+      [[ "$android_display_enabled" != true ]] || needed_images+=(display-bridge)
+    else
+      needed_images=("${HOMEPILOT_IMAGE_SERVICES[@]}")
+    fi
+    homepilot_prebuilt_prepare "${needed_images[@]}"
+    build_label='Activando las imágenes de '"$HP_BRAND"
+  else
+    section 'Builder de '"$HP_BRAND"''
+    homepilot_builder_ensure
+    build_label='Construyendo servicios '"$HP_BRAND"
+  fi
   if [[ "$camera_enabled" == true ]]; then
     section 'Aceleración HLS de cámaras'
     camera_acceleration_select
@@ -1049,7 +1065,7 @@ if [[ "$start" == true ]]; then
       docker compose "${camera_compose_args[@]}" rm -sf homepilot-stt homepilot-tts >/dev/null
     fi
     if [[ "$global_install" == true ]]; then
-      if ! { COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios '"$HP_BRAND"'' docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" "${build_services[@]}" \
+      if ! { hp_ui_run "$build_label" homepilot_build_images "${camera_compose_args[@]}" -- "${build_services[@]}" \
         && hp_ui_run 'Iniciando servicios '"$HP_BRAND"'' docker compose "${camera_compose_args[@]}" up --no-build --no-deps -d "${runtime_services[@]}"; }; then
         if [[ -z "$camera_acceleration_overlay" ]]; then
           fail 'No se pudo iniciar el conjunto modular '"$HP_BRAND"'; se conservan las imágenes de rollback.'
@@ -1073,10 +1089,10 @@ if [[ "$start" == true ]]; then
         camera_acceleration_fallback='software (libx264)'
         camera_acceleration_reason='falló el inicio con el override VAAPI'
         camera_acceleration_report
-        COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios '"$HP_BRAND"'' docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" "${build_services[@]}"
+        hp_ui_run "$build_label" homepilot_build_images "${camera_compose_args[@]}" -- "${build_services[@]}"
         hp_ui_run 'Iniciando servicios '"$HP_BRAND"'' docker compose "${camera_compose_args[@]}" up --no-build --no-deps -d "${runtime_services[@]}"
       fi
-    elif ! { COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios '"$HP_BRAND"'' docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME" \
+    elif ! { hp_ui_run "$build_label" homepilot_build_images "${camera_compose_args[@]}" -- \
       && hp_ui_run 'Iniciando servicios '"$HP_BRAND"'' docker compose "${camera_compose_args[@]}" up --no-build -d; }; then
       if [[ -z "$camera_acceleration_overlay" ]]; then
         fail 'No se pudo iniciar '"$HP_BRAND"'.'
@@ -1100,7 +1116,7 @@ if [[ "$start" == true ]]; then
       camera_acceleration_fallback='software (libx264)'
       camera_acceleration_reason='falló el inicio con el override VAAPI'
       camera_acceleration_report
-      COMPOSE_BAKE=false hp_ui_run 'Construyendo servicios '"$HP_BRAND"'' docker compose "${camera_compose_args[@]}" build --builder "$HOMEPILOT_BUILDER_NAME"
+      hp_ui_run "$build_label" homepilot_build_images "${camera_compose_args[@]}" --
       hp_ui_run 'Iniciando servicios '"$HP_BRAND"'' docker compose "${camera_compose_args[@]}" up --no-build -d
     fi
     docker compose "${camera_compose_args[@]}" ps
