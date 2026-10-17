@@ -59,6 +59,12 @@ describe('release bundle with prebuilt images', () => {
     expect(script).toContain('docker tag "homepilot-homepilot-${service}:latest" "homepilot-release-${service}:${revision}"');
     expect(script).toContain('docker save "${release_images[@]}" | gzip -n');
     expect(script).toContain('sha256=%s');
+    // Compose cannot resolve the display overlay without these two; they are runtime-only, never build arguments.
+    expect(script).toContain('export HOMEPILOT_DISPLAY_BRIDGE_TOKEN="${HOMEPILOT_DISPLAY_BRIDGE_TOKEN:-build-only-placeholder}"');
+    expect(script).toContain('export HOMEPILOT_DISPLAY_ADB_CIDRS="${HOMEPILOT_DISPLAY_ADB_CIDRS:-192.168.0.0/16}"');
+    const overlay = readFileSync('docker-compose.android-display.yml', 'utf8');
+    const buildArgs = overlay.slice(overlay.indexOf('args:'), overlay.indexOf('container_name:'));
+    expect(buildArgs).not.toContain('HOMEPILOT_DISPLAY_BRIDGE_TOKEN');
   });
 
   it('only enters prebuilt mode when the manifest exists and checks the archive sum (AC38)', () => {
