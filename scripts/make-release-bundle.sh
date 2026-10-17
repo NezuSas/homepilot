@@ -80,8 +80,10 @@ mkdir -p "$stage/build" "$stage/package/homepilot/images"
 git archive --format=tar --prefix=homepilot/ "${ref}^{commit}" | tar -x -C "$stage/build"
 export HOMEPILOT_BUILD_REVISION="$revision"
 export DOCKER_DEFAULT_PLATFORM=linux/amd64
-# Only needed so Compose can resolve the display overlay while building; it is not stored anywhere.
+# Compose must be able to resolve the display overlay while building. Both values are runtime environment of the
+# containers, not build arguments, so neither ends up in an image; real ones are generated on each installation.
 export HOMEPILOT_DISPLAY_ADB_CIDRS="${HOMEPILOT_DISPLAY_ADB_CIDRS:-192.168.0.0/16}"
+export HOMEPILOT_DISPLAY_BRIDGE_TOKEN="${HOMEPILOT_DISPLAY_BRIDGE_TOKEN:-build-only-placeholder}"
 
 compose_services=()
 for service in "${services[@]}"; do compose_services+=("homepilot-${service}"); done
