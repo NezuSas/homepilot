@@ -92,6 +92,13 @@ Ampliación acotada: el instalador informa lo que ya está disponible y detiene 
 - **AC23:** si Docker no está operativo y existe más de un archivo de fuentes apt que referencie `download.docker.com`, el instalador se detiene antes de pedir datos, nombra los archivos en conflicto y no modifica ninguno.
 - **AC24:** una vez elegidas las opciones y antes del resumen, el instalador comprueba que los puertos que esa selección publicará en el host estén libres (UI 8080; Home Assistant administrado 18123; MQTT 1883; voz 8088 y 8090; pantalla Android 5002). Si alguno está ocupado, se detiene antes de cambiar nada, indica puerto y proceso, y no cierra ni toca el proceso ajeno.
 
+### Home Assistant administrado detrás del túnel (AC25–AC26)
+
+Hallazgo en la MiniPC real (2026-10-17): con el perfil `ha_companion`, Home Assistant responde `400: Bad Request` a todo lo que llega por el Cloudflare Tunnel, porque su configuración no declara proxies de confianza. Home Assistant 2026.10 lee la sección `http:` de `configuration.yaml` **una sola vez**, en el primer arranque, la guarda en `.storage/http` y después ignora el YAML; añadir los ajustes a una instalación ya iniciada no tiene efecto. No cambia contratos de API ni el formato persistido; solo siembra el `ha-config/` que el propio perfil administra.
+
+- **AC25:** en el perfil `ha_companion`, antes de iniciar los servicios y mientras `ha-config/configuration.yaml` no exista, el instalador crea la configuración por defecto de Home Assistant (con `automations.yaml`, `scripts.yaml` y `scenes.yaml`) más una sección `http:` con `use_x_forwarded_for: true` y `trusted_proxies` para `127.0.0.1`, `::1` y `172.16.0.0/12` (los puentes de Docker), de modo que Home Assistant nazca ya preparado para el túnel. La operación es idempotente.
+- **AC26:** el instalador nunca sobrescribe ni modifica una configuración existente. Si Home Assistant ya estaba inicializado y no declara esos ajustes, lo avisa al técnico con los valores que debe configurar en lugar de intentar un cambio que esa versión ignoraría; si no puede escribir el directorio, avisa y continúa. En `bridge_ha` y `native_only` no hace nada, porque el Home Assistant es del cliente o no existe.
+
 Quedan fuera de esta ampliación, por ser decisiones de producto: sustituir el TPM obligatorio por un fallback, y distribuir imágenes ya construidas en lugar de construirlas en cada MiniPC.
 
 ## Validación pendiente fuera de CI

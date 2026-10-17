@@ -618,6 +618,71 @@ describe('HomePilot global installation wizard without system operations', () =>
     expect(source).toContain('mapfile -t missing < <(hp_missing_base_packages)');
   });
 
+  it('seeds a Home Assistant that has never started with the default files and the trusted-proxy settings (AC25)', () => {
+    const result = runShell(`
+      source scripts/lib/homepilot-ha-proxy.sh
+      dir="$(mktemp -d)/ha-config"
+      rc=0; homepilot_ha_proxy_seed "$dir" || rc=$?
+      printf 'RC:%s\\n' "$rc"
+      cat "$dir/configuration.yaml"
+      printf 'AUTOMATIONS:[%s] SCRIPTS:%s SCENES:%s\\n' "$(cat "$dir/automations.yaml")" "$(wc -c < "$dir/scripts.yaml" | tr -d ' ')" "$(wc -c < "$dir/scenes.yaml" | tr -d ' ')"
+      rm -rf "$(dirname "$dir")"
+    `);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('RC:0');
+    expect(result.stdout).toContain('default_config:');
+    expect(result.stdout).toContain('automation: !include automations.yaml');
+    expect(result.stdout).toMatch(/http:\n {2}use_x_forwarded_for: true\n {2}trusted_proxies:\n {4}- 127\.0\.0\.1\n {4}- ::1\n {4}- 172\.16\.0\.0\/12/);
+    expect(result.stdout).toContain('AUTOMATIONS:[[]] SCRIPTS:0 SCENES:0');
+  });
+
+  it('is idempotent: a second run reports the settings as present and changes nothing (AC25)', () => {
+    const result = runShell(`
+      source scripts/lib/homepilot-ha-proxy.sh
+      dir="$(mktemp -d)/ha-config"
+      homepilot_ha_proxy_seed "$dir"
+      first="$(sha256sum "$dir/configuration.yaml")"
+      rc=0; homepilot_ha_proxy_seed "$dir" || rc=$?
+      printf 'RC:%s SAME:%s\\n' "$rc" "$([ "$first" = "$(sha256sum "$dir/configuration.yaml")" ] && echo yes || echo no)"
+      rm -rf "$(dirname "$dir")"
+    `);
+    expect(result.stdout).toContain('RC:10 SAME:yes');
+  });
+
+  it('never touches a Home Assistant configuration that already exists without the settings (AC26)', () => {
+    const result = runShell(`
+      source scripts/lib/homepilot-ha-proxy.sh
+      dir="$(mktemp -d)"
+      printf 'default_config:\\n' > "$dir/configuration.yaml"
+      first="$(sha256sum "$dir/configuration.yaml")"
+      rc=0; homepilot_ha_proxy_seed "$dir" || rc=$?
+      printf 'RC:%s SAME:%s FILES:%s\\n' "$rc" "$([ "$first" = "$(sha256sum "$dir/configuration.yaml")" ] && echo yes || echo no)" "$(ls "$dir" | wc -l | tr -d ' ')"
+      rm -rf "$dir"
+    `);
+    expect(result.stdout).toContain('RC:11 SAME:yes FILES:1');
+  });
+
+  it('reports a directory it cannot write instead of failing the installation (AC26)', () => {
+    const result = runShell(`
+      source scripts/lib/homepilot-ha-proxy.sh
+      dir="$(mktemp -d)"; : > "$dir/blocker"
+      rc=0; homepilot_ha_proxy_seed "$dir/blocker/ha-config" || rc=$?
+      printf 'RC:%s\\n' "$rc"
+      rm -rf "$dir"
+    `);
+    expect(result.stdout).toContain('RC:12');
+  });
+
+  it('seeds the proxy settings only for the managed Home Assistant and before anything starts (AC25, AC26)', () => {
+    const source = readFileSync('scripts/install-edge-office.sh', 'utf8');
+    expect(source).toContain('lib/homepilot-ha-proxy.sh"');
+    expect(source).toContain('[[ "$profile" == ha_companion && "$start" == true && "$status_only" == false ]] || return 0');
+    expect(source).toContain('homepilot_ha_proxy_seed ha-config');
+    expect(source.indexOf('\nprepare_home_assistant_proxy_config\n')).toBeGreaterThan(0);
+    expect(source.indexOf('\nprepare_home_assistant_proxy_config\n')).toBeLessThan(source.indexOf('section "Inicio de ${HP_BRAND}"'));
+    expect(source).not.toContain('docker restart "$container"\n    ha-config');
+  });
+
   it('never keeps voice on in maintenance when the chat is off', () => {
     const source = readFileSync('scripts/homepilot-maintenance.sh', 'utf8');
     expect(source).toContain('[[ "$home_chat_enabled" == true ]] || voice_enabled=false');

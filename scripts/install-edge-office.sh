@@ -9,6 +9,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-images.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/android-display-appliance.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/api-health.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-runtime-preservation.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/homepilot-ha-proxy.sh"
 
 readonly ENV_FILE=".env"
 profile=""
@@ -1002,6 +1003,20 @@ if [[ "$profile" == ha_companion ]]; then
 else
   ok "Compose válido: no declara un servicio Home Assistant."
 fi
+
+# Home Assistant keeps its http settings from the first start, so the proxy settings go in before it ever runs.
+prepare_home_assistant_proxy_config() {
+  [[ "$profile" == ha_companion && "$start" == true && "$status_only" == false ]] || return 0
+  local result=0
+  homepilot_ha_proxy_seed ha-config || result=$?
+  case "$result" in
+    0) ok "Home Assistant arrancará con los proxies de confianza configurados (listo para el túnel)." ;;
+    10) ok "Home Assistant ya tenía los proxies de confianza configurados." ;;
+    11) warn "Home Assistant ya estaba inicializado y no declara proxies de confianza; detrás del túnel responderá 400. Configura use_x_forwarded_for y trusted_proxies (127.0.0.1, ::1, 172.16.0.0/12) en su configuración HTTP." ;;
+    *) warn "No se pudo preparar ha-config/configuration.yaml; detrás del túnel Home Assistant responderá 400 hasta configurar los proxies de confianza." ;;
+  esac
+}
+prepare_home_assistant_proxy_config
 
 if [[ "$start" == true ]]; then
   if [[ "$global_install" == true ]]; then
