@@ -229,6 +229,7 @@ hp_admin_cli() {
     --help)
       printf '%s\n' ''"$HP_BRAND"' · Administración de la instalación' \
         'Sin argumentos: asistente nuevo o menú de instalación existente.' \
+        '--answers ARCHIVO: instalar sin teclado con las respuestas del archivo (chmod 600).' \
         '--status: diagnóstico de solo lectura.' '--deploy: actualizar, con confirmación.' \
         '--clean: retirar contenedores detenidos, con confirmación.' \
         '--gc-homepilot: limpiar imágenes verificadas, con confirmación.' \

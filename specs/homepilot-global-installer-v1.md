@@ -114,6 +114,13 @@ El técnico no siempre clona el repositorio: puede copiar un paquete a la MiniPC
 - **AC30:** una referencia inexistente se rechaza sin escribir nada. Por defecto el paquete se deja fuera del repositorio, para no ensuciarlo.
 - **AC31:** sin `.git`, la revisión de las imágenes se toma de `REVISION` en lugar de `unknown`. El paquete se instala con `tar xzf`, `cd homepilot` y `sudo bash scripts/homepilot-install.sh`, y verifica su integridad con `sha256sum -c`. Instalar con un paquete sigue necesitando internet (apt, Docker, npm e imágenes); una instalación sin red queda fuera de alcance.
 
+### Instalación desatendida, solo túnel y reproducibilidad (AC32–AC35)
+
+- **AC32:** `homepilot-install.sh --answers ARCHIVO` ejecuta el asistente leyendo las respuestas del archivo en lugar del teclado, para instalar sin supervisión. Como el archivo puede contener secretos (token del túnel, código de pairing), se rechaza si no existe, no se puede leer o no es privado para su dueño (permisos `600`); el rechazo ocurre antes de cambiar nada. Sin terminal no hay pausas ni animaciones.
+- **AC33:** el acceso remoto separa el túnel del emparejamiento: tras elegir acceso remoto, el asistente pregunta si también se empareja con el Directory (por defecto sí, lo que conserva el comportamiento anterior). Si no, instala o reutiliza solo el túnel de Cloudflare: no pide la URL pública, no pide código de pairing y no intenta el binding TPM; el resumen y el estado final lo reflejan sin presentarlo como un fallo.
+- **AC34:** el Home Assistant administrado usa una versión exacta de imagen (`homeassistant/home-assistant:2026.10.1`) y no `stable`, porque sus ajustes HTTP y su almacenamiento cambian entre versiones; `check:docker-profiles` falla si vuelve una etiqueta flotante. Actualizar esa versión es una decisión explícita que se prueba con la matriz.
+- **AC35:** `scripts/test-installer-matrix.sh` instala en una MiniPC Ubuntu de pruebas cada combinación de opciones (nueve escenarios) y los casos de Docker ausente, fuente apt conflictiva, segunda ejecución y puerto ocupado, y comprueba que se levanta exactamente lo elegido. Usa el modo `--answers`, calcula la IP y la red de la máquina y se niega a ejecutarse sin la confirmación explícita `HOMEPILOT_MATRIX_CONFIRM=wipe-this-machine`, porque borra Docker.
+
 Quedan fuera de esta ampliación, por ser decisiones de producto: sustituir el TPM obligatorio por un fallback, y distribuir imágenes ya construidas en lugar de construirlas en cada MiniPC.
 
 ## Validación pendiente fuera de CI

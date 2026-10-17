@@ -22,6 +22,7 @@ hp_mqtt_bind_address=''
 hp_chat=true
 hp_voice=true
 hp_remote=true
+hp_directory=true
 hp_community=false
 hp_edge_hostname=''
 hp_pairing_changed=false
@@ -121,6 +122,10 @@ hp_collect_architecture() {
   hp_step 6 'ACCESO REMOTO Y DIRECTORY'
   if ! hp_yes_no '¿Configurar acceso remoto administrado por '"$HP_BRAND_COMPANY"'?' true; then hp_remote=false; fi
   if [[ "$hp_remote" == true ]]; then
+    hp_ui_block "$HP_SECONDARY" 'El túnel de Cloudflare da acceso desde fuera; el emparejamiento con el Directory es aparte.'
+    if ! hp_yes_no '¿Emparejar también con el Directory de '"$HP_BRAND_COMPANY"'?' true; then hp_directory=false; fi
+  fi
+  if [[ "$hp_remote" == true && "$hp_directory" == true ]]; then
     hp_read 'URL pública '"$HP_BRAND"' asignada por '"$HP_BRAND_COMPANY"' (https://...): ' || hp_fail 'Falta URL pública.'
     hp_edge_hostname="$REPLY"
     hp_valid_edge_url "$hp_edge_hostname" || hp_fail 'URL pública inválida.'
@@ -153,6 +158,7 @@ hp_summary() {
   hp_ui_review_row 'Conversar con mi casa' "$(hp_ui_yes_label "$hp_chat")"
   hp_ui_review_row 'Voz' "$(hp_ui_yes_label "$hp_voice")"
   hp_ui_review_row 'Cloudflare' "$(hp_ui_yes_label "$hp_remote")"
+  if [[ "$hp_remote" == true ]]; then hp_ui_review_row 'Directory' "$(hp_ui_yes_label "$hp_directory")"; fi
   hp_ui_review_row 'TPM 2.0' 'Detectado'
   printf '\n'
   hp_ui_block "$HP_SECONDARY" 'Servicios Compose seleccionados:'
@@ -400,7 +406,7 @@ hp_is_paired() {
 hp_binding_status() { homepilot_runtime_identity_status; }
 
 hp_pair_directory() {
-  [[ "$hp_remote" == true ]] || return 0
+  [[ "$hp_remote" == true && "$hp_directory" == true ]] || return 0
   if hp_is_paired; then hp_ok 'Directory Edge pairing existente reutilizado.'; return; fi
   local directory_url='https://accounts.nezuecuador.com'
   hp_secret 'Código temporal de pairing (oculto): ' || hp_fail 'Falta código de pairing.'
@@ -416,7 +422,7 @@ hp_pair_directory() {
 }
 
 hp_bind_identity() {
-  [[ "$hp_remote" == true ]] || { hp_warn 'Directory y binding pendientes: acceso remoto no configurado.'; return 0; }
+  [[ "$hp_remote" == true && "$hp_directory" == true ]] || { hp_warn 'Directory y binding pendientes: no se eligió emparejar con el Directory.'; return 0; }
   hp_is_paired || hp_fail 'No se puede enrolar sin Directory Edge pairing.'
   docker exec homepilot-api test -c /dev/tpmrm0 || hp_fail 'TPM inaccesible desde homepilot-api.'
   local status
@@ -499,12 +505,16 @@ hp_finish() {
   printf '\n'
   hp_ui_status '✓' "$HP_GREEN" 'API' 'Healthy'
   hp_ui_status '✓' "$HP_GREEN" 'UI' 'Online'
-  if [[ "$hp_remote" == true ]]; then
+  if [[ "$hp_remote" == true && "$hp_directory" == true ]]; then
     hp_ui_status '✓' "$HP_GREEN" 'TPM 2.0' 'Bound'
     hp_ui_status '✓' "$HP_GREEN" 'Directory Edge' 'Paired'
     hp_ui_status '!' "$HP_YELLOW" 'Cloudflare Tunnel' 'Servicio activo; conexión no verificada'
     [[ -n "$(hp_saved_value DIRECTORY_SSO_PUBLIC_KEY '')" ]] \
       || hp_ui_status '!' "$HP_YELLOW" 'Directory SSO' 'Llave pública pendiente; el acceso local funciona'
+  elif [[ "$hp_remote" == true ]]; then
+    hp_ui_status '●' "$HP_YELLOW" 'TPM 2.0' 'Verificado · binding pendiente'
+    hp_ui_status '—' "$HP_SECONDARY" 'Directory Edge' 'No configurado'
+    hp_ui_status '!' "$HP_YELLOW" 'Cloudflare Tunnel' 'Servicio activo; conexión no verificada'
   else
     hp_ui_status '●' "$HP_YELLOW" 'TPM 2.0' 'Verificado · binding pendiente'
     hp_ui_status '—' "$HP_SECONDARY" 'Directory Edge' 'Pendiente'
@@ -679,14 +689,34 @@ hp_existing_menu() {
   hp_admin_menu
 }
 
+# Unattended installation: the wizard reads its answers from a file instead of the keyboard. The file can hold
+# secrets (a tunnel token, a pairing code), so it must be private to its owner.
+hp_use_answers_file() {
+  local file="$1" mode
+  if [[ ! -f "$file" || ! -r "$file" ]]; then hp_fail "No se puede leer el archivo de respuestas: ${file}"; return 1; fi
+  mode="$(stat -c '%a' "$file" 2>/dev/null || true)"
+  if [[ ! "$mode" =~ ^[0-7]00$ ]]; then
+    hp_fail "El archivo de respuestas debe ser privado para su dueño (chmod 600): ${file}"
+    return 1
+  fi
+  exec 0< "$file"
+}
+
 hp_main() {
   local -a arguments=()
-  local argument
-  for argument in "$@"; do
-    if [[ "$argument" == --verbose ]]; then export HOMEPILOT_VERBOSE=1; else arguments+=("$argument"); fi
+  local answers_file=''
+  while (( $# > 0 )); do
+    case "$1" in
+      --verbose) export HOMEPILOT_VERBOSE=1; shift ;;
+      --answers)
+        if (( $# < 2 )) || [[ -z "$2" ]]; then hp_fail 'Falta el archivo de --answers.'; return 2; fi
+        answers_file="$2"; shift 2 ;;
+      *) arguments+=("$1"); shift ;;
+    esac
   done
   set -- "${arguments[@]}"
   hp_color_init
+  if [[ -n "$answers_file" ]]; then hp_use_answers_file "$answers_file" || return 1; hp_color_init; fi
   if (( $# > 0 )); then hp_admin_cli "$@"; return; fi
   if hp_existing_installation; then hp_admin_menu; return; fi
   hp_banner

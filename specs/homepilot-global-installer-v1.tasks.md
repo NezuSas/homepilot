@@ -1,6 +1,8 @@
 # Tasks — HomePilot Global Installer v1
 
 - [x] T17 (AC14–AC17): sistema/TPM antes de las preguntas, preflight de red ampliado, `.env` 600, clave M2M generada y ayuda de recuperación tras un fallo posterior al despliegue.
+- [x] T25 (AC32–AC35): modo desatendido `--answers`, opción de solo túnel, Home Assistant con versión exacta y matriz de instalación guardada como herramienta del repo.
+- [ ] T26 (AC32–AC35): ejecutar la matriz del repo completa en una MiniPC de pruebas tras cada cambio del instalador.
 - [x] T24 (AC29–AC31): paquete de instalación reproducible con revisión y suma de verificación, y revisión de imágenes sin `.git`.
 - [x] T23 (AC27–AC28): alineación en caracteres con locale UTF-8 forzado y pausa tras la detección en terminal interactivo.
 - [x] T22 (AC25–AC26): configuración de proxy de confianza de Home Assistant administrado para operar detrás del túnel, idempotente y sin sobrescribir configuración existente.

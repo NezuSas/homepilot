@@ -726,6 +726,89 @@ describe('HomePilot global installation wizard without system operations', () =>
     expect(source).toMatch(/hp_detect_environment\r?\n\s+hp_ui_pause\r?\n\s+hp_step 2/);
   });
 
+  const unattended = (file: string) => simulatedSystem.replace(/hp_main\s*$/, `hp_main --answers "${file}"`);
+  const answersFile = (mode: string, content: string) => `f="$(mktemp)"; printf '${content}' > "$f"; chmod ${mode} "$f"`;
+
+  itOnLinux('installs without a keyboard from a private answers file (AC32)', () => {
+    const answers = 'Cliente Prueba\\\\nCasa Prueba\\\\nhomepilot-test\\\\nn\\\\n3\\\\nn\\\\nn\\\\nn\\\\nn\\\\nn\\\\ns\\\\n';
+    const result = runShell(`${answersFile('600', answers)}\n${unattended('$f')}`);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('DEPLOY:native_only:false:false:false:false');
+    expect(result.stdout).toContain('FINISHED');
+  });
+
+  it('refuses an answers file that other people can read before changing anything (AC32)', () => {
+    const result = runShell(`${answersFile('644', 'x\\\\n')}\n${unattended('$f')}`);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('debe ser privado');
+    expect(result.stdout).not.toContain('PREFLIGHT_OK');
+    expect(result.stdout).not.toContain('DEPLOY:');
+  });
+
+  it('refuses an answers file that does not exist or is not given (AC32)', () => {
+    const missing = runShell(unattended('/nonexistent/answers.txt'));
+    expect(missing.status).not.toBe(0);
+    expect(missing.stderr).toContain('No se puede leer el archivo de respuestas');
+    expect(missing.stdout).not.toContain('PREFLIGHT_OK');
+    const none = runShell(simulatedSystem.replace(/hp_main\s*$/, 'hp_main --answers'));
+    expect(none.status).not.toBe(0);
+    expect(none.stderr).toContain('Falta el archivo de --answers');
+  });
+
+  it('offers the tunnel without the Directory pairing and then asks for no public URL (AC33)', () => {
+    const tunnelOnly = runShell(simulatedSystem, 'Cliente Prueba\nCasa Prueba\nhomepilot-test\nn\n3\nn\nn\nn\ns\ns\ns\nn\ns\n');
+    expect(tunnelOnly.status).toBe(0);
+    expect(tunnelOnly.stdout).toContain('TUNNEL:true');
+    expect(tunnelOnly.stdout).toContain('¿Emparejar también con el Directory');
+    expect(tunnelOnly.stdout).not.toContain('URL pública');
+    expect(tunnelOnly.stdout).toMatch(/Directory\s+No/);
+    const withDirectory = runShell(simulatedSystem, 'Cliente Prueba\nCasa Prueba\nhomepilot-test\nn\n3\nn\nn\nn\ns\ns\ns\ns\nhttps://casa.nezuecuador.com\ns\n');
+    expect(withDirectory.status).toBe(0);
+    expect(withDirectory.stdout).toContain('URL pública');
+    expect(withDirectory.stdout).toMatch(/Directory\s+Sí/);
+  });
+
+  it('skips pairing and binding when only the tunnel was chosen, and says so without calling it a failure (AC33)', () => {
+    const result = runShell(`
+      hp_remote=true hp_directory=false
+      docker() { printf 'DOCKER_CALLED\\n'; return 1; }
+      hp_pair_directory; printf 'PAIR_RC:%s\\n' "$?"
+      hp_bind_identity; printf 'BIND_RC:%s\\n' "$?"
+    `);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('PAIR_RC:0');
+    expect(result.stdout).toContain('BIND_RC:0');
+    expect(result.stdout).toContain('no se eligió emparejar con el Directory');
+    expect(result.stdout).not.toContain('DOCKER_CALLED');
+    const summary = runShell(`
+      hp_remote=true hp_directory=false hp_profile=native_only hp_cameras=false hp_android=false hp_mqtt=false hp_chat=false hp_voice=false
+      hp_saved_value() { printf '%s' "$2"; }
+      hp_lan_address() { printf 192.168.1.10; }
+      hp_finish
+    `);
+    expect(summary.stdout).toContain('Cloudflare Tunnel');
+    expect(summary.stdout).toContain('Directory Edge');
+    expect(summary.stdout).toContain('No configurado');
+    expect(summary.stdout).not.toContain('Paired');
+  });
+
+  it('pins the managed Home Assistant to an exact version (AC34)', () => {
+    expect(readFileSync('docker-compose.yml', 'utf8')).toMatch(/image: homeassistant\/home-assistant:2026\.10\.1\s*$/m);
+    expect(readFileSync('scripts/check-docker-profiles.mjs', 'utf8')).toContain('The managed Home Assistant must be pinned to an exact version');
+  });
+
+  it('ships the installer scenario matrix as a guarded repository tool (AC35)', () => {
+    const refused = spawnSync(bash, ['scripts/test-installer-matrix.sh'], { cwd: process.cwd(), encoding: 'utf8', env: { ...process.env, HOMEPILOT_MATRIX_CONFIRM: '' } });
+    expect(refused.status).toBe(2);
+    expect(refused.stderr).toContain('wipe-this-machine');
+    const script = readFileSync('scripts/test-installer-matrix.sh', 'utf8');
+    for (const scenario of ['S1_minimo', 'S2_solo_chat', 'S3_chat_voz', 'S4_camaras', 'S5_android', 'S6_mqtt', 'S7_bridge_ha', 'S8_ha_companion', 'S9_todo']) {
+      expect(script).toContain(`ANSWERS[${scenario}]=`);
+    }
+    for (const extra of ['X1', 'X2', 'X3', 'X4', 'X5']) expect(script).toContain(`VERDICT ${extra}:`);
+    expect(script).toContain('--answers "$file"');
+  });
+
   it('never keeps voice on in maintenance when the chat is off', () => {
     const source = readFileSync('scripts/homepilot-maintenance.sh', 'utf8');
     expect(source).toContain('[[ "$home_chat_enabled" == true ]] || voice_enabled=false');
