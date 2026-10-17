@@ -389,6 +389,9 @@ for (const activity of ['keyboard', 'scroll'] as const) {
       const wheelObserved = page.evaluate(() => new Promise<void>((resolve) => window.addEventListener('wheel', () => resolve(), { once: true })));
       await page.mouse.wheel(0, 200);
       await wheelObserved;
+      // The wheel also makes the browser dispatch a trusted scroll event a frame later, and that event restarts
+      // the idle period too. Under load it can land after the fake clock has moved, so let it arrive first.
+      await page.waitForTimeout(500);
     }
     await page.clock.fastForward(119_000);
     await expect(page).toHaveURL(/\/system\/home-personalization$/);
