@@ -195,7 +195,16 @@ test('Feature: Sections editor — Scenario: Editor sizing writes once, serializ
     await card(id).getByRole('button', { name: /^(Edit|Editar)$/i }).click();
     await editor.getByRole('radio', { name: /^(Design|Diseño)$/i }).click();
     const sizingGrid = editor.getByRole('grid', { name: /^(Design|Diseño)$/i });
-    const bounds = await sizingGrid.boundingBox();
+    // The editor animates open; clicking coordinates measured mid-animation lands one column off.
+    let bounds = await sizingGrid.boundingBox();
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      await page.waitForTimeout(100);
+      const current = await sizingGrid.boundingBox();
+      const settled = !!current && !!bounds && current.x === bounds.x && current.y === bounds.y
+        && current.width === bounds.width && current.height === bounds.height;
+      bounds = current;
+      if (settled) break;
+    }
     if (!bounds) throw new Error('Interactive sizing grid missing');
     await page.mouse.click(bounds.x + bounds.width * (columns - 0.5) / 12, bounds.y + bounds.height * ((rows ?? 4) - 0.5) / 8);
   };

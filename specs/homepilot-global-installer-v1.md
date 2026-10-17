@@ -106,6 +106,14 @@ Hallazgos de la primera instalación guiada por una persona (2026-10-17). Solo p
 - **AC27:** el asistente mide y alinea el texto en caracteres, no en bytes: si la sesión no tiene una configuración regional UTF-8 (habitual por SSH), usa `C.UTF-8`, y el relleno de columnas se calcula contando caracteres porque `printf` rellena por bytes aunque la configuración sea UTF-8. Las filas con letras acentuadas ("Instalación", "Cámaras") quedan alineadas igual que las demás.
 - **AC28:** con un terminal interactivo, tras mostrar los componentes detectados el asistente espera ENTER antes de cambiar de paso, porque cada paso limpia la pantalla. Sin terminal (registros, pruebas, entrada redirigida) no espera.
 
+### Paquete de instalación para llevar en un pendrive (AC29–AC31)
+
+El técnico no siempre clona el repositorio: puede copiar un paquete a la MiniPC. No cambia el instalador, solo cómo llega el código a la máquina.
+
+- **AC29:** `scripts/make-install-bundle.sh [--ref REF] [--output DIR]` genera, desde una referencia de git ya confirmada (por defecto `HEAD`), un `homepilot-<versión>-<revisión>.tar.gz` con todo bajo `homepilot/`, sin `.git`, con un archivo `REVISION` y un `.sha256` junto a él. Lo que no está confirmado en git no entra. El resultado es reproducible: la misma referencia produce el mismo hash.
+- **AC30:** una referencia inexistente se rechaza sin escribir nada. Por defecto el paquete se deja fuera del repositorio, para no ensuciarlo.
+- **AC31:** sin `.git`, la revisión de las imágenes se toma de `REVISION` en lugar de `unknown`. El paquete se instala con `tar xzf`, `cd homepilot` y `sudo bash scripts/homepilot-install.sh`, y verifica su integridad con `sha256sum -c`. Instalar con un paquete sigue necesitando internet (apt, Docker, npm e imágenes); una instalación sin red queda fuera de alcance.
+
 Quedan fuera de esta ampliación, por ser decisiones de producto: sustituir el TPM obligatorio por un fallback, y distribuir imágenes ya construidas en lugar de construirlas en cada MiniPC.
 
 ## Validación pendiente fuera de CI

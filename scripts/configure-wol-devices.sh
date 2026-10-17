@@ -3,6 +3,18 @@
 . "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/brand.sh"
 set -euo pipefail
 
+# Names may carry accents and printf pads by bytes, so columns are padded by characters under a UTF-8 locale.
+case "${LC_ALL:-${LC_CTYPE:-${LANG:-}}}" in
+  *[Uu][Tt][Ff]-8*|*[Uu][Tt][Ff]8*) ;;
+  *) export LC_ALL=C.UTF-8 ;;
+esac
+pad_text() {
+  local value="$1" width="$2" missing
+  missing=$((width - ${#value}))
+  (( missing > 0 )) || missing=0
+  printf '%s%*s' "$value" "$missing" ''
+}
+
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ha_config_dir="$repo_root/ha-config"
 registry_file="$ha_config_dir/wake-on-lan-devices.tsv"
@@ -142,7 +154,7 @@ list_devices() {
   while IFS='|' read -r name os mac host broadcast port || [[ -n "${name:-}" ]]; do
     [[ -z "$name" || "$name" == \#* ]] && continue
     count=$((count + 1))
-    printf '%-3s %-24s %-9s %-18s %-15s\n' "$count" "$name" "$os" "$mac" "$host"
+    printf '%-3s %s %-9s %-18s %-15s\n' "$count" "$(pad_text "$name" 24)" "$os" "$mac" "$host"
   done < "$registry_file"
   if (( count == 0 )); then
     printf '%s\n' 'No hay computadoras registradas.'

@@ -16,7 +16,14 @@ homepilot_image_revision() {
     printf '%s\n' "$HOMEPILOT_BUILD_REVISION"
     return
   fi
-  git rev-parse --short=12 HEAD 2>/dev/null || printf 'unknown\n'
+  git rev-parse --short=12 HEAD 2>/dev/null && return
+  # An installation bundle carries no .git; make-install-bundle.sh records the revision beside the code.
+  if [[ -s REVISION ]]; then
+    tr -d '[:space:]' < REVISION
+    printf '\n'
+    return
+  fi
+  printf 'unknown\n'
 }
 
 homepilot_image_rollback_tag() {
