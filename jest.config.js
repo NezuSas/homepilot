@@ -6,6 +6,9 @@ module.exports = {
   testMatch: ['**/__tests__/**/*.test.ts', '**/*.test.ts', '**/*.test.tsx'],
   clearMocks: true,
   coverageProvider: 'v8',
+  // Jest opens one worker per core minus one; on a 32-core workstation that is ~31 processes and the full
+  // validation ran the machine out of memory. Smaller machines and CI keep their default.
+  maxWorkers: Math.min(12, Math.max(1, require('os').cpus().length - 1)),
 
   /*
    * Jest owns coverage for backend, domain logic and non-visual frontend logic.
