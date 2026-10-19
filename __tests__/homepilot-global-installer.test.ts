@@ -726,35 +726,6 @@ describe('HomePilot global installation wizard without system operations', () =>
     expect(source).toMatch(/hp_detect_environment\r?\n\s+hp_ui_pause\r?\n\s+hp_step 2/);
   });
 
-  const unattended = (file: string) => simulatedSystem.replace(/hp_main\s*$/, `hp_main --answers "${file}"`);
-  const answersFile = (mode: string, content: string) => `f="$(mktemp)"; printf '${content}' > "$f"; chmod ${mode} "$f"`;
-
-  itOnLinux('installs without a keyboard from a private answers file (AC32)', () => {
-    const answers = 'Cliente Prueba\\\\nCasa Prueba\\\\nhomepilot-test\\\\nn\\\\n3\\\\nn\\\\nn\\\\nn\\\\nn\\\\nn\\\\ns\\\\n';
-    const result = runShell(`${answersFile('600', answers)}\n${unattended('$f')}`);
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain('DEPLOY:native_only:false:false:false:false');
-    expect(result.stdout).toContain('FINISHED');
-  });
-
-  it('refuses an answers file that other people can read before changing anything (AC32)', () => {
-    const result = runShell(`${answersFile('644', 'x\\\\n')}\n${unattended('$f')}`);
-    expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('debe ser privado');
-    expect(result.stdout).not.toContain('PREFLIGHT_OK');
-    expect(result.stdout).not.toContain('DEPLOY:');
-  });
-
-  it('refuses an answers file that does not exist or is not given (AC32)', () => {
-    const missing = runShell(unattended('/nonexistent/answers.txt'));
-    expect(missing.status).not.toBe(0);
-    expect(missing.stderr).toContain('No se puede leer el archivo de respuestas');
-    expect(missing.stdout).not.toContain('PREFLIGHT_OK');
-    const none = runShell(simulatedSystem.replace(/hp_main\s*$/, 'hp_main --answers'));
-    expect(none.status).not.toBe(0);
-    expect(none.stderr).toContain('Falta el archivo de --answers');
-  });
-
   it('offers the tunnel without the Directory pairing and then asks for no public URL (AC33)', () => {
     const tunnelOnly = runShell(simulatedSystem, 'Cliente Prueba\nCasa Prueba\nhomepilot-test\nn\n3\nn\nn\nn\ns\ns\ns\nn\ns\n');
     expect(tunnelOnly.status).toBe(0);
@@ -806,7 +777,9 @@ describe('HomePilot global installation wizard without system operations', () =>
       expect(script).toContain(`ANSWERS[${scenario}]=`);
     }
     for (const extra of ['X1', 'X2', 'X3', 'X4', 'X5']) expect(script).toContain(`VERDICT ${extra}:`);
-    expect(script).toContain('--answers "$file"');
+    expect(script).toContain('bash scripts/homepilot-install.sh < "$file"');
+    expect(script).not.toContain('--answers');
+    expect(readFileSync('scripts/lib/homepilot-global-installer.sh', 'utf8')).not.toContain('--answers');
   });
 
   it('never keeps voice on in maintenance when the chat is off', () => {

@@ -8,7 +8,7 @@ usage() {
   cat <<EOF
 Uso: sudo HOMEPILOT_MATRIX_CONFIRM=wipe-this-machine bash scripts/test-installer-matrix.sh [matrix|extras|all] [escenario...]
 
-Instala ${HP_BRAND} con el asistente (modo --answers) en cada combinación de opciones y comprueba que se
+Instala ${HP_BRAND} con el asistente (respuestas por la entrada estándar) en cada combinación de opciones y comprueba que se
 levanta exactamente lo elegido. Es una herramienta de verificación para una MiniPC Ubuntu de PRUEBAS:
 BORRA todos los contenedores, imágenes y volúmenes de Docker, y en "extras" desinstala Docker.
 
@@ -85,12 +85,13 @@ purge_docker() {
   hash -r
 }
 
-# Runs the unattended wizard with the given answers; sets $installer_exit.
+# Runs the wizard feeding its answers through standard input, as a person would type them; sets $installer_exit.
+# The file holds a throwaway MQTT test password, so it is private and removed right after.
 run_installer() {
   local name="$1" file="$logs/answers-$1.txt"
   { printf 'Cliente Prueba\nOficina Pruebas\n%s\n' "$(hostname)"; for a in ${2}; do printf '%s\n' "$a"; done; } > "$file"
   chmod 600 "$file"
-  timeout 3000 bash scripts/homepilot-install.sh --answers "$file" > "$logs/install-$name.log" 2>&1
+  timeout 3000 bash scripts/homepilot-install.sh < "$file" > "$logs/install-$name.log" 2>&1
   installer_exit=$?
   rm -f "$file"
 }

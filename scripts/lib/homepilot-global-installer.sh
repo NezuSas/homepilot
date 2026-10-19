@@ -689,34 +689,14 @@ hp_existing_menu() {
   hp_admin_menu
 }
 
-# Unattended installation: the wizard reads its answers from a file instead of the keyboard. The file can hold
-# secrets (a tunnel token, a pairing code), so it must be private to its owner.
-hp_use_answers_file() {
-  local file="$1" mode
-  if [[ ! -f "$file" || ! -r "$file" ]]; then hp_fail "No se puede leer el archivo de respuestas: ${file}"; return 1; fi
-  mode="$(stat -c '%a' "$file" 2>/dev/null || true)"
-  if [[ ! "$mode" =~ ^[0-7]00$ ]]; then
-    hp_fail "El archivo de respuestas debe ser privado para su dueño (chmod 600): ${file}"
-    return 1
-  fi
-  exec 0< "$file"
-}
-
 hp_main() {
   local -a arguments=()
-  local answers_file=''
-  while (( $# > 0 )); do
-    case "$1" in
-      --verbose) export HOMEPILOT_VERBOSE=1; shift ;;
-      --answers)
-        if (( $# < 2 )) || [[ -z "$2" ]]; then hp_fail 'Falta el archivo de --answers.'; return 2; fi
-        answers_file="$2"; shift 2 ;;
-      *) arguments+=("$1"); shift ;;
-    esac
+  local argument
+  for argument in "$@"; do
+    if [[ "$argument" == --verbose ]]; then export HOMEPILOT_VERBOSE=1; else arguments+=("$argument"); fi
   done
   set -- "${arguments[@]}"
   hp_color_init
-  if [[ -n "$answers_file" ]]; then hp_use_answers_file "$answers_file" || return 1; hp_color_init; fi
   if (( $# > 0 )); then hp_admin_cli "$@"; return; fi
   if hp_existing_installation; then hp_admin_menu; return; fi
   hp_banner
