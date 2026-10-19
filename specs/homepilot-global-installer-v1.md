@@ -133,6 +133,10 @@ Objetivo: instalar rápido y con versiones idénticas, sin compilar en la MiniPC
 - **AC41:** actualizar es extraer el paquete nuevo sobre la carpeta existente y usar la opción de actualizar; el paquete no contiene `.env`, `data/` ni `ha-config/`, así que no los pisa.
 - **AC42:** `scripts/test-installer-matrix.sh` funciona igual desde un paquete de imágenes, y esa es la prueba de aceptación de esta entrega.
 
+### Pregunta de MQTT en el asistente (AC43)
+
+- **AC43:** HomePilot no consume MQTT por sí mismo (no tiene cliente MQTT); el broker existe para los agentes de PC que lee Home Assistant. Por eso la pregunta lo explica antes de preguntar, el valor por defecto es No, y con «Solo HomePilot» (sin Home Assistant) avisa de que ningún componente lo lee. El técnico responde No a los clientes sin agentes de PC.
+
 Quedan fuera de esta ampliación, por ser decisiones de producto: sustituir el TPM obligatorio por un fallback, y distribuir imágenes ya construidas en lugar de construirlas en cada MiniPC.
 
 ## Validación pendiente fuera de CI

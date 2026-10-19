@@ -726,6 +726,19 @@ describe('HomePilot global installation wizard without system operations', () =>
     expect(source).toMatch(/hp_detect_environment\r?\n\s+hp_ui_pause\r?\n\s+hp_step 2/);
   });
 
+  it('explains what MQTT is for before asking, defaults to No and warns when nothing would read the broker (AC43)', () => {
+    const noHomeAssistant = runShell(simulatedSystem, 'Cliente Prueba\nCasa Prueba\nhomepilot-test\nn\n3\nn\nn\n\nn\nn\ns\n');
+    expect(noHomeAssistant.status).toBe(0);
+    expect(noHomeAssistant.stdout).toContain('MQTT es para los agentes de PC');
+    expect(noHomeAssistant.stdout).toContain('Si el cliente no los usará, responde No.');
+    expect(noHomeAssistant.stdout).toContain('Sin Home Assistant, ningún componente de HomePilot lee ese broker.');
+    expect(noHomeAssistant.stdout).toContain('¿El cliente tendrá agentes de PC o dispositivos MQTT?');
+    expect(noHomeAssistant.stdout).toContain('MQTT_PREPARE:false');
+    const withHomeAssistant = runShell(simulatedSystem, 'Cliente Prueba\nCasa Prueba\nhomepilot-test\nn\n2\nn\nn\nn\nn\nn\ns\n');
+    expect(withHomeAssistant.stdout).toContain('MQTT es para los agentes de PC');
+    expect(withHomeAssistant.stdout).not.toContain('Sin Home Assistant, ningún componente');
+  });
+
   it('offers the tunnel without the Directory pairing and then asks for no public URL (AC33)', () => {
     const tunnelOnly = runShell(simulatedSystem, 'Cliente Prueba\nCasa Prueba\nhomepilot-test\nn\n3\nn\nn\nn\ns\ns\ns\nn\ns\n');
     expect(tunnelOnly.status).toBe(0);

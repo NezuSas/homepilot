@@ -99,7 +99,10 @@ hp_collect_architecture() {
     fi
     hp_ui_confirm_value "$hp_android_cidrs"
   fi
-  if hp_yes_no '¿Esta instalación utilizará dispositivos o agentes MQTT?' false; then
+  hp_ui_block "$HP_SECONDARY" 'MQTT es para los agentes de PC (por ejemplo, el control multimedia), que se leen desde Home Assistant. Si el cliente no los usará, responde No.'
+  [[ "$hp_profile" != native_only ]] \
+    || hp_ui_block "$HP_SECONDARY" 'Sin Home Assistant, ningún componente de '"$HP_BRAND"' lee ese broker.'
+  if hp_yes_no '¿El cliente tendrá agentes de PC o dispositivos MQTT?' false; then
     hp_mqtt=true
     hp_read 'IP LAN de esta MiniPC para MQTT (no 0.0.0.0): ' || hp_fail 'Falta IP LAN MQTT.'
     hp_mqtt_bind_address="$REPLY"
