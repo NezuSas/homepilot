@@ -1,11 +1,11 @@
 import * as fs from 'fs/promises';
-import { createReadStream } from 'fs';
 import * as path from 'path';
 import { ServerResponse } from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
 import { RouteHandler } from '../RouteHandler';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { MediaService } from '../../../packages/shared/infrastructure/MediaService';
+import { streamFileToResponse } from './streamFileToResponse';
 
 export class MediaRoutes implements RouteHandler {
   constructor(private readonly mediaService: MediaService) {}
@@ -18,7 +18,7 @@ export class MediaRoutes implements RouteHandler {
         const ext = path.extname(physicalPath).toLowerCase();
         const mimeTypes: Record<string, string> = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
         res.writeHead(200, { 'Content-Type': mimeTypes[ext] ?? 'application/octet-stream', 'Cache-Control': 'private, max-age=86400, stale-while-revalidate=604800' });
-        createReadStream(physicalPath).pipe(res);
+        streamFileToResponse(physicalPath, res, 'Media');
         return true;
       } catch (error: unknown) {
         const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;

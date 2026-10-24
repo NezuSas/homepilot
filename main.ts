@@ -81,5 +81,19 @@ async function main(): Promise<void> {
   }
 }
 
+/**
+ * Un error que nadie atiende termina el proceso sin dejar rastro de por qué. No se silencia —el estado
+ * del proceso ya no es fiable y Docker lo reinicia—, pero sí se registra con su causa para poder
+ * diagnosticarlo después, en lugar de encontrar solo un contenedor reiniciado.
+ */
+function reportFatal(kind: string, cause: unknown): never {
+  const detail = cause instanceof Error ? `${cause.message}\n${cause.stack ?? ''}` : String(cause);
+  console.error(`[Main] ${kind} sin atender; el proceso termina y el runtime lo reiniciará: ${detail}`);
+  process.exit(1);
+}
+
+process.on('uncaughtException', (error: Error) => reportFatal('Excepción', error));
+process.on('unhandledRejection', (reason: unknown) => reportFatal('Promesa rechazada', reason));
+
 // Invocación inicial
 main();

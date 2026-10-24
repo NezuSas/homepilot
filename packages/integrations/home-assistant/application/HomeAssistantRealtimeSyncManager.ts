@@ -200,8 +200,12 @@ export class HomeAssistantRealtimeSyncManager extends EventEmitter implements Ob
 
       this.logResilienceEvent('reconnect', this.retryAttempt, 0, 'WebSocket connection established successfully.');
 
-      // Secuencia de bootstrap: Conectar → Suscribir → Reconciliar
-      this._runReconciliation();
+      // Secuencia de bootstrap: Conectar → Suscribir → Reconciliar.
+      // Se atiende igual que la reconciliación periódica: sin el catch, un fallo del repositorio
+      // (por ejemplo SQLITE_BUSY mientras el poller Modbus escribe) terminaría el proceso justo
+      // durante una reconexión, es decir cuando el hogar ya está degradado.
+      void this._runReconciliation().catch((error: unknown) =>
+        logRuntimeDiagnostic('warn', '[HA-Sync] Initial reconciliation failed:', getErrorMessage(error)));
       this._cancelReconciliationTimer();
       if (this.expiredInboxDeviceRemover) {
         this.reconciliationTimer = setInterval(() => {

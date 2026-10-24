@@ -156,6 +156,51 @@ describe('Feature: Home Assistant resilience and reconciliation', () => {
     expect(manager.getObservableState().reconciliationStatus).toBe('idle');
     manager.stop();
   });
+  // The reconciliation launched on 'ready' used to run without a catch. The repository read sits outside the
+  // guarded block, so a busy database during a reconnect — exactly when the home is already degraded — produced
+  // an unhandled rejection, and with no process guard that ended the Edge.
+  it('survives a repository failure in the reconciliation it starts on connect', async () => {
+    const socket = new FakeRealtimeSocket();
+    const findAll = jest.fn().mockRejectedValue(new Error('SQLITE_BUSY'));
+    // Diagnostics are silent under Jest, so the warning the catch emits is the observable proof that the
+    // rejection was attended to: without the catch nothing is logged and the rejection escapes.
+    const originalNodeEnv = process.env.NODE_ENV;
+    const originalWorkerId = process.env.JEST_WORKER_ID;
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    delete process.env.JEST_WORKER_ID;
+    process.env.NODE_ENV = 'development';
+
+    const manager = new HomeAssistantRealtimeSyncManager(
+      { updateStatusFromOperation: jest.fn() } as unknown as HomeAssistantSettingsService,
+      { findAll, findByExternalId: jest.fn().mockResolvedValue(null) } as unknown as DeviceRepository,
+      { saveActivity: jest.fn().mockResolvedValue(undefined) } as unknown as ActivityLogRepository,
+      { getAllStates: jest.fn().mockResolvedValue([]) } satisfies HomeAssistantStateReader,
+      () => asRealtimeSocket(socket),
+      { removeIfUnreferenced: jest.fn().mockResolvedValue(false), updatePendingState: jest.fn().mockResolvedValue(false) },
+    );
+
+    try {
+      manager.reconnect('http://ha:8123', 'token');
+      socket.emit('ready');
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      await new Promise<void>((resolve) => setImmediate(resolve));
+
+      expect(findAll).toHaveBeenCalled();
+      expect(warnSpy).toHaveBeenCalledWith('[HA-Sync] Initial reconciliation failed:', 'SQLITE_BUSY');
+      // The socket keeps serving events after the failed reconciliation.
+      socket.emit('event', { entity_id: 'light.sala', new_state: { state: 'on', attributes: {} } });
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(manager.getObservableState().reconciliationStatus).not.toBe('running');
+    } finally {
+      warnSpy.mockRestore();
+      if (originalWorkerId === undefined) delete process.env.JEST_WORKER_ID;
+      else process.env.JEST_WORKER_ID = originalWorkerId;
+      if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = originalNodeEnv;
+      manager.stop();
+    }
+  });
+
   it('uses one retry timer and cancels it on reconfiguration', () => {
     jest.useFakeTimers();
     const firstSocket = new FakeRealtimeSocket();

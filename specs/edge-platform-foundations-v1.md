@@ -40,10 +40,12 @@ El Edge local requiere contratos de API, eventos, persistencia y runtime comunes
 - [x] AC3: El runtime puede levantar API y consola mediante Compose.
 - [x] AC4: El bus de eventos en memoria entrega eventos a los suscriptores, aísla fallos de un suscriptor y no añade ruido de diagnóstico durante pruebas automatizadas.
 - [x] AC5: Diagnósticos permite a un administrador crear una copia local y revisar las copias disponibles mediante los endpoints protegidos existentes, sin revelar paths del host.
+- [x] AC6: Una ruta que envía un archivo como cuerpo de la respuesta lo hace mediante `streamFileToResponse`, que atiende el evento `error` del stream: un archivo que desaparece entre la comprobación de existencia y la apertura destruye esa respuesta y registra el motivo, pero no termina el proceso. `.pipe()` no propaga errores y un `ReadStream` sin oyente de `error` lanza, de modo que sin esto ver una cámara podía apagar el Edge completo —ffmpeg borra segmentos HLS de forma continua por diseño—. Al cerrarse la respuesta el stream se cierra también, sin dejar descriptores abiertos.
+- [x] AC7: El proceso registra con su causa toda excepción o promesa rechazada que nadie atienda, y termina con código distinto de cero para que el runtime lo reinicie. No se silencian: el estado del proceso ya no es fiable, pero deja de desaparecer sin diagnóstico.
 
 ## 7. Notas Técnicas y Arquitectura
 
-- Código: `apps/api/ApiGateway.ts`, `RouteHandler.ts`, `OperatorConsoleServer.ts`, `packages/shared`.
+- Código: `apps/api/ApiGateway.ts`, `RouteHandler.ts`, `OperatorConsoleServer.ts`, `streamFileToResponse.ts`, `main.ts`, `packages/shared`.
 - La arquitectura detallada se mantiene en `docs/architecture.md`.
 
 ## 8. Preguntas Abiertas y TODOs

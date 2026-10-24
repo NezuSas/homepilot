@@ -35,7 +35,7 @@ const rules = [
   ['auth-rbac-v1-local-edge-security.md', /(?:packages\/auth|AuthRoutes|AdminRoutes|LoginView|UsersView|User[A-Z]|useSession|ChangePassword|ResetUserPassword|AdminOnlyReads|accessControl)/i],
   ['home-room-management.md', /(?:packages\/topology|Topology|HomeController|RoomController|HomeClimate)/i],
   ['device-command-execution.md', /(?:packages\/devices|DeviceRoutes|apps\/api\/routes\/device\/|Device[A-Z]|Inbox|Curtain|CoverPosition|ManagedDevice|DashDevice|device[A-Z])/i],
-  ['edge-platform-foundations-v1.md', /(?:apps\/api\/(?:ApiGateway|RouteHandler|OperatorConsoleServer)|apps\/api\/__tests__\/ApiGateway|apps\/api\/routes\/ApiRoutes|packages\/shared)/i],
+  ['edge-platform-foundations-v1.md', /(?:apps\/api\/(?:ApiGateway|RouteHandler|OperatorConsoleServer)|apps\/api\/__tests__\/(?:ApiGateway|streamFileToResponse)|apps\/api\/routes\/(?:ApiRoutes|streamFileToResponse)|packages\/shared)/i],
   ['release-hardening-v1.md', /(?:ApiRoutes\.error-sanitization|release-hardening)/i],
   ['homepilot-effective-actions-v1.md', /(?:BoardManifestV1|EffectiveActionsResolver)/i],
   ['homepilot-intentflow-manifest-sync-v1.md', /(?:ManifestBundleV1|ManifestSyncService|EffectiveActionsProvider|DirectoryEdgeServiceTokenClient|IntentFlowManifestClient|ManifestClients|SqliteManifestCacheRepository)/i],

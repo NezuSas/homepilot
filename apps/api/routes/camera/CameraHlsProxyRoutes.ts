@@ -9,6 +9,7 @@ import { CAMERA_PROXY_TOKEN_TTL_MS, verifyCameraProxyToken } from './cameraProxy
 import { pathnameFallback } from './cameraEntity';
 import { rewriteHlsManifest } from './hlsManifest';
 import { isInsideDirectory } from './pathContainment';
+import { streamFileToResponse } from '../streamFileToResponse';
 
 /**
  * GET /api/v1/devices/:id/camera/hls/(master.m3u8|resource/:resourceId) — token-authenticated
@@ -185,6 +186,6 @@ export class CameraHlsProxyRoutes extends ApiRoutes {
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff',
     });
-    fs.createReadStream(resolvedFilePath).pipe(res);
+    streamFileToResponse(resolvedFilePath, res, 'Camera-HLS');
   }
 }
