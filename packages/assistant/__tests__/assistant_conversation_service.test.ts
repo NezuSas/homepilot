@@ -35,7 +35,7 @@ import type { AssistantMemoryPort } from '../application/ports/AssistantMemoryPo
 import { FollowUpResolverPort } from '../application/ports/FollowUpResolverPort';
 import { SUPPORTED_HOME_CONVERSATION_PROMPTS } from './fixtures/supportedHomeConversationPrompts';
 import { inferCommandFromPrompt, isBulkActionAccept, isBulkActionReject, isConfirmation, isNegativeConfirmation, isPositiveConfirmation, isSuggestionAccept, isSuggestionPostpone, isSuggestionReject, resolveSelectionFromMemory } from '../application/conversation/confirmationReplies';
-import { extractTargetPhrase, isBulkFastPath, isRoomBulkFastPath, isRoomSingularLightFastPath, isSingularLightRequest } from '../application/conversation/fastPathMatching';
+import { extractTargetPhrase, isBulkFastPath, isRoomBulkFastPath, isRoomSingularLightFastPath } from '../application/conversation/fastPathMatching';
 import { isAttentionQuery, isCompanyQuery, isConversationContextQuery, isDateTimeQuery, isGreeting, isHelpQuery, isHomeSummaryQuery, isLikelyHomeControlPrompt, isNameQuery, isPresentation, isRecentActivityQuery, isScopeQuery, isWellnessQuery } from '../application/conversation/generalQueryIntents';
 import { buildCommandSuccessMessage, formatMultiCommandSummary, handleCompanyInfoQuery, handleConversationContext } from '../application/conversation/responseMessages';
 import { resolveRoomAlias } from '../application/conversation/roomAliasResolution';
@@ -1814,8 +1814,6 @@ describe('AssistantConversationService', () => {
       expect(isRoomBulkFastPath('turn on everything in kitchen')).toEqual({ command: 'turn_on', roomName: 'kitchen', bulkType: 'all' });
       expect(isRoomBulkFastPath('apaga todas las luces y la sala')).toBeNull();
       expect(isRoomBulkFastPath('turn off all lights')).toBeNull();
-      expect(isSingularLightRequest('enciende la luz del patio')).toBe(true);
-      expect(isSingularLightRequest('enciende todas las luces')).toBe(false);
       expect(isRoomSingularLightFastPath('prende la luz en patio')).toEqual({ command: 'turn_on', roomName: 'patio' });
       expect(isRoomSingularLightFastPath('switch off the lamp at office')).toEqual({ command: 'turn_off', roomName: 'office' });
       expect(isRoomSingularLightFastPath('enciende luxury patio')).toBeNull();

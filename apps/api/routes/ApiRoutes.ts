@@ -6,6 +6,7 @@ import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { logRuntimeDiagnostic } from '../../../packages/shared/config/runtimeEnvironment';
 
 import { ActivityType } from '../../../packages/devices/domain/repositories/ActivityLogRepository';
+import { parseRoutineSharedUsers } from '../../../packages/devices/domain/routineAccess';
 
 /**
  * Safe messages map — sanitizes error details sent to clients.
@@ -185,5 +186,19 @@ export abstract class ApiRoutes implements RouteHandler {
         },
       })
     );
+  }
+
+  /**
+   * The users a routine may be shared with: the owner is implicit, and every other id must be an active
+   * account. Scenes and automations had identical private copies of this, which is how two routine
+   * types can drift apart on who counts as a valid recipient.
+   */
+  protected async validateSharedUsers(raw: unknown, ownerId: string, container: BootstrapContainer): Promise<string[]> {
+    const ids = parseRoutineSharedUsers(raw).filter(id => id !== ownerId);
+    for (const id of ids) {
+      const user = await container.repositories.userRepository.findById(id);
+      if (!user?.isActive) throw new Error('INVALID_SHARED_USERS');
+    }
+    return ids;
   }
 }

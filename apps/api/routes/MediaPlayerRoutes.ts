@@ -1,6 +1,7 @@
 import * as crypto from 'crypto';
 import * as http from 'http';
 import { BootstrapContainer } from '../../../bootstrap';
+import { asRecord } from '../../../packages/shared/domain/utils/asRecord';
 import { Device } from '../../../packages/devices/domain/types';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { ApiRoutes } from './ApiRoutes';
@@ -17,11 +18,6 @@ interface ArtworkSessionPayload {
 
 const ARTWORK_TOKEN_TTL_MS = 30 * 60 * 1000;
 
-function asRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : {};
-}
 
 function resolveArtworkPath(device: Device | null): string | null {
   if (!device || device.type !== 'media_player') return null;

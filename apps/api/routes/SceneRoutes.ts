@@ -4,7 +4,7 @@ import { BootstrapContainer } from '../../../bootstrap';
 import { ApiRoutes } from './ApiRoutes';
 import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { Scene } from '../../../packages/devices/domain/Scene';
-import { canAccessRoutine, parseRoutineSharedUsers } from '../../../packages/devices/domain/routineAccess';
+import { canAccessRoutine } from '../../../packages/devices/domain/routineAccess';
 import { isValidCommand } from '../../../packages/devices/domain/commands';
 import { homeRoomIndex, sceneWithinRoomScope } from './roomScope';
 import { isRoomRestricted } from '../../../packages/auth/domain/roomAccess';
@@ -13,14 +13,6 @@ import { isRoomRestricted } from '../../../packages/auth/domain/roomAccess';
  * Scene routes: /api/v1/scenes/*
  */
 export class SceneRoutes extends ApiRoutes {
-  private async validateSharedUsers(raw: unknown, ownerId: string, container: BootstrapContainer): Promise<string[]> {
-    const ids = parseRoutineSharedUsers(raw).filter(id => id !== ownerId);
-    for (const id of ids) {
-      const user = await container.repositories.userRepository.findById(id);
-      if (!user?.isActive) throw new Error('INVALID_SHARED_USERS');
-    }
-    return ids;
-  }
 
   /** Returns why a scene action list cannot be saved, or null when every step is runnable. */
   private async findInvalidSceneAction(actions: unknown[], homeId: string, container: BootstrapContainer): Promise<string | null> {

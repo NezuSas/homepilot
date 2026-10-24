@@ -12,7 +12,7 @@ import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import type { AutomationAction, AutomationTrigger } from '../../../packages/devices/domain/automation/types';
 import { ForbiddenOwnershipError, TopologyResourceNotFoundError } from '../../../packages/devices/application/errors';
 import type { TopologyReferencePort } from '../../../packages/devices/application/ports/TopologyReferencePort';
-import { canAccessRoutine, parseRoutineSharedUsers } from '../../../packages/devices/domain/routineAccess';
+import { canAccessRoutine } from '../../../packages/devices/domain/routineAccess';
 
 interface CreateAutomationPayload {
   sharedUserIds?: unknown;
@@ -34,14 +34,6 @@ interface UpdateAutomationPayload {
  * Automation routes: /api/v1/automations/*
  */
 export class AutomationRoutes extends ApiRoutes {
-  private async validateSharedUsers(raw: unknown, ownerId: string, container: BootstrapContainer): Promise<string[]> {
-    const ids = parseRoutineSharedUsers(raw).filter(id => id !== ownerId);
-    for (const id of ids) {
-      const user = await container.repositories.userRepository.findById(id);
-      if (!user?.isActive) throw new Error('INVALID_SHARED_USERS');
-    }
-    return ids;
-  }
   private async validateSceneAction(action: AutomationAction | undefined, userId: string, homeId: string, container: BootstrapContainer): Promise<boolean> {
     const sceneAction = action?.type === 'delay' ? action.then : action;
     if (sceneAction?.type !== 'execute_scene') return true;

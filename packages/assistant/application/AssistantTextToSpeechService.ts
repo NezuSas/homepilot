@@ -1,3 +1,5 @@
+import { resolveEdgeTimeout } from './resolveEdgeTimeout';
+
 export interface AssistantTextToSpeechRequest {
   text: string;
   language: 'es' | 'en';
@@ -15,11 +17,6 @@ export class AssistantTextToSpeechUnavailableError extends Error {}
 
 const MAX_TEXT_LENGTH = 4000;
 const MINIMUM_EDGE_TTS_TIMEOUT_MS = 45_000;
-
-function resolveEdgeTimeout(value: string | undefined, minimumMs: number): number {
-  const parsed = Number.parseInt(value ?? '', 10);
-  return Number.isFinite(parsed) ? Math.max(parsed, minimumMs) : minimumMs;
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;

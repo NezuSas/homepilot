@@ -1,3 +1,4 @@
+import { asRecord } from '../../../shared/domain/utils/asRecord';
 import { Device } from '../../../devices/domain/types';
 import { Room } from '../../../topology/domain/types';
 import { getAssistantResponseText } from '../response/AssistantResponseCatalog';
@@ -60,11 +61,8 @@ export function readMediaPlayerVolume(player: Device): number | null {
     : null;
 }
 
-export function asAssistantStateRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : {};
-}
+/** Kept as a named re-export because other assistant modules import it under this name. */
+export const asAssistantStateRecord = asRecord;
 
 export function firstAssistantText(...values: unknown[]): string | null {
   const value = values.find((candidate) => typeof candidate === 'string' && candidate.trim() !== '');

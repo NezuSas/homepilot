@@ -1,3 +1,4 @@
+import { asRecord } from '../../shared/domain/utils/asRecord';
 import { Device } from '../../devices/domain/types';
 import { DeviceCommandV1 } from '../../devices/domain/commands';
 import { Room } from '../../topology/domain/types';
@@ -185,11 +186,7 @@ export class AssistantMediaPlayerResolver {
     return Math.round(rawVolume * 100);
   }
 
-  private asRecord(value: unknown): Record<string, unknown> {
-    return value !== null && typeof value === 'object' && !Array.isArray(value)
-      ? value as Record<string, unknown>
-      : {};
-  }
+  private asRecord = asRecord;
 
   private escapeRegularExpression(value: string): string {
     return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

@@ -70,14 +70,6 @@ export function isRoomBulkFastPath(prompt: string): {
   return null;
 }
 
-export function isSingularLightRequest(normalized: string): boolean {
-  const singularNouns = [
-    'la luz', 'el foco', 'la lampara', 'la bombilla', 'una luz', 'un foco',
-    'the light', 'the bulb', 'the lamp', 'the spotlight', 'a light'
-  ];
-  return singularNouns.some(n => normalized.includes(n));
-}
-
 export function isRoomSingularLightFastPath(prompt: string): {
   command: 'turn_on' | 'turn_off';
   roomName: string;

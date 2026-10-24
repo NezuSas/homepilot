@@ -1,3 +1,5 @@
+import { asRecord } from '../../shared/domain/utils/asRecord';
+
 const PLAYBACK_RESYNC_THRESHOLD_SECONDS = 2;
 
 interface PlaybackReference {
@@ -7,11 +9,6 @@ interface PlaybackReference {
   readonly nativePosition: number;
 }
 
-function asRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : {};
-}
 
 function firstText(values: readonly unknown[]): string | null {
   for (const value of values) {

@@ -1,3 +1,5 @@
+import { resolveEdgeTimeout } from './resolveEdgeTimeout';
+
 export interface AssistantSpeechToTextRequest {
   audioBase64: string;
   audioContentType: string;
@@ -18,11 +20,6 @@ const MAX_AUDIO_BASE64_LENGTH = 12_000_000;
 const MAX_CONTEXT_TERMS = 40;
 const MAX_CONTEXT_TERM_LENGTH = 64;
 const MINIMUM_EDGE_STT_TIMEOUT_MS = 60_000;
-
-function resolveEdgeTimeout(value: string | undefined, minimumMs: number): number {
-  const parsed = Number.parseInt(value ?? '', 10);
-  return Number.isFinite(parsed) ? Math.max(parsed, minimumMs) : minimumMs;
-}
 
 function normalizeContextTerms(contextTerms: readonly string[] | undefined): string[] {
   if (!contextTerms) return [];

@@ -25,7 +25,6 @@ import {
   isRoomBulkFastPath,
   isRoomCoverFastPath,
   isRoomSingularLightFastPath,
-  isSingularLightRequest,
   isVagueLightCommand
 } from '../application/conversation/fastPathMatching';
 
@@ -124,7 +123,6 @@ describe('Conversation request parsing', () => {
     });
 
     it('parses singular light and cover requests by room', () => {
-      expect(isSingularLightRequest('prende la luz de la sala')).toBe(true);
       expect(isRoomSingularLightFastPath('prende luz sala')).toEqual({ command: 'turn_on', roomName: 'sala' });
       expect(isRoomSingularLightFastPath('prende lux sala')).toBeNull();
       expect(isRoomCoverFastPath('abre la persiana de la sala')).toEqual({ command: 'open', roomName: 'sala' });
