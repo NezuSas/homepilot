@@ -6,6 +6,7 @@ import type { NativeCameraStreamingService } from '../../../../packages/integrat
 import { ApiRoutes } from '../ApiRoutes';
 import { verifyCameraProxyToken } from './cameraProxyToken';
 import { CameraMediaKind, pathnameFallback, resolveCameraEntityId } from './cameraEntity';
+import { pumpUpstreamToResponse } from './pumpUpstreamToResponse';
 
 /**
  * GET /api/v1/devices/:id/camera/(snapshot|stream) — token-authenticated media proxy
@@ -124,12 +125,7 @@ export class CameraMediaProxyRoutes extends ApiRoutes {
       if (contentLength) headers['Content-Length'] = contentLength;
       res.writeHead(200, headers);
 
-      const reader = upstream.body.getReader();
-      while (!res.destroyed) {
-        const chunk = await reader.read();
-        if (chunk.done) break;
-        res.write(chunk.value);
-      }
+      await pumpUpstreamToResponse(upstream.body, res);
       if (!res.destroyed) res.end();
     } catch (error: unknown) {
       if (abortController.signal.aborted || res.destroyed) return;

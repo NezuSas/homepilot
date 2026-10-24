@@ -10,6 +10,7 @@ import { pathnameFallback } from './cameraEntity';
 import { rewriteHlsManifest } from './hlsManifest';
 import { isInsideDirectory } from './pathContainment';
 import { streamFileToResponse } from '../streamFileToResponse';
+import { pumpUpstreamToResponse } from './pumpUpstreamToResponse';
 
 /**
  * GET /api/v1/devices/:id/camera/hls/(master.m3u8|resource/:resourceId) — token-authenticated
@@ -128,12 +129,7 @@ export class CameraHlsProxyRoutes extends ApiRoutes {
       if (contentLength) headers['Content-Length'] = contentLength;
       res.writeHead(200, headers);
 
-      const reader = upstream.body.getReader();
-      while (!res.destroyed) {
-        const chunk = await reader.read();
-        if (chunk.done) break;
-        res.write(chunk.value);
-      }
+      await pumpUpstreamToResponse(upstream.body, res);
       if (!res.destroyed) res.end();
     } catch (error: unknown) {
       if (abortController.signal.aborted || res.destroyed) return;
@@ -162,16 +158,27 @@ export class CameraHlsProxyRoutes extends ApiRoutes {
     }
 
     if (resolvedFilePath.endsWith('.m3u8')) {
+      // Both hoisted out of the per-line map: the token lookup scans every open session.
+      const sessionToken = this.store.currentTokenForSession(session);
+      const listedResourceIds = new Set<string>();
       const manifest = fs.readFileSync(resolvedFilePath, 'utf8')
         .split(/\r?\n/)
         .map((line) => {
           const trimmed = line.trim();
           if (!trimmed || trimmed.startsWith('#')) return line;
           const resourceId = path.basename(trimmed);
+          listedResourceIds.add(resourceId);
           session.resourcesById.set(resourceId, path.join(resolvedDirectory, resourceId));
-          return `/api/v1/devices/${encodeURIComponent(session.deviceId)}/camera/hls/resource/${encodeURIComponent(resourceId)}?token=${this.store.currentTokenForSession(session)}`;
+          return `/api/v1/devices/${encodeURIComponent(session.deviceId)}/camera/hls/resource/${encodeURIComponent(resourceId)}?token=${sessionToken}`;
         })
         .join('\n');
+
+      // ffmpeg rotates segments out, so anything the manifest no longer lists is gone from disk too.
+      // Without this the map kept every id ever served — about 1800 an hour per viewer — and a camera
+      // left on a wall display never expires, because each request slides the session forward.
+      for (const resourceId of session.resourcesById.keys()) {
+        if (!listedResourceIds.has(resourceId)) session.resourcesById.delete(resourceId);
+      }
       res.writeHead(200, {
         'Content-Type': 'application/vnd.apple.mpegurl',
         'Cache-Control': 'no-store',

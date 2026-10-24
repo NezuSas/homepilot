@@ -18,7 +18,7 @@ const rules = [
   ['smart-display-control-catalog-v1.md', /(?:DeviceControlCatalogProvider|SmartDisplayControls|sectionCardAssignments|CommandTokenCache|IntentFlowCommandClient|IntentFlowCommandExecutionService)/i],
   ['homepilot-android-display-effective-actions-ui-v1.md', /(?:DeviceRoutes\.effective-actions)/i],
   ['android-display-integration-v1.md', /(?:AndroidDisplay|integrations\/android-display)/i],
-  ['home-assistant-camera-streaming-v1.md', /(?:CameraRoutes|CameraMedia|CameraViewer|CameraDevice|apps\/api\/routes\/camera\/)/i],
+  ['home-assistant-camera-streaming-v1.md', /(?:CameraRoutes|CameraMedia|CameraViewer|CameraDevice|pumpUpstreamToResponse|apps\/api\/routes\/camera\/)/i],
   ['operator-console-v1.md', /HomePersonalizationRoutes/i],
   ['home-assistant-settings-connection-management-v1.md', /(?:home-assistant|HomeAssistant|SettingsRoutes|HomeAssistantDiscovery)/i],
   ['sonoff-local-integration-v1.md', /Sonoff/i],

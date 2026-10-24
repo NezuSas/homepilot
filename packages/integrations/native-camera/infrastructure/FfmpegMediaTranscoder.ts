@@ -8,6 +8,26 @@ import { buildRtspUrl } from './rtspUrl';
 import { captureRtspFrame } from './FfmpegFrameProbe';
 
 const NATIVE_CAMERA_HLS_ROOT = path.join(os.tmpdir(), 'homepilot-native-cameras');
+const MAX_FFMPEG_LOG_CHARS = 64 * 1024;
+
+/**
+ * A ChildProcess that emits 'error' with no listener throws, which ends the Edge process. ffmpeg does emit it:
+ * ENOENT when the binary is missing from the image, EAGAIN when the appliance cannot fork under memory
+ * pressure. The spawn failure is logged and the stream simply yields nothing.
+ */
+function attachSpawnFailureHandler(child: ChildProcessWithoutNullStreams, label: string): void {
+  child.on('error', (error: Error) => {
+    console.error(`[FfmpegMediaTranscoder] no se pudo ejecutar ffmpeg (${label}): ${error.message}`);
+  });
+}
+
+/**
+ * Keeps a stderr nobody reads from filling the OS pipe buffer, which would block ffmpeg mid-frame and
+ * freeze the video with no error anywhere. Consuming the data is what drains it.
+ */
+function drainStderr(child: ChildProcessWithoutNullStreams): void {
+  child.stderr.on('data', () => undefined);
+}
 
 interface NativeHlsRuntime {
   process: ChildProcessWithoutNullStreams;
@@ -183,10 +203,13 @@ export class FfmpegMediaTranscoder implements MediaTranscoderPort {
       path.join(directory, 'index.m3u8'),
     ]);
 
+    // An always-on runtime lives for weeks and a camera with clock drift or packet loss warns continuously,
+    // so the buffer is capped: only the tail is ever read, and the rest would be pure heap growth.
     let ffmpegStderr = '';
     ffmpegProcess.stderr.on('data', (chunk: Buffer) => {
-      ffmpegStderr += chunk.toString();
+      if (ffmpegStderr.length < MAX_FFMPEG_LOG_CHARS) ffmpegStderr += chunk.toString();
     });
+    attachSpawnFailureHandler(ffmpegProcess, `HLS device ${deviceId}`);
 
     ffmpegProcess.on('exit', (code, signal) => {
       console.log(`[FfmpegMediaTranscoder] ffmpeg process for device ${deviceId} exited with code ${code} and signal ${signal}`);
@@ -242,6 +265,9 @@ export class FfmpegMediaTranscoder implements MediaTranscoderPort {
       '-',
     ]);
 
+    attachSpawnFailureHandler(ffmpegProcess, 'snapshot');
+    drainStderr(ffmpegProcess);
+
     res.writeHead(200, {
       'Content-Type': 'image/jpeg',
       'Cache-Control': 'no-store, max-age=0',
@@ -276,6 +302,9 @@ export class FfmpegMediaTranscoder implements MediaTranscoderPort {
       'mpjpeg',
       '-',
     ]);
+
+    attachSpawnFailureHandler(ffmpegProcess, 'MJPEG');
+    drainStderr(ffmpegProcess);
 
     res.writeHead(200, {
       'Content-Type': 'multipart/x-mixed-replace; boundary=--ffmpeg',

@@ -52,4 +52,6 @@ Las entidades `camera.*` importadas desde Home Assistant se muestran como dispos
 - [x] AC8: El visor completo utiliza el mismo fallback modular que la tarjeta.
 - [x] AC9: Una camara RTSP generica que Home Assistant reproduce como HLS se muestra como video en HomePilot.
 - [x] AC10: Si HLS falla, la UI intenta MJPEG y finalmente snapshots sin romper la tarjeta.
+- [x] AC12: El proxy copia el cuerpo de la cámara respetando la contrapresión del cliente: cuando `write` indica que el dato quedó en memoria, espera el drenaje antes de pedir más al origen. Un visor lento ya no acumula fotogramas en el heap —un MJPEG no termina por sí solo— hasta agotar la memoria del equipo. Si el visor se desconecta, la lectura del origen se cancela.
+- [x] AC13: Los recursos de una sesión HLS nativa se desalojan cuando el manifiesto deja de listarlos, porque ffmpeg ya borró esos segmentos del disco. Antes el mapa guardaba cada identificador servido —unos 1800 por hora y visor— y una cámara en una pantalla fija nunca expiraba. El token de la sesión se resuelve una vez por manifiesto, no por línea.
 - [x] AC11: La sesión inicial de tarjeta no inicia HLS ni espera su negociación; el visor ampliado lo solicita bajo demanda y el proxy no registra abortos normales del navegador como errores críticos.

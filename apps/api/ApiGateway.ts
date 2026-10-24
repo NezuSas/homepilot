@@ -194,7 +194,10 @@ export class ApiGateway {
         );
       } catch (error: unknown) {
         logRuntimeDiagnostic('error', '[ApiGateway] Critical handler error:', error);
-        if (!rawRes.writableEnded) {
+        // headersSent, not writableEnded, is the precondition for writeHead: a handler that threw after
+        // writing its status would otherwise make this error path raise ERR_HTTP_HEADERS_SENT and turn a
+        // handled 500 into an unhandled rejection.
+        if (!rawRes.headersSent) {
           rawRes.writeHead(500, { 'Content-Type': 'application/json' });
           rawRes.end(
             JSON.stringify({
@@ -224,10 +227,17 @@ export class ApiGateway {
    */
   private setupWebSocketServer(): void {
     this.fastify.server.on('upgrade', async (request, socket, head) => {
-      const url = new URL(
-        request.url || '',
-        `http://${request.headers.host || 'localhost'}`
-      );
+      // A Host header that Node's HTTP parser accepts but the URL parser rejects would make this async
+      // listener reject with nobody to catch it, which ends the process. A LAN client can send one.
+      let url: URL;
+      try {
+        url = new URL(request.url || '', `http://${request.headers.host || 'localhost'}`);
+      } catch {
+        logRuntimeDiagnostic('warn', '[ApiGateway] WebSocket upgrade rejected: malformed request target');
+        socket.write('HTTP/1.1 400 Bad Request\r\n\r\n');
+        socket.destroy();
+        return;
+      }
       const pathname = url.pathname;
 
       if (pathname !== REALTIME_PATHNAME) {

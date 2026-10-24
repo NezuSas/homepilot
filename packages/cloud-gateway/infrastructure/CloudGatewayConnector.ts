@@ -29,6 +29,7 @@ export class CloudGatewayConnector {
     private readonly reconnectDelayMs = 5_000,
     private readonly createSocket: CloudGatewaySocketFactory = (url, options) => new WebSocket(url, options),
     private readonly relayExecutor: EdgeRelayExecutor = unavailableExecutor,
+    private readonly gatewayTimeoutMs = 15_000,
   ) {}
 
   static fromEnvironment(relayExecutor: EdgeRelayExecutor = unavailableExecutor): CloudGatewayConnector | null {
@@ -95,18 +96,49 @@ export class CloudGatewayConnector {
     void this.poll();
   }
 
+  /**
+   * Polling is the fallback when the WebSocket is unavailable. Three things keep it from misbehaving:
+   * the request has a timeout, so a cloud endpoint that accepts the connection and never answers cannot
+   * leave the loop pending forever; every iteration waits, because a 200 that carries no pending request
+   * resolves at once and the loop would otherwise spin at full speed; and the WebSocket is retried
+   * afterwards instead of staying abandoned for the life of the process.
+   */
   private async poll(): Promise<void> {
     while (!this.stopped && this.polling) {
+      let cycleSucceeded = false;
       try {
         const url = new URL(this.config.url);
         url.protocol = url.protocol === 'wss:' ? 'https:' : 'http:';
         url.pathname = '/gateway/edge/poll';
-        const response = await fetch(url, { method: 'POST', headers: { Authorization: `Bearer ${this.config.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ homeId: this.config.homeId, edgeId: this.config.edgeId }) });
+        const response = await this.gatewayFetch(url, { homeId: this.config.homeId, edgeId: this.config.edgeId });
         if (!response.ok) throw new Error(`poll ${response.status}`);
         await this.handlePollMessage(await response.json() as unknown);
+        cycleSucceeded = true;
       } catch {
-        await new Promise<void>((resolve) => setTimeout(resolve, this.reconnectDelayMs));
+        // Not logged on purpose: a cloud outage must not flood the appliance log once per cycle.
       }
+      await new Promise<void>((resolve) => { const timer = setTimeout(resolve, this.reconnectDelayMs); timer.unref(); });
+      // Once the cloud answers again, hand the channel back to the WebSocket. If it still fails, its error
+      // handler returns here, so the two alternate instead of the socket being abandoned for good.
+      if (cycleSucceeded) this.polling = false;
+    }
+    if (!this.stopped) this.scheduleReconnect();
+  }
+
+  /** A gateway request that cannot outlive one polling cycle. */
+  private async gatewayFetch(url: URL, body: unknown): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.gatewayTimeoutMs);
+    timeoutId.unref();
+    try {
+      return await fetch(url, {
+        method: 'POST',
+        signal: controller.signal,
+        headers: { Authorization: `Bearer ${this.config.token}`, 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
@@ -129,7 +161,7 @@ export class CloudGatewayConnector {
     const url = new URL(this.config.url);
     url.protocol = url.protocol === 'wss:' ? 'https:' : 'http:';
     url.pathname = '/gateway/edge/response';
-    await fetch(url, { method: 'POST', headers: { Authorization: `Bearer ${this.config.token}`, 'content-type': 'application/json' }, body: JSON.stringify(message) });
+    await this.gatewayFetch(url, message);
   }}
 
 export function isSecureGatewayUrl(value: string): boolean { try { return new URL(value).protocol === 'wss:'; } catch { return false; } }

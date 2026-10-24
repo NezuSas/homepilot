@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import type * as http from 'http';
 
 const spawnMock = jest.fn();
 const mockFs = {
@@ -338,5 +339,33 @@ describe('FfmpegMediaTranscoder', () => {
 
     expect(spawnMock).not.toHaveBeenCalled();
     clearInterval(timer);
+  });
+
+  // A ChildProcess that emits 'error' with no listener throws, and that ends the Edge process. ffmpeg does
+  // emit it: ENOENT when the binary is missing from the image, EAGAIN when the appliance cannot fork.
+  it('survives ffmpeg failing to spawn on every stream it starts', () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    try {
+      for (const start of [
+        (t: FfmpegMediaTranscoder, r: http.ServerResponse) => t.streamSnapshot(endpoint, r),
+        (t: FfmpegMediaTranscoder, r: http.ServerResponse) => t.streamMjpeg(endpoint, r),
+      ]) {
+        const child = processStub();
+        spawnMock.mockReturnValue(child);
+        const transcoder = new FfmpegMediaTranscoder();
+        const res = { writeHead: jest.fn(), on: jest.fn(), once: jest.fn() } as unknown as http.ServerResponse;
+
+        start(transcoder, res);
+
+        expect(child.listenerCount('error')).toBe(1);
+        expect(() => child.emit('error', new Error('spawn ffmpeg ENOENT'))).not.toThrow();
+        // stderr is consumed so a full OS pipe buffer cannot block ffmpeg mid-frame.
+        expect(child.stderr.listenerCount('data')).toBe(1);
+      }
+      expect(errorSpy).toHaveBeenCalledTimes(2);
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 });
