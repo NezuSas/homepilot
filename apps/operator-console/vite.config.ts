@@ -19,13 +19,15 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
+        // Each heavy dependency gets its own chunk. Sharing one meant the JSX runtime landed beside
+        // hls.js, and because the entry needs the runtime the whole chunk became eager: ~340 kB of video
+        // player downloaded on first paint, including on the login screen where no video exists, despite
+        // useHlsPlayback importing it dynamically on purpose. The regex also tolerates the backslashes
+        // Rollup emits on Windows, which the previous `includes('node_modules/react/')` did not.
         manualChunks(id) {
-          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/react-router-dom/')) {
-            return 'vendor-react';
-          }
-          if (id.includes('node_modules/@dnd-kit/') || id.includes('node_modules/hls.js/')) {
-            return 'vendor-dashboard';
-          }
+          if (/node_modules[\\/]hls\.js[\\/]/.test(id)) return 'vendor-hls';
+          if (/node_modules[\\/]@dnd-kit[\\/]/.test(id)) return 'vendor-dnd';
+          if (/node_modules[\\/]react(-dom|-router-dom)?[\\/]/.test(id)) return 'vendor-react';
           return undefined;
         },
       },

@@ -27,6 +27,9 @@ Reducir el coste de JavaScript del selector de iconos del Operator Console sin a
 3. Un valor no incluido se conserva como texto y usa el fallback visual existente sin provocar una descarga ni un fallo.
 4. El selector mantiene roles ARIA, foco, Escape, filtrado y mensajes de estado vacío.
 5. Pasan lint, typecheck, build y regresión responsive.
+6. Cada dependencia pesada tiene su propio chunk, y `hls.js` no se descarga en el primer pintado. Al compartir un chunk, el runtime de JSX quedaba junto a `hls.js`; como la entrada necesita ese runtime, el chunk entero pasaba a ser inmediato y se descargaban unos 325 kB de reproductor de video incluso en la pantalla de inicio de sesión, pese a que `useHlsPlayback` lo importa de forma diferida a propósito. Medido en `dist/index.html`: el chunk precargado baja de 382,7 kB a 57,8 kB y `vendor-hls` (324,4 kB) solo lo referencia `CameraDeviceTile`. Las reglas de troceado usan expresiones regulares que toleran las barras invertidas que Rollup emite en Windows.
+7. Los formateadores `Intl` se construyen una vez por locale y formato, no por llamada ni por render: el reloj tiquea cada segundo y construía dos o tres `DateTimeFormat` por segundo de forma indefinida para valores que cambian a medianoche, y `formatMeasurement` creaba un `NumberFormat` en cada llamada, dos o tres por fila de la tarjeta Modbus y de nuevo en cada tecla de su buscador.
+8. La fusión del snapshot de dispositivos indexa el estado anterior una vez en lugar de recorrerlo por dispositivo: era un `find` dentro de un `map` sobre el mismo arreglo, en cada evento en tiempo real y en cada vuelta de foco a la pestaña.
 
 ## Seguridad y reversión
 

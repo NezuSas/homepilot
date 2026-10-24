@@ -6,7 +6,7 @@ import { Card } from './ui/Card';
 import { Heading } from './ui/Heading';
 import { StatusPill } from './ui/StatusPill';
 import { EventFilters, EMPTY_EVENT_FILTERS } from './EventFilters';
-import { eventNames, matchesEventName } from '../lib/eventFiltering';
+import { eventNames, localEventDate, matchesEventName } from '../lib/eventFiltering';
 import { useDeviceSnapshotStore } from '../stores/useDeviceSnapshotStore';
 
 interface DiagnosticEvent {
@@ -122,12 +122,6 @@ const groupEvents = (events: DiagnosticEvent[]): EventGroup[] => {
 
 const isErrorEvent = (eventType: string) => eventType.includes('failed') || eventType.includes('FAILED') || eventType.includes('error');
 
-const localDate = (iso: string) => {
-  const date = new Date(iso);
-  if (!Number.isFinite(date.getTime())) return '';
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-};
-
 const actionKind = (event: DiagnosticEvent) => {
   const data = normalizeEventData(event.data);
   if (data.ruleId || data.automationId || data.isAutomation === true || data.sourceType === 'automation') return 'automation';
@@ -143,7 +137,7 @@ export const DiagnosticsTimeline: React.FC<DiagnosticsTimelineProps> = ({ events
   const { date, action } = filters;
   const devices = useDeviceSnapshotStore(state => state.devices);
   const groups = groupEvents(Array.isArray(events) ? events : []).filter(group =>
-    (!date || localDate(group.main.occurredAt) === date)
+    (!date || localEventDate(group.main.occurredAt) === date)
     && (action === 'all' || actionKind(group.main) === action)
     && matchesEventName(filters.name, [group.main, ...group.children].flatMap(event => eventNames(event.data, devices))));
 

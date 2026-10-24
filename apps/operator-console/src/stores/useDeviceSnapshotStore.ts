@@ -193,9 +193,14 @@ export const useDeviceSnapshotStore = create<DeviceSnapshotState>((set, get) => 
 
         if (requestGeneration !== snapshotGeneration) return;
 
+        // Indexed once instead of scanned per device: this ran a full find() inside a map over the same
+        // array on every realtime event and every tab focus, which is tens of thousands of comparisons
+        // per refresh in a home with a few hundred devices.
+        const currentByKey = new Map(get().devices.map((candidate) => [`${candidate.homeId}|${candidate.id}`, candidate]));
+
         set({
           devices: devices.map((device) => {
-            const current = get().devices.find((candidate) => candidate.id === device.id && candidate.homeId === device.homeId);
+            const current = currentByKey.get(`${device.homeId}|${device.id}`);
             return isPlcIntegration(device.integrationSource) && current !== undefined && isPlcIntegration(current.integrationSource)
               && Date.parse(current.updatedAt ?? '') > Date.parse(device.updatedAt ?? '')
               ? { ...device, lastKnownState: current.lastKnownState, updatedAt: current.updatedAt }

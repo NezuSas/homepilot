@@ -77,12 +77,33 @@ export function titleCase(value: string): string {
   return value.charAt(0).toLocaleUpperCase() + value.slice(1);
 }
 
+/**
+ * Date formatters are built once per locale and field instead of per render.
+ *
+ * The clock widget ticks every second and these are called while rendering, so a dashboard left open
+ * was constructing two or three `Intl.DateTimeFormat` instances a second, indefinitely, for values that
+ * change at midnight. Construction is one of the more expensive routine operations in the platform, and
+ * the churn also feeds the garbage collector on the displays this console targets.
+ */
+const dateFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function dateFormatter(locale: string, options: Intl.DateTimeFormatOptions, key: string): Intl.DateTimeFormat {
+  const normalized = normalizeLocale(locale);
+  const cacheKey = `${normalized}|${key}`;
+  let formatter = dateFormatters.get(cacheKey);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(normalized, options);
+    dateFormatters.set(cacheKey, formatter);
+  }
+  return formatter;
+}
+
 export function formatWeekday(now: Date, locale: string, format: 'short' | 'long' = 'short'): string {
-  return titleCase(new Intl.DateTimeFormat(normalizeLocale(locale), { weekday: format }).format(now));
+  return titleCase(dateFormatter(locale, { weekday: format }, `weekday:${format}`).format(now));
 }
 
 export function formatMonth(now: Date, locale: string, format: 'short' | 'long' = 'short'): string {
-  return titleCase(new Intl.DateTimeFormat(normalizeLocale(locale), { month: format }).format(now));
+  return titleCase(dateFormatter(locale, { month: format }, `month:${format}`).format(now));
 }
 
 export function formatDateLine(now: Date, locale: string): string {
