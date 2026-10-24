@@ -89,6 +89,18 @@ export function buildGetPtzConfigurationOptionsEnvelope(credentials: OnvifCreden
   ].join('\n'));
 }
 
+/**
+ * How long the camera keeps moving on its own if no Stop arrives.
+ *
+ * ONVIF ContinuousMove without a Timeout runs until an explicit Stop, and many cameras default to no
+ * bound at all. The Stop is a separate request that can simply never happen — the console tab closes,
+ * Wi-Fi drops, or the camera is briefly too busy to answer — and then the camera pans to its mechanical
+ * limit and stays pointed at the wrong thing, so the recording covers nothing useful until somebody
+ * notices. This is the standard ONVIF deadman: long enough not to cut a normal hold short, and the
+ * console refreshes the move while the control is held.
+ */
+const PTZ_MOVE_TIMEOUT = 'PT5S';
+
 export function buildContinuousMoveEnvelope(credentials: OnvifCredentials, profileToken: string, vector: PtzVector): string {
   const pan = vector.pan ?? 0;
   const tilt = vector.tilt ?? 0;
@@ -100,6 +112,7 @@ export function buildContinuousMoveEnvelope(credentials: OnvifCredentials, profi
     `    <PanTilt xmlns="http://www.onvif.org/ver10/schema" x="${pan}" y="${tilt}"/>`,
     `    <Zoom xmlns="http://www.onvif.org/ver10/schema" x="${zoom}"/>`,
     '  </Velocity>',
+    `  <Timeout>${PTZ_MOVE_TIMEOUT}</Timeout>`,
     '</ContinuousMove>',
   ].join('\n'));
 }

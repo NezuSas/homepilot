@@ -1,9 +1,12 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../lib/apiClient';
 import { IconButton } from './ui/IconButton';
+
+// Comfortably inside the camera's own move timeout, so a held control never lapses between refreshes.
+const PTZ_MOVE_REFRESH_MS = 3000;
 
 interface CameraPtzControlProps {
   deviceId: string;
@@ -26,6 +29,7 @@ const PTZ_SPEED = 0.5;
 export const CameraPtzControl: React.FC<CameraPtzControlProps> = ({ deviceId }) => {
   const { t } = useTranslation();
   const isMovingRef = useRef(false);
+  const refreshRef = useRef<number | undefined>(undefined);
 
   const sendCommand = useCallback((name: 'ptz_move' | 'ptz_stop', params?: PtzVector) => {
     void apiFetch(`${API_BASE_URL}/api/v1/devices/${encodeURIComponent(deviceId)}/command`, {
@@ -33,20 +37,30 @@ export const CameraPtzControl: React.FC<CameraPtzControlProps> = ({ deviceId }) 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ command: { name, params } }),
     }).catch(() => {
-      // Best-effort: a dropped PTZ command has no persistent state to reconcile.
+      // Best-effort: a dropped move is simply not performed. A dropped stop is covered by the move
+      // timeout the backend sends, after which the camera stops on its own.
     });
   }, [deviceId]);
 
+  // The camera self-stops after the move timeout so a Stop that never arrives cannot leave it panning to
+  // its mechanical limit. Refreshing the move while the control is held keeps a long hold working.
   const startMove = useCallback((vector: PtzVector) => {
     isMovingRef.current = true;
     sendCommand('ptz_move', vector);
+    window.clearInterval(refreshRef.current);
+    refreshRef.current = window.setInterval(() => sendCommand('ptz_move', vector), PTZ_MOVE_REFRESH_MS);
   }, [sendCommand]);
 
   const stopMove = useCallback(() => {
+    window.clearInterval(refreshRef.current);
+    refreshRef.current = undefined;
     if (!isMovingRef.current) return;
     isMovingRef.current = false;
     sendCommand('ptz_stop');
   }, [sendCommand]);
+
+  // A control released outside the component, or unmounted mid-hold, must not keep sending moves.
+  useEffect(() => () => window.clearInterval(refreshRef.current), []);
 
   const holdProps = (vector: PtzVector) => ({
     onPointerDown: () => startMove(vector),

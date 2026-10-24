@@ -22,8 +22,34 @@ describe('Feature: Sonoff local command driver', () => {
 
     const result = await driver.executeCommand(device, { name: 'turn_on' }, { userId: 'operator-1', correlationId: 'test-command' });
 
-    expect(result).toEqual({ success: true, newState: { on: true, state: 'on' } });
+    expect(result).toEqual({ success: true, newState: { on: true, state: 'on', confirmation: 'confirmed' } });
     expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  // The eWeLink LAN endpoint answers 200 and reports the outcome in the body, so the envelope alone
+  // proves nothing: a wrong deviceid or an IP that DHCP gave to another Sonoff returns 200 and does not
+  // switch. Reporting that as a success is how a user ends up in a dark room being told the light is on.
+  it('Scenario: Given a device that reports an error in a 200 response When a command is sent Then it fails instead of claiming success', async () => {
+    SonoffConnectionRegistry.registerIp('eWeLink_abc123', '192.168.1.25');
+    global.fetch = jest.fn()
+      .mockResolvedValue({ ok: true, json: jest.fn().mockResolvedValue({ seq: 7, error: 403 }) }) as unknown as typeof fetch;
+
+    const result = await driver.executeCommand(device, { name: 'turn_on' }, { userId: 'operator-1', correlationId: 'test-command' });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('403');
+    expect(result.newState).toBeUndefined();
+  });
+
+  it('Scenario: Given a device that reports error 0 When a command is sent Then the command is accepted', async () => {
+    SonoffConnectionRegistry.registerIp('eWeLink_abc123', '192.168.1.25');
+    global.fetch = jest.fn()
+      .mockResolvedValueOnce({ ok: true, json: jest.fn().mockResolvedValue({ seq: 7, error: 0 }) })
+      .mockResolvedValueOnce({ ok: true, json: jest.fn().mockResolvedValue({ data: { switch: 'on' } }) }) as unknown as typeof fetch;
+
+    const result = await driver.executeCommand(device, { name: 'turn_on' }, { userId: 'operator-1', correlationId: 'test-command' });
+
+    expect(result).toEqual({ success: true, newState: { on: true, state: 'on', confirmation: 'confirmed' } });
   });
 
   it('Scenario: Given an unsupported command When it is sent to Sonoff Then no LAN request is made', async () => {
@@ -46,7 +72,10 @@ describe('Feature: Sonoff local command driver', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  it('uses a remembered IP, retries a failed dispatch once, and preserves optimistic state when verification is unavailable', async () => {
+  // The state shown when the device never confirmed is still the requested one, but it is now marked
+  // unconfirmed instead of being asserted as read back: claiming it silently is what let a refused
+  // command show a light as on while the room stayed dark.
+  it('uses a remembered IP, retries a failed dispatch once, and marks the state unconfirmed when verification is unavailable', async () => {
     const retryingDevice = { ...device, externalId: 'sonoff:eWeLink_retry', lastKnownState: { on: true, brightness: 80, power: 1, ip: '192.168.1.28' } };
     global.fetch = jest.fn()
       .mockResolvedValueOnce({ ok: false, status: 503 })
@@ -56,7 +85,7 @@ describe('Feature: Sonoff local command driver', () => {
     const result = await driver.executeCommand(retryingDevice, { name: 'toggle' }, { userId: 'operator-1', correlationId: 'test-command' });
 
     expect(global.fetch).toHaveBeenCalledTimes(3);
-    expect(result).toEqual({ success: true, newState: { on: false, brightness: 0, power: 0, ip: '192.168.1.28', state: 'off' } });
+    expect(result).toEqual({ success: true, newState: { on: false, brightness: 0, power: 0, ip: '192.168.1.28', state: 'off', confirmation: 'unconfirmed' } });
   });
 
   it('clears command and verification timers when the LAN transport rejects', async () => {

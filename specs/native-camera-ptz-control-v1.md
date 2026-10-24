@@ -106,6 +106,13 @@ display real.
       `check:module-test-coverage` — todos en verde.
 - [x] AC8: Contenedor Docker reconstruido con el `bootstrap.ts` reordenado (native camera module
       antes que command router) arranca correctamente y `/health` en verde.
+- [x] AC9: Todo `ContinuousMove` lleva `<Timeout>PT5S</Timeout>`, de modo que la cámara se detiene
+      sola si el `Stop` no llega. Sin ese límite el movimiento continúa hasta un `Stop` explícito
+      —muchas cámaras no imponen ninguno—, y el `Stop` es una petición aparte que puede no ocurrir:
+      la pestaña se cierra, el Wi-Fi cae o la cámara está ocupada. La cámara quedaba apuntando al
+      límite mecánico y la grabación no cubría nada útil hasta que alguien lo notaba. Para no acortar
+      el gesto, la consola renueva el movimiento cada 3 s mientras se mantiene pulsado el control y
+      cancela esa renovación al soltar o al desmontarse.
 
 ## Notas técnicas y arquitectura
 

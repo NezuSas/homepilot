@@ -77,4 +77,18 @@ describe('OnvifSoapEnvelopes', () => {
     expect(stop).toContain('<PanTilt>true</PanTilt>');
     expect(stop).toContain('<Zoom>true</Zoom>');
   });
+
+  // ContinuousMove without a Timeout runs until an explicit Stop, and many cameras default to no bound.
+  // The Stop is a separate request that can simply never arrive, and then the camera pans to its
+  // mechanical limit and stays pointed at the wrong thing.
+  it('bounds every continuous move so a stop that never arrives cannot leave the camera panning', () => {
+    const credentials = { username: 'admin', password: 'secret' };
+
+    for (const vector of [{ pan: 0.5, tilt: -0.25, zoom: 1 }, {}, { zoom: -1 }]) {
+      const movement = buildContinuousMoveEnvelope(credentials, 'profile', vector);
+      expect(movement).toContain('<Timeout>PT5S</Timeout>');
+      // The bound belongs to the move, not to the velocity it carries.
+      expect(movement.indexOf('</Velocity>')).toBeLessThan(movement.indexOf('<Timeout>'));
+    }
+  });
 });

@@ -36,6 +36,8 @@ Los dispositivos Sonoff compatibles deben descubrirse y controlarse localmente m
 - [x] AC2: Un comando soportado actualiza el estado HomePilot visible.
 - [x] AC3: Un comando no soportado se rechaza antes de despacharse.
 - [x] AC4: Un Sonoff pendiente muestra la acción de eliminación local con confirmación; al eliminarse no se modifica el equipo físico y puede volver a descubrirse.
+- [x] AC5: Un comando que el equipo rechaza no se reporta como éxito. El endpoint LAN de eWeLink responde `200` y declara el resultado en el cuerpo, así que la envoltura HTTP no prueba nada: un `deviceid` incorrecto, una IP que DHCP reasignó a otro Sonoff o un equipo en modo LAN cifrado devuelven `200` y no conmutan. Si el cuerpo declara un error distinto de cero, el comando falla; un cuerpo ausente o ilegible no se interpreta como rechazo.
+- [x] AC6: El estado resultante distingue lo confirmado de lo supuesto. Tras despachar, el driver pregunta al equipo su estado real: si lo confirma, publica `confirmation: 'confirmed'`; si la verificación no está disponible, conserva el estado solicitado pero lo marca `confirmation: 'unconfirmed'` y lo registra. Antes caía al valor optimista en silencio, de modo que un usuario podía ver la luz encendida estando la habitación a oscuras. Es el mismo marcador que usa el driver Modbus para una escritura sin confirmar.
 
 ## 7. Notas Técnicas y Arquitectura
 
