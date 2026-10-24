@@ -3,6 +3,7 @@ import { Home } from '../../domain/types';
 import { SingleHomeInstallationError } from '../../domain/errors';
 import { HomeRepository } from '../../domain/repositories/HomeRepository';
 import { SqliteDatabaseManager } from '../../../shared/infrastructure/database/SqliteDatabaseManager';
+import { PreparedStatementCache } from '../../../shared/infrastructure/database/PreparedStatementCache';
 
 /**
  * Interfaz interna para tipar las filas de la tabla 'homes'.
@@ -24,9 +25,11 @@ interface HomeRow {
  */
 export class SQLiteHomeRepository implements HomeRepository {
   private readonly db: SqliteDatabase;
+  private readonly statements: PreparedStatementCache;
 
   constructor(dbPath: string) {
     this.db = SqliteDatabaseManager.getInstance(dbPath);
+    this.statements = new PreparedStatementCache(this.db);
   }
 
   /**
@@ -35,7 +38,7 @@ export class SQLiteHomeRepository implements HomeRepository {
    * entidad de dominio es la fuente de verdad del estado actual.
    */
   public async saveHome(home: Home): Promise<void> {
-    const stmt = this.db.prepare(`
+    const stmt = this.statements.get(`
       INSERT INTO homes (id, owner_id, name, entity_version, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, STRFTIME('%Y-%m-%dT%H:%M:%f', 'NOW'))
       ON CONFLICT(id) DO UPDATE SET
@@ -54,7 +57,7 @@ export class SQLiteHomeRepository implements HomeRepository {
    */
   public async findHomesByUserId(userId: string): Promise<ReadonlyArray<Home>> {
     void userId;
-    const rows = this.db.prepare('SELECT * FROM homes ORDER BY created_at ASC').all() as HomeRow[];
+    const rows = this.statements.get('SELECT * FROM homes ORDER BY created_at ASC').all() as HomeRow[];
     if (rows.length > 1) throw new SingleHomeInstallationError();
     return rows.map(row => this.mapToEntity(row));
   }
@@ -63,7 +66,7 @@ export class SQLiteHomeRepository implements HomeRepository {
    * Intenta localizar un hogar por su identificador único.
    */
   public async findHomeById(homeId: string): Promise<Home | null> {
-    const stmt = this.db.prepare('SELECT * FROM homes WHERE id = ?');
+    const stmt = this.statements.get('SELECT * FROM homes WHERE id = ?');
     const row = stmt.get(homeId) as HomeRow | undefined;
 
     if (!row) return null;
@@ -75,7 +78,7 @@ export class SQLiteHomeRepository implements HomeRepository {
    * Recupera todos los hogares registrados sin filtros de propiedad.
    */
   public async findAll(): Promise<ReadonlyArray<Home>> {
-    const stmt = this.db.prepare('SELECT * FROM homes');
+    const stmt = this.statements.get('SELECT * FROM homes');
     const rows = stmt.all() as HomeRow[];
     return rows.map(row => this.mapToEntity(row));
   }

@@ -2,6 +2,7 @@ import { Database as SqliteDatabase } from 'better-sqlite3';
 import { Room } from '../../domain/types';
 import { RoomRepository } from '../../domain/repositories/RoomRepository';
 import { SqliteDatabaseManager } from '../../../shared/infrastructure/database/SqliteDatabaseManager';
+import { PreparedStatementCache } from '../../../shared/infrastructure/database/PreparedStatementCache';
 
 /**
  * Interfaz interna para tipar las filas de la tabla 'rooms'.
@@ -23,16 +24,18 @@ interface RoomRow {
  */
 export class SQLiteRoomRepository implements RoomRepository {
   private readonly db: SqliteDatabase;
+  private readonly statements: PreparedStatementCache;
 
   constructor(dbPath: string) {
     this.db = SqliteDatabaseManager.getInstance(dbPath);
+    this.statements = new PreparedStatementCache(this.db);
   }
 
   /**
    * Persiste una habitación utilizando semántica de UPSERT explícito.
    */
   public async saveRoom(room: Room): Promise<void> {
-    const stmt = this.db.prepare(`
+    const stmt = this.statements.get(`
       INSERT INTO rooms (id, home_id, name, entity_version, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, STRFTIME('%Y-%m-%dT%H:%M:%f', 'NOW'))
       ON CONFLICT(id) DO UPDATE SET
@@ -49,7 +52,7 @@ export class SQLiteRoomRepository implements RoomRepository {
    * Retorna una lista inmutable de todas las habitaciones adscritas a un hogar específico.
    */
   public async findRoomsByHomeId(homeId: string): Promise<ReadonlyArray<Room>> {
-    const stmt = this.db.prepare('SELECT * FROM rooms WHERE home_id = ?');
+    const stmt = this.statements.get('SELECT * FROM rooms WHERE home_id = ?');
     const rows = stmt.all(homeId) as RoomRow[];
 
     return rows.map(row => this.mapToEntity(row));
@@ -59,7 +62,7 @@ export class SQLiteRoomRepository implements RoomRepository {
    * Busca una habitación específica por su identificador único.
    */
   public async findRoomById(roomId: string): Promise<Room | null> {
-    const stmt = this.db.prepare('SELECT * FROM rooms WHERE id = ?');
+    const stmt = this.statements.get('SELECT * FROM rooms WHERE id = ?');
     const row = stmt.get(roomId) as RoomRow | undefined;
 
     if (!row) return null;
@@ -68,7 +71,7 @@ export class SQLiteRoomRepository implements RoomRepository {
   }
 
   public async findAll(): Promise<ReadonlyArray<Room>> {
-    const stmt = this.db.prepare('SELECT * FROM rooms');
+    const stmt = this.statements.get('SELECT * FROM rooms');
     const rows = stmt.all() as RoomRow[];
 
     return rows.map(row => this.mapToEntity(row));
@@ -81,7 +84,7 @@ export class SQLiteRoomRepository implements RoomRepository {
         .prepare('SELECT COUNT(*) AS count FROM devices WHERE room_id = ?')
         .get(roomId) as { count: number }).count;
 
-      this.db.prepare(`
+      this.statements.get(`
         UPDATE devices
         SET room_id = NULL,
             status = 'PENDING',
@@ -90,7 +93,7 @@ export class SQLiteRoomRepository implements RoomRepository {
         WHERE room_id = ?
       `).run(deletedAt, roomId);
 
-      this.db.prepare('DELETE FROM rooms WHERE id = ?').run(roomId);
+      this.statements.get('DELETE FROM rooms WHERE id = ?').run(roomId);
       return deviceCount;
     });
 

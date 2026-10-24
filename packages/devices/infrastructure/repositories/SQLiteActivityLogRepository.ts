@@ -1,6 +1,7 @@
 import { Database as SqliteDatabase } from 'better-sqlite3';
 import { ActivityDeletionOptions, ActivityLogRepository, ActivityRecord, ActivityType } from '../../domain/repositories/ActivityLogRepository';
 import { SqliteDatabaseManager } from '../../../shared/infrastructure/database/SqliteDatabaseManager';
+import { PreparedStatementCache } from '../../../shared/infrastructure/database/PreparedStatementCache';
 
 /**
  * Interfaz interna para tipar las filas de la tabla 'activity_logs'.
@@ -23,9 +24,11 @@ interface ActivityLogRow {
  */
 export class SQLiteActivityLogRepository implements ActivityLogRepository {
   private readonly db: SqliteDatabase;
+  private readonly statements: PreparedStatementCache;
 
   constructor(dbPath: string) {
     this.db = SqliteDatabaseManager.getInstance(dbPath);
+    this.statements = new PreparedStatementCache(this.db);
   }
 
   /**
@@ -37,7 +40,7 @@ export class SQLiteActivityLogRepository implements ActivityLogRepository {
     const serializedData = this.serializeData(record.data);
     const correlationId = record.correlationId || null;
 
-    const stmt = this.db.prepare(`
+    const stmt = this.statements.get(`
       INSERT INTO activity_logs (device_id, type, description, data, timestamp, correlation_id)
       VALUES (?, ?, ?, ?, ?, ?)
     `);
@@ -57,7 +60,7 @@ export class SQLiteActivityLogRepository implements ActivityLogRepository {
    * Ordena según el timestamp de forma descendente (LIFO).
    */
   public async findRecentByDeviceId(deviceId: string, limit: number): Promise<ReadonlyArray<ActivityRecord>> {
-    const stmt = this.db.prepare(`
+    const stmt = this.statements.get(`
       SELECT * FROM activity_logs 
       WHERE device_id = ? 
       ORDER BY timestamp DESC 
@@ -70,7 +73,7 @@ export class SQLiteActivityLogRepository implements ActivityLogRepository {
   }
 
   public async findAllRecent(limit: number): Promise<ReadonlyArray<ActivityRecord>> {
-    const stmt = this.db.prepare(`
+    const stmt = this.statements.get(`
       SELECT * FROM activity_logs 
       ORDER BY timestamp DESC 
       LIMIT ?
@@ -94,7 +97,7 @@ export class SQLiteActivityLogRepository implements ActivityLogRepository {
       filters.push(`type NOT IN (${options.excludeTypes.map(() => '?').join(',')})`);
       params.push(...options.excludeTypes);
     }
-    const result = this.db.prepare(
+    const result = this.statements.get(
       `DELETE FROM activity_logs WHERE id IN (SELECT id FROM activity_logs WHERE ${filters.join(' AND ')} LIMIT ?)`
     ).run(...params, limit);
     return result.changes;
@@ -103,7 +106,7 @@ export class SQLiteActivityLogRepository implements ActivityLogRepository {
   public async findAllByTypes(types: ActivityType[], since: string): Promise<ReadonlyArray<ActivityRecord>> {
     if (types.length === 0) return [];
     const placeholders = types.map(() => '?').join(',');
-    const stmt = this.db.prepare(`
+    const stmt = this.statements.get(`
       SELECT * FROM activity_logs 
       WHERE type IN (${placeholders}) AND timestamp >= ?
       ORDER BY timestamp DESC

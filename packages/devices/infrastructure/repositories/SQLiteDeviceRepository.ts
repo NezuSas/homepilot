@@ -2,6 +2,7 @@ import { Database as SqliteDatabase } from 'better-sqlite3';
 import { Device } from '../../domain/types';
 import { DeviceRepository } from '../../domain/repositories/DeviceRepository';
 import { SqliteDatabaseManager } from '../../../shared/infrastructure/database/SqliteDatabaseManager';
+import { PreparedStatementCache } from '../../../shared/infrastructure/database/PreparedStatementCache';
 
 /**
  * Interfaz interna para tipar las filas de la tabla 'devices'.
@@ -32,9 +33,11 @@ interface DeviceRow {
  */
 export class SQLiteDeviceRepository implements DeviceRepository {
   private readonly db: SqliteDatabase;
+  private readonly statements: PreparedStatementCache;
 
   constructor(dbPath: string) {
     this.db = SqliteDatabaseManager.getInstance(dbPath);
+    this.statements = new PreparedStatementCache(this.db);
   }
 
   /**
@@ -42,7 +45,7 @@ export class SQLiteDeviceRepository implements DeviceRepository {
    */
   public async saveDevice(device: Device): Promise<void> {
     const serializedState = this.serializeState(device.lastKnownState);
-    const duplicate = this.db.prepare(`
+    const duplicate = this.statements.get(`
       SELECT id
       FROM devices
       WHERE home_id = ? AND external_id = ? AND id <> ?
@@ -53,7 +56,7 @@ export class SQLiteDeviceRepository implements DeviceRepository {
       throw new Error(`Device externalId already exists in home: ${device.externalId}`);
     }
 
-    const stmt = this.db.prepare(`
+    const stmt = this.statements.get(`
       INSERT INTO devices (
         id, home_id, room_id, external_id, name, type, vendor, status, integration_source, invert_state, last_known_state, entity_version, created_at, updated_at, semantic_type
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, STRFTIME('%Y-%m-%dT%H:%M:%f', 'NOW'), ?)
@@ -92,14 +95,14 @@ export class SQLiteDeviceRepository implements DeviceRepository {
   }
 
   public async deleteDevice(deviceId: string): Promise<void> {
-    this.db.prepare('DELETE FROM devices WHERE id = ?').run(deviceId);
+    this.statements.get('DELETE FROM devices WHERE id = ?').run(deviceId);
   }
 
   /**
    * Recupera un dispositivo por su identificador interno único.
    */
   public async findDeviceById(deviceId: string): Promise<Device | null> {
-    const stmt = this.db.prepare('SELECT * FROM devices WHERE id = ?');
+    const stmt = this.statements.get('SELECT * FROM devices WHERE id = ?');
     const row = stmt.get(deviceId) as DeviceRow | undefined;
 
     if (!row) return null;
@@ -111,7 +114,7 @@ export class SQLiteDeviceRepository implements DeviceRepository {
    * Filtra estrictamente por roomId IS NULL y status = 'PENDING'.
    */
   public async findInboxByHomeId(homeId: string): Promise<ReadonlyArray<Device>> {
-    const stmt = this.db.prepare(`
+    const stmt = this.statements.get(`
       SELECT * FROM devices 
       WHERE home_id = ? AND room_id IS NULL AND status = 'PENDING'
     `);
@@ -124,7 +127,7 @@ export class SQLiteDeviceRepository implements DeviceRepository {
    * Recupera todos los dispositivos de todos los hogares.
    */
   public async findAll(): Promise<ReadonlyArray<Device>> {
-    const stmt = this.db.prepare('SELECT * FROM devices');
+    const stmt = this.statements.get('SELECT * FROM devices');
     const rows = stmt.all() as DeviceRow[];
     return rows.map(row => this.mapToEntity(row));
   }
@@ -133,7 +136,7 @@ export class SQLiteDeviceRepository implements DeviceRepository {
    * Recupera todos los dispositivos ordenados por status y fecha de creación.
    */
   public async findAllOrderedByStatus(): Promise<ReadonlyArray<Device>> {
-    const stmt = this.db.prepare('SELECT * FROM devices ORDER BY status DESC, created_at DESC');
+    const stmt = this.statements.get('SELECT * FROM devices ORDER BY status DESC, created_at DESC');
     const rows = stmt.all() as DeviceRow[];
     return rows.map(row => this.mapToEntity(row));
   }
@@ -142,7 +145,7 @@ export class SQLiteDeviceRepository implements DeviceRepository {
    * Recupera todos los dispositivos de un hogar sin filtros.
    */
   public async findAllByHomeId(homeId: string): Promise<ReadonlyArray<Device>> {
-    const stmt = this.db.prepare('SELECT * FROM devices WHERE home_id = ?');
+    const stmt = this.statements.get('SELECT * FROM devices WHERE home_id = ?');
     const rows = stmt.all(homeId) as DeviceRow[];
     return rows.map(row => this.mapToEntity(row));
   }
@@ -151,7 +154,7 @@ export class SQLiteDeviceRepository implements DeviceRepository {
    * Recupera los external_ids que coinciden con un prefijo (e.g. 'ha:').
    */
   public async findAllExternalIdsByPrefix(prefix: string): Promise<ReadonlyArray<string>> {
-    const stmt = this.db.prepare('SELECT external_id FROM devices WHERE external_id LIKE ?');
+    const stmt = this.statements.get('SELECT external_id FROM devices WHERE external_id LIKE ?');
     const rows = stmt.all(`${prefix}%`) as { external_id: string }[];
     return rows.map(r => r.external_id);
   }
@@ -160,7 +163,7 @@ export class SQLiteDeviceRepository implements DeviceRepository {
    * Localiza un dispositivo basándose en su external_id y home_id.
    */
   public async findByExternalIdAndHomeId(externalId: string, homeId: string): Promise<Device | null> {
-    const stmt = this.db.prepare(`
+    const stmt = this.statements.get(`
       SELECT * FROM devices 
       WHERE external_id = ? AND home_id = ?
     `);
@@ -175,7 +178,7 @@ export class SQLiteDeviceRepository implements DeviceRepository {
    * Localiza un dispositivo globalmente usando sólo el external_id.
    */
   public async findByExternalId(externalId: string): Promise<Device | null> {
-    const stmt = this.db.prepare(`
+    const stmt = this.statements.get(`
       SELECT * FROM devices 
       WHERE external_id = ?
     `);
@@ -213,7 +216,7 @@ export class SQLiteDeviceRepository implements DeviceRepository {
 
   async updateSemanticType(deviceId: string, semanticType: string | null): Promise<void> {
     const updatedAt = new Date().toISOString();
-    const stmt = this.db.prepare(`
+    const stmt = this.statements.get(`
       UPDATE devices 
       SET semantic_type = @semanticType, updated_at = @updatedAt
       WHERE id = @deviceId

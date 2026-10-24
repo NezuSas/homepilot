@@ -2,6 +2,7 @@ import { Database as SqliteDatabase } from 'better-sqlite3';
 import { AutomationRule, DeviceStateTrigger } from '../../domain/automation/types';
 import { AutomationRuleRepository } from '../../domain/repositories/AutomationRuleRepository';
 import { SqliteDatabaseManager } from '../../../shared/infrastructure/database/SqliteDatabaseManager';
+import { PreparedStatementCache } from '../../../shared/infrastructure/database/PreparedStatementCache';
 import { TimeUtils } from '../../../shared/domain/utils/TimeUtils';
 import { TimeTrigger } from '../../domain/automation/types';
 
@@ -30,9 +31,11 @@ interface AutomationRuleRow {
  */
 export class SQLiteAutomationRuleRepository implements AutomationRuleRepository {
   private readonly db: SqliteDatabase;
+  private readonly statements: PreparedStatementCache;
 
   constructor(dbPath: string) {
     this.db = SqliteDatabaseManager.getInstance(dbPath);
+    this.statements = new PreparedStatementCache(this.db);
   }
 
   /**
@@ -44,7 +47,7 @@ export class SQLiteAutomationRuleRepository implements AutomationRuleRepository 
     const serializedAction = this.serializeAction(rule.action);
     const isEnabled = rule.enabled ? 1 : 0;
 
-    const stmt = this.db.prepare(`
+    const stmt = this.statements.get(`
       INSERT INTO automation_rules (
         id, home_id, user_id, name, icon, enabled, trigger, action, shared_user_ids, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'NOW'))
@@ -77,7 +80,7 @@ export class SQLiteAutomationRuleRepository implements AutomationRuleRepository 
    * Busca una regla por ID único.
    */
   public async findById(id: string): Promise<AutomationRule | null> {
-    const stmt = this.db.prepare('SELECT * FROM automation_rules WHERE id = ?');
+    const stmt = this.statements.get('SELECT * FROM automation_rules WHERE id = ?');
     const row = stmt.get(id) as AutomationRuleRow | undefined;
 
     if (!row) return null;
@@ -90,7 +93,7 @@ export class SQLiteAutomationRuleRepository implements AutomationRuleRepository 
    * Mantiene estricta compatibilidad semántica con InMemoryAutomationRuleRepository.
    */
   public async findByTriggerDevice(deviceId: string): Promise<ReadonlyArray<AutomationRule>> {
-    const stmt = this.db.prepare(`
+    const stmt = this.statements.get(`
       SELECT * FROM automation_rules 
       WHERE json_extract(trigger, '$.deviceId') = ? AND enabled = 1
     `);
@@ -103,7 +106,7 @@ export class SQLiteAutomationRuleRepository implements AutomationRuleRepository 
    * Lista todas las reglas configuradas para un hogar específico.
    */
   public async findByHomeId(homeId: string): Promise<ReadonlyArray<AutomationRule>> {
-    const stmt = this.db.prepare('SELECT * FROM automation_rules WHERE home_id = ?');
+    const stmt = this.statements.get('SELECT * FROM automation_rules WHERE home_id = ?');
     const rows = stmt.all(homeId) as AutomationRuleRow[];
     
     return rows.map(row => this.mapToEntity(row));
@@ -114,7 +117,7 @@ export class SQLiteAutomationRuleRepository implements AutomationRuleRepository 
    * Utilizado por la consola del operador local para gestión global.
    */
   public async findAll(): Promise<ReadonlyArray<AutomationRule>> {
-    const stmt = this.db.prepare('SELECT * FROM automation_rules ORDER BY created_at DESC');
+    const stmt = this.statements.get('SELECT * FROM automation_rules ORDER BY created_at DESC');
     const rows = stmt.all() as AutomationRuleRow[];
     return rows.map(row => this.mapToEntity(row));
   }
@@ -123,7 +126,7 @@ export class SQLiteAutomationRuleRepository implements AutomationRuleRepository 
    * Elimina silenciosamente una regla del sistema por su ID.
    */
   public async delete(id: string): Promise<void> {
-    const stmt = this.db.prepare('DELETE FROM automation_rules WHERE id = ?');
+    const stmt = this.statements.get('DELETE FROM automation_rules WHERE id = ?');
     stmt.run(id);
   }
 
