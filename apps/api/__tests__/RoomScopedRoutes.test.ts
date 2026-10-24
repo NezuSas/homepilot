@@ -120,6 +120,26 @@ describe('Feature: lists and actions follow the rooms a guest was given', () => 
     expect((parentScenes.body() as { id: string }[]).map((item) => item.id)).toEqual(['s-sala', 's-cocina', 's-mixta']);
   });
 
+  // The scope check used to read one device per action of every scene, and only a room-restricted user
+  // paid it — which is exactly the household tablet.
+  it('Scenario: Given a guest listing scenes When the scope is checked Then the home is read once, not per action', async () => {
+    const container = createContainer();
+
+    await run(new SceneRoutes(), createRequest('/api/v1/scenes'), '/api/v1/scenes', 'GET', container);
+
+    expect(container.repositories.deviceRepository.findAllByHomeId).toHaveBeenCalledTimes(1);
+    expect(container.repositories.deviceRepository.findDeviceById).not.toHaveBeenCalled();
+  });
+
+  it('Scenario: Given a parent listing scenes When no room limit applies Then the devices are not read at all', async () => {
+    const container = createContainer();
+
+    await run(new SceneRoutes(), createRequest('/api/v1/scenes', PARENT), '/api/v1/scenes', 'GET', container);
+
+    expect(container.repositories.deviceRepository.findAllByHomeId).not.toHaveBeenCalled();
+    expect(container.repositories.deviceRepository.findDeviceById).not.toHaveBeenCalled();
+  });
+
   it.each([
     ['s-sala', 200, true],
     ['s-cocina', 404, false],

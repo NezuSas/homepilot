@@ -47,12 +47,13 @@ export class DashboardRoutes extends ApiRoutes {
             // A concurrent request may have provisioned the same owner already.
             if (!(error instanceof Error) || error.message !== 'DASHBOARD_OWNER_EXISTS') throw error;
           }
+          // Only a provisioning run changes what the user can see, and this read parses the whole widget
+          // tree of every visible dashboard; the console hits this endpoint on every load.
+          dashboards = await container.services.dashboardService.getDashboardsForUser(
+            req.user!.id,
+            req.user!.role
+          );
         }
-
-        dashboards = await container.services.dashboardService.getDashboardsForUser(
-          req.user!.id,
-          req.user!.role
-        );
         dashboards.sort((a, b) => {
           if (a.ownerId === req.user!.id && b.ownerId !== req.user!.id) return -1;
           if (a.ownerId !== req.user!.id && b.ownerId === req.user!.id) return 1;

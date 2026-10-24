@@ -7,6 +7,27 @@ export interface SceneDeviceLookup {
   findDeviceById(deviceId: string): Promise<{ roomId: string | null } | null>;
 }
 
+/** Reads every device of a home once, so a listing does not query per scene action. */
+export interface HomeDeviceLookup {
+  findAllByHomeId(homeId: string): Promise<ReadonlyArray<{ id: string; roomId: string | null }>>;
+}
+
+/**
+ * Builds the room lookup for a whole home in one query.
+ *
+ * Checking a listing action by action meant one query per action of every scene — 160 for twenty scenes
+ * of eight actions — and only a room-restricted user paid it, which is exactly the household tablet.
+ * A device the home does not contain stays absent, so the caller still denies it.
+ */
+export async function homeRoomIndex(devices: HomeDeviceLookup, homeId: string): Promise<SceneDeviceLookup> {
+  const roomByDeviceId = new Map<string, string | null>();
+  for (const device of await devices.findAllByHomeId(homeId)) roomByDeviceId.set(device.id, device.roomId);
+  return {
+    findDeviceById: async (deviceId: string) =>
+      (roomByDeviceId.has(deviceId) ? { roomId: roomByDeviceId.get(deviceId) ?? null } : null),
+  };
+}
+
 /** True when the user may see a device or room that sits in `roomId`. */
 export function roomVisibleTo(user: RequestUser, roomId: string | null | undefined): boolean {
   return canUseRoom(user, roomId);

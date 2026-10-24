@@ -6,7 +6,8 @@ import { HomePilotRequest } from '../../../packages/shared/domain/http';
 import { Scene } from '../../../packages/devices/domain/Scene';
 import { canAccessRoutine, parseRoutineSharedUsers } from '../../../packages/devices/domain/routineAccess';
 import { isValidCommand } from '../../../packages/devices/domain/commands';
-import { sceneWithinRoomScope } from './roomScope';
+import { homeRoomIndex, sceneWithinRoomScope } from './roomScope';
+import { isRoomRestricted } from '../../../packages/auth/domain/roomAccess';
 
 /**
  * Scene routes: /api/v1/scenes/*
@@ -114,7 +115,11 @@ export class SceneRoutes extends ApiRoutes {
 
         const scenes = await container.repositories.sceneRepository.findScenesByHomeId(homeId);
         const reachable = scenes.filter((scene) => canAccessRoutine(scene, req.user!.id));
-        const inScope = await Promise.all(reachable.map((scene) => sceneWithinRoomScope(scene, req.user!, container.repositories.deviceRepository)));
+        // Only a room-restricted user needs the scope check, and then one read of the home's devices
+        // serves every scene instead of one read per action of each scene.
+        if (!isRoomRestricted(req.user!)) return this.sendJson(res, reachable), true;
+        const roomIndex = await homeRoomIndex(container.repositories.deviceRepository, homeId);
+        const inScope = await Promise.all(reachable.map((scene) => sceneWithinRoomScope(scene, req.user!, roomIndex)));
         this.sendJson(res, reachable.filter((_scene, index) => inScope[index]));
       } catch (error: unknown) {
         this.sendError(res, 500, 'DB_ERROR', error instanceof Error ? error.message : 'Unknown error');
